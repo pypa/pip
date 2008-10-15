@@ -144,7 +144,7 @@ parser.add_option(
     '-E', '--environment',
     dest='venv',
     metavar='DIR',
-    help='virtualenv environment to run pyinstall in (either give the '
+    help='virtualenv environment to run pip in (either give the '
     'interpreter or the environment base directory)')
 
 parser.add_option(
@@ -321,7 +321,7 @@ def main(initial_args=None):
     if log_fp is not None:
         log_fp.close()
     if exit:
-        log_fn = './pyinstall-log.txt'
+        log_fn = './pip-log.txt'
         text = '\n'.join(complete_log)
         logger.fatal('Storing complete log in %s' % log_fn)
         log_fp = open_logfile_append(log_fn)
@@ -650,7 +650,7 @@ class InstallRequirement(object):
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:
-            self._temp_build_dir = tempfile.mkdtemp('-build', 'pyinstall-')
+            self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
             return self._temp_build_dir
         if self.editable:
             name = self.name.lower()
@@ -690,10 +690,10 @@ class InstallRequirement(object):
             if self.editable:
                 egg_base_option = []
             else:
-                egg_info_dir = os.path.join(self.source_dir, 'pyinstall-egg-info')
+                egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
                 if not os.path.exists(egg_info_dir):
                     os.makedirs(egg_info_dir)
-                egg_base_option = ['--egg-base', 'pyinstall-egg-info']
+                egg_base_option = ['--egg-base', 'pip-egg-info']
             call_subprocess(
                 [sys.executable, '-c', script, 'egg_info'] + egg_base_option,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False,
@@ -740,7 +740,7 @@ execfile(__file__)
             if self.editable:
                 base = self.source_dir
             else:
-                base = os.path.join(self.source_dir, 'pyinstall-egg-info')
+                base = os.path.join(self.source_dir, 'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
@@ -800,7 +800,7 @@ execfile(__file__)
         assert self.source_dir
         if self.comes_from == 'command line':
             # We don't check the versions of things explicitly installed.
-            # This makes, e.g., "pyinstall Package==dev" possible
+            # This makes, e.g., "pip Package==dev" possible
             return
         version = self.installed_version
         if version not in self.req:
@@ -962,7 +962,8 @@ execfile(__file__)
         if not base:
             ## FIXME: this doesn't seem right:
             return False
-        self._is_bundle = os.path.exists(os.path.join(base, 'pyinstall-manifest.txt'))
+        self._is_bundle = (os.path.exists(os.path.join(base, 'pip-manifest.txt'))
+                           or os.path.exists(os.path.join(base, 'pyinstall-manifest.txt')))
         return self._is_bundle
     
     def bundle_requirements(self):
@@ -1015,11 +1016,11 @@ execfile(__file__)
     @property
     def delete_marker_filename(self):
         assert self.source_dir
-        return os.path.join(self.source_dir, 'pyinstall-delete-this-directory.txt')
+        return os.path.join(self.source_dir, 'pip-delete-this-directory.txt')
 
 DELETE_MARKER_MESSAGE = '''\
-This file is placed here by pyinstall to indicate the source was put
-here by pyinstall.
+This file is placed here by pip to indicate the source was put
+here by pip.
 
 Once this package is successfully installed this source code will be
 deleted (unless you remove this file).
@@ -1176,8 +1177,8 @@ class RequirementSet(object):
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
         target_file = None
-        if os.environ.get('PYINSTALL_DOWNLOAD_CACHE'):
-            target_file = os.path.join(os.environ['PYINSTALL_DOWNLOAD_CACHE'],
+        if os.environ.get('PIP_DOWNLOAD_CACHE'):
+            target_file = os.path.join(os.environ['PIP_DOWNLOAD_CACHE'],
                                        urllib.quote(target_url, ''))
         if (target_file and os.path.exists(target_file)
             and os.path.exists(target_file+'.content-type')):
@@ -1420,7 +1421,7 @@ class RequirementSet(object):
                     name = os.path.join(dirpath, 'svn-checkout.txt')
                     name = self._clean_zip_name(name, dir)
                     zip.writestr(basename + '/' + name, _svn_checkout_text(svn_url, svn_rev))
-        zip.writestr('pyinstall-manifest.txt', self.bundle_requirements())
+        zip.writestr('pip-manifest.txt', self.bundle_requirements())
         zip.close()
         # Unlike installation, this will always delete the build directories
         logger.info('Removing temporary build dir %s and source dir %s'
@@ -1431,9 +1432,9 @@ class RequirementSet(object):
                               
 
     BUNDLE_HEADER = '''\
-# This is a pyinstall bundle file, that contains many source packages
+# This is a pip bundle file, that contains many source packages
 # that can be installed as a group.  You can install this like:
-#     pyinstall this_file.zip
+#     pip this_file.zip
 # The rest of the file contains a list of all the packages included:
 '''
 
@@ -1720,7 +1721,7 @@ def write_freeze(filename, requirement, find_links, find_tags=False):
         f.write('-f %s\n' % link)
     installations = {}
     for dist in pkg_resources.working_set:
-        if dist.key in ('setuptools', 'pyinstall', 'python'):
+        if dist.key in ('setuptools', 'pip', 'python'):
             ## FIXME: also skip virtualenv?
             continue
         req = FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
@@ -1753,7 +1754,7 @@ def write_freeze(filename, requirement, find_links, find_tags=False):
                 continue
             f.write(str(installations[line_req.name]))
             del installations[line_req.name]
-        f.write('## The following requirements were added by pyinstall --freeze:\n')
+        f.write('## The following requirements were added by pip --freeze:\n')
     for installation in sorted(installations.values(), key=lambda x: x.name):
         f.write(str(installation))
     if filename != '-':

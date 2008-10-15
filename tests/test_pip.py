@@ -21,9 +21,9 @@ def reset_env():
     env.run('%s/bin/easy_install' % env.base_path, 'http://peak.telecommunity.com/snapshots/setuptools-0.7a1dev-r66388.tar.gz')
     env.run('mkdir', 'src')
 
-def run_pyinstall(*args, **kw):
+def run_pip(*args, **kw):
     import sys
-    args = ('python', '../../pyinstall.py', '-E', env.base_path) + args
+    args = ('python', '../../pip', '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
     if options.show_error:
         kw['expect_error'] = True
@@ -47,7 +47,7 @@ parser.add_option('--first', action='store_true',
 parser.add_option('--diff', action='store_true',
                   help='Show diffs in doctest failures')
 parser.add_option('--show-error', action='store_true',
-                  help='Show the errors (use expect_error=True in run_pyinstall)')
+                  help='Show the errors (use expect_error=True in run_pip)')
 parser.add_option('-v', action='store_true',
                   help='Be verbose')
 

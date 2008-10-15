@@ -9,17 +9,17 @@ version = '0.1.5'
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')
 long_description = """\ 
-The main website for pyinstall is `pyinstall.openplans.org
-<http://pyinstall.openplans.org>`_
+The main website for pip is `pip.openplans.org
+<http://pip.openplans.org>`_
 
 """
 long_description = long_description + open(index_filename).read().split('split here', 1)[1]
 
 
 
-setup(name='pyinstall',
+setup(name='pip',
       version=version,
-      description="Installer for Python packages",
+      description="pip installs packages.  Python packages.  An easy_install replacement",
       long_description=long_description,
       classifiers=[
         'Development Status :: 4 - Beta',
@@ -31,11 +31,11 @@ setup(name='pyinstall',
       keywords='easy_install distutils setuptools egg virtualenv',
       author='The Open Planning Project',
       author_email='python-virtualenv@groups.google.com',
-      url='http://pyinstall.openplans.org',
+      url='http://pip.openplans.org',
       license='MIT',
-      py_modules=['pyinstall'],
+      py_modules=['pip'],
       ## FIXME: is this the best way?  (Works with distutils, but
       ## don't we really require setuptools anyway?)
-      scripts=['pyinstall.py'],
+      scripts=['scripts/pip'],
       )
       

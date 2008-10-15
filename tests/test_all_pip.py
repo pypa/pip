@@ -5,7 +5,7 @@ import os
 import subprocess
 import shutil
 
-pyinstall_fn = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pyinstall.py')
+pip_fn = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pip.py')
 
 def all_projects():
     data = urllib2.urlopen('http://pypi.python.org/pypi/').read()
@@ -16,7 +16,7 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     if not args:
-        print 'Usage: test_all_pyinstall.py <output-dir>'
+        print 'Usage: test_all_pip.py <output-dir>'
         sys.exit(1)
     output = args[0]
     if not os.path.exists(output):
@@ -45,7 +45,7 @@ def test_packages(output, pending_fn):
     assert not code, "virtualenv failed"
     print 'Trying installation of %s' % dest_dir
     code = subprocess.call([os.path.join(dest_dir, 'bin', 'python'),
-                            pyinstall_fn, package])
+                            pip_fn, package])
     if code:
         print 'Installation of %s failed' % package
         print 'Now checking easy_install...'

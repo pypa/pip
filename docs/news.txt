@@ -1,4 +1,4 @@
-News for pyinstall
+News for pip
 ==================
 
 0.1.4
@@ -23,7 +23,7 @@ News for pyinstall
   ``mypackage/`` are the same directory.
 
 * Added support for an environmental variable
-  ``$PYINSTALL_DOWNLOAD_CACHE`` which will cache package downloads, so
+  ``$PIP_DOWNLOAD_CACHE`` which will cache package downloads, so
   future installations won't require large downloads.  Network access
   is still required, but just some downloads will be avoided when
   using this.
@@ -53,7 +53,7 @@ News for pyinstall
 0.1.1
 -----
 
-* Fixed a NameError exception when running pyinstall outside of a
+* Fixed a NameError exception when running pip outside of a
   virtualenv environment.
 
 * Added HTTP proxy support (from Prabhu Ramachandran)
