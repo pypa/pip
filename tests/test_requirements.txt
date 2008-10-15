@@ -1,0 +1,38 @@
+Basic setup::
+
+    >>> import os
+    >>> from __main__ import base_path, reset_env, run_pyinstall, pyversion, lib_py, write_file
+
+Some tests of requirement files::
+
+    >>> reset_env()
+    >>> write_file('initools-req.txt', '''\
+    ... INITools==0.2
+    ... # and something else to test out:
+    ... simplejson<=1.7.4
+    ... ''')
+    >>> result = run_pyinstall('-r', 'initools-req.txt')
+    >>> len(result.wildcard_matches('lib/python*/site-packages/INITools-0.2-py*.egg-info'))
+    1
+    >>> len(result.wildcard_matches('lib/python*/site-packages/initools'))
+    1
+    >>> dirs = result.wildcard_matches('lib/python*/site-packages/simplejson*')
+    >>> len(dirs)
+    2
+    >>> dirs[0].dir, dirs[1].dir
+    (True, True)
+
+Now with more than one file::
+
+    >>> reset_env()
+    >>> write_file('initools-req.txt', '''\
+    ... -e svn+http://svn.colorstudy.com/INITools/trunk@3139#egg=INITools-dev
+    ... -r simplejson-req.txt''')
+    >>> write_file('simplejson-req.txt', '''\
+    ... simplejson<=1.7.4
+    ... ''')
+    >>> result = run_pyinstall('-r', 'initools-req.txt')
+    >>> len(result.wildcard_matches('lib/python*/site-packages/simplejson*'))
+    2
+    >>> assert 'src/initools' in result.files_created
+

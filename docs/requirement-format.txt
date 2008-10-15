@@ -1,0 +1,51 @@
+The requirements file format
+============================
+
+The requirements file is what poacheggs uses to install packages.
+This document describes that format.
+
+Each line of the requirements file indicates something to be
+installed.  For example::
+
+    MyPackage==3.0
+
+tells poacheggs to install the 3.0 version of MyPackage.  
+
+You can also install a package in an "editable" form.  This puts the
+source code into ``src/distname`` (making the name lower case) and
+runs ``python setup.py develop`` on the package.  To indicate
+editable, use ``-e``, like::
+
+    -e svn+http://svn.myproject.org/svn/MyProject/trunk#egg=MyProject
+
+The ``#egg=MyProject`` part is important, because while you can
+install simply given the svn location, the project name is useful in
+other places.
+
+If you need to give poacheggs (and by association easy_install) hints
+about where to find a package, you can use the ``-f``
+(``--find-links``) option, like::
+
+    -f http://someserver.org/MyPackage-3.0.tar.gz
+
+If the package is named like ``PackageName-Version.tar.gz`` (or a zip)
+then you don't need ``#egg=...``.  Note that you cannot provide
+multiple ``-f`` arguments to easy_install, but you can in a
+requirements file (they all get concatenated into a single ``-f`` for
+easy_install).
+
+Version Control
+---------------
+
+Right now poacheggs only knows Subversion.  I hope to add Mercurial in
+the not-too-distant future, as that system in particular is used by
+quite a few open source Python projects (once that's added, support
+for Bazaar, git, etc. will probably be easy).
+
+You can also give specific revisions to an SVN URL, like::
+
+    -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019
+
+which will check out revision 2019.  ``@{20080101}`` would also check
+out the revision from 2008-01-01.  You can only check out specific
+revisions using ``-e svn+...``.

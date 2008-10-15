@@ -1,0 +1,192 @@
+pyinstall
+=========
+
+.. toctree::
+
+   news
+   requirement-format
+
+.. comment: split here
+
+.. contents::
+
+Introduction
+------------
+
+pyinstall is a replacement for `easy_install
+<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It uses mostly the
+same techniques for finding packages, so packages that were made
+easy_installable should be pyinstallable as well.
+
+pyinstall is meant to improve on easy_install.  Some of the improvements:
+
+* All packages are downloaded before installation.  Partially-completed
+  installation doesn't occur as a result.
+
+* Care is taken to present useful output on the console.
+
+* The reasons for actions are kept track of.  For instance, if a package is
+  being installed, pyinstall keeps track of why that package was required.
+
+* Error messages should be useful.
+
+* The code is relatively concise and cohesive, making it easier to use
+  programmatically.
+
+* Packages don't have to be installed as egg archives, they can be installed
+  flat (while keeping the egg metadata).
+
+* Maybe features like native support for other version control systems, or
+  uninstallation, will get added.  (They might get added to easy_install, but I
+  think the chance for pyinstall is higher.)
+
+Also, pyinstall will eventually be merged directly with poacheggs, making it
+simple to define fixed sets of requirements and reliably reproduce a set of
+packages.
+
+pyinstall is complementary with `virtualenv
+<http://pypi.python.org/pypi/virtualenv>`_, and it is encouraged that you use
+virtualenv to isolate your installation.
+
+Community
+---------
+
+The homepage for pyinstall is temporarily located `on PyPI
+<http://pypi.python.org/pypi/pyinstall>`_ -- a more proper homepage
+will follow.  Bugs can go on the `poacheggs Trac instance
+<http://trac.openplans.org/poacheggs/>`_ (probably that will change
+too).  Discussion should happen on the `virtualenv email group
+<http://groups.google.com/group/python-virtualenv?hl=en>`_.
+
+Differences From easy_install
+-----------------------------
+
+pyinstall cannot install some packages.  Specifically:
+
+* It cannot install from eggs.  It only installs from source.  (Maybe this will
+  be changed sometime, but it's low priority.)
+
+* It doesn't understand Setuptools extras (like ``package[test]``).  This should
+  be added eventually.
+
+* It is incompatible with some packages that customize distutils or setuptools
+  in their ``setup.py`` files.
+
+* Maybe it doesn't work on Windows.  At least, the author doesn't test on
+  Windows often.
+
+* It also has some extra features.  Extra features the author thinks are great.
+
+.. _`requirements file`:
+
+Requirements Files
+------------------
+
+When installing software, and Python packages in particular, it's common that
+you get a lot of libraries installed.  You just did ``easy_install MyPackage``
+and you get a dozen packages.  Each of these packages has its own version.
+
+Maybe you ran that installation and it works.  Great!  Will it keep working? 
+Did you have to provide special options to get it to find everything?  Did you
+have to install a bunch of other optional pieces?  Most of all, will you be able
+to do it again?
+
+If you've ever tried to setup an application on a new system, or with slightly
+updated pieces, and had it fail, pyinstall requirements are for you.  If you
+haven't had this problem then you will eventually, so pyinstall requirements are
+for you too -- requirements make explicit, repeatable installation of packages.
+
+So what are requirements files?  They are very simple: lists of packages to
+install.  Instead of running something like ``pyinstall MyApp`` and getting
+whatever libraries come along, you can create a requirements file something like::
+
+    MyApp
+    Framework==0.9.4
+    Library>=0.2
+
+Then, regardless of what MyApp lists in ``setup.py``, you'll get a specific
+version of Framework and at least the 0.2 version of Library.  (You might think
+you could list these specific versions in ``setup.py`` -- try it and you'll
+quickly see why that doesn't work.)  You can add optional libraries and support
+tools that MyApp doesn't strictly require.
+
+You can also include "editable" packages -- packages that are checked out from
+subversion (in the future other VCS will be supported).  These are just like
+using the ``-e`` option to pyinstall.  They look like::
+
+    -e svn+http://myrepo/svn/MyApp#egg=MyApp
+
+You have to start the URL with ``svn+`` (eventually you'll be able to use
+``hg+`` etc), and you have to include ``#egg=Package`` so pyinstall knows what
+to expect at that URL.  You can also include ``@rev`` in the URL, e.g., ``@275``
+to check out revision 275.
+
+Freezing Requirements
+---------------------
+
+So you have a working set of packages, and you want to be able to install them
+elsewhere.  `Requirements files`_ let you install exact versions, but it won't
+tell you what all the exact versions are.
+
+To create a new requirements file from a known working environment, use::
+
+    $ pyinstall.py --freeze=stable-req.txt
+
+This will write a listing of *all* installed libraries to ``stable-req.txt``
+with exact versions for every library.  You may want to edit the file down after
+generating (e.g., to eliminate unnecessary libraries), but it'll give you a
+stable starting point for constructing your requirements file.
+
+You can also give it an existing requirements file, and it will use that as a
+sort of template for the new file.  So if you do::
+
+    $ pyinstall.py --freeze=stable-req.txt -r devel-req.txt
+
+it will keep the packages listed in ``devel-req.txt`` in order and preserve
+comments.
+
+Bundles
+-------
+
+Another way to distribute a set of libraries is a bundle format (specific to
+pyinstall).  This format is not stable at this time (there simply hasn't been
+any feedback, nor a great deal of thought).  A bundle file contains all the
+source for your package, and you can have pyinstall install then all together. 
+Once you have the bundle file further network access won't be necessary.  To
+build a bundle file, do::
+
+    $ pyinstall.py --bundle=MyApp.pybundle MyApp
+
+(Using a `requirements file`_ would be wise.)  Then someone else can get the
+file ``MyApp.pybundle`` and run::
+
+    $ pyinstall.py MyApp.pybundle
+
+This is *not* a binary format.  This only packages source.  If you have binary
+packages, then the person who installs the files will have to have a compiler,
+any necessary headers installed, etc.  Binary packages are hard, this is
+relatively easy.
+
+Using pyinstall With virtualenv
+-------------------------------
+
+pyinstall is most nutritious when used with `virtualenv
+<http://pypi.python.org/pypi/virtualenv>`_.  One of the reasons pyinstall
+doesn't install "multi-version" eggs is that virtualenv removes much of the need
+for it.
+
+pyinstall does not have to be installed to use it, you can run ``python
+pyinstall.py`` and it will work.  This is intended to avoid the bootstrapping
+problem of installation.  You can also run pyinstall inside any virtualenv
+environment, like::
+
+    $ virtualenv new-env/
+    ... creates new-env/ ...
+    $ pyinstall.py -E new-env/ MyPackage
+
+This is exactly equivalent to::
+
+    $ ./new-env/bin/python pyinstall.py MyPackage
+
+Except, if you have ``virtualenv`` installed and the path ``new-env/``
+doesn't exist, then a new virtualenv will be created.

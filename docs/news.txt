@@ -1,0 +1,67 @@
+News for pyinstall
+==================
+
+0.1.4
+-----
+
+* Added an option ``--install-option`` to pass options to pass
+  arguments to ``setup.py install``
+
+* ``.svn/`` directories are no longer included in bundles, as these
+  directories are specific to a version of svn -- if you build a
+  bundle on a system with svn 1.5, you can't use the checkout on a
+  system with svn 1.4.  Instead a file ``svn-checkout.txt`` is
+  included that notes the original location and revision, and the
+  command you can use to turn it back into an svn checkout.  (Probably
+  unpacking the bundle should, maybe optionally, recreate this
+  information -- but that is not currently implemented, and it would
+  require network access.)
+
+* Avoid ambiguities over project name case, where for instance
+  MyPackage and mypackage would be considered different packages.
+  This in particular caused problems on Macs, where ``MyPackage/`` and
+  ``mypackage/`` are the same directory.
+
+* Added support for an environmental variable
+  ``$PYINSTALL_DOWNLOAD_CACHE`` which will cache package downloads, so
+  future installations won't require large downloads.  Network access
+  is still required, but just some downloads will be avoided when
+  using this.
+
+0.1.3
+-----
+
+* Always use ``svn checkout`` (not ``export``) so that
+  ``tag_svn_revision`` settings give the revision of the package.
+
+* Don't update checkouts that came from ``.pybundle`` files.
+
+0.1.2
+-----
+
+* Improve error text when there are errors fetching HTML pages when
+  seeking packages.
+
+* Improve bundles: include empty directories, make them work with
+  editable packages.
+
+* If you use ``-E env`` and the environment ``env/`` doesn't exist, a
+  new virtual environment will be created.
+
+* Fix ``dependency_links`` for finding packages.
+
+0.1.1
+-----
+
+* Fixed a NameError exception when running pyinstall outside of a
+  virtualenv environment.
+
+* Added HTTP proxy support (from Prabhu Ramachandran)
+
+* Fixed use of ``hashlib.md5`` on python2.5+ (also from Prabhu
+  Ramachandran)
+
+0.1
+---
+
+* Initial release

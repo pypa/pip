@@ -1,0 +1,62 @@
+Basic setup::
+
+    >>> import os
+    >>> from __main__ import base_path, reset_env, run_pyinstall, pyversion, lib_py, write_file, get_env
+
+Some tests of freeze, first we have to install some stuff::
+
+    >>> reset_env()
+    >>> write_file('initools-req.txt', '''\
+    ... INITools==0.2
+    ... # and something else to test out:
+    ... simplejson<=1.7.4
+    ... ''')
+    >>> result = run_pyinstall('-r', 'initools-req.txt')
+    >>> result = run_pyinstall('--freeze=-', expect_stderr=True)
+    >>> print result
+    Script result: python ../../pyinstall.py -E .../test-scratch --freeze=-
+    -- stdout: --------------------
+    INITools==0.2
+    simplejson==1.7.4
+    <BLANKLINE>
+
+Now lets try it with an svn checkout::
+
+    >>> env = get_env()
+    >>> result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
+    >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    ...                  cwd=os.path.join(env.base_path, 'initools-trunk'))
+    >>> result = run_pyinstall('--freeze=-', expect_stderr=True)
+    >>> print result
+    Script result: python ../../pyinstall.py -E .../test-scratch --freeze=-
+    -- stdout: --------------------
+    -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2.4-dev
+    simplejson==1.7.4
+    <BLANKLINE>
+
+Now, straight from trunk (but not editable/setup.py develop)::
+
+    >>> result = env.run(os.path.join(env.base_path, 'bin/easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
+    >>> result = run_pyinstall('--freeze=-', expect_stderr=True)
+    >>> print result
+    Script result: python ../../pyinstall.py -E .../test-scratch --freeze=-
+    -- stderr: --------------------
+    Warning: cannot find svn location for INITools==...dev-r...
+    <BLANKLINE>
+    -- stdout: --------------------
+    ## FIXME: could not find svn URL in dependency_links for this package:
+    INITools==...dev-r...
+    simplejson==1.7.4
+    <BLANKLINE>
+
+Bah, that's no good!  Let's give it a hint::
+
+    >>> result = run_pyinstall('--freeze=-', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
+    >>> print result
+    Script result: python ../../pyinstall.py -E .../test-scratch --freeze=- -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+    -- stdout: --------------------
+    -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+    # Installing as editable to satisfy requirement INITools==...dev-r...:
+    -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
+    simplejson==1.7.4
+    <BLANKLINE>

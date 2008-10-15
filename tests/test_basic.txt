@@ -1,0 +1,41 @@
+Basic setup::
+
+    >>> from __main__ import here, reset_env, run_pyinstall, pyversion, lib_py
+    >>> reset_env()
+
+First a test of the distutils-configuration-setting command (which is distinct from other commands)::
+
+    #>>> print run_pyinstall('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
+    #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
+    #-- stdout: --------------------
+    #Distutils config .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg is writable
+    #Replaced setting index_url
+    #Updated .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg
+    #<BLANKLINE>
+    #-- updated: -------------------
+    #  lib/python2.4/distutils/distutils.cfg  (346 bytes)
+
+Next, a simple test::
+
+    >>> result = run_pyinstall('-vvv', 'INITools==0.2', expect_error=True)
+    >>> assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) in result.files_created
+    >>> assert (lib_py + 'site-packages/initools') in result.files_created
+
+Let's try that again, editable::
+
+    >>> reset_env()
+    >>> result = run_pyinstall('-e', 'INITools==0.2', expect_error=True)
+    >>> assert "--editable=INITools==0.2 is not the right format" in result.stdout
+    >>> assert len(result.files_created) == 1 and not result.files_updated
+
+Now, checking out from svn::
+
+    >>> reset_env()
+    >>> result = run_pyinstall('-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev', expect_error=True)
+    >>> egg_link = result.files_created[lib_py + 'site-packages/INITools.egg-link']
+    >>> # FIXME: I don't understand why there's a trailing . here:
+    >>> egg_link.bytes
+    '.../test-scratch/src/initools\n.'
+    >>> assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
+    >>> assert 'src/initools' in result.files_created
+    >>> assert 'src/initools/.svn' in result.files_created
