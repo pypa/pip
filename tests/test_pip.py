@@ -23,7 +23,7 @@ def reset_env():
 
 def run_pip(*args, **kw):
     import sys
-    args = ('python', '../../pip', '-E', env.base_path) + args
+    args = ('python', '../../pip.py', '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
     if options.show_error:
         kw['expect_error'] = True

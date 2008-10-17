@@ -49,96 +49,17 @@ pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
 
+try:
+    pip_dist = pkg_resources.get_distribution('pip')
+    version = '%s from %s (python %s)' % (
+        pip_dist, pip_dist.location, sys.version[:3])
+except DistributionNotFound:
+    # when running pip.py without installing
+    version=None
+
 parser = optparse.OptionParser(
-    usage='%prog [OPTIONS] PACKAGE_NAMES')
-
-parser.add_option(
-    '-e', '--editable',
-    dest='editables',
-    action='append',
-    default=[],
-    metavar='svn+REPOS_URL[@REV]#egg=PACKAGE',
-    help='Install a package directly from a checkout.  Source will be checked '
-    'out into src/PACKAGE (lower-case) and installed in-place (using '
-    'setup.py develop).  This option may be provided multiple times.')
-parser.add_option(
-    '-r', '--requirement',
-    dest='requirements',
-    action='append',
-    default=[],
-    metavar='FILENAME',
-    help='Install all the packages listed in the given requirements file.  '
-    'This option can be used multiple times.')
-
-parser.add_option(
-    '-f', '--find-links',
-    dest='find_links',
-    action='append',
-    default=[],
-    metavar='URL',
-    help='URL to look for packages at')
-parser.add_option(
-    '-i', '--index-url',
-    dest='index_url',
-    metavar='URL',
-    default=pypi_url,
-    help='base URL of Python Package Index')
-parser.add_option(
-    '--extra-index-url',
-    dest='extra_index_urls',
-    metavar='URL',
-    action='append',
-    default=[],
-    help='extra URLs of package indexes to use in addition to --index-url')
-
-parser.add_option(
-    '-b', '--build', '--build-dir', '--build-directory',
-    dest='build_dir',
-    metavar='DIR',
-    default=None,
-    help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
-parser.add_option(
-    '--src', '--source',
-    dest='src_dir',
-    metavar='DIR',
-    default=None,
-    help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
-parser.add_option(
-    '--timeout',
-    metavar='SECONDS',
-    dest='timeout',
-    type='float',
-    default=default_timeout,
-    help='Set the socket timeout (default %s seconds)' % default_timeout)
-
-parser.add_option(
-    '-U', '--upgrade',
-    dest='upgrade',
-    action='store_true',
-    help='Upgrade all packages to the newest available version')
-parser.add_option(
-    '-I', '--ignore-installed',
-    dest='ignore_installed',
-    action='store_true',
-    help='Ignore the installed packages (reinstalling instead)')
-parser.add_option(
-    '--no-install',
-    dest='no_install',
-    action='store_true',
-    help="Download and unpack all packages, but don't actually install them")
-
-parser.add_option(
-    '--bundle',
-    dest='bundle',
-    metavar='BUNDLE_FILE',
-    help="Collect all packages and create a .pybundle file.")
-parser.add_option(
-    '--freeze',
-    dest='freeze',
-    metavar='FREEZE_FILE',
-    help="Create a file that can be used with --requirement to reproduce the "
-    "installed packages.  You can also give one --requirement file that will "
-    "be used as the basis of the new file.")
+    usage='%prog COMMAND [OPTIONS]',
+    version=version)
 
 parser.add_option(
     '-E', '--environment',
@@ -146,7 +67,6 @@ parser.add_option(
     metavar='DIR',
     help='virtualenv environment to run pip in (either give the '
     'interpreter or the environment base directory)')
-
 parser.add_option(
     '-v', '--verbose',
     dest='verbose',
@@ -164,7 +84,6 @@ parser.add_option(
     dest='log',
     metavar='FILENAME',
     help='Log file where a complete (maximum verbosity) record will be kept')
-
 parser.add_option(
     '--proxy',
     dest='proxy',
@@ -175,15 +94,341 @@ parser.add_option(
     "are behind an authenticated proxy.  If you provide "
     "user@proxy.server:port then you will be prompted for a password."
     )
-
 parser.add_option(
-    '--install-option',
-    dest='install_options',
-    action='append',
-    help="Extra arguments to be supplied to the setup.py install "
-    "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-    "Use multiple --install-option options to pass multiple options to setup.py install"
-    )
+    '--timeout',
+    metavar='SECONDS',
+    dest='timeout',
+    type='float',
+    default=default_timeout,
+    help='Set the socket timeout (default %s seconds)' % default_timeout)
+
+parser.disable_interspersed_args()
+
+
+_commands = {}
+
+class Command(object):
+    name = None
+    usage = None
+    def __init__(self):
+        assert self.name
+        self.parser = optparse.OptionParser(
+            usage=self.usage,
+            prog='%s %s' % (sys.argv[0], self.name),
+            version=parser.version)
+        for option in parser.option_list:
+            if not option.dest:
+                # -h, --version, etc
+                continue
+            self.parser.add_option(option)
+        _commands[self.name] = self
+
+    def merge_options(self, initial_options, options):
+        for attr in ['log', 'venv', 'proxy']:
+            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+        options.quiet += initial_options.quiet
+        options.verbose += initial_options.verbose
+
+    def main(self, complete_args, args, initial_options):
+        global logger
+        options, args = self.parser.parse_args(args)
+        self.merge_options(initial_options, options)
+
+        if args and args[-1] == '___VENV_RESTART___':
+            ## FIXME: We don't do anything this this value yet:
+            venv_location = args[-2]
+            args = args[:-2]
+            options.venv = None
+        level = 1 # Notify
+        level += options.verbose
+        level -= options.quiet
+        level = Logger.level_for_integer(4-level)
+        complete_log = []
+        logger = Logger([(level, sys.stdout), 
+                         (Logger.DEBUG, complete_log.append)])
+        if options.venv:
+            if options.verbose > 0:
+                # The logger isn't setup yet
+                print 'Running in environment %s' % options.venv
+            restart_in_venv(options.venv, complete_args)
+            # restart_in_venv should actually never return, but for clarity...
+            return
+        ## FIXME: not sure if this sure come before or after venv restart
+        if options.log:
+            log_fp = open_logfile_append(options.log)
+            logger.consumers.append((logger.DEBUG, log_fp))
+        else:
+            log_fp = None
+
+        socket.setdefaulttimeout(options.timeout or None)
+
+        setup_proxy_handler(options.proxy)
+
+        exit = 0
+        try:
+            self.run(options, args)
+        except InstallationError, e:
+            logger.fatal(str(e))
+            logger.info('Exception information:\n%s' % format_exc())
+            exit = 1
+        except:
+            logger.fatal('Exception:\n%s' % format_exc())
+            exit = 2
+        
+        if log_fp is not None:
+            log_fp.close()
+        if exit:
+            log_fn = './pip-log.txt'
+            text = '\n'.join(complete_log)
+            logger.fatal('Storing complete log in %s' % log_fn)
+            log_fp = open_logfile_append(log_fn)
+            log_fp.write(text)
+            log_fp.close()
+        sys.exit(exit)
+
+class InstallCommand(Command):
+    name = 'install'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
+    bundle = False
+
+    def __init__(self):
+        super(InstallCommand, self).__init__()
+        self.parser.add_option(
+            '-e', '--editable',
+            dest='editables',
+            action='append',
+            default=[],
+            metavar='svn+REPOS_URL[@REV]#egg=PACKAGE',
+            help='Install a package directly from a checkout.  Source will be checked '
+            'out into src/PACKAGE (lower-case) and installed in-place (using '
+            'setup.py develop).  This option may be provided multiple times.')
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Install all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
+            '-f', '--find-links',
+            dest='find_links',
+            action='append',
+            default=[],
+            metavar='URL',
+            help='URL to look for packages at')
+        self.parser.add_option(
+            '-i', '--index-url',
+            dest='index_url',
+            metavar='URL',
+            default=pypi_url,
+            help='base URL of Python Package Index')
+        self.parser.add_option(
+            '--extra-index-url',
+            dest='extra_index_urls',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='extra URLs of package indexes to use in addition to --index-url')
+
+        self.parser.add_option(
+            '-b', '--build', '--build-dir', '--build-directory',
+            dest='build_dir',
+            metavar='DIR',
+            default=None,
+            help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
+        self.parser.add_option(
+            '--src', '--source',
+            dest='src_dir',
+            metavar='DIR',
+            default=None,
+            help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
+
+        self.parser.add_option(
+            '-U', '--upgrade',
+            dest='upgrade',
+            action='store_true',
+            help='Upgrade all packages to the newest available version')
+        self.parser.add_option(
+            '-I', '--ignore-installed',
+            dest='ignore_installed',
+            action='store_true',
+            help='Ignore the installed packages (reinstalling instead)')
+        self.parser.add_option(
+            '--no-install',
+            dest='no_install',
+            action='store_true',
+            help="Download and unpack all packages, but don't actually install them")
+
+        self.parser.add_option(
+            '--install-option',
+            dest='install_options',
+            action='append',
+            help="Extra arguments to be supplied to the setup.py install "
+            "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
+            "Use multiple --install-option options to pass multiple options to setup.py install"
+            )
+
+    def run(self, options, args):
+        if not options.build_dir:
+            options.build_dir = base_prefix
+        if not options.src_dir:
+            options.src_dir = base_src_prefix
+        options.build_dir = os.path.abspath(options.build_dir)
+        options.src_dir = os.path.abspath(options.src_dir)
+        install_options = options.install_options or []
+        index_urls = [options.index_url] + options.extra_index_urls
+        finder = PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls)
+        requirement_set = RequirementSet(build_dir=options.build_dir,
+                                         src_dir=options.src_dir,
+                                         upgrade=options.upgrade,
+                                         ignore_installed=options.ignore_installed)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name, None))
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename, finder=finder):
+                requirement_set.add_requirement(req)
+        requirement_set.install_files(finder)
+        if not options.no_install and not self.bundle:
+            requirement_set.install(install_options)
+            logger.notify('Successfully installed %s' % requirement_set)
+        elif self.bundle:
+            requirement_set.create_bundle(options.bundle)
+            logger.notify('Created bundle in %s' % options.bundle)
+        else:
+            logger.notify('Successfully downloaded %s' % requirement_set)
+
+InstallCommand()
+
+class BundleCommand(InstallCommand):
+    name = 'bundle'
+    usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
+    bundle = True
+
+    def __init__(self):
+        super(BundleCommand, self).__init__()
+
+    def run(self, options, args):
+        if not options.build_dir:
+            options.build_dir = backup_dir(base_prefix, '-bundle')
+        if not options.src_dir:
+            options.src_dir = backup_dir(base_src_prefix, '-bundle')
+        # We have to get everything when creating a bundle:
+        options.ignore_installed = True
+        logger.notify('Putting temporary build files in %s and source/develop files in %s'
+                      % (display_path(options.build_dir), display_path(options.src_dir)))
+
+BundleCommand()
+
+class FreezeCommand(Command):
+    name = 'freeze'
+    usage = '%prog [OPTIONS] FREEZE_NAME.txt'
+    def __init__(self):
+        super(FreezeCommand, self).__init__()
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirement',
+            action='store',
+            default=None,
+            metavar='FILENAME',
+            help='Use the given requirements file as a hint about how to generate the new frozen requirements')
+        self.parser.add_option(
+            '-f', '--find-links',
+            dest='find_links',
+            action='append',
+            default=[],
+            metavar='URL',
+            help='URL for finding packages, which will be added to the frozen requirements file')
+        
+    def run(self, options, args):
+        if args:
+            filename = args[0]
+        else:
+            filename = '-'
+        requirement = options.requirement
+        find_links = options.find_links or []
+        ## FIXME: Obviously this should be settable:
+        find_tags = False
+
+        if filename == '-':
+            logger.move_stdout_to_stderr()
+        dependency_links = []
+        if filename == '-':
+            f = sys.stdout
+        else:
+            ## FIXME: should be possible to overwrite requirement file
+            logger.notify('Writing frozen requirements to %s' % filename)
+            f = open(filename, 'w')
+        for dist in pkg_resources.working_set:
+            if dist.has_metadata('dependency_links.txt'):
+                dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
+        for link in find_links:
+            if '#egg=' in link:
+                dependency_links.append(link)
+        for link in find_links:
+            f.write('-f %s\n' % link)
+        installations = {}
+        for dist in pkg_resources.working_set:
+            if dist.key in ('setuptools', 'pip', 'python'):
+                ## FIXME: also skip virtualenv?
+                continue
+            req = FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
+            installations[req.name] = req
+        if requirement:
+            req_f = open(requirement)
+            for line in req_f:
+                if not line or line.strip().startswith('#'):
+                    f.write(line)
+                    continue
+                elif line.startswith('-e') or line.startswith('--editable'):
+                    if line.startswith('-e'):
+                        line = line[2:].strip()
+                    else:
+                        line = line[len('--editable'):].strip().lstrip('=')
+                    line_req = InstallRequirement.from_editable(line)
+                elif (line.startswith('-r') or line.startswith('--requirement')
+                      or line.startswith('-Z') or line.startswith('--always-unzip')):
+                    logger.debug('Skipping line %r' % line.strip())
+                    continue
+                else:
+                    line_req = InstallRequirement.from_line(line)
+                if not line_req.name:
+                    logger.notify("Skipping line because it's not clear what it would install: %s"
+                                  % line.strip())
+                    continue
+                if line_req.name not in installations:
+                    logger.warn("Requirement file contains %s, but that package is not installed"
+                                % line.strip())
+                    continue
+                f.write(str(installations[line_req.name]))
+                del installations[line_req.name]
+            f.write('## The following requirements were added by pip --freeze:\n')
+        for installation in sorted(installations.values(), key=lambda x: x.name):
+            f.write(str(installation))
+        if filename != '-':
+            logger.notify('Put requirements in %s' % filename)
+            f.close()
+
+FreezeCommand()
+
+def main(initial_args=None):
+    if initial_args is None:
+        initial_args = sys.argv[1:]
+    options, args = parser.parse_args(initial_args)
+    if not args:
+        parser.error('You must give a command')
+    command = args[0].lower()
+    ## FIXME: search for a command match?
+    if command not in _commands:
+        parser.error('No command by the name %s %s' % (os.path.basename(sys.argv[0]), command))
+    command = _commands[command]
+    command.main(initial_args, args[1:], options)
 
 def get_proxy(proxystr=''):
     """Get the proxy given the option passed on the command line.  If an
@@ -216,118 +461,6 @@ def setup_proxy_handler(proxystr=''):
         proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
         opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
         urllib2.install_opener(opener)
-
-
-def main(initial_args=None):
-    global logger
-    if initial_args is None:
-        initial_args = sys.argv[1:]
-    options, args = parser.parse_args(initial_args)
-
-    if args and args[-1] == '___VENV_RESTART___':
-        ## FIXME: We don't do anything this this value yet:
-        venv_location = args[-2]
-        args = args[:-2]
-        options.venv = None
-    level = 1 # Notify
-    level += options.verbose
-    level -= options.quiet
-    level = Logger.level_for_integer(4-level)
-    complete_log = []
-    logger = Logger([(level, sys.stdout), 
-                     (Logger.DEBUG, complete_log.append)])
-    if options.venv:
-        if options.verbose > 0:
-            # The logger isn't setup yet
-            print 'Running in environment %s' % options.venv
-        restart_in_venv(options.venv, initial_args)
-        # restart_in_venv should actually never return, but for clarity...
-        return
-    ## FIXME: not sure if this sure come before or after venv restart
-    if options.log:
-        log_fp = open_logfile_append(options.log)
-        logger.consumers.append((logger.DEBUG, log_fp))
-    else:
-        log_fp = None
-
-    socket.setdefaulttimeout(options.timeout or None)
-
-    setup_proxy_handler(options.proxy)
-
-    if options.bundle:
-        if not options.build_dir:
-            options.build_dir = backup_dir(base_prefix, '-bundle')
-        if not options.src_dir:
-            options.src_dir = backup_dir(base_src_prefix, '-bundle')
-        # We have to get everything when creating a bundle:
-        options.ignore_installed = True
-        logger.notify('Putting temporary build files in %s and source/develop files in %s'
-                      % (display_path(options.build_dir), display_path(options.src_dir)))
-    if not options.build_dir:
-        options.build_dir = base_prefix
-    if not options.src_dir:
-        options.src_dir = base_src_prefix
-    options.build_dir = os.path.abspath(options.build_dir)
-    options.src_dir = os.path.abspath(options.src_dir)
-    install_options = options.install_options or []
-    try:
-        if options.freeze:
-            if options.requirements:
-                if len(options.requirements) > 1:
-                    raise InstallationError(
-                        "When using --freeze you can only provide one --requirement option")
-                requirement = options.requirements[0]
-            else:
-                requirement = None
-            write_freeze(
-                options.freeze,
-                requirement=requirement,
-                find_links=options.find_links)
-            return
-        index_urls = [options.index_url] + options.extra_index_urls
-        finder = PackageFinder(
-            find_links=options.find_links,
-            index_urls=index_urls)
-        requirement_set = RequirementSet(build_dir=options.build_dir,
-                                         src_dir=options.src_dir,
-                                         upgrade=options.upgrade,
-                                         ignore_installed=options.ignore_installed)
-        for name in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
-        for name in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(name))
-        for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder):
-                requirement_set.add_requirement(req)
-        exit = 0
-        requirement_set.install_files(finder)
-        if not options.no_install and not options.bundle:
-            requirement_set.install(install_options)
-            logger.notify('Successfully installed %s' % requirement_set)
-        elif options.bundle:
-            requirement_set.create_bundle(options.bundle)
-            logger.notify('Created bundle in %s' % options.bundle)
-        else:
-            logger.notify('Successfully downloaded %s' % requirement_set)
-    except InstallationError, e:
-        logger.fatal(str(e))
-        logger.info('Exception information:\n%s' % format_exc())
-        exit = 1
-    except:
-        logger.fatal('Exception:\n%s' % format_exc())
-        exit = 2
-    if log_fp is not None:
-        log_fp.close()
-    if exit:
-        log_fn = './pip-log.txt'
-        text = '\n'.join(complete_log)
-        logger.fatal('Storing complete log in %s' % log_fn)
-        log_fp = open_logfile_append(log_fn)
-        log_fp.write(text)
-        log_fp.close()
-    sys.exit(exit)
 
 def format_exc(exc_info=None):
     if exc_info is None:
@@ -1360,10 +1493,11 @@ class RequirementSet(object):
         logger.notify('Checking out svn repository %s to %s' % (url, location))
         logger.indent += 2
         try:
-            ## FIXME: not sure that --force is good, but it is needed
-            ## when installing directly (not via a requirement),
-            ## because the destination directory already exists.
-            call_subprocess(['svn', 'checkout', '--force', url, location],
+            if os.path.exists(location):
+                # Subversion doesn't like to check out over an existing directory
+                # --force fixes this, but was only added in svn 1.5
+                os.rmdir(location)
+            call_subprocess(['svn', 'checkout', url, location],
                             filter_stdout=self._filter_svn, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -1700,66 +1834,6 @@ class Link(object):
 ############################################################
 ## Writing freeze files
 
-
-def write_freeze(filename, requirement, find_links, find_tags=False):
-    if filename == '-':
-        logger.move_stdout_to_stderr()
-    dependency_links = []
-    if filename == '-':
-        f = sys.stdout
-    else:
-        ## FIXME: should be possible to overwrite requirement file
-        logger.notify('Writing frozen requirements to %s' % filename)
-        f = open(filename, 'w')
-    for dist in pkg_resources.working_set:
-        if dist.has_metadata('dependency_links.txt'):
-            dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
-    for link in find_links:
-        if '#egg=' in link:
-            dependency_links.append(link)
-    for link in find_links:
-        f.write('-f %s\n' % link)
-    installations = {}
-    for dist in pkg_resources.working_set:
-        if dist.key in ('setuptools', 'pip', 'python'):
-            ## FIXME: also skip virtualenv?
-            continue
-        req = FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
-        installations[req.name] = req
-    if requirement:
-        req_f = open(requirement)
-        for line in req_f:
-            if not line or line.strip().startswith('#'):
-                f.write(line)
-                continue
-            elif line.startswith('-e') or line.startswith('--editable'):
-                if line.startswith('-e'):
-                    line = line[2:].strip()
-                else:
-                    line = line[len('--editable'):].strip().lstrip('=')
-                line_req = InstallRequirement.from_editable(line)
-            elif (line.startswith('-r') or line.startswith('--requirement')
-                  or line.startswith('-Z') or line.startswith('--always-unzip')):
-                logger.debug('Skipping line %r' % line.strip())
-                continue
-            else:
-                line_req = InstallRequirement.from_line(line)
-            if not line_req.name:
-                logger.notify("Skipping line because it's not clear what it would install: %s"
-                              % line.strip())
-                continue
-            if line_req.name not in installations:
-                logger.warn("Requirement file contains %s, but that package is not installed"
-                            % line.strip())
-                continue
-            f.write(str(installations[line_req.name]))
-            del installations[line_req.name]
-        f.write('## The following requirements were added by pip --freeze:\n')
-    for installation in sorted(installations.values(), key=lambda x: x.name):
-        f.write(str(installation))
-    if filename != '-':
-        logger.notify('Put requirements in %s' % filename)
-        f.close()
 
 class FrozenRequirement(object):
 

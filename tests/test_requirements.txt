@@ -1,7 +1,7 @@
 Basic setup::
 
     >>> import os
-    >>> from __main__ import base_path, reset_env, run_pyinstall, pyversion, lib_py, write_file
+    >>> from __main__ import base_path, reset_env, run_pip, pyversion, lib_py, write_file
 
 Some tests of requirement files::
 
@@ -11,7 +11,7 @@ Some tests of requirement files::
     ... # and something else to test out:
     ... simplejson<=1.7.4
     ... ''')
-    >>> result = run_pyinstall('-r', 'initools-req.txt')
+    >>> result = run_pip('install', '-r', 'initools-req.txt')
     >>> len(result.wildcard_matches('lib/python*/site-packages/INITools-0.2-py*.egg-info'))
     1
     >>> len(result.wildcard_matches('lib/python*/site-packages/initools'))
@@ -31,7 +31,7 @@ Now with more than one file::
     >>> write_file('simplejson-req.txt', '''\
     ... simplejson<=1.7.4
     ... ''')
-    >>> result = run_pyinstall('-r', 'initools-req.txt')
+    >>> result = run_pip('install', '-r', 'initools-req.txt')
     >>> len(result.wildcard_matches('lib/python*/site-packages/simplejson*'))
     2
     >>> assert 'src/initools' in result.files_created
