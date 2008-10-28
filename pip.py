@@ -455,7 +455,7 @@ FreezeCommand()
 class ZipCommand(Command):
     name = 'zip'
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'zip (or unzip) individual packages'
+    summary = 'Zip individual packages'
 
     def __init__(self):
         super(ZipCommand, self).__init__()
@@ -734,6 +734,7 @@ ZipCommand()
 
 class UnzipCommand(ZipCommand):
     name = 'unzip'
+    summary = 'Unzip individual packages'
 
 UnzipCommand()
 
