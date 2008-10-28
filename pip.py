@@ -186,9 +186,33 @@ class Command(object):
             log_fp.close()
         sys.exit(exit)
 
+class HelpCommand(Command):
+    name = 'help'
+    usage = '%prog'
+    summary = 'Show available commands'
+    
+    def run(self, options, args):
+        if args:
+            ## FIXME: handle errors better here
+            command = args[0]
+            if command not in _commands:
+                raise InstallationError('No command with the name: %s' % command)
+            command = _commands[command]
+            command.parser.print_help()
+            return
+        print 'Usage: %s [COMMAND] ...' % os.path.basename(sys.argv[0])
+        print 'Commands available:'
+        commands = list(set(_commands.values()))
+        commands.sort(key=lambda x: x.name)
+        for command in commands:
+            print '  %s: %s' % (command.name, command.summary)
+
+HelpCommand()
+
 class InstallCommand(Command):
     name = 'install'
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
+    summary = 'Install packages'
     bundle = False
 
     def __init__(self):
@@ -281,10 +305,11 @@ class InstallCommand(Command):
         finder = PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls)
-        requirement_set = RequirementSet(build_dir=options.build_dir,
-                                         src_dir=options.src_dir,
-                                         upgrade=options.upgrade,
-                                         ignore_installed=options.ignore_installed)
+        requirement_set = RequirementSet(
+            build_dir=options.build_dir,
+            src_dir=options.src_dir,
+            upgrade=options.upgrade,
+            ignore_installed=options.ignore_installed)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -294,27 +319,28 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder):
                 requirement_set.add_requirement(req)
-        requirement_set.install_files(finder)
+        requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             logger.notify('Successfully installed %s' % requirement_set)
-        elif self.bundle:
-            requirement_set.create_bundle(options.bundle)
-            logger.notify('Created bundle in %s' % options.bundle)
-        else:
+        elif not self.bundle:
             logger.notify('Successfully downloaded %s' % requirement_set)
+        return requirement_set
 
 InstallCommand()
 
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
+    summary = 'Create pybundles (archives containing multiple packages)'
     bundle = True
 
     def __init__(self):
         super(BundleCommand, self).__init__()
 
     def run(self, options, args):
+        if not args:
+            raise InstallationError('You must give a bundle filename')
         if not options.build_dir:
             options.build_dir = backup_dir(base_prefix, '-bundle')
         if not options.src_dir:
@@ -323,12 +349,21 @@ class BundleCommand(InstallCommand):
         options.ignore_installed = True
         logger.notify('Putting temporary build files in %s and source/develop files in %s'
                       % (display_path(options.build_dir), display_path(options.src_dir)))
+        bundle_filename = args[0]
+        args = args[1:]
+        requirement_set = super(BundleCommand, self).run(options, args)
+        # FIXME: here it has to do something
+        requirement_set.create_bundle(bundle_filename)
+        logger.notify('Created bundle in %s' % bundle_filename)
+        return requirement_set
 
 BundleCommand()
 
 class FreezeCommand(Command):
     name = 'freeze'
     usage = '%prog [OPTIONS] FREEZE_NAME.txt'
+    summary = 'Put all currently installed packages (exact versions) into a requirements file'
+
     def __init__(self):
         super(FreezeCommand, self).__init__()
         self.parser.add_option(
@@ -422,7 +457,7 @@ def main(initial_args=None):
         initial_args = sys.argv[1:]
     options, args = parser.parse_args(initial_args)
     if not args:
-        parser.error('You must give a command')
+        parser.error('You must give a command (use "pip help" see a list of commands)')
     command = args[0].lower()
     ## FIXME: search for a command match?
     if command not in _commands:
@@ -511,6 +546,8 @@ class PackageFinder(object):
         self.index_urls = index_urls
         self.dependency_links = []
         self.cache = PageCache()
+        # These are boring links that have already been logged somehow:
+        self.logged_links = set()
     
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -660,14 +697,18 @@ class PackageFinder(object):
                 path = link.path
                 egg_info, ext = link.splitext()
                 if not ext:
-                    logger.debug('Skipping link %s; not a file' % link)
+                    if link not in self.logged_links:
+                        logger.debug('Skipping link %s; not a file' % link)
+                        self.logged_links.add(link)
                     continue
                 if egg_info.endswith('.tar'):
                     # Special double-extension case:
                     egg_info = egg_info[:-4]
                     ext = '.tar' + ext
                 if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
-                    logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
+                    if link not in self.logged_links:
+                        logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
+                        self.logged_links.add(link)
                     continue
             version = self._egg_info_matches(egg_info, search_name, link)
             if version is None:
@@ -784,12 +825,40 @@ class InstallRequirement(object):
             return self._temp_build_dir
         if self.req is None:
             self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
+            self._ideal_build_dir = build_dir
             return self._temp_build_dir
         if self.editable:
             name = self.name.lower()
         else:
             name = self.name
         return os.path.join(build_dir, name)
+
+    def correct_build_location(self):
+        """If the build location was a temporary directory, this will move it
+        to a new more permanent location"""
+        assert self.req is not None
+        assert self._temp_build_dir
+        old_location = self._temp_build_dir
+        new_build_dir = self._ideal_build_dir
+        del self._ideal_build_dir
+        if self.editable:
+            name = self.name.lower()
+        else:
+            name = self.name
+        new_location = os.path.join(new_build_dir, name)
+        if not os.path.exists(new_build_dir):
+            logger.debug('Creating directory %s' % new_build_dir)
+            os.makedirs(new_build_dir)
+        if os.path.exists(new_location):
+            raise InstallationError(
+                'A package already exists in %s; please remove it to continue'
+                % display_path(new_location))
+        logger.debug('Moving package %s from %s to new location %s'
+                     % (self, display_path(old_location), display_path(new_location)))
+        shutil.move(old_location, new_location)
+        self._temp_build_dir = new_location
+        self.source_dir = new_location
+        self._egg_info_path = None
 
     @property
     def name(self):
@@ -807,7 +876,7 @@ class InstallRequirement(object):
     def setup_py(self):
         return os.path.join(self.source_dir, 'setup.py')
 
-    def run_egg_info(self):
+    def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
         if self.name:
             logger.notify('Running setup.py egg_info for package %s' % self.name)
@@ -820,7 +889,7 @@ class InstallRequirement(object):
             script = script.replace('__PKG_NAME__', repr(self.name))
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
             # for an installed egg, causing problems
-            if self.editable:
+            if self.editable or force_root_egg_info:
                 egg_base_option = []
             else:
                 egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
@@ -836,6 +905,7 @@ class InstallRequirement(object):
             logger.indent -= 2
         if not self.req:
             self.req = pkg_resources.Requirement.parse(self.pkg_info()['Name'])
+            self.correct_build_location()
 
     ## FIXME: This is a lame hack, entirely for PasteScript which has
     ## a self-provided entry point that causes this awkwardness
@@ -1205,7 +1275,7 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def install_files(self, finder):
+    def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
@@ -1269,6 +1339,10 @@ class RequirementSet(object):
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
+                            if force_root_egg_info:
+                                # We need to run this to make sure that the .egg-info/
+                                # directory is created for packing in the bundle
+                                req_to_install.run_egg_info(force_root_egg_info=True)
                             req_to_install.assert_source_matches_version()
                             f = open(req_to_install.delete_marker_filename, 'w')
                             f.write(DELETE_MARKER_MESSAGE)
@@ -1543,11 +1617,15 @@ class RequirementSet(object):
                         svn_url, svn_rev = _get_svn_info(os.path.join(dir, dirpath))
                         svn_dirs.append(dirpath)
                     dirnames.remove('.svn')
+                if 'pip-egg-info' in dirnames:
+                    dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
                     zip.writestr(basename + '/' + name + '/', '')
                 for filename in filenames:
+                    if filename == 'pip-delete-this-directory.txt':
+                        continue
                     filename = os.path.join(dirpath, filename)
                     name = self._clean_zip_name(filename, dir)
                     zip.write(filename, basename + '/' + name)
