@@ -45,7 +45,7 @@ def test_packages(output, pending_fn):
     assert not code, "virtualenv failed"
     print 'Trying installation of %s' % dest_dir
     code = subprocess.call([os.path.join(dest_dir, 'bin', 'python'),
-                            pip_fn, package])
+                            pip_fn, 'install', package])
     if code:
         print 'Installation of %s failed' % package
         print 'Now checking easy_install...'
