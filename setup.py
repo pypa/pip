@@ -4,7 +4,7 @@ except ImportError:
     from distutils.core import setup
 import os
 
-version = '0.1.5'
+version = '0.2.1'
 
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')
