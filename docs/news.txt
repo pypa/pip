@@ -1,6 +1,20 @@
 News for pip
 ==================
 
+0.2
+---
+
+* Renamed to ``pip``, and to install you now do ``pip install
+  PACKAGE``
+
+* Added command ``pip zip PACKAGE`` and ``pip unzip PACKAGE``.  This
+  is particularly intended for Google App Engine to manage libraries
+  to stay under the 1000-file limit.
+
+* Some fixes to bundles, especially editable packages and when
+  creating a bundle using unnamed packages (like just an svn
+  repository without ``#egg=Package``).
+
 0.1.4
 -----
 
