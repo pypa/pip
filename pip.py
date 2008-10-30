@@ -1378,8 +1378,10 @@ execfile(__file__)
             return
         ## FIXME: this is not a useful record:
         ## Also a bad location
-        ## And not right on Windows
-        install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
+        if sys.platform == 'win32':
+            install_location = os.path.join(sys.prefix, 'Lib')
+        else:
+            install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
         record_filename = os.path.join(install_location, 'install-record-%s.txt' % self.name)
         ## FIXME: I'm not sure if this is a reasonable location; probably not
         ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
@@ -1571,12 +1573,10 @@ class RequirementSet(object):
             else:
                 req_to_install = reqs.pop(0)
             install = True
-            if not self.ignore_installed and not req_to_install.editable:
+            if not self.ignore_installed and not req_to_install.editable and not self.upgrade:
                 if req_to_install.check_if_exists():
-                    if not self.upgrade:
-                        # If we are upgrading, we still need to check the version
-                        install = False
-            if req_to_install.satisfied_by is not None:
+                    install = False
+            if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied: %s' % req_to_install)
             elif req_to_install.editable:
                 logger.notify('Checking out %s' % req_to_install)
