@@ -1,8 +1,12 @@
+import sys
 try:
     from setuptools import setup
 except ImportError:
+    if sys.platform == 'win32':
+        raise ImportError('Could not import setuptools: setuptools is required on Windows systems')
     from distutils.core import setup
 import os
+
 
 version = '0.2.1'
 
@@ -15,7 +19,10 @@ The main website for pip is `pip.openplans.org
 """
 long_description = long_description + open(index_filename).read().split('split here', 1)[1]
 
-
+if sys.platform == 'win32':
+    kw = dict(entry_points=dict(console_scripts=['pip:pip:main']))
+else:
+    kw = dict(scripts=['scripts/pip'])
 
 setup(name='pip',
       version=version,
@@ -34,8 +41,5 @@ setup(name='pip',
       url='http://pip.openplans.org',
       license='MIT',
       py_modules=['pip'],
-      ## FIXME: is this the best way?  (Works with distutils, but
-      ## don't we really require setuptools anyway?)
-      scripts=['scripts/pip'],
-      )
+      **kw)
       

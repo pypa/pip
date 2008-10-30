@@ -7,6 +7,12 @@ svn trunk
 * Fixed small problem that prevented using ``pip.py`` without actually
   installing pip.
 
+* Fixed ``--upgrade``, which would download and appear to install
+  upgraded packages, but actually just reinstall the existing package.
+
+* Fixed Windows problem with putting the install record in the right
+  place, and generating the ``pip`` script with Setuptools.
+
 0.2
 ---
 
