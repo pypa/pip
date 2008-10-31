@@ -16,7 +16,7 @@ Introduction
 pip is a replacement for `easy_install
 <http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It uses mostly the
 same techniques for finding packages, so packages that were made
-easy_installable should be pipable as well.
+easy_installable should be pip-installable as well.
 
 pip is meant to improve on easy_install.  Some of the improvements:
 
@@ -151,7 +151,7 @@ Bundles
 Another way to distribute a set of libraries is a bundle format (specific to
 pip).  This format is not stable at this time (there simply hasn't been
 any feedback, nor a great deal of thought).  A bundle file contains all the
-source for your package, and you can have pip install then all together. 
+source for your package, and you can have pip install them all together. 
 Once you have the bundle file further network access won't be necessary.  To
 build a bundle file, do::
 
