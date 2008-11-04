@@ -20,7 +20,7 @@ The main website for pip is `pip.openplans.org
 long_description = long_description + open(index_filename).read().split('split here', 1)[1]
 
 if sys.platform == 'win32':
-    kw = dict(entry_points=dict(console_scripts=['pip:pip:main']))
+    kw = dict(entry_points=dict(console_scripts=['pip=pip:main']))
 else:
     kw = dict(scripts=['scripts/pip'])
 
