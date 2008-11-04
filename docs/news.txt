@@ -13,6 +13,9 @@ svn trunk
 * Fixed Windows problem with putting the install record in the right
   place, and generating the ``pip`` script with Setuptools.
 
+* Download links that include embedded spaces or other unsafe
+  characters (those characters get %-encoded).
+
 0.2
 ---
 

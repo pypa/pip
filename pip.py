@@ -2071,7 +2071,8 @@ class HTMLPage(object):
         """Yields all links in the page"""
         for match in self._href_re.finditer(self.content):
             url = match.group(1) or match.group(2) or match.group(3)
-            yield Link(urlparse.urljoin(self.url, url), self)
+            url = self.clean_link(urlparse.urljoin(self.url, url))
+            yield Link(url, self)
 
     def rel_links(self):
         for url in self.explicit_rel_links():
@@ -2092,7 +2093,8 @@ class HTMLPage(object):
             if not match:
                 continue
             url = match.group(1) or match.group(2) or match.group(3)
-            yield Link(urlparse.urljoin(self.url, url), self)
+            url = self.clean_link(urlparse.urljoin(self.url, url))
+            yield Link(url, self)
 
     def scraped_rel_links(self):
         for regex in (self._homepage_re, self._download_re):
@@ -2105,8 +2107,17 @@ class HTMLPage(object):
             url = match.group(1) or match.group(2) or match.group(3)
             if not url:
                 continue
-            url = urlparse.urljoin(self.url, url)
+            url = self.clean_link(urlparse.urljoin(self.url, url))
             yield Link(url, self)
+
+    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+
+    def clean_link(self, url):
+        """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
+        the link, it will be rewritten to %20 (while not over-quoting
+        % or other characters)."""
+        return self._clean_re.sub(
+            lambda match: '%%%2x' % ord(match.group(0)), url)
 
 class PageCache(object):
     """Cache of HTML pages"""
