@@ -1835,7 +1835,15 @@ class RequirementSet(object):
                     if not os.path.exists(path):
                         os.makedirs(path)
                 else:
-                    fp = tar.extractfile(member)
+                    try:
+                        fp = tar.extractfile(member)
+                    except KeyError, e:
+                        # Some corrupt tar files seem to produce this
+                        # (specifically bad symlinks)
+                        logger.warn(
+                            'In the tar file %s the member %s is invalid: %s'
+                            % (filename, member.name, e))
+                        continue
                     if not os.path.exists(os.path.dirname(path)):
                         os.makedirs(os.path.dirname(path))
                     destfp = open(path, 'wb')
