@@ -49,6 +49,11 @@ pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
 
+## FIXME: this shouldn't be a module setting
+default_vcs = None
+if os.environ.get('PIP_DEFAULT_VCS'):
+    default_vcs = os.environ['PIP_DEFAULT_VCS']
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -146,6 +151,8 @@ class Command(object):
         complete_log = []
         logger = Logger([(level, sys.stdout), 
                          (Logger.DEBUG, complete_log.append)])
+        if os.environ.get('PIP_LOG_EXPLICIT_LEVELS'):
+            logger.explicit_levels = True
         if options.venv:
             if options.verbose > 0:
                 # The logger isn't setup yet
@@ -2535,6 +2542,7 @@ class Logger(object):
     def __init__(self, consumers):
         self.consumers = consumers
         self.indent = 0
+        self.explicit_levels = False
         self.in_progress = None
         self.in_progress_hanging = False
 
@@ -2570,6 +2578,9 @@ class Logger(object):
                     else:
                         rendered = msg
                     rendered = ' '*self.indent + rendered
+                    if self.explicit_levels:
+                        ## FIXME: should this be a name, not a level number?
+                        rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
                     consumer.write(rendered+'\n')
                 else:
@@ -2863,8 +2874,11 @@ def parse_editable(editable_req):
     if url.lower().startswith('svn:'):
         url = 'svn+' + url
     if '+' not in url:
-        raise InstallationError(
-            '--editable=%s should be formatted with svn+URL' % editable_req)
+        if default_vcs:
+            url = default_vcs + '+' + url
+        else:
+            raise InstallationError(
+                '--editable=%s should be formatted with svn+URL' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
     if vc_type != 'svn':
         raise InstallationError(
