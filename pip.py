@@ -2336,7 +2336,7 @@ def get_src_requirement(dist, location, find_tags):
         rev = get_svn_revision(location)
         return '%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
 
-_svn_url_re = re.compile('url="([^"]+)"')
+_svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile('committed-rev="(\d+)"')
 
 def get_svn_revision(location):
@@ -2369,7 +2369,7 @@ def get_svn_revision(location):
             else:
                 localrev = 0
         elif data.startswith('<?xml'):
-            dirurl = _svn_url_re.search(data).group(1)    # get repository URL
+            dirurl = _svn_xml_url_re.search(data).group(1)    # get repository URL
             revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)]+[0]
             if revs:
                 localrev = max(revs)
@@ -2408,7 +2408,10 @@ def get_svn_url(location):
         del data[0][0]  # get rid of the '8'
         return data[0][3]
     elif data.startswith('<?xml'):
-        return _svn_url_re.search(data).group(1)    # get repository URL
+        match = _svn_xml_url_re.search(data)
+        if not match:
+            raise ValueError('Badly formatted data: %r' % data)
+        return match.group(1)    # get repository URL
     else:
         logger.warn("Unrecognized .svn/entries format in %s" % location)
         # Or raise exception?
