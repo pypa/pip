@@ -2474,11 +2474,16 @@ def get_file_content(url, comes_from=None):
     return url, content
 
 def parse_requirements(filename, finder, comes_from=None):
+    skip_match = None
+    if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
+        skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
     filename, content = get_file_content(filename, comes_from=comes_from)
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
         line = line.strip()
         if not line or line.startswith('#'):
+            continue
+        if skip_match and skip_match.search(line):
             continue
         if line.startswith('-r') or line.startswith('--requirement'):
             if line.startswith('-r'):
@@ -2859,17 +2864,6 @@ def display_path(path):
 def parse_editable(editable_req):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
     (Foobar) and a URL"""
-    match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if not match or not match.group(1):
-        raise InstallationError(
-            '--editable=%s is not the right format; it must have #egg=Package'
-            % editable_req)
-    req = match.group(1)
-    ## FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        req = match.group(1)
     url = editable_req
     if url.lower().startswith('svn:'):
         url = 'svn+' + url
@@ -2883,6 +2877,24 @@ def parse_editable(editable_req):
     if vc_type != 'svn':
         raise InstallationError(
             'For --editable=%s only svn (svn+URL) is currently supported' % editable_req)
+    match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
+    if (not match or not match.group(1)) and vc_type == 'svn':
+        parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
+        if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
+            req = parts[-3]
+        elif parts[-1] == 'trunk':
+            req = parts[-2]
+        else:
+            raise InstallationError(
+                '--editable=%s is not the right format; it must have #egg=Package'
+                % editable_req)
+    else:
+        req = match.group(1)
+    ## FIXME: use package_to_requirement?
+    match = re.search(r'^(.*?)(?:-dev|-\d.*)', req)
+    if match:
+        # Strip off -dev, -0.2, etc.
+        req = match.group(1)
     return req, url
 
 def backup_dir(dir, ext='.bak'):
