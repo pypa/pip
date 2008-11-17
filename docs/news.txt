@@ -1,8 +1,8 @@
 News for pip
 ============
 
-svn trunk
----------
+0.2.1
+-----
 
 * Fixed small problem that prevented using ``pip.py`` without actually
   installing pip.
