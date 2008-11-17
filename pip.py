@@ -425,7 +425,7 @@ class FreezeCommand(Command):
         if requirement:
             req_f = open(requirement)
             for line in req_f:
-                if not line or line.strip().startswith('#'):
+                if not line.strip() or line.strip().startswith('#'):
                     f.write(line)
                     continue
                 elif line.startswith('-e') or line.startswith('--editable'):
@@ -2522,7 +2522,7 @@ def parse_requirements(filename, finder, comes_from=None):
                 req = InstallRequirement.from_editable(
                     line, comes_from)
             else:
-                req = InstallRequirement(line, comes_from)
+                req = InstallRequirement.from_line(line, comes_from)
             yield req
 
 ############################################################

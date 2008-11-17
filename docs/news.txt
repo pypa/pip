@@ -16,6 +16,9 @@ svn trunk
 * Download links that include embedded spaces or other unsafe
   characters (those characters get %-encoded).
 
+* Fixed use of URLs in requirement files, and problems with some blank
+  lines.
+
 * Turn some tar file errors into warnings.
 
 0.2
