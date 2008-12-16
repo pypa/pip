@@ -13,6 +13,7 @@ import subprocess
 import posixpath
 import re
 import shutil
+import fnmatch
 try:
     from hashlib import md5
 except ImportError:
@@ -191,7 +192,7 @@ class Command(object):
             log_fp = open_logfile_append(log_fn)
             log_fp.write(text)
             log_fp.close()
-        sys.exit(exit)
+        return exit
 
 class HelpCommand(Command):
     name = 'help'
@@ -494,8 +495,49 @@ class ZipCommand(Command):
             action='store_true',
             dest='sort_files',
             help='With --list, sort packages according to how many files they contain')
-    
+        self.parser.add_option(
+            '--path',
+            action='append',
+            dest='paths',
+            help='Restrict operations to the given paths (may include wildcards)')
+        self.parser.add_option(
+            '-n', '--simulate',
+            action='store_true',
+            help='Do not actually perform the zip/unzip operation')
+
+    def paths(self):
+        """All the entries of sys.path, possibly restricted by --path"""
+        if not self.select_paths:
+            return sys.path
+        result = []
+        match_any = set()
+        for path in sys.path:
+            path = os.path.normcase(os.path.abspath(path))
+            for match in self.select_paths:
+                match = os.path.normcase(os.path.abspath(match))
+                if '*' in match:
+                    if re.search(fnmatch.translate(match+'*'), path):
+                        result.append(path)
+                        match_any.add(match)
+                        break
+                else:
+                    if path.startswith(match):
+                        result.append(path)
+                        match_any.add(match)
+                        break
+            else:
+                logger.debug("Skipping path %s because it doesn't match %s" 
+                             % (path, ', '.join(self.select_paths)))
+        for match in self.select_paths:
+            if match not in match_any and '*' not in match:
+                result.append(match)
+                logger.debug("Adding path %s because it doesn't match anything already on sys.path"
+                             % match)
+        return result
+
     def run(self, options, args):
+        self.select_paths = options.paths
+        self.simulate = options.simulate
         if options.list:
             return self.list(options, args)
         if not args:
@@ -526,12 +568,15 @@ class ZipCommand(Command):
                 'Module %s (in %s) isn\'t located in a zip file in %s'
                 % (module_name, filename, zip_filename))
         package_path = os.path.dirname(zip_filename)
-        if not package_path in sys.path:
+        if not package_path in self.paths():
             logger.warn(
                 'Unpacking %s into %s, but %s is not on sys.path'
                 % (display_path(zip_filename), display_path(package_path), 
                    display_path(package_path)))
         logger.notify('Unzipping %s (in %s)' % (module_name, display_path(zip_filename)))
+        if self.simulate:
+            logger.notify('Skipping remaining operations because of --simulate')
+            return
         logger.indent += 2
         try:
             ## FIXME: this should be undoable:
@@ -578,30 +623,34 @@ class ZipCommand(Command):
             ## FIXME: I think this needs to be undoable:
             if filename == dest_filename:
                 filename = backup_dir(orig_filename)
-                shutil.move(orig_filename, filename)
+                logger.notify('Moving %s aside to %s' % (orig_filename, filename))
+                if not self.simulate:
+                    shutil.move(orig_filename, filename)
             try:
                 logger.info('Creating zip file in %s' % display_path(dest_filename))
-                zip = zipfile.ZipFile(dest_filename, 'w')
-                zip.writestr(module_name + '/', '')
-                for dirpath, dirnames, filenames in os.walk(filename):
-                    if no_pyc:
-                        filenames = [f for f in filenames
-                                     if not f.lower().endswith('.pyc')]
-                    for fns, is_dir in [(dirnames, True), (filenames, False)]:
-                        for fn in fns:
-                            full = os.path.join(dirpath, fn)
-                            dest = os.path.join(module_name, dirpath[len(filename):].lstrip(os.path.sep), fn)
-                            if is_dir:
-                                zip.writestr(dest+'/', '')
-                            else:
-                                zip.write(full, dest)
-                zip.close()
+                if not self.simulate:
+                    zip = zipfile.ZipFile(dest_filename, 'w')
+                    zip.writestr(module_name + '/', '')
+                    for dirpath, dirnames, filenames in os.walk(filename):
+                        if no_pyc:
+                            filenames = [f for f in filenames
+                                         if not f.lower().endswith('.pyc')]
+                        for fns, is_dir in [(dirnames, True), (filenames, False)]:
+                            for fn in fns:
+                                full = os.path.join(dirpath, fn)
+                                dest = os.path.join(module_name, dirpath[len(filename):].lstrip(os.path.sep), fn)
+                                if is_dir:
+                                    zip.writestr(dest+'/', '')
+                                else:
+                                    zip.write(full, dest)
+                    zip.close()
                 logger.info('Removing old directory %s' % display_path(filename))
-                shutil.rmtree(filename)
+                if not self.simulate:
+                    shutil.rmtree(filename)
             except:
                 ## FIXME: need to do an undo here
                 raise
-            ## FIXME: should also be undone;
+            ## FIXME: should also be undone:
             self.add_filename_to_pth(dest_filename)
         finally:
             logger.indent -= 2
@@ -618,34 +667,37 @@ class ZipCommand(Command):
                             % (display_path(filename), display_path(pth)))
                 if not filter(None, new_lines):
                     logger.info('%s file would be empty: deleting' % display_path(pth))
-                    os.unlink(pth)
+                    if not self.simulate:
+                        os.unlink(pth)
                 else:
-                    f = open(pth, 'w')
-                    f.writelines(new_lines)
-                    f.close()
+                    if not self.simulate:
+                        f = open(pth, 'w')
+                        f.writelines(new_lines)
+                        f.close()
                 return
         logger.warn('Cannot find a reference to %s in any .pth file' % display_path(filename))
 
     def add_filename_to_pth(self, filename):
         path = os.path.dirname(filename)
         dest = os.path.join(path, filename + '.pth')
-        if path not in sys.path:
+        if path not in self.paths():
             logger.warn('Adding .pth file %s, but it is not on sys.path' % display_path(dest))
-        if os.path.exists(dest):
-            f = open(dest)
-            lines = f.readlines()
+        if not self.simulate:
+            if os.path.exists(dest):
+                f = open(dest)
+                lines = f.readlines()
+                f.close()
+                if lines and not lines[-1].endswith('\n'):
+                    lines[-1] += '\n'
+                lines.append(filename+'\n')
+            else:
+                lines = [filename + '\n']
+            f = open(dest, 'w')
+            f.writelines(lines)
             f.close()
-            if lines and not lines[-1].endswith('\n'):
-                lines[-1] += '\n'
-            lines.append(filename+'\n')
-        else:
-            lines = [filename + '\n']
-        f = open(dest, 'w')
-        f.writelines(lines)
-        f.close()
 
     def pth_files(self):
-        for path in sys.path:
+        for path in self.paths():
             if not os.path.exists(path) or not os.path.isdir(path):
                 continue
             for filename in os.listdir(path):
@@ -653,7 +705,7 @@ class ZipCommand(Command):
                     yield os.path.join(path, filename)
 
     def find_package(self, package):
-        for path in sys.path:
+        for path in self.paths():
             full = os.path.join(path, package)
             if os.path.exists(full):
                 return package, full
@@ -675,15 +727,16 @@ class ZipCommand(Command):
         if args:
             raise InstallationError(
                 'You cannot give an argument with --list')
-        for path in sorted(sys.path):
+        for path in sorted(self.paths()):
             if not os.path.exists(path):
                 continue
             basename = os.path.basename(path.rstrip(os.path.sep))
             if os.path.isfile(path) and zipfile.is_zipfile(path):
-                if os.path.dirname(path) not in sys.path:
+                if os.path.dirname(path) not in self.paths():
                     logger.notify('Zipped egg: %s' % display_path(path))
                 continue
-            if basename != 'site-packages':
+            if (basename != 'site-packages'
+                and not path.replace('\\', '/').endswith('lib/python')):
                 continue
             logger.notify('In %s:' % display_path(path))
             logger.indent += 2
@@ -757,7 +810,7 @@ def main(initial_args=None):
     if command not in _commands:
         parser.error('No command by the name %s %s' % (os.path.basename(sys.argv[0]), command))
     command = _commands[command]
-    command.main(initial_args, args[1:], options)
+    return command.main(initial_args, args[1:], options)
 
 def get_proxy(proxystr=''):
     """Get the proxy given the option passed on the command line.  If an
@@ -1389,7 +1442,8 @@ execfile(__file__)
             install_location = os.path.join(sys.prefix, 'Lib')
         else:
             install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
-        record_filename = os.path.join(install_location, 'install-record-%s.txt' % self.name)
+        temp_location = tempfile.mkdtemp('-record', 'pip-')
+        record_filename = os.path.join(temp_location, 'install-record.txt')
         ## FIXME: I'm not sure if this is a reasonable location; probably not
         ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
         header_dir = os.path.join(os.path.dirname(os.path.dirname(self.source_dir)), 'lib', 'include')
@@ -1404,6 +1458,28 @@ execfile(__file__)
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
         finally:
             logger.indent -= 2
+        f = open(record_filename)
+        for line in f:
+            line = line.strip()
+            if line.endswith('.egg-info'):
+                egg_info_dir = line
+                break
+        else:
+            logger.warn('Could not find .egg-info directory in install record for %s' % self)
+            ## FIXME: put the record somewhere
+            return
+        f.close()
+        new_lines = []
+        f = open(record_filename)
+        for line in f:
+            filename = line.strip()
+            if os.path.isdir(filename):
+                filename += os.path.sep
+            new_lines.append(make_path_relative(filename, egg_info_dir))
+        f.close()
+        f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
+        f.write('\n'.join(new_lines)+'\n')
+        f.close()
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
@@ -2856,6 +2932,34 @@ _normalize_re = re.compile(r'[^a-z]', re.I)
 def normalize_name(name):
     return _normalize_re.sub('-', name.lower())
 
+def make_path_relative(path, rel_to):
+    """
+    Make a filename relative, where the filename path, and it is
+    relative to rel_to
+
+        >>> make_relative_path('/usr/share/something/a-file.pth',
+        ...                    '/usr/share/another-place/src/Directory')
+        '../../../something/a-file.pth'
+        >>> make_relative_path('/usr/share/something/a-file.pth',
+        ...                    '/home/user/src/Directory')
+        '../../../usr/share/something/a-file.pth'
+        >>> make_relative_path('/usr/share/a-file.pth', '/usr/share/')
+        'a-file.pth'
+    """
+    path_filename = os.path.basename(path)
+    path = os.path.dirname(path)
+    path = os.path.normpath(os.path.abspath(path))
+    rel_to = os.path.normpath(os.path.abspath(rel_to))
+    path_parts = path.strip(os.path.sep).split(os.path.sep)
+    rel_to_parts = rel_to.strip(os.path.sep).split(os.path.sep)
+    while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
+        path_parts.pop(0)
+        rel_to_parts.pop(0)
+    full_parts = ['..']*len(rel_to_parts) + path_parts + [path_filename]
+    if full_parts == ['']:
+        return '.' + os.path.sep
+    return os.path.sep.join(full_parts)
+
 def display_path(path):
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
@@ -3023,4 +3127,6 @@ Inf = _Inf()
 del _Inf
 
 if __name__ == '__main__':
-    main()
+    exit = main()
+    if exit:
+        sys.exit(exit)

@@ -1,6 +1,21 @@
 News for pip
 ============
 
+svn trunk
+---------
+
+* Do not use ``sys.exit()`` from inside the code, instead use a
+  return.  This will make it easier to invoke programmatically.
+
+* Put the install record in ``Package.egg-info/installed-files.txt``
+  (previously they went in
+  ``site-packages/install-record-Package.txt``).
+
+* Add a ``--path`` option to ``pip un/zip``, so you can avoid zipping
+  files that are outside of where you expect.
+
+* Add ``--simulate`` option to ``pip zip``.
+
 0.2.1
 -----
 
