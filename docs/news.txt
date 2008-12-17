@@ -16,6 +16,9 @@ svn trunk
 
 * Add ``--simulate`` option to ``pip zip``.
 
+* Fix a problem with ``pip freeze`` not including ``-e svn+`` when an
+  svn structure is peculiar.
+
 0.2.1
 -----
 

@@ -2410,7 +2410,7 @@ def get_src_requirement(dist, location, find_tags):
         # Don't know what it is
         logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
         rev = get_svn_revision(location)
-        return '%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
+        return 'svn+%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile('committed-rev="(\d+)"')
