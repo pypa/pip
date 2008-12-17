@@ -18,8 +18,8 @@ First a test of the distutils-configuration-setting command (which is distinct f
 Next, a simple test::
 
     >>> result = run_pip('install', '-vvv', 'INITools==0.2', expect_error=True)
-    >>> assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) in result.files_created
-    >>> assert (lib_py + 'site-packages/initools') in result.files_created
+    >>> assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, str(result) #sorted(result.files_created.keys())
+    >>> assert (lib_py + 'site-packages/initools') in result.files_created, sorted(result.files_created.keys())
 
 Let's try that again, editable::
 

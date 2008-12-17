@@ -16,14 +16,14 @@ if 'PYTHONPATH' in os.environ:
 def reset_env():
     global env
     env = TestFileEnvironment(base_path, ignore_hidden=False)
-    env.run('virtualenv', '--no-site-packages', env.base_path)
+    env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
     # To avoid the 0.9c8 svn 1.5 incompatibility:
     env.run('%s/bin/easy_install' % env.base_path, 'http://peak.telecommunity.com/snapshots/setuptools-0.7a1dev-r66388.tar.gz')
     env.run('mkdir', 'src')
 
 def run_pip(*args, **kw):
     import sys
-    args = ('python', '../../pip.py', '-E', env.base_path) + args
+    args = (sys.executable, '../../pip.py', '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
     if options.show_error:
         kw['expect_error'] = True
