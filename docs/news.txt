@@ -22,6 +22,11 @@ svn trunk
 * Allow ``pip -E`` to work with a virtualenv that uses a different
   version of Python than the parent environment.
 
+* Search the links passed in with ``-f`` for packages.
+
+* Detect zip files, even when the file doesn't have a ``.zip``
+  extension and it is served with the wrong Content-Type.
+
 0.2.1
 -----
 

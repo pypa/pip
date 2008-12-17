@@ -929,6 +929,9 @@ class PackageFinder(object):
         for location in locations:
             logger.debug('* %s' % location)
         found_versions = []
+        found_versions.extend(
+            self._package_versions(
+                [Link(url, '-f') for url in self.find_links], req.name.lower()))
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s' % page.url)
             logger.indent += 2
@@ -1848,7 +1851,8 @@ class RequirementSet(object):
     def unpack_file(self, filename, location, content_type, link):
         if (content_type == 'application/zip'
             or filename.endswith('.zip')
-            or filename.endswith('.pybundle')):
+            or filename.endswith('.pybundle')
+            or zipfile.is_zipfile(filename)):
             self.unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
         elif (content_type == 'application/x-gzip'
               or tarfile.is_tarfile(filename)
