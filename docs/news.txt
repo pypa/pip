@@ -27,6 +27,11 @@ svn trunk
 * Detect zip files, even when the file doesn't have a ``.zip``
   extension and it is served with the wrong Content-Type.
 
+* Installing editable from existing source now works, like ``pip
+  install -e some/path/`` will install the package in ``some/path/``.
+  Most importantly, anything that package requires will also be
+  installed by pip.
+
 0.2.1
 -----
 

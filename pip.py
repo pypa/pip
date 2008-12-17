@@ -1119,7 +1119,11 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None):
         name, url = parse_editable(editable_req)
-        return cls(name, comes_from, editable=True, url=url)
+        if url.startswith('file:'):
+            source_dir = url_to_filename(url)
+        else:
+            source_dir = None
+        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
 
     @classmethod
     def from_line(cls, name, comes_from=None):
@@ -1189,6 +1193,8 @@ class InstallRequirement(object):
     def correct_build_location(self):
         """If the build location was a temporary directory, this will move it
         to a new more permanent location"""
+        if self.source_dir is not None:
+            return
         assert self.req is not None
         assert self._temp_build_dir
         old_location = self._temp_build_dir
@@ -1376,6 +1382,9 @@ execfile(__file__)
             return
         assert self.editable
         assert self.source_dir
+        if self.url.startswith('file:'):
+            # Static paths don't get updated
+            return
         assert '+' in self.url, "bad url: %r" % self.url
         if not self.update:
             return
@@ -1678,8 +1687,11 @@ class RequirementSet(object):
             is_bundle = False
             try:
                 if req_to_install.editable:
-                    location = req_to_install.build_location(self.src_dir)
-                    req_to_install.source_dir = location
+                    if req_to_install.source_dir is None:
+                        location = req_to_install.build_location(self.src_dir)
+                        req_to_install.source_dir = location
+                    else:
+                        location = req_to_install.source_dir
                     req_to_install.update_editable()
                     req_to_install.run_egg_info()
                 elif install:
@@ -2979,6 +2991,11 @@ def parse_editable(editable_req):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
     (Foobar) and a URL"""
     url = editable_req
+    if os.path.isdir(url) and os.path.exists(os.path.join(url, 'setup.py')):
+        # Treating it as code that has already been checked out
+        url = filename_to_url(url)
+    if url.lower().startswith('file:'):
+        return None, url
     if url.lower().startswith('svn:'):
         url = 'svn+' + url
     if '+' not in url:
