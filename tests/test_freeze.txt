@@ -21,8 +21,7 @@ currently it is not).  ::
     Script result: ...python... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
     INITools==0.2
-    simplejson==1.7.4
-    ...
+    simplejson==1.7.4...
     <BLANKLINE>
 
 Now lets try it with an svn checkout::
@@ -36,8 +35,7 @@ Now lets try it with an svn checkout::
     Script result: ...python... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
     -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev
-    simplejson==1.7.4
-    ...
+    simplejson==1.7.4...
     <BLANKLINE>
 
 Now, straight from trunk (but not editable/setup.py develop)::
@@ -52,8 +50,7 @@ Now, straight from trunk (but not editable/setup.py develop)::
     -- stdout: --------------------
     ## FIXME: could not find svn URL in dependency_links for this package:
     INITools==...dev-r...
-    simplejson==1.7.4
-    ...
+    simplejson==1.7.4...
     <BLANKLINE>
 
 Bah, that's no good!  Let's give it a hint::
@@ -65,6 +62,5 @@ Bah, that's no good!  Let's give it a hint::
     -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
     # Installing as editable to satisfy requirement INITools==...dev-r...:
     -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
-    simplejson==1.7.4
-    ...
+    simplejson==1.7.4...
     <BLANKLINE>
