@@ -19,6 +19,9 @@ svn trunk
 * Fix a problem with ``pip freeze`` not including ``-e svn+`` when an
   svn structure is peculiar.
 
+* Allow ``pip -E`` to work with a virtualenv that uses a different
+  version of Python than the parent environment.
+
 0.2.1
 -----
 

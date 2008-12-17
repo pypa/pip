@@ -877,7 +877,10 @@ def restart_in_venv(venv, args):
     if not os.path.exists(python):
         raise BadCommand('Cannot find virtual environment interpreter at %s' % python)
     base = os.path.dirname(os.path.dirname(python))
-    os.execv(python, [python, __file__] + args + [base, '___VENV_RESTART___'])
+    file = __file__
+    if file.endswith('.pyc'):
+        file = file[:-1]
+    os.execv(python, [python, file] + args + [base, '___VENV_RESTART___'])
 
 class PackageFinder(object):
     """This finds packages.
