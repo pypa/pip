@@ -233,7 +233,8 @@ class InstallCommand(Command):
             metavar='svn+REPOS_URL[@REV]#egg=PACKAGE',
             help='Install a package directly from a checkout.  Source will be checked '
             'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop).  This option may be provided multiple times.')
+            'setup.py develop).  You can run this on an existing directory/checkout (like '
+            'pip install -e src/mycheckout).This option may be provided multiple times.')
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirements',
