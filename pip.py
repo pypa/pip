@@ -30,6 +30,7 @@ import threading
 import httplib
 import time
 import logging
+import ConfigParser
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -50,7 +51,7 @@ pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
 
-# Choose a git command based on platform.
+# Choose a Git command based on platform.
 if sys.platform == 'win32':
     GIT_CMD = 'git.cmd'
 else:
@@ -236,11 +237,11 @@ class InstallCommand(Command):
             dest='editables',
             action='append',
             default=[],
-            metavar='svn+REPOS_URL[@REV]#egg=PACKAGE',
+            metavar='(svn|git|hg)+REPOS_URL[@REV]#egg=PACKAGE',
             help='Install a package directly from a checkout.  Source will be checked '
             'out into src/PACKAGE (lower-case) and installed in-place (using '
             'setup.py develop).  You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout).This option may be provided multiple times.')
+            'pip install -e src/mycheckout). This option may be provided multiple times.')
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -1401,6 +1402,8 @@ execfile(__file__)
             self.checkout_svn()
         elif vc_type == 'git':
             self.clone_git()
+        elif vc_type == 'hg':
+            self.clone_hg()
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s' 
@@ -1421,40 +1424,45 @@ execfile(__file__)
             rev_display = ''
         dest = self.source_dir
         checkout = True
-        if os.path.exists(os.path.join(self.source_dir, '.svn')):
-            existing_url = _get_svn_info(self.source_dir)[0]
+        if os.path.exists(os.path.join(dest, '.svn')):
+            existing_url = _get_svn_info(dest)[0]
             checkout = False
             if existing_url == url:
                 logger.info('Checkout in %s exists, and has correct URL (%s)'
-                            % (display_path(self.source_dir), url))
-                logger.notify('Updating checkout %s%s' % (display_path(self.source_dir), rev_display))
+                            % (display_path(dest), url))
+                logger.notify('Updating checkout %s%s'
+                              % (display_path(dest), rev_display))
                 call_subprocess(
-                    ['svn', 'update'] + rev_options + [self.source_dir])
+                    ['svn', 'update'] + rev_options + [dest])
             else:
-                logger.warn('svn checkout in %s exists with URL %s' % (display_path(self.source_dir), existing_url))
-                logger.warn('The plan is to install the svn repository %s' % url)
+                logger.warn('svn checkout in %s exists with URL %s'
+                            % (display_path(dest), existing_url))
+                logger.warn('The plan is to install the svn repository %s'
+                            % url)
                 response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
                 if response == 's':
                     logger.notify('Switching checkout %s to %s%s'
-                                  % (display_path(self.source_dir), url, rev_display))
+                                  % (display_path(dest), url, rev_display))
                     call_subprocess(
-                        ['svn', 'switch'] + rev_options + [url, self.source_dir])
+                        ['svn', 'switch'] + rev_options + [url, dest])
                 elif response == 'i':
                     # do nothing
                     pass
                 elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(self.source_dir))
-                    shutil.rmtree(self.source_dir)
+                    logger.warn('Deleting %s' % display_path(dest))
+                    shutil.rmtree(dest)
                     checkout = True
                 elif response == 'b':
-                    dest_dir = backup_dir(self.source_dir)
-                    logger.warn('Backing up %s to %s' % display_path(self.source_dir, dest_dir))
-                    shutil.move(self.source_dir, dest_dir)
+                    dest_dir = backup_dir(dest)
+                    logger.warn('Backing up %s to %s'
+                                % display_path(dest, dest_dir))
+                    shutil.move(dest, dest_dir)
                     checkout = True
         if checkout:
-            logger.notify('Checking out %s%s to %s' % (url, rev_display, display_path(self.source_dir)))
+            logger.notify('Checking out %s%s to %s'
+                          % (url, rev_display, display_path(dest)))
             call_subprocess(
-                ['svn', 'checkout', '-q'] + rev_options + [url, self.source_dir])
+                ['svn', 'checkout', '-q'] + rev_options + [url, dest])
 
     def clone_git(self):
         url = self.url.split('+', 1)[1]
@@ -1471,46 +1479,118 @@ execfile(__file__)
             rev_display = ''
         dest = self.source_dir
         clone = True
-        if os.path.exists(os.path.join(self.source_dir, '.git')):
-            existing_url = get_git_url(self.source_dir)
+        if os.path.exists(os.path.join(dest, '.git')):
+            existing_url = get_git_url(dest)
             clone = False
             if existing_url == url:
                 logger.info('Clone in %s exists, and has correct URL (%s)'
-                            % (display_path(self.source_dir), url))
-                logger.notify('Updating clone %s%s' % (display_path(self.source_dir), rev_display))
-                call_subprocess([GIT_CMD, 'fetch', '-q'], cwd=self.source_dir)
+                            % (display_path(dest), url))
+                logger.notify('Updating clone %s%s'
+                              % (display_path(dest), rev_display))
+                call_subprocess([GIT_CMD, 'fetch', '-q'], cwd=dest)
                 call_subprocess([GIT_CMD, 'checkout', '-q', '-f'] + rev_options,
-                                cwd=self.source_dir)
+                                cwd=dest)
             else:
-                logger.warn('Git clone in %s exists with URL %s' % (display_path(self.source_dir), existing_url))
-                logger.warn('The plan is to install the git repository %s' % url)
+                logger.warn('Git clone in %s exists with URL %s'
+                            % (display_path(dest), existing_url))
+                logger.warn('The plan is to install the Git repository %s'
+                            % url)
                 response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
                 if response == 's':
                     logger.notify('Switching clone %s to %s%s'
-                                  % (display_path(self.source_dir), url, rev_display))
-                    os.chdir(self.source_dir)
+                                  % (display_path(dest), url, rev_display))
                     call_subprocess([GIT_CMD, 'config', 'remote.origin.url', url],
-                                    cwd=self.source_dir)
+                                    cwd=dest)
                     call_subprocess([GIT_CMD, 'checkout', '-q'] + rev_options,
-                                    cwd=self.source_dir)
+                                    cwd=dest)
                 elif response == 'i':
                     # do nothing
                     pass
                 elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(self.source_dir))
-                    shutil.rmtree(self.source_dir)
+                    logger.warn('Deleting %s' % display_path(dest))
+                    shutil.rmtree(dest)
                     clone = True
                 elif response == 'b':
-                    dest_dir = backup_dir(self.source_dir)
-                    logger.warn('Backing up %s to %s' % (display_path(self.source_dir), dest_dir))
-                    shutil.move(self.source_dir, dest_dir)
+                    dest_dir = backup_dir(dest)
+                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
+                    shutil.move(dest, dest_dir)
                     clone = True
         if clone:
-            logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(self.source_dir)))
-            call_subprocess([GIT_CMD, 'clone', '-q', url, self.source_dir])
-            call_subprocess([GIT_CMD, 'checkout', '-q'] + rev_options,
-                            cwd=self.source_dir)
+            logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
+            call_subprocess([GIT_CMD, 'clone', '-q', url, dest])
+            call_subprocess([GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
+    def clone_hg(self):
+        url = self.url.split('+', 1)[1]
+        url = url.split('#', 1)[0]
+        if '@' in url:
+            url, rev = url.rsplit('@', 1)
+        else:
+            rev = None
+        if rev:
+            rev_options = [rev]
+            rev_display = ' (to revision %s)' % rev
+        else:
+            rev_options = ['default']
+            rev_display = ''
+        dest = self.source_dir
+        clone = True
+        if os.path.exists(os.path.join(dest, '.hg')):
+            existing_url = get_hg_url(dest)
+            clone = False
+            if existing_url == url:
+                logger.info('Clone in %s exists, and has correct URL (%s)'
+                            % (display_path(dest), url))
+                logger.notify('Updating clone %s%s'
+                              % (display_path(dest), rev_display))
+                call_subprocess(['hg', 'fetch', '-q'], cwd=dest)
+                call_subprocess(['hg', 'update', '-q'] + rev_options,
+                                cwd=dest)
+            else:
+                logger.warn('Mercurial clone in %s exists with URL %s'
+                            % (display_path(dest), existing_url))
+                logger.warn('The plan is to install the Mercurial repository %s'
+                            % url)
+                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
+                if response == 's':
+                    logger.notify('Switching clone %s to %s%s'
+                                  % (display_path(dest), url, rev_display))
+                    repo_config = os.path.join(dest, '.hg/hgrc')
+                    config = ConfigParser.SafeConfigParser()
+                    try:
+                        config_file = open(repo_config, 'wb')
+                        config.readfp(config_file)
+                        config.set('paths', ''.join(rev_options), url)
+                        config.write(config_file)
+                    except (OSError, ConfigParser.NoSectionError):
+                        logger.warn(
+                            'Could not switch Mercurial repository to %s: %s'
+                                % (url, e))
+                    else:
+                        call_subprocess(['hg', 'update', '-q'] + rev_options,
+                                        cwd=dest)
+                elif response == 'i':
+                    # do nothing
+                    pass
+                elif response == 'w':
+                    logger.warn('Deleting %s' % display_path(dest))
+                    shutil.rmtree(dest)
+                    clone = True
+                elif response == 'b':
+                    dest_dir = backup_dir(dest)
+                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
+                    shutil.move(dest, dest_dir)
+                    clone = True
+        if clone:
+            # FIXME creates the 'src' dir if not existent because Mercurial
+            # doesn't do it -- other option?
+            src_dir = os.path.abspath(os.path.join(dest, '..'))
+            if not os.path.exists(src_dir):
+                os.makedirs(src_dir)
+            logger.notify('Cloning hg %s%s to %s'
+                          % (url, rev_display, display_path(dest)))
+            call_subprocess(['hg', 'clone', '-q', url, dest])
+            call_subprocess(['hg', 'update', '-q'] + rev_options, cwd=dest)
 
     def install(self, install_options):
         if self.editable:
@@ -1587,15 +1667,29 @@ execfile(__file__)
             logger.indent -= 2
 
     def git_clone(self, url, location):
-        """Clone the git repository at the url to the destination location"""
+        """Clone the Git repository at the url to the destination location"""
         if '#' in url:
             url = url.split('#', 1)[0]
-        logger.notify('Cloning git repository %s to %s' % (url, location))
+        logger.notify('Cloning Git repository %s to %s' % (url, location))
         logger.indent += 2
         try:
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess([GIT_CMD, 'clone', url, location],
+                            filter_stdout=self._filter_svn, show_stdout=False)
+        finally:
+            logger.indent -= 2
+
+    def hg_clone(self, url, location):
+        """Clone the Hg repository at the url to the destination location"""
+        if '#' in url:
+            url = url.split('#', 1)[0]
+        logger.notify('Cloning Mercurial repository %s to %s' % (url, location))
+        logger.indent += 2
+        try:
+            if os.path.exists(location):
+                os.rmdir(location)
+            call_subprocess(['hg', 'clone', url, location],
                             filter_stdout=self._filter_svn, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -1645,6 +1739,7 @@ execfile(__file__)
                 ## FIXME: svnism:
                 svn_checkout = os.path.join(src_dir, package, 'svn-checkout.txt')
                 git_clone = os.path.join(src_dir, package, 'git-clone.txt')
+                hg_clone = os.path.join(src_dir, package, 'hg-clone.txt')
                 url = rev = None
                 if os.path.exists(svn_checkout):
                     vc_type = 'svn'
@@ -1659,6 +1754,13 @@ execfile(__file__)
                     fp.close()
                     sys.exit(0)
                     url, rev = _parse_git_clone_text(content)
+                elif os.path.exists(hg_clone):
+                    vc_type = 'hg'
+                    fp = open(hg_clone)
+                    content = fp.read()
+                    fp.close()
+                    sys.exit(0)
+                    url, rev = _parse_hg_clone_text(content)
                 if url:
                     url = '%s+%s@%s' % (vc_type, url, rev)
                 else:
@@ -1851,8 +1953,11 @@ class RequirementSet(object):
         if link.scheme in ('svn', 'svn+ssh'):
             self.svn_checkout(link, location)
             return
-        if link.scheme in ('git', 'git+http'):
+        if link.scheme in ('git', 'git+http', 'git+ssh'):
             self.git_clone(link, location)
+            return
+        if link.scheme in ('hg', 'hg+http', 'hg+ssh'):
+            self.hg_clone(link, location)
             return
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
@@ -2091,11 +2196,11 @@ class RequirementSet(object):
         ## packages, maybe some other metadata files.  It would make
         ## it easier to detect as well.
         zip = zipfile.ZipFile(bundle_filename, 'w', zipfile.ZIP_DEFLATED)
-        svn_dirs = git_dirs = []
+        svn_dirs = git_dirs = hg_dirs = []
         for dir, basename in (self.build_dir, 'build'), (self.src_dir, 'src'):
             dir = os.path.normcase(os.path.abspath(dir))
             for dirpath, dirnames, filenames in os.walk(dir):
-                svn_url = svn_rev = git_url = git_rev = None
+                svn_url = svn_rev = git_url = git_rev = hg_url = hg_rev = None
                 if '.svn' in dirnames:
                     for svn_dir in svn_dirs:
                         if dirpath.startswith(svn_dir):
@@ -2114,6 +2219,15 @@ class RequirementSet(object):
                         git_url, git_rev = _get_git_info(os.path.join(dir, dirpath))
                         git_dirs.append(dirpath)
                     dirnames.remove('.git')
+                if '.hg' in dirnames:
+                    for hg_dir in hg_dirs:
+                        if dirpath.startswith(hg_dir):
+                            # hg-clone.txt already in parent directory
+                            break
+                    else:
+                        hg_url, hg_rev = _get_hg_info(os.path.join(dir, dirpath))
+                        hg_dirs.append(dirpath)
+                    dirnames.remove('.hg')
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
@@ -2134,6 +2248,10 @@ class RequirementSet(object):
                     name = os.path.join(dirpath, 'git-clone.txt')
                     name = self._clean_zip_name(name, dir)
                     zip.writestr(basename + '/' + name, _git_clone_text(git_url, git_rev))
+                if hg_url:
+                    name = os.path.join(dirpath, 'hg-clone.txt')
+                    name = self._clean_zip_name(name, dir)
+                    zip.writestr(basename + '/' + name, _hg_clone_text(hg_url, hg_rev))
         zip.writestr('pip-manifest.txt', self.bundle_requirements())
         zip.close()
         # Unlike installation, this will always delete the build directories
@@ -2440,8 +2558,9 @@ class FrozenRequirement(object):
     def from_dist(cls, dist, dependency_links, find_tags=False):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
-        if os.path.exists(os.path.join(location, '.svn')) or \
-                os.path.exists(os.path.join(location, '.git')):
+        if (os.path.exists(os.path.join(location, '.svn')) or
+            os.path.exists(os.path.join(location, '.git')) or
+            os.path.exists(os.path.join(location, '.hg'))):
             editable = True
             req = get_src_requirement(dist, location, find_tags)
             if req is None:
@@ -2503,11 +2622,13 @@ def get_svn_location(dist, dependency_links):
     return None
 
 def get_src_requirement(dist, location, find_tags):
-    if not (os.path.exists(os.path.join(location, '.svn')) or
-            os.path.exists(os.path.join(location, '.git'))):
-        logger.warn('cannot determine version of editable source in %s (is not svn checkout or git clone)' % location)
+    svn_exists = os.path.exists(os.path.join(location, '.svn'))
+    git_exists = os.path.exists(os.path.join(location, '.git'))
+    hg_exists = os.path.exists(os.path.join(location, '.hg'))
+    if not (svn_exists or git_exists or hg_exists):
+        logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone or Mercurial clone)' % location)
         return dist.as_requirement()
-    if os.path.exists(os.path.join(location, '.svn')):
+    if svn_exists:
         repo = get_svn_url(location)
         if repo is None:
             return None
@@ -2537,7 +2658,7 @@ def get_src_requirement(dist, location, find_tags):
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
             rev = get_svn_revision(location)
             return 'svn+%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
-    elif os.path.exists(os.path.join(location, '.git')):
+    elif git_exists:
         repo = get_git_url(location)
         egg_project_name = dist.egg_name().split('-', 1)[0]
         if not repo:
@@ -2559,14 +2680,41 @@ def get_src_requirement(dist, location, find_tags):
             if find_tags:
                 if current_rev in tag_revs:
                     tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('master %s seems to be equivalent to tag %s' % (current_rev, tag))
+                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
                     return 'git+%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
             return 'git+%s@%s#egg=%s-dev' % (repo, master_rev, dist.egg_name())
         else:
             # Don't know what it is
-            logger.warn('git URL does not fit normal structure: %s' % repo)
-            rev = get_git_revision(location)
-            return '%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
+            logger.warn('Git URL does not fit normal structure: %s' % repo)
+            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+    elif hg_exists:
+        repo = get_hg_url(location)
+        egg_project_name = dist.egg_name().split('-', 1)[0]
+        if not repo:
+            return None
+        current_rev = get_hg_revision(location)
+        tag_revs = get_hg_tag_revs(location)
+        branch_revs = get_hg_branch_revs(location)
+        tip_rev = get_hg_tip_revision(location)
+        if current_rev in tag_revs:
+            # It's a tag, perfect!
+            tag = tag_revs.get(current_rev, current_rev)
+            return 'hg+%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+        elif current_rev in branch_revs:
+            # It's the tip of a branch, nice too.
+            branch = branch_revs.get(current_rev, current_rev)
+            return 'hg+%s@%s#egg=%s-%s' % (repo, branch, dist.egg_name(), current_rev)
+        elif current_rev == tip_rev:
+            if find_tags:
+                if current_rev in tag_revs:
+                    tag = tag_revs.get(current_rev, current_rev)
+                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
+                    return 'hg+%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+            return 'hg+%s@%s#egg=%s-dev' % (repo, tip_rev, dist.egg_name())
+        else:
+            # Don't know what it is
+            logger.warn('Mercurial URL does not fit normal structure: %s' % repo)
+            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
 
 def get_git_url(location):
     url = call_subprocess([GIT_CMD, 'config', 'remote.origin.url'],
@@ -2605,6 +2753,48 @@ def get_git_branch_revs(location):
         branch_revs.append((rev.strip(), branch))
     branch_revs = dict(branch_revs)
     return branch_revs
+
+def get_hg_url(location):
+    url = call_subprocess(['hg', 'showconfig', 'paths.default'],
+                          show_stdout=False, cwd=location)
+    return url.strip()
+
+def get_hg_tip_revision(location):
+    current_rev = call_subprocess(['hg', 'tip', '--template={rev}'],
+                                  show_stdout=False, cwd=dir)
+    return current_rev.strip()
+
+def get_hg_tag_revs(location):
+    tags = call_subprocess(['hg', 'tags'], show_stdout=False, cwd=location)
+    tag_revs = []
+    for line in tags.splitlines():
+        tags_match = re.search(r'([\w-]+)\s*([\d]+):.*$', line)
+        if tags_match:
+            tag = tags_match.group(1)
+            rev = tags_match.group(2)
+            tag_revs.append((rev.strip(), tag.strip()))
+    return dict(tag_revs)
+
+def get_hg_branch_revs(location):
+    branches = call_subprocess(['hg', 'branches'],
+                               show_stdout=False, cwd=location)
+    branch_revs = []
+    for line in branches.splitlines():
+        branches_match = re.search(r'([\w-]+)\s*([\d]+):.*$', line)
+        if branches_match:
+            branch = branches_match.group(1)
+            rev = branches_match.group(2)
+            branch_revs.append((rev.strip(), branch.strip()))
+    return dict(branch_revs)
+
+def get_hg_revision(location):
+    current_branch = call_subprocess(['hg', 'branch'],
+                                     show_stdout=False, cwd=dir).strip()
+    branch_revs = get_hg_branch_revs(location)
+    for branch in branch_revs:
+        if current_branch == branch_revs[branch]:
+            return branch
+    return get_hg_tip_revision(location)
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile('committed-rev="(\d+)"')
@@ -3075,13 +3265,13 @@ def _get_git_info(dir):
     """Returns (url, revision), where both are strings"""
     assert not dir.rstrip('/').endswith('.git'), 'Bad directory: %s' % dir
     url = get_git_url(dir)
-    current_rev = call_subprocess([GIT_CMD, 'rev-parse', 'HEAD'],
-                                  show_stdout=False, cwd=dir)
-    return url, current_rev.strip()
+    current_rev = get_git_revision(dir)
+    return url, current_rev
 
 def _git_clone_text(url, rev):
-    return ('# This was a git clone; to make it a clone again run:\ngit init\n'
-            'git remote add origin %s -f\ngit checkout %s\n' % (url, rev))
+    return ('# This was a Git repository clone; to make it a clone again run:'
+            '\ngit init\ngit remote add origin %s -f\ngit checkout %s\n'
+            % (url, rev))
 
 def _parse_git_clone_text(text):
     url = rev = None
@@ -3092,6 +3282,32 @@ def _parse_git_clone_text(text):
         if url_match:
             url = url_match.group(1).strip()
         rev_match = re.search(r'^git\s*checkout\s*-q\s*(.*)\s*', line)
+        if rev_match:
+            rev = rev_match.group(1).strip()
+        if url and rev:
+            return url, rev
+    return None, None
+
+def _get_hg_info(dir):
+    """Returns (url, revision), where both are strings"""
+    assert not dir.rstrip('/').endswith('.hg'), 'Bad directory: %s' % dir
+    url = get_hg_url(dir)
+    current_rev = get_hg_revision(dir)
+    return url, current_rev
+
+def _hg_clone_text(url, rev):
+    return ('# This was a Mercurial repository clone; to make it a clone '
+            'again run:\nhg init\nhg pull %s\nhg update -r %s\n' % (url, rev))
+
+def _parse_hg_clone_text(text):
+    url = rev = None
+    for line in text.splitlines():
+        if not line.strip() or line.strip().startswith('#'):
+            continue
+        url_match = re.search(r'hg\s*pull\s*(.*)\s*', line)
+        if url_match:
+            url = url_match.group(1).strip()
+        rev_match = re.search(r'^hg\s*update\s*-r\s*(.*)\s*', line)
         if rev_match:
             rev = rev_match.group(1).strip()
         if url and rev:
@@ -3202,18 +3418,20 @@ def parse_editable(editable_req):
         url = 'svn+' + url
     if url.lower().startswith('git:'):
         url = 'git+' + url
+    if url.lower().startswith('hg:'):
+        url = 'hg+' + url
     if '+' not in url:
         if default_vcs:
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
-                '--editable=%s should be formatted with svn+URL or git+URL' % editable_req)
+                '--editable=%s should be formatted with svn+URL, git+URL or hg+URL' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
-    if vc_type not in ('svn', 'git'):
+    if vc_type not in ('svn', 'git', 'hg'):
         raise InstallationError(
-            'For --editable=%s only svn (svn+URL) and Git (git+URL) is currently supported' % editable_req)
+            'For --editable=%s only svn (svn+URL), Git (git+URL) and Mercurial (hg+URL) is currently supported' % editable_req)
     match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if (not match or not match.group(1)) and vc_type in ('svn', 'git'):
+    if (not match or not match.group(1)) and vc_type in ('svn', 'git', 'hg'):
         parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
         if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
             req = parts[-3]
