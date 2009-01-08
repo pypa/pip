@@ -18,7 +18,7 @@ currently it is not).  ::
     >>> result = run_pip('install', '-r', 'initools-req.txt')
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
-    Script result: ...python... ../../pip.py -E .../test-scratch freeze
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
     INITools==0.2
     simplejson==1.7.4...
@@ -32,7 +32,7 @@ Now lets try it with an svn checkout::
     ...                  cwd=os.path.join(env.base_path, 'initools-trunk'))
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
-    Script result: ...python... ../../pip.py -E .../test-scratch freeze
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
     -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev
     simplejson==1.7.4...
@@ -43,7 +43,7 @@ Now, straight from trunk (but not editable/setup.py develop)::
     >>> result = env.run(os.path.join(env.base_path, 'bin/easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
-    Script result: ...python... ../../pip.py -E .../test-scratch freeze
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stderr: --------------------
     Warning: cannot find svn location for INITools==...dev-r...
     <BLANKLINE>
@@ -57,7 +57,7 @@ Bah, that's no good!  Let's give it a hint::
 
     >>> result = run_pip('freeze', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
     >>> print result
-    Script result: ...python... ../../pip.py -E .../test-scratch freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
     -- stdout: --------------------
     -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
     # Installing as editable to satisfy requirement INITools==...dev-r...:
