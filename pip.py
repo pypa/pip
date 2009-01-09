@@ -2761,7 +2761,7 @@ def get_hg_url(location):
 
 def get_hg_tip_revision(location):
     current_rev = call_subprocess(['hg', 'tip', '--template={rev}'],
-                                  show_stdout=False, cwd=dir)
+                                  show_stdout=False, cwd=location)
     return current_rev.strip()
 
 def get_hg_tag_revs(location):
@@ -2789,7 +2789,7 @@ def get_hg_branch_revs(location):
 
 def get_hg_revision(location):
     current_branch = call_subprocess(['hg', 'branch'],
-                                     show_stdout=False, cwd=dir).strip()
+                                     show_stdout=False, cwd=location).strip()
     branch_revs = get_hg_branch_revs(location)
     for branch in branch_revs:
         if current_branch == branch_revs[branch]:
