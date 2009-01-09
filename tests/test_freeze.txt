@@ -64,3 +64,59 @@ Bah, that's no good!  Let's give it a hint::
     -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
     simplejson==1.7.4...
     <BLANKLINE>
+
+What about a Git clone?::
+
+    >>> reset_env()
+    >>> env = get_env()
+    >>> result = env.run('git', 'clone', 'git://github.com/ericflo/django-pagination.git', 'django-pagination')
+    >>> result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
+    ...                  cwd=os.path.join(env.base_path, 'django-pagination'), expect_stderr=True)
+    >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    ...                  cwd=os.path.join(env.base_path, 'django-pagination'))
+    >>> result = run_pip('freeze', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
+    -- stderr: --------------------
+    Git URL does not fit normal structure: git://github.com/ericflo/django-pagination.git
+    <BLANKLINE>
+    -- stdout: --------------------
+    -e git://github.com/ericflo/django-pagination.git@...#egg=django_pagination-dev
+    ...
+    <BLANKLINE>
+
+    >>> result = run_pip('freeze', '-f', 'git://github.com/ericflo/django-pagination.git#egg=django_pagination-dev', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/ericflo/django-pagination.git#egg=django_pagination-dev
+    -- stderr: --------------------
+    Git URL does not fit normal structure: git://github.com/ericflo/django-pagination.git
+    <BLANKLINE>
+    -- stdout: --------------------
+    -f git://github.com/ericflo/django-pagination.git#egg=django_pagination-dev
+    -e git://github.com/ericflo/django-pagination.git@...#egg=django_pagination-dev
+    ...
+    <BLANKLINE>
+
+Now what about Mercurial::
+
+    >>> reset_env()
+    >>> env = get_env()
+    >>> result = env.run('hg', 'clone', '-r', 'a5748745272a', 'http://bitbucket.org/mitsuhiko/pygments-main/', 'pygments')
+    >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    ...                  cwd=os.path.join(env.base_path, 'pygments'))
+    >>> result = run_pip('freeze', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
+    -- stdout: --------------------
+    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    ...
+    <BLANKLINE>
+
+    >>> result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
+    -- stdout: --------------------
+    -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
+    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    ...
+    <BLANKLINE>
