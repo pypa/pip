@@ -1,7 +1,7 @@
 The requirements file format
 ============================
 
-The requirements file is what poacheggs uses to install packages.
+The requirements file is what pip uses to install packages.
 This document describes that format.
 
 Each line of the requirements file indicates something to be
@@ -9,7 +9,7 @@ installed.  For example::
 
     MyPackage==3.0
 
-tells poacheggs to install the 3.0 version of MyPackage.  
+tells pip to install the 3.0 version of MyPackage.  
 
 You can also install a package in an "editable" form.  This puts the
 source code into ``src/distname`` (making the name lower case) and
@@ -22,7 +22,7 @@ The ``#egg=MyProject`` part is important, because while you can
 install simply given the svn location, the project name is useful in
 other places.
 
-If you need to give poacheggs (and by association easy_install) hints
+If you need to give pip (and by association easy_install) hints
 about where to find a package, you can use the ``-f``
 (``--find-links``) option, like::
 
@@ -37,12 +37,39 @@ easy_install).
 Version Control
 ---------------
 
-Right now pip knows Subversion, Git and Mercurial.
+Right now pip knows Subversion, Git and Mercurial. Support for Bazaar is
+propably coming soon, too.
 
 You can also give specific revisions to an SVN URL, like::
 
-    -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019
+    -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check
 out the revision from 2008-01-01.  You can only check out specific
 revisions using ``-e svn+...``.
+
+Using Git and Mercurial is quite similar to that of Subversion -- just use the
+appropriate URL scheme. For a Git repository that is served with the Git
+protocoll you can use::
+
+    -e git://git.myproject.org/MyProject.git#egg=MyProject
+
+For a Git repository served over HTTP::
+
+    -e git+http://git.myproject.org/MyProject/#egg=MyProject
+
+Passing branch names, a commit hash or a tag name is also possible:: 
+
+    -e git://git.myproject.org/MyProject.git@master#egg=MyProject
+    -e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+
+The same rules apply to Mercurial, use the ``hg+http`` URL scheme to get it
+over HTTP::
+
+    -e hg+http://hg.myproject.org/MyProject/#egg=MyProject
+
+You can also specify a revision number, a revision hash, a tag name or a local
+branch name to clone from::
+
+    -e hg+http://hg.myproject.org/MyProject/@2019#egg=MyProject
+    -e hg+http://hg.myproject.org/MyProject/@special_feature#egg=MyProject

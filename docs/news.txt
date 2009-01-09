@@ -1,8 +1,8 @@
 News for pip
 ============
 
-svn trunk
----------
+hg tip
+------
 
 * Do not use ``sys.exit()`` from inside the code, instead use a
   return.  This will make it easier to invoke programmatically.
@@ -31,6 +31,9 @@ svn trunk
   install -e some/path/`` will install the package in ``some/path/``.
   Most importantly, anything that package requires will also be
   installed by pip.
+
+* Added support for editable packages created from Git and Mercurial
+  repositories and ability to freeze them.
 
 0.2.1
 -----

@@ -111,15 +111,15 @@ quickly see why that doesn't work.)  You can add optional libraries and support
 tools that MyApp doesn't strictly require.
 
 You can also include "editable" packages -- packages that are checked out from
-subversion (in the future other VCS will be supported).  These are just like
-using the ``-e`` option to pip.  They look like::
+Subversion, Git and Mercurial.  These are just like using the ``-e`` option
+to pip.  They look like::
 
     -e svn+http://myrepo/svn/MyApp#egg=MyApp
 
-You have to start the URL with ``svn+`` (eventually you'll be able to use
-``hg+`` etc), and you have to include ``#egg=Package`` so pip knows what
-to expect at that URL.  You can also include ``@rev`` in the URL, e.g., ``@275``
-to check out revision 275.
+You have to start the URL with ``svn+`` (or ``git+`` or ``hg+``), and you
+have to include ``#egg=Package`` so pip knows what to expect at that URL.
+You can also include ``@rev`` in the URL, e.g., ``@275`` to check out
+revision 275.
 
 Freezing Requirements
 ---------------------
