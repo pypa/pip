@@ -37,10 +37,7 @@ easy_install).
 Version Control
 ---------------
 
-Right now poacheggs only knows Subversion.  I hope to add Mercurial in
-the not-too-distant future, as that system in particular is used by
-quite a few open source Python projects (once that's added, support
-for Bazaar, git, etc. will probably be easy).
+Right now pip knows Subversion, Git and Mercurial.
 
 You can also give specific revisions to an SVN URL, like::
 
