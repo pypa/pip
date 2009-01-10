@@ -1674,34 +1674,6 @@ execfile(__file__)
         finally:
             logger.indent -= 2
 
-    def git_clone(self, url, location):
-        """Clone the Git repository at the url to the destination location"""
-        if '#' in url:
-            url = url.split('#', 1)[0]
-        logger.notify('Cloning Git repository %s to %s' % (url, location))
-        logger.indent += 2
-        try:
-            if os.path.exists(location):
-                os.rmdir(location)
-            call_subprocess([GIT_CMD, 'clone', url, location],
-                            filter_stdout=self._filter_svn, show_stdout=False)
-        finally:
-            logger.indent -= 2
-
-    def hg_clone(self, url, location):
-        """Clone the Hg repository at the url to the destination location"""
-        if '#' in url:
-            url = url.split('#', 1)[0]
-        logger.notify('Cloning Mercurial repository %s to %s' % (url, location))
-        logger.indent += 2
-        try:
-            if os.path.exists(location):
-                os.rmdir(location)
-            call_subprocess(['hg', 'clone', url, location],
-                            filter_stdout=self._filter_svn, show_stdout=False)
-        finally:
-            logger.indent -= 2
-
     def _filter_install(self, line):
         level = Logger.NOTIFY
         for regex in [r'^running .*', r'^writing .*', '^creating .*', '^[Cc]opying .*',
@@ -2173,6 +2145,34 @@ class RequirementSet(object):
                 # --force fixes this, but was only added in svn 1.5
                 os.rmdir(location)
             call_subprocess(['svn', 'checkout', url, location],
+                            filter_stdout=self._filter_svn, show_stdout=False)
+        finally:
+            logger.indent -= 2
+
+    def git_clone(self, url, location):
+        """Clone the Git repository at the url to the destination location"""
+        if '#' in url:
+            url = url.split('#', 1)[0]
+        logger.notify('Cloning Git repository %s to %s' % (url, location))
+        logger.indent += 2
+        try:
+            if os.path.exists(location):
+                os.rmdir(location)
+            call_subprocess([GIT_CMD, 'clone', url, location],
+                            filter_stdout=self._filter_svn, show_stdout=False)
+        finally:
+            logger.indent -= 2
+
+    def hg_clone(self, url, location):
+        """Clone the Hg repository at the url to the destination location"""
+        if '#' in url:
+            url = url.split('#', 1)[0]
+        logger.notify('Cloning Mercurial repository %s to %s' % (url, location))
+        logger.indent += 2
+        try:
+            if os.path.exists(location):
+                os.rmdir(location)
+            call_subprocess(['hg', 'clone', url, location],
                             filter_stdout=self._filter_svn, show_stdout=False)
         finally:
             logger.indent -= 2
