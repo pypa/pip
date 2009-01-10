@@ -71,5 +71,5 @@ over HTTP::
 You can also specify a revision number, a revision hash, a tag name or a local
 branch name to clone from::
 
-    -e hg+http://hg.myproject.org/MyProject/@2019#egg=MyProject
+    -e hg+http://hg.myproject.org/MyProject/@da39a3ee5e6b#egg=MyProject
     -e hg+http://hg.myproject.org/MyProject/@special_feature#egg=MyProject
