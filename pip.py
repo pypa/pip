@@ -62,6 +62,11 @@ default_vcs = None
 if os.environ.get('PIP_DEFAULT_VCS'):
     default_vcs = os.environ['PIP_DEFAULT_VCS']
 
+# Register more schemes with urlparse for git and hg
+pip_schemes = ['ssh', 'git', 'hg']
+urlparse.uses_netloc.extend(pip_schemes)
+urlparse.uses_fragment.extend(pip_schemes)
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -1411,11 +1416,12 @@ execfile(__file__)
 
     def checkout_svn(self):
         url = self.url.split('+', 1)[1]
-        url = url.split('#', 1)[0]
-        if '@' in url:
-            url, rev = url.split('@', 1)
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        if '@' in path:
+            path, rev = path.split('@', 1)
         else:
             rev = None
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         if rev:
             rev_options = ['-r', rev]
             rev_display = ' (to revision %s)' % rev
@@ -1466,11 +1472,12 @@ execfile(__file__)
 
     def clone_git(self):
         url = self.url.split('+', 1)[1]
-        url = url.split('#', 1)[0]
-        if '@' in url:
-            url, rev = url.split('@', 1)
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        if '@' in path:
+            path, rev = path.split('@', 1)
         else:
             rev = None
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         if rev:
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
@@ -1522,11 +1529,12 @@ execfile(__file__)
 
     def clone_hg(self):
         url = self.url.split('+', 1)[1]
-        url = url.split('#', 1)[0]
-        if '@' in url:
-            url, rev = url.rsplit('@', 1)
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        if '@' in path:
+            path, rev = path.split('@', 1)
         else:
             rev = None
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         if rev:
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
