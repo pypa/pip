@@ -204,7 +204,7 @@ class Command(object):
         level -= options.quiet
         level = Logger.level_for_integer(4-level)
         complete_log = []
-        logger = Logger([(level, sys.stdout), 
+        logger = Logger([(level, sys.stdout),
                          (Logger.DEBUG, complete_log.append)])
         if os.environ.get('PIP_LOG_EXPLICIT_LEVELS'):
             logger.explicit_levels = True
@@ -236,7 +236,7 @@ class Command(object):
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             exit = 2
-        
+
         if log_fp is not None:
             log_fp.close()
         if exit:
@@ -252,7 +252,7 @@ class HelpCommand(Command):
     name = 'help'
     usage = '%prog'
     summary = 'Show available commands'
-    
+
     def run(self, options, args):
         if args:
             ## FIXME: handle errors better here
@@ -443,7 +443,7 @@ class FreezeCommand(Command):
             default=[],
             metavar='URL',
             help='URL for finding packages, which will be added to the frozen requirements file')
-        
+
     def run(self, options, args):
         if args:
             filename = args[0]
@@ -581,7 +581,7 @@ class ZipCommand(Command):
                         match_any.add(match)
                         break
             else:
-                logger.debug("Skipping path %s because it doesn't match %s" 
+                logger.debug("Skipping path %s because it doesn't match %s"
                              % (path, ', '.join(self.select_paths)))
         for match in self.select_paths:
             if match not in match_any and '*' not in match:
@@ -626,7 +626,7 @@ class ZipCommand(Command):
         if not package_path in self.paths():
             logger.warn(
                 'Unpacking %s into %s, but %s is not on sys.path'
-                % (display_path(zip_filename), display_path(package_path), 
+                % (display_path(zip_filename), display_path(package_path),
                    display_path(package_path)))
         logger.notify('Unzipping %s (in %s)' % (module_name, display_path(zip_filename)))
         if self.simulate:
@@ -718,7 +718,7 @@ class ZipCommand(Command):
             new_lines = [
                 l for l in lines if l.strip() != filename]
             if lines != new_lines:
-                logger.info('Removing reference to %s from .pth file %s' 
+                logger.info('Removing reference to %s from .pth file %s'
                             % (display_path(filename), display_path(pth)))
                 if not filter(None, new_lines):
                     logger.info('%s file would be empty: deleting' % display_path(pth))
@@ -953,7 +953,7 @@ class PackageFinder(object):
         self.cache = PageCache()
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
-    
+
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
         ## apply to requirements of the package that specifies the
@@ -1425,7 +1425,7 @@ execfile(__file__)
                 'Source in %s has the version %s, which does not match the requirement %s'
                 % (display_path(self.source_dir), version, self))
             raise InstallationError(
-                'Source in %s has version %s that conflicts with %s' 
+                'Source in %s has version %s that conflicts with %s'
                 % (display_path(self.source_dir), version, self))
         else:
             logger.debug('Source in %s has version %s, which satisfies requirement %s'
@@ -1450,7 +1450,7 @@ execfile(__file__)
             version_control(self.url).obtain(self.source_dir)
         else:
             assert 0, (
-                'Unexpected version control type (in %s): %s' 
+                'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
     def install(self, install_options):
@@ -1473,7 +1473,7 @@ execfile(__file__)
         try:
             call_subprocess(
                 [sys.executable, '-c',
-                 "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py), 
+                 "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
                  'install', '--single-version-externally-managed', '--record', record_filename,
                  '--install-headers', header_dir] + install_options,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
@@ -1561,7 +1561,7 @@ execfile(__file__)
         self._is_bundle = (os.path.exists(os.path.join(base, 'pip-manifest.txt'))
                            or os.path.exists(os.path.join(base, 'pyinstall-manifest.txt')))
         return self._is_bundle
-    
+
     def bundle_requirements(self):
         base = self._temp_build_dir
         assert base
@@ -1783,9 +1783,9 @@ class RequirementSet(object):
                 logger.indent -= 2
 
     def unpack_url(self, link, location):
-        for version_control in vcs.backends():
-            if link.scheme in version_control.schemes:
-                version_control(link).unpack(location)
+        for backend in vcs.backends():
+            if link.scheme in backend.schemes:
+                backend(link).unpack(location)
                 return
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
@@ -2072,7 +2072,7 @@ class RequirementSet(object):
         for dir in self.build_dir, self.src_dir:
             if os.path.exists(dir):
                 shutil.rmtree(dir)
-                              
+
 
     BUNDLE_HEADER = '''\
 # This is a pip bundle file, that contains many source packages
@@ -2297,7 +2297,7 @@ class Link(object):
     def __init__(self, url, comes_from=None):
         self.url = url
         self.comes_from = comes_from
-    
+
     def __str__(self):
         if self.comes_from:
             return '%s (from %s)' % (self.url, self.comes_from)
@@ -2427,7 +2427,7 @@ class VersionControl(object):
     def get_url_rev(self):
         """
         Returns the correct repository URL and revision by parsing the given
-        repository URL 
+        repository URL
         """
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
@@ -3066,6 +3066,7 @@ class Bazaar(VersionControl):
             from bzrlib.branch import Branch
         except ImportError, e:
             logger.fatal("bzrlib could not be imported")
+            raise InstallationError('You must have Bazaar installed')
         super(Bazaar, self).__init__(*args, **kwargs)
 
     def get_branch(self, location):
