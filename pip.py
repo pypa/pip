@@ -62,10 +62,6 @@ default_vcs = None
 if os.environ.get('PIP_DEFAULT_VCS'):
     default_vcs = os.environ['PIP_DEFAULT_VCS']
 
-# Register more schemes with urlparse for git and hg
-pip_schemes = ['ssh', 'git', 'hg']
-urlparse.uses_netloc.extend(pip_schemes)
-urlparse.uses_fragment.extend(pip_schemes)
 
 try:
     pip_dist = pkg_resources.get_distribution('pip')
@@ -74,6 +70,52 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
+
+
+class VcsSupport(object):
+    _registry = {}
+    # Register more schemes with urlparse for git and hg
+    schemes = ['ssh', 'git', 'hg', 'bzr']
+
+    def __init__(self):
+        urlparse.uses_netloc.extend(self.schemes)
+        urlparse.uses_fragment.extend(self.schemes)
+        super(VcsSupport, self).__init__()
+
+    def __iter__(self):
+        return self._registry.__iter__()
+
+    def register(self, cls):
+        if not hasattr(cls, 'name'):
+            logger.warn('Cannot register VCS %s' % cls.__name__)
+            return
+        if cls.name not in self._registry:
+            self._registry[cls.name] = cls
+
+    def unregister(self, cls=None, name=None):
+        if not (cls or name):
+            logger.warn('Cannot unregister because no class or name given')
+            return
+        if name and name in self._registry:
+            del self._registry[name]
+        elif cls and cls in self._registry.value():
+            del self._registry[cls.name]
+
+    def get_backend(self, name):
+        if name in self._registry:
+            return self._registry[name]
+
+    def get_backend_from_location(self, location):
+        for vc_type in self._registry:
+            path = os.path.join(location, '.%s' % vc_type)
+            if os.path.exists(path):
+                return self.get_backend(vc_type)
+        return None
+
+    def backends(self):
+        return self._registry.values()
+
+vcs = VcsSupport()
 
 parser = optparse.OptionParser(
     usage='%prog COMMAND [OPTIONS]',
@@ -1403,12 +1445,9 @@ execfile(__file__)
             return
         vc_type, url = self.url.split('+', 1)
         vc_type = vc_type.lower()
-        if vc_type == 'svn':
-            Subversion(self.url).checkout(self.source_dir)
-        elif vc_type == 'git':
-            Git(self.url).clone(self.source_dir)
-        elif vc_type == 'hg':
-            Mercurial(self.url).clone(self.source_dir)
+        version_control = vcs.get_backend(vc_type)
+        if version_control:
+            version_control(self.url).obtain(self.source_dir)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s' 
@@ -1744,15 +1783,10 @@ class RequirementSet(object):
                 logger.indent -= 2
 
     def unpack_url(self, link, location):
-        if link.scheme in ('svn', 'svn+ssh'):
-            Subversion(link).unpack(location)
-            return
-        if link.scheme in ('git', 'git+http', 'git+ssh'):
-            Git(link).unpack(location)
-            return
-        if link.scheme in ('hg', 'hg+http', 'hg+ssh'):
-            Mercurial(link).unpack(location)
-            return
+        for version_control in vcs.backends():
+            if link.scheme in version_control.schemes:
+                version_control(link).unpack(location)
+                return
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
             source = url_to_filename(link.url)
@@ -1863,7 +1897,7 @@ class RequirementSet(object):
         elif (content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
-            self.svn_checkout(link.url, location)
+            Subversion(link.url).unpack(location)
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
@@ -1946,9 +1980,6 @@ class RequirementSet(object):
                     fp.close()
         finally:
             tar.close()
-
-    def _filter_svn(self, line):
-        return (Logger.INFO, line)
 
     def install(self, install_options):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
@@ -2407,9 +2438,17 @@ class VersionControl(object):
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
-_version_controls = {}
-def register_version_control(cls):
-    _version_controls[cls.name] = cls
+    def _filter(self, line):
+        return (Logger.INFO, line)
+
+    def obtain(self, dest):
+        raise NotImplementedError
+
+    def unpack(self, location):
+        raise NotImplementedError
+
+    def get_src_requirement(self, dist, location, find_tags=False):
+        raise NotImplementedError
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile('committed-rev="(\d+)"')
@@ -2418,6 +2457,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 
 class Subversion(VersionControl):
     name = 'svn'
+    schemes = ('svn', 'svn+ssh')
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
             'svn checkout --force -r %(rev)s %(url)s .\n')
 
@@ -2463,11 +2503,11 @@ class Subversion(VersionControl):
                 os.rmdir(location)
             call_subprocess(
                 ['svn', 'checkout', url, location],
-                filter_stdout=self._filter_svn, show_stdout=False)
+                filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
 
-    def checkout(self, dest):
+    def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = ['-r', rev]
@@ -2631,7 +2671,7 @@ class Subversion(VersionControl):
                 best_tag = tag
         return best_tag
 
-    def src_requirement(self, dist, location, find_tags=False):
+    def get_src_requirement(self, dist, location, find_tags=False):
         repo = self.get_url(location)
         if repo is None:
             return None
@@ -2661,10 +2701,13 @@ class Subversion(VersionControl):
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
             rev = self.get_revision(location)
             return 'svn+%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
-register_version_control(Subversion)
+
+vcs.register(Subversion)
+
 
 class Git(VersionControl):
     name = 'git'
+    schemes = ('git', 'git+http', 'git+ssh')
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
 
@@ -2698,11 +2741,11 @@ class Git(VersionControl):
                 os.rmdir(location)
             call_subprocess(
                 [GIT_CMD, 'clone', url, location],
-                filter_stdout=self._filter_svn, show_stdout=False)
+                filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
 
-    def clone(self, dest):
+    def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = [rev]
@@ -2794,7 +2837,7 @@ class Git(VersionControl):
         branch_revs = dict(branch_revs)
         return branch_revs
 
-    def src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
@@ -2825,10 +2868,13 @@ class Git(VersionControl):
             # Don't know what it is
             logger.warn('Git URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
-register_version_control(Git)
+
+vcs.register(Git)
+
 
 class Mercurial(VersionControl):
     name = 'hg'
+    schemes = ('hg', 'hg+http', 'hg+ssh')
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
 
@@ -2862,11 +2908,11 @@ class Mercurial(VersionControl):
                 os.rmdir(location)
             call_subprocess(
                 ['hg', 'clone', url, location],
-                filter_stdout=self._filter_svn, show_stdout=False)
+                filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
 
-    def clone(self, dest):
+    def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = [rev]
@@ -2876,7 +2922,7 @@ class Mercurial(VersionControl):
             rev_display = ''
         clone = True
         if os.path.exists(os.path.join(dest, '.hg')):
-            existing_url = Mercurial().get_url(dest)
+            existing_url = self.get_url(dest)
             clone = False
             if existing_url == url:
                 logger.info('Clone in %s exists, and has correct URL (%s)'
@@ -2934,7 +2980,8 @@ class Mercurial(VersionControl):
 
     def get_url(self, location):
         url = call_subprocess(
-            ['hg', 'showconfig', 'paths.default'], show_stdout=False, cwd=location)
+            ['hg', 'showconfig', 'paths.default'],
+            show_stdout=False, cwd=location)
         return url.strip()
 
     def get_tip_revision(self, location):
@@ -2974,7 +3021,7 @@ class Mercurial(VersionControl):
                 return branch
         return self.get_tip_revision(location)
 
-    def src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo
@@ -3004,15 +3051,187 @@ class Mercurial(VersionControl):
             # Don't know what it is
             logger.warn('Mercurial URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
-register_version_control(Mercurial)
+
+vcs.register(Mercurial)
+
+
+class Bazaar(VersionControl):
+    name = 'bzr'
+    schemes = ('bzr', 'bzr+http', 'bzr+ssh', 'bzr+sftp', 'bzr+https')
+    guide = ('# This was a Bazaar repo; to make it a repo again run:\n'
+             'bzr checkout -r %(rev)s %(url)s .\n')
+
+    def __init__(self, *args, **kwargs):
+        try:
+            from bzrlib.branch import Branch
+        except ImportError, e:
+            logger.fatal("bzrlib could not be imported")
+        super(Bazaar, self).__init__(*args, **kwargs)
+
+    def get_branch(self, location):
+        try:
+            from bzrlib.branch import Branch
+        except ImportError, e:
+            logger.fatal("bzrlib could not be imported")
+        return Branch.open(location)
+
+    def get_info(self, location):
+        """Returns (url, revision), where both are strings"""
+        assert not location.rstrip('/').endswith('.bzr'), 'Bad directory: %s' % location
+        return self.get_url(location), self.get_revision(location)
+
+    def parse_clone_text(self, text):
+        url = rev = None
+        for line in text.splitlines():
+            if not line.strip() or line.strip().startswith('#'):
+                continue
+            match = re.search(r'^bzr\s*checkout\s*-r\s*(\d*)', line)
+            if match:
+                rev = match.group(1).strip()
+            url = line[match.end():].strip().split(None, 1)[0]
+            if url and rev:
+                return url, rev
+        return None, None
+
+    def unpack(self, location):
+        """Check out the bzr repository at the url to the destination location"""
+        url, rev = self.get_url_rev()
+        logger.notify('Checking out bzr repository %s to %s' % (url, location))
+        logger.indent += 2
+        try:
+            if os.path.exists(location):
+                os.rmdir(location)
+            call_subprocess(
+                ['bzr', 'checkout', url, location],
+                filter_stdout=self._filter, show_stdout=False)
+        finally:
+            logger.indent -= 2
+
+    def obtain(self, dest):
+        url, rev = self.get_url_rev()
+        if rev:
+            rev_options = ['-r', rev]
+            rev_display = ' (to revision %s)' % rev
+        else:
+            rev_options = ['default']
+            rev_display = ''
+        checkout = True
+        if os.path.exists(os.path.join(dest, '.bzr')):
+            existing_url = self.get_url(dest)
+            checkout = False
+            if existing_url == url:
+                logger.info('Checkout in %s exists, and has correct URL (%s)'
+                            % (display_path(dest), url))
+                logger.notify('Updating checkout %s%s'
+                              % (display_path(dest), rev_display))
+                checkout = True
+            else:
+                logger.warn('Bazaar checkout in %s exists with URL %s'
+                            % (display_path(dest), existing_url))
+                logger.warn('The plan is to install the Bazaar repository %s'
+                            % url)
+                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
+                if response == 's':
+                    logger.notify('Switching checkout %s to %s%s'
+                                  % (display_path(dest), url, rev_display))
+                    call_subprocess(['bzr', 'switch', url], cwd=dest)
+                elif response == 'i':
+                    # do nothing
+                    pass
+                elif response == 'w':
+                    logger.warn('Deleting %s' % display_path(dest))
+                    shutil.rmtree(dest)
+                    checkout = True
+                elif response == 'b':
+                    dest_dir = backup_dir(dest)
+                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
+                    shutil.move(dest, dest_dir)
+                    checkout = True
+        if checkout:
+            logger.notify('Checking out %s%s to %s'
+                          % (url, rev_display, display_path(dest)))
+            call_subprocess(
+                ['bzr', 'checkout', '-q'] + rev_options + [url, dest])
+
+    def get_url(self, location):
+        branch = self.get_branch(location)
+        if branch.get_parent():
+            # This is a branch
+            return branch.get_parent()
+        master_branch = branch.get_master_branch()
+        if master_branch:
+            # This is a checkout
+            return master_branch.get_parent()
+        return None
+
+    def get_revision(self, location):
+        branch = self.get_branch(location)
+        if branch.last_revision():
+            return branch.last_revision().strip()
+        return None
+
+    def get_newest_revision(self, location):
+        url = self.get_url(location)
+        match = re.search(r'([.\w-]+)\s*(.*)$', url)
+        if match:
+            return match.group(1).strip()
+        return None
+
+    def get_tag_revs(self, location):
+        tags = call_subprocess(
+            ['bzr', 'tags'], show_stdout=False, cwd=location)
+        tag_revs = []
+        for line in tags.splitlines():
+            tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
+            if tags_match:
+                tag = tags_match.group(1)
+                rev = tags_match.group(2)
+                tag_revs.append((rev.strip(), tag.strip()))
+        return dict(tag_revs)
+
+    def get_revision(self, location):
+        current_branch = call_subprocess(
+            ['bzr', 'revno'], show_stdout=False, cwd=location).strip()
+        branch_revs = self.get_branch_revs(location)
+        for branch in branch_revs:
+            if current_branch == branch_revs[branch]:
+                return branch
+        return self.get_tip_revision(location)
+
+    def get_src_requirement(self, dist, location, find_tags):
+        repo = self.get_url(location)
+        if not repo.lower().startswith('bzr:'):
+            repo = 'bzr+' + repo
+        egg_project_name = dist.egg_name().split('-', 1)[0]
+        if not repo:
+            return None
+        current_rev = self.get_revision(location)
+        tag_revs = self.get_tag_revs(location)
+        newest_rev = self.get_newest_revision(location)
+        if current_rev in tag_revs:
+            # It's a tag, perfect!
+            tag = tag_revs.get(current_rev, current_rev)
+            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+        elif current_rev == newest_rev:
+            if find_tags:
+                if current_rev in tag_revs:
+                    tag = tag_revs.get(current_rev, current_rev)
+                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
+                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+            return '%s@%s#egg=%s-dev' % (repo, newest_rev, dist.egg_name())
+        else:
+            # Don't know what it is
+            logger.warn('Bazaar URL does not fit normal structure: %s' % repo)
+            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+
+vcs.register(Bazaar)
+
 
 def get_src_requirement(dist, location, find_tags):
-    for vc_type in _version_controls:
-        path = os.path.join(location, '.%s' % vc_type)
-        if os.path.exists(path):
-            vc_type = _version_controls[vc_type]()
-            return vc_type.src_requirement(dist, location, find_tags)
-    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone or Mercurial clone)' % location)
+    version_control = vcs.get_backend_from_location(location)
+    if version_control:
+        return version_control().get_src_requirement(dist, location, find_tags)
+    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar checkout)' % location)
     return dist.as_requirement()
 
 ############################################################
@@ -3437,21 +3656,21 @@ def parse_editable(editable_req):
         url = filename_to_url(url)
     if url.lower().startswith('file:'):
         return None, url
-    for vc_type in _version_controls:
-        if url.lower().startswith('%s:' % vc_type):
-            url = '%s+' % vc_type + url
+    for version_control in vcs:
+        if url.lower().startswith('%s:' % version_control):
+            url = '%s+%s' % (version_control, url)
     if '+' not in url:
         if default_vcs:
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
-                '--editable=%s should be formatted with svn+URL, git+URL or hg+URL' % editable_req)
+                '--editable=%s should be formatted with svn+URL, git+URL, hg+URL or bzr+URL' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
-    if vc_type not in _version_controls:
+    if not vcs.get_backend(vc_type):
         raise InstallationError(
-            'For --editable=%s only svn (svn+URL), Git (git+URL) and Mercurial (hg+URL) is currently supported' % editable_req)
+            'For --editable=%s only svn (svn+URL), Git (git+URL), Mercurial (hg+URL) and Bazaar (bzr+URL) is currently supported' % editable_req)
     match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if (not match or not match.group(1)) and vc_type in _version_controls:
+    if (not match or not match.group(1)) and vcs.get_backend(vc_type):
         parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
         if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
             req = parts[-3]
