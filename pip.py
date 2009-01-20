@@ -85,6 +85,10 @@ class VcsSupport(object):
     def __iter__(self):
         return self._registry.__iter__()
 
+    @property
+    def backends(self):
+        return self._registry.values()
+
     def register(self, cls):
         if not hasattr(cls, 'name'):
             logger.warn('Cannot register VCS %s' % cls.__name__)
@@ -93,27 +97,34 @@ class VcsSupport(object):
             self._registry[cls.name] = cls
 
     def unregister(self, cls=None, name=None):
-        if not (cls or name):
-            logger.warn('Cannot unregister because no class or name given')
-            return
-        if name and name in self._registry:
+        if name in self._registry:
             del self._registry[name]
-        elif cls and cls in self._registry.value():
+        elif cls in self._registry.values():
             del self._registry[cls.name]
+        else:
+            logger.warn('Cannot unregister because no class or name given')
+
+    def get_backend_name(self, location):
+        """
+        Return the name of the version control backend if found at given
+        location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
+        """
+        for vc_type in self._registry:
+            path = os.path.join(location, '.%s' % vc_type)
+            if os.path.exists(path):
+                return vc_type
+        return None
 
     def get_backend(self, name):
         if name in self._registry:
             return self._registry[name]
 
     def get_backend_from_location(self, location):
-        for vc_type in self._registry:
-            path = os.path.join(location, '.%s' % vc_type)
-            if os.path.exists(path):
-                return self.get_backend(vc_type)
+        vc_type = self.get_backend_name(location)
+        if vc_type:
+            return self.get_backend(vc_type)
         return None
 
-    def backends(self):
-        return self._registry.values()
 
 vcs = VcsSupport()
 
@@ -284,11 +295,12 @@ class InstallCommand(Command):
             dest='editables',
             action='append',
             default=[],
-            metavar='(svn|git|hg|bzr)+REPOS_URL[@REV]#egg=PACKAGE',
-            help='Install a package directly from a checkout.  Source will be checked '
+            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
+            help='Install a package directly from a checkout. Source will be checked '
             'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop).  You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout). This option may be provided multiple times.')
+            'setup.py develop). You can run this on an existing directory/checkout (like '
+            'pip install -e src/mycheckout). This option may be provided multiple times. '
+            'Possible values for VCS are: svn, git, hg and bzr.')
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -1243,6 +1255,9 @@ class InstallRequirement(object):
             name = self.name.lower()
         else:
             name = self.name
+        # FIXME: Is there a better place to create the build_dir? (hg and bzr need this)
+        if not os.path.exists(build_dir):
+            os.makedirs(build_dir)
         return os.path.join(build_dir, name)
 
     def correct_build_location(self):
@@ -1570,30 +1585,17 @@ execfile(__file__)
         if os.path.exists(src_dir):
             for package in os.listdir(src_dir):
                 ## FIXME: svnism:
-                svn_checkout = os.path.join(src_dir, package, 'svn-checkout.txt')
-                git_clone = os.path.join(src_dir, package, 'git-clone.txt')
-                hg_clone = os.path.join(src_dir, package, 'hg-clone.txt')
-                url = rev = None
-                if os.path.exists(svn_checkout):
-                    vc_type = 'svn'
-                    fp = open(svn_checkout)
-                    content = fp.read()
-                    fp.close()
-                    url, rev = Subversion().parse_checkout_text(content)
-                elif os.path.exists(git_clone):
-                    vc_type = 'git'
-                    fp = open(git_clone)
-                    content = fp.read()
-                    fp.close()
-                    sys.exit(0)
-                    url, rev = Git().parse_clone_text(content)
-                elif os.path.exists(hg_clone):
-                    vc_type = 'hg'
-                    fp = open(hg_clone)
-                    content = fp.read()
-                    fp.close()
-                    sys.exit(0)
-                    url, rev = Mercurial().parse_clone_text(content)
+                for vcs_backend in vcs.backends:
+                    url = rev = None
+                    vcs_bundle_file = os.path.join(
+                        src_dir, package, vcs_backend.bundle_file)
+                    if os.path.exists(vcs_bundle_file):
+                        vc_type = vcs_backend.name
+                        fp = open(vcs_bundle_file)
+                        content = fp.read()
+                        fp.close()
+                        url, rev = vcs_backend().parse_checkout_text(content)
+                        break
                 if url:
                     url = '%s+%s@%s' % (vc_type, url, rev)
                 else:
@@ -1783,7 +1785,7 @@ class RequirementSet(object):
                 logger.indent -= 2
 
     def unpack_url(self, link, location):
-        for backend in vcs.backends():
+        for backend in vcs.backends:
             if link.scheme in backend.schemes:
                 backend(link).unpack(location)
                 return
@@ -2005,38 +2007,27 @@ class RequirementSet(object):
         ## packages, maybe some other metadata files.  It would make
         ## it easier to detect as well.
         zip = zipfile.ZipFile(bundle_filename, 'w', zipfile.ZIP_DEFLATED)
-        svn_dirs = git_dirs = hg_dirs = []
+        vcs_dirs = []
         for dir, basename in (self.build_dir, 'build'), (self.src_dir, 'src'):
             dir = os.path.normcase(os.path.abspath(dir))
             for dirpath, dirnames, filenames in os.walk(dir):
-                svn_url = svn_rev = git_url = git_rev = hg_url = hg_rev = None
-                if '.svn' in dirnames:
-                    for svn_dir in svn_dirs:
-                        if dirpath.startswith(svn_dir):
-                            # svn-checkout.txt already in parent directory
-                            break
-                    else:
-                        svn_url, svn_rev = Subversion().get_info(os.path.join(dir, dirpath))
-                        svn_dirs.append(dirpath)
-                    dirnames.remove('.svn')
-                if '.git' in dirnames:
-                    for git_dir in git_dirs:
-                        if dirpath.startswith(git_dir):
-                            # git-clone.txt already in parent directory
-                            break
-                    else:
-                        git_url, git_rev = Git().get_info(os.path.join(dir, dirpath))
-                        git_dirs.append(dirpath)
-                    dirnames.remove('.git')
-                if '.hg' in dirnames:
-                    for hg_dir in hg_dirs:
-                        if dirpath.startswith(hg_dir):
-                            # hg-clone.txt already in parent directory
-                            break
-                    else:
-                        hg_url, hg_rev = Mercurial().get_info(os.path.join(dir, dirpath))
-                        hg_dirs.append(dirpath)
-                    dirnames.remove('.hg')
+                for backend in vcs.backends:
+                    vcs_backend = backend()
+                    vcs_url = vcs_rev = None
+                    if vcs_backend.dirname in dirnames:
+                        for vcs_dir in vcs_dirs:
+                            if dirpath.startswith(vcs_dir):
+                                # vcs bundle file already in parent directory
+                                break
+                        else:
+                            vcs_url, vcs_rev = vcs_backend.get_info(
+                                os.path.join(dir, dirpath))
+                            vcs_dirs.append(dirpath)
+                        vcs_bundle_file = vcs_backend.bundle_file
+                        vcs_guide = vcs_backend.guide % {'url': vcs_url,
+                                                         'rev': vcs_rev}
+                        dirnames.remove(vcs_backend.dirname)
+                        break
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
@@ -2049,21 +2040,11 @@ class RequirementSet(object):
                     filename = os.path.join(dirpath, filename)
                     name = self._clean_zip_name(filename, dir)
                     zip.write(filename, basename + '/' + name)
-                if svn_url:
-                    name = os.path.join(dirpath, 'svn-checkout.txt')
+                if vcs_url:
+                    name = os.path.join(dirpath, vcs_bundle_file)
                     name = self._clean_zip_name(name, dir)
-                    guide = Subversion.guide % {'url': svn_url, 'rev': svn_rev}
-                    zip.writestr(basename + '/' + name, text)
-                elif git_url:
-                    name = os.path.join(dirpath, 'git-clone.txt')
-                    name = self._clean_zip_name(name, dir)
-                    guide = Git.guide % {'url': git_url, 'rev': git_rev}
-                    zip.writestr(basename + '/' + name, text)
-                elif hg_url:
-                    name = os.path.join(dirpath, 'hg-clone.txt')
-                    name = self._clean_zip_name(name, dir)
-                    guide = Mercurial.guide % {'url': hg_url, 'rev': hg_rev}
-                    zip.writestr(basename + '/' + name, guide)
+                    zip.writestr(basename + '/' + name, vcs_guide)
+
         zip.writestr('pip-manifest.txt', self.bundle_requirements())
         zip.close()
         # Unlike installation, this will always delete the build directories
@@ -2370,10 +2351,7 @@ class FrozenRequirement(object):
     def from_dist(cls, dist, dependency_links, find_tags=False):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
-        if (os.path.exists(os.path.join(location, '.svn')) or
-            os.path.exists(os.path.join(location, '.git')) or
-            os.path.exists(os.path.join(location, '.hg')) or
-            os.path.exists(os.path.join(location, '.bzr'))):
+        if vcs.get_backend_name(location):
             editable = True
             req = get_src_requirement(dist, location, find_tags)
             if req is None:
@@ -2390,7 +2368,10 @@ class FrozenRequirement(object):
             ver_match = cls._rev_re.search(version)
             date_match = cls._date_re.search(version)
             if ver_match or date_match:
-                svn_location = Subversion().get_location(dist, dependency_links)
+                svn_backend = vcs.get_backend('svn')
+                if svn_backend:
+                    svn_location = svn_backend(
+                        ).get_location(dist, dependency_links)
                 if not svn_location:
                     logger.warn(
                         'Warning: cannot find svn location for %s' % req)
@@ -2420,10 +2401,15 @@ class FrozenRequirement(object):
         return '\n'.join(list(self.comments)+[str(req)])+'\n'
 
 class VersionControl(object):
+    name = ''
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
+        self.dirname = '.%s' % self.name
         super(VersionControl, self).__init__(*args, **kwargs)
+
+    def _filter(self, line):
+        return (Logger.INFO, line)
 
     def get_url_rev(self):
         """
@@ -2438,9 +2424,6 @@ class VersionControl(object):
             rev = None
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
-
-    def _filter(self, line):
-        return (Logger.INFO, line)
 
     def obtain(self, dest):
         raise NotImplementedError
@@ -2459,6 +2442,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 class Subversion(VersionControl):
     name = 'svn'
     schemes = ('svn', 'svn+ssh')
+    bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
             'svn checkout --force -r %(rev)s %(url)s .\n')
 
@@ -2709,6 +2693,7 @@ vcs.register(Subversion)
 class Git(VersionControl):
     name = 'git'
     schemes = ('git', 'git+http', 'git+ssh')
+    bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
 
@@ -2876,6 +2861,7 @@ vcs.register(Git)
 class Mercurial(VersionControl):
     name = 'hg'
     schemes = ('hg', 'hg+http', 'hg+ssh')
+    bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
 
@@ -2969,11 +2955,6 @@ class Mercurial(VersionControl):
                     shutil.move(dest, dest_dir)
                     clone = True
         if clone:
-            # FIXME creates the 'src' dir if not existent because Mercurial
-            # doesn't do it -- other option?
-            src_dir = os.path.abspath(os.path.join(dest, '..'))
-            if not os.path.exists(src_dir):
-                os.makedirs(src_dir)
             logger.notify('Cloning hg %s%s to %s'
                           % (url, rev_display, display_path(dest)))
             call_subprocess(['hg', 'clone', '-q', url, dest])
@@ -3059,6 +3040,7 @@ vcs.register(Mercurial)
 
 class Bazaar(VersionControl):
     name = 'bzr'
+    bundle_file = 'bzr-checkout.txt'
     schemes = ('bzr', 'bzr+http', 'bzr+ssh', 'bzr+sftp', 'bzr+https')
     guide = ('# This was a Bazaar repo; to make it a repo again run:\n'
              'bzr checkout -r %(rev)s %(url)s .\n')
@@ -3203,7 +3185,6 @@ class Bazaar(VersionControl):
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
 
 vcs.register(Bazaar)
-
 
 def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
