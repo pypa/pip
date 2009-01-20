@@ -63,3 +63,15 @@ Cloning from Mercurial::
     >>> assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
     >>> assert 'src/django-registration' in result.files_created
     >>> assert 'src/django-registration/.hg' in result.files_created
+
+Checking out from Bazaar::
+
+    >>> reset_env()
+    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip-test', expect_error=True)
+    >>> egg_link = result.files_created[lib_py + 'site-packages/pip-test.egg-link']
+    >>> # FIXME: I don't understand why there's a trailing . here:
+    >>> egg_link.bytes
+    '.../test-scratch/src/pip-test\n.'
+    >>> assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
+    >>> assert 'src/pip-test' in result.files_created
+    >>> assert 'src/pip-test/.bzr' in result.files_created

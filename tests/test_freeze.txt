@@ -120,3 +120,27 @@ Now what about Mercurial::
     -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
     ...
     <BLANKLINE>
+
+Heck, now look in the Bazaar:
+
+    >>> reset_env()
+    >>> env = get_env()
+    >>> result = env.run('bzr', 'checkout', '-r', '2', 'http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/', 'pip-test')
+    >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    ...                  cwd=os.path.join(env.base_path, 'pip-test'))
+    >>> result = run_pip('freeze', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze
+    -- stdout: --------------------
+    -e bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@...#egg=pip_test-...
+    ...
+    <BLANKLINE>
+
+    >>> result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test
+    -- stdout: --------------------
+    -f bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test
+    -e bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@...#egg=pip_test-...
+    ...
+    <BLANKLINE>

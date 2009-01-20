@@ -1,3 +1,4 @@
 # use glob syntax.
 syntax: glob
 tests/test-scratch/*
+testenv

@@ -284,7 +284,7 @@ class InstallCommand(Command):
             dest='editables',
             action='append',
             default=[],
-            metavar='(svn|git|hg)+REPOS_URL[@REV]#egg=PACKAGE',
+            metavar='(svn|git|hg|bzr)+REPOS_URL[@REV]#egg=PACKAGE',
             help='Install a package directly from a checkout.  Source will be checked '
             'out into src/PACKAGE (lower-case) and installed in-place (using '
             'setup.py develop).  You can run this on an existing directory/checkout (like '
@@ -2372,7 +2372,8 @@ class FrozenRequirement(object):
         comments = []
         if (os.path.exists(os.path.join(location, '.svn')) or
             os.path.exists(os.path.join(location, '.git')) or
-            os.path.exists(os.path.join(location, '.hg'))):
+            os.path.exists(os.path.join(location, '.hg')) or
+            os.path.exists(os.path.join(location, '.bzr'))):
             editable = True
             req = get_src_requirement(dist, location, find_tags)
             if req is None:
@@ -2990,7 +2991,8 @@ class Mercurial(VersionControl):
         return current_rev.strip()
 
     def get_tag_revs(self, location):
-        tags = call_subprocess(['hg', 'tags'], show_stdout=False, cwd=location)
+        tags = call_subprocess(
+            ['hg', 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([\w-]+)\s*([\d]+):.*$', line)
@@ -3061,21 +3063,6 @@ class Bazaar(VersionControl):
     guide = ('# This was a Bazaar repo; to make it a repo again run:\n'
              'bzr checkout -r %(rev)s %(url)s .\n')
 
-    def __init__(self, *args, **kwargs):
-        try:
-            from bzrlib.branch import Branch
-        except ImportError, e:
-            logger.fatal("bzrlib could not be imported")
-            raise InstallationError('You must have Bazaar installed')
-        super(Bazaar, self).__init__(*args, **kwargs)
-
-    def get_branch(self, location):
-        try:
-            from bzrlib.branch import Branch
-        except ImportError, e:
-            logger.fatal("bzrlib could not be imported")
-        return Branch.open(location)
-
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith('.bzr'), 'Bad directory: %s' % location
@@ -3114,7 +3101,7 @@ class Bazaar(VersionControl):
             rev_options = ['-r', rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = ['default']
+            rev_options = []
             rev_display = ''
         checkout = True
         if os.path.exists(os.path.join(dest, '.bzr')):
@@ -3155,28 +3142,27 @@ class Bazaar(VersionControl):
                 ['bzr', 'checkout', '-q'] + rev_options + [url, dest])
 
     def get_url(self, location):
-        branch = self.get_branch(location)
-        if branch.get_parent():
-            # This is a branch
-            return branch.get_parent()
-        master_branch = branch.get_master_branch()
-        if master_branch:
-            # This is a checkout
-            return master_branch.get_parent()
+        urls = call_subprocess(
+            ['bzr', 'info'], show_stdout=False, cwd=location)
+        for line in urls.splitlines():
+            line = line.strip()
+            for x in ('checkout of branch: ',
+                      'repository branch: ',
+                      'parent branch: '):
+                if line.startswith(x):
+                    return line.split(x)[1]
         return None
 
     def get_revision(self, location):
-        branch = self.get_branch(location)
-        if branch.last_revision():
-            return branch.last_revision().strip()
-        return None
+        revision = call_subprocess(
+            ['bzr', 'revno'], show_stdout=False, cwd=location)
+        return revision.strip()
 
     def get_newest_revision(self, location):
         url = self.get_url(location)
-        match = re.search(r'([.\w-]+)\s*(.*)$', url)
-        if match:
-            return match.group(1).strip()
-        return None
+        revision = call_subprocess(
+            ['bzr', 'revno', url], show_stdout=False, cwd=location)
+        return revision.strip()
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
@@ -3189,15 +3175,6 @@ class Bazaar(VersionControl):
                 rev = tags_match.group(2)
                 tag_revs.append((rev.strip(), tag.strip()))
         return dict(tag_revs)
-
-    def get_revision(self, location):
-        current_branch = call_subprocess(
-            ['bzr', 'revno'], show_stdout=False, cwd=location).strip()
-        branch_revs = self.get_branch_revs(location)
-        for branch in branch_revs:
-            if current_branch == branch_revs[branch]:
-                return branch
-        return self.get_tip_revision(location)
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
