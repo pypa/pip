@@ -41,9 +41,9 @@ copyright = '2008, The Open Planning Project'
 # other places throughout the built documents.
 #
 # The short X.Y version.
-version = '0.2.1'
+version = '0.3'
 # The full version, including alpha/beta/rc tags.
-release = '0.2.1'
+release = '0.3'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

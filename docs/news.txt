@@ -1,8 +1,12 @@
 News for pip
 ============
 
-hg tip
-------
+0.3
+---
+
+* Added support for editable packages created from Git, Mercurial and Bazaar
+  repositories and ability to freeze them. Refactored support for version
+  control systems.
 
 * Do not use ``sys.exit()`` from inside the code, instead use a
   return.  This will make it easier to invoke programmatically.
@@ -11,16 +15,13 @@ hg tip
   (previously they went in
   ``site-packages/install-record-Package.txt``).
 
-* Add a ``--path`` option to ``pip un/zip``, so you can avoid zipping
-  files that are outside of where you expect.
-
-* Add ``--simulate`` option to ``pip zip``.
-
 * Fix a problem with ``pip freeze`` not including ``-e svn+`` when an
   svn structure is peculiar.
 
 * Allow ``pip -E`` to work with a virtualenv that uses a different
   version of Python than the parent environment.
+
+* Fixed Win32 virtualenv (``-E``) option.
 
 * Search the links passed in with ``-f`` for packages.
 
@@ -32,11 +33,10 @@ hg tip
   Most importantly, anything that package requires will also be
   installed by pip.
 
-* Added support for editable packages created from Git, Mercurial and Bazaar
-  repositories and ability to freeze them. Refactored support for version
-  control systems.
+* Add a ``--path`` option to ``pip un/zip``, so you can avoid zipping
+  files that are outside of where you expect.
 
-* Fixed Win32 virtualenv (``-E``) option.
+* Add ``--simulate`` option to ``pip zip``.
 
 0.2.1
 -----
