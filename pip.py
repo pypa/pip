@@ -74,8 +74,8 @@ except pkg_resources.DistributionNotFound:
 
 class VcsSupport(object):
     _registry = {}
-    # Register more schemes with urlparse for git and hg
-    schemes = ['ssh', 'git', 'hg', 'bzr']
+    # Register more schemes with urlparse for the versio control support
+    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
 
     def __init__(self):
         urlparse.uses_netloc.extend(self.schemes)
@@ -3040,10 +3040,10 @@ vcs.register(Mercurial)
 
 class Bazaar(VersionControl):
     name = 'bzr'
-    bundle_file = 'bzr-checkout.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+ssh', 'bzr+sftp', 'bzr+https')
-    guide = ('# This was a Bazaar repo; to make it a repo again run:\n'
-             'bzr checkout -r %(rev)s %(url)s .\n')
+    bundle_file = 'bzr-branch.txt'
+    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
+    guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
+             'bzr branch -r %(rev)s %(url)s .\n')
 
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
@@ -3055,7 +3055,7 @@ class Bazaar(VersionControl):
         for line in text.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
-            match = re.search(r'^bzr\s*checkout\s*-r\s*(\d*)', line)
+            match = re.search(r'^bzr\s*branch\s*-r\s*(\d*)', line)
             if match:
                 rev = match.group(1).strip()
             url = line[match.end():].strip().split(None, 1)[0]
@@ -3064,7 +3064,7 @@ class Bazaar(VersionControl):
         return None, None
 
     def unpack(self, location):
-        """Check out the bzr repository at the url to the destination location"""
+        """Get the bzr branch at the url to the destination location"""
         url, rev = self.get_url_rev()
         logger.notify('Checking out bzr repository %s to %s' % (url, location))
         logger.indent += 2
@@ -3072,7 +3072,7 @@ class Bazaar(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                ['bzr', 'checkout', url, location],
+                ['bzr', 'branch', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -3085,24 +3085,25 @@ class Bazaar(VersionControl):
         else:
             rev_options = []
             rev_display = ''
-        checkout = True
+        branch = True
+        update = False
         if os.path.exists(os.path.join(dest, '.bzr')):
             existing_url = self.get_url(dest)
-            checkout = False
+            branch = False
             if existing_url == url:
                 logger.info('Checkout in %s exists, and has correct URL (%s)'
                             % (display_path(dest), url))
-                logger.notify('Updating checkout %s%s'
+                logger.notify('Updating branch %s%s'
                               % (display_path(dest), rev_display))
-                checkout = True
+                branch = update = True
             else:
-                logger.warn('Bazaar checkout in %s exists with URL %s'
+                logger.warn('Bazaar branch in %s exists with URL %s'
                             % (display_path(dest), existing_url))
                 logger.warn('The plan is to install the Bazaar repository %s'
                             % url)
                 response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
                 if response == 's':
-                    logger.notify('Switching checkout %s to %s%s'
+                    logger.notify('Switching branch %s to %s%s'
                                   % (display_path(dest), url, rev_display))
                     call_subprocess(['bzr', 'switch', url], cwd=dest)
                 elif response == 'i':
@@ -3111,17 +3112,25 @@ class Bazaar(VersionControl):
                 elif response == 'w':
                     logger.warn('Deleting %s' % display_path(dest))
                     shutil.rmtree(dest)
-                    checkout = True
+                    branch = True
                 elif response == 'b':
                     dest_dir = backup_dir(dest)
                     logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
                     shutil.move(dest, dest_dir)
-                    checkout = True
-        if checkout:
+                    branch = True
+        if branch:
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
-            call_subprocess(
-                ['bzr', 'checkout', '-q'] + rev_options + [url, dest])
+            # FIXME: find a better place to hotfix the URL scheme
+            # after removing bzr+ from bzr+ssh:// readd it
+            if url.startswith('ssh://'):
+                url = 'bzr+' + url
+            if update:
+                call_subprocess(
+                    ['bzr', 'pull', '-q'] + rev_options + [url], cwd=dest)
+            else:
+                call_subprocess(
+                    ['bzr', 'branch', '-q'] + rev_options + [url, dest])
 
     def get_url(self, location):
         urls = call_subprocess(
@@ -3190,7 +3199,7 @@ def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         return version_control().get_src_requirement(dist, location, find_tags)
-    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar checkout)' % location)
+    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
     return dist.as_requirement()
 
 ############################################################
