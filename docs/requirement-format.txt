@@ -37,39 +37,62 @@ easy_install).
 Version Control
 ---------------
 
-Right now pip knows Subversion, Git and Mercurial. Support for Bazaar is
-propably coming soon, too.
+Right now pip knows of the following major version control systems:
 
+Subversion
+~~~~~~~~~~
+
+Pip supports the URL schemes ``svn``, ``svn+http``, ``svn+https``
 You can also give specific revisions to an SVN URL, like::
 
     -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check
-out the revision from 2008-01-01.  You can only check out specific
+out the revision from 2008-01-01. You can only check out specific
 revisions using ``-e svn+...``.
 
-Using Git and Mercurial is quite similar to that of Subversion -- just use the
-appropriate URL scheme. For a Git repository that is served with the Git
-protocoll you can use::
+Git
+~~~
+
+Pip currently supports cloning over ``git``, ``git+http`` and ``git+ssh``::
 
     -e git://git.myproject.org/MyProject.git#egg=MyProject
-
-For a Git repository served over HTTP::
-
     -e git+http://git.myproject.org/MyProject/#egg=MyProject
+    -e git+ssh://git@myproject.org/MyProject/#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is also possible:: 
 
     -e git://git.myproject.org/MyProject.git@master#egg=MyProject
+    -e git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
     -e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
-The same rules apply to Mercurial, use the ``hg+http`` URL scheme to get it
-over HTTP::
+Mercurial
+~~~~~~~~~
+
+The supported schemes are: ``hg+http`` and ``hg+ssh``::
 
     -e hg+http://hg.myproject.org/MyProject/#egg=MyProject
+    -e hg+ssh://hg@myproject.org/MyProject/#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
-branch name to clone from::
+branch name::
 
     -e hg+http://hg.myproject.org/MyProject/@da39a3ee5e6b#egg=MyProject
+    -e hg+http://hg.myproject.org/MyProject/@2019#egg=MyProject
+    -e hg+http://hg.myproject.org/MyProject/@v1.0#egg=MyProject
     -e hg+http://hg.myproject.org/MyProject/@special_feature#egg=MyProject
+
+Bazaar
+~~~~~~
+
+Pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh`` and
+``bzr+sftp`` schemes::
+
+    -e bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject
+    -e bzr+sftp://user@myproject.org/MyProject/trunk/#egg=MyProject
+    -e bzr+ssh://user@myproject.org/MyProject/trunk/#egg=MyProject
+
+Tags or revisions can be installed like this::
+
+    -e bzr+https://bzr.myproject.org/MyProject/trunk/@2019#egg=MyProject
+    -e bzr+http://bzr.myproject.org/MyProject/trunk/@v1.0#egg=MyProject
