@@ -36,9 +36,10 @@ pip is meant to improve on easy_install.  Some of the improvements:
 * Packages don't have to be installed as egg archives, they can be installed
   flat (while keeping the egg metadata).
 
-* Maybe features like native support for other version control systems, or
-  uninstallation, will get added.  (They might get added to easy_install, but I
-  think the chance for pip is higher.)
+* Native support for other version control systems (Git, Mercurial and Bazaar)
+
+* Maybe uninstallation will get added. (It might get added to easy_install,
+  but I think the chance for pip is higher.)
 
 Also, pip will eventually be merged directly with poacheggs, making it
 simple to define fixed sets of requirements and reliably reproduce a set of
