@@ -1,9 +1,7 @@
 import sys
-try:
+if sys.platform == 'win32':
     from setuptools import setup
-except ImportError:
-    if sys.platform == 'win32':
-        raise ImportError('Could not import setuptools: setuptools is required on Windows systems')
+else:
     from distutils.core import setup
 import os
 
