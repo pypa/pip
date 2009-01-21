@@ -2,3 +2,5 @@
 syntax: glob
 tests/test-scratch/*
 testenv
+pip.egg-info/*
+dist/*
