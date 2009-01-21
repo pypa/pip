@@ -52,10 +52,10 @@ Community
 ---------
 
 The homepage for pip is temporarily located `on PyPI
-<http://pypi.python.org/pypi/pip>`_ -- a more proper homepage
-will follow.  Bugs can go on the `poacheggs Trac instance
-<http://trac.openplans.org/poacheggs/>`_ (probably that will change
-too).  Discussion should happen on the `virtualenv email group
+<http://pypi.python.org/pypi/pip>`_ -- a more proper homepage will
+follow.  Bugs can go on the `pip Trac instance
+<http://oss.openplans.org/pip/>`_.  Discussion should happen on the
+`virtualenv email group
 <http://groups.google.com/group/python-virtualenv?hl=en>`_.
 
 Differences From easy_install
