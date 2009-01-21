@@ -36,6 +36,8 @@ hg tip
   repositories and ability to freeze them. Refactored support for version
   control systems.
 
+* Fixed Win32 virtualenv (``-E``) option.
+
 0.2.1
 -----
 

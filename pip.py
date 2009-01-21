@@ -936,7 +936,7 @@ def restart_in_venv(venv, args):
         ## FIXME: always have no_site_packages?
         virtualenv.create_environment(venv, site_packages=False)
     if sys.platform == 'win32':
-        python = os.path.join(venv, 'Scripts', 'python')
+        python = os.path.join(venv, 'Scripts', 'python.exe')
     else:
         python = os.path.join(venv, 'bin', 'python')
     if not os.path.exists(python):
