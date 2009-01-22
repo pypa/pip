@@ -1899,7 +1899,7 @@ class RequirementSet(object):
         elif (content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
-            Subversion(link.url).unpack(location)
+            Subversion('svn+' + link.url).unpack(location)
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
