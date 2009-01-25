@@ -993,8 +993,9 @@ class PackageFinder(object):
             locations = list(self.find_links)
         locations.extend(self.dependency_links)
         for version in req.absolute_versions:
-            locations = [
-                posixpath.join(url, url_name, version)] + locations
+            if url_name is not None:
+                locations = [
+                    posixpath.join(url, url_name, version)] + locations
         locations = [Link(url) for url in locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
