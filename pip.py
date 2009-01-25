@@ -1377,8 +1377,9 @@ execfile(__file__)
                 base = self.source_dir
             else:
                 base = os.path.join(self.source_dir, 'pip-egg-info')
-            filenames = []
+            filenames = os.listdir(base)
             if self.editable:
+                filenames = []
                 for root, dirs, files in os.walk(base):
                     for dir in vcs.dirnames:
                         if dir in dirs:
