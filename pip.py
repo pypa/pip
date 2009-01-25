@@ -89,6 +89,10 @@ class VcsSupport(object):
     def backends(self):
         return self._registry.values()
 
+    @property
+    def dirnames(self):
+        return [backend.dirname for backend in self.backends]
+
     def register(self, cls):
         if not hasattr(cls, 'name'):
             logger.warn('Cannot register VCS %s' % cls.__name__)
@@ -1373,8 +1377,14 @@ execfile(__file__)
                 base = self.source_dir
             else:
                 base = os.path.join(self.source_dir, 'pip-egg-info')
-            filenames = os.listdir(base)
+            filenames = []
             if self.editable:
+                for root, dirs, files in os.walk(base):
+                    for dir in vcs.dirnames:
+                        if dir in dirs:
+                            dirs.remove(dir)
+                    filenames.extend([os.path.join(root, dir)
+                                     for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
             assert len(filenames) == 1, "Unexpected files/directories in %s: %s" % (base, ' '.join(filenames))
             self._egg_info_path = os.path.join(base, filenames[0])
@@ -2405,7 +2415,6 @@ class VersionControl(object):
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
-        self.dirname = '.%s' % self.name
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
@@ -2441,6 +2450,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 
 class Subversion(VersionControl):
     name = 'svn'
+    dirname = '.svn'
     schemes = ('svn', 'svn+ssh')
     bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
@@ -2692,6 +2702,7 @@ vcs.register(Subversion)
 
 class Git(VersionControl):
     name = 'git'
+    dirname = '.git'
     schemes = ('git', 'git+http', 'git+ssh')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
@@ -2860,6 +2871,7 @@ vcs.register(Git)
 
 class Mercurial(VersionControl):
     name = 'hg'
+    dirname = '.hg'
     schemes = ('hg', 'hg+http', 'hg+ssh')
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
@@ -3040,6 +3052,7 @@ vcs.register(Mercurial)
 
 class Bazaar(VersionControl):
     name = 'bzr'
+    dirname = '.bzr'
     bundle_file = 'bzr-branch.txt'
     schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
