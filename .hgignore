@@ -1,5 +1,6 @@
 # use glob syntax.
 syntax: glob
+MANIFEST
 tests/test-scratch/*
 testenv
 pip.egg-info/*
