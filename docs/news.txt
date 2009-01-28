@@ -1,6 +1,15 @@
 News for pip
 ============
 
+tip
+---
+
+* Fixed a regression with installing from svn repositories (when not
+  using ``-e``).
+
+* Fixes when installing editable packages that put their source in a
+  subdirectory (like ``src/``).
+
 0.3
 ---
 
