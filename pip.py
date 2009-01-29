@@ -134,8 +134,14 @@ vcs = VcsSupport()
 
 parser = optparse.OptionParser(
     usage='%prog COMMAND [OPTIONS]',
-    version=version)
+    version=version,
+    add_help_option=False)
 
+parser.add_option(
+    '-h', '--help',
+    dest='help',
+    action='store_true',
+    help='Show help')
 parser.add_option(
     '-E', '--environment',
     dest='venv',
@@ -192,7 +198,7 @@ class Command(object):
             prog='%s %s' % (sys.argv[0], self.name),
             version=parser.version)
         for option in parser.option_list:
-            if not option.dest:
+            if not option.dest or option.dest == 'help':
                 # -h, --version, etc
                 continue
             self.parser.add_option(option)
@@ -277,7 +283,8 @@ class HelpCommand(Command):
             command = _commands[command]
             command.parser.print_help()
             return
-        print 'Usage: %s [COMMAND] ...' % os.path.basename(sys.argv[0])
+        parser.print_help()
+        print
         print 'Commands available:'
         commands = list(set(_commands.values()))
         commands.sort(key=lambda x: x.name)
@@ -874,6 +881,8 @@ def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
     options, args = parser.parse_args(initial_args)
+    if options.help and not args:
+        args = ['help']
     if not args:
         parser.error('You must give a command (use "pip help" see a list of commands)')
     command = args[0].lower()

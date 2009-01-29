@@ -10,6 +10,8 @@ tip
 * Fixes when installing editable packages that put their source in a
   subdirectory (like ``src/``).
 
+* Improve ``pip -h``
+
 0.3
 ---
 
