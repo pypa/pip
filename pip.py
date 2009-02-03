@@ -2987,6 +2987,8 @@ class Mercurial(VersionControl):
         url = call_subprocess(
             ['hg', 'showconfig', 'paths.default'],
             show_stdout=False, cwd=location)
+        if url.startswith('/') or url.startswith('\\'):
+            url = filename_to_url(url)
         return url.strip()
 
     def get_tip_revision(self, location):
