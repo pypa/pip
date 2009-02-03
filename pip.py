@@ -2986,7 +2986,7 @@ class Mercurial(VersionControl):
     def get_url(self, location):
         url = call_subprocess(
             ['hg', 'showconfig', 'paths.default'],
-            show_stdout=False, cwd=location)
+            show_stdout=False, cwd=location).strip()
         if url.startswith('/') or url.startswith('\\'):
             url = filename_to_url(url)
         return url.strip()
