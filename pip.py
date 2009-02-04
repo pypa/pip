@@ -54,8 +54,10 @@ default_timeout = 15
 # Choose a Git command based on platform.
 if sys.platform == 'win32':
     GIT_CMD = 'git.cmd'
+    BZR_CMD = 'bzr.bat'
 else:
     GIT_CMD = 'git'
+    BZR_CMD = 'bzr'
 
 ## FIXME: this shouldn't be a module setting
 default_vcs = None
@@ -3098,7 +3100,7 @@ class Bazaar(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                ['bzr', 'branch', url, location],
+                [BZR_CMD, 'branch', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -3131,7 +3133,7 @@ class Bazaar(VersionControl):
                 if response == 's':
                     logger.notify('Switching branch %s to %s%s'
                                   % (display_path(dest), url, rev_display))
-                    call_subprocess(['bzr', 'switch', url], cwd=dest)
+                    call_subprocess([BZR_CMD, 'switch', url], cwd=dest)
                 elif response == 'i':
                     # do nothing
                     pass
@@ -3153,14 +3155,14 @@ class Bazaar(VersionControl):
                 url = 'bzr+' + url
             if update:
                 call_subprocess(
-                    ['bzr', 'pull', '-q'] + rev_options + [url], cwd=dest)
+                    [BZR_CMD, 'pull', '-q'] + rev_options + [url], cwd=dest)
             else:
                 call_subprocess(
-                    ['bzr', 'branch', '-q'] + rev_options + [url, dest])
+                    [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
 
     def get_url(self, location):
         urls = call_subprocess(
-            ['bzr', 'info'], show_stdout=False, cwd=location)
+            [BZR_CMD, 'info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -3172,18 +3174,18 @@ class Bazaar(VersionControl):
 
     def get_revision(self, location):
         revision = call_subprocess(
-            ['bzr', 'revno'], show_stdout=False, cwd=location)
+            [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
         return revision.strip()
 
     def get_newest_revision(self, location):
         url = self.get_url(location)
         revision = call_subprocess(
-            ['bzr', 'revno', url], show_stdout=False, cwd=location)
+            [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
         return revision.strip()
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            ['bzr', 'tags'], show_stdout=False, cwd=location)
+            [BZR_CMD, 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
