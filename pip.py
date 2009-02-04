@@ -52,10 +52,7 @@ pypi_url = "http://pypi.python.org/simple"
 default_timeout = 15
 
 # Choose a Git command based on platform.
-if sys.platform == 'win32':
-    GIT_CMD = 'git.cmd'
-else:
-    GIT_CMD = 'git'
+GIT_CMD = 'git'
 
 ## FIXME: this shouldn't be a module setting
 default_vcs = None
@@ -1946,7 +1943,7 @@ class RequirementSet(object):
                 dir = os.path.dirname(fn)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                if fn.endswith('/'):
+                if fn.endswith('/') or fn.endswith('\\'):
                     # A directory
                     if not os.path.exists(fn):
                         os.makedirs(fn)
