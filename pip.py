@@ -52,7 +52,10 @@ pypi_url = "http://pypi.python.org/simple"
 default_timeout = 15
 
 # Choose a Git command based on platform.
-GIT_CMD = 'git'
+if sys.platform == 'win32':
+    GIT_CMD = 'git.cmd'
+else:
+    GIT_CMD = 'git'
 
 ## FIXME: this shouldn't be a module setting
 default_vcs = None
@@ -957,7 +960,9 @@ def restart_in_venv(venv, args):
     file = __file__
     if file.endswith('.pyc'):
         file = file[:-1]
-    os.execv(python, [python, file] + args + [base, '___VENV_RESTART___'])
+    call_subprocess([python, file] + args + [base, '___VENV_RESTART___'])
+    sys.exit(0)
+    #~ os.execv(python, )
 
 class PackageFinder(object):
     """This finds packages.
