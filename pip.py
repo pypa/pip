@@ -1946,7 +1946,7 @@ class RequirementSet(object):
                 dir = os.path.dirname(fn)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                if fn.endswith('/'):
+                if fn.endswith('/') or fn.endswith('\\'):
                     # A directory
                     if not os.path.exists(fn):
                         os.makedirs(fn)
