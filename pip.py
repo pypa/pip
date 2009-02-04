@@ -1548,10 +1548,10 @@ execfile(__file__)
         if self.is_bundle or os.path.exists(self.delete_marker_filename):
             logger.info('Removing source in %s' % self.source_dir)
             if self.source_dir:
-                shutil.rmtree(self.source_dir)
+                shutil.rmtree(self.source_dir, ignore_errors=True)
             self.source_dir = None
             if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-                shutil.rmtree(self._temp_build_dir)
+                shutil.rmtree(self._temp_build_dir, ignore_errors=True)
             self._temp_build_dir = None
 
     def install_editable(self):
