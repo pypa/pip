@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import sys
 import os
+import errno
+import stat
 import optparse
 import pkg_resources
 import urllib2
@@ -73,6 +75,13 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
+def rmtree_errorhandler(func, path, exc_info):
+  typ, val, tb = exc_info
+  if issubclass(typ, OSError) and val.errno == errno.EACCES:
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+  else:
+    raise typ, val, tb
 
 class VcsSupport(object):
     _registry = {}
@@ -1548,10 +1557,10 @@ execfile(__file__)
         if self.is_bundle or os.path.exists(self.delete_marker_filename):
             logger.info('Removing source in %s' % self.source_dir)
             if self.source_dir:
-                shutil.rmtree(self.source_dir, ignore_errors=True)
+                shutil.rmtree(self.source_dir, ignore_errors=True, onerror=rmtree_errorhandler)
             self.source_dir = None
             if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-                shutil.rmtree(self._temp_build_dir, ignore_errors=True)
+                shutil.rmtree(self._temp_build_dir, ignore_errors=True, onerror=rmtree_errorhandler)
             self._temp_build_dir = None
 
     def install_editable(self):
@@ -2510,7 +2519,7 @@ class Subversion(VersionControl):
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing directory
                 # --force fixes this, but was only added in svn 1.5
-                os.rmdir(location)
+                shutil.rmtree(location, onerror=rmtree_errorhandler)
             call_subprocess(
                 ['svn', 'checkout', url, location],
                 filter_stdout=self._filter, show_stdout=False)
