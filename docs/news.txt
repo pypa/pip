@@ -4,6 +4,8 @@ News for pip
 0.3.1
 -----
 
+* Improved virtualenv restart and various path/cleanup problems on win32.
+
 * Fixed a regression with installing from svn repositories (when not
   using ``-e``).
 
