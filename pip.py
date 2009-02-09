@@ -994,9 +994,18 @@ class PackageFinder(object):
         page = self._get_page(main_index_url, req)
         if page is None:
             url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+        def mkurl_pypi_url(url):
+            loc =  posixpath.join(url, url_name)
+            # For maximum compatibility with easy_install, ensure the path 
+            # ends in a trailing slash.  Although this isn't in the spec 
+            # (and PyPI can handle it without the slash) some other index 
+            # implementations might break if they relied on easy_install's behavior.
+            if not loc.endswith('/'):
+                loc = loc + '/'
+            return loc
         if url_name is not None:
             locations = [
-                posixpath.join(url, url_name)
+                mkurl_pypi_url(url)
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
