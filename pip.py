@@ -376,7 +376,8 @@ class InstallCommand(Command):
             action='append',
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-            "Use multiple --install-option options to pass multiple options to setup.py install"
+            "Use multiple --install-option options to pass multiple options to setup.py install.  "
+            "If you are using an option with a directory path, be sure to use absolute path."
             )
 
     def run(self, options, args):
@@ -1221,6 +1222,7 @@ class InstallRequirement(object):
         requirement, filename, or URL.
         """
         url = None
+        name = name.strip()
         req = name
         if is_url(name):
             url = name
