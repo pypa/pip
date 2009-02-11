@@ -156,7 +156,7 @@ source for your package, and you can have pip install them all together.
 Once you have the bundle file further network access won't be necessary.  To
 build a bundle file, do::
 
-    $ pip install bundle=MyApp.pybundle MyApp
+    $ pip bundle MyApp.pybundle MyApp
 
 (Using a `requirements file`_ would be wise.)  Then someone else can get the
 file ``MyApp.pybundle`` and run::

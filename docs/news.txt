@@ -1,6 +1,18 @@
 News for pip
 ============
 
+hg tip
+------
+
+* Make ``-e`` work better with local hg repositories
+
+* Construct PyPI URLs the exact way easy_install constructs URLs (you
+  might notice this if you use a custom index that is
+  slash-sensitive).
+
+* Improvements on Windows (from `Ionel Maries Cristian
+  <http://ionelmc.wordpress.com/>`_).
+
 0.3.1
 -----
 

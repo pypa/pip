@@ -387,7 +387,8 @@ class InstallCommand(Command):
             action='append',
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-            "Use multiple --install-option options to pass multiple options to setup.py install"
+            "Use multiple --install-option options to pass multiple options to setup.py install.  "
+            "If you are using an option with a directory path, be sure to use absolute path."
             )
 
     def run(self, options, args):
@@ -1007,9 +1008,18 @@ class PackageFinder(object):
         page = self._get_page(main_index_url, req)
         if page is None:
             url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+        def mkurl_pypi_url(url):
+            loc =  posixpath.join(url, url_name)
+            # For maximum compatibility with easy_install, ensure the path 
+            # ends in a trailing slash.  Although this isn't in the spec 
+            # (and PyPI can handle it without the slash) some other index 
+            # implementations might break if they relied on easy_install's behavior.
+            if not loc.endswith('/'):
+                loc = loc + '/'
+            return loc
         if url_name is not None:
             locations = [
-                posixpath.join(url, url_name)
+                mkurl_pypi_url(url)
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
@@ -1225,6 +1235,7 @@ class InstallRequirement(object):
         requirement, filename, or URL.
         """
         url = None
+        name = name.strip()
         req = name
         if is_url(name):
             url = name
@@ -2999,7 +3010,9 @@ class Mercurial(VersionControl):
     def get_url(self, location):
         url = call_subprocess(
             ['hg', 'showconfig', 'paths.default'],
-            show_stdout=False, cwd=location)
+            show_stdout=False, cwd=location).strip()
+        if url.startswith('/') or url.startswith('\\'):
+            url = filename_to_url(url)
         return url.strip()
 
     def get_tip_revision(self, location):
