@@ -1213,6 +1213,7 @@ class InstallRequirement(object):
         requirement, filename, or URL.
         """
         url = None
+        name = name.strip()
         req = name
         if is_url(name):
             url = name
