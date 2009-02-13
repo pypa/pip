@@ -2900,6 +2900,17 @@ class Git(VersionControl):
             # Don't know what it is
             logger.warn('Git URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+    def get_url_rev(self):
+        """
+        Returns the correct repository URL and revision by parsing the given
+        repository URL
+        """
+        url = self.url.split('+', 1)[1]
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        rev = None
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
+        return url, rev
+
 
 vcs.register(Git)
 
