@@ -13,6 +13,8 @@ hg tip
 * Improvements on Windows (from `Ionel Maries Cristian
   <http://ionelmc.wordpress.com/>`_).
 
+* Fixed problem with not being able to install private git repositories.
+
 0.3.1
 -----
 
