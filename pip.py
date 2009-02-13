@@ -1639,7 +1639,7 @@ execfile(__file__)
                         fp = open(vcs_bundle_file)
                         content = fp.read()
                         fp.close()
-                        url, rev = vcs_backend().parse_checkout_text(content)
+                        url, rev = vcs_backend().parse_vcs_bundle_file(content)
                         break
                 if url:
                     url = '%s+%s@%s' % (vc_type, url, rev)
@@ -2469,7 +2469,19 @@ class VersionControl(object):
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
+    def parse_vcs_bundle_file(self, content):
+        """
+        Takes the contents of the bundled text file that explains how to revert
+        the stripped off version control data of the given package and returns
+        the URL and revision of it.
+        """
+        raise NotImplementedError
+
     def obtain(self, dest):
+        """
+        Called when installing or updating an editable package, takes the
+        source path of the checkout.
+        """
         raise NotImplementedError
 
     def unpack(self, location):
@@ -2509,8 +2521,8 @@ class Subversion(VersionControl):
             return url, 'unknown'
         return url, match.group(1)
 
-    def parse_checkout_text(self, text):
-        for line in text.splitlines():
+    def parse_vcs_bundle_file(self, content):
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             match = re.search(r'^-r\s*([^ ])?', line)
@@ -2748,9 +2760,9 @@ class Git(VersionControl):
         assert not location.rstrip('/').endswith('.git'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             url_match = re.search(r'git\s*remote\s*add\s*origin(.*)\s*-f', line)
@@ -2917,9 +2929,9 @@ class Mercurial(VersionControl):
         assert not location.rstrip('/').endswith('.hg'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             url_match = re.search(r'hg\s*pull\s*(.*)\s*', line)
@@ -3100,9 +3112,9 @@ class Bazaar(VersionControl):
         assert not location.rstrip('/').endswith('.bzr'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             match = re.search(r'^bzr\s*branch\s*-r\s*(\d*)', line)
