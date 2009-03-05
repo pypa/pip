@@ -645,11 +645,13 @@ class ZipCommand(Command):
                     'The module %s (in %s) is not a directory; cannot be zipped'
                     % (module_name, filename))
             packages.append((module_name, filename))
+        last_status = None
         for module_name, filename in packages:
             if options.unzip:
-                return self.unzip_package(module_name, filename)
+                last_status = self.unzip_package(module_name, filename)
             else:
-                return self.zip_package(module_name, filename, options.no_pyc)
+                last_status = self.zip_package(module_name, filename, options.no_pyc)
+        return last_status
 
     def unzip_package(self, module_name, filename):
         zip_filename = os.path.dirname(filename)
