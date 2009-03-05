@@ -196,6 +196,6 @@ Using pip with buildout
 -----------------------
 
 If you are using `zc.buildout
-<http://pypi.python.org/pypi/zc.buildout>` you should look at
+<http://pypi.python.org/pypi/zc.buildout>`_ you should look at
 `gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
 option to use pip and virtualenv in your buildouts.
