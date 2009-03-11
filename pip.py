@@ -1009,7 +1009,7 @@ class PackageFinder(object):
         # This will also cache the page, so it's okay that we get it again later:
         page = self._get_page(main_index_url, req)
         if page is None:
-            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
         def mkurl_pypi_url(url):
             loc =  posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path 
