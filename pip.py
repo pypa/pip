@@ -645,11 +645,13 @@ class ZipCommand(Command):
                     'The module %s (in %s) is not a directory; cannot be zipped'
                     % (module_name, filename))
             packages.append((module_name, filename))
+        last_status = None
         for module_name, filename in packages:
             if options.unzip:
-                return self.unzip_package(module_name, filename)
+                last_status = self.unzip_package(module_name, filename)
             else:
-                return self.zip_package(module_name, filename, options.no_pyc)
+                last_status = self.zip_package(module_name, filename, options.no_pyc)
+        return last_status
 
     def unzip_package(self, module_name, filename):
         zip_filename = os.path.dirname(filename)
@@ -1007,7 +1009,7 @@ class PackageFinder(object):
         # This will also cache the page, so it's okay that we get it again later:
         page = self._get_page(main_index_url, req)
         if page is None:
-            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
         def mkurl_pypi_url(url):
             loc =  posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path 
@@ -2909,6 +2911,17 @@ class Git(VersionControl):
             # Don't know what it is
             logger.warn('Git URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+    def get_url_rev(self):
+        """
+        Returns the correct repository URL and revision by parsing the given
+        repository URL
+        """
+        url = self.url.split('+', 1)[1]
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        rev = None
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
+        return url, rev
+
 
 vcs.register(Git)
 
