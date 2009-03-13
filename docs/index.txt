@@ -117,7 +117,7 @@ option to pip.  They look like::
 
     -e svn+http://myrepo/svn/MyApp#egg=MyApp
 
-You have to start the URL with ``svn+`` (``git+``, ``hg+``or ``bzr+``), and
+You have to start the URL with ``svn+`` (``git+``, ``hg+`` or ``bzr+``), and
 you have to include ``#egg=Package`` so pip knows what to expect at that URL.
 You can also include ``@rev`` in the URL, e.g., ``@275`` to check out
 revision 275.
