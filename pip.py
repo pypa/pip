@@ -76,12 +76,12 @@ except pkg_resources.DistributionNotFound:
     version=None
 
 def rmtree_errorhandler(func, path, exc_info):
-  typ, val, tb = exc_info
-  if issubclass(typ, OSError) and val.errno == errno.EACCES:
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
-  else:
-    raise typ, val, tb
+    typ, val, tb = exc_info
+    if issubclass(typ, OSError) and val.errno == errno.EACCES:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    else:
+        raise typ, val, tb
 
 class VcsSupport(object):
     _registry = {}
@@ -1012,9 +1012,9 @@ class PackageFinder(object):
             url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
         def mkurl_pypi_url(url):
             loc =  posixpath.join(url, url_name)
-            # For maximum compatibility with easy_install, ensure the path 
-            # ends in a trailing slash.  Although this isn't in the spec 
-            # (and PyPI can handle it without the slash) some other index 
+            # For maximum compatibility with easy_install, ensure the path
+            # ends in a trailing slash.  Although this isn't in the spec
+            # (and PyPI can handle it without the slash) some other index
             # implementations might break if they relied on easy_install's behavior.
             if not loc.endswith('/'):
                 loc = loc + '/'
