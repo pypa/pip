@@ -2461,10 +2461,9 @@ class VersionControl(object):
         """
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        rev = None
         if '@' in path:
-            path, rev = path.split('@', 1)
-        else:
-            rev = None
+            path, rev = path.rsplit('@', 1)
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
@@ -2911,20 +2910,22 @@ class Git(VersionControl):
             # Don't know what it is
             logger.warn('Git URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+
     def get_url_rev(self):
         """
-        Returns the correct repository URL and revision by parsing the given
-        repository URL
+        Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
+        That's required because although they use SSH they sometimes doesn't
+        work with a ssh:// scheme (e.g. Github). But we need a scheme for
+        parsing. Hence we remove it again afterwards and return it as a stub.
         """
-        url = self.url.split('+', 1)[1]
-        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
-        rev = None
-        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
-        return url, rev
-
+        if not '://' in self.url:
+            self.url = self.url.replace('git+', 'git+ssh://')
+            url, rev = super(Git, self).get_url_rev()
+            url = url.replace('ssh://', '')
+            return url, rev
+        return super(Git, self).get_url_rev()
 
 vcs.register(Git)
-
 
 class Mercurial(VersionControl):
     name = 'hg'
