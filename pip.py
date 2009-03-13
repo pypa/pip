@@ -1260,9 +1260,6 @@ class InstallRequirement(object):
             s = self.url
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
-        if self.editable:
-            if self.req:
-                s += ' checkout from %s' % self.url
         if self.comes_from:
             if isinstance(self.comes_from, basestring):
                 comes_from = self.comes_from
@@ -1747,7 +1744,7 @@ class RequirementSet(object):
             if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied: %s' % req_to_install)
             elif req_to_install.editable:
-                logger.notify('Checking out %s' % req_to_install)
+                logger.notify('Obtaining %s' % req_to_install)
             else:
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
                     logger.notify('Unpacking %s' % display_path(url_to_filename(req_to_install.url)))
