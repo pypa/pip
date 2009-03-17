@@ -3279,7 +3279,7 @@ def get_src_requirement(dist, location, find_tags):
 ## Requirement files
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
-_drive_re = re.compile(r'/*([a-z])\|', re.I)
+_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content)"""
@@ -3294,7 +3294,7 @@ def get_file_content(url, comes_from=None):
         if scheme == 'file':
             path = url.split(':', 1)[1]
             path = path.replace('\\', '/')
-            match = _drive_re.match(path)
+            match = _url_slash_drive_re.match(path)
             if match:
                 path = match.group(1) + ':' + path.split('|', 1)[1]
             path = urllib.unquote(path)
