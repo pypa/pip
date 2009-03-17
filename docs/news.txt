@@ -17,6 +17,8 @@ hg tip
 
 * Make ``pip zip`` zip all its arguments, not just the first.
 
+* Fix some filename issues on Windows.
+
 0.3.1
 -----
 

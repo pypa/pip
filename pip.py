@@ -3788,9 +3788,9 @@ def filename_to_url(filename):
     Convert a path to a file: URL.  The path will be made absolute.
     """
     filename = os.path.normcase(os.path.abspath(filename))
+    if _drive_re.match(filename):
+        filename = filename[0] + '|' + filename[2:]
     url = urllib.quote(filename)
-    if _drive_re.match(url):
-        url = url[0] + '|' + url[2:]
     url = url.replace(os.path.sep, '/')
     url = url.lstrip('/')
     return 'file:///' + url
