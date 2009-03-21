@@ -3220,13 +3220,13 @@ class Bazaar(VersionControl):
     def get_revision(self, location):
         revision = call_subprocess(
             [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
-        return revision.strip()
+        return revision.splitlines()[-1]
 
     def get_newest_revision(self, location):
         url = self.get_url(location)
         revision = call_subprocess(
             [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
-        return revision.strip()
+        return revision.splitlines()[-1]
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
