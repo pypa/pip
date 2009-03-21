@@ -3070,7 +3070,7 @@ class Mercurial(VersionControl):
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = ['default']
+            rev_options = []
             rev_display = ''
         clone = True
         if os.path.exists(os.path.join(dest, '.hg')):
