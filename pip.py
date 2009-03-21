@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import sys
 import os
+import errno
+import stat
 import optparse
 import pkg_resources
 import urllib2
@@ -54,8 +56,10 @@ default_timeout = 15
 # Choose a Git command based on platform.
 if sys.platform == 'win32':
     GIT_CMD = 'git.cmd'
+    BZR_CMD = 'bzr.bat'
 else:
     GIT_CMD = 'git'
+    BZR_CMD = 'bzr'
 
 ## FIXME: this shouldn't be a module setting
 default_vcs = None
@@ -71,6 +75,13 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
+def rmtree_errorhandler(func, path, exc_info):
+    typ, val, tb = exc_info
+    if issubclass(typ, OSError) and val.errno == errno.EACCES:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    else:
+        raise typ, val, tb
 
 class VcsSupport(object):
     _registry = {}
@@ -88,6 +99,10 @@ class VcsSupport(object):
     @property
     def backends(self):
         return self._registry.values()
+
+    @property
+    def dirnames(self):
+        return [backend.dirname for backend in self.backends]
 
     def register(self, cls):
         if not hasattr(cls, 'name'):
@@ -130,8 +145,14 @@ vcs = VcsSupport()
 
 parser = optparse.OptionParser(
     usage='%prog COMMAND [OPTIONS]',
-    version=version)
+    version=version,
+    add_help_option=False)
 
+parser.add_option(
+    '-h', '--help',
+    dest='help',
+    action='store_true',
+    help='Show help')
 parser.add_option(
     '-E', '--environment',
     dest='venv',
@@ -188,7 +209,7 @@ class Command(object):
             prog='%s %s' % (sys.argv[0], self.name),
             version=parser.version)
         for option in parser.option_list:
-            if not option.dest:
+            if not option.dest or option.dest == 'help':
                 # -h, --version, etc
                 continue
             self.parser.add_option(option)
@@ -273,7 +294,8 @@ class HelpCommand(Command):
             command = _commands[command]
             command.parser.print_help()
             return
-        print 'Usage: %s [COMMAND] ...' % os.path.basename(sys.argv[0])
+        parser.print_help()
+        print
         print 'Commands available:'
         commands = list(set(_commands.values()))
         commands.sort(key=lambda x: x.name)
@@ -365,7 +387,8 @@ class InstallCommand(Command):
             action='append',
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-            "Use multiple --install-option options to pass multiple options to setup.py install"
+            "Use multiple --install-option options to pass multiple options to setup.py install.  "
+            "If you are using an option with a directory path, be sure to use absolute path."
             )
 
     def run(self, options, args):
@@ -711,11 +734,13 @@ class ZipCommand(Command):
                     'The module %s (in %s) is not a directory; cannot be zipped'
                     % (module_name, filename))
             packages.append((module_name, filename))
+        last_status = None
         for module_name, filename in packages:
             if options.unzip:
-                return self.unzip_package(module_name, filename)
+                last_status = self.unzip_package(module_name, filename)
             else:
-                return self.zip_package(module_name, filename, options.no_pyc)
+                last_status = self.zip_package(module_name, filename, options.no_pyc)
+        return last_status
 
     def unzip_package(self, module_name, filename):
         zip_filename = os.path.dirname(filename)
@@ -959,6 +984,8 @@ def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
     options, args = parser.parse_args(initial_args)
+    if options.help and not args:
+        args = ['help']
     if not args:
         parser.error('You must give a command (use "pip help" see a list of commands)')
     command = args[0].lower()
@@ -1036,7 +1063,9 @@ def restart_in_venv(venv, args):
     file = __file__
     if file.endswith('.pyc'):
         file = file[:-1]
-    os.execv(python, [python, file] + args + [base, '___VENV_RESTART___'])
+    call_subprocess([python, file] + args + [base, '___VENV_RESTART___'])
+    sys.exit(0)
+    #~ os.execv(python, )
 
 class PackageFinder(object):
     """This finds packages.
@@ -1069,17 +1098,27 @@ class PackageFinder(object):
         # This will also cache the page, so it's okay that we get it again later:
         page = self._get_page(main_index_url, req)
         if page is None:
-            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+        def mkurl_pypi_url(url):
+            loc =  posixpath.join(url, url_name)
+            # For maximum compatibility with easy_install, ensure the path
+            # ends in a trailing slash.  Although this isn't in the spec
+            # (and PyPI can handle it without the slash) some other index
+            # implementations might break if they relied on easy_install's behavior.
+            if not loc.endswith('/'):
+                loc = loc + '/'
+            return loc
         if url_name is not None:
             locations = [
-                posixpath.join(url, url_name)
+                mkurl_pypi_url(url)
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
         locations.extend(self.dependency_links)
         for version in req.absolute_versions:
-            locations = [
-                posixpath.join(url, url_name, version)] + locations
+            if url_name is not None:
+                locations = [
+                    posixpath.join(url, url_name, version)] + locations
         locations = [Link(url) for url in locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -1287,6 +1326,7 @@ class InstallRequirement(object):
         requirement, filename, or URL.
         """
         url = None
+        name = name.strip()
         req = name
         if is_url(name):
             url = name
@@ -1311,9 +1351,6 @@ class InstallRequirement(object):
             s = self.url
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
-        if self.editable:
-            if self.req:
-                s += ' checkout from %s' % self.url
         if self.comes_from:
             if isinstance(self.comes_from, basestring):
                 comes_from = self.comes_from
@@ -1464,6 +1501,13 @@ execfile(__file__)
                 base = os.path.join(self.source_dir, 'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
+                filenames = []
+                for root, dirs, files in os.walk(base):
+                    for dir in vcs.dirnames:
+                        if dir in dirs:
+                            dirs.remove(dir)
+                    filenames.extend([os.path.join(root, dir)
+                                     for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
             assert len(filenames) == 1, "Unexpected files/directories in %s: %s" % (base, ' '.join(filenames))
             self._egg_info_path = os.path.join(base, filenames[0])
@@ -1612,10 +1656,10 @@ execfile(__file__)
         if self.is_bundle or os.path.exists(self.delete_marker_filename):
             logger.info('Removing source in %s' % self.source_dir)
             if self.source_dir:
-                shutil.rmtree(self.source_dir)
+                shutil.rmtree(self.source_dir, ignore_errors=True, onerror=rmtree_errorhandler)
             self.source_dir = None
             if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-                shutil.rmtree(self._temp_build_dir)
+                shutil.rmtree(self._temp_build_dir, ignore_errors=True, onerror=rmtree_errorhandler)
             self._temp_build_dir = None
 
     def install_editable(self):
@@ -1683,7 +1727,7 @@ execfile(__file__)
                         fp = open(vcs_bundle_file)
                         content = fp.read()
                         fp.close()
-                        url, rev = vcs_backend().parse_checkout_text(content)
+                        url, rev = vcs_backend().parse_vcs_bundle_file(content)
                         break
                 if url:
                     url = '%s+%s@%s' % (vc_type, url, rev)
@@ -1791,7 +1835,7 @@ class RequirementSet(object):
             if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied: %s' % req_to_install)
             elif req_to_install.editable:
-                logger.notify('Checking out %s' % req_to_install)
+                logger.notify('Obtaining %s' % req_to_install)
             else:
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
                     logger.notify('Unpacking %s' % display_path(url_to_filename(req_to_install.url)))
@@ -1991,7 +2035,7 @@ class RequirementSet(object):
         elif (content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
-            Subversion(link.url).unpack(location)
+            Subversion('svn+' + link.url).unpack(location)
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
@@ -2017,7 +2061,7 @@ class RequirementSet(object):
                 dir = os.path.dirname(fn)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                if fn.endswith('/'):
+                if fn.endswith('/') or fn.endswith('\\'):
                     # A directory
                     if not os.path.exists(fn):
                         os.makedirs(fn)
@@ -2500,7 +2544,6 @@ class VersionControl(object):
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
-        self.dirname = '.%s' % self.name
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
@@ -2513,14 +2556,25 @@ class VersionControl(object):
         """
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        rev = None
         if '@' in path:
-            path, rev = path.split('@', 1)
-        else:
-            rev = None
+            path, rev = path.rsplit('@', 1)
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
+    def parse_vcs_bundle_file(self, content):
+        """
+        Takes the contents of the bundled text file that explains how to revert
+        the stripped off version control data of the given package and returns
+        the URL and revision of it.
+        """
+        raise NotImplementedError
+
     def obtain(self, dest):
+        """
+        Called when installing or updating an editable package, takes the
+        source path of the checkout.
+        """
         raise NotImplementedError
 
     def unpack(self, location):
@@ -2536,6 +2590,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 
 class Subversion(VersionControl):
     name = 'svn'
+    dirname = '.svn'
     schemes = ('svn', 'svn+ssh')
     bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
@@ -2559,8 +2614,8 @@ class Subversion(VersionControl):
             return url, 'unknown'
         return url, match.group(1)
 
-    def parse_checkout_text(self, text):
-        for line in text.splitlines():
+    def parse_vcs_bundle_file(self, content):
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             match = re.search(r'^-r\s*([^ ])?', line)
@@ -2580,7 +2635,7 @@ class Subversion(VersionControl):
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing directory
                 # --force fixes this, but was only added in svn 1.5
-                os.rmdir(location)
+                shutil.rmtree(location, onerror=rmtree_errorhandler)
             call_subprocess(
                 ['svn', 'checkout', url, location],
                 filter_stdout=self._filter, show_stdout=False)
@@ -2787,6 +2842,7 @@ vcs.register(Subversion)
 
 class Git(VersionControl):
     name = 'git'
+    dirname = '.git'
     schemes = ('git', 'git+http', 'git+ssh')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
@@ -2797,9 +2853,9 @@ class Git(VersionControl):
         assert not location.rstrip('/').endswith('.git'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             url_match = re.search(r'git\s*remote\s*add\s*origin(.*)\s*-f', line)
@@ -2950,11 +3006,25 @@ class Git(VersionControl):
             logger.warn('Git URL does not fit normal structure: %s' % repo)
             return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
 
-vcs.register(Git)
+    def get_url_rev(self):
+        """
+        Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
+        That's required because although they use SSH they sometimes doesn't
+        work with a ssh:// scheme (e.g. Github). But we need a scheme for
+        parsing. Hence we remove it again afterwards and return it as a stub.
+        """
+        if not '://' in self.url:
+            self.url = self.url.replace('git+', 'git+ssh://')
+            url, rev = super(Git, self).get_url_rev()
+            url = url.replace('ssh://', '')
+            return url, rev
+        return super(Git, self).get_url_rev()
 
+vcs.register(Git)
 
 class Mercurial(VersionControl):
     name = 'hg'
+    dirname = '.hg'
     schemes = ('hg', 'hg+http', 'hg+ssh')
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
@@ -2965,9 +3035,9 @@ class Mercurial(VersionControl):
         assert not location.rstrip('/').endswith('.hg'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             url_match = re.search(r'hg\s*pull\s*(.*)\s*', line)
@@ -3058,7 +3128,9 @@ class Mercurial(VersionControl):
     def get_url(self, location):
         url = call_subprocess(
             ['hg', 'showconfig', 'paths.default'],
-            show_stdout=False, cwd=location)
+            show_stdout=False, cwd=location).strip()
+        if url.startswith('/') or url.startswith('\\'):
+            url = filename_to_url(url)
         return url.strip()
 
     def get_tip_revision(self, location):
@@ -3135,6 +3207,7 @@ vcs.register(Mercurial)
 
 class Bazaar(VersionControl):
     name = 'bzr'
+    dirname = '.bzr'
     bundle_file = 'bzr-branch.txt'
     schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
@@ -3145,9 +3218,9 @@ class Bazaar(VersionControl):
         assert not location.rstrip('/').endswith('.bzr'), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
-    def parse_clone_text(self, text):
+    def parse_vcs_bundle_file(self, content):
         url = rev = None
-        for line in text.splitlines():
+        for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
             match = re.search(r'^bzr\s*branch\s*-r\s*(\d*)', line)
@@ -3167,7 +3240,7 @@ class Bazaar(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                ['bzr', 'branch', url, location],
+                [BZR_CMD, 'branch', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -3200,7 +3273,7 @@ class Bazaar(VersionControl):
                 if response == 's':
                     logger.notify('Switching branch %s to %s%s'
                                   % (display_path(dest), url, rev_display))
-                    call_subprocess(['bzr', 'switch', url], cwd=dest)
+                    call_subprocess([BZR_CMD, 'switch', url], cwd=dest)
                 elif response == 'i':
                     # do nothing
                     pass
@@ -3222,14 +3295,14 @@ class Bazaar(VersionControl):
                 url = 'bzr+' + url
             if update:
                 call_subprocess(
-                    ['bzr', 'pull', '-q'] + rev_options + [url], cwd=dest)
+                    [BZR_CMD, 'pull', '-q'] + rev_options + [url], cwd=dest)
             else:
                 call_subprocess(
-                    ['bzr', 'branch', '-q'] + rev_options + [url, dest])
+                    [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
 
     def get_url(self, location):
         urls = call_subprocess(
-            ['bzr', 'info'], show_stdout=False, cwd=location)
+            [BZR_CMD, 'info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -3241,18 +3314,18 @@ class Bazaar(VersionControl):
 
     def get_revision(self, location):
         revision = call_subprocess(
-            ['bzr', 'revno'], show_stdout=False, cwd=location)
-        return revision.strip()
+            [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
+        return revision.splitlines()[-1]
 
     def get_newest_revision(self, location):
         url = self.get_url(location)
         revision = call_subprocess(
-            ['bzr', 'revno', url], show_stdout=False, cwd=location)
-        return revision.strip()
+            [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
+        return revision.splitlines()[-1]
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            ['bzr', 'tags'], show_stdout=False, cwd=location)
+            [BZR_CMD, 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
@@ -3301,7 +3374,7 @@ def get_src_requirement(dist, location, find_tags):
 ## Requirement files
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
-_drive_re = re.compile(r'/*([a-z])\|', re.I)
+_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content)"""
@@ -3316,7 +3389,7 @@ def get_file_content(url, comes_from=None):
         if scheme == 'file':
             path = url.split(':', 1)[1]
             path = path.replace('\\', '/')
-            match = _drive_re.match(path)
+            match = _url_slash_drive_re.match(path)
             if match:
                 path = match.group(1) + ':' + path.split('|', 1)[1]
             path = urllib.unquote(path)
@@ -3810,9 +3883,9 @@ def filename_to_url(filename):
     Convert a path to a file: URL.  The path will be made absolute.
     """
     filename = os.path.normcase(os.path.abspath(filename))
+    if _drive_re.match(filename):
+        filename = filename[0] + '|' + filename[2:]
     url = urllib.quote(filename)
-    if _drive_re.match(url):
-        url = url[0] + '|' + url[2:]
     url = url.replace(os.path.sep, '/')
     url = url.lstrip('/')
     return 'file:///' + url
