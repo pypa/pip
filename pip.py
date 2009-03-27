@@ -949,6 +949,8 @@ def restart_in_venv(venv, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
+    if venv.startswith('~'):
+        venv = os.path.expanduser(venv)
     venv = os.path.abspath(venv)
     if not os.path.exists(venv):
         try:
