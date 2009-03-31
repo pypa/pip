@@ -33,7 +33,7 @@ import httplib
 import time
 import logging
 import ConfigParser
-
+    
 class InstallationError(Exception):
     """General exception during installation"""
 
@@ -434,6 +434,12 @@ class UninstallCommand(Command):
 
     def __init__(self):
         super(UninstallCommand, self).__init__()
+        self.parser.add_option(
+            '-y', '--yes',
+            dest='yes',
+            action='store_true',
+            help="Don't ask for confirmation of uninstall deletions. "
+            "If this breaks your system, you get to keep the pieces.")
 
     def run(self, options, args):
         requirement_set = RequirementSet(
@@ -442,7 +448,7 @@ class UninstallCommand(Command):
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
-        requirement_set.uninstall()
+        requirement_set.uninstall(auto_confirm=options.yes)
 
 UninstallCommand()
 
@@ -1531,59 +1537,80 @@ execfile(__file__)
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
-    def uninstall(self):
+    def uninstall(self, auto_confirm=False):
         assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
         dist = self.satisfied_by
-        remove_paths = []
-        
-        pip_egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
-        easy_install_egg = dist.egg_name() + '.egg'
-        
-        if os.path.exists(pip_egg_info_path):
-            # package installed by pip
-            remove_paths.append(pip_egg_info_path)
-            if dist.has_metadata('installed-files.txt'):
-                for installed_file in dist.get_metadata('installed-files.txt').splitlines():
-                    path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
-                    if os.path.exists(path):
-                        remove_paths.append(path)
-            if dist.has_metadata('top_level.txt'):
-                for top_level_pkg in [p for p
-                                      in dist.get_metadata('top_level.txt').splitlines()
-                                      if p]:
-                    path = os.path.join(dist.location, top_level_pkg)
-                    if os.path.exists(path):
-                        remove_paths.append(path)
-                    elif os.path.exists(path + '.py'):
-                        remove_paths.append(path + '.py')
-                        if os.path.exists(path + '.pyc'):
-                            remove_paths.append(path + '.pyc')
+        remove_paths = set()
 
-        elif dist.location.endswith(easy_install_egg):
-            # package installed by easy_install
-            remove_paths.append(dist.location)
-            easy_install_pth = os.path.join(os.path.dirname(dist.location), 'easy-install.pth')
-            if os.path.isfile(easy_install_pth):
-                logger.notify('Removing %s from %s' % (easy_install_egg, easy_install_pth))
-                fh = open(easy_install_pth, 'r')
-                easy_install_lines = fh.readlines()
-                fh.close()
+        logger.notify('Uninstalling %s' % self.name)
+        logger.indent += 2
+        try:
+            pip_egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
+            easy_install_egg = dist.egg_name() + '.egg'
+
+            if os.path.exists(pip_egg_info_path):
+                # package installed by pip
+                remove_paths.add(pip_egg_info_path)
+                if dist.has_metadata('installed-files.txt'):
+                    for installed_file in dist.get_metadata('installed-files.txt').splitlines():
+                        path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                        if os.path.exists(path):
+                            remove_paths.add(path)
+                if dist.has_metadata('top_level.txt'):
+                    for top_level_pkg in [p for p
+                                          in dist.get_metadata('top_level.txt').splitlines()
+                                          if p]:
+                        path = os.path.join(dist.location, top_level_pkg)
+                        if os.path.exists(path):
+                            remove_paths.add(path)
+                        elif os.path.exists(path + '.py'):
+                            remove_paths.add(path + '.py')
+                            if os.path.exists(path + '.pyc'):
+                                remove_paths.add(path + '.pyc')
+
+            elif dist.location.endswith(easy_install_egg):
+                # package installed by easy_install
+                remove_paths.add(dist.location)
+                easy_install_pth = os.path.join(os.path.dirname(dist.location), 'easy-install.pth')
+                if os.path.isfile(easy_install_pth):
+                    logger.notify('Removing %s from %s' % (easy_install_egg, easy_install_pth))
+                    fh = open(easy_install_pth, 'r')
+                    easy_install_lines = fh.readlines()
+                    fh.close()
+                    try:
+                        easy_install_lines.remove('./' + easy_install_egg + '\n')
+                    except ValueError:
+                        pass
+                    fh = open(easy_install_pth, 'w')
+                    fh.writelines(easy_install_lines)
+                    fh.close()
+
+            if remove_paths:
+                def _strip_prefix(path):
+                    if path.startswith(sys.prefix):
+                        return path.replace(sys.prefix, '')
+                logger.notify('Within environment %s, removing:' % sys.prefix)
+                logger.indent += 2
                 try:
-                    easy_install_lines.remove('./' + easy_install_egg + '\n')
-                except ValueError:
-                    pass
-                fh = open(easy_install_pth, 'w')
-                fh.writelines(easy_install_lines)
-                fh.close()
-            
-        for path in remove_paths:
-            # FIXME maybe we should ask for confirmation here?
-            if os.path.isdir(path):
-                logger.notify('Removing directory %s' % path)
-                shutil.rmtree(path)
-            elif os.path.isfile(path):
-                logger.notify('Removing file %s' % path)
-                os.remove(path)
+                    if auto_confirm:
+                        response = 'y'
+                    else:
+                        for path in remove_paths:
+                            logger.notify(_strip_prefix(path))
+                        response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
+                    if response == 'y':
+                        for path in remove_paths:
+                            if os.path.isdir(path):
+                                logger.notify('Removing directory %s' % _strip_prefix(path))
+                                shutil.rmtree(path)
+                            elif os.path.isfile(path):
+                                logger.notify('Removing file %s' % _strip_prefix(path))
+                                os.remove(path)
+                finally:
+                    logger.indent -= 2
+        finally:
+            logger.indent -= 2
+                        
 
     def install(self, install_options):
         if self.editable:
@@ -1804,9 +1831,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self):
+    def uninstall(self, auto_confirm=False):
         for req in self.requirements.values():
-            req.uninstall()
+            req.uninstall(auto_confirm=auto_confirm)
 
     def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)

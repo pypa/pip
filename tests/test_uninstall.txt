@@ -11,7 +11,7 @@ Simple install and uninstall::
     >>> reset_env()
     >>> result = run_pip('install', 'INITools==0.2', expect_error=True)
     >>> assert (lib_py + 'site-packages/initools') in result.files_created, sorted(result.files_created.keys())
-    >>> result2 = run_pip('uninstall', 'INITools', expect_error=True)
+    >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
     >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
     >>> try: diff.remove('build')
     ... except KeyError: pass
@@ -24,7 +24,7 @@ Uninstall an easy_installed package::
     >>> result = env.run('%s/bin/easy_install' % env.base_path, 'INITools')
     >>> easy_install_pth = lib_py + 'site-packages/easy-install.pth'
     >>> assert('INITools' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
-    >>> result2 = run_pip('uninstall', 'INITools', expect_error=True)
+    >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
     >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
     >>> try: diff.remove('build')
     ... except KeyError: pass
@@ -35,7 +35,7 @@ Uninstall a package with more files (script entry points, etc)::
     >>> reset_env()
     >>> result = run_pip('install', 'virtualenv', expect_error=True)
     >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
-    >>> result2 = run_pip('uninstall', 'virtualenv', expect_error=True)
+    >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
     >>> try: diff.remove('build'); diff.remove(lib_py + 'site-packages/support-files')
     ... except KeyError: pass
