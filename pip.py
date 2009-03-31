@@ -49,6 +49,11 @@ else:
     base_prefix = os.path.join(os.getcwd(), 'build')
     base_src_prefix = os.path.join(os.getcwd(), 'src')
 
+if sys.platform == 'win32':
+    lib_py = os.path.join(sys.prefix, 'Lib')
+else:
+    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
+    
 pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
@@ -1541,12 +1546,15 @@ execfile(__file__)
         assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
         dist = self.satisfied_by
         remove_paths = set()
+        remove_from_easy_install_pth = set()
+        easy_install_pth = os.path.join(lib_py, os.path.join('site-packages', 'easy-install.pth'))
 
         logger.notify('Uninstalling %s' % self.name)
         logger.indent += 2
         try:
             pip_egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
             easy_install_egg = dist.egg_name() + '.egg'
+            develop_egg_link = os.path.join(lib_py, dist.project_name) + '.egg-link'
 
             if os.path.exists(pip_egg_info_path):
                 # package installed by pip
@@ -1571,24 +1579,28 @@ execfile(__file__)
             elif dist.location.endswith(easy_install_egg):
                 # package installed by easy_install
                 remove_paths.add(dist.location)
-                easy_install_pth = os.path.join(os.path.dirname(dist.location), 'easy-install.pth')
-                if os.path.isfile(easy_install_pth):
-                    logger.notify('Removing %s from %s' % (easy_install_egg, easy_install_pth))
-                    fh = open(easy_install_pth, 'r')
-                    easy_install_lines = fh.readlines()
-                    fh.close()
-                    try:
-                        easy_install_lines.remove('./' + easy_install_egg + '\n')
-                    except ValueError:
-                        pass
-                    fh = open(easy_install_pth, 'w')
-                    fh.writelines(easy_install_lines)
-                    fh.close()
+                remove_from_easy_install_pth.add('./' + easy_install_egg)
+ 
+            def _strip_prefix(path):
+                if path.startswith(sys.prefix):
+                    return path.replace(sys.prefix, '')
 
+            if remove_from_easy_install_pth:
+                logger.notify('Removing entries from %s:' % _strip_prefix(easy_install_pth))
+                logger.indent += 2
+                try:
+                    if auto_confirm:
+                        response = 'y'
+                    else:
+                        for path in remove_from_easy_install_pth:
+                            logger.notify(path)
+                        response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
+                    if response == 'y':
+                        remove_entries_from_file(easy_install_pth, remove_from_easy_install_pth)
+                finally:
+                    logger.indent -= 2
+                
             if remove_paths:
-                def _strip_prefix(path):
-                    if path.startswith(sys.prefix):
-                        return path.replace(sys.prefix, '')
                 logger.notify('Within environment %s, removing:' % sys.prefix)
                 logger.indent += 2
                 try:
@@ -1616,12 +1628,6 @@ execfile(__file__)
         if self.editable:
             self.install_editable()
             return
-        ## FIXME: this is not a useful record:
-        ## Also a bad location
-        if sys.platform == 'win32':
-            install_location = os.path.join(sys.prefix, 'Lib')
-        else:
-            install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -3868,6 +3874,25 @@ def open_logfile_append(filename):
         print >> log_fp, '%s run on %s' % (sys.argv[0], time.strftime('%c'))
     return log_fp
 
+def remove_entries_from_file(filename, entries):
+    assert os.path.isfile(filename), "Trying to remove entries from nonexistent file %s" % filename
+    fh = open(filename, 'r')
+    lines = fh.readlines()
+    fh.close()
+    logger.indent += 2
+    try:
+        for entry in entries:
+            logger.notify('Removing %s' % entry)
+        try:
+            lines.remove(entry + '\n')
+        except ValueError:
+            pass
+    finally:
+        logger.indent -= 2
+    fh = open(filename, 'w')
+    fh.writelines(lines)
+    fh.close()
+        
 def is_url(name):
     """Returns true if the name looks like a URL"""
     if ':' not in name:
