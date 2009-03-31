@@ -1534,15 +1534,44 @@ execfile(__file__)
     def uninstall(self):
         assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
         dist = self.satisfied_by
-        egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
-        remove_paths = [egg_info_path]
-        if dist.has_metadata('top_level.txt'):
-            for top_level_pkg in dist.get_metadata('top_level.txt').splitlines():
-                path = os.path.join(dist.location, top_level_pkg)
-                if os.path.exists(path):
-                    remove_paths.append(path)
+        remove_paths = []
+        
+        pip_egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
+        easy_install_egg = dist.egg_name() + '.egg'
+        
+        if os.path.exists(pip_egg_info_path):
+            # package installed by pip
+            remove_paths.append(pip_egg_info_path)
+            if dist.has_metadata('top_level.txt'):
+                for top_level_pkg in dist.get_metadata('top_level.txt').splitlines():
+                    path = os.path.join(dist.location, top_level_pkg)
+                    if os.path.exists(path):
+                        remove_paths.append(path)
+
+        elif dist.location.endswith(easy_install_egg):
+            # package installed by easy_install
+            remove_paths.append(dist.location)
+            easy_install_pth = os.path.join(os.path.dirname(dist.location), 'easy-install.pth')
+            if os.path.isfile(easy_install_pth):
+                logger.notify('Removing %s from %s' % (easy_install_egg, easy_install_pth))
+                fh = open(easy_install_pth, 'r')
+                easy_install_lines = fh.readlines()
+                fh.close()
+                try:
+                    easy_install_lines.remove('./' + easy_install_egg + '\n')
+                except ValueError:
+                    pass
+                fh = open(easy_install_pth, 'w')
+                fh.writelines(easy_install_lines)
+                fh.close()
+            
         for path in remove_paths:
-            shutil.rmtree(path)
+            logger.notify('Deleting path %s' % path)
+            # FIXME maybe we should ask for confirmation here?
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            elif os.path.isfile(path):
+                os.remove(path)
 
     def install(self, install_options):
         if self.editable:
