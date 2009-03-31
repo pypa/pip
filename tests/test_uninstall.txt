@@ -1,6 +1,6 @@
 Basic setup::
 
-    >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states
+    >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
     >>> easy_install_pth = lib_py + 'site-packages/easy-install.pth'
 
 Simple install and uninstall::
@@ -41,3 +41,15 @@ Uninstall an editable installation from svn::
     >>> diff_states(result.files_before, result2.files_after).values()
     [{}, {}, {}]
 
+Uninstall from a requirements file::
+
+    >>> reset_env()
+    >>> write_file('test-req.txt', '''\
+    ... -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
+    ... # and something else to test out:
+    ... simplejson<=1.7.4
+    ... ''')
+    >>> result = run_pip('install', '-r', 'test-req.txt')
+    >>> result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
+    >>> diff_states(result.files_before, result2.files_after, ignore_keys=['build']).values()
+    [{}, {}, {}]

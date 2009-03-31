@@ -440,6 +440,14 @@ class UninstallCommand(Command):
     def __init__(self):
         super(UninstallCommand, self).__init__()
         self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Uninstall all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
             '-y', '--yes',
             dest='yes',
             action='store_true',
@@ -453,6 +461,9 @@ class UninstallCommand(Command):
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename):
+                requirement_set.add_requirement(req)
         requirement_set.uninstall(auto_confirm=options.yes)
 
 UninstallCommand()
@@ -3429,7 +3440,7 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
-def parse_requirements(filename, finder, comes_from=None):
+def parse_requirements(filename, finder=None, comes_from=None):
     skip_match = None
     if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
         skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
@@ -3457,7 +3468,7 @@ def parse_requirements(filename, finder, comes_from=None):
             # No longer used, but previously these were used in
             # requirement files, so we'll ignore.
             pass
-        elif line.startswith('-f') or line.startswith('--find-links'):
+        elif finder and line.startswith('-f') or line.startswith('--find-links'):
             if line.startswith('-f'):
                 line = line[2:].strip()
             else:
