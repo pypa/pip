@@ -437,8 +437,8 @@ class UninstallCommand(Command):
 
     def run(self, options, args):
         requirement_set = RequirementSet(
-            build_dir=base_prefix,
-            src_dir=base_src_prefix)
+            build_dir=None,
+            src_dir=None)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
