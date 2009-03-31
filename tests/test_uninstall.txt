@@ -5,10 +5,10 @@ Basic setup::
     ...     s = set()
     ... except NameError:
     ...     from sets import Set as set
-    >>> reset_env()
 
 Simple install and uninstall::
 
+    >>> reset_env()
     >>> result = run_pip('install', 'INITools==0.2', expect_error=True)
     >>> assert (lib_py + 'site-packages/initools') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'INITools', expect_error=True)
@@ -29,3 +29,15 @@ Uninstall an easy_installed package::
     >>> try: diff.remove('build')
     ... except KeyError: pass
     >>> assert(not len(diff)), diff
+
+Uninstall a package with more files (script entry points, etc)::
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'virtualenv', expect_error=True)
+    >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
+    >>> result2 = run_pip('uninstall', 'virtualenv', expect_error=True)
+    >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
+    >>> try: diff.remove('build'); diff.remove(lib_py + 'site-packages/support-files')
+    ... except KeyError: pass
+    >>> assert(not len(diff)), diff
+

@@ -1542,11 +1542,22 @@ execfile(__file__)
         if os.path.exists(pip_egg_info_path):
             # package installed by pip
             remove_paths.append(pip_egg_info_path)
+            if dist.has_metadata('installed-files.txt'):
+                for installed_file in dist.get_metadata('installed-files.txt').splitlines():
+                    path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                    if os.path.exists(path):
+                        remove_paths.append(path)
             if dist.has_metadata('top_level.txt'):
-                for top_level_pkg in dist.get_metadata('top_level.txt').splitlines():
+                for top_level_pkg in [p for p
+                                      in dist.get_metadata('top_level.txt').splitlines()
+                                      if p]:
                     path = os.path.join(dist.location, top_level_pkg)
                     if os.path.exists(path):
                         remove_paths.append(path)
+                    elif os.path.exists(path + '.py'):
+                        remove_paths.append(path + '.py')
+                        if os.path.exists(path + '.pyc'):
+                            remove_paths.append(path + '.pyc')
 
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
@@ -1566,11 +1577,12 @@ execfile(__file__)
                 fh.close()
             
         for path in remove_paths:
-            logger.notify('Deleting path %s' % path)
             # FIXME maybe we should ask for confirmation here?
             if os.path.isdir(path):
+                logger.notify('Removing directory %s' % path)
                 shutil.rmtree(path)
             elif os.path.isfile(path):
+                logger.notify('Removing file %s' % path)
                 os.remove(path)
 
     def install(self, install_options):
