@@ -427,6 +427,25 @@ class InstallCommand(Command):
 
 InstallCommand()
 
+class UninstallCommand(Command):
+    name = 'uninstall'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
+    summary = 'Uninstall packages'
+
+    def __init__(self):
+        super(UninstallCommand, self).__init__()
+
+    def run(self, options, args):
+        requirement_set = RequirementSet(
+            build_dir=base_prefix,
+            src_dir=base_src_prefix)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name))
+        requirement_set.uninstall()
+
+UninstallCommand()
+
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
@@ -1512,6 +1531,19 @@ execfile(__file__)
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
+    def uninstall(self):
+        assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
+        dist = self.satisfied_by
+        egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
+        remove_paths = [egg_info_path]
+        if dist.has_metadata('top_level.txt'):
+            for top_level_pkg in dist.get_metadata('top_level.txt').splitlines():
+                path = os.path.join(dist.location, top_level_pkg)
+                if os.path.exists(path):
+                    remove_paths.append(path)
+        for path in remove_paths:
+            shutil.rmtree(path)
+
     def install(self, install_options):
         if self.editable:
             self.install_editable()
@@ -1730,6 +1762,10 @@ class RequirementSet(object):
             if name in self.requirement_aliases:
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
+
+    def uninstall(self):
+        for req in self.requirements.values():
+            req.uninstall()
 
     def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
