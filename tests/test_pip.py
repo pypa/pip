@@ -40,6 +40,44 @@ def write_file(filename, text):
 def get_env():
     return env
 
+# FIXME ScriptTest does something similar, but only within a single
+# ProcResult; this generalizes it so states can be compared across
+# multiple commands.  Maybe should be rolled into ScriptTest?
+def diff_states(start, end, ignore_keys=None):
+    """
+    Differences two "filesystem states" as represented by dictionaries
+    of FoundFile and FoundDir objects.
+
+    Returns a dictionary with following keys:
+
+    ``deleted``
+        Dictionary of files/directories found only in the start state.
+
+    ``created``
+        Dictionary of files/directories found only in the end state.
+
+    ``updated``
+        Dictionary of files whose size has changed (FIXME not entirely
+        reliable, but comparing contents is not possible because
+        FoundFile.bytes is lazy, and comparing mtime doesn't help if
+        we want to know if a file has been returned to its earlier
+        state).
+
+    Ignores mtime and other file attributes; only presence/absence and
+    size are considered.
+    
+    """
+    ignore_keys = ignore_keys and set(ignore_keys) or set()
+    start_keys = set(start.keys())
+    end_keys = set(end.keys())
+    deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys).difference(ignore_keys)])
+    created = dict([(k, end[k]) for k in end_keys.difference(start_keys).difference(ignore_keys)])
+    updated = {}
+    for k in start_keys.intersection(end_keys).difference(ignore_keys):
+        if (start[k].size != end[k].size):
+            updated[k] = end[k]
+    return dict(deleted=deleted, created=created, updated=updated)
+
 import optparse
 parser = optparse.OptionParser(usage='%prog [OPTIONS] [TEST_FILE...]')
 parser.add_option('--first', action='store_true',
