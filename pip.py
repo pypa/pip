@@ -1554,7 +1554,7 @@ execfile(__file__)
         try:
             pip_egg_info_path = os.path.join(dist.location, dist.egg_name()) + '.egg-info'
             easy_install_egg = dist.egg_name() + '.egg'
-            develop_egg_link = os.path.join(lib_py, dist.project_name) + '.egg-link'
+            develop_egg_link = os.path.join(lib_py, 'site-packages', dist.project_name) + '.egg-link'
 
             if os.path.exists(pip_egg_info_path):
                 # package installed by pip
@@ -1580,6 +1580,15 @@ execfile(__file__)
                 # package installed by easy_install
                 remove_paths.add(dist.location)
                 remove_from_easy_install_pth.add('./' + easy_install_egg)
+
+            elif os.path.isfile(develop_egg_link):
+                fh = open(develop_egg_link, 'r')
+                link_pointer = fh.readline().strip()
+                fh.close()
+                assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
+                remove_paths.add(dist.location)
+                remove_paths.add(develop_egg_link)
+                remove_from_easy_install_pth.add(dist.location)
  
             def _strip_prefix(path):
                 if path.startswith(sys.prefix):
@@ -3882,7 +3891,7 @@ def remove_entries_from_file(filename, entries):
     logger.indent += 2
     try:
         for entry in entries:
-            logger.notify('Removing %s' % entry)
+            logger.notify('Removing entry: %s' % entry)
         try:
             lines.remove(entry + '\n')
         except ValueError:

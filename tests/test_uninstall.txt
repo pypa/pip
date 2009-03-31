@@ -5,6 +5,7 @@ Basic setup::
     ...     s = set()
     ... except NameError:
     ...     from sets import Set as set
+    >>> easy_install_pth = lib_py + 'site-packages/easy-install.pth'
 
 Simple install and uninstall::
 
@@ -22,13 +23,13 @@ Uninstall an easy_installed package::
     >>> reset_env()
     >>> env = get_env()
     >>> result = env.run('%s/bin/easy_install' % env.base_path, 'INITools')
-    >>> easy_install_pth = lib_py + 'site-packages/easy-install.pth'
     >>> assert('INITools' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
     >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
     >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
     >>> try: diff.remove('build')
     ... except KeyError: pass
     >>> assert(not len(diff)), diff
+    >>> assert(result.files_before[easy_install_pth].bytes == result2.files_after[easy_install_pth].bytes), result2.files_after[easy_install_pth].bytes
 
 Uninstall a package with more files (script entry points, etc)::
 
@@ -41,3 +42,17 @@ Uninstall a package with more files (script entry points, etc)::
     ... except KeyError: pass
     >>> assert(not len(diff)), diff
 
+Uninstall an editable installation from svn::
+
+    >>> reset_env()
+    >>> result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev', expect_error=True)
+    >>> egg_link = result.files_created[lib_py + 'site-packages/INITools.egg-link']
+    >>> # FIXME: I don't understand why there's a trailing . here:
+    >>> egg_link.bytes
+    '.../test-scratch/src/initools\n.'
+    >>> result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
+    >>> diff = set(result.files_before.keys()).symmetric_difference(set(result2.files_after.keys()))
+    >>> try: diff.remove('build')
+    ... except KeyError: pass
+    >>> assert(not len(diff)), diff
+    >>> assert(result.files_before[easy_install_pth].bytes == result2.files_after[easy_install_pth].bytes), result2.files_after[easy_install_pth].bytes
