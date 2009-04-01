@@ -4,6 +4,8 @@ News for pip
 hg tip
 ------
 
+* Add uninstall support.
+
 * Make ``-e`` work better with local hg repositories
 
 * Construct PyPI URLs the exact way easy_install constructs URLs (you
