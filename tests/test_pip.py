@@ -43,7 +43,7 @@ def get_env():
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across
 # multiple commands.  Maybe should be rolled into ScriptTest?
-def diff_states(start, end, ignore_keys=None):
+def diff_states(start, end, ignore=None):
     """
     Differences two "filesystem states" as represented by dictionaries
     of FoundFile and FoundDir objects.
@@ -67,13 +67,15 @@ def diff_states(start, end, ignore_keys=None):
     size are considered.
     
     """
-    ignore_keys = ignore_keys and set(ignore_keys) or set()
-    start_keys = set(start.keys())
-    end_keys = set(end.keys())
-    deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys).difference(ignore_keys)])
-    created = dict([(k, end[k]) for k in end_keys.difference(start_keys).difference(ignore_keys)])
+    ignore = ignore or []
+    start_keys = set([k for k in start.keys()
+                      if not [k.startswith(i) for i in ignore]])
+    end_keys = set([k for k in end.keys()
+                    if not [k.startswith(i) for i in ignore]])
+    deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys)])
+    created = dict([(k, end[k]) for k in end_keys.difference(start_keys)])
     updated = {}
-    for k in start_keys.intersection(end_keys).difference(ignore_keys):
+    for k in start_keys.intersection(end_keys):
         if (start[k].size != end[k].size):
             updated[k] = end[k]
     return dict(deleted=deleted, created=created, updated=updated)

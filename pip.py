@@ -1622,7 +1622,6 @@ execfile(__file__)
                 link_pointer = fh.readline().strip()
                 fh.close()
                 assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
-                paths_to_remove.add(dist.location)
                 paths_to_remove.add(develop_egg_link)
                 easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                                 'easy-install.pth')

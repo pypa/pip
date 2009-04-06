@@ -1,25 +1,26 @@
 Basic setup::
 
     >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
-    >>> easy_install_pth = lib_py + 'site-packages/easy-install.pth'
+    >>> from os.path import join
+    >>> easy_install_pth = join(lib_py, 'site-packages', 'easy-install.pth')
 
 Simple install and uninstall::
 
     >>> reset_env()
     >>> result = run_pip('install', 'INITools==0.2', expect_error=True)
-    >>> assert (lib_py + 'site-packages/initools') in result.files_created, sorted(result.files_created.keys())
+    >>> assert join(lib_py + 'site-packages', 'initools') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
-    >>> diff_states(result.files_before, result2.files_after, ignore_keys=['build']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
 Uninstall an easy_installed package::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run('%s/bin/easy_install' % env.base_path, 'INITools')
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'INITools')
     >>> assert('INITools' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
     >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
-    >>> diff_states(result.files_before, result2.files_after, ignore_keys=['build']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
 Uninstall a package with more files (script entry points, etc)::
@@ -29,7 +30,7 @@ Uninstall a package with more files (script entry points, etc)::
     >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, 
-    ...             ignore_keys=['build', lib_py + 'site-packages/support-files']).values()
+    ...             ignore=['build', lib_py + 'site-packages/support-files']).values()
     [{}, {}, {}]
 
 Uninstall an editable installation from svn::
@@ -38,7 +39,8 @@ Uninstall an editable installation from svn::
     >>> result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev', expect_error=True)
     >>> egg_link = result.files_created[lib_py + 'site-packages/INITools.egg-link']
     >>> result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
-    >>> diff_states(result.files_before, result2.files_after).values()
+    >>> assert ('src/initools' in result2.files_after), 'oh noes, pip deleted my sources!'
+    >>> diff_states(result.files_before, result2.files_after, ignore=['src/initools']).values()
     [{}, {}, {}]
 
 Uninstall from a requirements file::
@@ -51,5 +53,5 @@ Uninstall from a requirements file::
     ... ''')
     >>> result = run_pip('install', '-r', 'test-req.txt')
     >>> result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    >>> diff_states(result.files_before, result2.files_after, ignore_keys=['build']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
