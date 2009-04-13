@@ -577,6 +577,9 @@ class FreezeCommand(Command):
         find_links = options.find_links or []
         ## FIXME: Obviously this should be settable:
         find_tags = False
+        skip_match = None
+        if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
+            skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
 
         if filename == '-':
             logger.move_stdout_to_stderr()
@@ -606,6 +609,9 @@ class FreezeCommand(Command):
             req_f = open(requirement)
             for line in req_f:
                 if not line.strip() or line.strip().startswith('#'):
+                    f.write(line)
+                    continue
+                if skip_match and skip_match.search(line):
                     f.write(line)
                     continue
                 elif line.startswith('-e') or line.startswith('--editable'):
