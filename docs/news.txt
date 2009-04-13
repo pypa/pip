@@ -19,6 +19,9 @@ hg tip
 
 * Fix some filename issues on Windows.
 
+* Allow the ``-i`` and ``--extra-index-url`` options in requirements
+  files.
+
 0.3.1
 -----
 
