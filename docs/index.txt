@@ -1,6 +1,11 @@
 pip
 ===
 
+pip installs Python packages.  It is a replacement for
+``easy_install``.  Documentation follows; to download `visit the PyPI
+entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
+<http://bitbucket.org/ianb/pip/>`_).
+
 .. toctree::
 
    news
