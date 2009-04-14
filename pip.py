@@ -2732,7 +2732,7 @@ class Subversion(VersionControl):
             data = f.read()
             f.close()
 
-            if data.startswith('8') or data.startswith('9'):
+            if data.startswith('8') or data.startswith('9') or data.startswith('10'):
                 data = map(str.splitlines,data.split('\n\x0c\n'))
                 del data[0][0]  # get rid of the '8'
                 dirurl = data[0][3]
@@ -2775,7 +2775,7 @@ class Subversion(VersionControl):
         f = open(os.path.join(location, '.svn', 'entries'))
         data = f.read()
         f.close()
-        if data.startswith('8') or data.startswith('9'):
+        if data.startswith('8') or data.startswith('9') or data.startswith('10'):
             data = map(str.splitlines,data.split('\n\x0c\n'))
             del data[0][0]  # get rid of the '8'
             return data[0][3]
