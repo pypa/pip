@@ -3087,7 +3087,7 @@ class Mercurial(VersionControl):
                             % (display_path(dest), url))
                 logger.notify('Updating clone %s%s'
                               % (display_path(dest), rev_display))
-                call_subprocess(['hg', 'fetch', '-q'], cwd=dest)
+                call_subprocess(['hg', 'pull', '-q'], cwd=dest)
                 call_subprocess(
                     ['hg', 'update', '-q'] + rev_options, cwd=dest)
             else:
