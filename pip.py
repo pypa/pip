@@ -1884,7 +1884,9 @@ class RequirementSet(object):
             fp = open(target_file+'.content-type', 'w')
             fp.write(content_type)
             fp.close()
-        os.unlink(temp_location)
+            os.unlink(temp_location)
+        if target_file is None:
+            os.unlink(temp_location)
 
     def unpack_file(self, filename, location, content_type, link):
         if (content_type == 'application/zip'
