@@ -1,8 +1,14 @@
 #!/bin/sh
 
+CMD="$1"
+if [ "$CMD" = "release" ] ; then
+  python -c 'import setuptools; __file__="setup.py"; execfile(__file__)' register sdist upload
+  CMD="publish"
+fi
+
 mkdir -p docs/_static docs/_build
 sphinx-build -E -b html docs/ docs/_build || exit 1
-if [ "$1" = "publish" ] ; then
+if [ "$CMD" = "publish" ] ; then
   cd docs/_build
   echo "Uploading files..."
   tar czvf - . | ssh flow.openplans.org 'ssh acura.openplans.org "cd /www/pip.openplans.org/; tar xzvf -"'

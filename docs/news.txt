@@ -1,6 +1,37 @@
 News for pip
 ============
 
+hg tip
+------
+
+* Make ``-e`` work better with local hg repositories
+
+* Construct PyPI URLs the exact way easy_install constructs URLs (you
+  might notice this if you use a custom index that is
+  slash-sensitive).
+
+* Improvements on Windows (from `Ionel Maries Cristian
+  <http://ionelmc.wordpress.com/>`_).
+
+* Fixed problem with not being able to install private git repositories.
+
+* Make ``pip zip`` zip all its arguments, not just the first.
+
+* Fix some filename issues on Windows.
+
+0.3.1
+-----
+
+* Improved virtualenv restart and various path/cleanup problems on win32.
+
+* Fixed a regression with installing from svn repositories (when not
+  using ``-e``).
+
+* Fixes when installing editable packages that put their source in a
+  subdirectory (like ``src/``).
+
+* Improve ``pip -h``
+
 0.3
 ---
 

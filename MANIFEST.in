@@ -1,0 +1,5 @@
+recursive-include docs *.txt
+recursive-include docs *.html
+prune docs/_build/*.txt
+prune docs/_build/_sources/*.txt
+prune docs/_build/_sources
