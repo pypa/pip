@@ -427,6 +427,95 @@ class InstallCommand(Command):
 
 InstallCommand()
 
+class UninstallCommand(Command):
+    name = 'uninstall'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
+    summary = 'Uninstall packages'
+    bundle = False
+
+    def __init__(self):
+        super(UninstallCommand, self).__init__()
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Uninstall all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
+            '-f', '--find-links',
+            dest='find_links',
+            action='append',
+            default=[],
+            metavar='URL',
+            help='URL to look for packages at')
+        self.parser.add_option(
+            '-i', '--index-url',
+            dest='index_url',
+            metavar='URL',
+            default=pypi_url,
+            help='base URL of Python Package Index')
+        self.parser.add_option(
+            '--extra-index-url',
+            dest='extra_index_urls',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='extra URLs of package indexes to use in addition to --index-url')
+
+        self.parser.add_option(
+            '-b', '--build', '--build-dir', '--build-directory',
+            dest='build_dir',
+            metavar='DIR',
+            default=None,
+            help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
+        self.parser.add_option(
+            '--src', '--source',
+            dest='src_dir',
+            metavar='DIR',
+            default=None,
+            help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
+
+        self.parser.add_option(
+            '--no-uninstall',
+            dest='no_uninstall',
+            action='store_true',
+            help="List the packages, but don't actually uninstall them")
+
+    def run(self, options, args):
+        if not options.build_dir:
+            options.build_dir = base_prefix
+        if not options.src_dir:
+            options.src_dir = base_src_prefix
+        options.build_dir = os.path.abspath(options.build_dir)
+        options.src_dir = os.path.abspath(options.src_dir)
+        index_urls = [options.index_url] + options.extra_index_urls
+        finder = PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls)
+        requirement_set = RequirementSet(
+            build_dir=options.build_dir,
+            src_dir=options.src_dir)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name, None))
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename, finder=finder):
+                requirement_set.add_requirement(req)
+        requirement_set.uninstall_files(finder, force_root_egg_info=self.bundle)
+        if not options.no_uninstall and not self.bundle:
+            requirement_set.uninstall()
+            logger.notify('Successfully uninstalled %s' % requirement_set)
+        elif not self.bundle:
+            logger.notify('Would uninstall %s' % requirement_set)
+        return requirement_set
+
+UninstallCommand()
+
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
@@ -488,6 +577,9 @@ class FreezeCommand(Command):
         find_links = options.find_links or []
         ## FIXME: Obviously this should be settable:
         find_tags = False
+        skip_match = None
+        if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
+            skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
 
         if filename == '-':
             logger.move_stdout_to_stderr()
@@ -517,6 +609,9 @@ class FreezeCommand(Command):
             req_f = open(requirement)
             for line in req_f:
                 if not line.strip() or line.strip().startswith('#'):
+                    f.write(line)
+                    continue
+                if skip_match and skip_match.search(line):
                     f.write(line)
                     continue
                 elif line.startswith('-e') or line.startswith('--editable'):
@@ -1828,6 +1923,9 @@ class RequirementSet(object):
             finally:
                 logger.indent -= 2
 
+    def uninstall_files(self, finder, force_root_egg_info=False):
+        pass
+
     def unpack_url(self, link, location):
         for backend in vcs.backends:
             if link.scheme in backend.schemes:
@@ -2043,6 +2141,9 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+
+    def uninstall(self, uninstall_options):
+        pass
 
     def create_bundle(self, bundle_filename):
         ## FIXME: can't decide which is better; zip is easier to read
@@ -2977,7 +3078,7 @@ class Mercurial(VersionControl):
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = ['default']
+            rev_options = []
             rev_display = ''
         clone = True
         if os.path.exists(os.path.join(dest, '.hg')):
@@ -2988,7 +3089,7 @@ class Mercurial(VersionControl):
                             % (display_path(dest), url))
                 logger.notify('Updating clone %s%s'
                               % (display_path(dest), rev_display))
-                call_subprocess(['hg', 'fetch', '-q'], cwd=dest)
+                call_subprocess(['hg', 'pull', '-q'], cwd=dest)
                 call_subprocess(
                     ['hg', 'update', '-q'] + rev_options, cwd=dest)
             else:
@@ -3348,6 +3449,15 @@ def parse_requirements(filename, finder, comes_from=None):
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
             finder.find_links.append(line)
+        elif line.startswith('-i') or line.startswith('--index-url'):
+            if line.startswith('-i'):
+                line = line[2:].strip()
+            else:
+                line = line[len('--index-url'):].strip().lstrip('=')
+            finder.index_urls = [line]
+        elif line.startswith('--extra-index-url'):
+            line = line[len('--extra-index-url'):].strip().lstrip('=')
+            finder.index_urls.append(line)
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
