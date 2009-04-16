@@ -2116,7 +2116,7 @@ class RequirementSet(object):
                 else:
                     try:
                         fp = tar.extractfile(member)
-                    except KeyError, e:
+                    except (KeyError, AttributeError), e:
                         # Some corrupt tar files seem to produce this
                         # (specifically bad symlinks)
                         logger.warn(
