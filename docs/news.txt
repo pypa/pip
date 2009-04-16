@@ -19,6 +19,12 @@ hg tip
 
 * Fix some filename issues on Windows.
 
+* Allow the ``-i`` and ``--extra-index-url`` options in requirements
+  files.
+
+* Fix the way bundle components are unpacked and moved around, to make
+  bundles work.
+
 0.3.1
 -----
 

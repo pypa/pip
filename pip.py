@@ -66,7 +66,6 @@ default_vcs = None
 if os.environ.get('PIP_DEFAULT_VCS'):
     default_vcs = os.environ['PIP_DEFAULT_VCS']
 
-
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -427,6 +426,95 @@ class InstallCommand(Command):
 
 InstallCommand()
 
+class UninstallCommand(Command):
+    name = 'uninstall'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
+    summary = 'Uninstall packages'
+    bundle = False
+
+    def __init__(self):
+        super(UninstallCommand, self).__init__()
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Uninstall all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
+            '-f', '--find-links',
+            dest='find_links',
+            action='append',
+            default=[],
+            metavar='URL',
+            help='URL to look for packages at')
+        self.parser.add_option(
+            '-i', '--index-url',
+            dest='index_url',
+            metavar='URL',
+            default=pypi_url,
+            help='base URL of Python Package Index')
+        self.parser.add_option(
+            '--extra-index-url',
+            dest='extra_index_urls',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='extra URLs of package indexes to use in addition to --index-url')
+
+        self.parser.add_option(
+            '-b', '--build', '--build-dir', '--build-directory',
+            dest='build_dir',
+            metavar='DIR',
+            default=None,
+            help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
+        self.parser.add_option(
+            '--src', '--source',
+            dest='src_dir',
+            metavar='DIR',
+            default=None,
+            help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
+
+        self.parser.add_option(
+            '--no-uninstall',
+            dest='no_uninstall',
+            action='store_true',
+            help="List the packages, but don't actually uninstall them")
+
+    def run(self, options, args):
+        if not options.build_dir:
+            options.build_dir = base_prefix
+        if not options.src_dir:
+            options.src_dir = base_src_prefix
+        options.build_dir = os.path.abspath(options.build_dir)
+        options.src_dir = os.path.abspath(options.src_dir)
+        index_urls = [options.index_url] + options.extra_index_urls
+        finder = PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls)
+        requirement_set = RequirementSet(
+            build_dir=options.build_dir,
+            src_dir=options.src_dir)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name, None))
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename, finder=finder):
+                requirement_set.add_requirement(req)
+        requirement_set.uninstall_files(finder, force_root_egg_info=self.bundle)
+        if not options.no_uninstall and not self.bundle:
+            requirement_set.uninstall()
+            logger.notify('Successfully uninstalled %s' % requirement_set)
+        elif not self.bundle:
+            logger.notify('Would uninstall %s' % requirement_set)
+        return requirement_set
+
+UninstallCommand()
+
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
@@ -488,6 +576,9 @@ class FreezeCommand(Command):
         find_links = options.find_links or []
         ## FIXME: Obviously this should be settable:
         find_tags = False
+        skip_match = None
+        if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
+            skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
 
         if filename == '-':
             logger.move_stdout_to_stderr()
@@ -517,6 +608,9 @@ class FreezeCommand(Command):
             req_f = open(requirement)
             for line in req_f:
                 if not line.strip() or line.strip().startswith('#'):
+                    f.write(line)
+                    continue
+                if skip_match and skip_match.search(line):
                     f.write(line)
                     continue
                 elif line.startswith('-e') or line.startswith('--editable'):
@@ -1274,13 +1368,16 @@ class InstallRequirement(object):
         return s
 
     def from_path(self):
+        if self.req is None:
+            return None
         s = str(self.req)
         if self.comes_from:
             if isinstance(self.comes_from, basestring):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
-            s += '->' + comes_from
+            if comes_from:
+                s += '->' + comes_from
         return s
 
     def build_location(self, build_dir):
@@ -1624,47 +1721,47 @@ execfile(__file__)
         return self._is_bundle
 
     def bundle_requirements(self):
-        base = self._temp_build_dir
-        assert base
-        src_dir = os.path.join(base, 'src')
-        build_dir = os.path.join(base, 'build')
-        if os.path.exists(src_dir):
-            for package in os.listdir(src_dir):
-                ## FIXME: svnism:
-                for vcs_backend in vcs.backends:
-                    url = rev = None
-                    vcs_bundle_file = os.path.join(
-                        src_dir, package, vcs_backend.bundle_file)
-                    if os.path.exists(vcs_bundle_file):
-                        vc_type = vcs_backend.name
-                        fp = open(vcs_bundle_file)
-                        content = fp.read()
-                        fp.close()
-                        url, rev = vcs_backend().parse_vcs_bundle_file(content)
-                        break
-                if url:
-                    url = '%s+%s@%s' % (vc_type, url, rev)
-                else:
-                    url = None
-                yield InstallRequirement(
-                    package, self, editable=True, url=url,
-                    update=False, source_dir=os.path.join(src_dir, package))
-        if os.path.exists(build_dir):
-            for package in os.listdir(build_dir):
-                yield InstallRequirement(
-                    package, self,
-                    source_dir=os.path.join(build_dir, package))
+        for dest_dir in self._bundle_editable_dirs:
+            package = os.path.basename(dest_dir)
+            ## FIXME: svnism:
+            for vcs_backend in vcs.backends:
+                url = rev = None
+                vcs_bundle_file = os.path.join(
+                    dest_dir, vcs_backend.bundle_file)
+                if os.path.exists(vcs_bundle_file):
+                    vc_type = vcs_backend.name
+                    fp = open(vcs_bundle_file)
+                    content = fp.read()
+                    fp.close()
+                    url, rev = vcs_backend().parse_vcs_bundle_file(content)
+                    break
+            if url:
+                url = '%s+%s@%s' % (vc_type, url, rev)
+            else:
+                url = None
+            yield InstallRequirement(
+                package, self, editable=True, url=url,
+                update=False, source_dir=dest_dir)
+        for dest_dir in self._bundle_build_dirs:
+            package = os.path.basename(dest_dir)
+            yield InstallRequirement(
+                package, self, 
+                source_dir=dest_dir)
 
     def move_bundle_files(self, dest_build_dir, dest_src_dir):
         base = self._temp_build_dir
         assert base
         src_dir = os.path.join(base, 'src')
         build_dir = os.path.join(base, 'build')
-        for source_dir, dest_dir in [(src_dir, dest_src_dir),
-                                     (build_dir, dest_build_dir)]:
+        bundle_build_dirs = []
+        bundle_editable_dirs = []
+        for source_dir, dest_dir, dir_collection in [
+            (src_dir, dest_src_dir, bundle_editable_dirs),
+            (build_dir, dest_build_dir, bundle_build_dirs)]:
             if os.path.exists(source_dir):
                 for dirname in os.listdir(source_dir):
                     dest = os.path.join(dest_dir, dirname)
+                    dir_collection.append(dest)
                     if os.path.exists(dest):
                         logger.warn('The directory %s (containing package %s) already exists; cannot move source from bundle %s'
                                     % (dest, dirname, self))
@@ -1673,6 +1770,11 @@ execfile(__file__)
                         logger.info('Creating directory %s' % dest_dir)
                         os.makedirs(dest_dir)
                     shutil.move(os.path.join(source_dir, dirname), dest)
+                if not os.listdir(source_dir):
+                    os.rmdir(source_dir)
+        self._temp_build_dir = None
+        self._bundle_build_dirs = bundle_build_dirs
+        self._bundle_editable_dirs = bundle_editable_dirs
 
     @property
     def delete_marker_filename(self):
@@ -1791,10 +1893,10 @@ class RequirementSet(object):
                     if unpack:
                         is_bundle = req_to_install.is_bundle
                         if is_bundle:
+                            req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
-                            req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1829,6 +1931,9 @@ class RequirementSet(object):
                     req_to_install.remove_temporary_source()
             finally:
                 logger.indent -= 2
+
+    def uninstall_files(self, finder, force_root_egg_info=False):
+        pass
 
     def unpack_url(self, link, location):
         for backend in vcs.backends:
@@ -1930,7 +2035,9 @@ class RequirementSet(object):
             fp = open(target_file+'.content-type', 'w')
             fp.write(content_type)
             fp.close()
-        os.unlink(temp_location)
+            os.unlink(temp_location)
+        if target_file is None:
+            os.unlink(temp_location)
 
     def unpack_file(self, filename, location, content_type, link):
         if (content_type == 'application/zip'
@@ -2011,7 +2118,7 @@ class RequirementSet(object):
                 else:
                     try:
                         fp = tar.extractfile(member)
-                    except KeyError, e:
+                    except (KeyError, AttributeError), e:
                         # Some corrupt tar files seem to produce this
                         # (specifically bad symlinks)
                         logger.warn(
@@ -2043,6 +2150,9 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+
+    def uninstall(self, uninstall_options):
+        pass
 
     def create_bundle(self, bundle_filename):
         ## FIXME: can't decide which is better; zip is easier to read
@@ -2977,7 +3087,7 @@ class Mercurial(VersionControl):
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = ['default']
+            rev_options = []
             rev_display = ''
         clone = True
         if os.path.exists(os.path.join(dest, '.hg')):
@@ -2988,7 +3098,7 @@ class Mercurial(VersionControl):
                             % (display_path(dest), url))
                 logger.notify('Updating clone %s%s'
                               % (display_path(dest), rev_display))
-                call_subprocess(['hg', 'fetch', '-q'], cwd=dest)
+                call_subprocess(['hg', 'pull', '-q'], cwd=dest)
                 call_subprocess(
                     ['hg', 'update', '-q'] + rev_options, cwd=dest)
             else:
@@ -3222,13 +3332,13 @@ class Bazaar(VersionControl):
     def get_revision(self, location):
         revision = call_subprocess(
             [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
-        return revision.strip()
+        return revision.splitlines()[-1]
 
     def get_newest_revision(self, location):
         url = self.get_url(location)
         revision = call_subprocess(
             [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
-        return revision.strip()
+        return revision.splitlines()[-1]
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
@@ -3348,6 +3458,15 @@ def parse_requirements(filename, finder, comes_from=None):
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
             finder.find_links.append(line)
+        elif line.startswith('-i') or line.startswith('--index-url'):
+            if line.startswith('-i'):
+                line = line[2:].strip()
+            else:
+                line = line[len('--index-url'):].strip().lstrip('=')
+            finder.index_urls = [line]
+        elif line.startswith('--extra-index-url'):
+            line = line[len('--extra-index-url'):].strip().lstrip('=')
+            finder.index_urls.append(line)
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
