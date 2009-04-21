@@ -457,6 +457,49 @@ class BundleCommand(InstallCommand):
 
 BundleCommand()
 
+class DownloadCommand(InstallCommand):
+    name = 'download'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
+    summary = 'Download packages'
+    bundle = False
+
+    def __init__(self):
+        super(DownloadCommand, self).__init__()
+
+    def run(self, options, args):
+        if not options.build_dir:
+            options.build_dir = base_prefix
+        if not options.src_dir:
+            options.src_dir = base_src_prefix
+        options.build_dir = os.path.abspath(options.build_dir)
+        options.src_dir = os.path.abspath(options.src_dir)
+        options.upgrade = True
+        install_options = options.install_options or []
+        index_urls = [options.index_url] + options.extra_index_urls
+        finder = PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls)
+        requirement_set = RequirementSet(
+            build_dir=options.build_dir,
+            src_dir=options.src_dir,
+            upgrade=options.upgrade,
+            ignore_installed=options.ignore_installed)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name, None))
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename, finder=finder):
+                requirement_set.add_requirement(req)
+        requirement_set.download_files(finder)
+        logger.notify('Successfully downloaded %s' % requirement_set)
+        return requirement_set
+
+DownloadCommand()
+
+
 class FreezeCommand(Command):
     name = 'freeze'
     usage = '%prog [OPTIONS] FREEZE_NAME.txt'
@@ -1077,7 +1120,7 @@ class PackageFinder(object):
                             % req.satisfied_by.version)
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
-                            % (req.satisfied_by.version, application_versions[0][2]))
+                            % (req.satisfied_by.version, applicable_versions[0][1]))
             return None
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
@@ -1747,6 +1790,40 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
+    def download_files(self, finder):
+        unnamed = list(self.unnamed_requirements)
+        reqs = self.requirements.values()
+        while reqs or unnamed:
+            if unnamed:
+                req_to_install = unnamed.pop(0)
+            else:
+                req_to_install = reqs.pop(0)
+            logger.indent += 2
+            try:
+                location = self.build_dir
+                if not os.path.exists(location):
+                    os.makedirs(location)
+                ## FIXME: is the existance of the checkout good enough to use it?  I'm don't think so.
+                if not os.path.exists(os.path.join(location, 'setup.py')):
+                    ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
+                    if req_to_install.url is None:
+                        url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
+                    else:
+                        ## FIXME: should req_to_install.url already be a link?
+                        url = Link(req_to_install.url)
+                        assert url
+                    if url:
+                        try:
+                            self.unpack_url(url, location, unpack=False)
+                        except urllib2.HTTPError, e:
+                            logger.fatal('Could not install requirement %s because of error %s'
+                                         % (req_to_install, e))
+                            raise InstallationError(
+                                'Could not install requirement %s because of HTTP error %s for URL %s'
+                                % (req_to_install, e, url))
+            finally:
+                logger.indent -= 2
+
     def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
@@ -1844,7 +1921,7 @@ class RequirementSet(object):
             finally:
                 logger.indent -= 2
 
-    def unpack_url(self, link, location):
+    def unpack_url(self, link, location, unpack=True):
         for backend in vcs.backends:
             if link.scheme in backend.schemes:
                 backend(link).unpack(location)
@@ -1937,7 +2014,11 @@ class RequirementSet(object):
                 logger.fatal("MD5 hash of the package %s (%s) doesn't match the expected hash %s!"
                              % (link, download_hash, md5_hash))
                 raise InstallationError('Bad MD5 hash for package %s' % link)
-        self.unpack_file(temp_location, location, content_type, link)
+        if unpack:
+            self.unpack_file(temp_location, location, content_type, link)
+        else:
+            download_location = os.path.join(location, link.filename)
+            shutil.copyfile(temp_location, download_location)
         if target_file and target_file != temp_location:
             logger.notify('Storing download in cache at %s' % display_path(target_file))
             shutil.copyfile(temp_location, target_file)
