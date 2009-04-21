@@ -494,7 +494,7 @@ class DownloadCommand(InstallCommand):
             for req in parse_requirements(filename, finder=finder):
                 requirement_set.add_requirement(req)
         requirement_set.download_files(finder)
-        logger.notify('Successfully downloaded %s' % requirement_set)
+        logger.notify('Successfully downloaded')
         return requirement_set
 
 DownloadCommand()
@@ -1803,7 +1803,6 @@ class RequirementSet(object):
                 location = self.build_dir
                 if not os.path.exists(location):
                     os.makedirs(location)
-                ## FIXME: is the existance of the checkout good enough to use it?  I'm don't think so.
                 if not os.path.exists(os.path.join(location, 'setup.py')):
                     ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                     if req_to_install.url is None:
