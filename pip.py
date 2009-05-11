@@ -66,6 +66,8 @@ default_vcs = None
 if os.environ.get('PIP_DEFAULT_VCS'):
     default_vcs = os.environ['PIP_DEFAULT_VCS']
 
+virtualenv_base = os.environ.get('PIP_VIRTUALENV_BASE')
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -955,9 +957,18 @@ def restart_in_venv(venv, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
+    if virtualenv_base\
+            and not os.path.isabs(venv)\
+            and not venv.startswith('~'):
+        base = os.path.expanduser(virtualenv_base)
+        # ensure we have an abs basepath at this point:
+        #    a relative one makes no sense (or does it?)
+        if os.path.isabs(base):
+            venv = os.path.join(base, venv)
+
     if venv.startswith('~'):
         venv = os.path.expanduser(venv)
-    venv = os.path.abspath(venv)
+
     if not os.path.exists(venv):
         try:
             import virtualenv
