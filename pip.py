@@ -161,6 +161,13 @@ parser.add_option(
     help='virtualenv environment to run pip in (either give the '
     'interpreter or the environment base directory)')
 parser.add_option(
+    '-s', '--enable-site-packages',
+    dest='site_packages',
+    action='store_true',
+    help='Include site-packages in virtualenv if one is to be '
+    'created. Ignored if --environment is not used or '
+    'the virtualenv already exists.')
+parser.add_option(
     '-v', '--verbose',
     dest='verbose',
     action='count',
@@ -245,7 +252,10 @@ class Command(object):
             if options.verbose > 0:
                 # The logger isn't setup yet
                 print 'Running in environment %s' % options.venv
-            restart_in_venv(options.venv, complete_args)
+            site_packages=False
+            if options.site_packages:
+                site_packages=True
+            restart_in_venv(options.venv, site_packages, complete_args)
             # restart_in_venv should actually never return, but for clarity...
             return
         ## FIXME: not sure if this sure come before or after venv restart
@@ -953,7 +963,7 @@ def format_exc(exc_info=None):
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
 
-def restart_in_venv(venv, args):
+def restart_in_venv(venv, site_packages, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
@@ -979,8 +989,7 @@ def restart_in_venv(venv, args):
         print 'Creating new virtualenv environment in %s' % venv
         virtualenv.logger = logger
         logger.indent += 2
-        ## FIXME: always have no_site_packages?
-        virtualenv.create_environment(venv, site_packages=False)
+        virtualenv.create_environment(venv, site_packages=site_packages)
     if sys.platform == 'win32':
         python = os.path.join(venv, 'Scripts', 'python.exe')
     else:
