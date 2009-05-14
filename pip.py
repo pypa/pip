@@ -66,6 +66,8 @@ default_vcs = None
 if os.environ.get('PIP_DEFAULT_VCS'):
     default_vcs = os.environ['PIP_DEFAULT_VCS']
 
+virtualenv_base = os.environ.get('PIP_VIRTUALENV_BASE')
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -159,6 +161,13 @@ parser.add_option(
     help='virtualenv environment to run pip in (either give the '
     'interpreter or the environment base directory)')
 parser.add_option(
+    '-s', '--enable-site-packages',
+    dest='site_packages',
+    action='store_true',
+    help='Include site-packages in virtualenv if one is to be '
+    'created. Ignored if --environment is not used or '
+    'the virtualenv already exists.')
+parser.add_option(
     '-v', '--verbose',
     dest='verbose',
     action='count',
@@ -243,7 +252,10 @@ class Command(object):
             if options.verbose > 0:
                 # The logger isn't setup yet
                 print 'Running in environment %s' % options.venv
-            restart_in_venv(options.venv, complete_args)
+            site_packages=False
+            if options.site_packages:
+                site_packages=True
+            restart_in_venv(options.venv, site_packages, complete_args)
             # restart_in_venv should actually never return, but for clarity...
             return
         ## FIXME: not sure if this sure come before or after venv restart
@@ -994,13 +1006,22 @@ def format_exc(exc_info=None):
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
 
-def restart_in_venv(venv, args):
+def restart_in_venv(venv, site_packages, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
+    if virtualenv_base\
+            and not os.path.isabs(venv)\
+            and not venv.startswith('~'):
+        base = os.path.expanduser(virtualenv_base)
+        # ensure we have an abs basepath at this point:
+        #    a relative one makes no sense (or does it?)
+        if os.path.isabs(base):
+            venv = os.path.join(base, venv)
+
     if venv.startswith('~'):
         venv = os.path.expanduser(venv)
-    venv = os.path.abspath(venv)
+
     if not os.path.exists(venv):
         try:
             import virtualenv
@@ -1011,8 +1032,7 @@ def restart_in_venv(venv, args):
         print 'Creating new virtualenv environment in %s' % venv
         virtualenv.logger = logger
         logger.indent += 2
-        ## FIXME: always have no_site_packages?
-        virtualenv.create_environment(venv, site_packages=False)
+        virtualenv.create_environment(venv, site_packages=site_packages)
     if sys.platform == 'win32':
         python = os.path.join(venv, 'Scripts', 'python.exe')
     else:
@@ -2729,7 +2749,7 @@ class Subversion(VersionControl):
             data = f.read()
             f.close()
 
-            if data.startswith('8') or data.startswith('9'):
+            if data.startswith('8') or data.startswith('9') or data.startswith('10'):
                 data = map(str.splitlines,data.split('\n\x0c\n'))
                 del data[0][0]  # get rid of the '8'
                 dirurl = data[0][3]
@@ -2772,7 +2792,7 @@ class Subversion(VersionControl):
         f = open(os.path.join(location, '.svn', 'entries'))
         data = f.read()
         f.close()
-        if data.startswith('8') or data.startswith('9'):
+        if data.startswith('8') or data.startswith('9') or data.startswith('10'):
             data = map(str.splitlines,data.split('\n\x0c\n'))
             del data[0][0]  # get rid of the '8'
             return data[0][3]
