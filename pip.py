@@ -992,6 +992,9 @@ def restart_in_venv(venv, site_packages, args):
         virtualenv.create_environment(venv, site_packages=site_packages)
     if sys.platform == 'win32':
         python = os.path.join(venv, 'Scripts', 'python.exe')
+        # check for bin directory which is used in buildouts
+        if not os.path.exists(python):
+            python = os.path.join(venv, 'bin', 'python.exe')
     else:
         python = os.path.join(venv, 'bin', 'python')
     if not os.path.exists(python):
@@ -3828,7 +3831,7 @@ def is_filename(name):
     return True
 
 _drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[|]', re.I)
+_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 def filename_to_url(filename):
     """

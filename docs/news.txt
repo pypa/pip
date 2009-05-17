@@ -28,6 +28,8 @@ hg tip
 * Adds ``-s`` option to allow the access to the global site-packages if a
   virtualenv is to be created.
 
+* Fixed support for Subversion 1.6.
+
 0.3.1
 -----
 
