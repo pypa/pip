@@ -552,6 +552,7 @@ class FreezeCommand(Command):
                 if not line_req.name:
                     logger.notify("Skipping line because it's not clear what it would install: %s"
                                   % line.strip())
+                    logger.notify("  (add #egg=PackageName to the URL to avoid this warning)")
                     continue
                 if line_req.name not in installations:
                     logger.warn("Requirement file contains %s, but that package is not installed"
