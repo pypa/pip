@@ -86,7 +86,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 class VcsSupport(object):
     _registry = {}
-    # Register more schemes with urlparse for the versio control support
+    # Register more schemes with urlparse for various version control systems
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
 
     def __init__(self):
