@@ -471,8 +471,8 @@ BundleCommand()
 
 class FreezeCommand(Command):
     name = 'freeze'
-    usage = '%prog [OPTIONS] FREEZE_NAME.txt'
-    summary = 'Put all currently installed packages (exact versions) into a requirements file'
+    usage = '%prog [OPTIONS]'
+    summary = 'Output all currently installed packages (exact versions) to stdout'
 
     def __init__(self):
         super(FreezeCommand, self).__init__()
@@ -492,10 +492,6 @@ class FreezeCommand(Command):
             help='URL for finding packages, which will be added to the frozen requirements file')
 
     def run(self, options, args):
-        if args:
-            filename = args[0]
-        else:
-            filename = '-'
         requirement = options.requirement
         find_links = options.find_links or []
         ## FIXME: Obviously this should be settable:
@@ -504,15 +500,11 @@ class FreezeCommand(Command):
         if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
             skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
 
-        if filename == '-':
-            logger.move_stdout_to_stderr()
+        logger.move_stdout_to_stderr()
         dependency_links = []
-        if filename == '-':
-            f = sys.stdout
-        else:
-            ## FIXME: should be possible to overwrite requirement file
-            logger.notify('Writing frozen requirements to %s' % filename)
-            f = open(filename, 'w')
+
+        f = sys.stdout
+
         for dist in pkg_resources.working_set:
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
@@ -563,9 +555,6 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
-        if filename != '-':
-            logger.notify('Put requirements in %s' % filename)
-            f.close()
 
 FreezeCommand()
 
