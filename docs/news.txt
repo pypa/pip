@@ -1,8 +1,8 @@
 News for pip
 ============
 
-hg tip
-------
+0.4
+---
 
 * Make ``-e`` work better with local hg repositories
 
