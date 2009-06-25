@@ -13,6 +13,9 @@ tip
 
 * Fixed problem of freezing an editable packages from a Git repository.
 
+* Added support for base URLs using ``<base href='...'>`` when parsing
+  HTML pages.
+
 0.4
 ---
 

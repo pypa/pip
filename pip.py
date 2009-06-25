@@ -2169,6 +2169,7 @@ class HTMLPage(object):
     ## These aren't so aweful:
     _rel_re = re.compile("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>""", re.I)
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
+    _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
     def __init__(self, content, url, headers=None):
         self.content = content
@@ -2267,11 +2268,18 @@ class HTMLPage(object):
             conn.close()
 
     @property
+    def base_url(self):
+        match = self._base_re.search(self.content)
+        if match:
+            return match.group(1)
+        return self.url
+
+    @property
     def links(self):
         """Yields all links in the page"""
         for match in self._href_re.finditer(self.content):
             url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     def rel_links(self):
@@ -2293,7 +2301,7 @@ class HTMLPage(object):
             if not match:
                 continue
             url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     def scraped_rel_links(self):
@@ -2307,7 +2315,7 @@ class HTMLPage(object):
             url = match.group(1) or match.group(2) or match.group(3)
             if not url:
                 continue
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
