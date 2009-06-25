@@ -69,8 +69,8 @@ What about a Git clone?::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run('git', 'clone', 'git://git.websushi.org/apps/django-pagination/', 'django-pagination')
-    >>> result = env.run('git', 'checkout', 'bdc85c1526d84742362b00a6012b3677a4f69f51',
+    >>> result = env.run('git', 'clone', 'git://github.com/jezdez/django-pagination.git', 'django-pagination')
+    >>> result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
     ...                  cwd=os.path.join(env.base_path, 'django-pagination'), expect_stderr=True)
     >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
     ...                  cwd=os.path.join(env.base_path, 'django-pagination'))
@@ -78,22 +78,22 @@ What about a Git clone?::
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stderr: --------------------
-    Git URL does not fit normal structure: git://git.websushi.org/apps/django-pagination/
+    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
     <BLANKLINE>
     -- stdout: --------------------
-    -e git://git.websushi.org/apps/django-pagination/@...#egg=django_pagination-...
+    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'git://git.websushi.org/apps/django-pagination/#egg=django_pagination-dev', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://git.websushi.org/apps/django-pagination/#egg=django_pagination-dev
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
     -- stderr: --------------------
-    Git URL does not fit normal structure: git://git.websushi.org/apps/django-pagination/
+    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
     <BLANKLINE>
     -- stdout: --------------------
-    -f git://git.websushi.org/apps/django-pagination/#egg=django_pagination-dev
-    -e git://git.websushi.org/apps/django-pagination/@...#egg=django_pagination-dev
+    -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
+    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-dev
     ...
     <BLANKLINE>
 
