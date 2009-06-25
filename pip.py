@@ -283,7 +283,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if exit:
-            log_fn = './pip-log.txt'
+            log_fn = os.environ.get('PIP_LOG_FILE', './pip-log.txt')
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile_append(log_fn)

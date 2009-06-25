@@ -1,6 +1,12 @@
 News for pip
 ============
 
+tip
+---
+
+* Added ability to override the default log file name (``pip-log.txt``) with
+  the environmental variable ``$PIP_LOG_FILE``.
+
 0.4
 ---
 
