@@ -4,8 +4,12 @@ News for pip
 tip
 ---
 
-* Added ability to override the default log file name (``pip-log.txt``) with
-  the environmental variable ``$PIP_LOG_FILE``.
+* Added ability to override the default log file name (``pip-log.txt``)
+  with the environmental variable ``$PIP_LOG_FILE``.
+
+* Made the freeze command to return the installed packages instead of
+  writing them to a file. Use simple redirection (e.g.
+  ``pip freeze > stable-req.txt``) to get a file with requirements.
 
 0.4
 ---
