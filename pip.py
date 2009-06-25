@@ -86,7 +86,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 class VcsSupport(object):
     _registry = {}
-    # Register more schemes with urlparse for the versio control support
+    # Register more schemes with urlparse for various version control systems
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
 
     def __init__(self):
@@ -595,6 +595,7 @@ class FreezeCommand(Command):
                 if not line_req.name:
                     logger.notify("Skipping line because it's not clear what it would install: %s"
                                   % line.strip())
+                    logger.notify("  (add #egg=PackageName to the URL to avoid this warning)")
                     continue
                 if line_req.name not in installations:
                     logger.warn("Requirement file contains %s, but that package is not installed"
@@ -1035,6 +1036,9 @@ def restart_in_venv(venv, site_packages, args):
         virtualenv.create_environment(venv, site_packages=site_packages)
     if sys.platform == 'win32':
         python = os.path.join(venv, 'Scripts', 'python.exe')
+        # check for bin directory which is used in buildouts
+        if not os.path.exists(python):
+            python = os.path.join(venv, 'bin', 'python.exe')
     else:
         python = os.path.join(venv, 'bin', 'python')
     if not os.path.exists(python):
@@ -3908,7 +3912,7 @@ def is_filename(name):
     return True
 
 _drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[|]', re.I)
+_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 def filename_to_url(filename):
     """
