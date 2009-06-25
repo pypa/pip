@@ -11,6 +11,8 @@ tip
   writing them to a file. Use simple redirection (e.g.
   ``pip freeze > stable-req.txt``) to get a file with requirements.
 
+* Fixed problem of freezing an editable packages from a Git repository.
+
 0.4
 ---
 

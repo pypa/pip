@@ -2903,6 +2903,7 @@ class Git(VersionControl):
             [GIT_CMD, 'branch', '-r'], show_stdout=False, cwd=location)
         branch_revs = []
         for line in branches.splitlines():
+            line = line.split('->')[0].strip()
             branch = "".join([b for b in line.split() if b != '*'])
             rev = call_subprocess(
                 [GIT_CMD, 'rev-parse', branch], show_stdout=False, cwd=location)
