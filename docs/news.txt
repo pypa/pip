@@ -16,6 +16,13 @@ tip
 * Added support for base URLs using ``<base href='...'>`` when parsing
   HTML pages.
 
+* Fixed installing of non-editable packages from version control systems.
+
+* Fixed issue with Bazaar's bzr+ssh scheme.
+
+* Added download command to retrieve package archives. If given an editable
+  package it will create an archives of it.
+
 0.4
 ---
 
