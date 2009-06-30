@@ -33,7 +33,6 @@ import httplib
 import time
 import logging
 import ConfigParser
-from distutils import archive_util
 
 class InstallationError(Exception):
     """General exception during installation"""
