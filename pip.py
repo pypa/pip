@@ -2633,7 +2633,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 class Subversion(VersionControl):
     name = 'svn'
     dirname = '.svn'
-    schemes = ('svn', 'svn+ssh')
+    schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https')
     bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
             'svn checkout --force -r %(rev)s %(url)s .\n')
@@ -2885,7 +2885,7 @@ vcs.register(Subversion)
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
-    schemes = ('git', 'git+http', 'git+ssh')
+    schemes = ('git', 'git+http', 'git+ssh', 'git+git')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
