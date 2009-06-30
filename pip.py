@@ -33,6 +33,7 @@ import httplib
 import time
 import logging
 import ConfigParser
+from distutils import archive_util
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -327,6 +328,7 @@ class InstallCommand(Command):
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
     summary = 'Install packages'
     bundle = False
+    download = False
 
     def __init__(self):
         super(InstallCommand, self).__init__()
@@ -435,7 +437,8 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder):
                 requirement_set.add_requirement(req)
-        requirement_set.install_files(finder, force_root_egg_info=self.bundle)
+        requirement_set.install_files(finder,
+            force_root_egg_info=self.bundle, only_download=self.download)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             logger.notify('Successfully installed %s' % requirement_set)
@@ -451,6 +454,7 @@ class BundleCommand(InstallCommand):
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
     summary = 'Create pybundles (archives containing multiple packages)'
     bundle = True
+    download = False
 
     def __init__(self):
         super(BundleCommand, self).__init__()
@@ -481,40 +485,17 @@ class DownloadCommand(InstallCommand):
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
     summary = 'Download packages'
     bundle = False
+    download = True
 
     def __init__(self):
         super(DownloadCommand, self).__init__()
 
     def run(self, options, args):
         if not options.build_dir:
-            options.build_dir = base_prefix
-        if not options.src_dir:
-            options.src_dir = base_src_prefix
-        options.build_dir = os.path.abspath(options.build_dir)
-        options.src_dir = os.path.abspath(options.src_dir)
-        options.upgrade = True
-        install_options = options.install_options or []
-        index_urls = [options.index_url] + options.extra_index_urls
-        finder = PackageFinder(
-            find_links=options.find_links,
-            index_urls=index_urls)
-        requirement_set = RequirementSet(
-            build_dir=options.build_dir,
-            src_dir=options.src_dir,
-            upgrade=options.upgrade,
-            ignore_installed=options.ignore_installed)
-        for name in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
-        for name in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(name))
-        for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder):
-                requirement_set.add_requirement(req)
-        requirement_set.download_files(finder)
-        logger.notify('Successfully downloaded')
-        return requirement_set
+            options.build_dir = os.path.join(base_prefix, 'download')
+        options.no_install = True
+        options.ignore_installed = True
+        return super(DownloadCommand, self).run(options, args)
 
 DownloadCommand()
 
@@ -1597,6 +1578,33 @@ execfile(__file__)
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
+    def archive(self, build_dir):
+        archive_name = '%s-%s.zip' % (self.name, self.installed_version)
+        archive_path = os.path.join(build_dir, archive_name)
+        zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED)
+        dir = os.path.normcase(os.path.abspath(self.source_dir))
+        for dirpath, dirnames, filenames in os.walk(dir):
+            if 'pip-egg-info' in dirnames:
+                dirnames.remove('pip-egg-info')
+            for dirname in dirnames:
+                dirname = os.path.join(dirpath, dirname)
+                name = self._clean_zip_name(dirname, dir)
+                zip.writestr(self.name + '/' + name + '/', '')
+            for filename in filenames:
+                if filename == 'pip-delete-this-directory.txt':
+                    continue
+                filename = os.path.join(dirpath, filename)
+                name = self._clean_zip_name(filename, dir)
+                zip.write(filename, self.name + '/' + name)
+        zip.close()
+
+    def _clean_zip_name(self, name, prefix):
+        assert name.startswith(prefix+'/'), (
+            "name %r doesn't start with prefix %r" % (name, prefix))
+        name = name[len(prefix)+1:]
+        name = name.replace(os.path.sep, '/')
+        return name
+
     def install(self, install_options):
         if self.editable:
             self.install_editable()
@@ -1821,40 +1829,7 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def download_files(self, finder):
-        unnamed = list(self.unnamed_requirements)
-        reqs = self.requirements.values()
-        while reqs or unnamed:
-            if unnamed:
-                req_to_install = unnamed.pop(0)
-            else:
-                req_to_install = reqs.pop(0)
-            logger.indent += 2
-            try:
-                location = self.build_dir
-                if not os.path.exists(location):
-                    os.makedirs(location)
-                if not os.path.exists(os.path.join(location, 'setup.py')):
-                    ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
-                    if req_to_install.url is None:
-                        url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
-                    else:
-                        ## FIXME: should req_to_install.url already be a link?
-                        url = Link(req_to_install.url)
-                        assert url
-                    if url:
-                        try:
-                            self.unpack_url(url, location, unpack=False)
-                        except urllib2.HTTPError, e:
-                            logger.fatal('Could not install requirement %s because of error %s'
-                                         % (req_to_install, e))
-                            raise InstallationError(
-                                'Could not install requirement %s because of HTTP error %s for URL %s'
-                                % (req_to_install, e, url))
-            finally:
-                logger.indent -= 2
-
-    def install_files(self, finder, force_root_egg_info=False):
+    def install_files(self, finder, force_root_egg_info=False, only_download=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
@@ -1887,7 +1862,10 @@ class RequirementSet(object):
                     if not os.path.exists(self.build_dir):
                         os.makedirs(self.build_dir)
                     req_to_install.update_editable()
-                    req_to_install.run_egg_info()
+                    if only_download:
+                        req_to_install.archive(self.build_dir)
+                    else:
+                        req_to_install.run_egg_info()
                 elif install:
                     location = req_to_install.build_location(self.build_dir)
                     ## FIXME: is the existance of the checkout good enough to use it?  I'm don't think so.
@@ -1902,7 +1880,7 @@ class RequirementSet(object):
                             assert url
                         if url:
                             try:
-                                self.unpack_url(url, location)
+                                self.unpack_url(url, location, not only_download)
                             except urllib2.HTTPError, e:
                                 logger.fatal('Could not install requirement %s because of error %s'
                                              % (req_to_install, e))
@@ -1918,6 +1896,10 @@ class RequirementSet(object):
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
+                        elif only_download:
+                            req_to_install.source_dir = location
+                            req_to_install.run_egg_info()
+                            req_to_install.archive(self.build_dir)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1929,7 +1911,7 @@ class RequirementSet(object):
                             f = open(req_to_install.delete_marker_filename, 'w')
                             f.write(DELETE_MARKER_MESSAGE)
                             f.close()
-                if not is_bundle:
+                if not is_bundle and not only_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     ## FIXME: add extras in here:
@@ -1956,7 +1938,11 @@ class RequirementSet(object):
     def unpack_url(self, link, location, unpack=True):
         for backend in vcs.backends:
             if link.scheme in backend.schemes:
-                backend(link).unpack(location)
+                vcs_backend = backend(link.url)
+                if unpack:
+                    vcs_backend.unpack(location)
+                else:
+                    vcs_backend.export(location)
                 return
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
@@ -2049,8 +2035,7 @@ class RequirementSet(object):
         if unpack:
             self.unpack_file(temp_location, location, content_type, link)
         else:
-            download_location = os.path.join(location, link.filename)
-            shutil.copyfile(temp_location, download_location)
+            self.copy_file(temp_location, location, content_type, link)
         if target_file and target_file != temp_location:
             logger.notify('Storing download in cache at %s' % display_path(target_file))
             shutil.copyfile(temp_location, target_file)
@@ -2060,6 +2045,10 @@ class RequirementSet(object):
             os.unlink(temp_location)
         if target_file is None:
             os.unlink(temp_location)
+
+    def copy_file(self, filename, location, content_type, link):
+        download_location = os.path.join(location, "..", link.filename)
+        shutil.copyfile(filename, os.path.realpath(download_location))
 
     def unpack_file(self, filename, location, content_type, link):
         if (content_type == 'application/zip'
@@ -2075,6 +2064,7 @@ class RequirementSet(object):
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
             Subversion('svn+' + link.url).unpack(location)
+
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
@@ -2686,6 +2676,22 @@ class Subversion(VersionControl):
         finally:
             logger.indent -= 2
 
+    def export(self, location):
+        """Export the svn repository at the url to the destination location"""
+        url, rev = self.get_url_rev()
+        logger.notify('Checking out svn repository %s to %s' % (url, location))
+        logger.indent += 2
+        try:
+            if os.path.exists(location):
+                # Subversion doesn't like to check out over an existing directory
+                # --force fixes this, but was only added in svn 1.5
+                shutil.rmtree(location, onerror=rmtree_errorhandler)
+            call_subprocess(
+                ['svn', 'export', url, location],
+                filter_stdout=self._filter, show_stdout=False)
+        finally:
+            logger.indent -= 2
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -2921,6 +2927,19 @@ class Git(VersionControl):
         finally:
             logger.indent -= 2
 
+    def export(self, location):
+        """Export the Git repository at the url to the destination location"""
+        temp_dir = tempfile.mkdtemp('-export', 'pip-')
+        self.unpack(temp_dir)
+        try:
+            if not location.endswith('/'):
+                location = location + '/'
+            call_subprocess(
+                [GIT_CMD, 'checkout-index', '-a', '-f', '--prefix', location],
+                filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3098,6 +3117,17 @@ class Mercurial(VersionControl):
         finally:
             logger.indent -= 2
 
+    def export(self, location):
+        """Export the Hg repository at the url to the destination location"""
+        temp_dir = tempfile.mkdtemp('-export', 'pip-')
+        self.unpack(temp_dir)
+        try:
+            call_subprocess(
+                ['hg', 'archive', location],
+                filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3273,6 +3303,19 @@ class Bazaar(VersionControl):
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
+
+    def export(self, location):
+        """Export the Bazaar repository at the url to the destination location"""
+        temp_dir = tempfile.mkdtemp('-export', 'pip-')
+        self.unpack(temp_dir)
+        if os.path.exists(location):
+            # Remove the location to make sure Bazaar can export it correctly
+            shutil.rmtree(location, onerror=rmtree_errorhandler)
+        try:
+            call_subprocess([BZR_CMD, 'export', location], cwd=temp_dir,
+                            filter_stdout=self._filter, show_stdout=False)
+        finally:
+            shutil.rmtree(temp_dir)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
