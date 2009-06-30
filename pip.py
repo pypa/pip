@@ -86,10 +86,10 @@ def rmtree_errorhandler(func, path, exc_info):
 
 class VcsSupport(object):
     _registry = {}
-    # Register more schemes with urlparse for various version control systems
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
 
     def __init__(self):
+        # Register more schemes with urlparse for various version control systems
         urlparse.uses_netloc.extend(self.schemes)
         urlparse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
@@ -104,6 +104,13 @@ class VcsSupport(object):
     @property
     def dirnames(self):
         return [backend.dirname for backend in self.backends]
+
+    @property
+    def all_schemes(self):
+        schemes = []
+        for backend in self.backends:
+            schemes.extend(backend.schemes)
+        return schemes
 
     def register(self, cls):
         if not hasattr(cls, 'name'):
@@ -125,10 +132,10 @@ class VcsSupport(object):
         Return the name of the version control backend if found at given
         location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
         """
-        for vc_type in self._registry:
-            path = os.path.join(location, '.%s' % vc_type)
+        for vc_type in self._registry.values():
+            path = os.path.join(location, vc_type.dirname)
             if os.path.exists(path):
-                return vc_type
+                return vc_type.name
         return None
 
     def get_backend(self, name):
@@ -3900,7 +3907,7 @@ def is_url(name):
     if ':' not in name:
         return False
     scheme = name.split(':', 1)[0].lower()
-    return scheme in ('http', 'https', 'file', 'ftp')
+    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 def is_filename(name):
     if (splitext(name)[1].lower() in ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
