@@ -1884,6 +1884,8 @@ class RequirementSet(object):
                         req_to_install.source_dir = location
                     else:
                         location = req_to_install.source_dir
+                    if not os.path.exists(self.build_dir):
+                        os.makedirs(self.build_dir)
                     req_to_install.update_editable()
                     req_to_install.run_egg_info()
                 elif install:
