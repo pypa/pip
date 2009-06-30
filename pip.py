@@ -2575,6 +2575,7 @@ class FrozenRequirement(object):
 
 class VersionControl(object):
     name = ''
+    dirname = ''
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
@@ -2632,7 +2633,7 @@ class Subversion(VersionControl):
 
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith('.svn'), 'Bad directory: %s' % location
+        assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
         output = call_subprocess(
             ['svn', 'info', location], show_stdout=False, extra_environ={'LANG': 'C'})
         match = _svn_url_re.search(output)
@@ -2685,7 +2686,7 @@ class Subversion(VersionControl):
             rev_options = []
             rev_display = ''
         checkout = True
-        if os.path.exists(os.path.join(dest, '.svn')):
+        if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_info(dest)[0]
             checkout = False
             if existing_url == url:
@@ -2748,11 +2749,11 @@ class Subversion(VersionControl):
         revision = 0
 
         for base, dirs, files in os.walk(location):
-            if '.svn' not in dirs:
+            if self.dirname not in dirs:
                 dirs[:] = []
                 continue    # no sense walking uncontrolled subdirs
-            dirs.remove('.svn')
-            entries_fn = os.path.join(base, '.svn', 'entries')
+            dirs.remove(self.dirname)
+            entries_fn = os.path.join(base, self.dirname, 'entries')
             if not os.path.exists(entries_fn):
                 ## FIXME: should we warn?
                 continue
@@ -2800,7 +2801,7 @@ class Subversion(VersionControl):
                 logger.warn("Could not find setup.py for directory %s (tried all parent directories)"
                             % orig_location)
                 return None
-        f = open(os.path.join(location, '.svn', 'entries'))
+        f = open(os.path.join(location, self.dirname, 'entries'))
         data = f.read()
         f.close()
         if data.startswith('8') or data.startswith('9') or data.startswith('10'):
@@ -2925,7 +2926,7 @@ class Git(VersionControl):
             rev_options = ['master']
             rev_display = ''
         clone = True
-        if os.path.exists(os.path.join(dest, '.git')):
+        if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_url(dest)
             clone = False
             if existing_url == url:
