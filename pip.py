@@ -3316,16 +3316,19 @@ class Bazaar(VersionControl):
         if branch:
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
-            # FIXME: find a better place to hotfix the URL scheme
-            # after removing bzr+ from bzr+ssh:// readd it
-            if url.startswith('ssh://'):
-                url = 'bzr+' + url
             if update:
                 call_subprocess(
                     [BZR_CMD, 'pull', '-q'] + rev_options + [url], cwd=dest)
             else:
                 call_subprocess(
                     [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
+
+    def get_url_rev(self):
+        # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
+        url, rev = super(Bazaar, self).get_url_rev()
+        if url.startswith('ssh://'):
+            url = 'bzr+' + url
+        return url, rev
 
     def get_url(self, location):
         urls = call_subprocess(
