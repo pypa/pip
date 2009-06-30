@@ -290,7 +290,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if exit:
-            log_fn = './pip-log.txt'
+            log_fn = os.environ.get('PIP_LOG_FILE', './pip-log.txt')
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile_append(log_fn)
@@ -501,8 +501,8 @@ DownloadCommand()
 
 class FreezeCommand(Command):
     name = 'freeze'
-    usage = '%prog [OPTIONS] FREEZE_NAME.txt'
-    summary = 'Put all currently installed packages (exact versions) into a requirements file'
+    usage = '%prog [OPTIONS]'
+    summary = 'Output all currently installed packages (exact versions) to stdout'
 
     def __init__(self):
         super(FreezeCommand, self).__init__()
@@ -522,10 +522,6 @@ class FreezeCommand(Command):
             help='URL for finding packages, which will be added to the frozen requirements file')
 
     def run(self, options, args):
-        if args:
-            filename = args[0]
-        else:
-            filename = '-'
         requirement = options.requirement
         find_links = options.find_links or []
         ## FIXME: Obviously this should be settable:
@@ -534,15 +530,11 @@ class FreezeCommand(Command):
         if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
             skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
 
-        if filename == '-':
-            logger.move_stdout_to_stderr()
+        logger.move_stdout_to_stderr()
         dependency_links = []
-        if filename == '-':
-            f = sys.stdout
-        else:
-            ## FIXME: should be possible to overwrite requirement file
-            logger.notify('Writing frozen requirements to %s' % filename)
-            f = open(filename, 'w')
+
+        f = sys.stdout
+
         for dist in pkg_resources.working_set:
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
@@ -593,9 +585,6 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
-        if filename != '-':
-            logger.notify('Put requirements in %s' % filename)
-            f.close()
 
 FreezeCommand()
 
@@ -2258,6 +2247,7 @@ class HTMLPage(object):
     ## These aren't so aweful:
     _rel_re = re.compile("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>""", re.I)
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
+    _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
     def __init__(self, content, url, headers=None):
         self.content = content
@@ -2356,11 +2346,18 @@ class HTMLPage(object):
             conn.close()
 
     @property
+    def base_url(self):
+        match = self._base_re.search(self.content)
+        if match:
+            return match.group(1)
+        return self.url
+
+    @property
     def links(self):
         """Yields all links in the page"""
         for match in self._href_re.finditer(self.content):
             url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     def rel_links(self):
@@ -2382,7 +2379,7 @@ class HTMLPage(object):
             if not match:
                 continue
             url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     def scraped_rel_links(self):
@@ -2396,7 +2393,7 @@ class HTMLPage(object):
             url = match.group(1) or match.group(2) or match.group(3)
             if not url:
                 continue
-            url = self.clean_link(urlparse.urljoin(self.url, url))
+            url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
@@ -3024,6 +3021,7 @@ class Git(VersionControl):
             [GIT_CMD, 'branch', '-r'], show_stdout=False, cwd=location)
         branch_revs = []
         for line in branches.splitlines():
+            line = line.split('->')[0].strip()
             branch = "".join([b for b in line.split() if b != '*'])
             rev = call_subprocess(
                 [GIT_CMD, 'rev-parse', branch], show_stdout=False, cwd=location)

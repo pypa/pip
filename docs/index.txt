@@ -136,7 +136,7 @@ tell you what all the exact versions are.
 
 To create a new requirements file from a known working environment, use::
 
-    $ pip freeze stable-req.txt
+    $ pip freeze > stable-req.txt
 
 This will write a listing of *all* installed libraries to ``stable-req.txt``
 with exact versions for every library.  You may want to edit the file down after
@@ -146,7 +146,7 @@ stable starting point for constructing your requirements file.
 You can also give it an existing requirements file, and it will use that as a
 sort of template for the new file.  So if you do::
 
-    $ pip freeze stable-req.txt -r devel-req.txt
+    $ pip freeze -r devel-req.txt > stable-req.txt
 
 it will keep the packages listed in ``devel-req.txt`` in order and preserve
 comments.
