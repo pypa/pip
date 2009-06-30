@@ -2597,6 +2597,13 @@ class VersionControl(object):
         url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
+    def get_info(self, location):
+        """
+        Returns (url, revision), where both are strings
+        """
+        assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
+        return self.get_url(location), self.get_revision(location)
+
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -2883,11 +2890,6 @@ class Git(VersionControl):
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
 
-    def get_info(self, location):
-        """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith('.git'), 'Bad directory: %s' % location
-        return self.get_url(location), self.get_revision(location)
-
     def parse_vcs_bundle_file(self, content):
         url = rev = None
         for line in content.splitlines():
@@ -3064,11 +3066,6 @@ class Mercurial(VersionControl):
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
-
-    def get_info(self, location):
-        """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith('.hg'), 'Bad directory: %s' % location
-        return self.get_url(location), self.get_revision(location)
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None
@@ -3247,11 +3244,6 @@ class Bazaar(VersionControl):
     schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
-
-    def get_info(self, location):
-        """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith('.bzr'), 'Bad directory: %s' % location
-        return self.get_url(location), self.get_revision(location)
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None
