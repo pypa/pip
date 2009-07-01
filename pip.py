@@ -1683,8 +1683,8 @@ execfile(__file__)
                 if strip_sys_prefix(filename) is None:
                     logger.notify('Will not modify %s, outside local environment.' % filename)
                     continue
-
                 remove_entries_from_file(filename, entries, auto_confirm)
+
             to_remove = set()
             for path in paths_to_remove:
                 if strip_sys_prefix(path) is None:
@@ -1727,12 +1727,6 @@ execfile(__file__)
         if self.editable:
             self.install_editable()
             return
-        ## FIXME: this is not a useful record:
-        ## Also a bad location
-        if sys.platform == 'win32':
-            install_location = os.path.join(sys.prefix, 'Lib')
-        else:
-            install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -2186,7 +2180,6 @@ class RequirementSet(object):
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
             Subversion('svn+' + link.url).unpack(location)
-
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
