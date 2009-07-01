@@ -33,6 +33,7 @@ import httplib
 import time
 import logging
 import ConfigParser
+from collections import defaultdict
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -49,6 +50,12 @@ else:
     base_prefix = os.path.join(os.getcwd(), 'build')
     base_src_prefix = os.path.join(os.getcwd(), 'src')
 
+# FIXME doesn't account for venv linked to global site-packages
+if sys.platform == 'win32':
+    lib_py = os.path.join(sys.prefix, 'Lib')
+else:
+    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
+    
 pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
@@ -447,6 +454,41 @@ class InstallCommand(Command):
 
 InstallCommand()
 
+class UninstallCommand(Command):
+    name = 'uninstall'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
+    summary = 'Uninstall packages'
+
+    def __init__(self):
+        super(UninstallCommand, self).__init__()
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Uninstall all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
+            '-y', '--yes',
+            dest='yes',
+            action='store_true',
+            help="Don't ask for confirmation of uninstall deletions. "
+            "If this breaks your system, you get to keep the pieces.")
+
+    def run(self, options, args):
+        requirement_set = RequirementSet(
+            build_dir=None,
+            src_dir=None)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename):
+                requirement_set.add_requirement(req)
+        requirement_set.uninstall(auto_confirm=options.yes)
+
+UninstallCommand()
 
 class BundleCommand(InstallCommand):
     name = 'bundle'
@@ -1566,6 +1608,109 @@ execfile(__file__)
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
+    def uninstall(self, auto_confirm=False):
+        """
+        Uninstall the distribution currently satisfying this requirement.
+
+        Prompts before removing or modifying files unless
+        ``auto_confirm`` is True.
+
+        Refuses to delete or modify files outside of ``sys.prefix`` -
+        thus uninstallation within a virtual environment can only
+        modify that virtual environment, even if the virtualenv is
+        linked to global site-packages.
+        
+        """
+        assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
+        dist = self.satisfied_by
+
+
+
+
+
+        paths_to_remove = set()
+        entries_to_remove = defaultdict(set)
+
+        logger.notify('Uninstalling %s' % self.name)
+        logger.indent += 2
+        try:
+            pip_egg_info_path = os.path.join(dist.location,
+                                             dist.egg_name()) + '.egg-info'
+            easy_install_egg = dist.egg_name() + '.egg'
+            # FIXME this won't find a globally-installed develop egg
+            # if we're in a virtualenv (lib_py is based on
+            # sys.prefix).  (There doesn't seem to be any metadata in
+            # the Distribution object for a develop egg that points
+            # back to its .egg-link and easy-install.pth files).
+            # That's OK, because we restrict ourselves to making
+            # changes within sys.prefix anyway.
+            develop_egg_link = os.path.join(lib_py, 'site-packages',
+                                            dist.project_name) + '.egg-link'
+
+            if os.path.exists(pip_egg_info_path):
+                # package installed by pip
+                paths_to_remove.add(pip_egg_info_path)
+                if dist.has_metadata('installed-files.txt'):
+                    for installed_file in dist.get_metadata('installed-files.txt').splitlines():
+                        path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                        if os.path.exists(path):
+                            paths_to_remove.add(path)
+                if dist.has_metadata('top_level.txt'):
+                    for top_level_pkg in [p for p
+                                          in dist.get_metadata('top_level.txt').splitlines()
+                                          if p]:
+                        path = os.path.join(dist.location, top_level_pkg)
+                        if os.path.exists(path):
+                            paths_to_remove.add(path)
+                        elif os.path.exists(path + '.py'):
+                            paths_to_remove.add(path + '.py')
+                            if os.path.exists(path + '.pyc'):
+                                paths_to_remove.add(path + '.pyc')
+
+            elif dist.location.endswith(easy_install_egg):
+                # package installed by easy_install
+                paths_to_remove.add(dist.location)
+                easy_install_pth = os.path.join(os.path.dirname(dist.location),
+                                                'easy-install.pth')
+                entries_to_remove[easy_install_pth].add('./' + easy_install_egg)
+
+            elif os.path.isfile(develop_egg_link):
+                # develop egg
+
+
+                fh = open(develop_egg_link, 'r')
+                link_pointer = fh.readline().strip()
+                fh.close()
+                assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
+                paths_to_remove.add(develop_egg_link)
+                easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+                                                'easy-install.pth')
+                entries_to_remove[easy_install_pth].add(dist.location)
+
+            for filename, entries in entries_to_remove.items():
+                if strip_sys_prefix(filename) is None:
+                    logger.notify('Will not modify %s, outside local environment.' % filename)
+                    continue
+
+                remove_entries_from_file(filename, entries, auto_confirm)
+
+
+
+
+
+
+            to_remove = set()
+            for path in paths_to_remove:
+                if strip_sys_prefix(path) is None:
+                    logger.notify('Will not remove %s, outside of local environment.' % path)
+                else:
+                    to_remove.add(path)
+            if to_remove:
+                remove_paths(to_remove, auto_confirm)
+                
+        finally:
+            logger.indent -= 2
+
     def archive(self, build_dir):
         archive_name = '%s-%s.zip' % (self.name, self.installed_version)
         archive_path = os.path.join(build_dir, archive_name)
@@ -1817,6 +1962,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
+    def uninstall(self, auto_confirm=False):
+        for req in self.requirements.values():
+            req.uninstall(auto_confirm=auto_confirm)
     def install_files(self, finder, force_root_egg_info=False, only_download=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
@@ -3477,7 +3625,7 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
-def parse_requirements(filename, finder, comes_from=None):
+def parse_requirements(filename, finder=None, comes_from=None):
     skip_match = None
     if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
         skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
@@ -3505,7 +3653,7 @@ def parse_requirements(filename, finder, comes_from=None):
             # No longer used, but previously these were used in
             # requirement files, so we'll ignore.
             pass
-        elif line.startswith('-f') or line.startswith('--find-links'):
+        elif finder and line.startswith('-f') or line.startswith('--find-links'):
             if line.startswith('-f'):
                 line = line[2:].strip()
             else:
@@ -4007,6 +4155,70 @@ def package_to_requirement(package_name):
         return '%s==%s' % (name, version)
     else:
         return name
+
+def strip_sys_prefix(path):
+    """ If ``path`` begins with sys.prefix, return ``path`` with
+    sys.prefix stripped off.  Otherwise return None."""
+    if path.startswith(sys.prefix):
+        return path.replace(sys.prefix, '')
+    return None
+
+def remove_entries_from_file(filename, entries, auto_confirm=True):
+    """Remove ``entries`` from text file ``filename``, with
+    confirmation (unless ``auto_confirm`` is True)."""
+    assert os.path.isfile(filename), "Cannot remove entries from nonexistent file %s" % filename
+    logger.notify('Removing entries from %s:' % filename)
+    logger.indent += 2
+    try:
+        if auto_confirm:
+            response = 'y'
+        else:
+            for entry in entries:
+                logger.notify(entry)
+            response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
+        if response == 'y':
+            fh = open(filename, 'r')
+            lines = fh.readlines()
+            fh.close()
+            logger.indent += 2
+            try:
+                for entry in entries:
+                    logger.notify('Removing entry: %s' % entry)
+                try:
+                    lines.remove(entry + '\n')
+                except ValueError:
+                    pass
+            finally:
+                logger.indent -= 2
+            fh = open(filename, 'w')
+            fh.writelines(lines)
+            fh.close()
+    finally:
+        logger.indent -= 2        
+
+def remove_paths(paths, auto_confirm=False):
+    """Remove paths in iterable ``paths`` with confirmation
+    (unless ``auto_confirm`` is True)."""
+    
+    logger.notify('Within environment %s, removing:' % sys.prefix)
+    logger.indent += 2
+    try:
+        if auto_confirm:
+            response = 'y'
+        else:
+            for path in paths:
+                logger.notify(strip_sys_prefix(path))
+            response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
+        if response == 'y':
+            for path in paths:
+                if os.path.isdir(path):
+                    logger.notify('Removing directory %s' % strip_sys_prefix(path))
+                    shutil.rmtree(path)
+                elif os.path.isfile(path):
+                    logger.notify('Removing file %s' % strip_sys_prefix(path))
+                    os.remove(path)
+    finally:
+        logger.indent -= 2
 
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""

@@ -43,8 +43,7 @@ pip is meant to improve on easy_install.  Some of the improvements:
 
 * Native support for other version control systems (Git, Mercurial and Bazaar)
 
-* Maybe uninstallation will get added. (It might get added to easy_install,
-  but I think the chance for pip is higher.)
+* Uninstallation of packages.
 
 Also, pip will eventually be merged directly with pip, making it
 simple to define fixed sets of requirements and reliably reproduce a set of
