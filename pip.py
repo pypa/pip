@@ -4185,11 +4185,11 @@ def remove_paths(paths, auto_confirm=False):
         if auto_confirm:
             response = 'y'
         else:
-            for path in paths:
+            for path in sorted(paths):
                 logger.notify(strip_sys_prefix(path))
             response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
         if response == 'y':
-            for path in paths:
+            for path in sorted(paths):
                 if os.path.isdir(path):
                     logger.notify('Removing directory %s' % strip_sys_prefix(path))
                     shutil.rmtree(path)
