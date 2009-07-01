@@ -1623,11 +1623,6 @@ execfile(__file__)
         """
         assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
         dist = self.satisfied_by
-
-
-
-
-
         paths_to_remove = set()
         entries_to_remove = defaultdict(set)
 
@@ -1646,7 +1641,6 @@ execfile(__file__)
             # changes within sys.prefix anyway.
             develop_egg_link = os.path.join(lib_py, 'site-packages',
                                             dist.project_name) + '.egg-link'
-
             if os.path.exists(pip_egg_info_path):
                 # package installed by pip
                 paths_to_remove.add(pip_egg_info_path)
@@ -1676,8 +1670,6 @@ execfile(__file__)
 
             elif os.path.isfile(develop_egg_link):
                 # develop egg
-
-
                 fh = open(develop_egg_link, 'r')
                 link_pointer = fh.readline().strip()
                 fh.close()
@@ -1693,12 +1685,6 @@ execfile(__file__)
                     continue
 
                 remove_entries_from_file(filename, entries, auto_confirm)
-
-
-
-
-
-
             to_remove = set()
             for path in paths_to_remove:
                 if strip_sys_prefix(path) is None:
@@ -1707,7 +1693,6 @@ execfile(__file__)
                     to_remove.add(path)
             if to_remove:
                 remove_paths(to_remove, auto_confirm)
-                
         finally:
             logger.indent -= 2
 
@@ -1965,6 +1950,7 @@ class RequirementSet(object):
     def uninstall(self, auto_confirm=False):
         for req in self.requirements.values():
             req.uninstall(auto_confirm=auto_confirm)
+
     def install_files(self, finder, force_root_egg_info=False, only_download=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
