@@ -4160,7 +4160,6 @@ def remove_entries_from_file(filename, entries, auto_confirm=True):
             fh = open(filename, 'r')
             lines = fh.readlines()
             fh.close()
-            logger.indent += 2
             try:
                 for entry in entries:
                     logger.notify('Removing entry: %s' % entry)
@@ -4169,7 +4168,7 @@ def remove_entries_from_file(filename, entries, auto_confirm=True):
                 except ValueError:
                     pass
             finally:
-                logger.indent -= 2
+                pass
             fh = open(filename, 'w')
             fh.writelines(lines)
             fh.close()
