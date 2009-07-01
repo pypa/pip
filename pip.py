@@ -4138,8 +4138,9 @@ def package_to_requirement(package_name):
 def strip_sys_prefix(path):
     """ If ``path`` begins with sys.prefix, return ``path`` with
     sys.prefix stripped off.  Otherwise return None."""
-    if path.startswith(sys.prefix):
-        return path.replace(sys.prefix, '')
+    sys_prefix = os.path.realpath(sys.prefix)
+    if path.startswith(sys_prefix):
+        return path.replace(sys_prefix, '')
     return None
 
 def remove_entries_from_file(filename, entries, auto_confirm=True):
@@ -4178,8 +4179,7 @@ def remove_entries_from_file(filename, entries, auto_confirm=True):
 def remove_paths(paths, auto_confirm=False):
     """Remove paths in iterable ``paths`` with confirmation
     (unless ``auto_confirm`` is True)."""
-    
-    logger.notify('Within environment %s, removing:' % sys.prefix)
+    logger.notify('Within environment %s, removing:' % os.path.realpath(sys.prefix))
     logger.indent += 2
     try:
         if auto_confirm:
