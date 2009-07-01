@@ -2942,7 +2942,7 @@ class Git(VersionControl):
             rev_options = [rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = ['master']
+            rev_options = ['origin/master']
             rev_display = ''
         clone = True
         if os.path.exists(os.path.join(dest, self.dirname)):
