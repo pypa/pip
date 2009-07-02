@@ -381,7 +381,7 @@ class InstallCommand(Command):
             default=None,
             help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
         self.parser.add_option(
-            '--src', '--source',
+            '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
             default=None,
