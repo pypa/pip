@@ -44,10 +44,12 @@ if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
     base_prefix = os.path.join(sys.prefix, 'build')
     base_src_prefix = os.path.join(sys.prefix, 'src')
+    base_download_prefix = os.path.join(sys.prefix, 'download')
 else:
     ## FIXME: this isn't a very good default
     base_prefix = os.path.join(os.getcwd(), 'build')
     base_src_prefix = os.path.join(os.getcwd(), 'src')
+    base_download_prefix = os.path.join(os.getcwd(), 'download')
 
 pypi_url = "http://pypi.python.org/simple"
 
@@ -488,13 +490,23 @@ class DownloadCommand(InstallCommand):
 
     def __init__(self):
         super(DownloadCommand, self).__init__()
+        self.parser.add_option(
+            '-d', '--download', '--download-dir', '--download-directory',
+            dest='download_dir',
+            metavar='DIR',
+            default=None,
+            help='Download packages into DIR (default %s)' % os.path.abspath(base_download_prefix))
 
     def run(self, options, args):
-        if not options.build_dir:
-            options.build_dir = os.path.join(base_prefix, 'download')
+        if options.download_dir:
+            options.build_dir = options.download_dir
+        else:
+            options.build_dir = base_download_prefix
         options.no_install = True
         options.ignore_installed = True
-        return super(DownloadCommand, self).run(options, args)
+        requirement_set = super(DownloadCommand, self).run(options, args)
+        logger.notify('Saved downloads in %s' % options.build_dir)
+        return requirement_set
 
 DownloadCommand()
 
