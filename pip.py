@@ -141,6 +141,7 @@ class VcsSupport(object):
         return None
 
     def get_backend(self, name):
+        name = name.lower()
         if name in self._registry:
             return self._registry[name]
 
@@ -1556,7 +1557,7 @@ execfile(__file__)
             logger.debug('Source in %s has version %s, which satisfies requirement %s'
                          % (display_path(self.source_dir), version, self))
 
-    def update_editable(self):
+    def update_editable(self, obtain=True):
         if not self.url:
             logger.info("Cannot update repository at %s; repository location is unknown" % self.source_dir)
             return
@@ -1569,17 +1570,22 @@ execfile(__file__)
         if not self.update:
             return
         vc_type, url = self.url.split('+', 1)
-        vc_type = vc_type.lower()
-        version_control = vcs.get_backend(vc_type)
-        if version_control:
-            version_control(self.url).obtain(self.source_dir)
+        backend = vcs.get_backend(vc_type)
+        if backend:
+            vcs_backend = backend(self.url)
+            if obtain:
+                vcs_backend.obtain(self.source_dir)
+            else:
+                vcs_backend.export(self.source_dir)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
     def archive(self, build_dir):
+        assert self.source_dir
         archive_name = '%s-%s.zip' % (self.name, self.installed_version)
+        logger.notify('Creating archive %s in %s' % (archive_name, build_dir))
         archive_path = os.path.join(build_dir, archive_name)
         zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED)
         dir = os.path.normcase(os.path.abspath(self.source_dir))
@@ -1861,8 +1867,9 @@ class RequirementSet(object):
                         location = req_to_install.source_dir
                     if not os.path.exists(self.build_dir):
                         os.makedirs(self.build_dir)
-                    req_to_install.update_editable()
+                    req_to_install.update_editable(not only_download)
                     if only_download:
+                        req_to_install.run_egg_info()
                         req_to_install.archive(self.build_dir)
                     else:
                         req_to_install.run_egg_info()
@@ -1898,8 +1905,9 @@ class RequirementSet(object):
                                 self.add_requirement(subreq)
                         elif only_download:
                             req_to_install.source_dir = location
-                            req_to_install.run_egg_info()
-                            req_to_install.archive(self.build_dir)
+                            if url.scheme in vcs.all_schemes:
+                                req_to_install.run_egg_info()
+                                req_to_install.archive(self.build_dir)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
