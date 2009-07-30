@@ -216,8 +216,8 @@ You can tell pip to do so by defining ``PIP_VIRTUALENV_BASE`` in your
 environment and setting it to the same value as that of
 ``$WORKON_HOME``.
 
-Do so by adding the line
+Do so by adding the line::
 
     export PIP_VIRTUALENV_BASE=$WORKON_HOME
 
- in your .bashrc under the line starting with ``export WORKON_HOME``.
+in your .bashrc under the line starting with ``export WORKON_HOME``.

@@ -3525,7 +3525,6 @@ class Bazaar(VersionControl):
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
-                      'repository branch: ',
                       'parent branch: '):
                 if line.startswith(x):
                     return line.split(x)[1]
