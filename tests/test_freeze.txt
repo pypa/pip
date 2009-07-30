@@ -101,23 +101,23 @@ Now what about Mercurial::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run('hg', 'clone', '-r', 'a5748745272a', 'http://bitbucket.org/mitsuhiko/pygments-main/', 'pygments')
+    >>> result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
     >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
-    ...                  cwd=os.path.join(env.base_path, 'pygments'))
+    ...                  cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
-    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
     -- stdout: --------------------
-    -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
-    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
+    -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
     ...
     <BLANKLINE>
 
