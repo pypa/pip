@@ -23,6 +23,9 @@ tip
 * Added download command to retrieve package archives. If given an editable
   package it will create an archives of it.
 
+* Added ability to pass local file and directory paths to --find-links, e.g.
+  --find-links=file:///path/to/my/private/archive
+
 0.4
 ---
 

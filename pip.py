@@ -1094,7 +1094,21 @@ class PackageFinder(object):
             if url_name is not None:
                 locations = [
                     posixpath.join(url, url_name, version)] + locations
-        locations = [Link(url) for url in locations]
+        file_locations = []
+        url_locations = []
+        for url in locations:
+            if url.startswith('file:'):
+                fn = url_to_filename(url)
+                if os.path.isdir(fn):
+                    path = os.path.realpath(fn)
+                    for item in os.listdir(path):
+                        file_locations.append(
+                            filename_to_url(os.path.join(path, item)))
+                elif os.path.isfile(fn):
+                    file_locations.append(url)
+            else:
+                url_locations.append(url)
+        locations = [Link(url) for url in url_locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
@@ -1109,16 +1123,23 @@ class PackageFinder(object):
                 found_versions.extend(self._package_versions(page.links, req.name.lower()))
             finally:
                 logger.indent -= 2
-        dependency_versions = list(self._package_versions([Link(url) for url in self.dependency_links], req.name.lower()))
+        dependency_versions = list(self._package_versions(
+            [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
             logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
             found_versions.extend(dependency_versions)
-        if not found_versions:
+        file_versions = list(self._package_versions(
+                [Link(url) for url in file_locations], req.name.lower()))
+        if not found_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
             found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
         found_versions.sort(reverse=True)
+        if file_versions:
+            file_versions.sort(reverse=True)
+            logger.info('Local files found: %s' % ', '.join([url_to_filename(link.url) for parsed, link, version in file_versions]))
+            found_versions = file_versions + found_versions
         applicable_versions = []
         for (parsed_version, link, version) in found_versions:
             if version not in req.req:
@@ -1159,7 +1180,7 @@ class PackageFinder(object):
         page = self._get_page(index_url, req)
         if page is None:
             logger.fatal('Cannot fetch index base URL %s' % index_url)
-            raise DistributionNotFound('Cannot find requirement %s, nor fetch index URL %s' % (req, index_url))
+            return
         norm_name = normalize_name(req.url_name)
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
