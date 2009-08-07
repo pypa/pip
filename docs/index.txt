@@ -13,8 +13,6 @@ entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
 
 .. comment: split here
 
-.. contents::
-
 Introduction
 ------------
 
