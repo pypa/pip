@@ -2335,11 +2335,11 @@ class HTMLPage(object):
         except (urllib2.HTTPError, urllib2.URLError, socket.timeout, socket.error), e:
             desc = str(e)
             if isinstance(e, socket.timeout):
-                log_meth = logger.warn
+                log_meth = logger.info
                 level =1
                 desc = 'timed out'
             elif isinstance(e, urllib2.URLError):
-                log_meth = logger.warn
+                log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
                     level = 1
@@ -2350,7 +2350,7 @@ class HTMLPage(object):
                 log_meth = logger.info
                 level = 2
             else:
-                log_meth = logger.warn
+                log_meth = logger.info
                 level = 1
             log_meth('Could not fetch URL %s: %s' % (link, desc))
             log_meth('Will skip URL %s when looking for download links for %s' % (link.url, req))
