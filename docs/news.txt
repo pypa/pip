@@ -26,6 +26,9 @@ tip
 * Added ability to pass local file and directory paths to --find-links, e.g.
   --find-links=file:///path/to/my/private/archive
 
+* Reduced the amount of console log messages when fetching a page to find a
+  distribution was problematic. The full messages can be found in pip-log.txt.
+
 0.4
 ---
 
