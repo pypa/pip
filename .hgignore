@@ -8,4 +8,5 @@ dist/*
 docs/_build/*
 build/*
 *.pyc
+*.pyo 
 pip-log.txt
