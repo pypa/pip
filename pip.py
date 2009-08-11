@@ -2388,10 +2388,13 @@ class HTMLPage(object):
 
     @property
     def base_url(self):
-        match = self._base_re.search(self.content)
-        if match:
-            return match.group(1)
-        return self.url
+        if not hasattr(self, "_base_url"):
+            match = self._base_re.search(self.content)
+            if match:
+                self._base_url = match.group(1)
+            else:
+                self._base_url = self.url
+        return self._base_url
 
     @property
     def links(self):
