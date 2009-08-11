@@ -2392,7 +2392,8 @@ class HTMLPage(object):
             match = self._base_re.search(self.content)
             if match:
                 self._base_url = match.group(1)
-            self._base_url = self.url
+            else:
+                self._base_url = self.url
         return self._base_url
 
     @property
