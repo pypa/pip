@@ -398,6 +398,13 @@ class InstallCommand(Command):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead)')
         self.parser.add_option(
+            '--no-deps', '--no-dependencies',
+            dest='ignore_dependencies',
+            action='store_true',
+            default=False,
+            help='Ignore package dependencies',
+        )
+        self.parser.add_option(
             '--no-install',
             dest='no_install',
             action='store_true',
@@ -429,7 +436,8 @@ class InstallCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             upgrade=options.upgrade,
-            ignore_installed=options.ignore_installed)
+            ignore_installed=options.ignore_installed,
+            ignore_dependencies=options.ignore_dependencies)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -1812,7 +1820,7 @@ deleted (unless you remove this file).
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, upgrade=False, ignore_installed=False):
+    def __init__(self, build_dir, src_dir, upgrade=False, ignore_installed=False, ignore_dependencies=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.upgrade = upgrade
@@ -1821,6 +1829,7 @@ class RequirementSet(object):
         # Mapping of alias: real_name
         self.requirement_aliases = {}
         self.unnamed_requirements = []
+        self.ignore_dependencies = ignore_dependencies
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1944,19 +1953,20 @@ class RequirementSet(object):
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     ## FIXME: add extras in here:
-                    for req in req_to_install.requirements():
-                        try:
-                            name = pkg_resources.Requirement.parse(req).project_name
-                        except ValueError, e:
-                            ## FIXME: proper warning
-                            logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
-                            continue
-                        if self.has_requirement(name):
-                            ## FIXME: check for conflict
-                            continue
-                        subreq = InstallRequirement(req, req_to_install)
-                        reqs.append(subreq)
-                        self.add_requirement(subreq)
+                    if not self.ignore_dependencies:
+                        for req in req_to_install.requirements():
+                            try:
+                                name = pkg_resources.Requirement.parse(req).project_name
+                            except ValueError, e:
+                                ## FIXME: proper warning
+                                logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
+                                continue
+                            if self.has_requirement(name):
+                                ## FIXME: check for conflict
+                                continue
+                            subreq = InstallRequirement(req, req_to_install)
+                            reqs.append(subreq)
+                            self.add_requirement(subreq)
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
                 else:

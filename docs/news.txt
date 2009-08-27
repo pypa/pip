@@ -29,6 +29,8 @@ tip
 * Reduced the amount of console log messages when fetching a page to find a
   distribution was problematic. The full messages can be found in pip-log.txt.
 
+* Added --no-deps/--no-dependencies option to ignore package dependencies
+
 0.4
 ---
 
