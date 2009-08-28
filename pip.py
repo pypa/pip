@@ -1380,10 +1380,12 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def build_location(self, build_dir):
+    def build_location(self, build_dir, unpack=True):
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:
+            if not unpack:
+                return os.path.join(build_dir, 'download')
             self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
             self._ideal_build_dir = build_dir
             return self._temp_build_dir
@@ -1907,8 +1909,8 @@ class RequirementSet(object):
                     else:
                         req_to_install.run_egg_info()
                 elif install:
-                    location = req_to_install.build_location(self.build_dir)
-                    ## FIXME: is the existance of the checkout good enough to use it?  I'm don't think so.
+                    location = req_to_install.build_location(self.build_dir, not only_download)
+                    ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
