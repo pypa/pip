@@ -16,6 +16,7 @@ import posixpath
 import re
 import shutil
 import fnmatch
+import operator
 try:
     from hashlib import md5
 except ImportError:
@@ -1127,37 +1128,40 @@ class PackageFinder(object):
         found_versions.extend(
             self._package_versions(
                 [Link(url, '-f') for url in self.find_links], req.name.lower()))
+        page_versions = []
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s' % page.url)
             logger.indent += 2
             try:
-                found_versions.extend(self._package_versions(page.links, req.name.lower()))
+                page_versions.extend(self._package_versions(page.links, req.name.lower()))
             finally:
                 logger.indent -= 2
         dependency_versions = list(self._package_versions(
             [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
             logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
-            found_versions.extend(dependency_versions)
         file_versions = list(self._package_versions(
                 [Link(url) for url in file_locations], req.name.lower()))
-        if not found_versions and not file_versions:
+        if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
             found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
-        found_versions.sort(reverse=True)
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_filename(link.url) for parsed, link, version in file_versions]))
             found_versions = file_versions + found_versions
+        all_versions = found_versions + page_versions + dependency_versions
         applicable_versions = []
-        for (parsed_version, link, version) in found_versions:
+        for (parsed_version, link, version) in all_versions:
             if version not in req.req:
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((link, version))
+        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(1),
+            cmp=lambda x, y : cmp(pkg_resources.parse_version(y), pkg_resources.parse_version(x))
+        )
         existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is Inf:
@@ -1240,9 +1244,19 @@ class PackageFinder(object):
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.[0-9])$')
 
+    def _sort_links(self, links):
+        "Brings links in order, non-egg links first, egg links second"
+        eggs, no_eggs = [], []
+        for link in links:
+            if link.egg_fragment:
+                eggs.append(link)
+            else:
+                no_eggs.append(link)
+        return no_eggs + eggs
+
     def _package_versions(self, links, search_name):
         seen_links = {}
-        for link in links:
+        for link in self._sort_links(links):
             if link.url in seen_links:
                 continue
             seen_links[link.url] = None
