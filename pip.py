@@ -40,6 +40,9 @@ class InstallationError(Exception):
 class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
+class BadCommand(Exception):
+    """Raised when virtualenv is not found"""
+
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
     base_prefix = os.path.join(sys.prefix, 'build')
