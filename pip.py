@@ -406,8 +406,7 @@ class InstallCommand(Command):
             dest='ignore_dependencies',
             action='store_true',
             default=False,
-            help='Ignore package dependencies',
-        )
+            help='Ignore package dependencies')
         self.parser.add_option(
             '--no-install',
             dest='no_install',
@@ -1115,11 +1114,12 @@ class PackageFinder(object):
                     path = os.path.realpath(fn)
                     for item in os.listdir(path):
                         file_locations.append(
-                            filename_to_url(os.path.join(path, item)))
+                            filename_to_url2(os.path.join(path, item)))
                 elif os.path.isfile(fn):
-                    file_locations.append(url)
+                    file_locations.append(filename_to_url2(fn))
             else:
                 url_locations.append(url)
+        
         locations = [Link(url) for url in url_locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -4042,6 +4042,19 @@ def filename_to_url(filename):
     url = url.replace(os.path.sep, '/')
     url = url.lstrip('/')
     return 'file:///' + url
+
+def filename_to_url2(filename):
+    """
+    Convert a path to a file: URL.  The path will be made absolute and have
+    quoted path parts.
+    """
+    filename = os.path.normcase(os.path.abspath(filename))
+    drive, filename = os.path.splitdrive(filename)
+    filepath = filename.split(os.path.sep)
+    url = '/'.join([urllib.quote(part) for part in filepath])
+    if not drive:
+        url = url.lstrip('/')
+    return 'file:///' + drive + url
 
 def url_to_filename(url):
     """
