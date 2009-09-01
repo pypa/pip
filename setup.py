@@ -1,12 +1,9 @@
 import sys
-if sys.platform == 'win32':
-    from setuptools import setup
-else:
-    from distutils.core import setup
+from setuptools import setup
 import os
 
 
-version = '0.4'
+version = '0.4.1'
 
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')

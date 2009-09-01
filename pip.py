@@ -439,8 +439,8 @@ class InstallCommand(Command):
         install_options = options.install_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            index_urls = []
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
+            index_urls = []
         finder = PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls)
