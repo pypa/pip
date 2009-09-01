@@ -377,6 +377,12 @@ class InstallCommand(Command):
             action='append',
             default=[],
             help='extra URLs of package indexes to use in addition to --index-url')
+        self.parser.add_option(
+            '--no-index',
+            dest='no_index',
+            action='store_true',
+            default=False,
+            help='Ignore package index (only looking at --find-links URLs instead)')
 
         self.parser.add_option(
             '-b', '--build', '--build-dir', '--build-directory',
@@ -432,6 +438,9 @@ class InstallCommand(Command):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            index_urls = []
+            logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
         finder = PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls)
@@ -1079,12 +1088,14 @@ class PackageFinder(object):
 
     def find_requirement(self, req, upgrade):
         url_name = req.url_name
-        # Check that we have the url_name correctly spelled:
-        main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
-        # This will also cache the page, so it's okay that we get it again later:
-        page = self._get_page(main_index_url, req)
-        if page is None:
-            url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+        # Only check main index if index URL is given:
+        if self.index_urls:
+            # Check that we have the url_name correctly spelled:
+            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
+            # This will also cache the page, so it's okay that we get it again later:
+            page = self._get_page(main_index_url, req)
+            if page is None:
+                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
         def mkurl_pypi_url(url):
             loc =  posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
