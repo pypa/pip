@@ -23,13 +23,15 @@ tip
 * Added download command to retrieve package archives. If given an editable
   package it will create an archives of it.
 
-* Added ability to pass local file and directory paths to --find-links, e.g.
-  --find-links=file:///path/to/my/private/archive
+* Added ability to pass local file and directory paths to ``--find-links``,
+  e.g. ``--find-links=file:///path/to/my/private/archive``
 
 * Reduced the amount of console log messages when fetching a page to find a
   distribution was problematic. The full messages can be found in pip-log.txt.
 
-* Added --no-deps/--no-dependencies option to ignore package dependencies
+* Added ``--no-deps`` option to install ignore package dependencies
+
+* Added ``--no-index`` option to ignore the package index (PyPI) temporarily
 
 0.4
 ---
