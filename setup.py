@@ -1,5 +1,8 @@
 import sys
-from setuptools import setup
+if sys.platform == 'win32':
+    from setuptools import setup
+else:
+    from distutils.core import setup
 import os
 
 
