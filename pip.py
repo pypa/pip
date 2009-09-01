@@ -1089,6 +1089,7 @@ class PackageFinder(object):
     def find_requirement(self, req, upgrade):
         url_name = req.url_name
         # Only check main index if index URL is given:
+        main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
             main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
@@ -1113,9 +1114,9 @@ class PackageFinder(object):
             locations = list(self.find_links)
         locations.extend(self.dependency_links)
         for version in req.absolute_versions:
-            if url_name is not None and url is not None:
+            if url_name is not None and main_index_url is not None:
                 locations = [
-                    posixpath.join(url, url_name, version)] + locations
+                    posixpath.join(main_index_url.url, version)] + locations
         file_locations = []
         url_locations = []
         for url in locations:
