@@ -1113,7 +1113,7 @@ class PackageFinder(object):
             locations = list(self.find_links)
         locations.extend(self.dependency_links)
         for version in req.absolute_versions:
-            if url_name is not None:
+            if url_name is not None and url is not None:
                 locations = [
                     posixpath.join(url, url_name, version)] + locations
         file_locations = []
