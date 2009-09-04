@@ -44,9 +44,8 @@ pip is meant to improve on easy_install.  Some of the improvements:
 * Maybe uninstallation will get added. (It might get added to easy_install,
   but I think the chance for pip is higher.)
 
-Also, pip will eventually be merged directly with pip, making it
-simple to define fixed sets of requirements and reliably reproduce a set of
-packages.
+* Simple to define fixed sets of requirements and reliably reproduce a
+  set of packages.
 
 pip is complementary with `virtualenv
 <http://pypi.python.org/pypi/virtualenv>`_, and it is encouraged that you use
