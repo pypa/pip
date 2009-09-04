@@ -33,6 +33,8 @@ tip
 
 * Added ``--no-index`` option to ignore the package index (PyPI) temporarily
 
+* Added uninstall support.
+
 0.4
 ---
 
