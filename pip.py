@@ -4235,7 +4235,8 @@ def package_to_requirement(package_name):
 def strip_sys_prefix(path):
     """ If ``path`` begins with sys.prefix, return ``path`` with
     sys.prefix stripped off.  Otherwise return None."""
-    sys_prefix = os.path.realpath(sys.prefix)
+    path = os.path.normcase(path)
+    sys_prefix = os.path.normcase(os.path.realpath(sys.prefix))
     if path.startswith(sys_prefix):
         return path.replace(sys_prefix, '')
     return None
