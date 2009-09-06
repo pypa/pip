@@ -40,7 +40,7 @@ Uninstall an editable installation from svn::
     >>> egg_link = result.files_created[lib_py + 'site-packages/INITools.egg-link']
     >>> result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
     >>> assert ('src/initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    >>> diff_states(result.files_before, result2.files_after, ignore=['src/initools']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['src/initools', 'build']).values()
     [{}, {}, {}]
 
 Uninstall from a requirements file::
@@ -53,5 +53,5 @@ Uninstall from a requirements file::
     ... ''')
     >>> result = run_pip('install', '-r', 'test-req.txt')
     >>> result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build', 'src/initools']).values()
     [{}, {}, {}]
