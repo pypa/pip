@@ -1708,13 +1708,13 @@ execfile(__file__)
             pip_egg_info_path = os.path.join(dist.location,
                                              dist.egg_name()) + '.egg-info'
             easy_install_egg = dist.egg_name() + '.egg'
-            # FIXME this won't find a globally-installed develop egg
-            # if we're in a virtualenv (lib_py is based on
-            # sys.prefix).  (There doesn't seem to be any metadata in
-            # the Distribution object for a develop egg that points
-            # back to its .egg-link and easy-install.pth files).
-            # That's OK, because we restrict ourselves to making
-            # changes within sys.prefix anyway.
+            # This won't find a globally-installed develop egg if
+            # we're in a virtualenv (lib_py is based on sys.prefix).
+            # (There doesn't seem to be any metadata in the
+            # Distribution object for a develop egg that points back
+            # to its .egg-link and easy-install.pth files).  That's
+            # OK, because we restrict ourselves to making changes
+            # within sys.prefix anyway.
             develop_egg_link = os.path.join(lib_py, 'site-packages',
                                             dist.project_name) + '.egg-link'
             if os.path.exists(pip_egg_info_path):
@@ -1762,6 +1762,7 @@ execfile(__file__)
                 remove_entries_from_file(filename, entries, auto_confirm)
 
             to_remove = set()
+            paths_to_remove = compact_path_set(paths_to_remove)
             for path in paths_to_remove:
                 if strip_sys_prefix(path) is None:
                     logger.notify('Will not remove %s, outside of local environment.' % path)
@@ -4240,6 +4241,21 @@ def strip_sys_prefix(path):
     if path.startswith(sys_prefix):
         return path.replace(sys_prefix, '')
     return None
+
+def compact_path_set(paths):
+    """Given a set of paths, return a set which contains the minimal
+    number of paths necessary to contain all paths in the set. If
+    /a/path/ and /a/path/to/a/file.txt are both in the set, return a
+    set that only contains /a/path/."""
+    short_paths = set()
+    paths = list(paths)
+    paths.sort(lambda x, y: cmp(len(x), len(y)))
+    for path in paths:
+        if not any([(path.startswith(shortpath) and
+                     path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
+                    for shortpath in short_paths]):
+            short_paths.add(path)
+    return short_paths
 
 def remove_entries_from_file(filename, entries, auto_confirm=True):
     """Remove ``entries`` from text file ``filename``, with
