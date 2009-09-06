@@ -69,9 +69,9 @@ def diff_states(start, end, ignore=None):
     """
     ignore = ignore or []
     start_keys = set([k for k in start.keys()
-                      if not [k.startswith(i) for i in ignore]])
+                      if not any([k.startswith(i) for i in ignore])])
     end_keys = set([k for k in end.keys()
-                    if not [k.startswith(i) for i in ignore]])
+                    if not any([k.startswith(i) for i in ignore])])
     deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys)])
     created = dict([(k, end[k]) for k in end_keys.difference(start_keys)])
     updated = {}
