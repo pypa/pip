@@ -4290,11 +4290,9 @@ class UninstallPathSet(object):
                     full_path = os.path.join(self.prefix, path)
                     new_path = os.path.join(self.save_dir, path)
                     new_dir = os.path.dirname(new_path)
-                    if not os.path.exists(new_dir):
-                        os.makedirs(new_dir)
                     logger.info('Removing file or directory %s' % full_path)
                     self._moved_paths.append(path)
-                    os.rename(full_path, new_path)
+                    os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
                 
@@ -4311,7 +4309,7 @@ class UninstallPathSet(object):
             tmp_path = os.path.join(self.save_dir, path)
             real_path = os.path.join(self.prefix, path)
             logger.info('Replacing %s' % real_path)
-            os.rename(tmp_path, real_path)
+            os.renames(tmp_path, real_path)
         self.commit()
         for pth in self.pth:
             pth.rollback()

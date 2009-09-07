@@ -23,14 +23,13 @@ Uninstall an easy_installed package::
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
-Uninstall a package with more files (script entry points, etc)::
+Uninstall a package with more files (script entry points, empty directories)::
 
     >>> reset_env()
     >>> result = run_pip('install', 'virtualenv', expect_error=True)
     >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
-    >>> diff_states(result.files_before, result2.files_after, 
-    ...             ignore=['build', lib_py + 'site-packages/support-files']).values()
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
 Uninstall an editable installation from svn::
