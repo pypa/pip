@@ -1703,79 +1703,66 @@ execfile(__file__)
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by
-        paths_to_remove = set()
+        paths_to_remove = UninstallPathSet(dist.project_name, sys.prefix)
         entries_to_remove = defaultdict(set)
 
-        logger.notify('Uninstalling %s' % self.name)
-        logger.indent += 2
-        try:
-            pip_egg_info_path = os.path.join(dist.location,
-                                             dist.egg_name()) + '.egg-info'
-            easy_install_egg = dist.egg_name() + '.egg'
-            # This won't find a globally-installed develop egg if
-            # we're in a virtualenv (lib_py is based on sys.prefix).
-            # (There doesn't seem to be any metadata in the
-            # Distribution object for a develop egg that points back
-            # to its .egg-link and easy-install.pth files).  That's
-            # OK, because we restrict ourselves to making changes
-            # within sys.prefix anyway.
-            develop_egg_link = os.path.join(lib_py, 'site-packages',
-                                            dist.project_name) + '.egg-link'
-            if os.path.exists(pip_egg_info_path):
-                # package installed by pip
-                paths_to_remove.add(pip_egg_info_path)
-                if dist.has_metadata('installed-files.txt'):
-                    for installed_file in dist.get_metadata('installed-files.txt').splitlines():
-                        path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
-                        if os.path.exists(path):
-                            paths_to_remove.add(path)
-                if dist.has_metadata('top_level.txt'):
-                    for top_level_pkg in [p for p
-                                          in dist.get_metadata('top_level.txt').splitlines()
-                                          if p]:
-                        path = os.path.join(dist.location, top_level_pkg)
-                        if os.path.exists(path):
-                            paths_to_remove.add(path)
-                        elif os.path.exists(path + '.py'):
-                            paths_to_remove.add(path + '.py')
-                            if os.path.exists(path + '.pyc'):
-                                paths_to_remove.add(path + '.pyc')
+        pip_egg_info_path = os.path.join(dist.location,
+                                         dist.egg_name()) + '.egg-info'
+        easy_install_egg = dist.egg_name() + '.egg'
+        # This won't find a globally-installed develop egg if
+        # we're in a virtualenv (lib_py is based on sys.prefix).
+        # (There doesn't seem to be any metadata in the
+        # Distribution object for a develop egg that points back
+        # to its .egg-link and easy-install.pth files).  That's
+        # OK, because we restrict ourselves to making changes
+        # within sys.prefix anyway.
+        develop_egg_link = os.path.join(lib_py, 'site-packages',
+                                        dist.project_name) + '.egg-link'
+        if os.path.exists(pip_egg_info_path):
+            # package installed by pip
+            paths_to_remove.add(pip_egg_info_path)
+            if dist.has_metadata('installed-files.txt'):
+                for installed_file in dist.get_metadata('installed-files.txt').splitlines():
+                    path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                    if os.path.exists(path):
+                        paths_to_remove.add(path)
+            if dist.has_metadata('top_level.txt'):
+                for top_level_pkg in [p for p
+                                      in dist.get_metadata('top_level.txt').splitlines()
+                                      if p]:
+                    path = os.path.join(dist.location, top_level_pkg)
+                    if os.path.exists(path):
+                        paths_to_remove.add(path)
+                    elif os.path.exists(path + '.py'):
+                        paths_to_remove.add(path + '.py')
+                        if os.path.exists(path + '.pyc'):
+                            paths_to_remove.add(path + '.pyc')
 
-            elif dist.location.endswith(easy_install_egg):
-                # package installed by easy_install
-                paths_to_remove.add(dist.location)
-                easy_install_pth = os.path.join(os.path.dirname(dist.location),
-                                                'easy-install.pth')
-                entries_to_remove[easy_install_pth].add('./' + easy_install_egg)
+        elif dist.location.endswith(easy_install_egg):
+            # package installed by easy_install
+            paths_to_remove.add(dist.location)
+            easy_install_pth = os.path.join(os.path.dirname(dist.location),
+                                            'easy-install.pth')
+            entries_to_remove[easy_install_pth].add('./' + easy_install_egg)
 
-            elif os.path.isfile(develop_egg_link):
-                # develop egg
-                fh = open(develop_egg_link, 'r')
-                link_pointer = fh.readline().strip()
-                fh.close()
-                assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
-                paths_to_remove.add(develop_egg_link)
-                easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                                'easy-install.pth')
-                entries_to_remove[easy_install_pth].add(dist.location)
+        elif os.path.isfile(develop_egg_link):
+            # develop egg
+            fh = open(develop_egg_link, 'r')
+            link_pointer = fh.readline().strip()
+            fh.close()
+            assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
+            paths_to_remove.add(develop_egg_link)
+            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+                                            'easy-install.pth')
+            entries_to_remove[easy_install_pth].add(dist.location)
 
-            for filename, entries in entries_to_remove.items():
-                if strip_sys_prefix(filename) is None:
-                    logger.notify('Will not modify %s, outside local environment.' % filename)
-                    continue
-                remove_entries_from_file(filename, entries, auto_confirm)
+        for filename, entries in entries_to_remove.items():
+            if strip_prefix(filename, sys.prefix) is None:
+                logger.notify('Will not modify %s, outside local environment.' % filename)
+                continue
+            remove_entries_from_file(filename, entries, auto_confirm)
 
-            to_remove = set()
-            paths_to_remove = compact_path_set(paths_to_remove)
-            for path in paths_to_remove:
-                if strip_sys_prefix(path) is None:
-                    logger.notify('Will not remove %s, outside of local environment.' % path)
-                else:
-                    to_remove.add(path)
-            if to_remove:
-                remove_paths(to_remove, auto_confirm)
-        finally:
-            logger.indent -= 2
+        paths_to_remove.remove(auto_confirm)
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -4237,29 +4224,70 @@ def package_to_requirement(package_name):
     else:
         return name
 
-def strip_sys_prefix(path):
-    """ If ``path`` begins with sys.prefix, return ``path`` with
-    sys.prefix stripped off.  Otherwise return None."""
-    path = os.path.normcase(path)
-    sys_prefix = os.path.normcase(os.path.realpath(sys.prefix))
-    if path.startswith(sys_prefix):
-        return path.replace(sys_prefix, '')
+def strip_prefix(path, prefix):
+    """ If ``path`` begins with ``prefix``, return ``path`` with
+    ``prefix`` stripped off.  Otherwise return None."""
+    if path.startswith(prefix):
+        return path.replace(prefix + os.path.sep, '')
     return None
 
-def compact_path_set(paths):
-    """Given a set of paths, return a set which contains the minimal
-    number of paths necessary to contain all paths in the set. If
-    /a/path/ and /a/path/to/a/file.txt are both in the set, return a
-    set that only contains /a/path/."""
-    short_paths = set()
-    paths = list(paths)
-    paths.sort(lambda x, y: cmp(len(x), len(y)))
-    for path in paths:
-        if not any([(path.startswith(shortpath) and
-                     path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                    for shortpath in short_paths]):
-            short_paths.add(path)
-    return short_paths
+class UninstallPathSet(object):
+    """A set of file paths to be removed in the uninstallation of a
+    requirement."""
+    def __init__(self, dist_name, restrict_to_prefix=None):
+        self.paths = set()
+        self._refuse = set()
+        self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
+        self.dist_name = dist_name
+
+    def add(self, path):
+        stripped = strip_prefix(os.path.normcase(path), self.prefix)
+        if stripped:
+            self.paths.add(stripped)
+        else:
+            self._refuse.add(path)
+        
+    def compact(self, paths):
+        """Compact a path set to contain the minimal number of paths
+        necessary to contain all paths in the set. If /a/path/ and
+        /a/path/to/a/file.txt are both in the set, leave only the
+        shorter path."""
+        short_paths = set()
+        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+            if not any([(path.startswith(shortpath) and
+                         path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
+                        for shortpath in short_paths]):
+                short_paths.add(path)
+        return short_paths
+
+    def remove(self, auto_confirm=False):
+        """Remove paths in ``self.paths`` with confirmation (unless
+        ``auto_confirm`` is True)."""
+        logger.notify('Uninstalling %s; removing:' % self.dist_name)
+        logger.indent += 2
+        paths = sorted(self.compact(self.paths))
+        try:
+            if auto_confirm:
+                response = 'y'
+            else:
+                for path in paths:
+                    logger.notify(path)
+                response = ask('Proceed (y/n)? ', ('y', 'n'))
+            if self._refuse:
+                logger.notify('Not removing (outside of sys.prefix):')
+            for path in self.compact(self._refuse):
+                logger.notify(path)
+            if response == 'y':
+                for path in paths:
+                    path = os.path.join(self.prefix, path)
+                    if os.path.isdir(path):
+                        logger.info('Removing directory %s' % path)
+                        shutil.rmtree(path)
+                    elif os.path.isfile(path):
+                        logger.info('Removing file %s' % path)
+                        os.remove(path)
+        finally:
+            logger.indent -= 2
 
 def remove_entries_from_file(filename, entries, auto_confirm=True):
     """Remove ``entries`` from text file ``filename``, with
@@ -4293,29 +4321,6 @@ def remove_entries_from_file(filename, entries, auto_confirm=True):
             fh.close()
     finally:
         logger.indent -= 2        
-
-def remove_paths(paths, auto_confirm=False):
-    """Remove paths in iterable ``paths`` with confirmation
-    (unless ``auto_confirm`` is True)."""
-    logger.notify('Within environment %s, removing:' % os.path.realpath(sys.prefix))
-    logger.indent += 2
-    try:
-        if auto_confirm:
-            response = 'y'
-        else:
-            for path in sorted(paths):
-                logger.notify(strip_sys_prefix(path))
-            response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
-        if response == 'y':
-            for path in sorted(paths):
-                if os.path.isdir(path):
-                    logger.notify('Removing directory %s' % strip_sys_prefix(path))
-                    shutil.rmtree(path)
-                elif os.path.isfile(path):
-                    logger.notify('Removing file %s' % strip_sys_prefix(path))
-                    os.remove(path)
-    finally:
-        logger.indent -= 2
 
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
