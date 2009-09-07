@@ -62,8 +62,13 @@ else:
 # FIXME doesn't account for venv linked to global site-packages
 if sys.platform == 'win32':
     lib_py = os.path.join(sys.prefix, 'Lib')
+    bin_py = os.path.join(sys.prefix, 'Scripts')
+    # buildout uses 'bin' on Windows too?
+    if not os.path.exists(bin_py):
+        bin_py = os.path.join(sys.prefix, 'bin')
 else:
     lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
+    bin_py = os.path.join(sys.prefix, 'bin')
     
 pypi_url = "http://pypi.python.org/simple"
 
@@ -1754,6 +1759,14 @@ execfile(__file__)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+
+        # get scripts from metadata FIXME there seems to be no way to
+        # get info about installed scripts from a
+        # develop-install. python setup.py develop --record in
+        # install_editable seemingly ought to work, but does not
+        if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
+            for script in dist.metadata_listdir('scripts'):
+                paths_to_remove.add(os.path.join(bin_py, script))
 
         paths_to_remove.remove(auto_confirm)
         paths_to_remove.commit()
@@ -4238,6 +4251,8 @@ class UninstallPathSet(object):
         self._moved_paths = []
 
     def add(self, path):
+        if not os.path.exists(path):
+            return
         stripped = strip_prefix(os.path.normcase(path), self.prefix)
         if stripped:
             self.paths.add(stripped)

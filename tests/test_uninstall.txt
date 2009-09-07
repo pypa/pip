@@ -13,13 +13,13 @@ Simple install and uninstall::
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
-Uninstall an easy_installed package::
+Uninstall an easy_installed package with scripts::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'INITools')
-    >>> assert('INITools' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
-    >>> result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'Markdown')
+    >>> assert('Markdown' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
+    >>> result2 = run_pip('uninstall', 'markdown', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
