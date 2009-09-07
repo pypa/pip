@@ -39,6 +39,9 @@ from collections import defaultdict
 class InstallationError(Exception):
     """General exception during installation"""
 
+class UninstallationError(Exception):
+    """General exception during uninstallation"""
+
 class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
@@ -293,7 +296,7 @@ class Command(object):
         exit = 0
         try:
             self.run(options, args)
-        except InstallationError, e:
+        except (InstallationError, UninstallationError), e:
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
@@ -1697,7 +1700,8 @@ execfile(__file__)
         linked to global site-packages.
         
         """
-        assert self.check_if_exists(), "Cannot uninstall requirement %s, not installed" % (self.name,)
+        if not self.check_if_exists():
+            raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by
         paths_to_remove = set()
         entries_to_remove = defaultdict(set)
@@ -4260,7 +4264,8 @@ def compact_path_set(paths):
 def remove_entries_from_file(filename, entries, auto_confirm=True):
     """Remove ``entries`` from text file ``filename``, with
     confirmation (unless ``auto_confirm`` is True)."""
-    assert os.path.isfile(filename), "Cannot remove entries from nonexistent file %s" % filename
+    if not os.path.isfile(filename):
+        raise UninstallationError("Cannot remove entries from nonexistent file %s" % filename)
     logger.notify('Removing entries from %s:' % filename)
     logger.indent += 2
     try:
