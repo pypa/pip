@@ -1748,7 +1748,7 @@ execfile(__file__)
         elif os.path.isfile(develop_egg_link):
             # develop egg
             fh = open(develop_egg_link, 'r')
-            link_pointer = fh.readline().strip()
+            link_pointer = os.path.normcase(fh.readline().strip())
             fh.close()
             assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
             paths_to_remove.add(develop_egg_link)
