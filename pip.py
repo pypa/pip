@@ -4300,7 +4300,7 @@ class UninstallPathSet(object):
                 for path in self.compact(self._refuse):
                     logger.notify(path)
             if response == 'y':
-                self.save_dir = tempfile.mkdtemp(prefix='pip-uninstall-')
+                self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
                 for path in paths:
                     full_path = os.path.join(self.prefix, path)
                     new_path = os.path.join(self.save_dir, path)
@@ -4331,9 +4331,10 @@ class UninstallPathSet(object):
 
     def commit(self):
         """Remove temporary save dir: rollback will no longer be possible."""
-        shutil.rmtree(self.save_dir)
-        self.save_dir = None
-        self._moved_paths = []
+        if self.save_dir is not None:
+            shutil.rmtree(self.save_dir)
+            self.save_dir = None
+            self._moved_paths = []
         
 
 class UninstallPthEntries(object):
