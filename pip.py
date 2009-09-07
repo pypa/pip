@@ -1704,7 +1704,6 @@ execfile(__file__)
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by
         paths_to_remove = UninstallPathSet(dist.project_name, sys.prefix)
-        entries_to_remove = defaultdict(set)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -1743,7 +1742,7 @@ execfile(__file__)
             paths_to_remove.add(dist.location)
             easy_install_pth = os.path.join(os.path.dirname(dist.location),
                                             'easy-install.pth')
-            entries_to_remove[easy_install_pth].add('./' + easy_install_egg)
+            paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif os.path.isfile(develop_egg_link):
             # develop egg
@@ -1754,15 +1753,10 @@ execfile(__file__)
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
-            entries_to_remove[easy_install_pth].add(dist.location)
-
-        for filename, entries in entries_to_remove.items():
-            if strip_prefix(filename, sys.prefix) is None:
-                logger.notify('Will not modify %s, outside local environment.' % filename)
-                continue
-            remove_entries_from_file(filename, entries, auto_confirm)
+            paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         paths_to_remove.remove(auto_confirm)
+        paths_to_remove.commit()
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -4234,11 +4228,14 @@ def strip_prefix(path, prefix):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist_name, restrict_to_prefix=None):
+    def __init__(self, dist_name, restrict_to_prefix):
         self.paths = set()
         self._refuse = set()
+        self.pth = {}
         self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
         self.dist_name = dist_name
+        self.save_dir = None
+        self._moved_paths = []
 
     def add(self, path):
         stripped = strip_prefix(os.path.normcase(path), self.prefix)
@@ -4246,6 +4243,16 @@ class UninstallPathSet(object):
             self.paths.add(stripped)
         else:
             self._refuse.add(path)
+
+    def add_pth(self, pth_file, entry):
+        stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
+        if stripped:
+            entry = os.path.normcase(entry)
+            if stripped not in self.pth:
+                self.pth[stripped] = UninstallPthEntries(os.path.join(self.prefix, stripped))
+            self.pth[stripped].add(os.path.normcase(entry))
+        else:
+            self._refuse.add(pth_file)
         
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
@@ -4263,7 +4270,7 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        logger.notify('Uninstalling %s; removing:' % self.dist_name)
+        logger.notify('Uninstalling %s:' % self.dist_name)
         logger.indent += 2
         paths = sorted(self.compact(self.paths))
         try:
@@ -4274,54 +4281,88 @@ class UninstallPathSet(object):
                     logger.notify(path)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
-                logger.notify('Not removing (outside of sys.prefix):')
-            for path in self.compact(self._refuse):
-                logger.notify(path)
+                logger.notify('Not removing or modifying (outside of sys.prefix):')
+                for path in self.compact(self._refuse):
+                    logger.notify(path)
             if response == 'y':
+                self.save_dir = tempfile.mkdtemp(prefix='pip-uninstall-')
                 for path in paths:
-                    path = os.path.join(self.prefix, path)
-                    if os.path.isdir(path):
-                        logger.info('Removing directory %s' % path)
-                        shutil.rmtree(path)
-                    elif os.path.isfile(path):
-                        logger.info('Removing file %s' % path)
-                        os.remove(path)
+                    full_path = os.path.join(self.prefix, path)
+                    new_path = os.path.join(self.save_dir, path)
+                    new_dir = os.path.dirname(new_path)
+                    if not os.path.exists(new_dir):
+                        os.makedirs(new_dir)
+                    logger.info('Removing file or directory %s' % full_path)
+                    self._moved_paths.append(path)
+                    os.rename(full_path, new_path)
+                for pth in self.pth.values():
+                    pth.remove()
+                
         finally:
             logger.indent -= 2
 
-def remove_entries_from_file(filename, entries, auto_confirm=True):
-    """Remove ``entries`` from text file ``filename``, with
-    confirmation (unless ``auto_confirm`` is True)."""
-    if not os.path.isfile(filename):
-        raise UninstallationError("Cannot remove entries from nonexistent file %s" % filename)
-    logger.notify('Removing entries from %s:' % filename)
-    logger.indent += 2
-    try:
-        if auto_confirm:
-            response = 'y'
-        else:
-            for entry in entries:
-                logger.notify(entry)
-            response = ask('Proceed with removal (y/n)? ', ('y', 'n'))
-        if response == 'y':
-            fh = open(filename, 'r')
-            lines = fh.readlines()
-            fh.close()
-            try:
-                for entry in entries:
-                    logger.notify('Removing entry: %s' % entry)
-                try:
-                    lines.remove(entry + '\n')
-                except ValueError:
-                    pass
-            finally:
-                pass
-            fh = open(filename, 'w')
-            fh.writelines(lines)
-            fh.close()
-    finally:
-        logger.indent -= 2        
+    def rollback(self):
+        """Rollback the changes previously made by remove()."""
+        if self.save_dir is None:
+            logger.error("Can't roll back %s; was not uninstalled" % self.dist_name)
+            return False
+        logger.notify('Rolling back uninstall of %s' % self.dist_name)
+        for path in self._moved_paths:
+            tmp_path = os.path.join(self.save_dir, path)
+            real_path = os.path.join(self.prefix, path)
+            logger.info('Replacing %s' % real_path)
+            os.rename(tmp_path, real_path)
+        self.commit()
+        for pth in self.pth:
+            pth.rollback()
 
+    def commit(self):
+        """Remove temporary save dir: rollback will no longer be possible."""
+        shutil.rmtree(self.save_dir)
+        self.save_dir = None
+        self._moved_paths = []
+        
+
+class UninstallPthEntries(object):
+    def __init__(self, pth_file):
+        if not os.path.isfile(pth_file):
+            raise UninstallationError("Cannot remove entries from nonexistent file %s" % pth_file)
+        self.file = pth_file
+        self.entries = set()
+        self._saved_lines = None
+
+    def add(self, entry):
+        self.entries.add(entry)
+
+    def remove(self):
+        logger.info('Removing pth entries from %s:' % self.file)
+        fh = open(self.file, 'r')
+        lines = fh.readlines()
+        self._saved_lines = lines
+        fh.close()
+        try:
+            for entry in self.entries:
+                logger.info('Removing entry: %s' % entry)
+            try:
+                lines.remove(entry + '\n')
+            except ValueError:
+                pass
+        finally:
+            pass
+        fh = open(self.file, 'w')
+        fh.writelines(lines)
+        fh.close()
+
+    def rollback(self):
+        if self._saved_lines is None:
+            logger.error('Cannot roll back changes to %s, none were made' % self.file)
+            return False
+        logger.info('Rolling %s back to previous state' % self.file)
+        fh = open(self.file, 'w')
+        fh.writelines(self._saved_lines)
+        fh.close()
+        return True
+        
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
