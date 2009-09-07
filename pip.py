@@ -4310,6 +4310,7 @@ class UninstallPathSet(object):
                     os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
+                logger.notify('Successfully uninstalled %s' % self.dist_name)
                 
         finally:
             logger.indent -= 2
