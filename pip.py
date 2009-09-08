@@ -504,8 +504,7 @@ class UninstallCommand(Command):
             '-y', '--yes',
             dest='yes',
             action='store_true',
-            help="Don't ask for confirmation of uninstall deletions. "
-            "If this breaks your system, you get to keep the pieces.")
+            help="Don't ask for confirmation of uninstall deletions.")
 
     def run(self, options, args):
         requirement_set = RequirementSet(
