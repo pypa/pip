@@ -1775,6 +1775,8 @@ execfile(__file__)
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
                 paths_to_remove.add(os.path.join(bin_py, script))
+                if sys.platform == 'win32':
+                    paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
