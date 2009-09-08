@@ -1393,6 +1393,12 @@ class InstallRequirement(object):
         self._is_bundle = None
         # True if the editable should be updated:
         self.update = update
+        # An already-installed distribution that should be uninstalled first
+        self.uninstall_first = None
+        # Set to True after successful installation
+        self.install_succeeded = None
+        # UninstallPathSet of uninstalled distribution (for possible rollback)
+        self.uninstalled = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None):
@@ -1705,10 +1711,12 @@ execfile(__file__)
         linked to global site-packages.
         
         """
-        if not self.check_if_exists():
+        if not self.check_if_exists(bool(self.uninstall_first)):
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by
-        paths_to_remove = UninstallPathSet(dist.project_name, sys.prefix)
+        paths_to_remove = UninstallPathSet(dist, sys.prefix)
+        if not paths_to_remove.can_uninstall():
+            return
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -1769,7 +1777,14 @@ execfile(__file__)
                 paths_to_remove.add(os.path.join(bin_py, script))
 
         paths_to_remove.remove(auto_confirm)
-        paths_to_remove.commit()
+        self.uninstalled = paths_to_remove
+
+    def rollback_uninstall(self):
+        if self.uninstalled:
+            self.uninstalled.rollback()
+        else:
+            logger.error("Can't rollback %s, nothing uninstalled."
+                         % (self.project_name,))
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -1820,6 +1835,7 @@ execfile(__file__)
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
         finally:
             logger.indent -= 2
+        self.install_succeeded = True
         f = open(record_filename)
         for line in f:
             line = line.strip()
@@ -1867,6 +1883,7 @@ execfile(__file__)
                 show_stdout=False)
         finally:
             logger.indent -= 2
+        self.install_succeeded = True
 
     def _filter_install(self, line):
         level = Logger.NOTIFY
@@ -1880,7 +1897,7 @@ execfile(__file__)
                 break
         return (level, line)
 
-    def check_if_exists(self):
+    def check_if_exists(self, allow_other_version=False):
         """Checks if this requirement is satisfied by something already installed"""
         if self.req is None:
             return False
@@ -1888,6 +1905,11 @@ execfile(__file__)
             dist = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
+        except pkg_resources.VersionConflict:
+            if allow_other_version:
+                dist = pkg_resources.get_distribution(self.req.project_name)
+            else:
+                raise
         self.satisfied_by = dist
         return True
 
@@ -2032,9 +2054,13 @@ class RequirementSet(object):
             else:
                 req_to_install = reqs.pop(0)
             install = True
-            if not self.ignore_installed and not req_to_install.editable and not self.upgrade:
-                if req_to_install.check_if_exists():
-                    install = False
+            if not self.ignore_installed and not req_to_install.editable:
+                if req_to_install.check_if_exists(self.upgrade):
+                    if self.upgrade:
+                        req_to_install.uninstall_first = req_to_install.satisfied_by
+                        req_to_install.satisfied_by = None
+                    else:
+                        install = False
             if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied: %s' % req_to_install)
             elif req_to_install.editable:
@@ -2351,10 +2377,24 @@ class RequirementSet(object):
         logger.indent += 2
         try:
             for requirement in self.requirements.values():
-                if requirement.satisfied_by is not None:
+                if requirement.uninstall_first:
+                    logger.notify('Found existing installation: %s'
+                                  % requirement.uninstall_first)
+                    logger.indent += 2
+                    try:
+                        requirement.uninstall(auto_confirm=True)
+                    finally:
+                        logger.indent -= 2
+                elif requirement.satisfied_by is not None:
                     # Already installed
                     continue
-                requirement.install(install_options)
+                try:
+                    requirement.install(install_options)
+                except:
+                    # if install did not succeed, rollback previous uninstall
+                    if requirement.uninstall_first and not requirement.install_succeeded:
+                        requirement.rollback_uninstall()
+                    raise
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
@@ -4241,15 +4281,23 @@ def strip_prefix(path, prefix):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist_name, restrict_to_prefix):
+    def __init__(self, dist, restrict_to_prefix):
         self.paths = set()
         self._refuse = set()
         self.pth = {}
         self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
-        self.dist_name = dist_name
+        self.dist = dist
         self.save_dir = None
         self._moved_paths = []
 
+    def can_uninstall(self):
+        if not strip_prefix(self.dist.location, self.prefix):
+            logger.notify("Not uninstalling %s at %s, outside environment %s"
+                          % (self.dist.project_name, self.dist.location,
+                             self.prefix))
+            return False
+        return True
+        
     def add(self, path):
         if not os.path.exists(path):
             return
@@ -4285,7 +4333,7 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        logger.notify('Uninstalling %s:' % self.dist_name)
+        logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
         paths = sorted(self.compact(self.paths))
         try:
@@ -4310,7 +4358,7 @@ class UninstallPathSet(object):
                     os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.notify('Successfully uninstalled %s' % self.dist_name)
+                logger.notify('Successfully uninstalled %s' % self.dist.project_name)
                 
         finally:
             logger.indent -= 2
@@ -4318,15 +4366,14 @@ class UninstallPathSet(object):
     def rollback(self):
         """Rollback the changes previously made by remove()."""
         if self.save_dir is None:
-            logger.error("Can't roll back %s; was not uninstalled" % self.dist_name)
+            logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
             return False
-        logger.notify('Rolling back uninstall of %s' % self.dist_name)
+        logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
         for path in self._moved_paths:
             tmp_path = os.path.join(self.save_dir, path)
             real_path = os.path.join(self.prefix, path)
             logger.info('Replacing %s' % real_path)
             os.renames(tmp_path, real_path)
-        self.commit()
         for pth in self.pth:
             pth.rollback()
 

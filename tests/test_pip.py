@@ -96,7 +96,7 @@ def main():
     options, args = parser.parse_args()
     reset_env()
     if not args:
-        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt']
+        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt', 'test_upgrade.txt']
     optionflags = doctest.ELLIPSIS
     if options.first:
         optionflags |= doctest.REPORT_ONLY_FIRST_FAILURE
