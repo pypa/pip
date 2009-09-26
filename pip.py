@@ -1886,6 +1886,11 @@ class RequirementSet(object):
             self.download_dir = os.path.expanduser(self.download_dir)
             if os.path.exists(self.download_dir):
                 return True
+            else:
+                logger.fatal('Could not find download directory')
+                raise InstallationError(
+                    "Could not find or access download directory '%s'"
+                    % display_path(self.download_dir))
         return False
 
     def get_requirement(self, project_name):
