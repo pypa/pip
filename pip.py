@@ -48,12 +48,10 @@ if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
     base_prefix = os.path.join(sys.prefix, 'build')
     base_src_prefix = os.path.join(sys.prefix, 'src')
-    base_download_prefix = os.path.join(sys.prefix, 'download')
 else:
     ## FIXME: this isn't a very good default
     base_prefix = os.path.join(os.getcwd(), 'build')
     base_src_prefix = os.path.join(os.getcwd(), 'src')
-    base_download_prefix = os.path.join(os.getcwd(), 'download')
 
 pypi_url = "http://pypi.python.org/simple"
 
@@ -334,7 +332,6 @@ class InstallCommand(Command):
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
     summary = 'Install packages'
     bundle = False
-    download = False
 
     def __init__(self):
         super(InstallCommand, self).__init__()
@@ -391,6 +388,12 @@ class InstallCommand(Command):
             default=None,
             help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
         self.parser.add_option(
+            '-d', '--download', '--download-dir', '--download-directory',
+            dest='download_dir',
+            metavar='DIR',
+            default=None,
+            help='Download packages into DIR instead of installing them')
+        self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
@@ -434,8 +437,12 @@ class InstallCommand(Command):
             options.build_dir = base_prefix
         if not options.src_dir:
             options.src_dir = base_src_prefix
-        options.build_dir = os.path.abspath(options.build_dir)
-        options.src_dir = os.path.abspath(options.src_dir)
+        if options.download_dir:
+            options.no_install = True
+            options.ignore_installed = True
+        else:
+            options.build_dir = os.path.abspath(options.build_dir)
+            options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -447,6 +454,7 @@ class InstallCommand(Command):
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=options.src_dir,
+            download_dir=options.download_dir,
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies)
@@ -459,8 +467,7 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder):
                 requirement_set.add_requirement(req)
-        requirement_set.install_files(finder,
-            force_root_egg_info=self.bundle, only_download=self.download)
+        requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             logger.notify('Successfully installed %s' % requirement_set)
@@ -476,7 +483,6 @@ class BundleCommand(InstallCommand):
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
     summary = 'Create pybundles (archives containing multiple packages)'
     bundle = True
-    download = False
 
     def __init__(self):
         super(BundleCommand, self).__init__()
@@ -501,35 +507,6 @@ class BundleCommand(InstallCommand):
         return requirement_set
 
 BundleCommand()
-
-class DownloadCommand(InstallCommand):
-    name = 'download'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Download packages'
-    bundle = False
-    download = True
-
-    def __init__(self):
-        super(DownloadCommand, self).__init__()
-        self.parser.add_option(
-            '-d', '--download', '--download-dir', '--download-directory',
-            dest='download_dir',
-            metavar='DIR',
-            default=None,
-            help='Download packages into DIR (default %s)' % os.path.abspath(base_download_prefix))
-
-    def run(self, options, args):
-        if options.download_dir:
-            options.build_dir = options.download_dir
-        else:
-            options.build_dir = base_download_prefix
-        options.no_install = True
-        options.ignore_installed = True
-        requirement_set = super(DownloadCommand, self).run(options, args)
-        logger.notify('Saved downloads in %s' % options.build_dir)
-        return requirement_set
-
-DownloadCommand()
 
 
 class FreezeCommand(Command):
@@ -1410,8 +1387,6 @@ class InstallRequirement(object):
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:
-            if not unpack:
-                return os.path.join(build_dir, 'download')
             self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
             self._ideal_build_dir = build_dir
             return self._temp_build_dir
@@ -1644,25 +1619,41 @@ execfile(__file__)
 
     def archive(self, build_dir):
         assert self.source_dir
+        create_archive = True
         archive_name = '%s-%s.zip' % (self.name, self.installed_version)
-        logger.notify('Creating archive %s in %s' % (archive_name, build_dir))
         archive_path = os.path.join(build_dir, archive_name)
-        zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED)
-        dir = os.path.normcase(os.path.abspath(self.source_dir))
-        for dirpath, dirnames, filenames in os.walk(dir):
-            if 'pip-egg-info' in dirnames:
-                dirnames.remove('pip-egg-info')
-            for dirname in dirnames:
-                dirname = os.path.join(dirpath, dirname)
-                name = self._clean_zip_name(dirname, dir)
-                zip.writestr(self.name + '/' + name + '/', '')
-            for filename in filenames:
-                if filename == 'pip-delete-this-directory.txt':
-                    continue
-                filename = os.path.join(dirpath, filename)
-                name = self._clean_zip_name(filename, dir)
-                zip.write(filename, self.name + '/' + name)
-        zip.close()
+        if os.path.exists(archive_path):
+            response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
+                           % display_path(archive_path), ('i', 'w', 'b'))
+            if response == 'i':
+                create_archive = False
+            elif response == 'w':
+                logger.warn('Deleting %s' % display_path(archive_path))
+                os.remove(archive_path)
+            elif response == 'b':
+                dest_file = backup_dir(archive_path)
+                logger.warn('Backing up %s to %s'
+                            % (display_path(archive_path), display_path(dest_file)))
+                shutil.move(archive_path, dest_file)
+        if create_archive:
+            zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED)
+            dir = os.path.normcase(os.path.abspath(self.source_dir))
+            for dirpath, dirnames, filenames in os.walk(dir):
+                if 'pip-egg-info' in dirnames:
+                    dirnames.remove('pip-egg-info')
+                for dirname in dirnames:
+                    dirname = os.path.join(dirpath, dirname)
+                    name = self._clean_zip_name(dirname, dir)
+                    zip.writestr(self.name + '/' + name + '/', '')
+                for filename in filenames:
+                    if filename == 'pip-delete-this-directory.txt':
+                        continue
+                    filename = os.path.join(dirpath, filename)
+                    name = self._clean_zip_name(filename, dir)
+                    zip.write(filename, self.name + '/' + name)
+            zip.close()
+            logger.indent -= 2
+            logger.notify('Saved %s' % display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
         assert name.startswith(prefix+'/'), (
@@ -1851,9 +1842,10 @@ deleted (unless you remove this file).
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, upgrade=False, ignore_installed=False, ignore_dependencies=False):
+    def __init__(self, build_dir, src_dir, download_dir, upgrade=False, ignore_installed=False, ignore_dependencies=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
+        self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.requirements = {}
@@ -1888,6 +1880,14 @@ class RequirementSet(object):
                 return True
         return False
 
+    @property
+    def is_download(self):
+        if self.download_dir:
+            self.download_dir = os.path.expanduser(self.download_dir)
+            if os.path.exists(self.download_dir):
+                return True
+        return False
+
     def get_requirement(self, project_name):
         for name in project_name, project_name.lower():
             if name in self.requirements:
@@ -1896,7 +1896,7 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def install_files(self, finder, force_root_egg_info=False, only_download=False):
+    def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
@@ -1928,14 +1928,14 @@ class RequirementSet(object):
                         location = req_to_install.source_dir
                     if not os.path.exists(self.build_dir):
                         os.makedirs(self.build_dir)
-                    req_to_install.update_editable(not only_download)
-                    if only_download:
+                    req_to_install.update_editable(not self.is_download)
+                    if self.is_download:
                         req_to_install.run_egg_info()
-                        req_to_install.archive(self.build_dir)
+                        req_to_install.archive(self.download_dir)
                     else:
                         req_to_install.run_egg_info()
                 elif install:
-                    location = req_to_install.build_location(self.build_dir, not only_download)
+                    location = req_to_install.build_location(self.build_dir, not self.is_download)
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     if not os.path.exists(os.path.join(location, 'setup.py')):
@@ -1948,7 +1948,7 @@ class RequirementSet(object):
                             assert url
                         if url:
                             try:
-                                self.unpack_url(url, location, not only_download)
+                                self.unpack_url(url, location, self.is_download)
                             except urllib2.HTTPError, e:
                                 logger.fatal('Could not install requirement %s because of error %s'
                                              % (req_to_install, e))
@@ -1959,16 +1959,17 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_bundle = req_to_install.is_bundle
+                        url = None
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
-                        elif only_download:
+                        elif self.is_download:
                             req_to_install.source_dir = location
-                            if url.scheme in vcs.all_schemes:
+                            if url and url.scheme in vcs.all_schemes:
                                 req_to_install.run_egg_info()
-                                req_to_install.archive(self.build_dir)
+                                req_to_install.archive(self.download_dir)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1980,7 +1981,7 @@ class RequirementSet(object):
                             f = open(req_to_install.delete_marker_filename, 'w')
                             f.write(DELETE_MARKER_MESSAGE)
                             f.close()
-                if not is_bundle and not only_download:
+                if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     ## FIXME: add extras in here:
@@ -2005,14 +2006,16 @@ class RequirementSet(object):
             finally:
                 logger.indent -= 2
 
-    def unpack_url(self, link, location, unpack=True):
+    def unpack_url(self, link, location, only_download=False):
+        if only_download:
+            location = self.download_dir
         for backend in vcs.backends:
             if link.scheme in backend.schemes:
                 vcs_backend = backend(link.url)
-                if unpack:
-                    vcs_backend.unpack(location)
-                else:
+                if only_download:
                     vcs_backend.export(location)
+                else:
+                    vcs_backend.unpack(location)
                 return
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
@@ -2102,10 +2105,10 @@ class RequirementSet(object):
                 logger.fatal("MD5 hash of the package %s (%s) doesn't match the expected hash %s!"
                              % (link, download_hash, md5_hash))
                 raise InstallationError('Bad MD5 hash for package %s' % link)
-        if unpack:
-            self.unpack_file(temp_location, location, content_type, link)
-        else:
+        if only_download:
             self.copy_file(temp_location, location, content_type, link)
+        else:
+            self.unpack_file(temp_location, location, content_type, link)
         if target_file and target_file != temp_location:
             logger.notify('Storing download in cache at %s' % display_path(target_file))
             shutil.copyfile(temp_location, target_file)
@@ -2117,8 +2120,25 @@ class RequirementSet(object):
             os.unlink(temp_location)
 
     def copy_file(self, filename, location, content_type, link):
-        download_location = os.path.join(location, "..", link.filename)
-        shutil.copyfile(filename, os.path.realpath(download_location))
+        copy = True
+        download_location = os.path.join(location, link.filename)
+        if os.path.exists(download_location):
+            response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
+                           % display_path(download_location), ('i', 'w', 'b'))
+            if response == 'i':
+                copy = False
+            elif response == 'w':
+                logger.warn('Deleting %s' % display_path(download_location))
+                os.remove(download_location)
+            elif response == 'b':
+                dest_file = backup_dir(download_location)
+                logger.warn('Backing up %s to %s'
+                            % (display_path(download_location), display_path(dest_file)))
+                shutil.move(download_location, dest_file)
+        if copy:
+            shutil.copy(filename, download_location)
+            logger.indent -= 2
+            logger.notify('Saved %s' % display_path(download_location))
 
     def unpack_file(self, filename, location, content_type, link):
         if (content_type == 'application/zip'
