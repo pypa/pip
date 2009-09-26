@@ -2813,7 +2813,7 @@ class Subversion(VersionControl):
                 elif response == 'b':
                     dest_dir = backup_dir(dest)
                     logger.warn('Backing up %s to %s'
-                                % display_path(dest, dest_dir))
+                                % (display_path(dest), dest_dir))
                     shutil.move(dest, dest_dir)
                     checkout = True
         if checkout:
