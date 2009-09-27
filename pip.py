@@ -3334,7 +3334,7 @@ class Mercurial(VersionControl):
             ['hg', 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
-            tags_match = re.search(r'([\w-]+)\s*([\d]+):.*$', line)
+            tags_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
             if tags_match:
                 tag = tags_match.group(1)
                 rev = tags_match.group(2)
@@ -3346,7 +3346,7 @@ class Mercurial(VersionControl):
             ['hg', 'branches'], show_stdout=False, cwd=location)
         branch_revs = []
         for line in branches.splitlines():
-            branches_match = re.search(r'([\w-]+)\s*([\d]+):.*$', line)
+            branches_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
             if branches_match:
                 branch = branches_match.group(1)
                 rev = branches_match.group(2)
@@ -3354,13 +3354,10 @@ class Mercurial(VersionControl):
         return dict(branch_revs)
 
     def get_revision(self, location):
-        current_branch = call_subprocess(
-            ['hg', 'branch'], show_stdout=False, cwd=location).strip()
-        branch_revs = self.get_branch_revs(location)
-        for branch in branch_revs:
-            if current_branch == branch_revs[branch]:
-                return branch
-        return self.get_tip_revision(location)
+        current_revision = call_subprocess(
+            ['hg', 'parents', '--template={rev}'],
+            show_stdout=False, cwd=location).strip()
+        return current_revision
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
