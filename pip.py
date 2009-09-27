@@ -3046,6 +3046,24 @@ class Git(VersionControl):
         finally:
             shutil.rmtree(temp_dir)
 
+    def check_rev_options(self, rev, dest):
+        """Check the revision options before checkout to compensate that tags
+        and branches may need origin/ as a prefix"""
+        revisions = self.get_tag_revs(dest)
+        revisions.update(self.get_branch_revs(dest))
+        if rev in revisions:
+            # if rev is a sha
+            return [rev]
+        inverse_revisions = dict((v,k) for k, v in revisions.iteritems())
+        if rev not in inverse_revisions: # is rev a name or tag?
+            origin_rev = 'origin/%s' % rev
+            if origin_rev in inverse_revisions:
+                rev = inverse_revisions[origin_rev]
+            else:
+                raise InstallationError("Could not find a tag or branch '%s' in repository %s"
+                                        % (rev, display_path(dest)))
+        return [rev]
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3057,6 +3075,7 @@ class Git(VersionControl):
         clone = True
         if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_url(dest)
+            rev_options = self.check_rev_options(rev, dest)
             clone = False
             if existing_url == url:
                 logger.info('Clone in %s exists, and has correct URL (%s)'
@@ -3095,6 +3114,7 @@ class Git(VersionControl):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess(
                 [GIT_CMD, 'clone', '-q', url, dest])
+            rev_options = self.check_rev_options(rev, dest)
             call_subprocess(
                 [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
