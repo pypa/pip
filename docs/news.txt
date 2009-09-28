@@ -33,6 +33,13 @@ tip
 
 * Added ``--no-index`` option to ignore the package index (PyPI) temporarily
 
+* Fixed installing editable packages from Git branches.
+
+* Fixes freezing of editable packages from Mercurial repositories.
+
+* Fixed handling read-only attributes of build files, e.g. of Subversion and
+  Bazaar on Windows.
+
 0.4
 ---
 
