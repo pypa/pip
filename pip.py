@@ -82,14 +82,6 @@ except pkg_resources.DistributionNotFound:
     version=None
 
 def rmtree_errorhandler(func, path, exc_info):
-    typ, val, tb = exc_info
-    if issubclass(typ, OSError) and val.errno == errno.EACCES:
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-    else:
-        raise typ, val, tb
-
-def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
