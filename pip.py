@@ -3055,9 +3055,12 @@ class Git(VersionControl):
         finally:
             shutil.rmtree(temp_dir)
 
-    def check_rev_options(self, rev, dest):
+    def check_rev_options(self, rev, dest, rev_options):
         """Check the revision options before checkout to compensate that tags
         and branches may need origin/ as a prefix"""
+        if rev is None:
+            # bail and use preset
+            return rev_options
         revisions = self.get_tag_revs(dest)
         revisions.update(self.get_branch_revs(dest))
         if rev in revisions:
@@ -3084,7 +3087,7 @@ class Git(VersionControl):
         clone = True
         if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_url(dest)
-            rev_options = self.check_rev_options(rev, dest)
+            rev_options = self.check_rev_options(rev, dest, rev_options)
             clone = False
             if existing_url == url:
                 logger.info('Clone in %s exists, and has correct URL (%s)'
@@ -3123,7 +3126,7 @@ class Git(VersionControl):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess(
                 [GIT_CMD, 'clone', '-q', url, dest])
-            rev_options = self.check_rev_options(rev, dest)
+            rev_options = self.check_rev_options(rev, dest, rev_options)
             call_subprocess(
                 [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
