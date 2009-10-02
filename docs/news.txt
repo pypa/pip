@@ -29,6 +29,10 @@ tip
 * Reduced the amount of console log messages when fetching a page to find a
   distribution was problematic. The full messages can be found in pip-log.txt.
 
+* When downloading a file from a redirect, use the redirected
+  location's extension to guess the compression (happens specifically
+  when redirecting to a bitbucket.org tip.gz file).
+
 0.4
 ---
 

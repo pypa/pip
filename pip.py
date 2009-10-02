@@ -1472,7 +1472,8 @@ def replacement_run(self):
     for ep in egg_info.iter_entry_points('egg_info.writers'):
         # require=False is the change we're making:
         writer = ep.load(require=False)
-        writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
+        if writer:
+            writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
 execfile(__file__)
@@ -1508,6 +1509,7 @@ execfile(__file__)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
+            assert filenames, "No files/directories in %s (from %s)" % (base, filename)
             assert len(filenames) == 1, "Unexpected files/directories in %s: %s" % (base, ' '.join(filenames))
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
@@ -2013,10 +2015,14 @@ class RequirementSet(object):
                 raise
             content_type = resp.info()['content-type']
             filename = link.filename
-            ext = splitext(filename)
+            ext = splitext(filename)[1]
             if not ext:
                 ext = mimetypes.guess_extension(content_type)
                 filename += ext
+            if not ext and link.url != resp.geturl():
+                ext = os.path.splitext(resp.geturl())
+                if ext:
+                    filename += ext
             temp_location = os.path.join(dir, filename)
             fp = open(temp_location, 'wb')
             if md5_hash:
