@@ -2711,6 +2711,18 @@ class VersionControl(object):
         assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
+    def normalize_url(self, url):
+        """
+        Normalize a URL for comparison by unquoting it and removing any trailing slash.
+        """
+        return urllib.unquote(url).rstrip('/')
+
+    def compare_urls(self, url1, url2):
+        """
+        Compare two repo URLs for identity, ignoring incidental differences.
+        """
+        return (self.normalize_url(url1) == self.normalize_url(url2))
+    
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -2819,7 +2831,7 @@ class Subversion(VersionControl):
         if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_info(dest)[0]
             checkout = False
-            if existing_url == url:
+            if self.compare_urls(existing_url, url):
                 logger.info('Checkout in %s exists, and has correct URL (%s)'
                             % (display_path(dest), url))
                 logger.notify('Updating checkout %s%s'
@@ -3089,7 +3101,7 @@ class Git(VersionControl):
             existing_url = self.get_url(dest)
             rev_options = self.check_rev_options(rev, dest, rev_options)
             clone = False
-            if existing_url == url:
+            if self.compare_urls(existing_url, url):
                 logger.info('Clone in %s exists, and has correct URL (%s)'
                             % (display_path(dest), url))
                 logger.notify('Updating clone %s%s'
@@ -3266,7 +3278,7 @@ class Mercurial(VersionControl):
         if os.path.exists(os.path.join(dest, '.hg')):
             existing_url = self.get_url(dest)
             clone = False
-            if existing_url == url:
+            if self.compare_urls(existing_url, url):
                 logger.info('Clone in %s exists, and has correct URL (%s)'
                             % (display_path(dest), url))
                 logger.notify('Updating clone %s%s'
@@ -3444,7 +3456,7 @@ class Bazaar(VersionControl):
         if os.path.exists(os.path.join(dest, '.bzr')):
             existing_url = self.get_url(dest)
             branch = False
-            if existing_url == url:
+            if self.compare_urls(existing_url, url):
                 logger.info('Checkout in %s exists, and has correct URL (%s)'
                             % (display_path(dest), url))
                 logger.notify('Updating branch %s%s'
