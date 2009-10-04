@@ -47,6 +47,9 @@ tip
   presence/absence of final slashes or quoted/unquoted special
   characters don't trigger "ignore/switch/wipe/backup" choice.
 
+* Fixed handling of attempt to checkout editable install to a
+  non-empty, non-repo directory.
+
 0.4
 ---
 
