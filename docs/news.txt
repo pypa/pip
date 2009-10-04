@@ -40,6 +40,9 @@ tip
 * Fixed handling read-only attributes of build files, e.g. of Subversion and
   Bazaar on Windows.
 
+* Editable freeze URLs now always use revision hash/id rather than tip or
+  branch names which could move.
+
 0.4
 ---
 

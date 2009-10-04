@@ -2978,29 +2978,29 @@ class Subversion(VersionControl):
         parts = repo.split('/')
         ## FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
+        rev = self.get_revision(location)
         if parts[-2] in ('tags', 'tag'):
             # It's a tag, perfect!
-            return 'svn+%s#egg=%s-%s' % (repo, egg_project_name, parts[-1])
+            full_egg_name = '%s-%s' % (egg_project_name, parts[-1])
         elif parts[-2] in ('branches', 'branch'):
             # It's a branch :(
-            rev = self.get_revision(location)
-            return 'svn+%s@%s#egg=%s%s-r%s' % (repo, rev, dist.egg_name(), parts[-1], rev)
+            full_egg_name = '%s-%s-r%s' % (dist.egg_name(), parts[-1], rev)
         elif parts[-1] == 'trunk':
             # Trunk :-/
-            rev = self.get_revision(location)
+            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), rev)
             if find_tags:
                 tag_url = '/'.join(parts[:-1]) + '/tags'
                 tag_revs = self.get_tag_revs(tag_url)
                 match = self.find_tag_match(rev, tag_revs)
                 if match:
                     logger.notify('trunk checkout %s seems to be equivalent to tag %s' % match)
-                    return 'svn+%s/%s#egg=%s-%s' % (tag_url, match, egg_project_name, match)
-            return 'svn+%s@%s#egg=%s-dev' % (repo, rev, dist.egg_name())
+                    repo = '%s/%s' % (tag_url, match)
+                    full_egg_name = '%s-%s' % (egg_project_name, match)
         else:
             # Don't know what it is
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
-            rev = self.get_revision(location)
-            return 'svn+%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
+            full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
+        return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
 
 vcs.register(Subversion)
 
@@ -3141,11 +3141,6 @@ class Git(VersionControl):
             [GIT_CMD, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_master_revision(self, location):
-        master_rev = call_subprocess(
-            [GIT_CMD, 'rev-parse', 'master'], show_stdout=False, cwd=location)
-        return master_rev.strip()
-
     def get_tag_revs(self, location):
         tags = call_subprocess(
             [GIT_CMD, 'tag'], show_stdout=False, cwd=location)
@@ -3180,28 +3175,20 @@ class Git(VersionControl):
             return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
-        master_rev = self.get_master_revision(location)
         branch_revs = self.get_branch_revs(location)
 
         if current_rev in tag_revs:
-            # It's a tag, perfect!
-            tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-        elif current_rev in branch_revs:
-            # It's the head of a branch, nice too.
-            branch = branch_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, current_rev, dist.egg_name(), current_rev)
-        elif current_rev == master_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, master_rev, dist.egg_name())
+            # It's a tag
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
+        elif (current_rev in branch_revs and
+              branch_revs[current_rev] != 'origin/master'):
+            # It's the head of a branch
+            full_egg_name = '%s-%s' % (dist.egg_name(),
+                                       branch_revs[current_rev].replace('origin/', ''))
         else:
-            # Don't know what it is
-            logger.warn('Git URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev' % dist.egg_name()
+            
+        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
     def get_url_rev(self):
         """
@@ -3336,11 +3323,6 @@ class Mercurial(VersionControl):
             url = filename_to_url(url)
         return url.strip()
 
-    def get_tip_revision(self, location):
-        current_rev = call_subprocess(
-            ['hg', 'tip', '--template={rev}'], show_stdout=False, cwd=location)
-        return current_rev.strip()
-
     def get_tag_revs(self, location):
         tags = call_subprocess(
             ['hg', 'tags'], show_stdout=False, cwd=location)
@@ -3371,6 +3353,12 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_revision
 
+    def get_revision_hash(self, location):
+        current_rev_hash = call_subprocess(
+            ['hg', 'parents', '--template={node}'],
+            show_stdout=False, cwd=location).strip()
+        return current_rev_hash
+
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
         if not repo.lower().startswith('hg:'):
@@ -3379,28 +3367,18 @@ class Mercurial(VersionControl):
         if not repo:
             return None
         current_rev = self.get_revision(location)
+        current_rev_hash = self.get_revision_hash(location)
         tag_revs = self.get_tag_revs(location)
         branch_revs = self.get_branch_revs(location)
-        tip_rev = self.get_tip_revision(location)
         if current_rev in tag_revs:
-            # It's a tag, perfect!
-            tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+            # It's a tag
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         elif current_rev in branch_revs:
-            # It's the tip of a branch, nice too.
-            branch = branch_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, branch, dist.egg_name(), current_rev)
-        elif current_rev == tip_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, tip_rev, dist.egg_name())
+            # It's the tip of a branch
+            full_egg_name = '%s-%s' % (dist.egg_name(), branch_revs[current_rev])
         else:
-            # Don't know what it is
-            logger.warn('Mercurial URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev' % dist.egg_name()
+        return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
 
 vcs.register(Mercurial)
 
@@ -3527,12 +3505,6 @@ class Bazaar(VersionControl):
             [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
-    def get_newest_revision(self, location):
-        url = self.get_url(location)
-        revision = call_subprocess(
-            [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
-        return revision.splitlines()[-1]
-
     def get_tag_revs(self, location):
         tags = call_subprocess(
             [BZR_CMD, 'tags'], show_stdout=False, cwd=location)
@@ -3554,22 +3526,14 @@ class Bazaar(VersionControl):
             return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
-        newest_rev = self.get_newest_revision(location)
+
         if current_rev in tag_revs:
-            # It's a tag, perfect!
+            # It's a tag
             tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-        elif current_rev == newest_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, newest_rev, dist.egg_name())
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         else:
-            # Don't know what it is
-            logger.warn('Bazaar URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
+        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
 vcs.register(Bazaar)
 
