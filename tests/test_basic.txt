@@ -66,6 +66,7 @@ Cloning from Mercurial::
 
 Presence or absence of final slash is also normalized::
 
+    >>> reset_env()
     >>> result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration#egg=django-registration', expect_error=True)
     >>> assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 

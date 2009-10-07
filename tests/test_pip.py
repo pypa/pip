@@ -7,15 +7,30 @@ pyversion = sys.version[:3]
 lib_py = 'lib/python%s/' % pyversion
 here = os.path.dirname(os.path.abspath(__file__))
 base_path = os.path.join(here, 'test-scratch')
+download_cache = os.path.join(here, 'test-cache')
+if not os.path.exists(download_cache):
+    os.makedirs(download_cache)
 
 from scripttest import TestFileEnvironment
 
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
+try:
+    any
+except NameError:
+    def any(seq):
+        for item in seq:
+            if item:
+                return True
+        return False
+
 def reset_env():
     global env
-    env = TestFileEnvironment(base_path, ignore_hidden=False)
+    environ = os.environ.copy()
+    environ['PIP_NO_INPUT'] = '1'
+    environ['PIP_DOWNLOAD_CACHE'] = download_cache
+    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
     # To avoid the 0.9c8 svn 1.5 incompatibility:
     env.run('%s/bin/easy_install' % env.base_path, 'http://peak.telecommunity.com/snapshots/setuptools-0.7a1dev-r66388.tar.gz')

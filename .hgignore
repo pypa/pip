@@ -2,6 +2,7 @@
 syntax: glob
 MANIFEST
 tests/test-scratch/*
+tests/test-cache/*
 testenv
 pip.egg-info/*
 dist/*
