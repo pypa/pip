@@ -40,7 +40,6 @@ News for pip
 * Fixed handling read-only attributes of build files, e.g. of Subversion and
   Bazaar on Windows.
 
-<<<<<<< /home/ianb/src/pip/docs/news.txt
 * When downloading a file from a redirect, use the redirected
   location's extension to guess the compression (happens specifically
   when redirecting to a bitbucket.org tip.gz file).
@@ -56,6 +55,7 @@ News for pip
   non-empty, non-repo directory.
 
 * Added uninstall command and automatic uninstall-before-upgrade.
+
 0.4
 ---
 
