@@ -1,7 +1,7 @@
 News for pip
 ============
 
-tip
+0.5
 ---
 
 * Added ability to override the default log file name (``pip-log.txt``)
