@@ -39,6 +39,9 @@ import ConfigParser
 class InstallationError(Exception):
     """General exception during installation"""
 
+class UninstallationError(Exception):
+    """General exception during uninstallation"""
+
 class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
@@ -54,6 +57,17 @@ else:
     base_prefix = os.path.join(os.getcwd(), 'build')
     base_src_prefix = os.path.join(os.getcwd(), 'src')
 
+# FIXME doesn't account for venv linked to global site-packages
+if sys.platform == 'win32':
+    lib_py = os.path.join(sys.prefix, 'Lib')
+    bin_py = os.path.join(sys.prefix, 'Scripts')
+    # buildout uses 'bin' on Windows too?
+    if not os.path.exists(bin_py):
+        bin_py = os.path.join(sys.prefix, 'bin')
+else:
+    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
+    bin_py = os.path.join(sys.prefix, 'bin')
+    
 pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
@@ -293,7 +307,7 @@ class Command(object):
         exit = 0
         try:
             self.run(options, args)
-        except InstallationError, e:
+        except (InstallationError, UninstallationError), e:
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
@@ -486,6 +500,41 @@ class InstallCommand(Command):
 
 InstallCommand()
 
+class UninstallCommand(Command):
+    name = 'uninstall'
+    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
+    summary = 'Uninstall packages'
+
+    def __init__(self):
+        super(UninstallCommand, self).__init__()
+        self.parser.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='FILENAME',
+            help='Uninstall all the packages listed in the given requirements file.  '
+            'This option can be used multiple times.')
+        self.parser.add_option(
+            '-y', '--yes',
+            dest='yes',
+            action='store_true',
+            help="Don't ask for confirmation of uninstall deletions.")
+
+    def run(self, options, args):
+        requirement_set = RequirementSet(
+            build_dir=None,
+            src_dir=None,
+            download_dir=None)
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(name))
+        for filename in options.requirements:
+            for req in parse_requirements(filename):
+                requirement_set.add_requirement(req)
+        requirement_set.uninstall(auto_confirm=options.yes)
+
+UninstallCommand()
 
 class BundleCommand(InstallCommand):
     name = 'bundle'
@@ -1330,6 +1379,12 @@ class InstallRequirement(object):
         self._is_bundle = None
         # True if the editable should be updated:
         self.update = update
+        # An already-installed distribution that should be uninstalled first
+        self.uninstall_first = None
+        # Set to True after successful installation
+        self.install_succeeded = None
+        # UninstallPathSet of uninstalled distribution (for possible rollback)
+        self.uninstalled = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None):
@@ -1629,6 +1684,96 @@ execfile(__file__)
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
+    def uninstall(self, auto_confirm=False):
+        """
+        Uninstall the distribution currently satisfying this requirement.
+
+        Prompts before removing or modifying files unless
+        ``auto_confirm`` is True.
+
+        Refuses to delete or modify files outside of ``sys.prefix`` -
+        thus uninstallation within a virtual environment can only
+        modify that virtual environment, even if the virtualenv is
+        linked to global site-packages.
+        
+        """
+        if not self.check_if_exists(bool(self.uninstall_first)):
+            raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
+        dist = self.satisfied_by
+        paths_to_remove = UninstallPathSet(dist, sys.prefix)
+        if not paths_to_remove.can_uninstall():
+            return
+
+        pip_egg_info_path = os.path.join(dist.location,
+                                         dist.egg_name()) + '.egg-info'
+        easy_install_egg = dist.egg_name() + '.egg'
+        # This won't find a globally-installed develop egg if
+        # we're in a virtualenv (lib_py is based on sys.prefix).
+        # (There doesn't seem to be any metadata in the
+        # Distribution object for a develop egg that points back
+        # to its .egg-link and easy-install.pth files).  That's
+        # OK, because we restrict ourselves to making changes
+        # within sys.prefix anyway.
+        develop_egg_link = os.path.join(lib_py, 'site-packages',
+                                        dist.project_name) + '.egg-link'
+        if os.path.exists(pip_egg_info_path):
+            # package installed by pip
+            paths_to_remove.add(pip_egg_info_path)
+            if dist.has_metadata('installed-files.txt'):
+                for installed_file in dist.get_metadata('installed-files.txt').splitlines():
+                    path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                    if os.path.exists(path):
+                        paths_to_remove.add(path)
+            if dist.has_metadata('top_level.txt'):
+                for top_level_pkg in [p for p
+                                      in dist.get_metadata('top_level.txt').splitlines()
+                                      if p]:
+                    path = os.path.join(dist.location, top_level_pkg)
+                    if os.path.exists(path):
+                        paths_to_remove.add(path)
+                    elif os.path.exists(path + '.py'):
+                        paths_to_remove.add(path + '.py')
+                        if os.path.exists(path + '.pyc'):
+                            paths_to_remove.add(path + '.pyc')
+
+        elif dist.location.endswith(easy_install_egg):
+            # package installed by easy_install
+            paths_to_remove.add(dist.location)
+            easy_install_pth = os.path.join(os.path.dirname(dist.location),
+                                            'easy-install.pth')
+            paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
+
+        elif os.path.isfile(develop_egg_link):
+            # develop egg
+            fh = open(develop_egg_link, 'r')
+            link_pointer = os.path.normcase(fh.readline().strip())
+            fh.close()
+            assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
+            paths_to_remove.add(develop_egg_link)
+            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+                                            'easy-install.pth')
+            paths_to_remove.add_pth(easy_install_pth, dist.location)
+
+        # get scripts from metadata FIXME there seems to be no way to
+        # get info about installed scripts from a
+        # develop-install. python setup.py develop --record in
+        # install_editable seemingly ought to work, but does not
+        if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
+            for script in dist.metadata_listdir('scripts'):
+                paths_to_remove.add(os.path.join(bin_py, script))
+                if sys.platform == 'win32':
+                    paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
+
+        paths_to_remove.remove(auto_confirm)
+        self.uninstalled = paths_to_remove
+
+    def rollback_uninstall(self):
+        if self.uninstalled:
+            self.uninstalled.rollback()
+        else:
+            logger.error("Can't rollback %s, nothing uninstalled."
+                         % (self.project_name,))
+
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True
@@ -1678,12 +1823,6 @@ execfile(__file__)
         if self.editable:
             self.install_editable()
             return
-        ## FIXME: this is not a useful record:
-        ## Also a bad location
-        if sys.platform == 'win32':
-            install_location = os.path.join(sys.prefix, 'Lib')
-        else:
-            install_location = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -1700,6 +1839,7 @@ execfile(__file__)
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
         finally:
             logger.indent -= 2
+        self.install_succeeded = True
         f = open(record_filename)
         for line in f:
             line = line.strip()
@@ -1747,6 +1887,7 @@ execfile(__file__)
                 show_stdout=False)
         finally:
             logger.indent -= 2
+        self.install_succeeded = True
 
     def _filter_install(self, line):
         level = Logger.NOTIFY
@@ -1760,7 +1901,7 @@ execfile(__file__)
                 break
         return (level, line)
 
-    def check_if_exists(self):
+    def check_if_exists(self, allow_other_version=False):
         """Checks if this requirement is satisfied by something already installed"""
         if self.req is None:
             return False
@@ -1768,6 +1909,11 @@ execfile(__file__)
             dist = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
+        except pkg_resources.VersionConflict:
+            if allow_other_version:
+                dist = pkg_resources.get_distribution(self.req.project_name)
+            else:
+                raise
         self.satisfied_by = dist
         return True
 
@@ -1913,6 +2059,10 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
+    def uninstall(self, auto_confirm=False):
+        for req in self.requirements.values():
+            req.uninstall(auto_confirm=auto_confirm)
+
     def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
@@ -1922,9 +2072,13 @@ class RequirementSet(object):
             else:
                 req_to_install = reqs.pop(0)
             install = True
-            if not self.ignore_installed and not req_to_install.editable and not self.upgrade:
-                if req_to_install.check_if_exists():
-                    install = False
+            if not self.ignore_installed and not req_to_install.editable:
+                if req_to_install.check_if_exists(self.upgrade):
+                    if self.upgrade:
+                        req_to_install.uninstall_first = req_to_install.satisfied_by
+                        req_to_install.satisfied_by = None
+                    else:
+                        install = False
             if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied: %s' % req_to_install)
             elif req_to_install.editable:
@@ -2175,7 +2329,6 @@ class RequirementSet(object):
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
             Subversion('svn+' + link.url).unpack(location)
-
         else:
             ## FIXME: handle?
             ## FIXME: magic signatures?
@@ -2266,10 +2419,24 @@ class RequirementSet(object):
         logger.indent += 2
         try:
             for requirement in self.requirements.values():
-                if requirement.satisfied_by is not None:
+                if requirement.uninstall_first:
+                    logger.notify('Found existing installation: %s'
+                                  % requirement.uninstall_first)
+                    logger.indent += 2
+                    try:
+                        requirement.uninstall(auto_confirm=True)
+                    finally:
+                        logger.indent -= 2
+                elif requirement.satisfied_by is not None:
                     # Already installed
                     continue
-                requirement.install(install_options)
+                try:
+                    requirement.install(install_options)
+                except:
+                    # if install did not succeed, rollback previous uninstall
+                    if requirement.uninstall_first and not requirement.install_succeeded:
+                        requirement.rollback_uninstall()
+                    raise
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
@@ -3578,7 +3745,7 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
-def parse_requirements(filename, finder, comes_from=None):
+def parse_requirements(filename, finder=None, comes_from=None):
     skip_match = None
     if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
         skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
@@ -3606,7 +3773,7 @@ def parse_requirements(filename, finder, comes_from=None):
             # No longer used, but previously these were used in
             # requirement files, so we'll ignore.
             pass
-        elif line.startswith('-f') or line.startswith('--find-links'):
+        elif finder and line.startswith('-f') or line.startswith('--find-links'):
             if line.startswith('-f'):
                 line = line[2:].strip()
             else:
@@ -4122,6 +4289,160 @@ def package_to_requirement(package_name):
     else:
         return name
 
+def strip_prefix(path, prefix):
+    """ If ``path`` begins with ``prefix``, return ``path`` with
+    ``prefix`` stripped off.  Otherwise return None."""
+    if path.startswith(prefix):
+        return path.replace(prefix + os.path.sep, '')
+    return None
+
+class UninstallPathSet(object):
+    """A set of file paths to be removed in the uninstallation of a
+    requirement."""
+    def __init__(self, dist, restrict_to_prefix):
+        self.paths = set()
+        self._refuse = set()
+        self.pth = {}
+        self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
+        self.dist = dist
+        self.save_dir = None
+        self._moved_paths = []
+
+    def can_uninstall(self):
+        if not strip_prefix(self.dist.location, self.prefix):
+            logger.notify("Not uninstalling %s at %s, outside environment %s"
+                          % (self.dist.project_name, self.dist.location,
+                             self.prefix))
+            return False
+        return True
+        
+    def add(self, path):
+        if not os.path.exists(path):
+            return
+        stripped = strip_prefix(os.path.normcase(path), self.prefix)
+        if stripped:
+            self.paths.add(stripped)
+        else:
+            self._refuse.add(path)
+
+    def add_pth(self, pth_file, entry):
+        stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
+        if stripped:
+            entry = os.path.normcase(entry)
+            if stripped not in self.pth:
+                self.pth[stripped] = UninstallPthEntries(os.path.join(self.prefix, stripped))
+            self.pth[stripped].add(os.path.normcase(entry))
+        else:
+            self._refuse.add(pth_file)
+        
+    def compact(self, paths):
+        """Compact a path set to contain the minimal number of paths
+        necessary to contain all paths in the set. If /a/path/ and
+        /a/path/to/a/file.txt are both in the set, leave only the
+        shorter path."""
+        short_paths = set()
+        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+            if not any([(path.startswith(shortpath) and
+                         path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
+                        for shortpath in short_paths]):
+                short_paths.add(path)
+        return short_paths
+
+    def remove(self, auto_confirm=False):
+        """Remove paths in ``self.paths`` with confirmation (unless
+        ``auto_confirm`` is True)."""
+        logger.notify('Uninstalling %s:' % self.dist.project_name)
+        logger.indent += 2
+        paths = sorted(self.compact(self.paths))
+        try:
+            if auto_confirm:
+                response = 'y'
+            else:
+                for path in paths:
+                    logger.notify(path)
+                response = ask('Proceed (y/n)? ', ('y', 'n'))
+            if self._refuse:
+                logger.notify('Not removing or modifying (outside of sys.prefix):')
+                for path in self.compact(self._refuse):
+                    logger.notify(path)
+            if response == 'y':
+                self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
+                for path in paths:
+                    full_path = os.path.join(self.prefix, path)
+                    new_path = os.path.join(self.save_dir, path)
+                    new_dir = os.path.dirname(new_path)
+                    logger.info('Removing file or directory %s' % full_path)
+                    self._moved_paths.append(path)
+                    os.renames(full_path, new_path)
+                for pth in self.pth.values():
+                    pth.remove()
+                logger.notify('Successfully uninstalled %s' % self.dist.project_name)
+                
+        finally:
+            logger.indent -= 2
+
+    def rollback(self):
+        """Rollback the changes previously made by remove()."""
+        if self.save_dir is None:
+            logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
+            return False
+        logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
+        for path in self._moved_paths:
+            tmp_path = os.path.join(self.save_dir, path)
+            real_path = os.path.join(self.prefix, path)
+            logger.info('Replacing %s' % real_path)
+            os.renames(tmp_path, real_path)
+        for pth in self.pth:
+            pth.rollback()
+
+    def commit(self):
+        """Remove temporary save dir: rollback will no longer be possible."""
+        if self.save_dir is not None:
+            shutil.rmtree(self.save_dir)
+            self.save_dir = None
+            self._moved_paths = []
+        
+
+class UninstallPthEntries(object):
+    def __init__(self, pth_file):
+        if not os.path.isfile(pth_file):
+            raise UninstallationError("Cannot remove entries from nonexistent file %s" % pth_file)
+        self.file = pth_file
+        self.entries = set()
+        self._saved_lines = None
+
+    def add(self, entry):
+        self.entries.add(entry)
+
+    def remove(self):
+        logger.info('Removing pth entries from %s:' % self.file)
+        fh = open(self.file, 'r')
+        lines = fh.readlines()
+        self._saved_lines = lines
+        fh.close()
+        try:
+            for entry in self.entries:
+                logger.info('Removing entry: %s' % entry)
+            try:
+                lines.remove(entry + '\n')
+            except ValueError:
+                pass
+        finally:
+            pass
+        fh = open(self.file, 'w')
+        fh.writelines(lines)
+        fh.close()
+
+    def rollback(self):
+        if self._saved_lines is None:
+            logger.error('Cannot roll back changes to %s, none were made' % self.file)
+            return False
+        logger.info('Rolling %s back to previous state' % self.file)
+        fh = open(self.file, 'w')
+        fh.writelines(self._saved_lines)
+        fh.close()
+        return True
+        
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)

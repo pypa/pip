@@ -40,6 +40,46 @@ def write_file(filename, text):
 def get_env():
     return env
 
+# FIXME ScriptTest does something similar, but only within a single
+# ProcResult; this generalizes it so states can be compared across
+# multiple commands.  Maybe should be rolled into ScriptTest?
+def diff_states(start, end, ignore=None):
+    """
+    Differences two "filesystem states" as represented by dictionaries
+    of FoundFile and FoundDir objects.
+
+    Returns a dictionary with following keys:
+
+    ``deleted``
+        Dictionary of files/directories found only in the start state.
+
+    ``created``
+        Dictionary of files/directories found only in the end state.
+
+    ``updated``
+        Dictionary of files whose size has changed (FIXME not entirely
+        reliable, but comparing contents is not possible because
+        FoundFile.bytes is lazy, and comparing mtime doesn't help if
+        we want to know if a file has been returned to its earlier
+        state).
+
+    Ignores mtime and other file attributes; only presence/absence and
+    size are considered.
+    
+    """
+    ignore = ignore or []
+    start_keys = set([k for k in start.keys()
+                      if not any([k.startswith(i) for i in ignore])])
+    end_keys = set([k for k in end.keys()
+                    if not any([k.startswith(i) for i in ignore])])
+    deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys)])
+    created = dict([(k, end[k]) for k in end_keys.difference(start_keys)])
+    updated = {}
+    for k in start_keys.intersection(end_keys):
+        if (start[k].size != end[k].size):
+            updated[k] = end[k]
+    return dict(deleted=deleted, created=created, updated=updated)
+
 import optparse
 parser = optparse.OptionParser(usage='%prog [OPTIONS] [TEST_FILE...]')
 parser.add_option('--first', action='store_true',
@@ -56,7 +96,7 @@ def main():
     options, args = parser.parse_args()
     reset_env()
     if not args:
-        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt']
+        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt', 'test_upgrade.txt']
     optionflags = doctest.ELLIPSIS
     if options.first:
         optionflags |= doctest.REPORT_ONLY_FIRST_FAILURE
