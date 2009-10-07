@@ -2083,7 +2083,7 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             if not self.ignore_installed and not req_to_install.editable:
-                if req_to_install.check_if_exists(self.upgrade):
+                if req_to_install.check_if_exists(True):
                     if self.upgrade:
                         req_to_install.uninstall_first = req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
