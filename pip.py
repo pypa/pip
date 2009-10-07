@@ -2241,9 +2241,10 @@ class RequirementSet(object):
             ext = splitext(filename)[1]
             if not ext:
                 ext = mimetypes.guess_extension(content_type)
-                filename += ext
+                if ext:
+                    filename += ext
             if not ext and link.url != resp.geturl():
-                ext = os.path.splitext(resp.geturl())
+                ext = os.path.splitext(resp.geturl())[1]
                 if ext:
                     filename += ext
             temp_location = os.path.join(dir, filename)
