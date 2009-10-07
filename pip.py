@@ -502,9 +502,15 @@ class InstallCommand(Command):
         requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
-            logger.notify('Successfully installed %s' % requirement_set)
+            installed = ' '.join([req.name for req in
+                                  requirement_set.successfully_installed])
+            if installed:
+                logger.notify('Successfully installed %s' % installed)
         elif not self.bundle:
-            logger.notify('Successfully downloaded %s' % requirement_set)
+            downloaded = ' '.join([req.name for req in
+                                   requirement_set.successfully_downloaded])
+            if downloaded:
+                logger.notify('Successfully downloaded %s' % downloaded)
         return requirement_set
 
 InstallCommand()
@@ -1385,12 +1391,13 @@ class InstallRequirement(object):
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
         self.satisfied_by = None
+        # This hold the pkg_resources.Distribution object if this requirement
+        # conflicts with another installed distribution:
+        self.conflicts_with = None
         self._temp_build_dir = None
         self._is_bundle = None
         # True if the editable should be updated:
         self.update = update
-        # An already-installed distribution that should be uninstalled first
-        self.uninstall_first = None
         # Set to True after successful installation
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
@@ -1707,9 +1714,9 @@ execfile(__file__)
         linked to global site-packages.
         
         """
-        if not self.check_if_exists(bool(self.uninstall_first)):
+        if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
-        dist = self.satisfied_by
+        dist = self.satisfied_by or self.conflicts_with
         paths_to_remove = UninstallPathSet(dist, sys.prefix)
         if not paths_to_remove.can_uninstall():
             return
@@ -1911,20 +1918,18 @@ execfile(__file__)
                 break
         return (level, line)
 
-    def check_if_exists(self, allow_other_version=False):
-        """Checks if this requirement is satisfied by something already installed"""
+    def check_if_exists(self):
+        """Find an installed distribution that satisfies or conflicts
+        with this requirement, and set self.satisfied_by or
+        self.conflicts_with appropriately."""
         if self.req is None:
             return False
         try:
-            dist = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            if allow_other_version:
-                dist = pkg_resources.get_distribution(self.req.project_name)
-            else:
-                raise
-        self.satisfied_by = dist
+            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
         return True
 
     @property
@@ -2021,6 +2026,8 @@ class RequirementSet(object):
         self.requirement_aliases = {}
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
+        self.successfully_downloaded = []
+        self.successfully_installed = []
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -2083,14 +2090,18 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             if not self.ignore_installed and not req_to_install.editable:
-                if req_to_install.check_if_exists(True):
-                    if self.upgrade:
-                        req_to_install.uninstall_first = req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
-                    else:
-                        install = False
-            if req_to_install.satisfied_by is not None and not self.upgrade:
-                logger.notify('Requirement already satisfied: %s' % req_to_install)
+                if req_to_install.check_if_exists() and not self.upgrade:
+                    install = False
+                    if req_to_install.conflicts_with:
+                        logger.warn('Requirement %s conflicts with installed distribution %s; use --upgrade to upgrade.' % (req_to_install, req_to_install.conflicts_with))
+                        continue
+                if self.upgrade and req_to_install.satisfied_by:
+                    req_to_install.conflicts_with = req_to_install.satisfied_by
+                    req_to_install.satisfied_by = None
+                if req_to_install.satisfied_by:
+                    logger.notify('Requirement already satisfied '
+                                  '(use --upgrade to upgrade): %s'
+                                  % req_to_install)
             elif req_to_install.editable:
                 logger.notify('Obtaining %s' % req_to_install)
             else:
@@ -2184,6 +2195,8 @@ class RequirementSet(object):
                         self.requirements[req_to_install.name] = req_to_install
                 else:
                     req_to_install.remove_temporary_source()
+                if install:
+                    self.successfully_downloaded.append(req_to_install)
             finally:
                 logger.indent -= 2
 
@@ -2425,32 +2438,34 @@ class RequirementSet(object):
 
     def install(self, install_options):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
-        requirements = sorted(self.requirements.values(), key=lambda p: p.name.lower())
-        logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in requirements])))
+        to_install = sorted([r for r in self.requirements.values()
+                             if (self.upgrade or (r.satisfied_by is None and
+                                                  r.conflicts_with is None))],
+                            key=lambda p: p.name.lower())
+        if to_install:
+            logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
         logger.indent += 2
         try:
-            for requirement in self.requirements.values():
-                if requirement.uninstall_first:
+            for requirement in to_install:
+                if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
-                                  % requirement.uninstall_first)
+                                  % requirement.conflicts_with)
                     logger.indent += 2
                     try:
                         requirement.uninstall(auto_confirm=True)
                     finally:
                         logger.indent -= 2
-                elif requirement.satisfied_by is not None:
-                    # Already installed
-                    continue
                 try:
                     requirement.install(install_options)
                 except:
                     # if install did not succeed, rollback previous uninstall
-                    if requirement.uninstall_first and not requirement.install_succeeded:
+                    if requirement.conflicts_with and not requirement.install_succeeded:
                         requirement.rollback_uninstall()
                     raise
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+        self.successfully_installed = to_install
 
     def create_bundle(self, bundle_filename):
         ## FIXME: can't decide which is better; zip is easier to read
@@ -2865,8 +2880,6 @@ class FrozenRequirement(object):
             req = '-e %s' % req
         return '\n'.join(list(self.comments)+[str(req)])+'\n'
 
-(_CAN_SWITCH, _NO_SWITCH) = (1, 2)
-    
 class VersionControl(object):
     name = ''
     dirname = ''
