@@ -1,7 +1,7 @@
 News for pip
 ============
 
-tip
+0.5
 ---
 
 * Added ability to override the default log file name (``pip-log.txt``)
@@ -40,6 +40,10 @@ tip
 * Fixed handling read-only attributes of build files, e.g. of Subversion and
   Bazaar on Windows.
 
+* When downloading a file from a redirect, use the redirected
+  location's extension to guess the compression (happens specifically
+  when redirecting to a bitbucket.org tip.gz file).
+
 * Editable freeze URLs now always use revision hash/id rather than tip or
   branch names which could move.
 
@@ -49,6 +53,8 @@ tip
 
 * Fixed handling of attempt to checkout editable install to a
   non-empty, non-repo directory.
+
+* Added uninstall command and automatic uninstall-before-upgrade.
 
 0.4
 ---
