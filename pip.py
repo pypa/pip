@@ -2687,6 +2687,8 @@ class FrozenRequirement(object):
             req = '-e %s' % req
         return '\n'.join(list(self.comments)+[str(req)])+'\n'
 
+(_CAN_SWITCH, _NO_SWITCH) = (1, 2)
+    
 class VersionControl(object):
     name = ''
     dirname = ''
@@ -2718,6 +2720,18 @@ class VersionControl(object):
         assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
+    def normalize_url(self, url):
+        """
+        Normalize a URL for comparison by unquoting it and removing any trailing slash.
+        """
+        return urllib.unquote(url).rstrip('/')
+
+    def compare_urls(self, url1, url2):
+        """
+        Compare two repo URLs for identity, ignoring incidental differences.
+        """
+        return (self.normalize_url(url1) == self.normalize_url(url2))
+    
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -2733,6 +2747,69 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def switch(self, dest, url, rev_options):
+        """
+        Switch the repo at ``dest`` to point to ``URL``.
+        """
+        raise NotImplemented
+
+    def update(self, dest, rev_options):
+        """
+        Update an already-existing repo to the given ``rev_options``.
+        """
+        raise NotImplementedError
+    
+    def check_destination(self, dest, url, rev_options, rev_display):
+        """
+        Prepare a location to receive a checkout/clone.
+
+        Return True if the location is ready for (and requires) a
+        checkout/clone, False otherwise.
+        """
+        checkout = True
+        prompt = False
+        if os.path.exists(dest):
+            checkout = False
+            if os.path.exists(os.path.join(dest, self.dirname)):
+                existing_url = self.get_url(dest)
+                if self.compare_urls(existing_url, url):
+                    logger.info('%s in %s exists, and has correct URL (%s)'
+                                % (self.repo_name.title(), display_path(dest), url))
+                    logger.notify('Updating %s %s%s'
+                                  % (display_path(dest), self.repo_name, rev_display))
+                    self.update(dest, rev_options)
+                else:
+                    logger.warn('%s %s in %s exists with URL %s'
+                                % (self.name, self.repo_name, display_path(dest), existing_url))
+                    prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
+            else:
+                logger.warn('Directory %s already exists, and is not a %s %s.'
+                            % (dest, self.name, self.repo_name))
+                prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
+        if prompt:
+            logger.warn('The plan is to install the %s repository %s'
+                        % (self.name, url))
+            response = ask('What to do?  %s' % prompt[0], prompt[1])
+
+            if response == 's':
+                logger.notify('Switching %s %s to %s%s'
+                              % (self.repo_name, display_path(dest), url, rev_display))
+                self.switch(dest, url, rev_options)
+            elif response == 'i':
+                # do nothing
+                pass
+            elif response == 'w':
+                logger.warn('Deleting %s' % display_path(dest))
+                shutil.rmtree(dest)
+                checkout = True
+            elif response == 'b':
+                dest_dir = backup_dir(dest)
+                logger.warn('Backing up %s to %s'
+                            % (display_path(dest), dest_dir))
+                shutil.move(dest, dest_dir)
+                checkout = True
+        return checkout
+    
     def unpack(self, location):
         raise NotImplementedError
 
@@ -2747,6 +2824,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 class Subversion(VersionControl):
     name = 'svn'
     dirname = '.svn'
+    repo_name = 'checkout'
     schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https')
     bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
@@ -2761,15 +2839,21 @@ class Subversion(VersionControl):
         if not match:
             logger.warn('Cannot determine URL of svn checkout %s' % display_path(location))
             logger.info('Output that cannot be parsed: \n%s' % output)
-            return 'unknown', 'unknown'
+            return None, None
         url = match.group(1).strip()
         match = _svn_revision_re.search(output)
         if not match:
             logger.warn('Cannot determine revision of svn checkout %s' % display_path(location))
             logger.info('Output that cannot be parsed: \n%s' % output)
-            return url, 'unknown'
+            return url, None
         return url, match.group(1)
 
+    def get_url(self, location):
+        return self.get_info(location)[0]
+
+    def get_revision(self, location):
+        return self.get_info(location)[1]
+    
     def parse_vcs_bundle_file(self, content):
         for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
@@ -2814,6 +2898,14 @@ class Subversion(VersionControl):
         finally:
             logger.indent -= 2
 
+    def switch(self, dest, url, rev_options):
+        call_subprocess(
+            ['svn', 'switch'] + rev_options + [url, dest])
+            
+    def update(self, dest, rev_options):
+        call_subprocess(
+            ['svn', 'update'] + rev_options + [dest])
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -2822,42 +2914,7 @@ class Subversion(VersionControl):
         else:
             rev_options = []
             rev_display = ''
-        checkout = True
-        if os.path.exists(os.path.join(dest, self.dirname)):
-            existing_url = self.get_info(dest)[0]
-            checkout = False
-            if existing_url == url:
-                logger.info('Checkout in %s exists, and has correct URL (%s)'
-                            % (display_path(dest), url))
-                logger.notify('Updating checkout %s%s'
-                              % (display_path(dest), rev_display))
-                call_subprocess(
-                    ['svn', 'update'] + rev_options + [dest])
-            else:
-                logger.warn('svn checkout in %s exists with URL %s'
-                            % (display_path(dest), existing_url))
-                logger.warn('The plan is to install the svn repository %s'
-                            % url)
-                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
-                if response == 's':
-                    logger.notify('Switching checkout %s to %s%s'
-                                  % (display_path(dest), url, rev_display))
-                    call_subprocess(
-                        ['svn', 'switch'] + rev_options + [url, dest])
-                elif response == 'i':
-                    # do nothing
-                    pass
-                elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(dest))
-                    shutil.rmtree(dest)
-                    checkout = True
-                elif response == 'b':
-                    dest_dir = backup_dir(dest)
-                    logger.warn('Backing up %s to %s'
-                                % (display_path(dest), dest_dir))
-                    shutil.move(dest, dest_dir)
-                    checkout = True
-        if checkout:
+        if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
             call_subprocess(
@@ -2985,29 +3042,29 @@ class Subversion(VersionControl):
         parts = repo.split('/')
         ## FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
+        rev = self.get_revision(location)
         if parts[-2] in ('tags', 'tag'):
             # It's a tag, perfect!
-            return 'svn+%s#egg=%s-%s' % (repo, egg_project_name, parts[-1])
+            full_egg_name = '%s-%s' % (egg_project_name, parts[-1])
         elif parts[-2] in ('branches', 'branch'):
             # It's a branch :(
-            rev = self.get_revision(location)
-            return 'svn+%s@%s#egg=%s%s-r%s' % (repo, rev, dist.egg_name(), parts[-1], rev)
+            full_egg_name = '%s-%s-r%s' % (dist.egg_name(), parts[-1], rev)
         elif parts[-1] == 'trunk':
             # Trunk :-/
-            rev = self.get_revision(location)
+            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), rev)
             if find_tags:
                 tag_url = '/'.join(parts[:-1]) + '/tags'
                 tag_revs = self.get_tag_revs(tag_url)
                 match = self.find_tag_match(rev, tag_revs)
                 if match:
                     logger.notify('trunk checkout %s seems to be equivalent to tag %s' % match)
-                    return 'svn+%s/%s#egg=%s-%s' % (tag_url, match, egg_project_name, match)
-            return 'svn+%s@%s#egg=%s-dev' % (repo, rev, dist.egg_name())
+                    repo = '%s/%s' % (tag_url, match)
+                    full_egg_name = '%s-%s' % (egg_project_name, match)
         else:
             # Don't know what it is
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
-            rev = self.get_revision(location)
-            return 'svn+%s@%s#egg=%s-dev' % (repo, rev, egg_project_name)
+            full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
+        return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
 
 vcs.register(Subversion)
 
@@ -3015,6 +3072,7 @@ vcs.register(Subversion)
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
+    repo_name = 'clone'
     schemes = ('git', 'git+http', 'git+ssh', 'git+git')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
@@ -3083,6 +3141,18 @@ class Git(VersionControl):
                                         % (rev, display_path(dest)))
         return [rev]
 
+    def switch(self, dest, url, rev_options):
+        remote_name = self.get_remote_name(location)
+        call_subprocess(
+            [GIT_CMD, 'config', 'remote.%s.url' % remote_name, url], cwd=dest)
+        call_subprocess(
+            [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
+
+    def update(self, dest, rev_options):
+        call_subprocess([GIT_CMD, 'fetch', '-q'], cwd=dest)
+        call_subprocess(
+            [GIT_CMD, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3091,45 +3161,7 @@ class Git(VersionControl):
         else:
             rev_options = ['origin/master']
             rev_display = ''
-        clone = True
-        if os.path.exists(os.path.join(dest, self.dirname)):
-            existing_url = self.get_url(dest)
-            rev_options = self.check_rev_options(rev, dest, rev_options)
-            clone = False
-            if existing_url == url:
-                logger.info('Clone in %s exists, and has correct URL (%s)'
-                            % (display_path(dest), url))
-                logger.notify('Updating clone %s%s'
-                              % (display_path(dest), rev_display))
-                call_subprocess([GIT_CMD, 'fetch', '-q'], cwd=dest)
-                call_subprocess(
-                    [GIT_CMD, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
-            else:
-                logger.warn('Git clone in %s exists with URL %s'
-                            % (display_path(dest), existing_url))
-                logger.warn('The plan is to install the Git repository %s'
-                            % url)
-                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
-                if response == 's':
-                    logger.notify('Switching clone %s to %s%s'
-                                  % (display_path(dest), url, rev_display))
-                    call_subprocess(
-                        [GIT_CMD, 'config', 'remote.origin.url', url], cwd=dest)
-                    call_subprocess(
-                        [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
-                elif response == 'i':
-                    # do nothing
-                    pass
-                elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(dest))
-                    shutil.rmtree(dest)
-                    clone = True
-                elif response == 'b':
-                    dest_dir = backup_dir(dest)
-                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
-                    shutil.move(dest, dest_dir)
-                    clone = True
-        if clone:
+        if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess(
                 [GIT_CMD, 'clone', '-q', url, dest])
@@ -3137,9 +3169,22 @@ class Git(VersionControl):
             call_subprocess(
                 [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
+    def get_remote_name(self, location):
+        """First gets the name of the current HEAD, e.g. master. Then returns
+        the name of the remote which the head is tracking."""
+        head_ref = call_subprocess(
+            [GIT_CMD, 'symbolic-ref', '-q', 'HEAD'],
+            show_stdout=False, cwd=location).strip()
+        head_ref = head_ref.split('refs/heads/', 1)[-1]
+        remote_name = call_subprocess(
+            [GIT_CMD, 'config', 'branch.%s.remote' % head_ref],
+            show_stdout=False, cwd=location).strip()
+        return remote_name
+
     def get_url(self, location):
+        remote_name = self.get_remote_name(location)
         url = call_subprocess(
-            [GIT_CMD, 'config', 'remote.origin.url'],
+            [GIT_CMD, 'config', 'remote.%s.url' % remote_name],
             show_stdout=False, cwd=location)
         return url.strip()
 
@@ -3147,11 +3192,6 @@ class Git(VersionControl):
         current_rev = call_subprocess(
             [GIT_CMD, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
-
-    def get_master_revision(self, location):
-        master_rev = call_subprocess(
-            [GIT_CMD, 'rev-parse', 'master'], show_stdout=False, cwd=location)
-        return master_rev.strip()
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
@@ -3187,28 +3227,21 @@ class Git(VersionControl):
             return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
-        master_rev = self.get_master_revision(location)
         branch_revs = self.get_branch_revs(location)
+        remote_name = self.get_remote_name(location)
 
         if current_rev in tag_revs:
-            # It's a tag, perfect!
-            tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-        elif current_rev in branch_revs:
-            # It's the head of a branch, nice too.
-            branch = branch_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, current_rev, dist.egg_name(), current_rev)
-        elif current_rev == master_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, master_rev, dist.egg_name())
+            # It's a tag
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
+        elif (current_rev in branch_revs and
+              branch_revs[current_rev] != '%s/master' % remote_name):
+            # It's the head of a branch
+            full_egg_name = '%s-%s' % (dist.egg_name(),
+                                       branch_revs[current_rev].replace('%s/' % remote_name, ''))
         else:
-            # Don't know what it is
-            logger.warn('Git URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev' % dist.egg_name()
+            
+        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
     def get_url_rev(self):
         """
@@ -3229,6 +3262,7 @@ vcs.register(Git)
 class Mercurial(VersionControl):
     name = 'hg'
     dirname = '.hg'
+    repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+ssh')
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
@@ -3274,6 +3308,27 @@ class Mercurial(VersionControl):
         finally:
             shutil.rmtree(temp_dir)
 
+    def switch(self, dest, url, rev_options):
+        repo_config = os.path.join(dest, self.dirname, 'hgrc')
+        config = ConfigParser.SafeConfigParser()
+        try:
+            config.read(repo_config)
+            config.set('paths', 'default', url)
+            config_file = open(repo_config, 'w')
+            config.write(config_file)
+            config_file.close()
+        except (OSError, ConfigParser.NoSectionError), e:
+            logger.warn(
+                'Could not switch Mercurial repository to %s: %s'
+                % (url, e))
+        else:
+            call_subprocess(['hg', 'update', '-q'] + rev_options, cwd=dest)
+
+    def update(self, dest, rev_options):
+        call_subprocess(['hg', 'pull', '-q'], cwd=dest)
+        call_subprocess(
+            ['hg', 'update', '-q'] + rev_options, cwd=dest)
+        
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3282,54 +3337,7 @@ class Mercurial(VersionControl):
         else:
             rev_options = []
             rev_display = ''
-        clone = True
-        if os.path.exists(os.path.join(dest, '.hg')):
-            existing_url = self.get_url(dest)
-            clone = False
-            if existing_url == url:
-                logger.info('Clone in %s exists, and has correct URL (%s)'
-                            % (display_path(dest), url))
-                logger.notify('Updating clone %s%s'
-                              % (display_path(dest), rev_display))
-                call_subprocess(['hg', 'pull', '-q'], cwd=dest)
-                call_subprocess(
-                    ['hg', 'update', '-q'] + rev_options, cwd=dest)
-            else:
-                logger.warn('Mercurial clone in %s exists with URL %s'
-                            % (display_path(dest), existing_url))
-                logger.warn('The plan is to install the Mercurial repository %s'
-                            % url)
-                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
-                if response == 's':
-                    logger.notify('Switching clone %s to %s%s'
-                                  % (display_path(dest), url, rev_display))
-                    repo_config = os.path.join(dest, '.hg/hgrc')
-                    config = ConfigParser.SafeConfigParser()
-                    try:
-                        config_file = open(repo_config, 'wb')
-                        config.readfp(config_file)
-                        config.set('paths', ''.join(rev_options), url)
-                        config.write(config_file)
-                    except (OSError, ConfigParser.NoSectionError):
-                        logger.warn(
-                            'Could not switch Mercurial repository to %s: %s'
-                                % (url, e))
-                    else:
-                        call_subprocess(
-                            ['hg', 'update', '-q'] + rev_options, cwd=dest)
-                elif response == 'i':
-                    # do nothing
-                    pass
-                elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(dest))
-                    shutil.rmtree(dest)
-                    clone = True
-                elif response == 'b':
-                    dest_dir = backup_dir(dest)
-                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
-                    shutil.move(dest, dest_dir)
-                    clone = True
-        if clone:
+        if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning hg %s%s to %s'
                           % (url, rev_display, display_path(dest)))
             call_subprocess(['hg', 'clone', '-q', url, dest])
@@ -3342,11 +3350,6 @@ class Mercurial(VersionControl):
         if url.startswith('/') or url.startswith('\\'):
             url = filename_to_url(url)
         return url.strip()
-
-    def get_tip_revision(self, location):
-        current_rev = call_subprocess(
-            ['hg', 'tip', '--template={rev}'], show_stdout=False, cwd=location)
-        return current_rev.strip()
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
@@ -3378,6 +3381,12 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_revision
 
+    def get_revision_hash(self, location):
+        current_rev_hash = call_subprocess(
+            ['hg', 'parents', '--template={node}'],
+            show_stdout=False, cwd=location).strip()
+        return current_rev_hash
+
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
         if not repo.lower().startswith('hg:'):
@@ -3386,28 +3395,18 @@ class Mercurial(VersionControl):
         if not repo:
             return None
         current_rev = self.get_revision(location)
+        current_rev_hash = self.get_revision_hash(location)
         tag_revs = self.get_tag_revs(location)
         branch_revs = self.get_branch_revs(location)
-        tip_rev = self.get_tip_revision(location)
         if current_rev in tag_revs:
-            # It's a tag, perfect!
-            tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
+            # It's a tag
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         elif current_rev in branch_revs:
-            # It's the tip of a branch, nice too.
-            branch = branch_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, branch, dist.egg_name(), current_rev)
-        elif current_rev == tip_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, tip_rev, dist.egg_name())
+            # It's the tip of a branch
+            full_egg_name = '%s-%s' % (dist.egg_name(), branch_revs[current_rev])
         else:
-            # Don't know what it is
-            logger.warn('Mercurial URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev' % dist.egg_name()
+        return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
 
 vcs.register(Mercurial)
 
@@ -3415,6 +3414,7 @@ vcs.register(Mercurial)
 class Bazaar(VersionControl):
     name = 'bzr'
     dirname = '.bzr'
+    repo_name = 'branch'
     bundle_file = 'bzr-branch.txt'
     schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
@@ -3460,6 +3460,13 @@ class Bazaar(VersionControl):
         finally:
             shutil.rmtree(temp_dir)
 
+    def switch(self, dest, url, rev_options):
+        call_subprocess([BZR_CMD, 'switch', url], cwd=dest)
+
+    def update(self, dest, rev_options):
+        call_subprocess(
+            [BZR_CMD, 'pull', '-q'] + rev_options, cwd=dest)
+            
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3468,48 +3475,11 @@ class Bazaar(VersionControl):
         else:
             rev_options = []
             rev_display = ''
-        branch = True
-        update = False
-        if os.path.exists(os.path.join(dest, '.bzr')):
-            existing_url = self.get_url(dest)
-            branch = False
-            if existing_url == url:
-                logger.info('Checkout in %s exists, and has correct URL (%s)'
-                            % (display_path(dest), url))
-                logger.notify('Updating branch %s%s'
-                              % (display_path(dest), rev_display))
-                branch = update = True
-            else:
-                logger.warn('Bazaar branch in %s exists with URL %s'
-                            % (display_path(dest), existing_url))
-                logger.warn('The plan is to install the Bazaar repository %s'
-                            % url)
-                response = ask('What to do?  (s)witch, (i)gnore, (w)ipe, (b)ackup ', ('s', 'i', 'w', 'b'))
-                if response == 's':
-                    logger.notify('Switching branch %s to %s%s'
-                                  % (display_path(dest), url, rev_display))
-                    call_subprocess([BZR_CMD, 'switch', url], cwd=dest)
-                elif response == 'i':
-                    # do nothing
-                    pass
-                elif response == 'w':
-                    logger.warn('Deleting %s' % display_path(dest))
-                    shutil.rmtree(dest)
-                    branch = True
-                elif response == 'b':
-                    dest_dir = backup_dir(dest)
-                    logger.warn('Backing up %s to %s' % (display_path(dest), dest_dir))
-                    shutil.move(dest, dest_dir)
-                    branch = True
-        if branch:
+        if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
-            if update:
-                call_subprocess(
-                    [BZR_CMD, 'pull', '-q'] + rev_options + [url], cwd=dest)
-            else:
-                call_subprocess(
-                    [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
+            call_subprocess(
+                [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
 
     def get_url_rev(self):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
@@ -3534,12 +3504,6 @@ class Bazaar(VersionControl):
             [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
-    def get_newest_revision(self, location):
-        url = self.get_url(location)
-        revision = call_subprocess(
-            [BZR_CMD, 'revno', url], show_stdout=False, cwd=location)
-        return revision.splitlines()[-1]
-
     def get_tag_revs(self, location):
         tags = call_subprocess(
             [BZR_CMD, 'tags'], show_stdout=False, cwd=location)
@@ -3561,22 +3525,14 @@ class Bazaar(VersionControl):
             return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
-        newest_rev = self.get_newest_revision(location)
+
         if current_rev in tag_revs:
-            # It's a tag, perfect!
+            # It's a tag
             tag = tag_revs.get(current_rev, current_rev)
-            return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-        elif current_rev == newest_rev:
-            if find_tags:
-                if current_rev in tag_revs:
-                    tag = tag_revs.get(current_rev, current_rev)
-                    logger.notify('Revision %s seems to be equivalent to tag %s' % (current_rev, tag))
-                    return '%s@%s#egg=%s-%s' % (repo, tag, egg_project_name, tag)
-            return '%s@%s#egg=%s-dev' % (repo, newest_rev, dist.egg_name())
+            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         else:
-            # Don't know what it is
-            logger.warn('Bazaar URL does not fit normal structure: %s' % repo)
-            return '%s@%s#egg=%s-dev' % (repo, current_rev, egg_project_name)
+            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
+        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
 vcs.register(Bazaar)
 
