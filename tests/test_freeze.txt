@@ -34,7 +34,7 @@ Now lets try it with an svn checkout::
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
-    -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev
+    -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
     simplejson==1.7.4...
     <BLANKLINE>
 
@@ -77,23 +77,17 @@ What about a Git clone?::
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
-    -- stderr: --------------------
-    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
-    <BLANKLINE>
     -- stdout: --------------------
     -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
-    -- stderr: --------------------
-    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
-    <BLANKLINE>
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
     -- stdout: --------------------
-    -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
-    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-dev
+    -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
+    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
     ...
     <BLANKLINE>
 

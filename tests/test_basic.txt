@@ -64,10 +64,15 @@ Cloning from Mercurial::
     >>> assert 'src/django-registration' in result.files_created
     >>> assert 'src/django-registration/.hg' in result.files_created
 
+Presence or absence of final slash is also normalized::
+
+    >>> result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration#egg=django-registration', expect_error=True)
+    >>> assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
+
 Checking out from Bazaar::
 
     >>> reset_env()
-    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip-test', expect_error=True)
+    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@1#egg=pip-test', expect_error=True)
     >>> egg_link = result.files_created[lib_py + 'site-packages/pip-test.egg-link']
     >>> # FIXME: I don't understand why there's a trailing . here:
     >>> egg_link.bytes
@@ -75,3 +80,9 @@ Checking out from Bazaar::
     >>> assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
     >>> assert 'src/pip-test' in result.files_created
     >>> assert 'src/pip-test/.bzr' in result.files_created
+
+Urlquoted characters are normalized for repo URL comparison::
+
+    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/~jezdez/pip-test/test#egg=pip-test', expect_error=True)
+    >>> assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
+

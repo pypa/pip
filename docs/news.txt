@@ -40,8 +40,17 @@ tip
 * Fixed handling read-only attributes of build files, e.g. of Subversion and
   Bazaar on Windows.
 
-* Added uninstall command and automatic uninstall-before-upgrade.
+* Editable freeze URLs now always use revision hash/id rather than tip or
+  branch names which could move.
 
+* Fixed comparison of repo URLs so incidental differences such as
+  presence/absence of final slashes or quoted/unquoted special
+  characters don't trigger "ignore/switch/wipe/backup" choice.
+
+* Fixed handling of attempt to checkout editable install to a
+  non-empty, non-repo directory.
+
+* Added uninstall command and automatic uninstall-before-upgrade.
 0.4
 ---
 
