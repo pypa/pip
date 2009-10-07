@@ -2090,14 +2090,13 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             if not self.ignore_installed and not req_to_install.editable:
-                if req_to_install.check_if_exists() and not self.upgrade:
-                    install = False
-                    if req_to_install.conflicts_with:
-                        logger.warn('Requirement %s conflicts with installed distribution %s; use --upgrade to upgrade.' % (req_to_install, req_to_install.conflicts_with))
-                        continue
-                if self.upgrade and req_to_install.satisfied_by:
-                    req_to_install.conflicts_with = req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
+                req_to_install.check_if_exists()
+                if req_to_install.satisfied_by:
+                    if self.upgrade:
+                        req_to_install.conflicts_with = req_to_install.satisfied_by
+                        req_to_install.satisfied_by = None
+                    else:
+                        install = False
                 if req_to_install.satisfied_by:
                     logger.notify('Requirement already satisfied '
                                   '(use --upgrade to upgrade): %s'
@@ -2439,8 +2438,7 @@ class RequirementSet(object):
     def install(self, install_options):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = sorted([r for r in self.requirements.values()
-                             if (self.upgrade or (r.satisfied_by is None and
-                                                  r.conflicts_with is None))],
+                             if self.upgrade or not r.satisfied_by],
                             key=lambda p: p.name.lower())
         if to_install:
             logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
