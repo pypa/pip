@@ -3,12 +3,27 @@ Basic setup::
     >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
     >>> from os.path import join
 
+No upgrade if not specifically requested::
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'INITools==0.1', expect_error=True)
+    >>> result2 = run_pip('install', 'INITools', expect_error=True)
+    >>> assert not result2.files_created, 'pip install INITools upgraded when it should not have'
+
+And it does upgrade if requested
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'INITools==0.1', expect_error=True)
+    >>> result2 = run_pip('install', '--upgrade', 'INITools', expect_error=True)
+    >>> assert result2.files_created, 'pip install --upgrade did not upgrade'
+
 Automatic uninstall-before-upgrade::
 
     >>> reset_env()
     >>> result = run_pip('install', 'simplejson==1.7.4', expect_error=True)
     >>> assert join(lib_py + 'site-packages', 'simplejson') in result.files_created, sorted(result.files_created.keys())
-    >>> result2 = run_pip('install', '--upgrade', 'simplejson==2.0.9', expect_error=True)
+    >>> result2 = run_pip('install', 'simplejson==2.0.9', expect_error=True)
+    >>> assert result2.files_created, 'upgrade to simplejson 2.0.9 failed'
     >>> result3 = run_pip('uninstall', 'simplejson', '-y', expect_error=True)
     >>> diff_states(result.files_before, result3.files_after, ignore=['build']).values()
     [{}, {}, {}]
