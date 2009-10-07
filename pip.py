@@ -95,6 +95,15 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
+try:
+    any
+except NameError:
+    def any(seq):
+        for item in seq:
+            if item:
+                return True
+        return False
+
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
@@ -1094,9 +1103,10 @@ def restart_in_venv(venv, site_packages, args):
     file = __file__
     if file.endswith('.pyc'):
         file = file[:-1]
-    call_subprocess([python, file] + args + [base, '___VENV_RESTART___'])
-    sys.exit(0)
-    #~ os.execv(python, )
+    proc = subprocess.Popen(
+        [python, file] + args + [base, '___VENV_RESTART___'])
+    proc.wait()
+    sys.exit(proc.returncode)
 
 class PackageFinder(object):
     """This finds packages.
