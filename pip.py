@@ -959,7 +959,8 @@ def main(initial_args=None):
     command = args[0].lower()
     ## FIXME: search for a command match?
     if command not in _commands:
-        parser.error('No command by the name %s %s' % (os.path.basename(sys.argv[0]), command))
+        parser.error('No command by the name %(script)s %(arg)s\n  (maybe you meant "%(script)s install %(arg)s")'
+                     % dict(script=os.path.basename(sys.argv[0]), arg=command))
     command = _commands[command]
     return command.main(initial_args, args[1:], options)
 
