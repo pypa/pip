@@ -95,6 +95,15 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
+try:
+    any
+except NameError:
+    def any(seq):
+        for item in seq:
+            if item:
+                return True
+        return False
+
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
@@ -1014,7 +1023,8 @@ def main(initial_args=None):
     command = args[0].lower()
     ## FIXME: search for a command match?
     if command not in _commands:
-        parser.error('No command by the name %s %s' % (os.path.basename(sys.argv[0]), command))
+        parser.error('No command by the name %(script)s %(arg)s\n  (maybe you meant "%(script)s install %(arg)s")'
+                     % dict(script=os.path.basename(sys.argv[0]), arg=command))
     command = _commands[command]
     return command.main(initial_args, args[1:], options)
 
@@ -1099,9 +1109,10 @@ def restart_in_venv(venv, site_packages, args):
     file = __file__
     if file.endswith('.pyc'):
         file = file[:-1]
-    call_subprocess([python, file] + args + [base, '___VENV_RESTART___'])
-    sys.exit(0)
-    #~ os.execv(python, )
+    proc = subprocess.Popen(
+        [python, file] + args + [base, '___VENV_RESTART___'])
+    proc.wait()
+    sys.exit(proc.returncode)
 
 class PackageFinder(object):
     """This finds packages.
@@ -1557,7 +1568,8 @@ def replacement_run(self):
     for ep in egg_info.iter_entry_points('egg_info.writers'):
         # require=False is the change we're making:
         writer = ep.load(require=False)
-        writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
+        if writer:
+            writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
 execfile(__file__)
@@ -1593,6 +1605,7 @@ execfile(__file__)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
+            assert filenames, "No files/directories in %s (from %s)" % (base, filename)
             assert len(filenames) == 1, "Unexpected files/directories in %s: %s" % (base, ' '.join(filenames))
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
@@ -2238,10 +2251,14 @@ class RequirementSet(object):
                 raise
             content_type = resp.info()['content-type']
             filename = link.filename
-            ext = splitext(filename)
+            ext = splitext(filename)[1]
             if not ext:
                 ext = mimetypes.guess_extension(content_type)
                 filename += ext
+            if not ext and link.url != resp.geturl():
+                ext = os.path.splitext(resp.geturl())
+                if ext:
+                    filename += ext
             temp_location = os.path.join(dir, filename)
             fp = open(temp_location, 'wb')
             if md5_hash:
@@ -4193,6 +4210,8 @@ def backup_dir(dir, ext='.bak'):
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
     while 1:
+        if os.environ.get('PIP_NO_INPUT'):
+            raise Exception('No input was expected ($PIP_NO_INPUT set); question: %s' % message)
         response = raw_input(message)
         response = response.strip().lower()
         if response not in options:
