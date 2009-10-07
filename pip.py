@@ -3135,9 +3135,8 @@ class Git(VersionControl):
         return [rev]
 
     def switch(self, dest, url, rev_options):
-        remote_name = self.get_remote_name(location)
         call_subprocess(
-            [GIT_CMD, 'config', 'remote.%s.url' % remote_name, url], cwd=dest)
+            [GIT_CMD, 'config', 'remote.origin.url', url], cwd=dest)
         call_subprocess(
             [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
@@ -3162,22 +3161,9 @@ class Git(VersionControl):
             call_subprocess(
                 [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
 
-    def get_remote_name(self, location):
-        """First gets the name of the current HEAD, e.g. master. Then returns
-        the name of the remote which the head is tracking."""
-        head_ref = call_subprocess(
-            [GIT_CMD, 'symbolic-ref', '-q', 'HEAD'],
-            show_stdout=False, cwd=location).strip()
-        head_ref = head_ref.split('refs/heads/', 1)[-1]
-        remote_name = call_subprocess(
-            [GIT_CMD, 'config', 'branch.%s.remote' % head_ref],
-            show_stdout=False, cwd=location).strip()
-        return remote_name
-
     def get_url(self, location):
-        remote_name = self.get_remote_name(location)
         url = call_subprocess(
-            [GIT_CMD, 'config', 'remote.%s.url' % remote_name],
+            [GIT_CMD, 'config', 'remote.origin.url'],
             show_stdout=False, cwd=location)
         return url.strip()
 
@@ -3221,16 +3207,15 @@ class Git(VersionControl):
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
         branch_revs = self.get_branch_revs(location)
-        remote_name = self.get_remote_name(location)
 
         if current_rev in tag_revs:
             # It's a tag
             full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         elif (current_rev in branch_revs and
-              branch_revs[current_rev] != '%s/master' % remote_name):
+              branch_revs[current_rev] != 'origin/master'):
             # It's the head of a branch
             full_egg_name = '%s-%s' % (dist.egg_name(),
-                                       branch_revs[current_rev].replace('%s/' % remote_name, ''))
+                                       branch_revs[current_rev].replace('origin/', ''))
         else:
             full_egg_name = '%s-dev' % dist.egg_name()
             
