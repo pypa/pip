@@ -1331,6 +1331,9 @@ class InstallRequirement(object):
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
         self.satisfied_by = None
+        # This hold the pkg_resources.Distribution object if this requirement
+        # conflicts with another installed distribution:
+        self.conflicts_with = None
         self._temp_build_dir = None
         self._is_bundle = None
         # True if the editable should be updated:
@@ -1764,14 +1767,17 @@ execfile(__file__)
         return (level, line)
 
     def check_if_exists(self):
-        """Checks if this requirement is satisfied by something already installed"""
+        """Find an installed distribution that satisfies or conflicts
+        with this requirement, and set self.satisfied_by or
+        self.conflicts_with appropriately."""
         if self.req is None:
             return False
         try:
-            dist = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
-        self.satisfied_by = dist
+        except pkg_resources.VersionConflict:
+            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
         return True
 
     @property
@@ -1927,9 +1933,14 @@ class RequirementSet(object):
             else:
                 req_to_install = reqs.pop(0)
             install = True
-            if not self.ignore_installed and not req_to_install.editable and not self.upgrade:
+            if (not self.ignore_installed and
+                not req_to_install.editable and
+                not self.upgrade):
                 if req_to_install.check_if_exists():
                     install = False
+                if req_to_install.conflicts_with:
+                    logger.warn('Requirement %s conflicts with installed distribution %s; use --upgrade to upgrade.' % (req_to_install, req_to_install.conflicts_with))
+                    continue
             if req_to_install.satisfied_by is not None and not self.upgrade:
                 logger.notify('Requirement already satisfied (use --upgrade to upgrade): %s' % req_to_install)
             elif req_to_install.editable:
@@ -2265,7 +2276,8 @@ class RequirementSet(object):
     def install(self, install_options):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = sorted([r for r in self.requirements.values()
-                             if r.satisfied_by is None],
+                             if (r.satisfied_by is None and
+                                 (self.upgrade or r.conflicts_with is None))],
                             key=lambda p: p.name.lower())
         if to_install:
             logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
