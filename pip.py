@@ -2680,8 +2680,6 @@ class FrozenRequirement(object):
             req = '-e %s' % req
         return '\n'.join(list(self.comments)+[str(req)])+'\n'
 
-(_CAN_SWITCH, _NO_SWITCH) = (1, 2)
-    
 class VersionControl(object):
     name = ''
     dirname = ''
