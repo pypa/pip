@@ -479,9 +479,15 @@ class InstallCommand(Command):
         requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
-            logger.notify('Successfully installed %s' % requirement_set)
+            installed = ' '.join([req.name for req in
+                                  requirement_set.successfully_installed])
+            if installed:
+                logger.notify('Successfully installed %s' % installed)
         elif not self.bundle:
-            logger.notify('Successfully downloaded %s' % requirement_set)
+            downloaded = ' '.join([req.name for req in
+                                   requirement_set.successfully_downloaded])
+            if downloaded:
+                logger.notify('Successfully downloaded %s' % downloaded)
         return requirement_set
 
 InstallCommand()
@@ -1862,6 +1868,8 @@ class RequirementSet(object):
         self.requirement_aliases = {}
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
+        self.successfully_downloaded = []
+        self.successfully_installed = []
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1923,7 +1931,7 @@ class RequirementSet(object):
                 if req_to_install.check_if_exists():
                     install = False
             if req_to_install.satisfied_by is not None and not self.upgrade:
-                logger.notify('Requirement already satisfied: %s' % req_to_install)
+                logger.notify('Requirement already satisfied (use --upgrade to upgrade): %s' % req_to_install)
             elif req_to_install.editable:
                 logger.notify('Obtaining %s' % req_to_install)
             else:
@@ -2017,6 +2025,8 @@ class RequirementSet(object):
                         self.requirements[req_to_install.name] = req_to_install
                 else:
                     req_to_install.remove_temporary_source()
+                if not req_to_install.satisfied_by:
+                    self.successfully_downloaded.append(req_to_install)
             finally:
                 logger.indent -= 2
 
@@ -2254,18 +2264,19 @@ class RequirementSet(object):
 
     def install(self, install_options):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
-        requirements = sorted(self.requirements.values(), key=lambda p: p.name.lower())
-        logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in requirements])))
+        to_install = sorted([r for r in self.requirements.values()
+                             if r.satisfied_by is None],
+                            key=lambda p: p.name.lower())
+        if to_install:
+            logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
         logger.indent += 2
         try:
-            for requirement in self.requirements.values():
-                if requirement.satisfied_by is not None:
-                    # Already installed
-                    continue
+            for requirement in to_install:
                 requirement.install(install_options)
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+        self.successfully_installed = to_install
 
     def create_bundle(self, bundle_filename):
         ## FIXME: can't decide which is better; zip is easier to read
