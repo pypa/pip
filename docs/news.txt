@@ -63,8 +63,6 @@ tip
 * Fixed handling of attempt to checkout editable install to a
   non-empty, non-repo directory.
 
-* Added uninstall command and automatic uninstall-before-upgrade.
-
 0.4
 ---
 
