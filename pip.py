@@ -46,7 +46,7 @@ class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
 class BadCommand(Exception):
-    """Raised when virtualenv is not found"""
+    """Raised when virtualenv or a command is not found"""
 
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
@@ -71,14 +71,6 @@ else:
 pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
-
-# Choose a Git command based on platform.
-if sys.platform == 'win32':
-    GIT_CMD = 'git.cmd'
-    BZR_CMD = 'bzr.bat'
-else:
-    GIT_CMD = 'git'
-    BZR_CMD = 'bzr'
 
 ## FIXME: this shouldn't be a module setting
 default_vcs = None
@@ -2884,10 +2876,22 @@ class VersionControl(object):
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
+        self._cmd = None
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
         return (Logger.INFO, line)
+
+    @property
+    def cmd(self):
+        if self._cmd is not None:
+            return self._cmd
+        command = find_command(self.name)
+        if command is None:
+            raise BadCommand('Cannot find command %s' % self.name)
+        logger.info('Found command %s at %s' % (self.name, command))
+        self._cmd = command
+        return command
 
     def get_url_rev(self):
         """
@@ -3291,7 +3295,7 @@ class Git(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                [GIT_CMD, 'clone', url, location],
+                [self.cmd, 'clone', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -3304,7 +3308,7 @@ class Git(VersionControl):
             if not location.endswith('/'):
                 location = location + '/'
             call_subprocess(
-                [GIT_CMD, 'checkout-index', '-a', '-f', '--prefix', location],
+                [self.cmd, 'checkout-index', '-a', '-f', '--prefix', location],
                 filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
         finally:
             shutil.rmtree(temp_dir)
@@ -3331,15 +3335,16 @@ class Git(VersionControl):
         return [rev]
 
     def switch(self, dest, url, rev_options):
+
         call_subprocess(
-            [GIT_CMD, 'config', 'remote.origin.url', url], cwd=dest)
+            [self.cmd, 'config', 'remote.origin.url', url], cwd=dest)
         call_subprocess(
-            [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
+            [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def update(self, dest, rev_options):
-        call_subprocess([GIT_CMD, 'fetch', '-q'], cwd=dest)
+        call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
         call_subprocess(
-            [GIT_CMD, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
+            [self.cmd, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -3352,43 +3357,43 @@ class Git(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess(
-                [GIT_CMD, 'clone', '-q', url, dest])
+                [self.cmd, 'clone', '-q', url, dest])
             rev_options = self.check_rev_options(rev, dest, rev_options)
             call_subprocess(
-                [GIT_CMD, 'checkout', '-q'] + rev_options, cwd=dest)
+                [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
         url = call_subprocess(
-            [GIT_CMD, 'config', 'remote.origin.url'],
+            [self.cmd 'config', 'remote.origin.url'],
             show_stdout=False, cwd=location)
         return url.strip()
 
     def get_revision(self, location):
         current_rev = call_subprocess(
-            [GIT_CMD, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
+            [self.cmd, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            [GIT_CMD, 'tag'], show_stdout=False, cwd=location)
+            [self.cmd, 'tag'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tag = line.strip()
             rev = call_subprocess(
-                [GIT_CMD, 'rev-parse', tag], show_stdout=False, cwd=location)
+                [self.cmd, 'rev-parse', tag], show_stdout=False, cwd=location)
             tag_revs.append((rev.strip(), tag))
         tag_revs = dict(tag_revs)
         return tag_revs
 
     def get_branch_revs(self, location):
         branches = call_subprocess(
-            [GIT_CMD, 'branch', '-r'], show_stdout=False, cwd=location)
+            [self.cmd, 'branch', '-r'], show_stdout=False, cwd=location)
         branch_revs = []
         for line in branches.splitlines():
             line = line.split('->')[0].strip()
             branch = "".join([b for b in line.split() if b != '*'])
             rev = call_subprocess(
-                [GIT_CMD, 'rev-parse', branch], show_stdout=False, cwd=location)
+                [self.cmd, 'rev-parse', branch], show_stdout=False, cwd=location)
             branch_revs.append((rev.strip(), branch))
         branch_revs = dict(branch_revs)
         return branch_revs
@@ -3616,7 +3621,7 @@ class Bazaar(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                [BZR_CMD, 'branch', url, location],
+                [self.cmd, 'branch', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -3629,17 +3634,17 @@ class Bazaar(VersionControl):
             # Remove the location to make sure Bazaar can export it correctly
             shutil.rmtree(location, onerror=rmtree_errorhandler)
         try:
-            call_subprocess([BZR_CMD, 'export', location], cwd=temp_dir,
+            call_subprocess([self.cmd, 'export', location], cwd=temp_dir,
                             filter_stdout=self._filter, show_stdout=False)
         finally:
             shutil.rmtree(temp_dir)
 
     def switch(self, dest, url, rev_options):
-        call_subprocess([BZR_CMD, 'switch', url], cwd=dest)
+        call_subprocess([self.cmd, 'switch', url], cwd=dest)
 
     def update(self, dest, rev_options):
         call_subprocess(
-            [BZR_CMD, 'pull', '-q'] + rev_options, cwd=dest)
+            [self.cmd, 'pull', '-q'] + rev_options, cwd=dest)
             
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -3653,7 +3658,7 @@ class Bazaar(VersionControl):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
             call_subprocess(
-                [BZR_CMD, 'branch', '-q'] + rev_options + [url, dest])
+                [self.cmd, 'branch', '-q'] + rev_options + [url, dest])
 
     def get_url_rev(self):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
@@ -3664,7 +3669,7 @@ class Bazaar(VersionControl):
 
     def get_url(self, location):
         urls = call_subprocess(
-            [BZR_CMD, 'info'], show_stdout=False, cwd=location)
+            [self.cmd, 'info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -3675,12 +3680,12 @@ class Bazaar(VersionControl):
 
     def get_revision(self, location):
         revision = call_subprocess(
-            [BZR_CMD, 'revno'], show_stdout=False, cwd=location)
+            [self.cmd, 'revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            [BZR_CMD, 'tags'], show_stdout=False, cwd=location)
+            [self.cmd, 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
@@ -4459,6 +4464,32 @@ def splitext(path):
         ext = base[-4:] + ext
         base = base[:-4]
     return base, ext
+
+def find_command(cmd, paths=None, pathext=None):
+    """Searches the PATH for the given command and returns its path"""
+    if paths is None:
+        paths = os.environ.get('PATH', []).split(os.pathsep)
+    if isinstance(paths, basestring):
+        paths = [paths]
+    # check if there are funny path extensions for executables, e.g. Windows
+    if pathext is None:
+        pathext = os.environ.get('PATHEXT', '.COM;.EXE;.BAT;.CMD')
+    pathext = [ext for ext in pathext.lower().split(os.pathsep)]
+    # don't use extensions if the command ends with one of them
+    if os.path.splitext(cmd)[1].lower() in pathext:
+        pathext = ['']
+    # check if we find the command on PATH
+    for path in paths:
+        # try without extension first
+        cmd_path = os.path.join(path, cmd)
+        for ext in pathext:
+            # then including the extension
+            cmd_path_ext = cmd_path + ext
+            if os.path.exists(cmd_path_ext):
+                return cmd_path_ext
+        if os.path.exists(cmd_path):
+            return cmd_path
+    return None
 
 class _Inf(object):
     """I am bigger than everything!"""
