@@ -3364,7 +3364,7 @@ class Git(VersionControl):
 
     def get_url(self, location):
         url = call_subprocess(
-            [self.cmd 'config', 'remote.origin.url'],
+            [self.cmd, 'config', 'remote.origin.url'],
             show_stdout=False, cwd=location)
         return url.strip()
 
