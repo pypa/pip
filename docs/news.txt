@@ -10,6 +10,11 @@ tip
 * Allow packages to be upgraded, e.g., ``pip install Package==0.1``
   then ``pip install Package==0.2``.
 
+0.5.1
+-----
+
+* Fixed a couple little bugs, with git and with extensions.
+
 0.5
 ---
 
