@@ -2093,9 +2093,9 @@ class RequirementSet(object):
                     logger.notify('Requirement already satisfied '
                                   '(use --upgrade to upgrade): %s'
                                   % req_to_install)
-            elif req_to_install.editable:
+            if req_to_install.editable:
                 logger.notify('Obtaining %s' % req_to_install)
-            else:
+            elif install:
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
                     logger.notify('Unpacking %s' % display_path(url_to_filename(req_to_install.url)))
                 else:
