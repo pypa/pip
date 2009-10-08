@@ -45,33 +45,73 @@ class DistributionNotFound(InstallationError):
 class BadCommand(Exception):
     """Raised when virtualenv is not found"""
 
-if getattr(sys, 'real_prefix', None):
-    ## FIXME: is build/ a good name?
-    base_prefix = os.path.join(sys.prefix, 'build')
-    base_src_prefix = os.path.join(sys.prefix, 'src')
-else:
-    ## FIXME: this isn't a very good default
-    base_prefix = os.path.join(os.getcwd(), 'build')
-    base_src_prefix = os.path.join(os.getcwd(), 'src')
-
-pypi_url = "http://pypi.python.org/simple"
-
-default_timeout = 15
-
 # Choose a Git command based on platform.
 if sys.platform == 'win32':
     GIT_CMD = 'git.cmd'
     BZR_CMD = 'bzr.bat'
+    CONFIG_NAME = 'pip.cfg'
 else:
     GIT_CMD = 'git'
     BZR_CMD = 'bzr'
+    CONFIG_NAME = '.pip.cfg'
 
-## FIXME: this shouldn't be a module setting
-default_vcs = None
-if os.environ.get('PIP_DEFAULT_VCS'):
-    default_vcs = os.environ['PIP_DEFAULT_VCS']
+class ConfigOptionParser(optparse.OptionParser):
 
-virtualenv_base = os.environ.get('PIP_VIRTUALENV_BASE')
+    def __init__(self, *args, **kwargs):
+        self.config = ConfigParser.RawConfigParser()
+        self.files = []
+        user_file = os.path.join(os.path.expanduser('~'), CONFIG_NAME)
+        # FIXME: any other locations, e.g. cwd?
+        if os.path.isfile(user_file):
+            self.files.append(user_file)
+        self.config.read(self.files)
+        optparse.OptionParser.__init__(self, *args, **kwargs)
+
+    def merge_from_config(self):
+        pip_section = self.get_section('pip')
+        self.set_defaults(config=pip_section)
+
+    def set_defaults(self, **kwargs):
+        """Sets default values of parser options given the configuration file
+        """
+        defaults = {}
+        config = kwargs.pop('config', None)
+        print "config", config
+        if config:
+            for config_opt, config_value in config:
+                if not config_opt.startswith('--'):
+                    config_opt = '--%s' % config_opt # only prefer long opts
+                option = self.get_option(config_opt)
+                print self.option_list
+                if option is not None:
+                    config_value = config_value.split() # multiline configs
+                    if not config_value: ## ignore empty values
+                        continue
+                    if option.action != 'append':
+                        config_value = config_value[0]
+                    if option.action in ('store_true', 'store_false', 'count'):
+                        config_value = strtobool(config_value)
+                    defaults[option.dest] = config_value
+                else:
+                    print "hmpf", config_opt
+        defaults = defaults or kwargs
+        optparse.OptionParser.set_defaults(self, **defaults)
+
+    def get_from_config(self, name, default=None, check_environ=True):
+        config = self.get_section('pip')
+        value = dict(config).get(name.replace('_', '-'), None)
+        if value is None and check_environ:
+            environ_name = 'PIP_%s' % name.upper()
+            value = os.environ.get(environ_name, None)
+        return value or default
+
+    def get_section(self, section):
+        """Get section of a configuration"""
+        import pdb
+        #pdb.set_trace()
+        if self.config.has_section(section):
+            return self.config.items(section)
+        return []
 
 try:
     pip_dist = pkg_resources.get_distribution('pip')
@@ -149,7 +189,7 @@ class VcsSupport(object):
 
 vcs = VcsSupport()
 
-parser = optparse.OptionParser(
+parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
     version=version,
     add_help_option=False)
@@ -199,6 +239,8 @@ parser.add_option(
     "are behind an authenticated proxy.  If you provide "
     "user@proxy.server:port then you will be prompted for a password."
     )
+
+default_timeout = parser.get_from_config('default-timeout', 15)
 parser.add_option(
     '--timeout',
     metavar='SECONDS',
@@ -209,6 +251,20 @@ parser.add_option(
 
 parser.disable_interspersed_args()
 
+default_vcs = parser.get_from_config('default-vcs')
+virtualenv_base = parser.get_from_config('virtualenv-base')
+pypi_url = parser.get_from_config('pypi-url', 'http://pypi.python.org/simple')
+
+if getattr(sys, 'real_prefix', None):
+    ## FIXME: is build/ a good name?
+    build_prefix = parser.get_from_config(
+        'build-prefix', os.path.join(sys.prefix, 'build'))
+    src_prefix = parser.get_from_config(
+        'src-prefix', os.path.join(sys.prefix, 'src'))
+else:
+    ## FIXME: this isn't a very good default
+    build_prefix = os.path.join(os.getcwd(), 'build')
+    src_prefix = os.path.join(os.getcwd(), 'src')
 
 _commands = {}
 
@@ -217,7 +273,7 @@ class Command(object):
     usage = None
     def __init__(self):
         assert self.name
-        self.parser = optparse.OptionParser(
+        self.parser = ConfigOptionParser(
             usage=self.usage,
             prog='%s %s' % (sys.argv[0], self.name),
             version=parser.version)
@@ -226,6 +282,8 @@ class Command(object):
                 # -h, --version, etc
                 continue
             self.parser.add_option(option)
+        config_list = self.parser.get_section(self.name)
+        self.parser.set_defaults(**dict(config_list))
         _commands[self.name] = self
 
     def merge_options(self, initial_options, options):
@@ -238,6 +296,7 @@ class Command(object):
         global logger
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
+        self.parser.merge_from_config()
 
         if args and args[-1] == '___VENV_RESTART___':
             ## FIXME: We don't do anything this this value yet:
@@ -251,7 +310,7 @@ class Command(object):
         complete_log = []
         logger = Logger([(level, sys.stdout),
                          (Logger.DEBUG, complete_log.append)])
-        if os.environ.get('PIP_LOG_EXPLICIT_LEVELS'):
+        if self.parser.get_from_config('log-explicit-levels'):
             logger.explicit_levels = True
         if options.venv:
             if options.verbose > 0:
@@ -288,7 +347,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if exit:
-            log_fn = os.environ.get('PIP_LOG_FILE', './pip-log.txt')
+            log_fn = self.parser.get_from_config('log-file', './pip-log.txt')
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile_append(log_fn)
@@ -379,7 +438,7 @@ class InstallCommand(Command):
             dest='build_dir',
             metavar='DIR',
             default=None,
-            help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
+            help='Unpack packages into DIR (default %s) and build from there' % build_prefix)
         self.parser.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
@@ -391,7 +450,7 @@ class InstallCommand(Command):
             dest='src_dir',
             metavar='DIR',
             default=None,
-            help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
+            help='Check out --editable packages into DIR (default %s)' % src_prefix)
 
         self.parser.add_option(
             '-U', '--upgrade',
@@ -427,9 +486,9 @@ class InstallCommand(Command):
 
     def run(self, options, args):
         if not options.build_dir:
-            options.build_dir = base_prefix
+            options.build_dir = build_prefix
         if not options.src_dir:
-            options.src_dir = base_src_prefix
+            options.src_dir = src_prefix
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
@@ -484,9 +543,9 @@ class BundleCommand(InstallCommand):
         if not args:
             raise InstallationError('You must give a bundle filename')
         if not options.build_dir:
-            options.build_dir = backup_dir(base_prefix, '-bundle')
+            options.build_dir = backup_dir(build_prefix, '-bundle')
         if not options.src_dir:
-            options.src_dir = backup_dir(base_src_prefix, '-bundle')
+            options.src_dir = backup_dir(src_prefix, '-bundle')
         # We have to get everything when creating a bundle:
         options.ignore_installed = True
         logger.notify('Putting temporary build files in %s and source/develop files in %s'
@@ -530,8 +589,10 @@ class FreezeCommand(Command):
         ## FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
-        if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
-            skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
+
+        skip_regex = self.parser.get_from_config('skip-requirements-regex')
+        if skip_regex:
+            skip_match = re.compile(skip_regex)
 
         logger.move_stdout_to_stderr()
         dependency_links = []
@@ -2024,8 +2085,9 @@ class RequirementSet(object):
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
         target_file = None
-        if os.environ.get('PIP_DOWNLOAD_CACHE'):
-            target_file = os.path.join(os.environ['PIP_DOWNLOAD_CACHE'],
+        download_cache = self.parser.get_from_config('download-cache')
+        if download_cache:
+            target_file = os.path.join(download_cache,
                                        urllib.quote(target_url, ''))
         if (target_file and os.path.exists(target_file)
             and os.path.exists(target_file+'.content-type')):
@@ -3601,8 +3663,9 @@ def get_file_content(url, comes_from=None):
 
 def parse_requirements(filename, finder, comes_from=None):
     skip_match = None
-    if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
-        skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
+    skip_regex = self.parser.get_from_config('skip-requirements-regex')
+    if skip_regex:
+        skip_match = re.compile(skip_regex)
     filename, content = get_file_content(filename, comes_from=comes_from)
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
@@ -4166,6 +4229,21 @@ def splitext(path):
         ext = base[-4:] + ext
         base = base[:-4]
     return base, ext
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError, "invalid truth value %r" % (val,)
 
 class _Inf(object):
     """I am bigger than everything!"""
