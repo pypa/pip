@@ -81,22 +81,6 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
-def rmtree_errorhandler(func, path, exc_info):
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
-    exctype, value = exc_info[:2]
-    # lookin for a windows error
-    if exctype is not WindowsError or 'Access is denied' not in str(value):
-        raise
-    # file type should currently be read only
-    if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
-        raise
-    # convert to read/write
-    os.chmod(path, stat.S_IWRITE)
-    # use the original function to repeat the operation
-    func(path)
-
 class VcsSupport(object):
     _registry = {}
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
@@ -3913,6 +3897,22 @@ def call_subprocess(cmd, show_stdout=True,
 
 ############################################################
 ## Utility functions
+
+def rmtree_errorhandler(func, path, exc_info):
+    """On Windows, the files in .svn are read-only, so when rmtree() tries to
+    remove them, an exception is thrown.  We catch that here, remove the
+    read-only attribute, and hopefully continue without problems."""
+    exctype, value = exc_info[:2]
+    # lookin for a windows error
+    if exctype is not WindowsError or 'Access is denied' not in str(value):
+        raise
+    # file type should currently be read only
+    if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
+        raise
+    # convert to read/write
+    os.chmod(path, stat.S_IWRITE)
+    # use the original function to repeat the operation
+    func(path)
 
 def is_svn_page(html):
     """Returns true if the page appears to be the index page of an svn repository"""
