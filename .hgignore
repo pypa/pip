@@ -2,10 +2,12 @@
 syntax: glob
 MANIFEST
 tests/test-scratch/*
+tests/test-cache/*
 testenv
 pip.egg-info/*
 dist/*
 docs/_build/*
 build/*
 *.pyc
+*.pyo 
 pip-log.txt

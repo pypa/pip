@@ -4,14 +4,23 @@ News for pip
 tip
 ---
 
+* Add ``pip uninstall`` and uninstall-before upgrade (from Carl
+  Meyer).
+
+* Allow packages to be upgraded, e.g., ``pip install Package==0.1``
+  then ``pip install Package==0.2``.
+
+0.5
+---
+
 * Added ability to override the default log file name (``pip-log.txt``)
   with the environmental variable ``$PIP_LOG_FILE``.
 
-* Made the freeze command to return the installed packages instead of
+* Made the freeze command print installed packages to stdout instead of
   writing them to a file. Use simple redirection (e.g.
   ``pip freeze > stable-req.txt``) to get a file with requirements.
 
-* Fixed problem of freezing an editable packages from a Git repository.
+* Fixed problem with freezing editable packages from a Git repository.
 
 * Added support for base URLs using ``<base href='...'>`` when parsing
   HTML pages.
@@ -39,6 +48,22 @@ tip
 
 * Fixed handling read-only attributes of build files, e.g. of Subversion and
   Bazaar on Windows.
+
+* When downloading a file from a redirect, use the redirected
+  location's extension to guess the compression (happens specifically
+  when redirecting to a bitbucket.org tip.gz file).
+
+* Editable freeze URLs now always use revision hash/id rather than tip or
+  branch names which could move.
+
+* Fixed comparison of repo URLs so incidental differences such as
+  presence/absence of final slashes or quoted/unquoted special
+  characters don't trigger "ignore/switch/wipe/backup" choice.
+
+* Fixed handling of attempt to checkout editable install to a
+  non-empty, non-repo directory.
+
+* Added uninstall command and automatic uninstall-before-upgrade.
 
 0.4
 ---

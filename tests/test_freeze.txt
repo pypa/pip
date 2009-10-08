@@ -34,7 +34,7 @@ Now lets try it with an svn checkout::
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
-    -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev
+    -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
     simplejson==1.7.4...
     <BLANKLINE>
 
@@ -77,23 +77,17 @@ What about a Git clone?::
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
-    -- stderr: --------------------
-    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
-    <BLANKLINE>
     -- stdout: --------------------
     -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
-    -- stderr: --------------------
-    Git URL does not fit normal structure: git://github.com/jezdez/django-pagination.git
-    <BLANKLINE>
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
     -- stdout: --------------------
-    -f git://github.com/jezdez/django-pagination.git#egg=django_pagination-dev
-    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-dev
+    -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
+    -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
     ...
     <BLANKLINE>
 
@@ -101,23 +95,23 @@ Now what about Mercurial::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run('hg', 'clone', '-r', 'a5748745272a', 'http://bitbucket.org/mitsuhiko/pygments-main/', 'pygments')
+    >>> result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
     >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
-    ...                  cwd=os.path.join(env.base_path, 'pygments'))
+    ...                  cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
-    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
     -- stdout: --------------------
-    -f hg+http://bitbucket.org/mitsuhiko/pygments-main#egg=Pygments
-    -e hg+http://bitbucket.org/mitsuhiko/pygments-main/@...#egg=Pygments-...
+    -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
+    -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
     ...
     <BLANKLINE>
 

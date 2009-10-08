@@ -41,12 +41,10 @@ pip is meant to improve on easy_install.  Some of the improvements:
 
 * Native support for other version control systems (Git, Mercurial and Bazaar)
 
-* Maybe uninstallation will get added. (It might get added to easy_install,
-  but I think the chance for pip is higher.)
+* Uninstallation of packages.
 
-Also, pip will eventually be merged directly with pip, making it
-simple to define fixed sets of requirements and reliably reproduce a set of
-packages.
+* Simple to define fixed sets of requirements and reliably reproduce a
+  set of packages.
 
 pip is complementary with `virtualenv
 <http://pypi.python.org/pypi/virtualenv>`_, and it is encouraged that you use
@@ -80,6 +78,23 @@ pip cannot install some packages.  Specifically:
   Windows often.
 
 * It also has some extra features.  Extra features the author thinks are great.
+
+Uninstall
+---------
+
+pip is able to uninstall most installed packages with ``pip uninstall
+package-name``. 
+
+Known exceptions include pure-distutils packages installed with
+``python setup.py install`` (such packages leave behind no metadata allowing
+determination of what files were installed), and script wrappers installed
+by develop-installs (``python setup.py develop``).
+
+pip also performs an automatic uninstall of an old version of a package
+before upgrading to a newer version, so outdated files (and egg-info data)
+from conflicting versions aren't left hanging around to cause trouble. The
+old version of the package is automatically restored if the new version
+fails to download or install.
 
 .. _`requirements file`:
 
