@@ -48,6 +48,15 @@ class DistributionNotFound(InstallationError):
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
 
+try:
+    any
+except NameError:
+    def any(seq):
+        for item in seq:
+            if item:
+                return True
+        return False
+
 # FIXME doesn't account for venv linked to global site-packages
 if sys.platform == 'win32':
     lib_py = os.path.join(sys.prefix, 'Lib')
@@ -126,15 +135,6 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
-
-try:
-    any
-except NameError:
-    def any(seq):
-        for item in seq:
-            if item:
-                return True
-        return False
 
 class VcsSupport(object):
     _registry = {}
