@@ -17,7 +17,7 @@ import re
 import shutil
 import fnmatch
 import operator
-import stat
+import copy
 try:
     from hashlib import md5
 except ImportError:
@@ -35,6 +35,7 @@ import httplib
 import time
 import logging
 import ConfigParser
+from distutils.util import strtobool
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -69,64 +70,80 @@ else:
     lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
     bin_py = os.path.join(sys.prefix, 'bin')
     CONFIG_NAME = '.pip.cfg'
-    
+
 class ConfigOptionParser(optparse.OptionParser):
 
     def __init__(self, *args, **kwargs):
         self.config = ConfigParser.RawConfigParser()
-        self.files = []
-        user_file = os.path.join(os.path.expanduser('~'), CONFIG_NAME)
-        # FIXME: any other locations, e.g. cwd?
-        if os.path.isfile(user_file):
-            self.files.append(user_file)
+        self.name = kwargs.pop('name')
+        self.files = self.get_config_files()
         self.config.read(self.files)
+        assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
-    def merge_from_config(self):
-        pip_section = self.get_section('pip')
-        self.set_defaults(config=pip_section)
+    def get_config_files(self):
+        return [os.path.join(os.path.expanduser('~'), CONFIG_NAME)]
 
     def set_defaults(self, **kwargs):
         """Sets default values of parser options given the configuration file
         """
         defaults = {}
-        config = kwargs.pop('config', None)
-        print "config", config
-        if config:
-            for config_opt, config_value in config:
-                if not config_opt.startswith('--'):
-                    config_opt = '--%s' % config_opt # only prefer long opts
-                option = self.get_option(config_opt)
-                print self.option_list
-                if option is not None:
-                    config_value = config_value.split() # multiline configs
-                    if not config_value: ## ignore empty values
-                        continue
-                    if option.action != 'append':
-                        config_value = config_value[0]
-                    if option.action in ('store_true', 'store_false', 'count'):
-                        config_value = strtobool(config_value)
-                    defaults[option.dest] = config_value
-                else:
-                    print "hmpf", config_opt
-        defaults = defaults or kwargs
+        for key, val in kwargs.iteritems():
+            key = key.replace('_', '-')
+            if not key.startswith('--'):
+                key = '--%s' % key # only prefer long opts
+            option = self.get_option(key)
+            if option is not None:
+                # ignore empty values
+                if not val:
+                    continue
+                # multiline configs
+                if option.action == 'append':
+                    val = val.split()
+                if option.action in ('store_true', 'store_false', 'count'):
+                    val = strtobool(val)
+                defaults[option.dest] = val
         optparse.OptionParser.set_defaults(self, **defaults)
 
-    def get_from_config(self, name, default=None, check_environ=True):
-        config = self.get_section('pip')
-        value = dict(config).get(name.replace('_', '-'), None)
-        if value is None and check_environ:
-            environ_name = 'PIP_%s' % name.upper()
-            value = os.environ.get(environ_name, None)
-        return value or default
-
-    def get_section(self, section):
-        """Get section of a configuration"""
-        import pdb
-        #pdb.set_trace()
-        if self.config.has_section(section):
-            return self.config.items(section)
+    def get_config_section(self, name):
+        """Get a section of a configuration"""
+        if self.config.has_section(name):
+            return self.config.items(name)
         return []
+
+    def get_environ_vars(self, prefix='PIP_'):
+        """Returns a generator with all environmental vars with prefix PIP_"""
+        for key, val in os.environ.iteritems():
+            if key.startswith(prefix):
+                yield (key.replace(prefix, '').lower(), val)
+
+    def set_options_from_config_and_environ(self, defaults=None):
+        """Sets the defaults of the option parser by merging in the config
+        files and environmental variables
+
+        This constitutes the following order of importance:
+
+        1. config files
+            a) global section
+            b) command section
+        2. environmental vars
+        3. program option
+            a) global flags
+            b) command flags
+
+        e.g.:
+        - --host=foo overrides $PIP_HOST=foo overrides [global] host = foo
+        - a setting made in the command specific config section overrides one
+          made in the global config section
+        - either are overriden by a environmental variable
+        - command line option flags override everything else
+        """
+        if defaults is None:
+            defaults = {}
+        for section in ('global', self.name):
+            defaults.update(dict(self.get_config_section(section)))
+        defaults.update(dict(self.get_environ_vars()))
+        self.set_defaults(**defaults)
 
 try:
     pip_dist = pkg_resources.get_distribution('pip')
@@ -207,7 +224,8 @@ vcs = VcsSupport()
 parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
     version=version,
-    add_help_option=False)
+    add_help_option=False,
+    name='global')
 
 parser.add_option(
     '-h', '--help',
@@ -291,14 +309,13 @@ class Command(object):
         self.parser = ConfigOptionParser(
             usage=self.usage,
             prog='%s %s' % (sys.argv[0], self.name),
-            version=parser.version)
+            version=parser.version,
+            name=self.name)
         for option in parser.option_list:
             if not option.dest or option.dest == 'help':
                 # -h, --version, etc
                 continue
             self.parser.add_option(option)
-        config_list = self.parser.get_section(self.name)
-        self.parser.set_defaults(**dict(config_list))
         _commands[self.name] = self
 
     def merge_options(self, initial_options, options):
@@ -309,9 +326,9 @@ class Command(object):
 
     def main(self, complete_args, args, initial_options):
         global logger
+        self.parser.set_options_from_config_and_environ()
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
-        self.parser.merge_from_config()
 
         if args and args[-1] == '___VENV_RESTART___':
             ## FIXME: We don't do anything this this value yet:
