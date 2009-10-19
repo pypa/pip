@@ -246,6 +246,15 @@ parser.add_option(
     'created. Ignored if --environment is not used or '
     'the virtualenv already exists.')
 parser.add_option(
+    # Defines a default root directory for virtualenvs, relative
+    # virtualenvs names/paths are considered relative to it.
+    '--virtualenv-base',
+    dest='venv_base',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
+
+parser.add_option(
     '-v', '--verbose',
     dest='verbose',
     action='count',
@@ -263,6 +272,21 @@ parser.add_option(
     metavar='FILENAME',
     help='Log file where a complete (maximum verbosity) record will be kept')
 parser.add_option(
+    # Writes the log levels explicitely to the log'
+    '--log-explicit-levels',
+    dest='log_explicit_levels',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # The default log file
+    '--local-log', '--log-file',
+    dest='log_file',
+    metavar='FILENAME',
+    default='./pip-log.txt',
+    help=optparse.SUPPRESS_HELP)
+
+parser.add_option(
     '--proxy',
     dest='proxy',
     type='str',
@@ -270,30 +294,35 @@ parser.add_option(
     help="Specify a proxy in the form user:passwd@proxy.server:port. "
     "Note that the user:password@ is optional and required only if you "
     "are behind an authenticated proxy.  If you provide "
-    "user@proxy.server:port then you will be prompted for a password."
-    )
-
-default_timeout = parser.get_from_config('default-timeout', 15)
+    "user@proxy.server:port then you will be prompted for a password.")
 parser.add_option(
-    '--timeout',
+    '--timeout', '--default-timeout',
     metavar='SECONDS',
     dest='timeout',
     type='float',
-    default=default_timeout,
-    help='Set the socket timeout (default %s seconds)' % default_timeout)
+    default=15,
+    help='Set the socket timeout (default %default seconds)')
+parser.add_option(
+    # The default version control system for editables, e.g. 'svn'
+    '--default-vcs',
+    dest='default_vcs',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # A regex to be used to skip requirements
+    '--skip-requirements-regex',
+    dest='skip_requirements_regex',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
 
 parser.disable_interspersed_args()
 
-default_vcs = parser.get_from_config('default-vcs')
-virtualenv_base = parser.get_from_config('virtualenv-base')
-pypi_url = parser.get_from_config('pypi-url', 'http://pypi.python.org/simple')
-
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
-    build_prefix = parser.get_from_config(
-        'build-prefix', os.path.join(sys.prefix, 'build'))
-    src_prefix = parser.get_from_config(
-        'src-prefix', os.path.join(sys.prefix, 'src'))
+    build_prefix = os.path.join(sys.prefix, 'build')
+    src_prefix = os.path.join(sys.prefix, 'src')
 else:
     ## FIXME: this isn't a very good default
     build_prefix = os.path.join(os.getcwd(), 'build')
@@ -342,7 +371,7 @@ class Command(object):
         complete_log = []
         logger = Logger([(level, sys.stdout),
                          (Logger.DEBUG, complete_log.append)])
-        if self.parser.get_from_config('log-explicit-levels'):
+        if options.log_explicit_levels:
             logger.explicit_levels = True
         if options.venv:
             if options.verbose > 0:
@@ -351,7 +380,8 @@ class Command(object):
             site_packages=False
             if options.site_packages:
                 site_packages=True
-            restart_in_venv(options.venv, site_packages, complete_args)
+            restart_in_venv(options.venv, options.venv_base, site_packages,
+                            complete_args)
             # restart_in_venv should actually never return, but for clarity...
             return
         ## FIXME: not sure if this sure come before or after venv restart
@@ -379,7 +409,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if exit:
-            log_fn = self.parser.get_from_config('log-file', './pip-log.txt')
+            log_fn = options.log_file
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile_append(log_fn)
@@ -446,10 +476,10 @@ class InstallCommand(Command):
             metavar='URL',
             help='URL to look for packages at')
         self.parser.add_option(
-            '-i', '--index-url',
+            '-i', '--index-url', '--pypi-url',
             dest='index_url',
             metavar='URL',
-            default=pypi_url,
+            default='http://pypi.python.org/simple',
             help='base URL of Python Package Index')
         self.parser.add_option(
             '--extra-index-url',
@@ -477,6 +507,13 @@ class InstallCommand(Command):
             metavar='DIR',
             default=None,
             help='Download packages into DIR instead of installing them')
+        self.parser.add_option(
+            # Cache downloaded packages in DIR
+            '--download-cache',
+            dest='download_cache',
+            metavar='DIR',
+            default=None,
+            help=optparse.SUPPRESS_HELP)
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
@@ -539,6 +576,7 @@ class InstallCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=options.download_dir,
+            download_cache=options.download_cache,
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies)
@@ -547,9 +585,9 @@ class InstallCommand(Command):
                 InstallRequirement.from_line(name, None))
         for name in options.editables:
             requirement_set.add_requirement(
-                InstallRequirement.from_editable(name))
+                InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
         for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder):
+            for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
         requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
@@ -597,7 +635,7 @@ class UninstallCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
         for filename in options.requirements:
-            for req in parse_requirements(filename):
+            for req in parse_requirements(filename, options=options):
                 requirement_set.add_requirement(req)
         requirement_set.uninstall(auto_confirm=options.yes)
 
@@ -663,7 +701,7 @@ class FreezeCommand(Command):
         find_tags = False
         skip_match = None
 
-        skip_regex = self.parser.get_from_config('skip-requirements-regex')
+        skip_regex = options.skip_requirements_regex
         if skip_regex:
             skip_match = re.compile(skip_regex)
 
@@ -701,7 +739,7 @@ class FreezeCommand(Command):
                         line = line[2:].strip()
                     else:
                         line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = InstallRequirement.from_editable(line)
+                    line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
                 elif (line.startswith('-r') or line.startswith('--requirement')
                       or line.startswith('-Z') or line.startswith('--always-unzip')):
                     logger.debug('Skipping line %r' % line.strip())
@@ -1121,14 +1159,12 @@ def format_exc(exc_info=None):
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
 
-def restart_in_venv(venv, site_packages, args):
+def restart_in_venv(venv, base, site_packages, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
-    if virtualenv_base\
-            and not os.path.isabs(venv)\
-            and not venv.startswith('~'):
-        base = os.path.expanduser(virtualenv_base)
+    if base and not os.path.isabs(venv) and not venv.startswith('~'):
+        base = os.path.expanduser(base)
         # ensure we have an abs basepath at this point:
         #    a relative one makes no sense (or does it?)
         if os.path.isabs(base):
@@ -1458,8 +1494,8 @@ class InstallRequirement(object):
         self.uninstalled = None
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None):
-        name, url = parse_editable(editable_req)
+    def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
+        name, url = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_filename(url)
         else:
@@ -2069,10 +2105,13 @@ deleted (unless you remove this file).
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False, ignore_installed=False, ignore_dependencies=False):
+    def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
+                 upgrade=False, ignore_installed=False,
+                 ignore_dependencies=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
+        self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.requirements = {}
@@ -2273,9 +2312,8 @@ class RequirementSet(object):
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
         target_file = None
-        download_cache = self.parser.get_from_config('download-cache')
-        if download_cache:
-            target_file = os.path.join(download_cache,
+        if self.download_cache:
+            target_file = os.path.join(self.download_cache,
                                        urllib.quote(target_url, ''))
         if (target_file and os.path.exists(target_file)
             and os.path.exists(target_file+'.content-type')):
@@ -3820,9 +3858,9 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
-def parse_requirements(filename, finder=None, comes_from=None):
+def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_match = None
-    skip_regex = self.parser.get_from_config('skip-requirements-regex')
+    skip_regex = options.skip_requirements_regex
     if skip_regex:
         skip_match = re.compile(skip_regex)
     filename, content = get_file_content(filename, comes_from=comes_from)
@@ -3843,7 +3881,7 @@ def parse_requirements(filename, finder=None, comes_from=None):
                 req_url = urlparse.urljoin(filename, url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
-            for item in parse_requirements(req_url, finder, comes_from=filename):
+            for item in parse_requirements(req_url, finder, comes_from=filename, options=options):
                 yield item
         elif line.startswith('-Z') or line.startswith('--always-unzip'):
             # No longer used, but previously these were used in
@@ -3874,7 +3912,7 @@ def parse_requirements(filename, finder=None, comes_from=None):
                 else:
                     line = line[len('--editable'):].strip()
                 req = InstallRequirement.from_editable(
-                    line, comes_from)
+                    line, comes_from=comes_from, default_vcs=options.default_vcs)
             else:
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
@@ -4224,7 +4262,7 @@ def display_path(path):
         path = '.' + path[len(os.getcwd()):]
     return path
 
-def parse_editable(editable_req):
+def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
     (Foobar) and a URL"""
     url = editable_req
@@ -4570,6 +4608,7 @@ def find_command(cmd, paths=None, pathext=None):
         if os.path.exists(cmd_path):
             return cmd_path
     return None
+
 
 class _Inf(object):
     """I am bigger than everything!"""
