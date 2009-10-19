@@ -253,6 +253,21 @@ parser.add_option(
     type='str',
     default='',
     help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # Run only if inside a virtualenv, bail if not.
+    '--require-virtualenv', '--require-venv',
+    dest='require_venv',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # Use automatically an activated virtualenv instead of installing
+    # globally. -E will be ignored if used.
+    '--respect-virtualenv', '--respect-venv',
+    dest='respect_venv',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
 
 parser.add_option(
     '-v', '--verbose',
@@ -359,11 +374,34 @@ class Command(object):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
+        if options.require_venv and not options.venv:
+            # If a venv is required check if it can really be found
+            if not os.environ.get('VIRTUAL_ENV'):
+                print 'Could not find an activated virtualenv (required).'
+                sys.exit(3)
+            # Automatically install in currently activated venv if required
+            options.respect_venv = True
+
         if args and args[-1] == '___VENV_RESTART___':
             ## FIXME: We don't do anything this this value yet:
             venv_location = args[-2]
             args = args[:-2]
             options.venv = None
+        else:
+            # If given the option to respect the activated environment
+            # check if no venv is given as a command line parameter
+            if options.respect_venv and os.environ.get('VIRTUAL_ENV'):
+                if options.venv and os.path.exists(options.venv):
+                    # Make sure command line venv and environmental are the same
+                    if (os.path.realpath(os.path.expanduser(options.venv)) !=
+                            os.path.realpath(os.environ.get('VIRTUAL_ENV'))):
+                        print ("Given virtualenv (%s) doesn't match "
+                               "currently activated virtualenv (%s)."
+                               % (options.venv, os.environ.get('VIRTUAL_ENV')))
+                        sys.exit(3)
+                else:
+                    options.venv = os.environ.get('VIRTUAL_ENV')
+                    print 'Using already activated environment %s' % options.venv
         level = 1 # Notify
         level += options.verbose
         level -= options.quiet
@@ -550,8 +588,7 @@ class InstallCommand(Command):
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
             "Use multiple --install-option options to pass multiple options to setup.py install.  "
-            "If you are using an option with a directory path, be sure to use absolute path."
-            )
+            "If you are using an option with a directory path, be sure to use absolute path.")
 
     def run(self, options, args):
         if not options.build_dir:
