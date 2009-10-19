@@ -65,11 +65,11 @@ if sys.platform == 'win32':
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    CONFIG_NAME = 'pip.cfg'
+    config_filename = 'pip.cfg'
 else:
     lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
     bin_py = os.path.join(sys.prefix, 'bin')
-    CONFIG_NAME = '.pip.cfg'
+    config_filename = '.pip.cfg'
 
 class ConfigOptionParser(optparse.OptionParser):
 
@@ -82,7 +82,7 @@ class ConfigOptionParser(optparse.OptionParser):
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
-        return [os.path.join(os.path.expanduser('~'), CONFIG_NAME)]
+        return [os.path.join(os.path.expanduser('~'), config_filename)]
 
     def set_defaults(self, **kwargs):
         """Sets default values of parser options given the configuration file
