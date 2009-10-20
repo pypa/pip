@@ -32,8 +32,8 @@ def reset_env():
     environ['PIP_DOWNLOAD_CACHE'] = download_cache
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
-    # To avoid the 0.9c8 svn 1.5 incompatibility:
-    env.run('%s/bin/easy_install' % env.base_path, 'http://peak.telecommunity.com/snapshots/setuptools-0.7a1dev-r66388.tar.gz')
+    # make sure we have current setuptools to avoid svn incompatibilities
+    env.run('%s/bin/easy_install' % env.base_path, 'setuptools==0.6c11')
     env.run('mkdir', 'src')
 
 def run_pip(*args, **kw):
