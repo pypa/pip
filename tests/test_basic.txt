@@ -40,6 +40,13 @@ Now, checking out from svn::
     >>> assert 'src/initools' in result.files_created
     >>> assert 'src/initools/.svn' in result.files_created
 
+
+Using package==dev::
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'INITools==dev', expect_error=True)
+    >>> assert (lib_py + 'site-packages/initools') in result.files_created, str(result.stdout)
+
 Cloning from Git::
 
     >>> reset_env()
