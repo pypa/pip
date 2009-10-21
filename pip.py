@@ -67,7 +67,7 @@ if sys.platform == 'win32':
 else:
     lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
     bin_py = os.path.join(sys.prefix, 'bin')
-    
+
 pypi_url = "http://pypi.python.org/simple"
 
 default_timeout = 15
@@ -1175,7 +1175,7 @@ class PackageFinder(object):
                     file_locations.append(filename_to_url2(fn))
             else:
                 url_locations.append(url)
-        
+
         locations = [Link(url) for url in url_locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -1704,7 +1704,7 @@ execfile(__file__)
         thus uninstallation within a virtual environment can only
         modify that virtual environment, even if the virtualenv is
         linked to global site-packages.
-        
+
         """
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
@@ -1810,7 +1810,9 @@ execfile(__file__)
                 for dirname in dirnames:
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
-                    zip.writestr(self.name + '/' + name + '/', '')
+                    zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
+                    zipdir.external_attr = 0755 << 16L
+                    zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == 'pip-delete-this-directory.txt':
                         continue
@@ -1961,7 +1963,7 @@ execfile(__file__)
         for dest_dir in self._bundle_build_dirs:
             package = os.path.basename(dest_dir)
             yield InstallRequirement(
-                package, self, 
+                package, self,
                 source_dir=dest_dir)
 
     def move_bundle_files(self, dest_build_dir, dest_src_dir):
@@ -2924,7 +2926,7 @@ class VersionControl(object):
         Compare two repo URLs for identity, ignoring incidental differences.
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
-    
+
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -2951,7 +2953,7 @@ class VersionControl(object):
         Update an already-existing repo to the given ``rev_options``.
         """
         raise NotImplementedError
-    
+
     def check_destination(self, dest, url, rev_options, rev_display):
         """
         Prepare a location to receive a checkout/clone.
@@ -3002,7 +3004,7 @@ class VersionControl(object):
                 shutil.move(dest, dest_dir)
                 checkout = True
         return checkout
-    
+
     def unpack(self, location):
         raise NotImplementedError
 
@@ -3046,7 +3048,7 @@ class Subversion(VersionControl):
 
     def get_revision(self, location):
         return self.get_info(location)[1]
-    
+
     def parse_vcs_bundle_file(self, content):
         for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
@@ -3094,7 +3096,7 @@ class Subversion(VersionControl):
     def switch(self, dest, url, rev_options):
         call_subprocess(
             ['svn', 'switch'] + rev_options + [url, dest])
-            
+
     def update(self, dest, rev_options):
         call_subprocess(
             ['svn', 'update'] + rev_options + [dest])
@@ -3419,7 +3421,7 @@ class Git(VersionControl):
                                        branch_revs[current_rev].replace('origin/', ''))
         else:
             full_egg_name = '%s-dev' % dist.egg_name()
-            
+
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
     def get_url_rev(self):
@@ -3507,7 +3509,7 @@ class Mercurial(VersionControl):
         call_subprocess(['hg', 'pull', '-q'], cwd=dest)
         call_subprocess(
             ['hg', 'update', '-q'] + rev_options, cwd=dest)
-        
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3645,7 +3647,7 @@ class Bazaar(VersionControl):
     def update(self, dest, rev_options):
         call_subprocess(
             [self.cmd, 'pull', '-q'] + rev_options, cwd=dest)
-            
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -4329,7 +4331,7 @@ class UninstallPathSet(object):
                              self.prefix))
             return False
         return True
-        
+
     def add(self, path):
         if not os.path.exists(path):
             return
@@ -4348,7 +4350,7 @@ class UninstallPathSet(object):
             self.pth[stripped].add(os.path.normcase(entry))
         else:
             self._refuse.add(pth_file)
-        
+
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
         necessary to contain all paths in the set. If /a/path/ and
@@ -4391,7 +4393,7 @@ class UninstallPathSet(object):
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify('Successfully uninstalled %s' % self.dist.project_name)
-                
+
         finally:
             logger.indent -= 2
 
@@ -4415,7 +4417,7 @@ class UninstallPathSet(object):
             shutil.rmtree(self.save_dir)
             self.save_dir = None
             self._moved_paths = []
-        
+
 
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
@@ -4456,7 +4458,7 @@ class UninstallPthEntries(object):
         fh.writelines(self._saved_lines)
         fh.close()
         return True
-        
+
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
