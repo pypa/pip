@@ -4308,9 +4308,16 @@ def package_to_requirement(package_name):
 def strip_prefix(path, prefix):
     """ If ``path`` begins with ``prefix``, return ``path`` with
     ``prefix`` stripped off.  Otherwise return None."""
-    if path.startswith(prefix):
-        return path.replace(prefix + os.path.sep, '')
-    return None
+    prefixes = [prefix]
+    # Yep, we are special casing the framework layout of MacPython here
+    if sys.platform[:6] == 'darwin':
+        for alt_path in ('/Library', '/System/Library', '/usr/local'):
+            if path.startswith(alt_path):
+                prefixes.append(alt_path)
+    for prefix in prefixes:
+        if path.startswith(prefix):
+            return prefix, path.replace(prefix + os.path.sep, '')
+    return None, None
 
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
@@ -4325,7 +4332,8 @@ class UninstallPathSet(object):
         self._moved_paths = []
 
     def can_uninstall(self):
-        if not strip_prefix(self.dist.location, self.prefix):
+        prefix, stripped = strip_prefix(self.dist.location, self.prefix)
+        if not stripped:
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.dist.location,
                              self.prefix))
@@ -4335,21 +4343,21 @@ class UninstallPathSet(object):
     def add(self, path):
         if not os.path.exists(path):
             return
-        stripped = strip_prefix(os.path.normcase(path), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(path), self.prefix)
         if stripped:
-            self.paths.add(stripped)
+            self.paths.add((prefix, stripped))
         else:
-            self._refuse.add(path)
+            self._refuse.add((prefix, path))
 
     def add_pth(self, pth_file, entry):
-        stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
         if stripped:
             entry = os.path.normcase(entry)
             if stripped not in self.pth:
-                self.pth[stripped] = UninstallPthEntries(os.path.join(self.prefix, stripped))
+                self.pth[stripped] = UninstallPthEntries(os.path.join(prefix, stripped))
             self.pth[stripped].add(os.path.normcase(entry))
         else:
-            self._refuse.add(pth_file)
+            self._refuse.add((prefix, pth_file))
 
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
@@ -4357,11 +4365,15 @@ class UninstallPathSet(object):
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+        def sort_set(x, y):
+            prefix_x, path_x = x
+            prefix_y, path_y = y
+            return cmp(len(path_x), len(path_y))
+        for prefix, path in sorted(paths, sort_set):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                        for shortpath in short_paths]):
-                short_paths.add(path)
+                        for shortprefix, shortpath in short_paths]):
+                short_paths.add((prefix, path))
         return short_paths
 
     def remove(self, auto_confirm=False):
@@ -4374,21 +4386,21 @@ class UninstallPathSet(object):
             if auto_confirm:
                 response = 'y'
             else:
-                for path in paths:
-                    logger.notify(path)
+                for prefix, path in paths:
+                    logger.notify(os.path.join(prefix, path))
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
-                logger.notify('Not removing or modifying (outside of sys.prefix):')
-                for path in self.compact(self._refuse):
-                    logger.notify(path)
+                logger.notify('Not removing or modifying (outside of prefix):')
+                for prefix, path in self.compact(self._refuse):
+                    logger.notify(os.path.join(prefix, path))
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
-                for path in paths:
-                    full_path = os.path.join(self.prefix, path)
+                for prefix, path in paths:
+                    full_path = os.path.join(prefix, path)
                     new_path = os.path.join(self.save_dir, path)
                     new_dir = os.path.dirname(new_path)
                     logger.info('Removing file or directory %s' % full_path)
-                    self._moved_paths.append(path)
+                    self._moved_paths.append((prefix, path))
                     os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
@@ -4403,9 +4415,9 @@ class UninstallPathSet(object):
             logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
-        for path in self._moved_paths:
+        for prefix, path in self._moved_paths:
             tmp_path = os.path.join(self.save_dir, path)
-            real_path = os.path.join(self.prefix, path)
+            real_path = os.path.join(prefix, path)
             logger.info('Replacing %s' % real_path)
             os.renames(tmp_path, real_path)
         for pth in self.pth:
