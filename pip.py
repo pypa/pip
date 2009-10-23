@@ -4311,7 +4311,7 @@ def strip_prefix(path, prefix):
     prefixes = [prefix]
     # Yep, we are special casing the framework layout of MacPython here
     if (sys.platform[:6] == 'darwin' and
-            sys.prefix.startswith('/Library', '/System/Library')):
+            sys.prefix.startswith(('/Library', '/System/Library'))):
         framework_locations = (('/Library', '/usr/local'),
                                ('/System/Library', '/usr'))
         for locations in framework_locations:
