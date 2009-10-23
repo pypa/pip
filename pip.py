@@ -36,6 +36,7 @@ import time
 import logging
 import ConfigParser
 from distutils.util import strtobool
+from distutils import sysconfig
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -58,18 +59,36 @@ except NameError:
                 return True
         return False
 
+def is_framework_layout(path):
+    """Return True if the current platform is the default Python of Mac OS X
+    which installs scripts in /usr/local/bin"""
+    return (sys.platform[:6] == 'darwin' and
+            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
+
+if getattr(sys, 'real_prefix', None):
+    ## FIXME: is build/ a good name?
+    build_prefix = os.path.join(sys.prefix, 'build')
+    src_prefix = os.path.join(sys.prefix, 'src')
+else:
+    ## FIXME: this isn't a very good default
+    build_prefix = os.path.join(os.getcwd(), 'build')
+    src_prefix = os.path.join(os.getcwd(), 'src')
+
 # FIXME doesn't account for venv linked to global site-packages
+
+lib_py = sysconfig.get_python_lib()
 if sys.platform == 'win32':
-    lib_py = os.path.join(sys.prefix, 'Lib')
     bin_py = os.path.join(sys.prefix, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
     config_filename = 'pip.cfg'
 else:
-    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
     bin_py = os.path.join(sys.prefix, 'bin')
     config_filename = '.pip.cfg'
+    # Forcing to use /usr/local/bin for Mac OS X framework installs
+    if is_framework_layout(sys.prefix):
+        bin_py = '/usr/local/bin'
 
 class ConfigOptionParser(optparse.OptionParser):
 
@@ -333,15 +352,6 @@ parser.add_option(
     help=optparse.SUPPRESS_HELP)
 
 parser.disable_interspersed_args()
-
-if getattr(sys, 'real_prefix', None):
-    ## FIXME: is build/ a good name?
-    build_prefix = os.path.join(sys.prefix, 'build')
-    src_prefix = os.path.join(sys.prefix, 'src')
-else:
-    ## FIXME: this isn't a very good default
-    build_prefix = os.path.join(os.getcwd(), 'build')
-    src_prefix = os.path.join(os.getcwd(), 'src')
 
 _commands = {}
 
@@ -1310,7 +1320,7 @@ class PackageFinder(object):
                     file_locations.append(filename_to_url2(fn))
             else:
                 url_locations.append(url)
-        
+
         locations = [Link(url) for url in url_locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -1839,7 +1849,7 @@ execfile(__file__)
         thus uninstallation within a virtual environment can only
         modify that virtual environment, even if the virtualenv is
         linked to global site-packages.
-        
+
         """
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
@@ -1898,15 +1908,22 @@ execfile(__file__)
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
-        # get scripts from metadata FIXME there seems to be no way to
-        # get info about installed scripts from a
-        # develop-install. python setup.py develop --record in
-        # install_editable seemingly ought to work, but does not
+        # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
                 paths_to_remove.add(os.path.join(bin_py, script))
                 if sys.platform == 'win32':
                     paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
+
+        # find console_scripts
+        if dist.has_metadata('entry_points.txt'):
+            config = ConfigParser.SafeConfigParser()
+            config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
+            for name, value in config.items('console_scripts'):
+                paths_to_remove.add(os.path.join(bin_py, name))
+                if sys.platform == 'win32':
+                    paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
+                    paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -1945,7 +1962,9 @@ execfile(__file__)
                 for dirname in dirnames:
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
-                    zip.writestr(self.name + '/' + name + '/', '')
+                    zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
+                    zipdir.external_attr = 0755 << 16L
+                    zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == 'pip-delete-this-directory.txt':
                         continue
@@ -2096,7 +2115,7 @@ execfile(__file__)
         for dest_dir in self._bundle_build_dirs:
             package = os.path.basename(dest_dir)
             yield InstallRequirement(
-                package, self, 
+                package, self,
                 source_dir=dest_dir)
 
     def move_bundle_files(self, dest_build_dir, dest_src_dir):
@@ -3062,7 +3081,7 @@ class VersionControl(object):
         Compare two repo URLs for identity, ignoring incidental differences.
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
-    
+
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -3089,7 +3108,7 @@ class VersionControl(object):
         Update an already-existing repo to the given ``rev_options``.
         """
         raise NotImplementedError
-    
+
     def check_destination(self, dest, url, rev_options, rev_display):
         """
         Prepare a location to receive a checkout/clone.
@@ -3140,7 +3159,7 @@ class VersionControl(object):
                 shutil.move(dest, dest_dir)
                 checkout = True
         return checkout
-    
+
     def unpack(self, location):
         raise NotImplementedError
 
@@ -3184,7 +3203,7 @@ class Subversion(VersionControl):
 
     def get_revision(self, location):
         return self.get_info(location)[1]
-    
+
     def parse_vcs_bundle_file(self, content):
         for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
@@ -3232,7 +3251,7 @@ class Subversion(VersionControl):
     def switch(self, dest, url, rev_options):
         call_subprocess(
             ['svn', 'switch'] + rev_options + [url, dest])
-            
+
     def update(self, dest, rev_options):
         call_subprocess(
             ['svn', 'update'] + rev_options + [dest])
@@ -3557,7 +3576,7 @@ class Git(VersionControl):
                                        branch_revs[current_rev].replace('origin/', ''))
         else:
             full_egg_name = '%s-dev' % dist.egg_name()
-            
+
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
     def get_url_rev(self):
@@ -3645,7 +3664,7 @@ class Mercurial(VersionControl):
         call_subprocess(['hg', 'pull', '-q'], cwd=dest)
         call_subprocess(
             ['hg', 'update', '-q'] + rev_options, cwd=dest)
-        
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3783,7 +3802,7 @@ class Bazaar(VersionControl):
     def update(self, dest, rev_options):
         call_subprocess(
             [self.cmd, 'pull', '-q'] + rev_options, cwd=dest)
-            
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -4461,9 +4480,16 @@ def package_to_requirement(package_name):
 def strip_prefix(path, prefix):
     """ If ``path`` begins with ``prefix``, return ``path`` with
     ``prefix`` stripped off.  Otherwise return None."""
-    if path.startswith(prefix):
-        return path.replace(prefix + os.path.sep, '')
-    return None
+    prefixes = [prefix]
+    # Yep, we are special casing the framework layout of MacPython here
+    if is_framework_layout(path):
+        for location in ('/Library', '/usr/local'):
+            if path.startswith(location):
+                prefixes.append(location)
+    for prefix in prefixes:
+        if path.startswith(prefix):
+            return prefix, path.replace(prefix + os.path.sep, '')
+    return None, None
 
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
@@ -4478,43 +4504,49 @@ class UninstallPathSet(object):
         self._moved_paths = []
 
     def can_uninstall(self):
-        if not strip_prefix(self.dist.location, self.prefix):
+        prefix, stripped = strip_prefix(self.dist.location, self.prefix)
+        if not stripped:
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.dist.location,
                              self.prefix))
             return False
         return True
-        
+
     def add(self, path):
+        path = os.path.abspath(path)
         if not os.path.exists(path):
             return
-        stripped = strip_prefix(os.path.normcase(path), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(path), self.prefix)
         if stripped:
-            self.paths.add(stripped)
+            self.paths.add((prefix, stripped))
         else:
-            self._refuse.add(path)
+            self._refuse.add((prefix, path))
 
     def add_pth(self, pth_file, entry):
-        stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
         if stripped:
             entry = os.path.normcase(entry)
             if stripped not in self.pth:
-                self.pth[stripped] = UninstallPthEntries(os.path.join(self.prefix, stripped))
+                self.pth[stripped] = UninstallPthEntries(os.path.join(prefix, stripped))
             self.pth[stripped].add(os.path.normcase(entry))
         else:
-            self._refuse.add(pth_file)
-        
+            self._refuse.add((prefix, pth_file))
+
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
         necessary to contain all paths in the set. If /a/path/ and
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+        def sort_set(x, y):
+            prefix_x, path_x = x
+            prefix_y, path_y = y
+            return cmp(len(path_x), len(path_y))
+        for prefix, path in sorted(paths, sort_set):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                        for shortpath in short_paths]):
-                short_paths.add(path)
+                        for shortprefix, shortpath in short_paths]):
+                short_paths.add((prefix, path))
         return short_paths
 
     def remove(self, auto_confirm=False):
@@ -4527,26 +4559,26 @@ class UninstallPathSet(object):
             if auto_confirm:
                 response = 'y'
             else:
-                for path in paths:
-                    logger.notify(path)
+                for prefix, path in paths:
+                    logger.notify(os.path.join(prefix, path))
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
-                logger.notify('Not removing or modifying (outside of sys.prefix):')
-                for path in self.compact(self._refuse):
-                    logger.notify(path)
+                logger.notify('Not removing or modifying (outside of prefix):')
+                for prefix, path in self.compact(self._refuse):
+                    logger.notify(os.path.join(prefix, path))
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
-                for path in paths:
-                    full_path = os.path.join(self.prefix, path)
+                for prefix, path in paths:
+                    full_path = os.path.join(prefix, path)
                     new_path = os.path.join(self.save_dir, path)
                     new_dir = os.path.dirname(new_path)
                     logger.info('Removing file or directory %s' % full_path)
-                    self._moved_paths.append(path)
+                    self._moved_paths.append((prefix, path))
                     os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify('Successfully uninstalled %s' % self.dist.project_name)
-                
+
         finally:
             logger.indent -= 2
 
@@ -4556,9 +4588,9 @@ class UninstallPathSet(object):
             logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
-        for path in self._moved_paths:
+        for prefix, path in self._moved_paths:
             tmp_path = os.path.join(self.save_dir, path)
-            real_path = os.path.join(self.prefix, path)
+            real_path = os.path.join(prefix, path)
             logger.info('Replacing %s' % real_path)
             os.renames(tmp_path, real_path)
         for pth in self.pth:
@@ -4570,7 +4602,7 @@ class UninstallPathSet(object):
             shutil.rmtree(self.save_dir)
             self.save_dir = None
             self._moved_paths = []
-        
+
 
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
@@ -4611,7 +4643,19 @@ class UninstallPthEntries(object):
         fh.writelines(self._saved_lines)
         fh.close()
         return True
-        
+
+class FakeFile(object):
+    """Wrap a list of lines in an object with readline() to make
+    ConfigParser happy."""
+    def __init__(self, lines):
+        self._gen = (l for l in lines)
+
+    def readline(self):
+        try:
+            return self._gen.next()
+        except StopIteration:
+            return ''
+    
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
@@ -4645,7 +4689,6 @@ def find_command(cmd, paths=None, pathext=None):
         if os.path.exists(cmd_path):
             return cmd_path
     return None
-
 
 class _Inf(object):
     """I am bigger than everything!"""

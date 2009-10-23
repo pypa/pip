@@ -10,6 +10,14 @@ tip
 * Allow packages to be upgraded, e.g., ``pip install Package==0.1``
   then ``pip install Package==0.2``.
 
+* Allow installing/upgrading to Package==dev (fix "Source version does not
+  match target version" errors).
+
+* Fixed a bug with pip install --download and editable packages, where
+  directories were being set with 0000 permissions, now defaults to 755.
+
+* Fixed uninstallation of easy_installed console_scripts.
+
 0.5.1
 -----
 

@@ -20,11 +20,11 @@ And it does upgrade if requested
 Automatic uninstall-before-upgrade::
 
     >>> reset_env()
-    >>> result = run_pip('install', 'simplejson==1.7.4', expect_error=True)
-    >>> assert join(lib_py + 'site-packages', 'simplejson') in result.files_created, sorted(result.files_created.keys())
-    >>> result2 = run_pip('install', 'simplejson==2.0.9', expect_error=True)
-    >>> assert result2.files_created, 'upgrade to simplejson 2.0.9 failed'
-    >>> result3 = run_pip('uninstall', 'simplejson', '-y', expect_error=True)
+    >>> result = run_pip('install', 'INITools==0.2', expect_error=True)
+    >>> assert join(lib_py + 'site-packages', 'initools') in result.files_created, sorted(result.files_created.keys())
+    >>> result2 = run_pip('install', 'INITools==0.3', expect_error=True)
+    >>> assert result2.files_created, 'upgrade to INITools 0.3 failed'
+    >>> result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     >>> diff_states(result.files_before, result3.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
