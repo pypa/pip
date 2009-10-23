@@ -35,6 +35,7 @@ import httplib
 import time
 import logging
 import ConfigParser
+from distutils import sysconfig
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -58,14 +59,14 @@ else:
     base_src_prefix = os.path.join(os.getcwd(), 'src')
 
 # FIXME doesn't account for venv linked to global site-packages
+
+lib_py = sysconfig.get_python_lib()
 if sys.platform == 'win32':
-    lib_py = os.path.join(sys.prefix, 'Lib')
     bin_py = os.path.join(sys.prefix, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
 else:
-    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
     bin_py = os.path.join(sys.prefix, 'bin')
 
 pypi_url = "http://pypi.python.org/simple"
