@@ -18,6 +18,8 @@ tip
 
 * Fixed uninstallation of easy_installed console_scripts.
 
+* Fixed uninstallation on Mac OS X Framework layout installs
+
 0.5.1
 -----
 
