@@ -4358,6 +4358,7 @@ class UninstallPathSet(object):
         return True
 
     def add(self, path):
+        path = os.path.abspath(path)
         if not os.path.exists(path):
             return
         prefix, stripped = strip_prefix(os.path.normcase(path), self.prefix)
