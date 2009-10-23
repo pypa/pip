@@ -1763,15 +1763,22 @@ execfile(__file__)
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
-        # get scripts from metadata FIXME there seems to be no way to
-        # get info about installed scripts from a
-        # develop-install. python setup.py develop --record in
-        # install_editable seemingly ought to work, but does not
+        # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
                 paths_to_remove.add(os.path.join(bin_py, script))
                 if sys.platform == 'win32':
                     paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
+
+        # find console_scripts
+        if dist.has_metadata('entry_points.txt'):
+            config = ConfigParser.SafeConfigParser()
+            config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
+            for name, value in config.items('console_scripts'):
+                paths_to_remove.add(os.path.join(bin_py, name))
+                if sys.platform == 'win32':
+                    paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
+                    paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -4475,6 +4482,18 @@ class UninstallPthEntries(object):
         fh.close()
         return True
 
+class FakeFile(object):
+    """Wrap a list of lines in an object with readline() to make
+    ConfigParser happy."""
+    def __init__(self, lines):
+        self._gen = (l for l in lines)
+
+    def readline(self):
+        try:
+            return self._gen.next()
+        except StopIteration:
+            return ''
+    
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)

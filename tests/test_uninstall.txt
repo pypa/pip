@@ -17,16 +17,25 @@ Uninstall an easy_installed package with scripts::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'Markdown')
-    >>> assert('Markdown' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
-    >>> result2 = run_pip('uninstall', 'markdown', '-y', expect_error=True)
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'PyLogo')
+    >>> assert('PyLogo' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
+    >>> result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
-Uninstall a package with more files (script entry points, empty directories)::
+Uninstall a package with more files (script entry points, extra directories)::
 
     >>> reset_env()
     >>> result = run_pip('install', 'virtualenv', expect_error=True)
+    >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
+    >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    [{}, {}, {}]
+
+Same, but easy_installed::
+
+    >>> reset_env()
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'virtualenv')
     >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
@@ -48,7 +57,7 @@ Uninstall from a requirements file::
     >>> write_file('test-req.txt', '''\
     ... -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
     ... # and something else to test out:
-    ... simplejson<=1.7.4
+    ... PyLogo<0.4
     ... ''')
     >>> result = run_pip('install', '-r', 'test-req.txt')
     >>> result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
