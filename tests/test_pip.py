@@ -25,11 +25,21 @@ except NameError:
                 return True
         return False
 
-def reset_env():
+def clear_environ(environ):
+    return dict(((k, v) for k, v in environ.iteritems()
+                if not k.lower().startswith('pip_')))
+
+def reset_env(environ=None):
     global env
-    environ = os.environ.copy()
+    pip_cfg = os.path.expanduser('~/.pip.cfg')
+    if os.path.exists(pip_cfg):
+        print 'Move %s out of the way before running this test' % pip_cfg
+        sys.exit(1)
+    if not environ:
+        environ = os.environ.copy()
+        environ = clear_environ(environ)
+        environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
-    environ['PIP_DOWNLOAD_CACHE'] = download_cache
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
     # make sure we have current setuptools to avoid svn incompatibilities
