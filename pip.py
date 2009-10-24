@@ -59,12 +59,6 @@ except NameError:
                 return True
         return False
 
-def is_framework_layout(path):
-    """Return True if the current platform is the default Python of Mac OS X
-    which installs scripts in /usr/local/bin"""
-    return (sys.platform[:6] == 'darwin' and
-            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
-
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
     build_prefix = os.path.join(sys.prefix, 'build')
@@ -86,8 +80,8 @@ if sys.platform == 'win32':
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     config_filename = '.pip.cfg'
-    # Forcing to use /usr/local/bin for Mac OS X framework installs
-    if is_framework_layout(sys.prefix):
+    # Forcing to use /usr/local/bin for standard Mac OS X framework installs
+    if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
 class ConfigOptionParser(optparse.OptionParser):
@@ -171,6 +165,22 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
+
+def rmtree_errorhandler(func, path, exc_info):
+    """On Windows, the files in .svn are read-only, so when rmtree() tries to
+    remove them, an exception is thrown.  We catch that here, remove the
+    read-only attribute, and hopefully continue without problems."""
+    exctype, value = exc_info[:2]
+    # lookin for a windows error
+    if exctype is not WindowsError or 'Access is denied' not in str(value):
+        raise
+    # file type should currently be read only
+    if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
+        raise
+    # convert to read/write
+    os.chmod(path, stat.S_IWRITE)
+    # use the original function to repeat the operation
+    func(path)
 
 class VcsSupport(object):
     _registry = {}
@@ -4214,22 +4224,6 @@ def call_subprocess(cmd, show_stdout=True,
 ############################################################
 ## Utility functions
 
-def rmtree_errorhandler(func, path, exc_info):
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
-    exctype, value = exc_info[:2]
-    # lookin for a windows error
-    if exctype is not WindowsError or 'Access is denied' not in str(value):
-        raise
-    # file type should currently be read only
-    if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
-        raise
-    # convert to read/write
-    os.chmod(path, stat.S_IWRITE)
-    # use the original function to repeat the operation
-    func(path)
-
 def is_svn_page(html):
     """Returns true if the page appears to be the index page of an svn repository"""
     return (re.search(r'<title>[^<]*Revision \d+:', html)
@@ -4477,12 +4471,18 @@ def package_to_requirement(package_name):
     else:
         return name
 
+def is_framework_layout(path):
+    """Return True if the current platform is the default Python of Mac OS X
+    which installs scripts in /usr/local/bin"""
+    return (sys.platform[:6] == 'darwin' and
+            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
+
 def strip_prefix(path, prefix):
     """ If ``path`` begins with ``prefix``, return ``path`` with
     ``prefix`` stripped off.  Otherwise return None."""
     prefixes = [prefix]
     # Yep, we are special casing the framework layout of MacPython here
-    if is_framework_layout(path):
+    if is_framework_layout(sys.prefix):
         for location in ('/Library', '/usr/local'):
             if path.startswith(location):
                 prefixes.append(location)
