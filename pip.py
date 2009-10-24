@@ -95,6 +95,9 @@ class ConfigOptionParser(optparse.OptionParser):
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
+        config_file = os.environ.get('PIP_CONFIG_FILE', False)
+        if config_file and os.path.exists(config_file):
+            return [config_file]
         return [os.path.join(os.path.expanduser('~'), config_filename)]
 
     def set_defaults(self, **kwargs):
