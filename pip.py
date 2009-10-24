@@ -85,6 +85,8 @@ else:
         bin_py = '/usr/local/bin'
 
 class ConfigOptionParser(optparse.OptionParser):
+    """Custom option parser which updates its defaults by by checking the
+    configuration files and environmental variables"""
 
     def __init__(self, *args, **kwargs):
         self.config = ConfigParser.RawConfigParser()
@@ -98,13 +100,22 @@ class ConfigOptionParser(optparse.OptionParser):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
             return [config_file]
+        # FIXME: add ~/.python/pip.cfg or whatever Python core decides here
         return [os.path.join(os.path.expanduser('~'), config_filename)]
 
-    def set_defaults(self, **kwargs):
-        """Sets default values of parser options given the configuration file
-        """
-        defaults = {}
-        for key, val in kwargs.iteritems():
+    def update_defaults(self, defaults):
+        """Updates the given defaults with values from the config files and
+        the environ. Does a little special handling for certain types of
+        options (lists)."""
+        # Then go and look for the other sources of configuration:
+        config = {}
+        # 1. config files
+        for section in ('global', self.name):
+            config.update(dict(self.get_config_section(section)))
+        # 2. environmental variables
+        config.update(dict(self.get_environ_vars()))
+        # Then set the options with those values
+        for key, val in config.iteritems():
             key = key.replace('_', '-')
             if not key.startswith('--'):
                 key = '--%s' % key # only prefer long opts
@@ -113,13 +124,20 @@ class ConfigOptionParser(optparse.OptionParser):
                 # ignore empty values
                 if not val:
                     continue
-                # multiline configs
+                # handle multiline configs
                 if option.action == 'append':
                     val = val.split()
+                else:
+                    option.nargs = 1
                 if option.action in ('store_true', 'store_false', 'count'):
                     val = strtobool(val)
+                try:
+                    val = option.convert_value(key, val)
+                except optparse.OptionValueError, e:
+                    print ("An error occured during configuration: %s" % e)
+                    sys.exit(3)
                 defaults[option.dest] = val
-        optparse.OptionParser.set_defaults(self, **defaults)
+        return defaults
 
     def get_config_section(self, name):
         """Get a section of a configuration"""
@@ -133,33 +151,20 @@ class ConfigOptionParser(optparse.OptionParser):
             if key.startswith(prefix):
                 yield (key.replace(prefix, '').lower(), val)
 
-    def set_options_from_config_and_environ(self, defaults=None):
-        """Sets the defaults of the option parser by merging in the config
-        files and environmental variables
+    def get_default_values(self):
+        """Overridding to make updating the defaults after instantiation of
+        the option parser possible, update_defaults() does the dirty work."""
+        if not self.process_default_values:
+            # Old, pre-Optik 1.5 behaviour.
+            return optparse.Values(self.defaults)
 
-        This constitutes the following order of importance:
-
-        1. config files
-            a) global section
-            b) command section
-        2. environmental vars
-        3. program option
-            a) global flags
-            b) command flags
-
-        e.g.:
-        - --host=foo overrides $PIP_HOST=foo overrides [global] host = foo
-        - a setting made in the command specific config section overrides one
-          made in the global config section
-        - either are overriden by a environmental variable
-        - command line option flags override everything else
-        """
-        if defaults is None:
-            defaults = {}
-        for section in ('global', self.name):
-            defaults.update(dict(self.get_config_section(section)))
-        defaults.update(dict(self.get_environ_vars()))
-        self.set_defaults(**defaults)
+        defaults = self.update_defaults(self.defaults.copy()) # ours
+        for option in self._get_all_options():
+            default = defaults.get(option.dest)
+            if isinstance(default, basestring):
+                opt_str = option.get_opt_string()
+                defaults[option.dest] = option.check_value(opt_str, default)
+        return optparse.Values(defaults)
 
 try:
     pip_dist = pkg_resources.get_distribution('pip')
@@ -249,7 +254,6 @@ class VcsSupport(object):
         if vc_type:
             return self.get_backend(vc_type)
         return None
-
 
 vcs = VcsSupport()
 
@@ -393,7 +397,6 @@ class Command(object):
 
     def main(self, complete_args, args, initial_options):
         global logger
-        self.parser.set_options_from_config_and_environ()
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
