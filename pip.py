@@ -390,7 +390,10 @@ class Command(object):
         _commands[self.name] = self
 
     def merge_options(self, initial_options, options):
-        for attr in ['log', 'venv', 'proxy']:
+        # Make sure we have all global options carried over
+        for attr in ['log', 'venv', 'proxy', 'venv_base', 'require_venv',
+                     'respect_venv', 'log_explicit_levels', 'log_file',
+                     'timeout', 'default_vcs', 'skip_requirements_regex']:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
