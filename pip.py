@@ -49,12 +49,6 @@ class DistributionNotFound(InstallationError):
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
 
-def is_framework_layout(path):
-    """Return True if the current platform is the default Python of Mac OS X
-    which installs scripts in /usr/local/bin"""
-    return (sys.platform[:6] == 'darwin' and
-            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
-
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
     base_prefix = os.path.join(sys.prefix, 'build')
@@ -74,8 +68,8 @@ if sys.platform == 'win32':
         bin_py = os.path.join(sys.prefix, 'bin')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    # Forcing to use /usr/local/bin for Mac OS X framework installs
-    if is_framework_layout(sys.prefix):
+    # Forcing to use /usr/local/bin for standard Mac OS X framework installs
+    if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
 pypi_url = "http://pypi.python.org/simple"
@@ -4322,12 +4316,18 @@ def package_to_requirement(package_name):
     else:
         return name
 
+def is_framework_layout(path):
+    """Return True if the current platform is the default Python of Mac OS X
+    which installs scripts in /usr/local/bin"""
+    return (sys.platform[:6] == 'darwin' and
+            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
+
 def strip_prefix(path, prefix):
     """ If ``path`` begins with ``prefix``, return ``path`` with
     ``prefix`` stripped off.  Otherwise return None."""
     prefixes = [prefix]
     # Yep, we are special casing the framework layout of MacPython here
-    if is_framework_layout(path):
+    if is_framework_layout(sys.prefix):
         for location in ('/Library', '/usr/local'):
             if path.startswith(location):
                 prefixes.append(location)
