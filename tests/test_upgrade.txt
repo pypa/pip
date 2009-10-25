@@ -10,7 +10,14 @@ No upgrade if not specifically requested::
     >>> result2 = run_pip('install', 'INITools', expect_error=True)
     >>> assert not result2.files_created, 'pip install INITools upgraded when it should not have'
 
-And it does upgrade if requested
+It does upgrade to specific version requested::
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'INITools==0.1', expect_error=True)
+    >>> result2 = run_pip('install', 'INITools==0.2', expect_error=True)
+    >>> assert result2.files_created, 'pip install with specific version did not upgrade'
+
+And it does upgrade if requested::
 
     >>> reset_env()
     >>> result = run_pip('install', 'INITools==0.1', expect_error=True)
@@ -47,13 +54,17 @@ Upgrade from a requirements file::
     >>> diff_states(result.files_before, result3.files_after, ignore=['build', 'test-req.txt']).values()
     [{}, {}, {}]
 
-# FIXME Testing rollback of auto-uninstall requires a
-# publicly-available package that has a broken setup.py such that
-# "python setup.py egg-info" works, but "python setup.py install"
-# fails. Wouldn't be too hard to create such a package, but at the
-# moment I'm not sure where to host it, and don't feel like adding yet
-# another external point of failure to these tests. So test it
-# manually! Real-world need for this feature should be minimal, as the
-# common failure modes (package can't be downloaded, setup.py really
-# broken) will cause failure before the existing distribution is ever
-# uninstalled.
+Test uninstall-rollback (using test package with a setup.py crafted to
+fail on install)::
+
+    >>> reset_env()
+    >>> env = get_env()
+    >>> find_links = 'file://' + join(here, 'packages')
+    >>> result = run_pip('install', '-f', find_links, '--no-index', 'broken==0.1')
+    >>> assert (join(lib_py, 'site-packages', 'broken.py') in result.files_created), result.files_created.keys()
+    >>> result2 = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)
+    >>> assert result2.returncode == 1
+    >>> env.run(join(env.base_path, 'bin', 'python'), '-c', "import broken; print broken.VERSION").stdout
+    '0.1\n'
+    >>> diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt']).values()
+    [{}, {}, {}]
