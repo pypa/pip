@@ -7,6 +7,7 @@ entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
 <http://bitbucket.org/ianb/pip/>`_).
 
 .. toctree::
+   :maxdepth: 1
 
    news
    requirement-format
@@ -187,7 +188,7 @@ packages, then the person who installs the files will have to have a compiler,
 any necessary headers installed, etc.  Binary packages are hard, this is
 relatively easy.
 
-Using pip With virtualenv
+Using pip with virtualenv
 -------------------------
 
 pip is most nutritious when used with `virtualenv
