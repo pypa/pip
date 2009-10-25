@@ -70,7 +70,7 @@ else:
 
 # FIXME doesn't account for venv linked to global site-packages
 
-lib_py = sysconfig.get_python_lib()
+site_packages = sysconfig.get_python_lib()
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
     # buildout uses 'bin' on Windows too?
@@ -1890,13 +1890,13 @@ execfile(__file__)
                                          dist.egg_name()) + '.egg-info'
         easy_install_egg = dist.egg_name() + '.egg'
         # This won't find a globally-installed develop egg if
-        # we're in a virtualenv (lib_py is based on sys.prefix).
+        # we're in a virtualenv.
         # (There doesn't seem to be any metadata in the
         # Distribution object for a develop egg that points back
         # to its .egg-link and easy-install.pth files).  That's
         # OK, because we restrict ourselves to making changes
         # within sys.prefix anyway.
-        develop_egg_link = os.path.join(lib_py, 'site-packages',
+        develop_egg_link = os.path.join(site_packages,
                                         dist.project_name) + '.egg-link'
         if os.path.exists(pip_egg_info_path):
             # package installed by pip
