@@ -1825,7 +1825,7 @@ execfile(__file__)
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        if self.comes_from == 'command line':
+        if self.comes_from is None:
             # We don't check the versions of things explicitly installed.
             # This makes, e.g., "pip Package==dev" possible
             return
