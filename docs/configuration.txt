@@ -1,0 +1,108 @@
+Configuration
+=============
+
+pip allows you to set its default options by using the following facilities,
+in the order of each item's importance:
+
+1. Command line options
+
+2. `Environment variables`_
+
+3. `Config files`_
+
+   1. Command specific section, e.g. ``[install]``
+   2. Global section ``[global]``
+
+That means it will check each of those configuration sources and set the
+defaults appropriately.
+
+Examples
+--------
+
+- ``--host=foo`` overrides ``PIP_HOST=foo``
+- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
+- A command specific section in the config file ``[<command>] host = bar``
+  overrides the option with same name in the ``[global]`` config file section
+- Environment variables override config files
+
+Config files
+------------
+
+pip allows you to set all command line option defaults in a standard ini
+style config file.
+
+The names of the settings are derived from the long command line option, e.g.
+if you want to use a different package index (``--index-url``) and set the
+HTTP timeout (``--default-timeout``) to 60 seconds your config file would
+look like this:
+
+.. code-block:: ini
+
+    [global]
+    timeout = 60
+    index-url = http://download.zope.org/ppix
+
+Each subcommand can be configured optionally in its own section so that every
+global setting with the same name will be overridden; e.g. decreasing the
+``timeout`` to ``10`` seconds when running the `freeze`
+(`Freezing Requirements`_) command and using ``60`` seconds for all other
+commands is possible with:
+
+.. code-block:: ini
+
+    [global]
+    timeout = 60
+    
+    [freeze]
+    timeout = 10
+
+Boolean options like ``--ignore-installed`` or ``--no-dependencies`` can be
+set like this:
+
+.. code-block:: ini
+
+    [install]
+    ignore-installed = true
+    no-dependencies = yes
+
+Appending options like ``--find-links`` can be written on multiple lines:
+
+.. code-block:: ini
+
+    [global]
+    find-links =
+        http://download.example.com
+
+    [install]
+    find-links =
+        http://mirror1.example.com
+        http://mirror2.example.com
+
+Location
+********
+
+The names and locations of the configuration files vary slightly across
+platforms.
+
+On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip.cfg`
+
+And on Windows, the configuration file is: :file:`%HOME%\\pip.cfg`
+
+Environment variables
+-----------------------
+
+Just like with `config files`_, each of pip's command line options
+(long version, e.g. ``--find-links``) are automatically set by looking for
+environment variables with the name format ``PIP_<UPPER_NAME>``. That means
+the name of the command line options are capitalized and have dashes (``-``)
+replaced with underscores (``_``).
+
+For example, to redefine the default timeout you can also set an
+environment variable::
+
+    export PIP_DEFAULT_TIMEOUT=60
+    pip install ipython
+
+Which is the same as passing the option to pip directly::
+
+    pip --default-timeout=60 install ipython
