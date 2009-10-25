@@ -84,6 +84,14 @@ else:
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
+class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+
+    def expand_default(self, option):
+        if self.parser is not None:
+            self.parser.update_defaults(self.parser.defaults)
+        return optparse.IndentedHelpFormatter.expand_default(self, option)
+
+
 class ConfigOptionParser(optparse.OptionParser):
     """Custom option parser which updates its defaults by by checking the
     configuration files and environmental variables"""
@@ -261,6 +269,7 @@ parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
     version=version,
     add_help_option=False,
+    formatter=UpdatingDefaultsHelpFormatter(),
     name='global')
 
 parser.add_option(
@@ -381,6 +390,7 @@ class Command(object):
             usage=self.usage,
             prog='%s %s' % (sys.argv[0], self.name),
             version=parser.version,
+            formatter=UpdatingDefaultsHelpFormatter(),
             name=self.name)
         for option in parser.option_list:
             if not option.dest or option.dest == 'help':
