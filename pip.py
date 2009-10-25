@@ -557,14 +557,14 @@ class InstallCommand(Command):
             dest='index_url',
             metavar='URL',
             default='http://pypi.python.org/simple',
-            help='base URL of Python Package Index')
+            help='Base URL of Python Package Index (default %default)')
         self.parser.add_option(
             '--extra-index-url',
             dest='extra_index_urls',
             metavar='URL',
             action='append',
             default=[],
-            help='extra URLs of package indexes to use in addition to --index-url')
+            help='Extra URLs of package indexes to use in addition to --index-url')
         self.parser.add_option(
             '--no-index',
             dest='no_index',
@@ -585,12 +585,11 @@ class InstallCommand(Command):
             default=None,
             help='Download packages into DIR instead of installing them')
         self.parser.add_option(
-            # Cache downloaded packages in DIR
             '--download-cache',
             dest='download_cache',
             metavar='DIR',
             default=None,
-            help=optparse.SUPPRESS_HELP)
+            help='Cache downloaded packages in DIR')
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
