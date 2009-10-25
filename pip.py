@@ -3515,8 +3515,7 @@ class Git(VersionControl):
             if origin_rev in inverse_revisions:
                 rev = inverse_revisions[origin_rev]
             else:
-                raise InstallationError("Could not find a tag or branch '%s' in repository %s"
-                                        % (rev, display_path(dest)))
+                logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
         return [rev]
 
     def switch(self, dest, url, rev_options):
@@ -3535,7 +3534,7 @@ class Git(VersionControl):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = [rev]
-            rev_display = ' (to revision %s)' % rev
+            rev_display = ' (to %s)' % rev
         else:
             rev_options = ['origin/master']
             rev_display = ''
