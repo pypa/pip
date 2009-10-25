@@ -26,6 +26,8 @@ tip
 
 * Fixed uninstallation on Mac OS X Framework layout installs
 
+* Fixed bug preventing uninstall of editables with source outside venv.
+
 0.5.1
 -----
 
