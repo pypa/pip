@@ -1883,8 +1883,6 @@ execfile(__file__)
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
         paths_to_remove = UninstallPathSet(dist, sys.prefix)
-        if not paths_to_remove.can_uninstall():
-            return
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -1935,6 +1933,8 @@ execfile(__file__)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+            # fix location (so we can uninstall links to sources outside venv)
+            paths_to_remove.location = develop_egg_link
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -4518,11 +4518,12 @@ class UninstallPathSet(object):
         self.pth = {}
         self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
         self.dist = dist
+        self.location = dist.location
         self.save_dir = None
         self._moved_paths = []
 
-    def can_uninstall(self):
-        prefix, stripped = strip_prefix(self.dist.location, self.prefix)
+    def _can_uninstall(self):
+        prefix, stripped = strip_prefix(self.location, self.prefix)
         if not stripped:
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.dist.location,
@@ -4570,6 +4571,8 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
+        if not self._can_uninstall():
+            return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
         paths = sorted(self.compact(self.paths))

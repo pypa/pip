@@ -2,6 +2,7 @@ Basic setup::
 
     >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
     >>> from os.path import join
+    >>> from tempfile import mkdtemp
     >>> easy_install_pth = join(lib_py, 'site-packages', 'easy-install.pth')
 
 Simple install and uninstall::
@@ -49,6 +50,17 @@ Uninstall an editable installation from svn::
     >>> result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
     >>> assert ('src/initools' in result2.files_after), 'oh noes, pip deleted my sources!'
     >>> diff_states(result.files_before, result2.files_after, ignore=['src/initools', 'build']).values()
+    [{}, {}, {}]
+
+Editable install from existing source outside the venv::
+
+    >>> reset_env()
+    >>> tmpdir = mkdtemp()
+    >>> result = env.run('hg', 'clone', 'http://bitbucket.org/ianb/virtualenv/', tmpdir)
+    >>> result2 = run_pip('install', '-e', tmpdir)
+    >>> assert (join(lib_py, 'site-packages', 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
+    >>> result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
+    >>> diff_states(result.files_before, result3.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
 Uninstall from a requirements file::
