@@ -2397,6 +2397,11 @@ class RequirementSet(object):
         target_url = link.url.split('#', 1)[0]
         target_file = None
         if self.download_cache:
+            if not os.path.isdir(self.download_cache):
+                logger.indent -= 2
+                logger.notify('Creating supposed download cache at %s' % self.download_cache)
+                logger.indent += 2
+                os.makedirs(self.download_cache)
             target_file = os.path.join(self.download_cache,
                                        urllib.quote(target_url, ''))
         if (target_file and os.path.exists(target_file)

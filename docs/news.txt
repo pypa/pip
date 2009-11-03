@@ -28,6 +28,8 @@ tip
 
 * Fixed bug preventing uninstall of editables with source outside venv.
 
+* Creates download cache directory if not existing.
+
 0.5.1
 -----
 
