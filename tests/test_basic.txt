@@ -80,17 +80,17 @@ Presence or absence of final slash is also normalized::
 Checking out from Bazaar::
 
     >>> reset_env()
-    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@1#egg=pip-test', expect_error=True)
-    >>> egg_link = result.files_created[lib_py + 'site-packages/pip-test.egg-link']
+    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/@174#egg=django-wikiapp', expect_error=True)
+    >>> egg_link = result.files_created[lib_py + 'site-packages/django-wikiapp.egg-link']
     >>> # FIXME: I don't understand why there's a trailing . here:
     >>> egg_link.bytes
-    '.../test-scratch/src/pip-test\n.'
+    '.../test-scratch/src/django-wikiapp\n.'
     >>> assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
-    >>> assert 'src/pip-test' in result.files_created
-    >>> assert 'src/pip-test/.bzr' in result.files_created
+    >>> assert 'src/django-wikiapp' in result.files_created
+    >>> assert 'src/django-wikiapp/.bzr' in result.files_created
 
 Urlquoted characters are normalized for repo URL comparison::
 
-    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/~jezdez/pip-test/test#egg=pip-test', expect_error=True)
+    >>> result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/~django-wikiapp/django-wikiapp/release-0.1#egg=django-wikiapp', expect_error=True)
     >>> assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
