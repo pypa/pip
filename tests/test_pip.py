@@ -25,15 +25,21 @@ except NameError:
                 return True
         return False
 
-def reset_env():
+def clear_environ(environ):
+    return dict(((k, v) for k, v in environ.iteritems()
+                if not k.lower().startswith('pip_')))
+
+def reset_env(environ=None):
     global env
-    environ = os.environ.copy()
+    if not environ:
+        environ = os.environ.copy()
+        environ = clear_environ(environ)
+        environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
-    environ['PIP_DOWNLOAD_CACHE'] = download_cache
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
-    # To avoid the 0.9c8 svn 1.5 incompatibility:
-    env.run('%s/bin/easy_install' % env.base_path, 'http://peak.telecommunity.com/snapshots/setuptools-0.7a1dev-r66388.tar.gz')
+    # make sure we have current setuptools to avoid svn incompatibilities
+    env.run('%s/bin/easy_install' % env.base_path, 'setuptools==0.6c11')
     env.run('mkdir', 'src')
 
 def run_pip(*args, **kw):
@@ -111,7 +117,7 @@ def main():
     options, args = parser.parse_args()
     reset_env()
     if not args:
-        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt', 'test_upgrade.txt']
+        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt', 'test_upgrade.txt', 'test_config.txt']
     optionflags = doctest.ELLIPSIS
     if options.first:
         optionflags |= doctest.REPORT_ONLY_FIRST_FAILURE

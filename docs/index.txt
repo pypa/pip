@@ -7,9 +7,11 @@ entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
 <http://bitbucket.org/ianb/pip/>`_).
 
 .. toctree::
+   :maxdepth: 1
 
    news
    requirement-format
+   configuration
 
 .. comment: split here
 
@@ -186,7 +188,7 @@ packages, then the person who installs the files will have to have a compiler,
 any necessary headers installed, etc.  Binary packages are hard, this is
 relatively easy.
 
-Using pip With virtualenv
+Using pip with virtualenv
 -------------------------
 
 pip is most nutritious when used with `virtualenv
@@ -210,13 +212,19 @@ This is exactly equivalent to::
 Except, if you have ``virtualenv`` installed and the path ``new-env/``
 doesn't exist, then a new virtualenv will be created.
 
-Using pip with buildout
------------------------
+pip also has two advanced features for working with virtualenvs -- both of
+which activated by defining a variable in your environment.
 
-If you are using `zc.buildout
-<http://pypi.python.org/pypi/zc.buildout>`_ you should look at
-`gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
-option to use pip and virtualenv in your buildouts.
+To tell pip to only run if there is a virtualenv currently activated,
+and to bail if not, use::
+
+    export PIP_REQUIRE_VIRTUALENV=true
+
+To tell pip to automatically use the currently active virtualenv::
+
+    export PIP_RESPECT_VIRTUALENV=true
+
+Providing an environment with ``-E`` will be ignored.
 
 Using pip with virtualenvwrapper
 ---------------------------------
@@ -235,3 +243,11 @@ Do so by adding the line::
     export PIP_VIRTUALENV_BASE=$WORKON_HOME
 
 in your .bashrc under the line starting with ``export WORKON_HOME``.
+
+Using pip with buildout
+-----------------------
+
+If you are using `zc.buildout
+<http://pypi.python.org/pypi/zc.buildout>`_ you should look at
+`gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
+option to use pip and virtualenv in your buildouts.

@@ -7,8 +7,28 @@ tip
 * Add ``pip uninstall`` and uninstall-before upgrade (from Carl
   Meyer).
 
+* Extended configurability with config files and environment variables.
+
 * Allow packages to be upgraded, e.g., ``pip install Package==0.1``
   then ``pip install Package==0.2``.
+
+* Allow installing/upgrading to Package==dev (fix "Source version does not
+  match target version" errors).
+
+* Extended integration with virtualenv by providing an option to
+  automatically use an active virtualenv and an option to warn if no active
+  virtualenv is found.
+
+* Fixed a bug with pip install --download and editable packages, where
+  directories were being set with 0000 permissions, now defaults to 755.
+
+* Fixed uninstallation of easy_installed console_scripts.
+
+* Fixed uninstallation on Mac OS X Framework layout installs
+
+* Fixed bug preventing uninstall of editables with source outside venv.
+
+* Creates download cache directory if not existing.
 
 0.5.1
 -----

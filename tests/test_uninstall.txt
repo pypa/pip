@@ -2,6 +2,7 @@ Basic setup::
 
     >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
     >>> from os.path import join
+    >>> from tempfile import mkdtemp
     >>> easy_install_pth = join(lib_py, 'site-packages', 'easy-install.pth')
 
 Simple install and uninstall::
@@ -17,16 +18,25 @@ Uninstall an easy_installed package with scripts::
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'Markdown')
-    >>> assert('Markdown' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
-    >>> result2 = run_pip('uninstall', 'markdown', '-y', expect_error=True)
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'PyLogo')
+    >>> assert('PyLogo' in result.files_updated[easy_install_pth].bytes), result.files_after[easy-install_pth].bytes
+    >>> result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
     [{}, {}, {}]
 
-Uninstall a package with more files (script entry points, empty directories)::
+Uninstall a package with more files (script entry points, extra directories)::
 
     >>> reset_env()
     >>> result = run_pip('install', 'virtualenv', expect_error=True)
+    >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
+    >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
+    >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    [{}, {}, {}]
+
+Same, but easy_installed::
+
+    >>> reset_env()
+    >>> result = env.run(join(env.base_path, 'bin', 'easy_install'), 'virtualenv')
     >>> assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     >>> result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     >>> diff_states(result.files_before, result2.files_after, ignore=['build']).values()
@@ -42,13 +52,24 @@ Uninstall an editable installation from svn::
     >>> diff_states(result.files_before, result2.files_after, ignore=['src/initools', 'build']).values()
     [{}, {}, {}]
 
+Editable install from existing source outside the venv::
+
+    >>> reset_env()
+    >>> tmpdir = mkdtemp()
+    >>> result = env.run('hg', 'clone', 'http://bitbucket.org/ianb/virtualenv/', tmpdir)
+    >>> result2 = run_pip('install', '-e', tmpdir)
+    >>> assert (join(lib_py, 'site-packages', 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
+    >>> result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
+    >>> diff_states(result.files_before, result3.files_after, ignore=['build']).values()
+    [{}, {}, {}]
+
 Uninstall from a requirements file::
 
     >>> reset_env()
     >>> write_file('test-req.txt', '''\
     ... -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
     ... # and something else to test out:
-    ... simplejson<=1.7.4
+    ... PyLogo<0.4
     ... ''')
     >>> result = run_pip('install', '-r', 'test-req.txt')
     >>> result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')

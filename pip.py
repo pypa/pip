@@ -17,7 +17,7 @@ import re
 import shutil
 import fnmatch
 import operator
-import stat
+import copy
 try:
     from hashlib import md5
 except ImportError:
@@ -35,6 +35,8 @@ import httplib
 import time
 import logging
 import ConfigParser
+from distutils.util import strtobool
+from distutils import sysconfig
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -48,45 +50,6 @@ class DistributionNotFound(InstallationError):
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
 
-if getattr(sys, 'real_prefix', None):
-    ## FIXME: is build/ a good name?
-    base_prefix = os.path.join(sys.prefix, 'build')
-    base_src_prefix = os.path.join(sys.prefix, 'src')
-else:
-    ## FIXME: this isn't a very good default
-    base_prefix = os.path.join(os.getcwd(), 'build')
-    base_src_prefix = os.path.join(os.getcwd(), 'src')
-
-# FIXME doesn't account for venv linked to global site-packages
-if sys.platform == 'win32':
-    lib_py = os.path.join(sys.prefix, 'Lib')
-    bin_py = os.path.join(sys.prefix, 'Scripts')
-    # buildout uses 'bin' on Windows too?
-    if not os.path.exists(bin_py):
-        bin_py = os.path.join(sys.prefix, 'bin')
-else:
-    lib_py = os.path.join(sys.prefix, 'lib', 'python%s' % sys.version[:3])
-    bin_py = os.path.join(sys.prefix, 'bin')
-    
-pypi_url = "http://pypi.python.org/simple"
-
-default_timeout = 15
-
-## FIXME: this shouldn't be a module setting
-default_vcs = None
-if os.environ.get('PIP_DEFAULT_VCS'):
-    default_vcs = os.environ['PIP_DEFAULT_VCS']
-
-virtualenv_base = os.environ.get('PIP_VIRTUALENV_BASE')
-
-try:
-    pip_dist = pkg_resources.get_distribution('pip')
-    version = '%s from %s (python %s)' % (
-        pip_dist, pip_dist.location, sys.version[:3])
-except pkg_resources.DistributionNotFound:
-    # when running pip.py without installing
-    version=None
-
 try:
     any
 except NameError:
@@ -95,6 +58,129 @@ except NameError:
             if item:
                 return True
         return False
+
+if getattr(sys, 'real_prefix', None):
+    ## FIXME: is build/ a good name?
+    build_prefix = os.path.join(sys.prefix, 'build')
+    src_prefix = os.path.join(sys.prefix, 'src')
+else:
+    ## FIXME: this isn't a very good default
+    build_prefix = os.path.join(os.getcwd(), 'build')
+    src_prefix = os.path.join(os.getcwd(), 'src')
+
+# FIXME doesn't account for venv linked to global site-packages
+
+site_packages = sysconfig.get_python_lib()
+if sys.platform == 'win32':
+    bin_py = os.path.join(sys.prefix, 'Scripts')
+    # buildout uses 'bin' on Windows too?
+    if not os.path.exists(bin_py):
+        bin_py = os.path.join(sys.prefix, 'bin')
+    config_filename = 'pip.cfg'
+else:
+    bin_py = os.path.join(sys.prefix, 'bin')
+    config_filename = '.pip.cfg'
+    # Forcing to use /usr/local/bin for standard Mac OS X framework installs
+    if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
+        bin_py = '/usr/local/bin'
+
+class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+
+    def expand_default(self, option):
+        if self.parser is not None:
+            self.parser.update_defaults(self.parser.defaults)
+        return optparse.IndentedHelpFormatter.expand_default(self, option)
+
+
+class ConfigOptionParser(optparse.OptionParser):
+    """Custom option parser which updates its defaults by by checking the
+    configuration files and environmental variables"""
+
+    def __init__(self, *args, **kwargs):
+        self.config = ConfigParser.RawConfigParser()
+        self.name = kwargs.pop('name')
+        self.files = self.get_config_files()
+        self.config.read(self.files)
+        assert self.name
+        optparse.OptionParser.__init__(self, *args, **kwargs)
+
+    def get_config_files(self):
+        config_file = os.environ.get('PIP_CONFIG_FILE', False)
+        if config_file and os.path.exists(config_file):
+            return [config_file]
+        # FIXME: add ~/.python/pip.cfg or whatever Python core decides here
+        return [os.path.join(os.path.expanduser('~'), config_filename)]
+
+    def update_defaults(self, defaults):
+        """Updates the given defaults with values from the config files and
+        the environ. Does a little special handling for certain types of
+        options (lists)."""
+        # Then go and look for the other sources of configuration:
+        config = {}
+        # 1. config files
+        for section in ('global', self.name):
+            config.update(dict(self.get_config_section(section)))
+        # 2. environmental variables
+        config.update(dict(self.get_environ_vars()))
+        # Then set the options with those values
+        for key, val in config.iteritems():
+            key = key.replace('_', '-')
+            if not key.startswith('--'):
+                key = '--%s' % key # only prefer long opts
+            option = self.get_option(key)
+            if option is not None:
+                # ignore empty values
+                if not val:
+                    continue
+                # handle multiline configs
+                if option.action == 'append':
+                    val = val.split()
+                else:
+                    option.nargs = 1
+                if option.action in ('store_true', 'store_false', 'count'):
+                    val = strtobool(val)
+                try:
+                    val = option.convert_value(key, val)
+                except optparse.OptionValueError, e:
+                    print ("An error occured during configuration: %s" % e)
+                    sys.exit(3)
+                defaults[option.dest] = val
+        return defaults
+
+    def get_config_section(self, name):
+        """Get a section of a configuration"""
+        if self.config.has_section(name):
+            return self.config.items(name)
+        return []
+
+    def get_environ_vars(self, prefix='PIP_'):
+        """Returns a generator with all environmental vars with prefix PIP_"""
+        for key, val in os.environ.iteritems():
+            if key.startswith(prefix):
+                yield (key.replace(prefix, '').lower(), val)
+
+    def get_default_values(self):
+        """Overridding to make updating the defaults after instantiation of
+        the option parser possible, update_defaults() does the dirty work."""
+        if not self.process_default_values:
+            # Old, pre-Optik 1.5 behaviour.
+            return optparse.Values(self.defaults)
+
+        defaults = self.update_defaults(self.defaults.copy()) # ours
+        for option in self._get_all_options():
+            default = defaults.get(option.dest)
+            if isinstance(default, basestring):
+                opt_str = option.get_opt_string()
+                defaults[option.dest] = option.check_value(opt_str, default)
+        return optparse.Values(defaults)
+
+try:
+    pip_dist = pkg_resources.get_distribution('pip')
+    version = '%s from %s (python %s)' % (
+        pip_dist, pip_dist.location, sys.version[:3])
+except pkg_resources.DistributionNotFound:
+    # when running pip.py without installing
+    version=None
 
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
@@ -177,13 +263,14 @@ class VcsSupport(object):
             return self.get_backend(vc_type)
         return None
 
-
 vcs = VcsSupport()
 
-parser = optparse.OptionParser(
+parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
     version=version,
-    add_help_option=False)
+    add_help_option=False,
+    formatter=UpdatingDefaultsHelpFormatter(),
+    name='global')
 
 parser.add_option(
     '-h', '--help',
@@ -204,6 +291,30 @@ parser.add_option(
     'created. Ignored if --environment is not used or '
     'the virtualenv already exists.')
 parser.add_option(
+    # Defines a default root directory for virtualenvs, relative
+    # virtualenvs names/paths are considered relative to it.
+    '--virtualenv-base',
+    dest='venv_base',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # Run only if inside a virtualenv, bail if not.
+    '--require-virtualenv', '--require-venv',
+    dest='require_venv',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # Use automatically an activated virtualenv instead of installing
+    # globally. -E will be ignored if used.
+    '--respect-virtualenv', '--respect-venv',
+    dest='respect_venv',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
+
+parser.add_option(
     '-v', '--verbose',
     dest='verbose',
     action='count',
@@ -221,6 +332,21 @@ parser.add_option(
     metavar='FILENAME',
     help='Log file where a complete (maximum verbosity) record will be kept')
 parser.add_option(
+    # Writes the log levels explicitely to the log'
+    '--log-explicit-levels',
+    dest='log_explicit_levels',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # The default log file
+    '--local-log', '--log-file',
+    dest='log_file',
+    metavar='FILENAME',
+    default='./pip-log.txt',
+    help=optparse.SUPPRESS_HELP)
+
+parser.add_option(
     '--proxy',
     dest='proxy',
     type='str',
@@ -228,18 +354,30 @@ parser.add_option(
     help="Specify a proxy in the form user:passwd@proxy.server:port. "
     "Note that the user:password@ is optional and required only if you "
     "are behind an authenticated proxy.  If you provide "
-    "user@proxy.server:port then you will be prompted for a password."
-    )
+    "user@proxy.server:port then you will be prompted for a password.")
 parser.add_option(
-    '--timeout',
+    '--timeout', '--default-timeout',
     metavar='SECONDS',
     dest='timeout',
     type='float',
-    default=default_timeout,
-    help='Set the socket timeout (default %s seconds)' % default_timeout)
+    default=15,
+    help='Set the socket timeout (default %default seconds)')
+parser.add_option(
+    # The default version control system for editables, e.g. 'svn'
+    '--default-vcs',
+    dest='default_vcs',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # A regex to be used to skip requirements
+    '--skip-requirements-regex',
+    dest='skip_requirements_regex',
+    type='str',
+    default='',
+    help=optparse.SUPPRESS_HELP)
 
 parser.disable_interspersed_args()
-
 
 _commands = {}
 
@@ -248,10 +386,12 @@ class Command(object):
     usage = None
     def __init__(self):
         assert self.name
-        self.parser = optparse.OptionParser(
+        self.parser = ConfigOptionParser(
             usage=self.usage,
             prog='%s %s' % (sys.argv[0], self.name),
-            version=parser.version)
+            version=parser.version,
+            formatter=UpdatingDefaultsHelpFormatter(),
+            name=self.name)
         for option in parser.option_list:
             if not option.dest or option.dest == 'help':
                 # -h, --version, etc
@@ -260,7 +400,10 @@ class Command(object):
         _commands[self.name] = self
 
     def merge_options(self, initial_options, options):
-        for attr in ['log', 'venv', 'proxy']:
+        # Make sure we have all global options carried over
+        for attr in ['log', 'venv', 'proxy', 'venv_base', 'require_venv',
+                     'respect_venv', 'log_explicit_levels', 'log_file',
+                     'timeout', 'default_vcs', 'skip_requirements_regex']:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -270,11 +413,34 @@ class Command(object):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
+        if options.require_venv and not options.venv:
+            # If a venv is required check if it can really be found
+            if not os.environ.get('VIRTUAL_ENV'):
+                print 'Could not find an activated virtualenv (required).'
+                sys.exit(3)
+            # Automatically install in currently activated venv if required
+            options.respect_venv = True
+
         if args and args[-1] == '___VENV_RESTART___':
             ## FIXME: We don't do anything this this value yet:
             venv_location = args[-2]
             args = args[:-2]
             options.venv = None
+        else:
+            # If given the option to respect the activated environment
+            # check if no venv is given as a command line parameter
+            if options.respect_venv and os.environ.get('VIRTUAL_ENV'):
+                if options.venv and os.path.exists(options.venv):
+                    # Make sure command line venv and environmental are the same
+                    if (os.path.realpath(os.path.expanduser(options.venv)) !=
+                            os.path.realpath(os.environ.get('VIRTUAL_ENV'))):
+                        print ("Given virtualenv (%s) doesn't match "
+                               "currently activated virtualenv (%s)."
+                               % (options.venv, os.environ.get('VIRTUAL_ENV')))
+                        sys.exit(3)
+                else:
+                    options.venv = os.environ.get('VIRTUAL_ENV')
+                    print 'Using already activated environment %s' % options.venv
         level = 1 # Notify
         level += options.verbose
         level -= options.quiet
@@ -282,7 +448,7 @@ class Command(object):
         complete_log = []
         logger = Logger([(level, sys.stdout),
                          (Logger.DEBUG, complete_log.append)])
-        if os.environ.get('PIP_LOG_EXPLICIT_LEVELS'):
+        if options.log_explicit_levels:
             logger.explicit_levels = True
         if options.venv:
             if options.verbose > 0:
@@ -291,7 +457,8 @@ class Command(object):
             site_packages=False
             if options.site_packages:
                 site_packages=True
-            restart_in_venv(options.venv, site_packages, complete_args)
+            restart_in_venv(options.venv, options.venv_base, site_packages,
+                            complete_args)
             # restart_in_venv should actually never return, but for clarity...
             return
         ## FIXME: not sure if this sure come before or after venv restart
@@ -319,7 +486,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if exit:
-            log_fn = os.environ.get('PIP_LOG_FILE', './pip-log.txt')
+            log_fn = options.log_file
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile_append(log_fn)
@@ -386,18 +553,18 @@ class InstallCommand(Command):
             metavar='URL',
             help='URL to look for packages at')
         self.parser.add_option(
-            '-i', '--index-url',
+            '-i', '--index-url', '--pypi-url',
             dest='index_url',
             metavar='URL',
-            default=pypi_url,
-            help='base URL of Python Package Index')
+            default='http://pypi.python.org/simple',
+            help='Base URL of Python Package Index (default %default)')
         self.parser.add_option(
             '--extra-index-url',
             dest='extra_index_urls',
             metavar='URL',
             action='append',
             default=[],
-            help='extra URLs of package indexes to use in addition to --index-url')
+            help='Extra URLs of package indexes to use in addition to --index-url')
         self.parser.add_option(
             '--no-index',
             dest='no_index',
@@ -410,7 +577,7 @@ class InstallCommand(Command):
             dest='build_dir',
             metavar='DIR',
             default=None,
-            help='Unpack packages into DIR (default %s) and build from there' % base_prefix)
+            help='Unpack packages into DIR (default %s) and build from there' % build_prefix)
         self.parser.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
@@ -418,11 +585,17 @@ class InstallCommand(Command):
             default=None,
             help='Download packages into DIR instead of installing them')
         self.parser.add_option(
+            '--download-cache',
+            dest='download_cache',
+            metavar='DIR',
+            default=None,
+            help='Cache downloaded packages in DIR')
+        self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
             default=None,
-            help='Check out --editable packages into DIR (default %s)' % base_src_prefix)
+            help='Check out --editable packages into DIR (default %s)' % src_prefix)
 
         self.parser.add_option(
             '-U', '--upgrade',
@@ -453,14 +626,13 @@ class InstallCommand(Command):
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
             "Use multiple --install-option options to pass multiple options to setup.py install.  "
-            "If you are using an option with a directory path, be sure to use absolute path."
-            )
+            "If you are using an option with a directory path, be sure to use absolute path.")
 
     def run(self, options, args):
         if not options.build_dir:
-            options.build_dir = base_prefix
+            options.build_dir = build_prefix
         if not options.src_dir:
-            options.src_dir = base_src_prefix
+            options.src_dir = src_prefix
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
@@ -479,6 +651,7 @@ class InstallCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=options.download_dir,
+            download_cache=options.download_cache,
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies)
@@ -487,9 +660,9 @@ class InstallCommand(Command):
                 InstallRequirement.from_line(name, None))
         for name in options.editables:
             requirement_set.add_requirement(
-                InstallRequirement.from_editable(name))
+                InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
         for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder):
+            for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
         requirement_set.install_files(finder, force_root_egg_info=self.bundle)
         if not options.no_install and not self.bundle:
@@ -537,7 +710,7 @@ class UninstallCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
         for filename in options.requirements:
-            for req in parse_requirements(filename):
+            for req in parse_requirements(filename, options=options):
                 requirement_set.add_requirement(req)
         requirement_set.uninstall(auto_confirm=options.yes)
 
@@ -556,9 +729,9 @@ class BundleCommand(InstallCommand):
         if not args:
             raise InstallationError('You must give a bundle filename')
         if not options.build_dir:
-            options.build_dir = backup_dir(base_prefix, '-bundle')
+            options.build_dir = backup_dir(build_prefix, '-bundle')
         if not options.src_dir:
-            options.src_dir = backup_dir(base_src_prefix, '-bundle')
+            options.src_dir = backup_dir(src_prefix, '-bundle')
         # We have to get everything when creating a bundle:
         options.ignore_installed = True
         logger.notify('Putting temporary build files in %s and source/develop files in %s'
@@ -602,8 +775,10 @@ class FreezeCommand(Command):
         ## FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
-        if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
-            skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
+
+        skip_regex = options.skip_requirements_regex
+        if skip_regex:
+            skip_match = re.compile(skip_regex)
 
         logger.move_stdout_to_stderr()
         dependency_links = []
@@ -639,7 +814,7 @@ class FreezeCommand(Command):
                         line = line[2:].strip()
                     else:
                         line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = InstallRequirement.from_editable(line)
+                    line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
                 elif (line.startswith('-r') or line.startswith('--requirement')
                       or line.startswith('-Z') or line.startswith('--always-unzip')):
                     logger.debug('Skipping line %r' % line.strip())
@@ -1059,14 +1234,12 @@ def format_exc(exc_info=None):
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
 
-def restart_in_venv(venv, site_packages, args):
+def restart_in_venv(venv, base, site_packages, args):
     """
     Restart this script using the interpreter in the given virtual environment
     """
-    if virtualenv_base\
-            and not os.path.isabs(venv)\
-            and not venv.startswith('~'):
-        base = os.path.expanduser(virtualenv_base)
+    if base and not os.path.isabs(venv) and not venv.startswith('~'):
+        base = os.path.expanduser(base)
         # ensure we have an abs basepath at this point:
         #    a relative one makes no sense (or does it?)
         if os.path.isabs(base):
@@ -1175,7 +1348,7 @@ class PackageFinder(object):
                     file_locations.append(filename_to_url2(fn))
             else:
                 url_locations.append(url)
-        
+
         locations = [Link(url) for url in url_locations]
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -1396,8 +1569,8 @@ class InstallRequirement(object):
         self.uninstalled = None
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None):
-        name, url = parse_editable(editable_req)
+    def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
+        name, url = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_filename(url)
         else:
@@ -1652,7 +1825,7 @@ execfile(__file__)
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        if self.comes_from == 'command line':
+        if self.comes_from is None:
             # We don't check the versions of things explicitly installed.
             # This makes, e.g., "pip Package==dev" possible
             return
@@ -1704,26 +1877,24 @@ execfile(__file__)
         thus uninstallation within a virtual environment can only
         modify that virtual environment, even if the virtualenv is
         linked to global site-packages.
-        
+
         """
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
         paths_to_remove = UninstallPathSet(dist, sys.prefix)
-        if not paths_to_remove.can_uninstall():
-            return
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
         easy_install_egg = dist.egg_name() + '.egg'
         # This won't find a globally-installed develop egg if
-        # we're in a virtualenv (lib_py is based on sys.prefix).
+        # we're in a virtualenv.
         # (There doesn't seem to be any metadata in the
         # Distribution object for a develop egg that points back
         # to its .egg-link and easy-install.pth files).  That's
         # OK, because we restrict ourselves to making changes
         # within sys.prefix anyway.
-        develop_egg_link = os.path.join(lib_py, 'site-packages',
+        develop_egg_link = os.path.join(site_packages,
                                         dist.project_name) + '.egg-link'
         if os.path.exists(pip_egg_info_path):
             # package installed by pip
@@ -1762,16 +1933,25 @@ execfile(__file__)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+            # fix location (so we can uninstall links to sources outside venv)
+            paths_to_remove.location = develop_egg_link
 
-        # get scripts from metadata FIXME there seems to be no way to
-        # get info about installed scripts from a
-        # develop-install. python setup.py develop --record in
-        # install_editable seemingly ought to work, but does not
+        # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
                 paths_to_remove.add(os.path.join(bin_py, script))
                 if sys.platform == 'win32':
                     paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
+
+        # find console_scripts
+        if dist.has_metadata('entry_points.txt'):
+            config = ConfigParser.SafeConfigParser()
+            config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
+            for name, value in config.items('console_scripts'):
+                paths_to_remove.add(os.path.join(bin_py, name))
+                if sys.platform == 'win32':
+                    paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
+                    paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -1810,7 +1990,9 @@ execfile(__file__)
                 for dirname in dirnames:
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
-                    zip.writestr(self.name + '/' + name + '/', '')
+                    zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
+                    zipdir.external_attr = 0755 << 16L
+                    zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == 'pip-delete-this-directory.txt':
                         continue
@@ -1961,7 +2143,7 @@ execfile(__file__)
         for dest_dir in self._bundle_build_dirs:
             package = os.path.basename(dest_dir)
             yield InstallRequirement(
-                package, self, 
+                package, self,
                 source_dir=dest_dir)
 
     def move_bundle_files(self, dest_build_dir, dest_src_dir):
@@ -2007,10 +2189,13 @@ deleted (unless you remove this file).
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False, ignore_installed=False, ignore_dependencies=False):
+    def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
+                 upgrade=False, ignore_installed=False,
+                 ignore_dependencies=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
+        self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.requirements = {}
@@ -2211,8 +2396,13 @@ class RequirementSet(object):
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
         target_file = None
-        if os.environ.get('PIP_DOWNLOAD_CACHE'):
-            target_file = os.path.join(os.environ['PIP_DOWNLOAD_CACHE'],
+        if self.download_cache:
+            if not os.path.isdir(self.download_cache):
+                logger.indent -= 2
+                logger.notify('Creating supposed download cache at %s' % self.download_cache)
+                logger.indent += 2
+                os.makedirs(self.download_cache)
+            target_file = os.path.join(self.download_cache,
                                        urllib.quote(target_url, ''))
         if (target_file and os.path.exists(target_file)
             and os.path.exists(target_file+'.content-type')):
@@ -2924,7 +3114,7 @@ class VersionControl(object):
         Compare two repo URLs for identity, ignoring incidental differences.
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
-    
+
     def parse_vcs_bundle_file(self, content):
         """
         Takes the contents of the bundled text file that explains how to revert
@@ -2951,7 +3141,7 @@ class VersionControl(object):
         Update an already-existing repo to the given ``rev_options``.
         """
         raise NotImplementedError
-    
+
     def check_destination(self, dest, url, rev_options, rev_display):
         """
         Prepare a location to receive a checkout/clone.
@@ -3002,7 +3192,7 @@ class VersionControl(object):
                 shutil.move(dest, dest_dir)
                 checkout = True
         return checkout
-    
+
     def unpack(self, location):
         raise NotImplementedError
 
@@ -3046,7 +3236,7 @@ class Subversion(VersionControl):
 
     def get_revision(self, location):
         return self.get_info(location)[1]
-    
+
     def parse_vcs_bundle_file(self, content):
         for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
@@ -3094,7 +3284,7 @@ class Subversion(VersionControl):
     def switch(self, dest, url, rev_options):
         call_subprocess(
             ['svn', 'switch'] + rev_options + [url, dest])
-            
+
     def update(self, dest, rev_options):
         call_subprocess(
             ['svn', 'update'] + rev_options + [dest])
@@ -3330,8 +3520,7 @@ class Git(VersionControl):
             if origin_rev in inverse_revisions:
                 rev = inverse_revisions[origin_rev]
             else:
-                raise InstallationError("Could not find a tag or branch '%s' in repository %s"
-                                        % (rev, display_path(dest)))
+                logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
         return [rev]
 
     def switch(self, dest, url, rev_options):
@@ -3350,7 +3539,7 @@ class Git(VersionControl):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = [rev]
-            rev_display = ' (to revision %s)' % rev
+            rev_display = ' (to %s)' % rev
         else:
             rev_options = ['origin/master']
             rev_display = ''
@@ -3419,7 +3608,7 @@ class Git(VersionControl):
                                        branch_revs[current_rev].replace('origin/', ''))
         else:
             full_egg_name = '%s-dev' % dist.egg_name()
-            
+
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
     def get_url_rev(self):
@@ -3507,7 +3696,7 @@ class Mercurial(VersionControl):
         call_subprocess(['hg', 'pull', '-q'], cwd=dest)
         call_subprocess(
             ['hg', 'update', '-q'] + rev_options, cwd=dest)
-        
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3645,7 +3834,7 @@ class Bazaar(VersionControl):
     def update(self, dest, rev_options):
         call_subprocess(
             [self.cmd, 'pull', '-q'] + rev_options, cwd=dest)
-            
+
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
@@ -3757,10 +3946,11 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
-def parse_requirements(filename, finder=None, comes_from=None):
+def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_match = None
-    if os.environ.get('PIP_SKIP_REQUIREMENTS_REGEX'):
-        skip_match = re.compile(os.environ['PIP_SKIP_REQUIREMENTS_REGEX'])
+    skip_regex = options.skip_requirements_regex
+    if skip_regex:
+        skip_match = re.compile(skip_regex)
     filename, content = get_file_content(filename, comes_from=comes_from)
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
@@ -3779,7 +3969,7 @@ def parse_requirements(filename, finder=None, comes_from=None):
                 req_url = urlparse.urljoin(filename, url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
-            for item in parse_requirements(req_url, finder, comes_from=filename):
+            for item in parse_requirements(req_url, finder, comes_from=filename, options=options):
                 yield item
         elif line.startswith('-Z') or line.startswith('--always-unzip'):
             # No longer used, but previously these were used in
@@ -3810,7 +4000,7 @@ def parse_requirements(filename, finder=None, comes_from=None):
                 else:
                     line = line[len('--editable'):].strip()
                 req = InstallRequirement.from_editable(
-                    line, comes_from)
+                    line, comes_from=comes_from, default_vcs=options.default_vcs)
             else:
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
@@ -4144,7 +4334,7 @@ def display_path(path):
         path = '.' + path[len(os.getcwd()):]
     return path
 
-def parse_editable(editable_req):
+def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
     (Foobar) and a URL"""
     url = editable_req
@@ -4303,12 +4493,25 @@ def package_to_requirement(package_name):
     else:
         return name
 
+def is_framework_layout(path):
+    """Return True if the current platform is the default Python of Mac OS X
+    which installs scripts in /usr/local/bin"""
+    return (sys.platform[:6] == 'darwin' and
+            (path[:9] == '/Library/' or path[:16] == '/System/Library/'))
+
 def strip_prefix(path, prefix):
     """ If ``path`` begins with ``prefix``, return ``path`` with
     ``prefix`` stripped off.  Otherwise return None."""
-    if path.startswith(prefix):
-        return path.replace(prefix + os.path.sep, '')
-    return None
+    prefixes = [prefix]
+    # Yep, we are special casing the framework layout of MacPython here
+    if is_framework_layout(sys.prefix):
+        for location in ('/Library', '/usr/local'):
+            if path.startswith(location):
+                prefixes.append(location)
+    for prefix in prefixes:
+        if path.startswith(prefix):
+            return prefix, path.replace(prefix + os.path.sep, '')
+    return None, None
 
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
@@ -4319,52 +4522,61 @@ class UninstallPathSet(object):
         self.pth = {}
         self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
         self.dist = dist
+        self.location = dist.location
         self.save_dir = None
         self._moved_paths = []
 
-    def can_uninstall(self):
-        if not strip_prefix(self.dist.location, self.prefix):
+    def _can_uninstall(self):
+        prefix, stripped = strip_prefix(self.location, self.prefix)
+        if not stripped:
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.dist.location,
                              self.prefix))
             return False
         return True
-        
+
     def add(self, path):
+        path = os.path.abspath(path)
         if not os.path.exists(path):
             return
-        stripped = strip_prefix(os.path.normcase(path), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(path), self.prefix)
         if stripped:
-            self.paths.add(stripped)
+            self.paths.add((prefix, stripped))
         else:
-            self._refuse.add(path)
+            self._refuse.add((prefix, path))
 
     def add_pth(self, pth_file, entry):
-        stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
+        prefix, stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
         if stripped:
             entry = os.path.normcase(entry)
             if stripped not in self.pth:
-                self.pth[stripped] = UninstallPthEntries(os.path.join(self.prefix, stripped))
+                self.pth[stripped] = UninstallPthEntries(os.path.join(prefix, stripped))
             self.pth[stripped].add(os.path.normcase(entry))
         else:
-            self._refuse.add(pth_file)
-        
+            self._refuse.add((prefix, pth_file))
+
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
         necessary to contain all paths in the set. If /a/path/ and
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+        def sort_set(x, y):
+            prefix_x, path_x = x
+            prefix_y, path_y = y
+            return cmp(len(path_x), len(path_y))
+        for prefix, path in sorted(paths, sort_set):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                        for shortpath in short_paths]):
-                short_paths.add(path)
+                        for shortprefix, shortpath in short_paths]):
+                short_paths.add((prefix, path))
         return short_paths
 
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
+        if not self._can_uninstall():
+            return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
         paths = sorted(self.compact(self.paths))
@@ -4372,26 +4584,26 @@ class UninstallPathSet(object):
             if auto_confirm:
                 response = 'y'
             else:
-                for path in paths:
-                    logger.notify(path)
+                for prefix, path in paths:
+                    logger.notify(os.path.join(prefix, path))
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
-                logger.notify('Not removing or modifying (outside of sys.prefix):')
-                for path in self.compact(self._refuse):
-                    logger.notify(path)
+                logger.notify('Not removing or modifying (outside of prefix):')
+                for prefix, path in self.compact(self._refuse):
+                    logger.notify(os.path.join(prefix, path))
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
-                for path in paths:
-                    full_path = os.path.join(self.prefix, path)
+                for prefix, path in paths:
+                    full_path = os.path.join(prefix, path)
                     new_path = os.path.join(self.save_dir, path)
                     new_dir = os.path.dirname(new_path)
                     logger.info('Removing file or directory %s' % full_path)
-                    self._moved_paths.append(path)
+                    self._moved_paths.append((prefix, path))
                     os.renames(full_path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify('Successfully uninstalled %s' % self.dist.project_name)
-                
+
         finally:
             logger.indent -= 2
 
@@ -4401,9 +4613,9 @@ class UninstallPathSet(object):
             logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
-        for path in self._moved_paths:
+        for prefix, path in self._moved_paths:
             tmp_path = os.path.join(self.save_dir, path)
-            real_path = os.path.join(self.prefix, path)
+            real_path = os.path.join(prefix, path)
             logger.info('Replacing %s' % real_path)
             os.renames(tmp_path, real_path)
         for pth in self.pth:
@@ -4415,7 +4627,7 @@ class UninstallPathSet(object):
             shutil.rmtree(self.save_dir)
             self.save_dir = None
             self._moved_paths = []
-        
+
 
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
@@ -4456,7 +4668,19 @@ class UninstallPthEntries(object):
         fh.writelines(self._saved_lines)
         fh.close()
         return True
-        
+
+class FakeFile(object):
+    """Wrap a list of lines in an object with readline() to make
+    ConfigParser happy."""
+    def __init__(self, lines):
+        self._gen = (l for l in lines)
+
+    def readline(self):
+        try:
+            return self._gen.next()
+        except StopIteration:
+            return ''
+    
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
