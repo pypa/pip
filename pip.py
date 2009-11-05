@@ -71,20 +71,25 @@ else:
 # FIXME doesn't account for venv linked to global site-packages
 
 site_packages = sysconfig.get_python_lib()
+user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    config_filename = 'pip.cfg'
+    config_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
+    default_config_file = os.path.join(config_dir, 'pip', 'pip.ini')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    config_filename = '.pip.cfg'
+    default_config_file = os.path.join(user_dir, '.pip', 'pip.conf')
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+    """Custom help formatter for use in ConfigOptionParser that updates
+    the defaults before expanding them, allowing them to show up correctly
+    in the help listing"""
 
     def expand_default(self, option):
         if self.parser is not None:
@@ -108,8 +113,7 @@ class ConfigOptionParser(optparse.OptionParser):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
             return [config_file]
-        # FIXME: add ~/.python/pip.cfg or whatever Python core decides here
-        return [os.path.join(os.path.expanduser('~'), config_filename)]
+        return [default_config_file]
 
     def update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
