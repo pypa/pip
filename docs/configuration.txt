@@ -84,9 +84,9 @@ Location
 The names and locations of the configuration files vary slightly across
 platforms.
 
-On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip.cfg`
+On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 
-And on Windows, the configuration file is: :file:`%HOME%\\pip.cfg`
+And on Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
 Environment variables
 -----------------------
