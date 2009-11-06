@@ -2394,7 +2394,7 @@ class RequirementSet(object):
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
             source = url_to_filename(link.url)
-            content_type = mimetypes.guess_type(source)
+            content_type = mimetypes.guess_type(source)[0]
             self.unpack_file(source, location, content_type, link)
             return
         md5_hash = link.md5_hash
@@ -2534,7 +2534,7 @@ class RequirementSet(object):
               or tarfile.is_tarfile(filename)
               or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz')):
             self.untar_file(filename, location)
-        elif (content_type.startswith('text/html')
+        elif (content_type and content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
             Subversion('svn+' + link.url).unpack(location)
