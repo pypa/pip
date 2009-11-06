@@ -2532,7 +2532,7 @@ class RequirementSet(object):
             self.unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
         elif (content_type == 'application/x-gzip'
               or tarfile.is_tarfile(filename)
-              or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz')):
+              or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
             self.untar_file(filename, location)
         elif (content_type and content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
@@ -2582,7 +2582,7 @@ class RequirementSet(object):
             os.makedirs(location)
         if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
             mode = 'r:gz'
-        elif filename.lower().endswith('.bz2'):
+        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.tbz'):
             mode = 'r:bz2'
         elif filename.lower().endswith('.tar'):
             mode = 'r'
