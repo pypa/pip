@@ -251,3 +251,14 @@ If you are using `zc.buildout
 <http://pypi.python.org/pypi/zc.buildout>`_ you should look at
 `gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
 option to use pip and virtualenv in your buildouts.
+
+Command line completion
+-----------------------
+
+pip comes with completion scripts for bash and zsh, which live in
+``scripts/completion`` of the pip source distribution. They allow you
+to use tab completion of the commands and options. Simply source the
+appropriate file, e.g.::
+
+    source /path/to/pip/scripts/completion/pip-completion.bash
+

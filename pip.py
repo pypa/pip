@@ -1182,10 +1182,55 @@ class UnzipCommand(ZipCommand):
 
 UnzipCommand()
 
+def autocomplete():
+    """Command and option completion for the main option parser (and options)
+    and its subcommands (and options).
+
+    Enable by sourcing one of the completion shell scripts (bash or zsh).
+    """
+    # Don't complete if user hasn't sourced bash_completion file.
+    if not os.environ.has_key('PIP_AUTO_COMPLETE'):
+        return
+    cwords = os.environ['COMP_WORDS'].split()[1:]
+    cword = int(os.environ['COMP_CWORD'])
+    try:
+        current = cwords[cword-1]
+    except IndexError:
+        current = ''
+    subcommands = _commands.keys()
+    options = []
+    # subcommand
+    if cword == 1:
+        # show options of main parser only when necessary
+        if current.startswith('-') or current.startswith('--'):
+            subcommands += [opt.get_opt_string()
+                            for opt in parser.option_list
+                            if opt.help != optparse.SUPPRESS_HELP]
+        print ' '.join(filter(lambda x: x.startswith(current), subcommands))
+    # subcommand options
+    # special case: the 'help' subcommand has no options
+    elif cwords[0] in subcommands and cwords[0] != 'help':
+        subcommand = _commands.get(cwords[0])
+        options += [(opt.get_opt_string(), opt.nargs)
+                    for opt in subcommand.parser.option_list
+                    if opt.help != optparse.SUPPRESS_HELP]
+        # filter out previously specified options from available options
+        prev_opts = [x.split('=')[0] for x in cwords[1:cword-1]]
+        options = filter(lambda (x, v): x not in prev_opts, options)
+        # filter options by current input
+        options = [(k, v) for k, v in options if k.startswith(current)]
+        for option in options:
+            opt_label = option[0]
+            # append '=' to options which require args
+            if option[1]:
+                opt_label += '='
+            print opt_label
+    sys.exit(1)
 
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
+    autocomplete()
     options, args = parser.parse_args(initial_args)
     if options.help and not args:
         args = ['help']
