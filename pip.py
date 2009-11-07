@@ -1223,7 +1223,7 @@ class CompletionCommand(Command):
         self.parser.add_option(
             '--zsh', '-z',
             action='store_const',
-            const='bash',
+            const='zsh',
             dest='shell',
             help='Emit completion code for zsh')
 
