@@ -255,10 +255,12 @@ option to use pip and virtualenv in your buildouts.
 Command line completion
 -----------------------
 
-pip comes with completion scripts for bash and zsh, which live in
-``scripts/completion`` of the pip source distribution. They allow you
+pip comes with completion scripts for bash and zsh, which allow you
 to use tab completion of the commands and options. Simply source the
-appropriate file, e.g.::
+special ``completion`` command, for bash e.g.::
 
-    source /path/to/pip/scripts/completion/pip-completion.bash
+    source `pip completion --bash`
 
+And for zsh::
+
+    source `pip completion --zsh`

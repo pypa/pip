@@ -388,6 +388,7 @@ _commands = {}
 class Command(object):
     name = None
     usage = None
+    hidden = False
     def __init__(self):
         assert self.name
         self.parser = ConfigOptionParser(
@@ -518,6 +519,8 @@ class HelpCommand(Command):
         commands = list(set(_commands.values()))
         commands.sort(key=lambda x: x.name)
         for command in commands:
+            if command.hidden:
+                continue
             print '  %s: %s' % (command.name, command.summary)
 
 HelpCommand()
@@ -1182,6 +1185,70 @@ class UnzipCommand(ZipCommand):
 
 UnzipCommand()
 
+BASH_COMPLETION = """#!/bin/sh
+_pip_completion()
+{
+    COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \
+                   COMP_CWORD=$COMP_CWORD \
+                   PIP_AUTO_COMPLETE=1 $1 ) )
+}
+complete -o default -F _pip_completion pip
+"""
+
+ZSH_COMPLETION = """#!/bin/sh
+function _pip_completion {
+  local words cword
+  read -Ac words
+  read -cn cword
+  reply=( $( COMP_WORDS="$words[*]" \
+             COMP_CWORD=$(( cword-1 )) \
+             PIP_AUTO_COMPLETE=1 $words[1] ) )
+}
+compctl -K _pip_completion pip
+"""
+
+class CompletionCommand(Command):
+    name = 'completion'
+    summary = 'A helper command to be used for command completion'
+    hidden = True
+
+    def __init__(self):
+        super(CompletionCommand, self).__init__()
+        self.parser.add_option(
+            '--bash', '-b',
+            action='store_const',
+            const='bash',
+            dest='shell',
+            help='Emit completion code for bash')
+        self.parser.add_option(
+            '--zsh', '-z',
+            action='store_const',
+            const='bash',
+            dest='shell',
+            help='Emit completion code for zsh')
+
+    def run(self, options, args):
+        """Writes the completion code to a temp file and returns
+        the path to the file to be used with 'source'"""
+        if options.shell == 'bash':
+            print self.temp_completion_file(BASH_COMPLETION)
+        elif options.shell == 'zsh':
+            print self.temp_completion_file(ZSH_COMPLETION)
+        else:
+            print 'You must pass --bash or --zsh'
+
+    def temp_completion_file(self, content):
+        """Creates a temporary file with the given content"""
+        temp_file, temp_path = tempfile.mkstemp('-completion', 'pip-')
+        try:
+            temp_fp = open(temp_file, 'w')
+            temp_fp.write(content)
+        finally:
+            temp_fp.close()
+        return temp_path
+
+CompletionCommand()
+
 def autocomplete():
     """Command and option completion for the main option parser (and options)
     and its subcommands (and options).
@@ -1197,7 +1264,7 @@ def autocomplete():
         current = cwords[cword-1]
     except IndexError:
         current = ''
-    subcommands = _commands.keys()
+    subcommands = [cmd for cmd, cls in _commands.items() if not cls.hidden]
     options = []
     # subcommand
     if cword == 1:
