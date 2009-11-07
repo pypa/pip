@@ -71,20 +71,25 @@ else:
 # FIXME doesn't account for venv linked to global site-packages
 
 site_packages = sysconfig.get_python_lib()
+user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    config_filename = 'pip.cfg'
+    config_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
+    default_config_file = os.path.join(config_dir, 'pip', 'pip.ini')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    config_filename = '.pip.cfg'
+    default_config_file = os.path.join(user_dir, '.pip', 'pip.conf')
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+    """Custom help formatter for use in ConfigOptionParser that updates
+    the defaults before expanding them, allowing them to show up correctly
+    in the help listing"""
 
     def expand_default(self, option):
         if self.parser is not None:
@@ -108,8 +113,7 @@ class ConfigOptionParser(optparse.OptionParser):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
             return [config_file]
-        # FIXME: add ~/.python/pip.cfg or whatever Python core decides here
-        return [os.path.join(os.path.expanduser('~'), config_filename)]
+        return [default_config_file]
 
     def update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
@@ -384,6 +388,7 @@ _commands = {}
 class Command(object):
     name = None
     usage = None
+    hidden = False
     def __init__(self):
         assert self.name
         self.parser = ConfigOptionParser(
@@ -514,6 +519,8 @@ class HelpCommand(Command):
         commands = list(set(_commands.values()))
         commands.sort(key=lambda x: x.name)
         for command in commands:
+            if command.hidden:
+                continue
             print '  %s: %s' % (command.name, command.summary)
 
 HelpCommand()
@@ -1178,10 +1185,119 @@ class UnzipCommand(ZipCommand):
 
 UnzipCommand()
 
+BASH_COMPLETION = """#!/bin/sh
+_pip_completion()
+{
+    COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \
+                   COMP_CWORD=$COMP_CWORD \
+                   PIP_AUTO_COMPLETE=1 $1 ) )
+}
+complete -o default -F _pip_completion pip
+"""
+
+ZSH_COMPLETION = """#!/bin/sh
+function _pip_completion {
+  local words cword
+  read -Ac words
+  read -cn cword
+  reply=( $( COMP_WORDS="$words[*]" \
+             COMP_CWORD=$(( cword-1 )) \
+             PIP_AUTO_COMPLETE=1 $words[1] ) )
+}
+compctl -K _pip_completion pip
+"""
+
+class CompletionCommand(Command):
+    name = 'completion'
+    summary = 'A helper command to be used for command completion'
+    hidden = True
+
+    def __init__(self):
+        super(CompletionCommand, self).__init__()
+        self.parser.add_option(
+            '--bash', '-b',
+            action='store_const',
+            const='bash',
+            dest='shell',
+            help='Emit completion code for bash')
+        self.parser.add_option(
+            '--zsh', '-z',
+            action='store_const',
+            const='bash',
+            dest='shell',
+            help='Emit completion code for zsh')
+
+    def run(self, options, args):
+        """Writes the completion code to a temp file and returns
+        the path to the file to be used with 'source'"""
+        if options.shell == 'bash':
+            print self.temp_completion_file(BASH_COMPLETION)
+        elif options.shell == 'zsh':
+            print self.temp_completion_file(ZSH_COMPLETION)
+        else:
+            print 'You must pass --bash or --zsh'
+
+    def temp_completion_file(self, content):
+        """Creates a temporary file with the given content"""
+        temp_file, temp_path = tempfile.mkstemp('-completion', 'pip-')
+        try:
+            temp_fp = open(temp_file, 'w')
+            temp_fp.write(content)
+        finally:
+            temp_fp.close()
+        return temp_path
+
+CompletionCommand()
+
+def autocomplete():
+    """Command and option completion for the main option parser (and options)
+    and its subcommands (and options).
+
+    Enable by sourcing one of the completion shell scripts (bash or zsh).
+    """
+    # Don't complete if user hasn't sourced bash_completion file.
+    if not os.environ.has_key('PIP_AUTO_COMPLETE'):
+        return
+    cwords = os.environ['COMP_WORDS'].split()[1:]
+    cword = int(os.environ['COMP_CWORD'])
+    try:
+        current = cwords[cword-1]
+    except IndexError:
+        current = ''
+    subcommands = [cmd for cmd, cls in _commands.items() if not cls.hidden]
+    options = []
+    # subcommand
+    if cword == 1:
+        # show options of main parser only when necessary
+        if current.startswith('-') or current.startswith('--'):
+            subcommands += [opt.get_opt_string()
+                            for opt in parser.option_list
+                            if opt.help != optparse.SUPPRESS_HELP]
+        print ' '.join(filter(lambda x: x.startswith(current), subcommands))
+    # subcommand options
+    # special case: the 'help' subcommand has no options
+    elif cwords[0] in subcommands and cwords[0] != 'help':
+        subcommand = _commands.get(cwords[0])
+        options += [(opt.get_opt_string(), opt.nargs)
+                    for opt in subcommand.parser.option_list
+                    if opt.help != optparse.SUPPRESS_HELP]
+        # filter out previously specified options from available options
+        prev_opts = [x.split('=')[0] for x in cwords[1:cword-1]]
+        options = filter(lambda (x, v): x not in prev_opts, options)
+        # filter options by current input
+        options = [(k, v) for k, v in options if k.startswith(current)]
+        for option in options:
+            opt_label = option[0]
+            # append '=' to options which require args
+            if option[1]:
+                opt_label += '='
+            print opt_label
+    sys.exit(1)
 
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
+    autocomplete()
     options, args = parser.parse_args(initial_args)
     if options.help and not args:
         args = ['help']
@@ -2390,7 +2506,7 @@ class RequirementSet(object):
         dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
             source = url_to_filename(link.url)
-            content_type = mimetypes.guess_type(source)
+            content_type = mimetypes.guess_type(source)[0]
             self.unpack_file(source, location, content_type, link)
             return
         md5_hash = link.md5_hash
@@ -2528,9 +2644,9 @@ class RequirementSet(object):
             self.unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
         elif (content_type == 'application/x-gzip'
               or tarfile.is_tarfile(filename)
-              or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz')):
+              or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
             self.untar_file(filename, location)
-        elif (content_type.startswith('text/html')
+        elif (content_type and content_type.startswith('text/html')
               and is_svn_page(file_contents(filename))):
             # We don't really care about this
             Subversion('svn+' + link.url).unpack(location)
@@ -2578,7 +2694,7 @@ class RequirementSet(object):
             os.makedirs(location)
         if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
             mode = 'r:gz'
-        elif filename.lower().endswith('.bz2'):
+        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.tbz'):
             mode = 'r:bz2'
         elif filename.lower().endswith('.tar'):
             mode = 'r'

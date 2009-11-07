@@ -15,6 +15,8 @@ tip
 * Allow installing/upgrading to Package==dev (fix "Source version does not
   match target version" errors).
 
+* Added command and option completion for bash and zsh.
+
 * Extended integration with virtualenv by providing an option to
   automatically use an active virtualenv and an option to warn if no active
   virtualenv is found.

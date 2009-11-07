@@ -119,22 +119,22 @@ Heck, now look in the Bazaar:
 
     >>> reset_env()
     >>> env = get_env()
-    >>> result = env.run('bzr', 'checkout', '-r', '2', 'http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/', 'pip-test')
+    >>> result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
     >>> result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
-    ...                  cwd=os.path.join(env.base_path, 'pip-test'))
+    ...                  cwd=os.path.join(env.base_path, 'django-wikiapp'))
     >>> result = run_pip('freeze', expect_stderr=True)
     >>> print result
     Script result: ...ython... ../../pip.py -E .../test-scratch freeze
     -- stdout: --------------------
-    -e bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@...#egg=pip_test-...
+    -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
     ...
     <BLANKLINE>
 
-    >>> result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test', expect_stderr=True)
+    >>> result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp', expect_stderr=True)
     >>> print result
-    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test
+    Script result: ...ython... ../../pip.py -E .../test-scratch freeze -f bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
     -- stdout: --------------------
-    -f bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/#egg=pip_test
-    -e bzr+http://bazaar.launchpad.net/%7Ejezdez/pip-test/test/@...#egg=pip_test-...
+    -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
+    -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
     ...
     <BLANKLINE>

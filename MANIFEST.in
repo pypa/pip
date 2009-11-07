@@ -2,3 +2,4 @@ recursive-include docs *.txt
 recursive-include docs *.html
 recursive-exclude docs/_build *.txt
 prune docs/_build/_sources
+recursive-include scripts/completion *
