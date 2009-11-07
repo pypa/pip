@@ -1185,27 +1185,31 @@ class UnzipCommand(ZipCommand):
 
 UnzipCommand()
 
-BASH_COMPLETION = """#!/bin/sh
+BASE_COMPLETION = """
+# pip %(shell)s completion start%(script)s# pip %(shell)s completion end
+"""
+
+COMPLETION_SCRIPTS = {
+    'bash': """
 _pip_completion()
 {
-    COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \
-                   COMP_CWORD=$COMP_CWORD \
+    COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
+                   COMP_CWORD=$COMP_CWORD \\
                    PIP_AUTO_COMPLETE=1 $1 ) )
 }
 complete -o default -F _pip_completion pip
-"""
-
-ZSH_COMPLETION = """#!/bin/sh
+""", 'zsh': """
 function _pip_completion {
   local words cword
   read -Ac words
   read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \
-             COMP_CWORD=$(( cword-1 )) \
+  reply=( $( COMP_WORDS="$words[*]" \\ 
+             COMP_CWORD=$(( cword-1 )) \\
              PIP_AUTO_COMPLETE=1 $words[1] ) )
 }
 compctl -K _pip_completion pip
 """
+}
 
 class CompletionCommand(Command):
     name = 'completion'
@@ -1228,24 +1232,12 @@ class CompletionCommand(Command):
             help='Emit completion code for zsh')
 
     def run(self, options, args):
-        """Writes the completion code to a temp file and returns
-        the path to the file to be used with 'source'"""
-        if options.shell == 'bash':
-            print self.temp_completion_file(BASH_COMPLETION)
-        elif options.shell == 'zsh':
-            print self.temp_completion_file(ZSH_COMPLETION)
+        """Prints the completion code of the given shell"""
+        if options.shell in ('bash', 'zsh'):
+            script = COMPLETION_SCRIPTS.get(options.shell, '')
+            print BASE_COMPLETION % {'script': script, 'shell': options.shell}
         else:
-            print 'You must pass --bash or --zsh'
-
-    def temp_completion_file(self, content):
-        """Creates a temporary file with the given content"""
-        temp_file, temp_path = tempfile.mkstemp('-completion', 'pip-')
-        try:
-            temp_fp = open(temp_file, 'w')
-            temp_fp.write(content)
-        finally:
-            temp_fp.close()
-        return temp_path
+            print 'ERROR: You must pass --bash or --zsh'
 
 CompletionCommand()
 
