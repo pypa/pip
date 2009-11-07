@@ -67,8 +67,7 @@ Differences From easy_install
 
 pip cannot install some packages.  Specifically:
 
-* It cannot install from eggs.  It only installs from source.  (Maybe this will
-  be changed sometime, but it's low priority.)
+* It cannot install from eggs.  It only installs from source.  (In the future it would be good if it could install binaries from Windows ``.exe`` or ``.msi`` -- binary install on other platforms is not a priority.)
 
 * It doesn't understand Setuptools extras (like ``package[test]``).  This should
   be added eventually.
