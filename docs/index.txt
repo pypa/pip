@@ -260,14 +260,15 @@ need copy the required shell script to the your shell startup file
 (e.g. ``.profile`` or ``.zprofile``) by running the special ``completion``
 command, e.g. for bash::
 
-    pip completion --bash >> ~/.profile
+    $ pip completion --bash >> ~/.profile
 
 And for zsh::
 
-    pip completion --zsh >> ~/.zprofile
+    $ pip completion --zsh >> ~/.zprofile
 
 Alternatively, you can use the result of the ``completion`` command
-directly with the eval function of you shell, e.g. by adding to your
-startup file::
+directly with the eval function of you shell, e.g. by adding::
 
     eval `pip completion --bash`
+
+to your startup file.

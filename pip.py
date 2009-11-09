@@ -525,6 +525,7 @@ class HelpCommand(Command):
 
 HelpCommand()
 
+
 class InstallCommand(Command):
     name = 'install'
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
