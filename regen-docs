@@ -11,5 +11,5 @@ sphinx-build -E -b html docs/ docs/_build || exit 1
 if [ "$CMD" = "publish" ] ; then
   cd docs/_build
   echo "Uploading files..."
-  tar czvf - . | ssh flow.openplans.org 'ssh acura.openplans.org "cd /www/pip.openplans.org/; tar xzvf -"'
+  tar czvf - . | ssh flow.openplans.org 'ssh acura.openplans.org "cd /www/pip.openplans.org/htdocs/; tar xzvf -"'
 fi
