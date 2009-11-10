@@ -1,5 +1,5 @@
 import sys
-if sys.platform == 'win32':
+if sys.platform == 'win32' or 'upload' in sys.argv:
     from setuptools import setup
 else:
     from distutils.core import setup
