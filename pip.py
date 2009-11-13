@@ -2056,11 +2056,12 @@ execfile(__file__)
         if dist.has_metadata('entry_points.txt'):
             config = ConfigParser.SafeConfigParser()
             config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
-            for name, value in config.items('console_scripts'):
-                paths_to_remove.add(os.path.join(bin_py, name))
-                if sys.platform == 'win32':
-                    paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
-                    paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
+            if config.has_section('console_scripts'):
+                for name, value in config.items('console_scripts'):
+                    paths_to_remove.add(os.path.join(bin_py, name))
+                    if sys.platform == 'win32':
+                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
+                        paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
