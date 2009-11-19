@@ -69,9 +69,11 @@ Passing branch names, a commit hash or a tag name is also possible::
 Mercurial
 ~~~~~~~~~
 
-The supported schemes are: ``hg+http`` and ``hg+ssh``::
+The supported schemes are: ``hg+http``, ``hg+https``,
+``hg+static-http`` and ``hg+ssh``::
 
     -e hg+http://hg.myproject.org/MyProject/#egg=MyProject
+    -e hg+https://hg.myproject.org/MyProject/#egg=MyProject
     -e hg+ssh://hg@myproject.org/MyProject/#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
@@ -85,12 +87,13 @@ branch name::
 Bazaar
 ~~~~~~
 
-Pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh`` and
-``bzr+sftp`` schemes::
+Pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
+``bzr+sftp`` and ``bzr+ftp`` schemes::
 
     -e bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject
     -e bzr+sftp://user@myproject.org/MyProject/trunk/#egg=MyProject
     -e bzr+ssh://user@myproject.org/MyProject/trunk/#egg=MyProject
+    -e bzr+ftp://user@myproject.org/MyProject/trunk/#egg=MyProject
 
 Tags or revisions can be installed like this::
 

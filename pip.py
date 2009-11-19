@@ -3747,7 +3747,7 @@ class Mercurial(VersionControl):
     name = 'hg'
     dirname = '.hg'
     repo_name = 'clone'
-    schemes = ('hg', 'hg+http', 'hg+ssh')
+    schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
@@ -3900,7 +3900,7 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     bundle_file = 'bzr-branch.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp')
+    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
 
