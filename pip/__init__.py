@@ -37,6 +37,7 @@ import ConfigParser
 from distutils.util import strtobool
 from distutils import sysconfig
 from pip.log import logger
+from pip.backwardcompat import any
 
 class InstallationError(Exception):
     """General exception during installation"""
@@ -49,15 +50,6 @@ class DistributionNotFound(InstallationError):
 
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
-
-try:
-    any
-except NameError:
-    def any(seq):
-        for item in seq:
-            if item:
-                return True
-        return False
 
 if getattr(sys, 'real_prefix', None):
     ## FIXME: is build/ a good name?
