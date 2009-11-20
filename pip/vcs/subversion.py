@@ -1,6 +1,7 @@
 import os
 import re
-from pip import call_subprocess, Link
+from pip import call_subprocess
+from pip.index import Link
 from pip.util import rmtree, display_path
 from pip.log import logger
 from pip.vcs import vcs, VersionControl

@@ -3,6 +3,7 @@ import pip
 from pip.log import logger
 from pip.locations import build_prefix, src_prefix
 from pip.basecommand import Command
+from pip.index import PackageFinder
 
 class InstallCommand(Command):
     name = 'install'
@@ -130,7 +131,7 @@ class InstallCommand(Command):
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
-        finder = pip.PackageFinder(
+        finder = PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls)
         requirement_set = pip.RequirementSet(
