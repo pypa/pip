@@ -36,11 +36,7 @@ import time
 import ConfigParser
 from distutils.util import strtobool
 from distutils import sysconfig
-try:
-    from pip.log import logger
-except ImportError:
-    import pip
-    assert 0, [getattr(pip, '__path__', None), pip.__file__]
+from pip.log import logger
 
 class InstallationError(Exception):
     """General exception during installation"""
