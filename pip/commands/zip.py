@@ -4,7 +4,7 @@ import fnmatch
 import os
 import shutil
 import zipfile
-from pip import display_path, backup_dir
+from pip.util import display_path, backup_dir
 from pip.log import logger
 from pip.exceptions import InstallationError
 from pip.basecommand import Command
