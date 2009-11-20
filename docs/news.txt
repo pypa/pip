@@ -7,6 +7,11 @@ hg tip
 * Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
 
+* Fixed uninstallation of scripts installed with easy_install.
+
+* Fixed an issue in the package finder that could result in an
+  infinite loop while looking for links.
+
 0.6
 ---
 
