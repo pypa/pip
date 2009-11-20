@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import sys
 import os
-import stat
 import optparse
 import pkg_resources
 import urllib2
@@ -15,11 +14,6 @@ import posixpath
 import re
 import shutil
 import operator
-try:
-    from hashlib import md5
-except ImportError:
-    import md5 as md5_module
-    md5 = md5_module.new
 import urlparse
 from email.FeedParser import FeedParser
 import socket
@@ -29,32 +23,13 @@ import threading
 import httplib
 import ConfigParser
 from pip.log import logger
-from pip.backwardcompat import any
+from pip.backwardcompat import any, md5
 from pip.baseparser import parser
 from pip.locations import site_packages, bin_py
 from pip.exceptions import InstallationError, UninstallationError
 from pip.exceptions import DistributionNotFound, BadCommand
 from pip.basecommand import command_dict, load_command, load_all_commands
-try:
-    WindowsError
-except NameError:
-    WindowsError = None
-
-def rmtree_errorhandler(func, path, exc_info):
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
-    exctype, value = exc_info[:2]
-    # lookin for a windows error
-    if exctype is not WindowsError or 'Access is denied' not in str(value):
-        raise
-    # file type should currently be read only
-    if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
-        raise
-    # convert to read/write
-    os.chmod(path, stat.S_IWRITE)
-    # use the original function to repeat the operation
-    func(path)
+from pip.util import rmtree
 
 class VcsSupport(object):
     _registry = {}
@@ -970,10 +945,10 @@ execfile(__file__)
         if self.is_bundle or os.path.exists(self.delete_marker_filename):
             logger.info('Removing source in %s' % self.source_dir)
             if self.source_dir:
-                shutil.rmtree(self.source_dir, ignore_errors=True, onerror=rmtree_errorhandler)
+                rmtree(self.source_dir)
             self.source_dir = None
             if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-                shutil.rmtree(self._temp_build_dir, ignore_errors=True, onerror=rmtree_errorhandler)
+                rmtree(self._temp_build_dir)
             self._temp_build_dir = None
 
     def install_editable(self):
@@ -1611,6 +1586,7 @@ class RequirementSet(object):
                     % (self.build_dir, self.src_dir))
         for dir in self.build_dir, self.src_dir:
             if os.path.exists(dir):
+                ## FIXME: should this use pip.util.rmtree?
                 shutil.rmtree(dir)
 
 
@@ -2168,7 +2144,7 @@ class Subversion(VersionControl):
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing directory
                 # --force fixes this, but was only added in svn 1.5
-                shutil.rmtree(location, onerror=rmtree_errorhandler)
+                rmtree(location)
             call_subprocess(
                 ['svn', 'checkout', url, location],
                 filter_stdout=self._filter, show_stdout=False)
@@ -2184,7 +2160,7 @@ class Subversion(VersionControl):
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing directory
                 # --force fixes this, but was only added in svn 1.5
-                shutil.rmtree(location, onerror=rmtree_errorhandler)
+                rmtree(location)
             call_subprocess(
                 ['svn', 'export', url, location],
                 filter_stdout=self._filter, show_stdout=False)
@@ -2731,7 +2707,7 @@ class Bazaar(VersionControl):
         self.unpack(temp_dir)
         if os.path.exists(location):
             # Remove the location to make sure Bazaar can export it correctly
-            shutil.rmtree(location, onerror=rmtree_errorhandler)
+            rmtree(location)
         try:
             call_subprocess([self.cmd, 'export', location], cwd=temp_dir,
                             filter_stdout=self._filter, show_stdout=False)
