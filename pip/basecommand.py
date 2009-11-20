@@ -7,13 +7,14 @@ import urllib2
 import urllib
 from cStringIO import StringIO
 import traceback
+import time
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.exceptions import InstallationError, UninstallationError
-from pip.exceptions import DistributionNotFound, BadCommand
 from pip.venv import restart_in_venv
 
-__all__ = ['command_dict', 'Command']
+__all__ = ['command_dict', 'Command', 'load_all_commands',
+           'load_command', 'command_names']
 
 command_dict = {}
 
@@ -183,3 +184,21 @@ def open_logfile_append(filename):
         print >> log_fp, '-'*60
         print >> log_fp, '%s run on %s' % (sys.argv[0], time.strftime('%c'))
     return log_fp
+
+def load_command(name):
+    full_name = 'pip.commands.%s' % name
+    if full_name in sys.modules:
+        return
+    __import__(full_name)
+
+def load_all_commands():
+    for name in command_names():
+        load_command(name)
+
+def command_names():
+    dir = os.path.join(os.path.dirname(__file__), 'commands')
+    names = []
+    for name in os.listdir(dir):
+        if name.endswith('.py') and os.path.isfile(os.path.join(dir, name)):
+            names.append(os.path.splitext(name)[0])
+    return names
