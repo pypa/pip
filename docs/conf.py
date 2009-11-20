@@ -47,7 +47,22 @@ copyright = '2009, The Open Planning Project'
 # built documents.
 #
 # The short X.Y version.
-version = '0.6'
+import re, os
+version_re = re.compile(
+    r'version = "(.*?)"')
+fp = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       'setup.py'))
+version = None
+for line in fp:
+    match = version_re.search(line)
+    if match:
+        release = match.group(1)
+        break
+else:
+    raise Exception("Cannot find version in setup.py")
+fp.close()
+del re, os, line, fp, version_re
+version = '.'.join(release.split('.')[:2])
 
 # The full version, including alpha/beta/rc tags.
 release = '0.6'
