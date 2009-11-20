@@ -5,6 +5,7 @@ import optparse
 import pkg_resources
 import ConfigParser
 import os
+from distutils.util import strtobool
 from pip.locations import default_config_file
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
