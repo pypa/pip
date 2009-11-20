@@ -11,4 +11,6 @@ def run():
     return pip.main()
 
 if __name__ == '__main__':
-    run()
+    exit = run()
+    if exit:
+        sys.exit(exit)
