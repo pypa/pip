@@ -13,7 +13,7 @@ except ImportError:
     md5 = md5_module.new
 
 try:
-    any
+    any = any
 except NameError:
     def any(seq):
         for item in seq:
