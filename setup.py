@@ -6,7 +6,7 @@ else:
 import os
 
 
-version = '0.6'
+version = '0.6.1'
 
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')

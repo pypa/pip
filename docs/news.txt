@@ -1,8 +1,8 @@
 News for pip
 ============
 
-hg tip
-------
+0.6.1
+-----
 
 * Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
