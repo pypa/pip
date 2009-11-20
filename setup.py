@@ -1,5 +1,10 @@
 import sys
-if sys.platform == 'win32' or 'upload' in sys.argv:
+force_setuptools = False
+if 'upload' in sys.argv or 'develop' in sys.argv:
+    force_setuptools = True
+if sys.platform == 'win32':
+    force_setuptools = True
+if force_setuptools:
     from setuptools import setup
 else:
     from distutils.core import setup
