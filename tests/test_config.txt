@@ -9,7 +9,7 @@ Test if ConfigOptionParser reads env vars (e.g. not using PyPI here)
     >>> environ['PIP_NO_INDEX'] = '1'
     >>> reset_env(environ)
     >>> result = run_pip('install', '-vvv', 'INITools', expect_error=True)
-    >>> assert "Ignoring indexes:" in result.stdout
+    >>> assert "Ignoring indexes:" in result.stdout, str(result)
     >>> assert "DistributionNotFound: No distributions at all found for INITools" in result.stdout
 
 Test if command line options override environmental variables

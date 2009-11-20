@@ -1,24 +1,24 @@
 Tests for the proxy support in pip::
 
     >>> import os
-    >>> import pip
+    >>> from pip.basecommand import get_proxy
 
 Remove proxy from environ:
 
     >>> if 'HTTP_PROXY' in os.environ:
     ...     del os.environ['HTTP_PROXY']
 
-    >>> print pip.get_proxy()
+    >>> print get_proxy()
     None
     >>> os.environ['HTTP_PROXY'] = 'user:pwd@server.com:port'
-    >>> pip.get_proxy()
+    >>> get_proxy()
     'user:pwd@server.com:port'
     >>> del os.environ['HTTP_PROXY']
-    >>> pip.get_proxy('server.com')
+    >>> get_proxy('server.com')
     'server.com'
-    >>> pip.get_proxy('server.com:80')
+    >>> get_proxy('server.com:80')
     'server.com:80'
-    >>> pip.get_proxy('user:passwd@server.com:3128')
+    >>> get_proxy('user:passwd@server.com:3128')
     'user:passwd@server.com:3128'
 
 Now, a quick monkeypatch for getpass.getpass, to avoid asking for a password::
@@ -32,9 +32,9 @@ Now, a quick monkeypatch for getpass.getpass, to avoid asking for a password::
 
 Test it:
 
-    >>> pip.get_proxy('user:@server.com:3128')
+    >>> get_proxy('user:@server.com:3128')
     'user:@server.com:3128'
-    >>> pip.get_proxy('user@server.com:3128')
+    >>> get_proxy('user@server.com:3128')
     Password for user@server.com:3128: passwd
     'user:passwd@server.com:3128'
 

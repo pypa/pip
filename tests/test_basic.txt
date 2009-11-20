@@ -26,7 +26,8 @@ Let's try that again, editable::
     >>> reset_env()
     >>> result = run_pip('install', '-e', 'INITools==0.2', expect_error=True)
     >>> assert "--editable=INITools==0.2 should be formatted with svn+URL" in result.stdout
-    >>> assert len(result.files_created) == 1 and not result.files_updated
+    >>> assert len(result.files_created) == 1, result.files_created
+    >>> assert not result.files_updated, result.files_updated
 
 Now, checking out from svn::
 
