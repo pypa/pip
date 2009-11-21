@@ -1,4 +1,5 @@
-import pip
+from pip.req import InstallRequirement, RequirementSet
+from pip.req import parse_requirements
 from pip.basecommand import Command
 
 class UninstallCommand(Command):
@@ -23,15 +24,15 @@ class UninstallCommand(Command):
             help="Don't ask for confirmation of uninstall deletions.")
 
     def run(self, options, args):
-        requirement_set = pip.RequirementSet(
+        requirement_set = RequirementSet(
             build_dir=None,
             src_dir=None,
             download_dir=None)
         for name in args:
             requirement_set.add_requirement(
-                pip.InstallRequirement.from_line(name))
+                InstallRequirement.from_line(name))
         for filename in options.requirements:
-            for req in pip.parse_requirements(filename, options=options):
+            for req in parse_requirements(filename, options=options):
                 requirement_set.add_requirement(req)
         requirement_set.uninstall(auto_confirm=options.yes)
 

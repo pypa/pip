@@ -3,8 +3,8 @@ import shutil
 import tempfile
 import re
 import ConfigParser
-from pip import call_subprocess, filename_to_url
-from pip.util import display_path
+from pip import call_subprocess
+from pip.util import display_path, filename_to_url
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 

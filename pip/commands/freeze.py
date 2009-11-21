@@ -2,6 +2,7 @@ import re
 import sys
 import pkg_resources
 import pip
+from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
 
@@ -72,13 +73,13 @@ class FreezeCommand(Command):
                         line = line[2:].strip()
                     else:
                         line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = pip.InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
+                    line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
                 elif (line.startswith('-r') or line.startswith('--requirement')
                       or line.startswith('-Z') or line.startswith('--always-unzip')):
                     logger.debug('Skipping line %r' % line.strip())
                     continue
                 else:
-                    line_req = pip.InstallRequirement.from_line(line)
+                    line_req = InstallRequirement.from_line(line)
                 if not line_req.name:
                     logger.notify("Skipping line because it's not clear what it would install: %s"
                                   % line.strip())
