@@ -44,6 +44,6 @@ setup(name='pip',
       author_email='python-virtualenv@groups.google.com',
       url='http://pip.openplans.org',
       license='MIT',
-      packages=['pip'],
+      packages=['pip', 'pip.commands', 'pip.vcs'],
       **kw)
       
