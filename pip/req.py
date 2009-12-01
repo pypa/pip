@@ -253,6 +253,11 @@ execfile(__file__)
                     for dir in vcs.dirnames:
                         if dir in dirs:
                             dirs.remove(dir)
+                    for dir in dirs:
+                        # Don't search in anything that looks like a virtualenv environment
+                        if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
+                            or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
+                            dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
