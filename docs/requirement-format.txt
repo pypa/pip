@@ -1,8 +1,10 @@
 The requirements file format
 ============================
 
-The requirements file is what pip uses to install packages.
-This document describes that format.
+The requirements file is a way to get pip to install specific packages
+to make up an *environment*.  This document describes that format.  To
+read about *when* you should use requirement files, see `Requirements
+Files <./#requirements-files>`_.
 
 Each line of the requirements file indicates something to be
 installed.  For example::
@@ -99,3 +101,38 @@ Tags or revisions can be installed like this::
 
     -e bzr+https://bzr.myproject.org/MyProject/trunk/@2019#egg=MyProject
     -e bzr+http://bzr.myproject.org/MyProject/trunk/@v1.0#egg=MyProject
+
+Recursive Requirements
+----------------------
+
+If you wish, you can also refer to other requirements files, like::
+
+    -r Pylons-requirements.txt
+
+This gives you a way of abstracting out sets of requirements.  This
+isn't, however, very friendly with `frozen requirements
+<./#freezing-requirements>`_, as everything in
+``Pylons-requirements.txt`` will show up in your frozen file.
+
+Indexes, find-links
+-------------------
+
+You can also provide values for the ``--index`` and ``--find-links``
+options in your requirement files, like::
+
+    --index http://example.com/private-pypi/
+
+Note that using ``--index`` removes the use of `PyPI
+<http://pypi.python.org>`_, while using ``--extra-index`` will add
+additional indexes.
+
+``--find-links`` is more ad-hoc; instead of a complete "index", you
+only need an HTML page of links to available packages.  Simply by
+putting all your private packages in a directory and using the Apache
+auto-index, you can publish your packages so pip can find them.
+``--find-links`` is always additive; pip looks at everything it can
+find.  Use it like::
+
+    --find-link http://example.com/private-packages/
+
+Note that all these options must be on a line of their own.

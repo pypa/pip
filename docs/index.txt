@@ -109,7 +109,8 @@ and you get a dozen packages.  Each of these packages has its own version.
 Maybe you ran that installation and it works.  Great!  Will it keep working? 
 Did you have to provide special options to get it to find everything?  Did you
 have to install a bunch of other optional pieces?  Most of all, will you be able
-to do it again?
+to do it again?  Requirements files give you a way to create an *environment*: 
+a *set* of packages that work together.
 
 If you've ever tried to setup an application on a new system, or with slightly
 updated pieces, and had it fail, pip requirements are for you.  If you
@@ -124,11 +125,15 @@ whatever libraries come along, you can create a requirements file something like
     Framework==0.9.4
     Library>=0.2
 
-Then, regardless of what MyApp lists in ``setup.py``, you'll get a specific
-version of Framework and at least the 0.2 version of Library.  (You might think
-you could list these specific versions in ``setup.py`` -- try it and you'll
-quickly see why that doesn't work.)  You can add optional libraries and support
-tools that MyApp doesn't strictly require.
+Then, regardless of what MyApp lists in ``setup.py``, you'll get a
+specific version of Framework (0.9.4) and at least the 0.2 version of
+Library.  (You might think you could list these specific versions in
+MyApp's ``setup.py`` -- but if you do that you'll have to edit MyApp
+if you want to try a new version of Framework, or release a new
+version of MyApp if you determine that Library 0.3 doesn't work with
+your application.)  You can also add optional libraries and support
+tools that MyApp doesn't strictly require, giving people a set of
+recommended libraries.
 
 You can also include "editable" packages -- packages that are checked out from
 Subversion, Git, Mercurial and Bazaar.  These are just like using the ``-e``
@@ -140,6 +145,19 @@ You have to start the URL with ``svn+`` (``git+``, ``hg+`` or ``bzr+``), and
 you have to include ``#egg=Package`` so pip knows what to expect at that URL.
 You can also include ``@rev`` in the URL, e.g., ``@275`` to check out
 revision 275.
+
+Requirement files are mostly *flat*.  Maybe ``MyApp`` requires
+``Framework``, and ``Framework`` requires ``Library``.  I encourage
+you to still list all these in a single requirement file; it is the
+nature of Python programs that there are implicit bindings *directly*
+between MyApp and Library.  For instance, Framework might expose one
+of Library's objects, and so if Library is updated it might directly
+break MyApp.  If that happens you can update the requirements file to
+force an earlier version of Library, and you can do that without
+having to re-release MyApp at all.
+
+Read the `requirements file format <requirement-format.html>`_ to
+learn about other features.
 
 Freezing Requirements
 ---------------------
