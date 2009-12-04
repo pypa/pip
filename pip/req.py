@@ -19,7 +19,7 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, strip_prefix
+from pip.util import is_url, is_filename, is_framework_layout
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
@@ -1344,9 +1344,22 @@ class UninstallPathSet(object):
         self.save_dir = None
         self._moved_paths = []
 
+    def _permitted(self, path):
+        """
+        Return True if the given path is one we are permitted to remove,
+        False otherwise.
+
+        """
+        ok_prefixes = [self.prefix]
+        # Yep, we are special casing the framework layout of MacPython here
+        if is_framework_layout(sys.prefix):
+            for location in ('/Library', '/usr/local'):
+                if path.startswith(location):
+                    ok_prefixes.append(location)
+        return any([path.startswith(prefix) for prefix in ok_prefixes])
+        
     def _can_uninstall(self):
-        prefix, stripped = strip_prefix(self.location, self.prefix)
-        if not stripped:
+        if not self._permitted(self.location):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.dist.location,
                              self.prefix))
@@ -1354,24 +1367,23 @@ class UninstallPathSet(object):
         return True
 
     def add(self, path):
-        path = os.path.abspath(path)
+        path = os.path.normcase(os.path.abspath(path))
         if not os.path.exists(path):
             return
-        prefix, stripped = strip_prefix(os.path.normcase(path), self.prefix)
-        if stripped:
-            self.paths.add((prefix, stripped))
+        if self._permitted(path):
+            self.paths.add(path)
         else:
-            self._refuse.add((prefix, path))
+            self._refuse.add(path)
 
     def add_pth(self, pth_file, entry):
-        prefix, stripped = strip_prefix(os.path.normcase(pth_file), self.prefix)
-        if stripped:
+        pth_file = os.path.normcase(pth_file)
+        if self._permitted(pth_file):
             entry = os.path.normcase(entry)
-            if stripped not in self.pth:
-                self.pth[stripped] = UninstallPthEntries(os.path.join(prefix, stripped))
-            self.pth[stripped].add(os.path.normcase(entry))
+            if pth_file not in self.pth:
+                self.pth[pth_file] = UninstallPthEntries(pth_file)
+            self.pth[pth_file].add(entry)
         else:
-            self._refuse.add((prefix, pth_file))
+            self._refuse.add(pth_file)
 
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
@@ -1379,15 +1391,11 @@ class UninstallPathSet(object):
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        def sort_set(x, y):
-            prefix_x, path_x = x
-            prefix_y, path_y = y
-            return cmp(len(path_x), len(path_y))
-        for prefix, path in sorted(paths, sort_set):
+        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                        for shortprefix, shortpath in short_paths]):
-                short_paths.add((prefix, path))
+                        for shortpath in short_paths]):
+                short_paths.add(path)
         return short_paths
 
     def remove(self, auto_confirm=False):
@@ -1402,22 +1410,21 @@ class UninstallPathSet(object):
             if auto_confirm:
                 response = 'y'
             else:
-                for prefix, path in paths:
-                    logger.notify(os.path.join(prefix, path))
+                for path in paths:
+                    logger.notify(path)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
                 logger.notify('Not removing or modifying (outside of prefix):')
-                for prefix, path in self.compact(self._refuse):
-                    logger.notify(os.path.join(prefix, path))
+                for path in self.compact(self._refuse):
+                    logger.notify(path)
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
-                for prefix, path in paths:
-                    full_path = os.path.join(prefix, path)
-                    new_path = os.path.join(self.save_dir, path)
-                    new_dir = os.path.dirname(new_path)
-                    logger.info('Removing file or directory %s' % full_path)
-                    self._moved_paths.append((prefix, path))
-                    os.renames(full_path, new_path)
+                for path in paths:
+                    new_path = os.path.join(self.save_dir,
+                                            path.lstrip(os.path.sep))
+                    logger.info('Removing file or directory %s' % path)
+                    self._moved_paths.append(path)
+                    os.renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify('Successfully uninstalled %s' % self.dist.project_name)
@@ -1431,11 +1438,10 @@ class UninstallPathSet(object):
             logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
-        for prefix, path in self._moved_paths:
-            tmp_path = os.path.join(self.save_dir, path)
-            real_path = os.path.join(prefix, path)
-            logger.info('Replacing %s' % real_path)
-            os.renames(tmp_path, real_path)
+        for path in self._moved_paths:
+            tmp_path = os.path.join(self.save_dir, path.lstrip(os.path.sep))
+            logger.info('Replacing %s' % path)
+            os.renames(tmp_path, path)
         for pth in self.pth:
             pth.rollback()
 
