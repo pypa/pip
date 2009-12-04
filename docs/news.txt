@@ -4,6 +4,8 @@ News for pip
 hg tip
 ------
 
+* Fixed uninstallation of distributions with namespace packages.
+
 * Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
 

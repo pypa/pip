@@ -393,19 +393,19 @@ execfile(__file__)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
-                    if os.path.exists(path):
-                        paths_to_remove.add(path)
+                    paths_to_remove.add(path)
             if dist.has_metadata('top_level.txt'):
+                if dist.has_metadata('namespace_packages.txt'):
+                    namespaces = dist.get_metadata('namespace_packages.txt')
+                else:
+                    namespaces = []
                 for top_level_pkg in [p for p
                                       in dist.get_metadata('top_level.txt').splitlines()
-                                      if p]:
+                                      if p and p not in namespaces]:
                     path = os.path.join(dist.location, top_level_pkg)
-                    if os.path.exists(path):
-                        paths_to_remove.add(path)
-                    elif os.path.exists(path + '.py'):
-                        paths_to_remove.add(path + '.py')
-                        if os.path.exists(path + '.pyc'):
-                            paths_to_remove.add(path + '.pyc')
+                    paths_to_remove.add(path)
+                    paths_to_remove.add(path + '.py')
+                    paths_to_remove.add(path + '.pyc')
 
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
