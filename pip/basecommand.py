@@ -189,7 +189,10 @@ def load_command(name):
     full_name = 'pip.commands.%s' % name
     if full_name in sys.modules:
         return
-    __import__(full_name)
+    try:
+        __import__(full_name)
+    except ImportError:
+        pass
 
 def load_all_commands():
     for name in command_names():
