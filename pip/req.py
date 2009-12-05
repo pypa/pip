@@ -552,6 +552,8 @@ execfile(__file__)
         f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
         f.write('\n'.join(new_lines)+'\n')
         f.close()
+        os.remove(record_filename)
+        os.rmdir(temp_location)
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
@@ -887,7 +889,7 @@ class RequirementSet(object):
                 else:
                     vcs_backend.unpack(location)
                 return
-        dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
             source = url_to_filename(link.url)
             content_type = mimetypes.guess_type(source)[0]
@@ -941,7 +943,7 @@ class RequirementSet(object):
                 ext = os.path.splitext(resp.geturl())[1]
                 if ext:
                     filename += ext
-            temp_location = os.path.join(dir, filename)
+            temp_location = os.path.join(temp_dir, filename)
             fp = open(temp_location, 'wb')
             if md5_hash:
                 download_hash = md5()
@@ -998,6 +1000,7 @@ class RequirementSet(object):
             os.unlink(temp_location)
         if target_file is None:
             os.unlink(temp_location)
+        os.rmdir(temp_dir)
 
     def copy_file(self, filename, location, content_type, link):
         copy = True
