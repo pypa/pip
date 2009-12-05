@@ -4,6 +4,8 @@ News for pip
 hg tip
 ------
 
+* Fixed uninstall when /tmp is on a different filesystem.
+
 * Fixed uninstallation of distributions with namespace packages.
 
 * Added support for the ``https`` and ``http-static`` schemes to the
