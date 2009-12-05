@@ -19,7 +19,7 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, is_framework_layout
+from pip.util import is_url, is_filename, renames, is_framework_layout
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
@@ -455,6 +455,13 @@ execfile(__file__)
             logger.error("Can't rollback %s, nothing uninstalled."
                          % (self.project_name,))
 
+    def commit_uninstall(self):
+        if self.uninstalled:
+            self.uninstalled.commit()
+        else:
+            logger.error("Can't commit %s, nothing uninstalled."
+                         % (self.project_name,))
+
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True
@@ -748,6 +755,7 @@ class RequirementSet(object):
     def uninstall(self, auto_confirm=False):
         for req in self.requirements.values():
             req.uninstall(auto_confirm=auto_confirm)
+            req.commit_uninstall()
 
     def install_files(self, finder, force_root_egg_info=False):
         unnamed = list(self.unnamed_requirements)
@@ -1135,6 +1143,9 @@ class RequirementSet(object):
                     if requirement.conflicts_with and not requirement.install_succeeded:
                         requirement.rollback_uninstall()
                     raise
+                else:
+                    if requirement.conflicts_with and requirement.install_succeeded:
+                        requirement.commit_uninstall()
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
@@ -1418,13 +1429,14 @@ class UninstallPathSet(object):
                 for path in self.compact(self._refuse):
                     logger.notify(path)
             if response == 'y':
-                self.save_dir = tempfile.mkdtemp('-uninstall', 'pip-')
+                self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
+                                                 prefix='pip-')
                 for path in paths:
                     new_path = os.path.join(self.save_dir,
                                             path.lstrip(os.path.sep))
                     logger.info('Removing file or directory %s' % path)
                     self._moved_paths.append(path)
-                    os.renames(path, new_path)
+                    renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify('Successfully uninstalled %s' % self.dist.project_name)
@@ -1441,7 +1453,7 @@ class UninstallPathSet(object):
         for path in self._moved_paths:
             tmp_path = os.path.join(self.save_dir, path.lstrip(os.path.sep))
             logger.info('Replacing %s' % path)
-            os.renames(tmp_path, path)
+            renames(tmp_path, path)
         for pth in self.pth:
             pth.rollback()
 

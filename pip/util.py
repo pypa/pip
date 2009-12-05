@@ -17,7 +17,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'strip_prefix', 'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'is_framework_layout',
-           'get_file_content']
+           'get_file_content', 'renames']
 
 def rmtree(dir):
     shutil.rmtree(dir, ignore_errors=True,
@@ -294,3 +294,19 @@ def get_file_content(url, comes_from=None):
     content = f.read()
     f.close()
     return url, content
+
+def renames(old, new):
+    """Like os.renames(), but handles renaming across devices."""
+    # Implementation borrowed from os.renames().
+    head, tail = os.path.split(new)
+    if head and tail and not os.path.exists(head):
+        os.makedirs(head)
+
+    shutil.move(old, new)
+
+    head, tail = os.path.split(old)
+    if head and tail:
+        try:
+            os.removedirs(head)
+        except OSError:
+            pass
