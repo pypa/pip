@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: FSPkg
+Version: 0.1dev
+Summary: File system test package
+Home-page: http://pip.openplans.org
+Author: pip
+Author-email: pip@openplans.org
+License: UNKNOWN
+Description: File system test package
+Keywords: pip tests
+Platform: UNKNOWN
