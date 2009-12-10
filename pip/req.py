@@ -760,7 +760,7 @@ class RequirementSet(object):
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
 
-    def install_files(self, finder, force_root_egg_info=False):
+    def install_files(self, finder, force_root_egg_info=False, bundle=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
@@ -806,6 +806,11 @@ class RequirementSet(object):
                     else:
                         req_to_install.run_egg_info()
                 elif install:
+                    ##@@ if filesystem packages are not marked
+                    ##editable in a req, a non deterministic error
+                    ##occurs when the script attempts to unpack the
+                    ##build directory
+                    
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
@@ -852,6 +857,9 @@ class RequirementSet(object):
                             f = open(req_to_install.delete_marker_filename, 'w')
                             f.write(DELETE_MARKER_MESSAGE)
                             f.close()
+                            #@@ sketchy way of identifying packages not grabbed from an index
+                            if bundle and req_to_install.url:
+                                self.copy_to_builddir(req_to_install)
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
@@ -876,8 +884,18 @@ class RequirementSet(object):
                     req_to_install.remove_temporary_source()
                 if install:
                     self.successfully_downloaded.append(req_to_install)
+                    if bundle and (req_to_install.url and req_to_install.url.startswith('file:///')):
+                        self.copy_to_builddir(req_to_install)
             finally:
                 logger.indent -= 2
+
+    def copy_to_builddir(self, req_to_install):
+        target_dir = req_to_install.editable and self.src_dir or self.build_dir
+        logger.info("Copying %s to %s" %(req_to_install.name, target_dir))
+        dest = os.path.join(target_dir, req_to_install.name)
+        shutil.copytree(req_to_install.source_dir, dest)
+        shutil.copymode(req_to_install.source_dir, dest)
+        call_subprocess(["python", "%s/setup.py"%dest, "clean"])
 
     def unpack_url(self, link, location, only_download=False):
         if only_download:

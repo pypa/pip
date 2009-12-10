@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+FSPkg.egg-info/PKG-INFO
+FSPkg.egg-info/SOURCES.txt
+FSPkg.egg-info/dependency_links.txt
+FSPkg.egg-info/entry_points.txt
+FSPkg.egg-info/not-zip-safe
+FSPkg.egg-info/top_level.txt
+fspkg/__init__.py

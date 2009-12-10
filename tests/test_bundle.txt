@@ -1,0 +1,37 @@
+Basic setup::
+
+    >>> from __main__ import here, reset_env, run_pip, pyversion, lib_py
+    >>> from __main__ import write_file
+    >>> from os.path import join
+    >>> import zipfile
+    >>> reset_env()
+
+Test making a bundle.  We'll grab one package from the filesystem (the
+FSPkg dummy package), one from vcs (initools) and one from an index
+(pip itself)::
+
+    >>> fspkg = 'file://%s/FSPkg' %join(here, 'packages')
+    >>> dummy = run_pip('install', '-e', fspkg)
+    >>> pkg_lines = '''-e %s\n''' %fspkg
+    >>> pkg_lines = pkg_lines + """
+    ... -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
+    ... pip"""
+    >>> write_file('bundle-req.txt', pkg_lines)
+    >>> result = run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
+    >>> bundle = result.files_after.get('test.pybundle', None)
+    >>> bundle is not None
+    True
+
+    >>> files = zipfile.ZipFile(bundle.full).namelist()
+    >>> 'src/FSPkg/' in files
+    True
+
+    >>> 'src/initools/' in files
+    True
+
+    >>> 'build/pip/' in files
+    True
+
+Cleanup::
+
+    >>> reset_env()

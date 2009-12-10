@@ -16,6 +16,9 @@ hg tip
 * Fixed an issue in the package finder that could result in an
   infinite loop while looking for links.
 
+* Fixed issue with ``pip bundle`` and local files (which weren't being
+  copied into the bundle), from Whit Morriss.
+
 0.6
 ---
 

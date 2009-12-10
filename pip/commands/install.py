@@ -152,7 +152,7 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-        requirement_set.install_files(finder, force_root_egg_info=self.bundle)
+        requirement_set.install_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             installed = ' '.join([req.name for req in
