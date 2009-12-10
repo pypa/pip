@@ -16,7 +16,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_url', 'is_filename',
            'strip_prefix', 'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'make_path_relative', 'is_framework_layout',
+           'make_path_relative', 'normalize_path', 'is_framework_layout',
            'get_file_content', 'renames']
 
 def rmtree(dir):
@@ -254,6 +254,13 @@ def make_path_relative(path, rel_to):
     if full_parts == ['']:
         return '.' + os.path.sep
     return os.path.sep.join(full_parts)
+
+def normalize_path(path):
+    """
+    Convert a path to its canonical, case-normalized, absolute version.
+    
+    """
+    return os.path.normcase(os.path.realpath(path))
 
 def is_framework_layout(site_packages_dir):
     """Return True if the current platform is the default Python of Mac OS X

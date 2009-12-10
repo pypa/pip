@@ -19,7 +19,8 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, renames, is_framework_layout
+from pip.util import is_url, is_filename
+from pip.util import renames, normalize_path, is_framework_layout
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
@@ -425,7 +426,7 @@ execfile(__file__)
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
             # fix location (so we can uninstall links to sources outside venv)
-            paths_to_remove.location = develop_egg_link
+            paths_to_remove.location = normalize_path(develop_egg_link)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -1352,9 +1353,9 @@ class UninstallPathSet(object):
         self.paths = set()
         self._refuse = set()
         self.pth = {}
-        self.prefix = os.path.normcase(os.path.realpath(restrict_to_prefix))
+        self.prefix = normalize_path(restrict_to_prefix)
         self.dist = dist
-        self.location = dist.location
+        self.location = normalize_path(dist.location)
         self.save_dir = None
         self._moved_paths = []
 
@@ -1375,13 +1376,13 @@ class UninstallPathSet(object):
     def _can_uninstall(self):
         if not self._permitted(self.location):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
-                          % (self.dist.project_name, self.dist.location,
+                          % (self.dist.project_name, self.location,
                              self.prefix))
             return False
         return True
 
     def add(self, path):
-        path = os.path.normcase(os.path.abspath(path))
+        path = normalize_path(path)
         if not os.path.exists(path):
             return
         if self._permitted(path):
@@ -1390,7 +1391,7 @@ class UninstallPathSet(object):
             self._refuse.add(path)
 
     def add_pth(self, pth_file, entry):
-        pth_file = os.path.normcase(pth_file)
+        pth_file = normalize_path(pth_file)
         if self._permitted(pth_file):
             entry = os.path.normcase(entry)
             if pth_file not in self.pth:
