@@ -75,8 +75,10 @@ class FreezeCommand(Command):
                         line = line[len('--editable'):].strip().lstrip('=')
                     line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
                 elif (line.startswith('-r') or line.startswith('--requirement')
-                      or line.startswith('-Z') or line.startswith('--always-unzip')):
-                    logger.debug('Skipping line %r' % line.strip())
+                      or line.startswith('-Z') or line.startswith('--always-unzip')
+                      or line.startswith('-f') or line.startswith('-i')
+                      or line.startswith('--extra-index-url')):
+                    f.write(line)
                     continue
                 else:
                     line_req = InstallRequirement.from_line(line)
