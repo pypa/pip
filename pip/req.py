@@ -258,6 +258,9 @@ execfile(__file__)
                         if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
                             or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
                             dirs.remove(dir)
+                        # Also don't search through tests
+                        if dir == 'test' or dir == 'tests':
+                            dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
