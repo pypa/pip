@@ -1,8 +1,8 @@
 News for pip
 ============
 
-hg tip
-------
+0.6.1
+-----
 
 * Fixed uninstall when /tmp is on a different filesystem.
 
