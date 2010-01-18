@@ -1,12 +1,15 @@
 News for pip
 ============
 
-0.6.1
+0.6.2
 -----
 
 * Fixed uninstall when /tmp is on a different filesystem.
 
 * Fixed uninstallation of distributions with namespace packages.
+
+0.6.1
+-----
 
 * Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
