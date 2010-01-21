@@ -4,6 +4,9 @@ News for pip
 hg tip
 ------
 
+* Fixed import error on Windows with regard to the backwards compatibility
+  package
+
 0.6.2
 -----
 
