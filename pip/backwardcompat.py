@@ -3,7 +3,7 @@
 __all__ = ['any', 'WindowsError', 'md5']
 
 try:
-    WindowsError
+    WindowsError = WindowsError
 except NameError:
     WindowsError = None
 try:
