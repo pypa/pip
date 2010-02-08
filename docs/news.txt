@@ -4,6 +4,8 @@ News for pip
 hg tip
 ------
 
+* Fixed uninstallation on Windows
+
 0.6.3
 -----
 

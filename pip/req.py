@@ -1457,8 +1457,8 @@ class UninstallPathSet(object):
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
                 for path in paths:
-                    new_path = os.path.join(self.save_dir,
-                                            path.lstrip(os.path.sep))
+                    new_path = os.path.splitdrive(path)[1].lstrip(os.path.sep)
+                    new_path = os.path.join(self.save_dir, new_path)
                     logger.info('Removing file or directory %s' % path)
                     self._moved_paths.append(path)
                     renames(path, new_path)
