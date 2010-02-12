@@ -129,9 +129,7 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((link, version))
-        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(1),
-            cmp=lambda x, y : cmp(pkg_resources.parse_version(y), pkg_resources.parse_version(x))
-        )
+        applicable_versions = sorted(applicable_versions, key=lambda v: pkg_resources.parse_version(v[1]))
         existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is Inf:
