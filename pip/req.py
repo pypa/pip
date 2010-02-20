@@ -20,7 +20,7 @@ from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
 from pip.util import is_url, is_filename
-from pip.util import renames, normalize_path, is_framework_layout
+from pip.util import renames, normalize_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
@@ -377,7 +377,10 @@ execfile(__file__)
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
-        paths_to_remove = UninstallPathSet(dist, sys.prefix)
+
+        # we restrict uninstallation to sys.prefix only if sys.real_prefix exists
+        # i.e. in a virtualenv, only uninstall within virtualenv. Otherwise uninstall anything.
+        paths_to_remove = UninstallPathSet(dist, getattr(sys, 'real_prefix', None) and sys.prefix)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -1370,11 +1373,11 @@ def parse_editable(editable_req, default_vcs=None):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist, restrict_to_prefix):
+    def __init__(self, dist, restrict_to_prefix=None):
         self.paths = set()
         self._refuse = set()
         self.pth = {}
-        self.prefix = normalize_path(restrict_to_prefix)
+        self.prefix = restrict_to_prefix and normalize_path(restrict_to_prefix)
         self.dist = dist
         self.location = normalize_path(dist.location)
         self.save_dir = None
@@ -1386,13 +1389,9 @@ class UninstallPathSet(object):
         False otherwise.
 
         """
-        ok_prefixes = [self.prefix]
-        # Yep, we are special casing the framework layout of MacPython here
-        if is_framework_layout(sys.prefix):
-            for location in ('/Library', '/usr/local'):
-                if path.startswith(location):
-                    ok_prefixes.append(location)
-        return any([path.startswith(prefix) for prefix in ok_prefixes])
+        if self.prefix:
+            return path.startswith(self.prefix)
+        return True
         
     def _can_uninstall(self):
         if not self._permitted(self.location):

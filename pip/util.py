@@ -16,7 +16,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_url', 'is_filename',
            'strip_prefix', 'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'make_path_relative', 'normalize_path', 'is_framework_layout',
+           'make_path_relative', 'normalize_path',
            'get_file_content', 'renames']
 
 def rmtree(dir):
@@ -261,13 +261,6 @@ def normalize_path(path):
     
     """
     return os.path.normcase(os.path.realpath(path))
-
-def is_framework_layout(site_packages_dir):
-    """Return True if the current platform is the default Python of Mac OS X
-    which installs scripts in /usr/local/bin"""
-    return (sys.platform[:6] == 'darwin' and
-            (site_packages_dir[:9] == '/Library/' or
-             site_packages_dir[:16] == '/System/Library/'))
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
