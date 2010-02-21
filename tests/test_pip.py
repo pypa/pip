@@ -29,6 +29,7 @@ def clear_environ(environ):
     return dict(((k, v) for k, v in environ.iteritems()
                 if not k.lower().startswith('pip_')))
 
+env = None
 def reset_env(environ=None):
     global env
     if not environ:
@@ -115,6 +116,7 @@ parser.add_option('--show-error', action='store_true',
 parser.add_option('-v', action='store_true',
                   help='Be verbose')
 
+options = None
 def main():
     global options
     options, args = parser.parse_args()
