@@ -4,6 +4,7 @@ import textwrap
 import pkg_resources
 from pip.basecommand import Command
 from pip.util import get_terminal_size
+from pip.log import logger
 from distutils.version import StrictVersion, LooseVersion
 
 class SearchCommand(Command):
@@ -22,7 +23,7 @@ class SearchCommand(Command):
 
     def run(self, options, args):
         if not args:
-            print >> sys.stderr, 'ERROR: Missing required argument (search query).'
+            logger.warn('ERROR: Missing required argument (search query).')
             return
         query = args[0]
         index_url = options.index
@@ -81,11 +82,11 @@ def print_results(hits, name_column_width=25, terminal_width=None):
             summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
         line = '%s - %s' % (name.ljust(name_column_width), summary)
         try:
-            print line
+            logger.notify(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
-                print '  INSTALLED: %s' % dist.version
-                print '  LATEST: %s' % highest_version(hit['versions'])
+                logger.notify('  INSTALLED: %s' % dist.version)
+                logger.notify('  LATEST: %s' % highest_version(hit['versions']))
         except UnicodeEncodeError:
             pass
 
