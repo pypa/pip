@@ -8,6 +8,7 @@ import urllib2
 import re
 from pip.backwardcompat import WindowsError
 from pip.exceptions import InstallationError
+from pip.locations import site_packages
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'splitext', 'ask', 'Inf',
@@ -16,7 +17,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_url', 'is_filename',
            'strip_prefix', 'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'make_path_relative', 'normalize_path', 'is_framework_layout',
+           'make_path_relative', 'normalize_path',
            'get_file_content', 'renames']
 
 def rmtree(dir):
@@ -262,13 +263,6 @@ def normalize_path(path):
     """
     return os.path.normcase(os.path.realpath(path))
 
-def is_framework_layout(site_packages_dir):
-    """Return True if the current platform is the default Python of Mac OS X
-    which installs scripts in /usr/local/bin"""
-    return (sys.platform[:6] == 'darwin' and
-            (site_packages_dir[:9] == '/Library/' or
-             site_packages_dir[:16] == '/System/Library/'))
-
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
@@ -317,3 +311,40 @@ def renames(old, new):
             os.removedirs(head)
         except OSError:
             pass
+
+def is_local(path):
+    """
+    Return True if path is within sys.prefix, if we're running in a virtualenv.
+
+    If we're not in a virtualenv, all paths are considered "local."
+
+    """
+    if not hasattr(sys, 'real_prefix'):
+        return True
+    return normalize_path(path).startswith(normalize_path(sys.prefix))
+
+def egg_link_path(dist):
+    """
+    Return the path where we'd expect to find a .egg-link file for
+    this distribution. (There doesn't seem to be any metadata in the
+    Distribution object for a develop egg that points back to its
+    .egg-link and easy-install.pth files).
+
+    This won't find a globally-installed develop egg if we're in a
+    virtualenv. 
+
+    """
+    return os.path.join(site_packages, dist.project_name) + '.egg-link'
+
+def dist_location(dist):
+    """
+    Get the site-packages location of this distribution. Generally
+    this is dist.location, except in the case of develop-installed
+    packages, where dist.location is the source code location, and we
+    want to know where the egg-link file is.
+
+    """
+    egg_link = egg_link_path(dist)
+    if os.path.exists(egg_link):
+        return egg_link
+    return dist.location
