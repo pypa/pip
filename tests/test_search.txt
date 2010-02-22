@@ -1,6 +1,7 @@
 Basic setup::
 
     >>> from pip.commands.search import compare_versions, highest_version, translate_hits
+    >>> from __main__ import run_pip
 
 Test version comparison::
 
@@ -23,3 +24,8 @@ Test hit translation (pypi xmlrpc to custom list)::
 
     >>> print translate_hits(pypi_hits)
     [{'score': 200, 'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'}, {'score': 50, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
+
+End to end test::
+
+    >>> output = run_pip('search', 'pip', expect_error=True)
+    >>> assert('pip installs packages' in output.stdout)
