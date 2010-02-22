@@ -290,3 +290,17 @@ directly with the eval function of you shell, e.g. by adding::
     eval `pip completion --bash`
 
 to your startup file.
+
+Searching for packages
+----------------------
+
+pip can search the `Python Package Index <http://pypi.python.org/pypi>`_ (PyPI)
+for packages using the ``pip search`` command. To search, run::
+
+    $ pip search "query"
+
+The query will be used to search the names and summaries of all packages
+indexed.
+
+pip searches http://pypi.python.org/pypi by default but alternative indexes
+can be searched by using the ``--index`` flag.
