@@ -30,11 +30,11 @@ class SearchCommand(Command):
         pypi_hits = self.search(query, index_url)
         hits = translate_hits(pypi_hits)
 
+        terminal_width = None
         if sys.stdout.isatty():
             terminal_size = get_terminal_size()
-            terminal_width = terminal_size[0]
-        else:
-            terminal_width = None
+            if terminal_size is not None:
+                terminal_width = terminal_size[0]
 
         print_results(hits, terminal_width=terminal_width)
 
