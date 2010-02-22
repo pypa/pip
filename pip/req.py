@@ -19,8 +19,8 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename
-from pip.util import renames, normalize_path
+from pip.util import is_url, is_filename, is_local
+from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
@@ -378,22 +378,12 @@ execfile(__file__)
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
 
-        # we restrict uninstallation to sys.prefix only if sys.real_prefix exists
-        # i.e. in a virtualenv, only uninstall within virtualenv. Otherwise uninstall anything.
-        paths_to_remove = UninstallPathSet(dist, getattr(sys, 'real_prefix', None) and sys.prefix)
+        paths_to_remove = UninstallPathSet(dist)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
         easy_install_egg = dist.egg_name() + '.egg'
-        # This won't find a globally-installed develop egg if
-        # we're in a virtualenv.
-        # (There doesn't seem to be any metadata in the
-        # Distribution object for a develop egg that points back
-        # to its .egg-link and easy-install.pth files).  That's
-        # OK, because we restrict ourselves to making changes
-        # within sys.prefix anyway.
-        develop_egg_link = os.path.join(site_packages,
-                                        dist.project_name) + '.egg-link'
+        develop_egg_link = egg_link_path(dist)
         if os.path.exists(pip_egg_info_path):
             # package installed by pip
             paths_to_remove.add(pip_egg_info_path)
@@ -1373,11 +1363,10 @@ def parse_editable(editable_req, default_vcs=None):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist, restrict_to_prefix=None):
+    def __init__(self, dist):
         self.paths = set()
         self._refuse = set()
         self.pth = {}
-        self.prefix = restrict_to_prefix and normalize_path(restrict_to_prefix)
         self.dist = dist
         self.location = normalize_path(dist.location)
         self.save_dir = None
@@ -1389,15 +1378,12 @@ class UninstallPathSet(object):
         False otherwise.
 
         """
-        if self.prefix:
-            return path.startswith(self.prefix)
-        return True
+        return is_local(path)
         
     def _can_uninstall(self):
         if not self._permitted(self.location):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
-                          % (self.dist.project_name, self.location,
-                             self.prefix))
+                          % (self.dist.project_name, self.location, sys.prefix))
             return False
         return True
 

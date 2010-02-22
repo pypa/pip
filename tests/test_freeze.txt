@@ -111,7 +111,7 @@ Now what about Mercurial::
     -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
     ...
 
-Heck, now look in the Bazaar:
+Heck, now look in the Bazaar::
 
     >>> reset_env()
     >>> env = get_env()
@@ -132,3 +132,22 @@ Heck, now look in the Bazaar:
     -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
     -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
     ...
+
+
+Test that wsgiref (from global site-packages) is reported normally, but not with --local::
+
+    >>> reset_env()
+    >>> result = run_pip('install', 'initools==0.2')
+    >>> result = run_pip('freeze', expect_stderr=True)
+    >>> print result
+    Script result: ...ython... pip.main() .../test-scratch freeze
+    -- stdout: --------------------
+    INITools==0.2
+    wsgiref==...
+    <BLANKLINE>
+    >>> result2 = run_pip('freeze', '--local', expect_stderr=True)
+    >>> print result2
+    Script result: ...ython... pip.main() .../test-scratch freeze --local
+    -- stdout: --------------------
+    INITools==0.2
+    <BLANKLINE>

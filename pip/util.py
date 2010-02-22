@@ -8,6 +8,7 @@ import urllib2
 import re
 from pip.backwardcompat import WindowsError
 from pip.exceptions import InstallationError
+from pip.locations import site_packages
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'splitext', 'ask', 'Inf',
@@ -310,3 +311,40 @@ def renames(old, new):
             os.removedirs(head)
         except OSError:
             pass
+
+def is_local(path):
+    """
+    Return True if path is within sys.prefix, if we're running in a virtualenv.
+
+    If we're not in a virtualenv, all paths are considered "local."
+
+    """
+    if not hasattr(sys, 'real_prefix'):
+        return True
+    return normalize_path(path).startswith(normalize_path(sys.prefix))
+
+def egg_link_path(dist):
+    """
+    Return the path where we'd expect to find a .egg-link file for
+    this distribution. (There doesn't seem to be any metadata in the
+    Distribution object for a develop egg that points back to its
+    .egg-link and easy-install.pth files).
+
+    This won't find a globally-installed develop egg if we're in a
+    virtualenv. 
+
+    """
+    return os.path.join(site_packages, dist.project_name) + '.egg-link'
+
+def dist_location(dist):
+    """
+    Get the site-packages location of this distribution. Generally
+    this is dist.location, except in the case of develop-installed
+    packages, where dist.location is the source code location, and we
+    want to know where the egg-link file is.
+
+    """
+    egg_link = egg_link_path(dist)
+    if os.path.exists(egg_link):
+        return egg_link
+    return dist.location

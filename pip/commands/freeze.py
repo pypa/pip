@@ -5,6 +5,7 @@ import pip
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
+from pip.util import dist_location, is_local
 
 class FreezeCommand(Command):
     name = 'freeze'
@@ -27,10 +28,17 @@ class FreezeCommand(Command):
             default=[],
             metavar='URL',
             help='URL for finding packages, which will be added to the frozen requirements file')
+        self.parser.add_option(
+            '-l', '--local',
+            dest='local',
+            action='store_true',
+            default=False,
+            help='If in a virtualenv, do not report globally-installed packages')
 
     def run(self, options, args):
         requirement = options.requirement
         find_links = options.find_links or []
+        local_only = options.local
         ## FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
@@ -54,6 +62,8 @@ class FreezeCommand(Command):
             f.write('-f %s\n' % link)
         installations = {}
         for dist in pkg_resources.working_set:
+            if local_only and not is_local(dist_location(dist)):
+                continue
             if dist.key in ('setuptools', 'pip', 'python'):
                 ## FIXME: also skip virtualenv?
                 continue
