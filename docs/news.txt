@@ -5,6 +5,7 @@ hg tip
 ------
 
 * Fixed uninstallation on Windows
+* Added ``pip search`` command.
 
 0.6.3
 -----
