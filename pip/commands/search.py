@@ -29,7 +29,7 @@ class SearchCommand(Command):
         index_url = options.index
 
         pypi_hits = self.search(query, index_url)
-        hits = translate_hits(pypi_hits)
+        hits = transform_hits(pypi_hits)
 
         terminal_width = None
         if sys.stdout.isatty():
@@ -44,7 +44,7 @@ class SearchCommand(Command):
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
-def translate_hits(hits):
+def transform_hits(hits):
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
