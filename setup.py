@@ -1,7 +1,8 @@
 import sys
 force_setuptools = False
-if 'upload' in sys.argv or 'develop' in sys.argv:
-    force_setuptools = True
+for command in ('upload', 'develop', 'egg_info',):
+    if command in sys.argv:
+        force_setuptools = True
 if sys.platform == 'win32':
     force_setuptools = True
 if force_setuptools:

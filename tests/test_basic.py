@@ -1,5 +1,15 @@
 
+from os.path import abspath, join, dirname, pardir
 from test_pip import here, reset_env, run_pip, pyversion, lib_py
+
+def test_0():
+    '''
+    Check we are running proper version of pip in run_pip::
+    '''
+    reset_env()
+    base = abspath(join(dirname(__file__), pardir))
+    result = run_pip('--version')
+    assert base in result.stdout, result.stdout
 
 def test_1():
     '''
