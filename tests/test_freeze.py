@@ -4,29 +4,33 @@ import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from test_pip import base_path, reset_env, run_pip, pyversion, lib_py, write_file, get_env
 
-def test_1():
-    '''
+def test_freeze():
+    """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
     info to the standard library, so stuff like wsgiref will show up in
     the freezing.  (Probably that should be accounted for in pip, but
-    currently it is not).  ::
-    '''
+    currently it is not).
+
+    TODO: refactor this test into multiple tests? (and maybe different
+    test style instead of using doctest output checker)
+    
+    """
     reset_env()
     checker = OutputChecker()
-    write_file('initools-req.txt', textwrap.dedent('''\
+    write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
         simplejson<=1.7.4
-        '''))
+        """))
     result = run_pip('install', '-r', 'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() .../test-scratch freeze
         -- stdout: --------------------
         INITools==0.2
         simplejson==1.7.4...
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Now lets try it with an svn checkout::
@@ -35,18 +39,18 @@ def test_1():
     result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'initools-trunk'))
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze
         -- stdout: --------------------
         -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
         simplejson==1.7.4...
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Now, straight from trunk (but not editable/setup.py develop)::
     result = env.run(os.path.join(env.base_path, 'bin/easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze
         -- stderr: --------------------
         Warning: cannot find svn location for INITools==...dev-r...
@@ -55,25 +59,26 @@ def test_1():
         ## FIXME: could not find svn URL in dependency_links for this package:
         INITools==...dev-r...
         simplejson==1.7.4...
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Bah, that's no good!  Let's give it a hint::
     result = run_pip('freeze', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
         -- stdout: --------------------
         -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
         # Installing as editable to satisfy requirement INITools==...dev-r...:
         -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
         simplejson==1.7.4...
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
-def test_2():
-    '''
-    What about a Git clone?::
-    '''
+def test_freeze_git_clone():
+    """
+    Test freezing a Git clone.
+    
+    """
     reset_env()
     env = get_env()
     checker = OutputChecker()
@@ -83,26 +88,27 @@ def test_2():
     result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-pagination'))
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze
         -- stdout: --------------------
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
         -- stdout: --------------------
         -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
-def test_3():
-    '''
-    Now what about Mercurial::
-    '''
+def test_freeze_mercurial_clone():
+    """
+    Test freezing a Mercurial clone.
+    
+    """
     reset_env()
     env = get_env()
     checker = OutputChecker()
@@ -110,26 +116,27 @@ def test_3():
     result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze
         -- stdout: --------------------
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
         -- stdout: --------------------
         -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
-def test_4():
-    '''
-    Heck, now look in the Bazaar::
-    '''
+def test_freeze_bazaar_clone():
+    """
+    Test freezing a Bazaar clone.
+    
+    """
     reset_env()
     env = get_env()
     checker = OutputChecker()
@@ -137,43 +144,44 @@ def test_4():
     result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-wikiapp'))
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze
         -- stdout: --------------------
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() -E .../test-scratch freeze -f bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
         -- stdout: --------------------
         -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
-        ...''')
+        ...""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
-def test_5():
-    '''
-    Test that wsgiref (from global site-packages) is reported normally, but not with --local::
-    '''
+def test_freeze_with_local_option():
+    """
+    Test that wsgiref (from global site-packages) is reported normally, but not with --local.
+    
+    """
     reset_env()
     checker = OutputChecker()
     result = run_pip('install', 'initools==0.2')
     result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() .../test-scratch freeze
         -- stdout: --------------------
         INITools==0.2
         wsgiref==...
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     result = run_pip('freeze', '--local', expect_stderr=True)
-    expected = textwrap.dedent('''\
+    expected = textwrap.dedent("""\
         Script result: ...ython... pip.main() .../test-scratch freeze --local
         -- stdout: --------------------
         INITools==0.2
-        <BLANKLINE>''')
+        <BLANKLINE>""")
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 

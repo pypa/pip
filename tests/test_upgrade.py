@@ -3,37 +3,41 @@ from os.path import join
 import textwrap
 from test_pip import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_states, write_file
 
-def test_1():
-    '''
-    No upgrade if not specifically requested::
-    '''
+def test_no_upgrade_unless_requested():
+    """
+    No upgrade if not specifically requested.
+    
+    """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
     result2 = run_pip('install', 'INITools', expect_error=True)
     assert not result2.files_created, 'pip install INITools upgraded when it should not have'
 
-def test_2():
-    '''
-    It does upgrade to specific version requested::
-    '''
+def test_upgrade_to_specific_version():
+    """
+    It does upgrade to specific version requested.
+    
+    """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
     result2 = run_pip('install', 'INITools==0.2', expect_error=True)
     assert result2.files_created, 'pip install with specific version did not upgrade'
 
-def test_3():
-    '''
-    And it does upgrade if requested::
-    '''
+def test_upgrade_if_requested():
+    """
+    And it does upgrade if requested.
+    
+    """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
     result2 = run_pip('install', '--upgrade', 'INITools', expect_error=True)
     assert result2.files_created, 'pip install --upgrade did not upgrade'
 
-def test_4():
-    '''
-    Automatic uninstall-before-upgrade::
-    '''
+def test_uninstall_before_upgrade():
+    """
+    Automatic uninstall-before-upgrade.
+    
+    """
     reset_env()
     result = run_pip('install', 'INITools==0.2', expect_error=True)
     assert join(lib_py + 'site-packages', 'initools') in result.files_created, sorted(result.files_created.keys())
@@ -42,31 +46,33 @@ def test_4():
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert diff_states(result.files_before, result3.files_after, ignore=['build']).values() == [{}, {}, {}]
 
-def test_5():
-    '''
-    Upgrade from a requirements file::
-    '''
+def test_upgrade_from_reqs_file():
+    """
+    Upgrade from a requirements file.
+    
+    """
     reset_env()
-    write_file('test-req.txt', textwrap.dedent('''\
+    write_file('test-req.txt', textwrap.dedent("""\
         PyLogo<0.4
         # and something else to test out:
         INITools==0.3
-        '''))
+        """))
     result = run_pip('install', '-r', 'test-req.txt')
-    write_file('test-req.txt', textwrap.dedent('''\
+    write_file('test-req.txt', textwrap.dedent("""\
         PyLogo
         # and something else to test out:
         INITools
-        '''))
+        """))
     result2 = run_pip('install', '--upgrade', '-r', 'test-req.txt')
     result3 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
     assert diff_states(result.files_before, result3.files_after, ignore=['build', 'test-req.txt']).values() == [{}, {}, {}]
 
-def test_6():
-    '''
-    Test uninstall-rollback (using test package with a setup.py crafted to
-    fail on install)::
-    '''
+def test_uninstall_rollback():
+    """
+    Test uninstall-rollback (using test package with a setup.py
+    crafted to fail on install).
+    
+    """
     reset_env()
     env = get_env()
     find_links = 'file://' + join(here, 'packages')
