@@ -47,13 +47,15 @@ def reset_env(environ=None):
     env.run('mkdir', 'src')
 
 def run_pip(*args, **kw):
-    import sys
     args = (sys.executable, '-c', 'import pip; pip.main()', '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
-    if options.show_error:
+    if getattr(options, 'show_error', False):
         kw['expect_error'] = True
+    # one level up from test dir, to ensure loading proper pip version
+    if 'cwd' not in kw:
+        kw['cwd'] = os.path.abspath(os.path.join(here, os.path.pardir))
     result = env.run(*args, **kw)
-    if options.show_error and result.returncode:
+    if getattr(options, 'show_error', False) and result.returncode:
         print result
     return result
 
