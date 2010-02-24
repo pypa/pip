@@ -33,10 +33,10 @@ def main(args=None):
         f.close()
     print 'Starting testing...'
     while os.stat(pending_fn).st_size:
-        test_packages(output, pending_fn)
+        _test_packages(output, pending_fn)
     print 'Finished all pending!'
 
-def test_packages(output, pending_fn):
+def _test_packages(output, pending_fn):
     package = get_last_item(pending_fn)
     print 'Testing package %s' % package
     dest_dir = os.path.join(output, package)
