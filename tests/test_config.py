@@ -1,5 +1,6 @@
 
 import tempfile
+import textwrap
 from test_pip import here, reset_env, run_pip, clear_environ, write_file
 import os
 
@@ -50,19 +51,19 @@ def test_4():
     environ = clear_environ(os.environ.copy())
     environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
     reset_env(environ)
-    write_file(config_file, '''\
-[global]
-index-url = http://download.zope.org/ppix
-''')
+    write_file(config_file, textwrap.dedent('''\
+        [global]
+        index-url = http://download.zope.org/ppix
+        '''))
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Getting page http://download.zope.org/ppix/INITools" in result.stdout
     reset_env(environ)
-    write_file(config_file, '''\
-[global]
-index-url = http://download.zope.org/ppix
-[install]
-index-url = http://pypi.appspot.com/
-''')
+    write_file(config_file, textwrap.dedent('''\
+        [global]
+        index-url = http://download.zope.org/ppix
+        [install]
+        index-url = http://pypi.appspot.com/
+        '''))
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Getting page http://pypi.appspot.com/INITools" in result.stdout
     result = run_pip('install', '-vvv', '--index-url', 'http://pypi.python.org/simple', 'INITools', expect_error=True)
