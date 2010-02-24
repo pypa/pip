@@ -37,7 +37,7 @@ def reset_env(environ=None):
         environ = clear_environ(environ)
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
-    environ['PYTHONPATH'] = os.path.abspath(os.path.join(__file__, '../../'))
+    environ['PYTHONPATH'] = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
     # make sure we have current setuptools to avoid svn incompatibilities
@@ -51,9 +51,6 @@ def run_pip(*args, **kw):
     #print >> sys.__stdout__, 'running', ' '.join(args)
     if getattr(options, 'show_error', False):
         kw['expect_error'] = True
-    # one level up from test dir, to ensure loading proper pip version
-    if 'cwd' not in kw:
-        kw['cwd'] = os.path.abspath(os.path.join(here, os.path.pardir))
     result = env.run(*args, **kw)
     if getattr(options, 'show_error', False) and result.returncode:
         print result
