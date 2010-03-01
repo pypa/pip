@@ -119,7 +119,7 @@ class Git(VersionControl):
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            [self.cmd, 'tag'], show_stdout=False, cwd=location)
+            [self.cmd, 'tag', '-l'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tag = line.strip()
