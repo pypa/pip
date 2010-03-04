@@ -1412,7 +1412,7 @@ class UninstallPathSet(object):
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+        for path in sorted(paths, key=len):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
                         for shortpath in short_paths]):
