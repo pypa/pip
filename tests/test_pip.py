@@ -104,38 +104,7 @@ def diff_states(start, end, ignore=None):
             updated[k] = end[k]
     return dict(deleted=deleted, created=created, updated=updated)
 
-import optparse
-parser = optparse.OptionParser(usage='%prog [OPTIONS] [TEST_FILE...]')
-parser.add_option('--first', action='store_true',
-                  help='Show only first failure')
-parser.add_option('--diff', action='store_true',
-                  help='Show diffs in doctest failures')
-parser.add_option('--show-error', action='store_true',
-                  help='Show the errors (use expect_error=True in run_pip)')
-parser.add_option('-v', action='store_true',
-                  help='Be verbose')
-
-options = None
-def main():
-    global options
-    options, args = parser.parse_args()
-    reset_env()
-    if not args:
-        args = ['test_basic.txt', 'test_requirements.txt', 'test_freeze.txt', 'test_proxy.txt', 'test_uninstall.txt', 'test_upgrade.txt', 'test_config.txt']
-    optionflags = doctest.ELLIPSIS
-    if options.first:
-        optionflags |= doctest.REPORT_ONLY_FIRST_FAILURE
-    if options.diff:
-        optionflags |= doctest.REPORT_UDIFF
-    for filename in args:
-        if not filename.endswith('.txt'):
-            filename += '.txt'
-        if not filename.startswith('test_'):
-            filename = 'test_' + filename
-        ## FIXME: test for filename existance
-        failures, successes = doctest.testfile(filename, optionflags=optionflags)
-        if options.first and failures:
-            break
-
 if __name__ == '__main__':
-    main()
+    sys.stderr.write("Run pip's tests using nosetests.\n")
+    sys.exit(1)
+
