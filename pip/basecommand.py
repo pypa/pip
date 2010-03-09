@@ -46,14 +46,30 @@ class Command(object):
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
 
+    def setup_logging(self):
+        pass
+        
     def main(self, complete_args, args, initial_options):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
+        level = 1 # Notify
+        level += options.verbose
+        level -= options.quiet
+        level = logger.level_for_integer(4-level)
+        complete_log = []
+        logger.consumers.extend(
+            [(level, sys.stdout),
+             (logger.DEBUG, complete_log.append)])
+        if options.log_explicit_levels:
+            logger.explicit_levels = True
+
+        self.setup_logging()
+            
         if options.require_venv and not options.venv:
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
-                print 'Could not find an activated virtualenv (required).'
+                logger.fatal('Could not find an activated virtualenv (required).')
                 sys.exit(3)
             # Automatically install in currently activated venv if required
             options.respect_venv = True
@@ -71,27 +87,15 @@ class Command(object):
                     # Make sure command line venv and environmental are the same
                     if (os.path.realpath(os.path.expanduser(options.venv)) !=
                             os.path.realpath(os.environ.get('VIRTUAL_ENV'))):
-                        print ("Given virtualenv (%s) doesn't match "
-                               "currently activated virtualenv (%s)."
-                               % (options.venv, os.environ.get('VIRTUAL_ENV')))
+                        logger.fatal("Given virtualenv (%s) doesn't match "
+                                     "currently activated virtualenv (%s)."
+                                     % (options.venv, os.environ.get('VIRTUAL_ENV')))
                         sys.exit(3)
                 else:
                     options.venv = os.environ.get('VIRTUAL_ENV')
-                    print 'Using already activated environment %s' % options.venv
-        level = 1 # Notify
-        level += options.verbose
-        level -= options.quiet
-        level = logger.level_for_integer(4-level)
-        complete_log = []
-        logger.consumers.extend(
-            [(level, sys.stdout),
-             (logger.DEBUG, complete_log.append)])
-        if options.log_explicit_levels:
-            logger.explicit_levels = True
+                    logger.notify('Using already activated environment %s' % options.venv)
         if options.venv:
-            if options.verbose > 0:
-                # The logger isn't setup yet
-                print 'Running in environment %s' % options.venv
+            logger.info('Running in environment %s' % options.venv)
             site_packages=False
             if options.site_packages:
                 site_packages=True
@@ -99,6 +103,7 @@ class Command(object):
                             complete_args)
             # restart_in_venv should actually never return, but for clarity...
             return
+
         ## FIXME: not sure if this sure come before or after venv restart
         if options.log:
             log_fp = open_logfile_append(options.log)

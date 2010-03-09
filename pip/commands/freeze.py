@@ -35,6 +35,9 @@ class FreezeCommand(Command):
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
 
+    def setup_logging(self):
+        logger.move_stdout_to_stderr()
+        
     def run(self, options, args):
         requirement = options.requirement
         find_links = options.find_links or []
@@ -47,7 +50,6 @@ class FreezeCommand(Command):
         if skip_regex:
             skip_match = re.compile(skip_regex)
 
-        logger.move_stdout_to_stderr()
         dependency_links = []
 
         f = sys.stdout
