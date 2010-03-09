@@ -19,7 +19,7 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, is_local
+from pip.util import is_url, is_filename, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
@@ -421,8 +421,6 @@ execfile(__file__)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
-            # fix location (so we can uninstall links to sources outside venv)
-            paths_to_remove.location = normalize_path(develop_egg_link)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -1368,20 +1366,19 @@ class UninstallPathSet(object):
         self._refuse = set()
         self.pth = {}
         self.dist = dist
-        self.location = normalize_path(dist.location)
         self.save_dir = None
         self._moved_paths = []
 
     def _permitted(self, path):
         """
-        Return True if the given path is one we are permitted to remove,
-        False otherwise.
+        Return True if the given path is one we are permitted to
+        remove/modify, False otherwise.
 
         """
         return is_local(path)
         
     def _can_uninstall(self):
-        if not self._permitted(self.location):
+        if not dist_is_local(self.dist):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.location, sys.prefix))
             return False

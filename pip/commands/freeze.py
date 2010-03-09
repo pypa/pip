@@ -5,7 +5,7 @@ import pip
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
-from pip.util import dist_location, is_local
+from pip.util import get_installed_distributions
 
 class FreezeCommand(Command):
     name = 'freeze'
@@ -61,12 +61,7 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
-        for dist in pkg_resources.working_set:
-            if local_only and not is_local(dist_location(dist)):
-                continue
-            if dist.key in ('setuptools', 'pip', 'python'):
-                ## FIXME: also skip virtualenv?
-                continue
+        for dist in get_installed_distributions(local_only=local_only):
             req = pip.FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
             installations[req.name] = req
         if requirement:
