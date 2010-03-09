@@ -315,6 +315,13 @@ def renames(old, new):
         except OSError:
             pass
 
+def in_venv():
+    """
+    Return True if we're running inside a virtualenv, False otherwise.
+
+    """
+    return hasattr(sys, 'real_prefix')
+        
 def is_local(path):
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
@@ -322,7 +329,7 @@ def is_local(path):
     If we're not in a virtualenv, all paths are considered "local."
 
     """
-    if not hasattr(sys, 'real_prefix'):
+    if not in_venv():
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 

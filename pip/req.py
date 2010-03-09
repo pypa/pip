@@ -11,6 +11,7 @@ import urlparse
 import urllib2
 import urllib
 import ConfigParser
+from distutils.sysconfig import get_python_version
 from email.FeedParser import FeedParser
 from pip.locations import bin_py, site_packages
 from pip.exceptions import InstallationError, UninstallationError
@@ -24,6 +25,7 @@ from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
+from pip.util import in_venv
 from pip import call_subprocess
 from pip.backwardcompat import any, md5
 from pip.index import Link
@@ -510,17 +512,21 @@ execfile(__file__)
             return
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
-        ## FIXME: I'm not sure if this is a reasonable location; probably not
-        ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
-        header_dir = os.path.join(os.path.dirname(os.path.dirname(self.source_dir)), 'lib', 'include')
+
+        install_args = [sys.executable, '-c',
+                        "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
+                        'install', '--single-version-externally-managed', '--record', record_filename]
+
+        if in_venv():
+            ## FIXME: I'm not sure if this is a reasonable location; probably not
+            ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
+            install_args += ['--install-headers',
+                             os.path.join(sys.prefix, 'include', 'site',
+                                          'python' + get_python_version())]
         logger.notify('Running setup.py install for %s' % self.name)
         logger.indent += 2
         try:
-            call_subprocess(
-                [sys.executable, '-c',
-                 "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
-                 'install', '--single-version-externally-managed', '--record', record_filename,
-                 '--install-headers', header_dir] + install_options,
+            call_subprocess(install_args + install_options,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
         finally:
             logger.indent -= 2
