@@ -49,11 +49,7 @@ def reset_env(environ=None):
 def run_pip(*args, **kw):
     args = (sys.executable, '-c', 'import pip; pip.main()', '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
-    if getattr(options, 'show_error', False):
-        kw['expect_error'] = True
     result = env.run(*args, **kw)
-    if getattr(options, 'show_error', False) and result.returncode:
-        print result
     return result
 
 def write_file(filename, text):
