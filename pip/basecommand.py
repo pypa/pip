@@ -183,6 +183,7 @@ def open_logfile_append(filename):
     If the file already exists, a separator will also be printed to
     the file to separate past activity from current activity.
     """
+    filename = os.path.expanduser(filename)
     exists = os.path.exists(filename)
     log_fp = open(filename, 'a')
     if exists:
