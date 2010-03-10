@@ -93,7 +93,7 @@ class Command(object):
                         sys.exit(3)
                 else:
                     options.venv = os.environ.get('VIRTUAL_ENV')
-                    logger.notify('Using already activated environment %s' % options.venv)
+                    logger.info('Using already activated environment %s' % options.venv)
         if options.venv:
             logger.info('Running in environment %s' % options.venv)
             site_packages=False
