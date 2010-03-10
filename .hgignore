@@ -11,5 +11,6 @@ build/*
 *.pyc
 *.pyo 
 pip-log.txt
+pip.log
 *.~
 

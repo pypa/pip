@@ -22,11 +22,15 @@ if sys.platform == 'win32':
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    config_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
-    default_config_file = os.path.join(config_dir, 'pip', 'pip.ini')
+    user_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
+    default_storage_dir = os.path.join(user_dir, 'pip')
+    default_config_file = os.path.join(default_storage_dir, 'pip.ini')
+    default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    default_config_file = os.path.join(user_dir, '.pip', 'pip.conf')
+    default_storage_dir = os.path.join(user_dir, '.pip')
+    default_config_file = os.path.join(default_storage_dir, 'pip.conf')
+    default_log_file = os.path.join(default_storage_dir, 'pip.log')
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
