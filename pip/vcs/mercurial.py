@@ -90,7 +90,7 @@ class Mercurial(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning hg %s%s to %s'
                           % (url, rev_display, display_path(dest)))
-            call_subprocess(['hg', 'clone', '-q', url, dest])
+            call_subprocess(['hg', 'clone', '--noupdate', '-q', url, dest])
             call_subprocess(['hg', 'update', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
