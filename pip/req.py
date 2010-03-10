@@ -11,6 +11,7 @@ import urlparse
 import urllib2
 import urllib
 import ConfigParser
+from distutils.sysconfig import get_python_version
 from email.FeedParser import FeedParser
 from pip.locations import bin_py, site_packages
 from pip.exceptions import InstallationError, UninstallationError
@@ -19,11 +20,12 @@ from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
 from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, is_local
+from pip.util import is_url, is_filename, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
+from pip.util import in_venv
 from pip import call_subprocess
 from pip.backwardcompat import any, md5
 from pip.index import Link
@@ -421,8 +423,6 @@ execfile(__file__)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
-            # fix location (so we can uninstall links to sources outside venv)
-            paths_to_remove.location = normalize_path(develop_egg_link)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -512,17 +512,21 @@ execfile(__file__)
             return
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
-        ## FIXME: I'm not sure if this is a reasonable location; probably not
-        ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
-        header_dir = os.path.join(os.path.dirname(os.path.dirname(self.source_dir)), 'lib', 'include')
+
+        install_args = [sys.executable, '-c',
+                        "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
+                        'install', '--single-version-externally-managed', '--record', record_filename]
+
+        if in_venv():
+            ## FIXME: I'm not sure if this is a reasonable location; probably not
+            ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
+            install_args += ['--install-headers',
+                             os.path.join(sys.prefix, 'include', 'site',
+                                          'python' + get_python_version())]
         logger.notify('Running setup.py install for %s' % self.name)
         logger.indent += 2
         try:
-            call_subprocess(
-                [sys.executable, '-c',
-                 "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
-                 'install', '--single-version-externally-managed', '--record', record_filename,
-                 '--install-headers', header_dir] + install_options,
+            call_subprocess(install_args + install_options,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -1368,20 +1372,19 @@ class UninstallPathSet(object):
         self._refuse = set()
         self.pth = {}
         self.dist = dist
-        self.location = normalize_path(dist.location)
         self.save_dir = None
         self._moved_paths = []
 
     def _permitted(self, path):
         """
-        Return True if the given path is one we are permitted to remove,
-        False otherwise.
+        Return True if the given path is one we are permitted to
+        remove/modify, False otherwise.
 
         """
         return is_local(path)
         
     def _can_uninstall(self):
-        if not self._permitted(self.location):
+        if not dist_is_local(self.dist):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, self.location, sys.prefix))
             return False
@@ -1412,7 +1415,7 @@ class UninstallPathSet(object):
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
         short_paths = set()
-        for path in sorted(paths, lambda x, y: cmp(len(x), len(y))):
+        for path in sorted(paths, key=len):
             if not any([(path.startswith(shortpath) and
                          path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
                         for shortpath in short_paths]):

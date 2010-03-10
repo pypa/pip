@@ -6,6 +6,9 @@ import stat
 import urllib
 import urllib2
 import re
+
+import pkg_resources
+
 from pip.backwardcompat import WindowsError
 from pip.exceptions import InstallationError
 from pip.locations import site_packages
@@ -312,6 +315,13 @@ def renames(old, new):
         except OSError:
             pass
 
+def in_venv():
+    """
+    Return True if we're running inside a virtualenv, False otherwise.
+
+    """
+    return hasattr(sys, 'real_prefix')
+        
 def is_local(path):
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
@@ -319,9 +329,37 @@ def is_local(path):
     If we're not in a virtualenv, all paths are considered "local."
 
     """
-    if not hasattr(sys, 'real_prefix'):
+    if not in_venv():
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
+
+def dist_is_local(dist):
+    """
+    Return True if given Distribution object is installed locally
+    (i.e. within current virtualenv).
+
+    Always True if we're not in a virtualenv.
+    
+    """
+    return is_local(dist_location(dist))
+
+def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
+    """
+    Return a list of installed Distribution objects.
+
+    If ``local_only`` is True (default), only return installations
+    local to the current virtualenv, if in a virtualenv.
+
+    ``skip`` argument is an iterable of lower-case project names to
+    ignore; defaults to ('setuptools', 'pip', 'python'). [FIXME also
+    skip virtualenv?]
+
+    """
+    if local_only:
+        local_test = dist_is_local
+    else:
+        local_test = lambda d: True
+    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
 
 def egg_link_path(dist):
     """

@@ -9,6 +9,7 @@ from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.basecommand import command_dict, load_command, load_all_commands
 from pip.vcs import vcs, get_src_requirement, import_vcs_support
+from pip.util import get_installed_distributions
 
 def autocomplete():
     """Command and option completion for the main option parser (and options)
@@ -29,17 +30,28 @@ def autocomplete():
     subcommands = [cmd for cmd, cls in command_dict.items() if not cls.hidden]
     options = []
     # subcommand
-    if cword == 1:
-        # show options of main parser only when necessary
-        if current.startswith('-') or current.startswith('--'):
-            subcommands += [opt.get_opt_string()
-                            for opt in parser.option_list
-                            if opt.help != optparse.SUPPRESS_HELP]
-        print ' '.join(filter(lambda x: x.startswith(current), subcommands))
+    try:
+        subcommand_name = [w for w in cwords if w in subcommands][0]
+    except IndexError:
+        subcommand_name = None
     # subcommand options
-    # special case: the 'help' subcommand has no options
-    elif cwords[0] in subcommands and cwords[0] != 'help':
-        subcommand = command_dict.get(cwords[0])
+    if subcommand_name:
+        # special case: 'help' subcommand has no options
+        if subcommand_name == 'help':
+            sys.exit(1)
+        # special case: list locally installed dists for uninstall command
+        if subcommand_name == 'uninstall' and not current.startswith('-'):
+            installed = []
+            lc = current.lower()
+            for dist in get_installed_distributions(local_only=True):
+                if dist.key.startswith(lc) and dist.key not in cwords[1:]:
+                    installed.append(dist.key)
+            # if there are no dists installed, fall back to option completion
+            if installed:
+                for dist in installed:
+                    print dist
+                sys.exit(1)
+        subcommand = command_dict.get(subcommand_name)
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list
                     if opt.help != optparse.SUPPRESS_HELP]
@@ -54,6 +66,13 @@ def autocomplete():
             if option[1]:
                 opt_label += '='
             print opt_label
+    else:
+        # show options of main parser only when necessary
+        if current.startswith('-') or current.startswith('--'):
+            subcommands += [opt.get_opt_string()
+                            for opt in parser.option_list
+                            if opt.help != optparse.SUPPRESS_HELP]
+        print ' '.join(filter(lambda x: x.startswith(current), subcommands))
     sys.exit(1)
 
 def main(initial_args=None):
