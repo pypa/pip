@@ -106,7 +106,7 @@ class Command(object):
 
         ## FIXME: not sure if this sure come before or after venv restart
         if options.log:
-            log_fp = open_logfile_append(options.log)
+            log_fp = open_logfile(options.log, 'a')
             logger.consumers.append((logger.DEBUG, log_fp))
         else:
             log_fp = None
@@ -132,7 +132,7 @@ class Command(object):
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
-            log_fp = open_logfile_append(log_fn)
+            log_fp = open_logfile(log_fn, 'w')
             log_fp.write(text)
             log_fp.close()
         return exit
@@ -177,7 +177,7 @@ def format_exc(exc_info=None):
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
 
-def open_logfile_append(filename):
+def open_logfile(filename, mode='a'):
     """Open the named log file in append mode.
 
     If the file already exists, a separator will also be printed to
@@ -185,7 +185,7 @@ def open_logfile_append(filename):
     """
     filename = os.path.expanduser(filename)
     exists = os.path.exists(filename)
-    log_fp = open(filename, 'a')
+    log_fp = open(filename, mode)
     if exists:
         print >> log_fp, '-'*60
         print >> log_fp, '%s run on %s' % (sys.argv[0], time.strftime('%c'))

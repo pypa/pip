@@ -6,7 +6,7 @@ import pkg_resources
 import ConfigParser
 import os
 from distutils.util import strtobool
-from pip.locations import default_config_file
+from pip.locations import default_config_file, default_log_file
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
@@ -186,7 +186,7 @@ parser.add_option(
     '--local-log', '--log-file',
     dest='log_file',
     metavar='FILENAME',
-    default='./pip-log.txt',
+    default=default_log_file,
     help=optparse.SUPPRESS_HELP)
 
 parser.add_option(
