@@ -6,13 +6,15 @@ hg tip
 
 * Fixed uninstallation on Windows
 * Added ``pip search`` command.
-* When using the ``$PIP_LOG_FILE`` option, pip now logs to a central location
-  by default and constantly overwrites the file. On Unix and Mac OS X this is
-  ``'$HOME/.pip/pip.log'`` and on Windows it's ``'%HOME%\\pip\\pip.log'``.
-  Use the separate ``'--log'`` command line option for a complete (appended)
-  logfile.
+* pip now logs to a central location by default (instead of creating
+  ``pip-log.txt`` all over the place) and constantly overwrites the
+  file in question. On Unix and Mac OS X this is ``'$HOME/.pip/pip.log'``
+  and on Windows it's ``'%HOME%\\pip\\pip.log'``. You are still able to
+  override this location with the ``$PIP_LOG_FILE`` environment variable.
+  For a complete (appended) logfile use the separate ``'--log'`` command line
+  option.
 * Fixed an issue with Git that left an editable packge as a checkout of a
-  remote branch, even if the default behaviour would hve been fine, too.
+  remote branch, even if the default behaviour would have been fine, too.
 * Fixed installing from a Git tag with older versions of Git.
 * Expand "~" in logfile and download cache paths.
 * Speed up installing from Mercurial repositories by cloning without
