@@ -912,7 +912,13 @@ class RequirementSet(object):
         if link.url.lower().startswith('file:'):
             source = url_to_filename(link.url)
             content_type = mimetypes.guess_type(source)[0]
-            self.unpack_file(source, location, content_type, link)
+            if os.path.isdir(source):
+                # delete the location since shutil will create it again :(
+                if os.path.isdir(location):
+                    shutil.rmtree(location)
+                shutil.copytree(source, location)
+            else:
+                self.unpack_file(source, location, content_type, link)
             return
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
