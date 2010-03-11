@@ -11,14 +11,15 @@ hg tip
   ``'$HOME/.pip/pip.log'`` and on Windows it's ``'%HOME%\\pip\\pip.log'``.
   Use the separate ``'--log'`` command line option for a complete (appended)
   logfile.
-* Fixed an issue with Git that left a editable packge as a checkout of a
-  remote branch, even if the default behaviour would be fine.
+* Fixed an issue with Git that left an editable packge as a checkout of a
+  remote branch, even if the default behaviour would hve been fine, too.
 * Fixed installing from a Git tag with older versions of Git.
 * Expand "~" in logfile and download cache paths.
-* Speed up for installating from Mercurial repositories.
+* Speed up installing from Mercurial repositories by cloning without
+  updating the working copy multiple times.
 * Fixed installing directly from directories (e.g.
   ``pip install path/to/dir/``).
-* Fixed installation of editable packages with ``svn+ssh`` URLs.
+* Fixed installing editable packages with ``svn+ssh`` URLs.
 * Don't print unwanted debug information when running the freeze command.
 
 0.6.3
