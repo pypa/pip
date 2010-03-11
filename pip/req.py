@@ -1392,7 +1392,7 @@ class UninstallPathSet(object):
     def _can_uninstall(self):
         if not dist_is_local(self.dist):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
-                          % (self.dist.project_name, self.location, sys.prefix))
+                          % (self.dist.project_name, normalize_path(self.dist.location), sys.prefix))
             return False
         return True
 
