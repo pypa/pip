@@ -79,7 +79,6 @@ class Git(VersionControl):
         return [rev]
 
     def switch(self, dest, url, rev_options):
-
         call_subprocess(
             [self.cmd, 'config', 'remote.origin.url', url], cwd=dest)
         call_subprocess(
@@ -96,15 +95,17 @@ class Git(VersionControl):
             rev_options = [rev]
             rev_display = ' (to %s)' % rev
         else:
-            rev_options = ['origin/master']
+            rev_options = ['master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
-            call_subprocess(
-                [self.cmd, 'clone', '-q', url, dest])
-            rev_options = self.check_rev_options(rev, dest, rev_options)
-            call_subprocess(
-                [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+            call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            checked_rev = self.check_rev_options(rev, dest, rev_options)
+            # only explicitely checkout the "revision" in case the check
+            # found a valid tag, commit or branch
+            if rev_options != checked_rev:
+                call_subprocess(
+                    [self.cmd, 'checkout', '-q'] + checked_rev, cwd=dest)
 
     def get_url(self, location):
         url = call_subprocess(
