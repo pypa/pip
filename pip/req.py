@@ -924,6 +924,7 @@ class RequirementSet(object):
         target_url = link.url.split('#', 1)[0]
         target_file = None
         if self.download_cache:
+            self.download_cache = os.path.expanduser(self.download_cache)
             if not os.path.isdir(self.download_cache):
                 logger.indent -= 2
                 logger.notify('Creating supposed download cache at %s' % self.download_cache)
