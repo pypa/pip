@@ -44,7 +44,7 @@ Right now pip knows of the following major version control systems:
 Subversion
 ~~~~~~~~~~
 
-Pip supports the URL schemes ``svn``, ``svn+http``, ``svn+https``
+Pip supports the URL schemes ``svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
 You can also give specific revisions to an SVN URL, like::
 
     -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject

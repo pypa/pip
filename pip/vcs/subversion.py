@@ -167,6 +167,13 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
+    def get_url_rev(self):
+        # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
+        url, rev = super(Subversion, self).get_url_rev()
+        if url.startswith('ssh://'):
+            url = 'svn+' + url
+        return url, rev
+
     def get_url(self, location):
         # In cases where the source is in a subdirectory, not alongside setup.py
         # we have to look up in the location until we find a real setup.py
