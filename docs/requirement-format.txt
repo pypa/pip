@@ -133,6 +133,6 @@ auto-index, you can publish your packages so pip can find them.
 ``--find-links`` is always additive; pip looks at everything it can
 find.  Use it like::
 
-    --find-link http://example.com/private-packages/
+    --find-links http://example.com/private-packages/
 
 Note that all these options must be on a line of their own.
