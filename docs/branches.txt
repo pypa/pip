@@ -1,0 +1,31 @@
+Normally in Mercurial the main branch is called "default." In the pip
+repository, because of how it was imported from Subversion, the main branch
+has historically been "trunk" instead.  This has occasionally caused
+difficulty, as some Mercurial-related tools assume they can find a "default"
+branch.
+
+The trunk branch has now been closed (in changeset e3e765036db8), and
+replaced by a default branch (beginning in changeset 8c23d896d458). To
+create these two commits, I ran the following commands:
+
+$ hg commit -m 'close "trunk" branch' --close-branch
+$ hg branch default
+$ hg commit -m 'start default branch'
+
+If we now merge in changes from people who have committed their new
+changesets on the "trunk" branch, my testing indicates that will reopen the
+trunk branch.  We could avoid this by asking them to re-fork the repo and
+re-commit their changes on the new default branch.  Otherwise, we need to
+re-close the trunk branch after pulling their commit. We would do that like
+this:
+
+$ hg pull http://bitbucket.org/somebody/pip
+$ hg up trunk  # update to their latest commit, on "trunk"
+$ hg commit -m 'close trunk branch, again'
+$ hg up default # update back to mainline
+$ hg merge trunk 
+$ hg commit -m 'merged changes from somebody'
+
+(Yes, it seems like it ought to be possible to merge a branch and close it
+in one step, but AFAICT it is not. You have to first close it, then merge
+it.)
