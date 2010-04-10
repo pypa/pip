@@ -1,4 +1,4 @@
-from os.path import abspath, join, dirname, pardir
+from os.path import abspath, join, dirname, curdir, pardir
 from test_pip import here, reset_env, run_pip, pyversion, lib_py
 
 def test_correct_pip_version():
@@ -138,7 +138,7 @@ def test_install_curdir():
     """
     reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '.', run_from=run_from, expect_error=False)
+    result = run_pip('install', curdir, run_from=run_from, expect_error=False)
     assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
     assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
 
@@ -149,6 +149,6 @@ def test_install_pardir():
     """
     reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg', 'fspkg'))
-    result = run_pip('install', '..', run_from=run_from, expect_error=False)
+    result = run_pip('install', pardir, run_from=run_from, expect_error=False)
     assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
     assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
