@@ -9,6 +9,8 @@ download_cache = os.path.join(here, 'test-cache')
 if not os.path.exists(download_cache):
     os.makedirs(download_cache)
 
+# Tweak the path so we can find scripttest
+sys.path = [os.path.join(os.path.dirname(here), 'scripttest')] + sys.path
 from scripttest import TestFileEnvironment
 
 if 'PYTHONPATH' in os.environ:
@@ -37,6 +39,22 @@ def virtualenv_bin_dir(path):
     else:
         return os.path.join(path, 'bin')
 
+def install_setuptools(env):
+    easy_install = os.path.join(env.bin_dir, 'easy_install')
+    version = 'setuptools==0.6c11'
+    if sys.platform != 'win32':
+        return env.run(easy_install, version)
+    
+    import tempfile, shutil
+    tempdir = tempfile.mkdtemp()
+    try:
+        shutil.copy2(easy_install+'.exe', tempdir)
+        shutil.copy2(easy_install+'-script.py', tempdir)
+        return env.run(os.path.join(tempdir, 'easy_install'), version)
+    finally:
+        shutil.rmtree(tempdir)
+            
+    
 env = None
 def reset_env(environ=None):
     global env
@@ -50,7 +68,7 @@ def reset_env(environ=None):
     environ['PATH'] = "%s%s%s" % (virtualenv_bin_dir(base_path), os.pathsep, environ['PATH'])
 
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ,
-                              capture_temp=True, assert_no_temp=True)
+                              capture_temp=True, assert_no_temp=True, split_cmd=False)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
 
     # test that test-scratch virtualenv creation produced sensible venv python
@@ -61,7 +79,7 @@ def reset_env(environ=None):
                            "test-scratch venv python" % pythonbin)
 
     # make sure we have current setuptools to avoid svn incompatibilities
-    env.run('easy_install', 'setuptools==0.6c11')
+    install_setuptools(env)
 
     # Uninstall whatever version of pip came with the virtualenv
     env.run('pip', 'uninstall', '-y', 'pip')

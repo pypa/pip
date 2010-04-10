@@ -26,7 +26,7 @@ def test_uninstall_with_scripts():
     """
     reset_env()
     env = get_env()
-    result = env.run(join(env.base_path, 'bin', 'easy_install'), 'PyLogo')
+    result = env.run(join(env.bin_dir, 'easy_install'), 'PyLogo')
     assert('PyLogo' in result.files_updated[easy_install_pth].bytes), result.files_after[easy_install_pth].bytes
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
     diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()
@@ -66,7 +66,7 @@ def test_uninstall_easy_installed_console_scripts():
     """
     reset_env()
     env = get_env()
-    result = env.run(join(env.base_path, 'bin', 'easy_install'), 'virtualenv')
+    result = env.run(join(env.bin_dir, 'easy_install'), 'virtualenv')
     assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()

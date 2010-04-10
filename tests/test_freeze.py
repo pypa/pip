@@ -36,7 +36,7 @@ def test_freeze():
     # Now lets try it with an svn checkout::
     env = get_env()
     result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
-    result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'initools-trunk'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -48,7 +48,7 @@ def test_freeze():
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Now, straight from trunk (but not editable/setup.py develop)::
-    result = env.run(os.path.join(env.base_path, 'bin/easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
+    result = env.run(os.path.join(env.bin_dir, 'easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
@@ -85,7 +85,7 @@ def test_freeze_git_clone():
     result = env.run('git', 'clone', 'git://github.com/jezdez/django-pagination.git', 'django-pagination')
     result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
             cwd=os.path.join(env.base_path, 'django-pagination'), expect_stderr=True)
-    result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-pagination'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -113,7 +113,7 @@ def test_freeze_mercurial_clone():
     env = get_env()
     checker = OutputChecker()
     result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
-    result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -141,7 +141,7 @@ def test_freeze_bazaar_clone():
     env = get_env()
     checker = OutputChecker()
     result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
-    result = env.run(os.path.join(env.base_path, 'bin/python'), 'setup.py', 'develop',
+    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-wikiapp'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\

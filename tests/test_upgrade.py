@@ -80,6 +80,6 @@ def test_uninstall_rollback():
     assert (join(lib_py, 'site-packages', 'broken.py') in result.files_created), result.files_created.keys()
     result2 = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)
     assert result2.returncode == 1, str(result2)
-    env.run(join(env.base_path, 'bin', 'python'), '-c', "import broken; print broken.VERSION").stdout
+    env.run(join(env.bin_dir, 'python'), '-c', "import broken; print broken.VERSION").stdout
     '0.1\n'
     assert diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt']).values() == [{}, {}, {}], diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt'])
