@@ -37,7 +37,7 @@ def reset_env(environ=None):
         environ = clear_environ(environ)
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
-    environ['PIP_LOG_FILE'] = './pip-log.txt'
+    environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
     environ['PYTHONPATH'] = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
@@ -48,7 +48,13 @@ def reset_env(environ=None):
     env.run('mkdir', 'src')
 
 def run_pip(*args, **kw):
-    args = (sys.executable, '-c', 'import pip; pip.main()', '-E', env.base_path) + args
+    # Run pip from a specific directory
+    if 'run_from' in kw:
+        run_from = kw['run_from']
+        del kw['run_from']
+    else:
+        run_from = base_path
+    args = (sys.executable, '-c', 'import os, pip; os.chdir(%r); pip.main()' % run_from, '-E', env.base_path) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
     result = env.run(*args, **kw)
     return result
