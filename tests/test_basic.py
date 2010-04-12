@@ -152,6 +152,28 @@ def test_install_editable_from_git():
     result = run_pip('install', '-e', 'git://github.com/jezdez/django-feedutil.git#egg=django-feedutil', expect_error=True)
     result.assert_installed('django-feedutil', with_files=['.git'])
 
+def test_install_revision_from_git():
+    """
+    Test satisfying (and failing to satisfy) a version requirement via a Git symbolic ref.
+    
+    """
+    e = reset_env()
+
+    result = run_pip('install', '-f', 'git+git://github.com/jezdez/django-contact-form.git#egg=django-contact-form', 'django-contact-form>0.3')
+
+    assert [x for x in result.files_created if 'django_contact_form' in x]
+
+    e = reset_env()
+
+    version_not_found = False
+    try:
+        run_pip('install', '-f', 'git+git://github.com/jezdez/django-contact-form.git#egg=django-contact-form', 'django-contact-form==0.3')
+    except:
+        version_not_found = True
+    assert version_not_found, e.venv_path
+    
+        
+
 def test_install_editable_from_hg():
     """
     Test cloning from Mercurial.
