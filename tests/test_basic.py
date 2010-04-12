@@ -201,10 +201,13 @@ def test_install_editable_from_bazaar():
     result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/@174#egg=django-wikiapp', expect_error=True)
     egg_link = result.files_created[lib_py + 'site-packages/django-wikiapp.egg-link']
     # FIXME: I don't understand why there's a trailing . here:
-    assert egg_link.bytes.endswith('/test-scratch/src/django-wikiapp\n.'), egg_link.bytes
-    assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
-    assert 'src/django-wikiapp' in result.files_created
-    assert 'src/django-wikiapp/.bzr' in result.files_created
+    assert egg_link.bytes.endswith('.'), egg_link.bytes
+    #remove trailing "\n." and check that django-wikiapp was installed
+    assert egg_link.bytes[:-1].strip().endswith(e.env_path/ 'src' / 'django-wikiapp'), egg_link.bytes
+    assert e.site_packages / 'easy-install.pth' in result.files_updated
+    assert e.relative_env_path / 'src' / 'django-wikiapp' in result.files_created
+    assert e.relative_env_path / 'src' / 'django-wikiapp/.bzr' in result.files_created
+
 
 def test_vcs_url_urlquote_normalization():
     """
