@@ -1,5 +1,4 @@
-
-from os.path import abspath, join, dirname, pardir
+from os.path import abspath, join, dirname, curdir, pardir
 from test_pip import here, reset_env, run_pip, pyversion, lib_py
 
 def test_correct_pip_version():
@@ -147,3 +146,35 @@ def test_vcs_url_urlquote_normalization():
     result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/~django-wikiapp/django-wikiapp/release-0.1#egg=django-wikiapp', expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
+def test_install_from_local_directory():
+    """
+    Test installing from a local directory.
+
+    """
+    reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', to_install, expect_error=False)
+    assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
+    assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+
+def test_install_curdir():
+    """
+    Test installing current directory ('.').
+
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', curdir, cwd=run_from, expect_error=False)
+    assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
+    assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+
+def test_install_pardir():
+    """
+    Test installing parent directory ('..').
+
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'FSPkg', 'fspkg'))
+    result = run_pip('install', pardir, cwd=run_from, expect_error=False)
+    assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
+    assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)

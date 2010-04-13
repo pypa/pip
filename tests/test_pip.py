@@ -41,7 +41,7 @@ def reset_env(environ=None):
         environ = clear_environ(environ)
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
-    environ['PIP_LOG_FILE'] = './pip-log.txt'
+    environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
 
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)

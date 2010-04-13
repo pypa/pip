@@ -189,6 +189,8 @@ def is_filename(name):
     if (splitext(name)[1].lower() in ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
         and os.path.exists(name)):
         return True
+    if name in (os.path.curdir, os.path.pardir):
+        return True
     if os.path.sep not in name and '/' not in name:
         # Doesn't have any path components, probably a requirement like 'Foo'
         return False
