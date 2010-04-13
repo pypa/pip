@@ -30,6 +30,10 @@ hg tip
   ``pip install path/to/dir/``).
 * Fixed installing editable packages with ``svn+ssh`` URLs.
 * Don't print unwanted debug information when running the freeze command.
+* Create log file directory automatically. Thanks Alexandre Conrad.
+* Make test suite easier to run successfully. Thanks Dave Abrahams.
+* Fixed "pip install ." and "pip install .."; better error for directory
+  without setup.py. Thanks Alexandre Conrad.
 
 0.6.3
 -----
