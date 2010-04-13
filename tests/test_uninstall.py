@@ -92,7 +92,7 @@ def test_uninstall_editable_with_source_outside_venv():
     Test uninstalling editable install from existing source outside the venv.
     
     """
-    tmpdir = mkdtemp()
+    tmpdir = join(mkdtemp(), 'virtualenv')
     reset_env()
     env = get_env()
     result = env.run('hg', 'clone', 'http://bitbucket.org/ianb/virtualenv/', tmpdir)
