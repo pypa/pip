@@ -34,6 +34,7 @@ hg tip
 * Make test suite easier to run successfully. Thanks Dave Abrahams.
 * Fixed "pip install ." and "pip install .."; better error for directory
   without setup.py. Thanks Alexandre Conrad.
+* Support Debian/Ubuntu "dist-packages" in zip command. Thanks duckx.
 
 0.6.3
 -----

@@ -286,7 +286,7 @@ class ZipCommand(Command):
                 if os.path.dirname(path) not in self.paths():
                     logger.notify('Zipped egg: %s' % display_path(path))
                 continue
-            if (basename != 'site-packages'
+            if (basename != 'site-packages' and basename != 'dist-packages'
                 and not path.replace('\\', '/').endswith('lib/python')):
                 continue
             logger.notify('In %s:' % display_path(path))
