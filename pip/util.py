@@ -15,9 +15,9 @@ from pip.locations import site_packages
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'splitext', 'ask', 'Inf',
-           'url_to_filename', 'filename_to_url',
-           'filename_to_url2', 'normalize_name',
-           'format_size', 'is_url', 'is_filename',
+           'url_to_path', 'path_to_url',
+           'path_to_url2', 'normalize_name',
+           'format_size', 'is_url', 'is_installable_dir', 'is_archive_file',
            'strip_prefix', 'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
@@ -120,43 +120,43 @@ Inf = _Inf()
 del _Inf
 
 
-def url_to_filename(url):
+def url_to_path(url):
     """
     Convert a file: URL to a path.
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
-    filename = url[len('file:'):].lstrip('/')
-    filename = urllib.unquote(filename)
-    if _url_drive_re.match(filename):
-        filename = filename[0] + ':' + filename[2:]
+    path = url[len('file:'):].lstrip('/')
+    path = urllib.unquote(path)
+    if _url_drive_re.match(path):
+        path = path[0] + ':' + path[2:]
     else:
-        filename = '/' + filename
-    return filename
+        path = '/' + path
+    return path
 
 _drive_re = re.compile('^([a-z]):', re.I)
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
-def filename_to_url(filename):
+def path_to_url(path):
     """
     Convert a path to a file: URL.  The path will be made absolute.
     """
-    filename = os.path.normcase(os.path.abspath(filename))
-    if _drive_re.match(filename):
-        filename = filename[0] + '|' + filename[2:]
-    url = urllib.quote(filename)
+    path = os.path.normcase(os.path.abspath(path))
+    if _drive_re.match(path):
+        path = path[0] + '|' + path[2:]
+    url = urllib.quote(path)
     url = url.replace(os.path.sep, '/')
     url = url.lstrip('/')
     return 'file:///' + url
 
-def filename_to_url2(filename):
+def path_to_url2(path):
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.
     """
-    filename = os.path.normcase(os.path.abspath(filename))
-    drive, filename = os.path.splitdrive(filename)
-    filepath = filename.split(os.path.sep)
+    path = os.path.normcase(os.path.abspath(path))
+    drive, path = os.path.splitdrive(path)
+    filepath = path.split(os.path.sep)
     url = '/'.join([urllib.quote(part) for part in filepath])
     if not drive:
         url = url.lstrip('/')
@@ -185,16 +185,22 @@ def is_url(name):
     scheme = name.split(':', 1)[0].lower()
     return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
-def is_filename(name):
-    if (splitext(name)[1].lower() in ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
-        and os.path.exists(name)):
-        return True
-    if name in (os.path.curdir, os.path.pardir):
-        return True
-    if os.path.sep not in name and '/' not in name:
-        # Doesn't have any path components, probably a requirement like 'Foo'
+def is_installable_dir(path):
+    """Return True if `path` is a directory containing a setup.py file."""
+    if not os.path.isdir(path):
         return False
-    return True
+    setup_py = os.path.join(path, 'setup.py')
+    if os.path.isfile(setup_py):
+        return True
+    return False
+
+def is_archive_file(name):
+    """Return True if `name` is a considered as an archive file."""
+    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
+    ext = splitext(name)[1].lower()
+    if ext in archives:
+        return True
+    return False
 
 def is_svn_page(html):
     """Returns true if the page appears to be the index page of an svn repository"""

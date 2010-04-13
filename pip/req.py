@@ -19,8 +19,8 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree, format_size
 from pip.util import splitext, ask, backup_dir
-from pip.util import url_to_filename, filename_to_url
-from pip.util import is_url, is_filename, is_local, dist_is_local
+from pip.util import url_to_path, path_to_url
+from pip.util import is_url, is_installable_dir, is_archive_file, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
@@ -61,7 +61,7 @@ class InstallRequirement(object):
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
         name, url = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
-            source_dir = url_to_filename(url)
+            source_dir = url_to_path(url)
         else:
             source_dir = None
         return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
@@ -69,21 +69,30 @@ class InstallRequirement(object):
     @classmethod
     def from_line(cls, name, comes_from=None):
         """Creates an InstallRequirement from a name, which might be a
-        requirement, filename, or URL.
+        requirement, directory containing 'setup.py', filename, or URL.
         """
         url = None
         name = name.strip()
         req = name
+        path = os.path.normpath(os.path.abspath(name))
+
         if is_url(name):
             url = name
             ## FIXME: I think getting the requirement here is a bad idea:
             #req = get_requirement_from_url(url)
             req = None
-        elif is_filename(name):
-            if not os.path.exists(name):
+        elif os.path.isdir(path):
+            if not is_installable_dir(path):
+                raise InstallationError("Directory %r is not installable. File 'setup.py' not found."
+                                        % name)
+            url = path_to_url(name)
+            #req = get_requirement_from_url(url)
+            req = None
+        elif is_archive_file(path):
+            if not os.path.isfile(path):
                 logger.warn('Requirement %r looks like a filename, but the file does not exist'
                             % name)
-            url = filename_to_url(name)
+            url = path_to_url(name)
             #req = get_requirement_from_url(url)
             req = None
         return cls(req, comes_from, url=url)
@@ -785,7 +794,7 @@ class RequirementSet(object):
                 logger.notify('Obtaining %s' % req_to_install)
             elif install:
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
-                    logger.notify('Unpacking %s' % display_path(url_to_filename(req_to_install.url)))
+                    logger.notify('Unpacking %s' % display_path(url_to_path(req_to_install.url)))
                 else:
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
@@ -910,7 +919,7 @@ class RequirementSet(object):
                 return
         temp_dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
-            source = url_to_filename(link.url)
+            source = url_to_path(link.url)
             content_type = mimetypes.guess_type(source)[0]
             if os.path.isdir(source):
                 # delete the location since shutil will create it again :(
@@ -1335,7 +1344,7 @@ def parse_editable(editable_req, default_vcs=None):
     url = editable_req
     if os.path.isdir(url) and os.path.exists(os.path.join(url, 'setup.py')):
         # Treating it as code that has already been checked out
-        url = filename_to_url(url)
+        url = path_to_url(url)
     if url.lower().startswith('file:'):
         return None, url
     for version_control in vcs:

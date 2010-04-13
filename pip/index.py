@@ -14,7 +14,7 @@ import socket
 from Queue import Queue
 from Queue import Empty as QueueEmpty
 from pip.log import logger
-from pip.util import Inf, filename_to_url2, url_to_filename
+from pip.util import Inf, path_to_url2, url_to_path
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
 
@@ -79,14 +79,14 @@ class PackageFinder(object):
         url_locations = []
         for url in locations:
             if url.startswith('file:'):
-                fn = url_to_filename(url)
-                if os.path.isdir(fn):
-                    path = os.path.realpath(fn)
+                path = url_to_path(url)
+                if os.path.isdir(path):
+                    path = os.path.realpath(path)
                     for item in os.listdir(path):
                         file_locations.append(
-                            filename_to_url2(os.path.join(path, item)))
-                elif os.path.isfile(fn):
-                    file_locations.append(filename_to_url2(fn))
+                            path_to_url2(os.path.join(path, item)))
+                elif os.path.isfile(path):
+                    file_locations.append(path_to_url2(path))
             else:
                 url_locations.append(url)
 
@@ -119,7 +119,7 @@ class PackageFinder(object):
             found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
         if file_versions:
             file_versions.sort(reverse=True)
-            logger.info('Local files found: %s' % ', '.join([url_to_filename(link.url) for parsed, link, version in file_versions]))
+            logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
             found_versions = file_versions + found_versions
         all_versions = found_versions + page_versions + dependency_versions
         applicable_versions = []

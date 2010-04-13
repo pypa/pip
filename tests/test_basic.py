@@ -157,6 +157,17 @@ def test_install_from_local_directory():
     assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
     assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
 
+def test_install_from_local_directory_with_no_setup_py():
+    """
+    Test installing from a local directory with no 'setup.py'.
+
+    """
+    reset_env()
+    result = run_pip('install', here, expect_error=True)
+    assert len(result.files_created) == 1, result.files_created
+    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert "is not installable. File 'setup.py' not found." in result.stdout
+
 def test_install_curdir():
     """
     Test installing current directory ('.').
