@@ -16,7 +16,8 @@ def test_simple_uninstall():
     result = run_pip('install', 'INITools==0.2', expect_error=True)
     assert join(site_pkg, 'initools') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=['build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    assert diff == [{}, {}, {}], diff
 
 def test_uninstall_with_scripts():
     """
@@ -28,7 +29,9 @@ def test_uninstall_with_scripts():
     result = env.run(join(env.base_path, 'bin', 'easy_install'), 'PyLogo')
     assert('PyLogo' in result.files_updated[easy_install_pth].bytes), result.files_after[easy_install_pth].bytes
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=['build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    assert diff == [{}, {}, {}], diff
+
 
 def test_uninstall_namespace_package():
     """
@@ -52,7 +55,9 @@ def test_uninstall_console_scripts():
     result = run_pip('install', 'virtualenv', expect_error=True)
     assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=['build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    assert diff == [{}, {}, {}], diff
+
 
 def test_uninstall_easy_installed_console_scripts():
     """
@@ -64,7 +69,9 @@ def test_uninstall_easy_installed_console_scripts():
     result = env.run(join(env.base_path, 'bin', 'easy_install'), 'virtualenv')
     assert ('bin/virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=['build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build']).values()
+    assert diff == [{}, {}, {}], diff
+
 
 def test_uninstall_editable_from_svn():
     """
@@ -76,8 +83,10 @@ def test_uninstall_editable_from_svn():
     egg_link = result.files_created[join(site_pkg, 'INITools.egg-link')]
     result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
     assert ('src/initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert diff_states(result.files_before, result2.files_after, ignore=['src/initools', 'build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build', 'src']).values()
+    assert diff == [{}, {}, {}], diff
 
+    
 def test_uninstall_editable_with_source_outside_venv():
     """
     Test uninstalling editable install from existing source outside the venv.
@@ -90,8 +99,10 @@ def test_uninstall_editable_with_source_outside_venv():
     result2 = run_pip('install', '-e', tmpdir)
     assert (join(site_pkg, 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
-    assert diff_states(result.files_before, result3.files_after, ignore=['build']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result3.files_after, ignore=['build']).values()
+    assert diff == [{}, {}, {}], diff
 
+    
 def test_uninstall_from_reqs_file():
     """
     Test uninstall from a requirements file.
@@ -105,5 +116,6 @@ def test_uninstall_from_reqs_file():
         """))
     result = run_pip('install', '-r', 'test-req.txt')
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    assert diff_states(result.files_before, result2.files_after, ignore=['build', 'src/initools']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build', 'src']).values()
+    assert diff == [{}, {}, {}], diff
 

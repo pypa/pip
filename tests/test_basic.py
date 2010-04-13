@@ -8,9 +8,24 @@ def test_correct_pip_version():
     
     """
     reset_env()
+
+    # where this source distribution lives
     base = abspath(join(dirname(__file__), pardir))
+
+    # output will contain the directory of the invoked pip
     result = run_pip('--version')
-    assert base in result.stdout, result.stdout
+
+    # compare the directory tree of the invoked pip with that of this source distribution
+    import re,filecmp
+    dir = re.match(r'\s*pip\s\S+\sfrom\s+(.*)\s\([^(]+\)$', result.stdout).group(1)
+    diffs = filecmp.dircmp(join(base,'pip'), join(dir,'pip'))
+
+    # If any non-matching .py files exist, we have a problem: run_pip
+    # is picking up some other version!  N.B. if this project acquires
+    # primary resources other than .py files, this code will need
+    # maintenance
+    mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
+    assert not mismatch_py, 'mismatched source files in %r and %r'% (join(base,'pip'), join(dir,'pip'))
 
 def test_distutils_configuration_setting():
     """

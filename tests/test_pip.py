@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-import doctest
 
 pyversion = sys.version[:3]
 lib_py = 'lib/python%s/' % pyversion
@@ -29,6 +27,12 @@ def clear_environ(environ):
     return dict(((k, v) for k, v in environ.iteritems()
                 if not k.lower().startswith('pip_')))
 
+def virtualenv_bin_dir(path):
+    if sys.platform == 'win32':
+        return os.path.join(path, 'Scripts')
+    else:
+        return os.path.join(path, 'bin')
+
 env = None
 def reset_env(environ=None):
     global env
@@ -41,14 +45,21 @@ def reset_env(environ=None):
     environ['PYTHONPATH'] = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
+
+    # put the test-scratch virtualenv's bin dir first on the script path
+    env.script_path.insert(0, virtualenv_bin_dir(env.base_path))
+    
     # make sure we have current setuptools to avoid svn incompatibilities
-    env.run('%s/bin/easy_install' % env.base_path, 'setuptools==0.6c11')
-    # Uninstall (kind of) pip, so PYTHONPATH can take effect:
-    env.run('%s/bin/easy_install' % env.base_path, '-m', 'pip')
-    env.run('mkdir', 'src')
+    env.run('easy_install', 'setuptools==0.6c11')
+
+    # Uninstall whatever version of pip came with the virtualenv
+    env.run('pip', 'uninstall', '-y', 'pip')
+
+    # Install this version instead
+    env.run('python', 'setup.py', 'install', cwd=os.path.dirname(here))
 
 def run_pip(*args, **kw):
-    args = (sys.executable, '-c', 'import pip; pip.main()', '-E', env.base_path) + args
+    args = ('pip',) + args
     #print >> sys.__stdout__, 'running', ' '.join(args)
     result = env.run(*args, **kw)
     return result
@@ -102,6 +113,6 @@ def diff_states(start, end, ignore=None):
     return dict(deleted=deleted, created=created, updated=updated)
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests.\n")
+    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
     sys.exit(1)
 

@@ -26,7 +26,7 @@ def test_freeze():
     result = run_pip('install', '-r', 'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         INITools==0.2
         simplejson==1.7.4...
@@ -40,7 +40,7 @@ def test_freeze():
             cwd=os.path.join(env.base_path, 'initools-trunk'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
         simplejson==1.7.4...
@@ -51,7 +51,7 @@ def test_freeze():
     result = env.run(os.path.join(env.base_path, 'bin/easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze
+        Script result: ...pip freeze
         -- stderr: --------------------
         Warning: cannot find svn location for INITools==...dev-r...
         <BLANKLINE>
@@ -65,7 +65,7 @@ def test_freeze():
     # Bah, that's no good!  Let's give it a hint::
     result = run_pip('freeze', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+        Script result: ...pip freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
         -- stdout: --------------------
         -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
         # Installing as editable to satisfy requirement INITools==...dev-r...:
@@ -89,7 +89,7 @@ def test_freeze_git_clone():
             cwd=os.path.join(env.base_path, 'django-pagination'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
         ...""")
@@ -97,7 +97,7 @@ def test_freeze_git_clone():
 
     result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
+        Script result: ...pip freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
         -- stdout: --------------------
         -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
@@ -117,7 +117,7 @@ def test_freeze_mercurial_clone():
             cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
         ...""")
@@ -125,7 +125,7 @@ def test_freeze_mercurial_clone():
 
     result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
+        Script result: ...pip freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
         -- stdout: --------------------
         -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
@@ -145,7 +145,7 @@ def test_freeze_bazaar_clone():
             cwd=os.path.join(env.base_path, 'django-wikiapp'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
         ...""")
@@ -153,7 +153,7 @@ def test_freeze_bazaar_clone():
 
     result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() -E .../test-scratch freeze -f bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
+        Script result: ...pip freeze -f bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
         -- stdout: --------------------
         -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
@@ -170,7 +170,7 @@ def test_freeze_with_local_option():
     result = run_pip('install', 'initools==0.2')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() .../test-scratch freeze
+        Script result: ...pip freeze
         -- stdout: --------------------
         INITools==0.2
         wsgiref==...
@@ -179,7 +179,7 @@ def test_freeze_with_local_option():
 
     result = run_pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...ython... pip.main() .../test-scratch freeze --local
+        Script result: ...pip freeze --local
         -- stdout: --------------------
         INITools==0.2
         <BLANKLINE>""")
