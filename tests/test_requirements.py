@@ -14,7 +14,7 @@ def test_requirements_file():
         # and something else to test out:
         simplejson<=1.7.4
         """))
-    result = run_pip('install', '-r', env.base_path / 'initools-req.txt')
+    result = run_pip('install', '-r', env.scratch_path / 'initools-req.txt')
     assert len(result.wildcard_matches('env/lib/python*/site-packages/INITools-0.2-py*.egg-info')) == 1
     assert len(result.wildcard_matches('env/lib/python*/site-packages/initools')) == 1
     dirs = result.wildcard_matches('env/lib/python*/site-packages/simplejson*')
@@ -33,7 +33,7 @@ def test_multiple_requirements_files():
     write_file('simplejson-req.txt', textwrap.dedent("""\
         simplejson<=1.7.4
         """))
-    result = run_pip('install', '-r', env.base_path / 'initools-req.txt')
+    result = run_pip('install', '-r', env.scratch_path / 'initools-req.txt')
     assert len(result.wildcard_matches('env/lib/python*/site-packages/simplejson*')) == 2
     assert 'env/src/initools' in result.files_created
 

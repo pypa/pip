@@ -2,8 +2,8 @@
 import zipfile
 import textwrap
 from os.path import abspath, join, dirname, pardir
-from test_pip import here, reset_env, run_pip, pyversion
-from test_pip import write_file
+from test_pip import here, reset_env, run_pip, write_file 
+from path import Path
 
 def test_create_bundle():
     """
@@ -20,9 +20,9 @@ def test_create_bundle():
             -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
             pip''' % fspkg)
     write_file('bundle-req.txt', pkg_lines)
-    # Create a bundle in env.base_path/ test.pybundle
-    result = run_pip('bundle', '-r', env.base_path/ 'bundle-req.txt', env.base_path/ 'test.pybundle')
-    bundle = result.files_after.get('test.pybundle', None)
+    # Create a bundle in env.scratch_path/ test.pybundle
+    result = run_pip('bundle', '-r', env.scratch_path/ 'bundle-req.txt', env.scratch_path/ 'test.pybundle')
+    bundle = result.files_after.get(join('scratch', 'test.pybundle'), None)
     assert bundle is not None
 
     files = zipfile.ZipFile(bundle.full).namelist()

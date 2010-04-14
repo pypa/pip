@@ -22,6 +22,6 @@ def test_single_download_from_requirements_file():
     write_file('test-req.txt', textwrap.dedent("""
         INITools==0.1
         """))
-    result = run_pip('install', '-r', env.base_path/ 'test-req.txt', '-d', '.', expect_error=True)
+    result = run_pip('install', '-r', env.scratch_path/ 'test-req.txt', '-d', '.', expect_error=True)
     assert Path('scratch')/ 'INITools-0.1.tar.gz' in result.files_created
     assert env.site_packages/ 'initools' not in result.files_created
