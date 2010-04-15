@@ -770,6 +770,8 @@ class RequirementSet(object):
             req.commit_uninstall()
 
     def locate_files(self):
+        ## FIXME: duplicates code from install_files; relevant code should
+        ##        probably be factored out into a separate method
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
