@@ -106,6 +106,12 @@ class InstallCommand(Command):
             dest='no_install',
             action='store_true',
             help="Download and unpack all packages, but don't actually install them")
+        self.parser.add_option(
+            '--no-download',
+            dest='no_download',
+            action="store_true",
+            help="Don't download any packages, just install the ones already downloaded "
+            "(completes an install run with --no-install)")
 
         self.parser.add_option(
             '--install-option',
@@ -151,7 +157,8 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-        requirement_set.install_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+        if not options.no_download:
+            requirement_set.install_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             installed = ' '.join([req.name for req in
