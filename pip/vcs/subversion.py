@@ -69,7 +69,7 @@ class Subversion(VersionControl):
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
-        logger.notify('Checking out svn repository %s to %s' % (url, location))
+        logger.notify('Exporting svn repository %s to %s' % (url, location))
         logger.indent += 2
         try:
             if os.path.exists(location):
