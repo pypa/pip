@@ -10,7 +10,7 @@ import traceback
 import time
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.exceptions import InstallationError, UninstallationError
+from pip.exceptions import BadCommand, InstallationError, UninstallationError
 from pip.venv import restart_in_venv
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
@@ -119,6 +119,10 @@ class Command(object):
         try:
             self.run(options, args)
         except (InstallationError, UninstallationError), e:
+            logger.fatal(str(e))
+            logger.info('Exception information:\n%s' % format_exc())
+            exit = 1
+        except BadCommand, e:
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
