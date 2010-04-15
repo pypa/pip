@@ -48,10 +48,7 @@ class CompletionCommand(Command):
 
     def run(self, options, args):
         """Prints the completion code of the given shell"""
-        if options.shell in ('bash', 'zsh'):
-            script = COMPLETION_SCRIPTS.get(options.shell, '')
-            print BASE_COMPLETION % {'script': script, 'shell': options.shell}
-        else:
-            print 'ERROR: You must pass --bash or --zsh'
+        script = COMPLETION_SCRIPTS.get(options.shell, '')
+        print BASE_COMPLETION % {'script': script, 'shell': options.shell}
 
 CompletionCommand()
