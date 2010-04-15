@@ -42,7 +42,7 @@ class Mercurial(VersionControl):
             if os.path.exists(location):
                 os.rmdir(location)
             call_subprocess(
-                ['hg', 'clone', url, location],
+                [self.cmd, 'clone', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -53,7 +53,7 @@ class Mercurial(VersionControl):
         self.unpack(temp_dir)
         try:
             call_subprocess(
-                ['hg', 'archive', location],
+                [self.cmd, 'archive', location],
                 filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
         finally:
             shutil.rmtree(temp_dir)
@@ -72,12 +72,12 @@ class Mercurial(VersionControl):
                 'Could not switch Mercurial repository to %s: %s'
                 % (url, e))
         else:
-            call_subprocess(['hg', 'update', '-q'] + rev_options, cwd=dest)
+            call_subprocess([self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 
     def update(self, dest, rev_options):
-        call_subprocess(['hg', 'pull', '-q'], cwd=dest)
+        call_subprocess([self.cmd, 'pull', '-q'], cwd=dest)
         call_subprocess(
-            ['hg', 'update', '-q'] + rev_options, cwd=dest)
+            [self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -90,12 +90,12 @@ class Mercurial(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning hg %s%s to %s'
                           % (url, rev_display, display_path(dest)))
-            call_subprocess(['hg', 'clone', '--noupdate', '-q', url, dest])
-            call_subprocess(['hg', 'update', '-q'] + rev_options, cwd=dest)
+            call_subprocess([self.cmd, 'clone', '--noupdate', '-q', url, dest])
+            call_subprocess([self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
         url = call_subprocess(
-            ['hg', 'showconfig', 'paths.default'],
+            [self.cmd, 'showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
         if url.startswith('/') or url.startswith('\\'):
             url = path_to_url(url)
@@ -103,7 +103,7 @@ class Mercurial(VersionControl):
 
     def get_tag_revs(self, location):
         tags = call_subprocess(
-            ['hg', 'tags'], show_stdout=False, cwd=location)
+            [self.cmd, 'tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
@@ -115,7 +115,7 @@ class Mercurial(VersionControl):
 
     def get_branch_revs(self, location):
         branches = call_subprocess(
-            ['hg', 'branches'], show_stdout=False, cwd=location)
+            [self.cmd, 'branches'], show_stdout=False, cwd=location)
         branch_revs = []
         for line in branches.splitlines():
             branches_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
@@ -127,13 +127,13 @@ class Mercurial(VersionControl):
 
     def get_revision(self, location):
         current_revision = call_subprocess(
-            ['hg', 'parents', '--template={rev}'],
+            [self.cmd, 'parents', '--template={rev}'],
             show_stdout=False, cwd=location).strip()
         return current_revision
 
     def get_revision_hash(self, location):
         current_rev_hash = call_subprocess(
-            ['hg', 'parents', '--template={node}'],
+            [self.cmd, 'parents', '--template={node}'],
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 

@@ -97,8 +97,8 @@ class VersionControl(object):
             return self._cmd
         command = find_command(self.name)
         if command is None:
-            raise BadCommand('Cannot find command %s' % self.name)
-        logger.info('Found command %s at %s' % (self.name, command))
+            raise BadCommand('Cannot find command %r' % self.name)
+        logger.info('Found command %r at %r' % (self.name, command))
         self._cmd = command
         return command
 

@@ -24,7 +24,7 @@ class Subversion(VersionControl):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
         output = call_subprocess(
-            ['svn', 'info', location], show_stdout=False, extra_environ={'LANG': 'C'})
+            [self.cmd, 'info', location], show_stdout=False, extra_environ={'LANG': 'C'})
         match = _svn_url_re.search(output)
         if not match:
             logger.warn('Cannot determine URL of svn checkout %s' % display_path(location))
@@ -61,7 +61,7 @@ class Subversion(VersionControl):
                 # --force fixes this, but was only added in svn 1.5
                 rmtree(location)
             call_subprocess(
-                ['svn', 'checkout', url, location],
+                [self.cmd, 'checkout', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -77,18 +77,18 @@ class Subversion(VersionControl):
                 # --force fixes this, but was only added in svn 1.5
                 rmtree(location)
             call_subprocess(
-                ['svn', 'export', url, location],
+                [self.cmd, 'export', url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
 
     def switch(self, dest, url, rev_options):
         call_subprocess(
-            ['svn', 'switch'] + rev_options + [url, dest])
+            [self.cmd, 'switch'] + rev_options + [url, dest])
 
     def update(self, dest, rev_options):
         call_subprocess(
-            ['svn', 'update'] + rev_options + [dest])
+            [self.cmd, 'update'] + rev_options + [dest])
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -102,7 +102,7 @@ class Subversion(VersionControl):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
             call_subprocess(
-                ['svn', 'checkout', '-q'] + rev_options + [url, dest])
+                [self.cmd, 'checkout', '-q'] + rev_options + [url, dest])
 
     def get_location(self, dist, dependency_links):
         egg_fragment_re = re.compile(r'#egg=(.*)$')
@@ -205,7 +205,7 @@ class Subversion(VersionControl):
 
     def get_tag_revs(self, svn_tag_url):
         stdout = call_subprocess(
-            ['svn', 'ls', '-v', svn_tag_url], show_stdout=False)
+            [self.cmd, 'ls', '-v', svn_tag_url], show_stdout=False)
         results = []
         for line in stdout.splitlines():
             parts = line.split()
