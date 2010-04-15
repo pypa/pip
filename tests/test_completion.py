@@ -1,6 +1,5 @@
 import os
-import sys
-from test_pip import here, reset_env, run_pip, lib_py, get_env
+from test_pip import reset_env, run_pip, get_env
 
 
 def test_completion_for_bash():
