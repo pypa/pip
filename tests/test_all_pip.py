@@ -4,12 +4,12 @@ import sys
 import os
 import subprocess
 import shutil
+from test_pip import here
 
-pip_fn = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pip.py')
 
 def all_projects():
-    data = urllib2.urlopen('http://pypi.python.org/pypi/').read()
-    projects = [m.group(1) for m in re.finditer(r'href="/pypi/([^/"]*)', data)]
+    data = urllib2.urlopen('http://pypi.python.org/simple/').read()
+    projects = [m.group(1) for m in re.finditer(r'<a.*?>(.+)</a>', data)]
     return projects
 
 def main(args=None):
@@ -18,7 +18,7 @@ def main(args=None):
     if not args:
         print 'Usage: test_all_pip.py <output-dir>'
         sys.exit(1)
-    output = args[0]
+    output = os.path.abspath(args[0])
     if not os.path.exists(output):
         print 'Creating %s' % output
         os.makedirs(output)
@@ -43,9 +43,18 @@ def _test_packages(output, pending_fn):
     print 'Creating virtualenv in %s' % dest_dir
     code = subprocess.call(['virtualenv', dest_dir])
     assert not code, "virtualenv failed"
-    print 'Trying installation of %s' % dest_dir
+    print 'Uninstalling actual pip'
+    code = subprocess.call([os.path.join(dest_dir, 'bin', 'pip'),
+                            'uninstall', '-y', 'pip'])
+    assert not code, 'pip uninstallation failed'
+    print 'Installing development pip'
     code = subprocess.call([os.path.join(dest_dir, 'bin', 'python'),
-                            pip_fn, 'install', package])
+                            'setup.py', 'install'],
+                            cwd=os.path.dirname(here))
+    assert not code, 'pip installation failed'
+    print 'Trying installation of %s' % dest_dir
+    code = subprocess.call([os.path.join(dest_dir, 'bin', 'pip'),
+                            'install', package])
     if code:
         print 'Installation of %s failed' % package
         print 'Now checking easy_install...'
