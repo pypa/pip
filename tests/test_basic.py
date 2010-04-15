@@ -131,6 +131,16 @@ def test_no_install_followed_by_no_download():
     assert 'build/INITools' not in result.files_created
     assert 'build/INITools/INITools.egg-info' not in result.files_created
 
+def test_bad_install_with_no_download():
+    """
+    Test that --no-download behaves sensibly if the package source can't be found.
+    
+    """
+    reset_env()
+
+    result = run_pip('install', 'INITools==0.2', '--no-download',  expect_error=True)
+    assert result.stdout.find("perhaps --no-download was used without first running an equivalent install with --no-install?") > 0
+
 def test_install_dev_version_from_pypi():
     """
     Test using package==dev.
