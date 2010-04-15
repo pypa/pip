@@ -159,6 +159,8 @@ class InstallCommand(Command):
                 requirement_set.add_requirement(req)
         if not options.no_download:
             requirement_set.install_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+        else:
+            requirement_set.locate_files()
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options)
             installed = ' '.join([req.name for req in

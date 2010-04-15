@@ -769,6 +769,34 @@ class RequirementSet(object):
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
 
+    def locate_files(self):
+        unnamed = list(self.unnamed_requirements)
+        reqs = self.requirements.values()
+        while reqs or unnamed:
+            if unnamed:
+                req_to_install = unnamed.pop(0)
+            else:
+                req_to_install = reqs.pop(0)
+            install_needed = True
+            if not self.ignore_installed and not req_to_install.editable:
+                req_to_install.check_if_exists()
+                if req_to_install.satisfied_by:
+                    if self.upgrade:
+                        req_to_install.conflicts_with = req_to_install.satisfied_by
+                        req_to_install.satisfied_by = None
+                    else:
+                        install_needed = False
+                if req_to_install.satisfied_by:
+                    logger.notify('Requirement already satisfied '
+                                  '(use --upgrade to upgrade): %s'
+                                  % req_to_install)
+
+            if req_to_install.editable:
+                if req_to_install.source_dir is None:
+                    req_to_install.source_dir = req_to_install.build_location(self.src_dir)
+            elif install_needed:
+                req_to_install.source_dir = req_to_install.build_location(self.build_dir, not self.is_download)
+
     def install_files(self, finder, force_root_egg_info=False, bundle=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
