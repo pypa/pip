@@ -124,9 +124,8 @@ class InstallCommand(Command):
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
-        else:
-            options.build_dir = os.path.abspath(options.build_dir)
-            options.src_dir = os.path.abspath(options.src_dir)
+        options.build_dir = os.path.abspath(options.build_dir)
+        options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
