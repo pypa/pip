@@ -69,6 +69,9 @@ def write_file(filename, text):
     f.write(text)
     f.close()
 
+def mkdir(dirname):
+    os.mkdir(os.path.join(base_path, dirname))
+
 def get_env():
     return env
 

@@ -1,5 +1,5 @@
 from os.path import abspath, join, dirname, curdir, pardir
-from test_pip import here, reset_env, run_pip, pyversion, lib_py
+from test_pip import here, reset_env, run_pip, pyversion, lib_py, mkdir
 
 def test_correct_pip_version():
     """
@@ -75,6 +75,20 @@ def test_install_editable_from_svn():
     assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
     assert 'src/initools' in result.files_created
     assert 'src/initools/.svn' in result.files_created
+
+def test_download_editable_to_custom_path():
+    """
+    Test downloading an editable using a relative custom src folder.
+    
+    """
+    reset_env()
+    mkdir('customdl')
+    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev',
+        '--src', 'customsrc', '--download', 'customdl',
+        expect_error=True)
+    assert 'customsrc/initools' in result.files_created
+    assert 'customsrc/initools/setup.py' in result.files_created
+    assert [filename for filename in result.files_created.keys() if filename.startswith('customdl/initools')]
 
 
 def test_install_dev_version_from_pypi():
