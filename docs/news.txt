@@ -36,6 +36,7 @@ hg tip
   without setup.py. Thanks Alexandre Conrad.
 * Support Debian/Ubuntu "dist-packages" in zip command. Thanks duckx.
 * Fix relative --src folder. Thanks Simon Cross.
+* Handle missing VCS with an error message. Thanks Alexandre Conrad.
 
 0.6.3
 -----
