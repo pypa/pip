@@ -90,6 +90,56 @@ def test_download_editable_to_custom_path():
     assert 'customsrc/initools/setup.py' in result.files_created
     assert [filename for filename in result.files_created.keys() if filename.startswith('customdl/initools')]
 
+def test_editable_no_install_followed_by_no_download():
+    """
+    Test installing an editable in two steps (first with --no-install, then with --no-download).
+    
+    """
+    reset_env()
+
+    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev',
+        '--no-install', expect_error=True)
+    assert lib_py + 'site-packages/INITools.egg-link' not in result.files_created
+    assert 'src/initools' in result.files_created
+    assert 'src/initools/.svn' in result.files_created
+
+    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev',
+        '--no-download',  expect_error=True)
+    egg_link = result.files_created[lib_py + 'site-packages/INITools.egg-link']
+    # FIXME: I don't understand why there's a trailing . here:
+    assert egg_link.bytes.endswith('/test-scratch/src/initools\n.'), egg_link.bytes
+    assert (lib_py + 'site-packages/easy-install.pth') in result.files_updated
+    assert 'src/initools' not in result.files_created
+    assert 'src/initools/.svn' not in result.files_created
+
+def test_no_install_followed_by_no_download():
+    """
+    Test installing in two steps (first with --no-install, then with --no-download).
+    
+    """
+    reset_env()
+
+    result = run_pip('install', 'INITools==0.2', '--no-install', expect_error=True)
+    assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) not in result.files_created, str(result)
+    assert (lib_py + 'site-packages/initools') not in result.files_created, sorted(result.files_created.keys())
+    assert 'build/INITools' in result.files_created
+    assert 'build/INITools/INITools.egg-info' in result.files_created
+
+    result = run_pip('install', 'INITools==0.2', '--no-download',  expect_error=True)
+    assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (lib_py + 'site-packages/initools') in result.files_created, sorted(result.files_created.keys())
+    assert 'build/INITools' not in result.files_created
+    assert 'build/INITools/INITools.egg-info' not in result.files_created
+
+def test_bad_install_with_no_download():
+    """
+    Test that --no-download behaves sensibly if the package source can't be found.
+    
+    """
+    reset_env()
+
+    result = run_pip('install', 'INITools==0.2', '--no-download',  expect_error=True)
+    assert result.stdout.find("perhaps --no-download was used without first running an equivalent install with --no-install?") > 0
 
 def test_install_dev_version_from_pypi():
     """
