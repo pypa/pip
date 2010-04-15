@@ -35,6 +35,7 @@ hg tip
 * Fixed "pip install ." and "pip install .."; better error for directory
   without setup.py. Thanks Alexandre Conrad.
 * Support Debian/Ubuntu "dist-packages" in zip command. Thanks duckx.
+* Fix relative --src folder. Thanks Simon Cross.
 
 0.6.3
 -----
