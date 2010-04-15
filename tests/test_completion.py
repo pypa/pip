@@ -1,5 +1,7 @@
-from test_pip import here, reset_env, run_pip, pyversion, lib_py
-from test_pip import write_file
+import os
+import sys
+from test_pip import here, reset_env, run_pip, lib_py, get_env
+
 
 def test_completion_for_bash():
     """
@@ -51,3 +53,46 @@ def test_completion_for_unknown_shell():
     assert error_msg in result.stderr, 'tests for an unknown shell failed'
 
 
+def test_completion_alone():
+    """
+    Test getting completion for none shell, just pip completion
+    """
+    reset_env()
+    result = run_pip('completion', expect_error=True)
+    assert 'ERROR: You must pass --bash or --zsh' in result.stderr,\
+            'completion alone failed -- ' + result.stderr
+
+
+def test_completion_for_un_snippet():
+    """
+    Test getting completion for ``un`` should return
+    uninstall and unzip
+    """
+    environ = os.environ.copy()
+    reset_env(environ)
+    environ['PIP_AUTO_COMPLETE'] = '1'
+    environ['COMP_WORDS'] = 'pip un'
+    environ['COMP_CWORD'] = '1'
+    env = get_env()
+    # expect_error is True because autocomplete exists with 1 status code
+    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
+            expect_error=True)
+    assert result.stdout.strip().split() == ['unzip', 'uninstall'],\
+           "autocomplete function could not complete ``un`` snippet"
+
+
+def test_completion_for_default_parameters():
+    """
+    Test getting completion for ``--`` should contain --help
+    """
+    environ = os.environ.copy()
+    reset_env(environ)
+    environ['PIP_AUTO_COMPLETE'] = '1'
+    environ['COMP_WORDS'] = 'pip --'
+    environ['COMP_CWORD'] = '1'
+    env = get_env()
+    # expect_error is True because autocomplete exists with 1 status code
+    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
+            expect_error=True)
+    assert '--help' in result.stdout,\
+           "autocomplete function could not complete ``--``"
