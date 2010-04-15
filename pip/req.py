@@ -799,6 +799,13 @@ class RequirementSet(object):
             elif install_needed:
                 req_to_install.source_dir = req_to_install.build_location(self.build_dir, not self.is_download)
 
+            if req_to_install.source_dir is not None and not os.path.isdir(req_to_install.source_dir):
+                raise InstallationError('Could not install requirement %s '
+                                       'because source folder %s does not exist '
+                                       '(perhaps --no-download was used without first running '
+                                       'an equivalent install with --no-install?)'
+                                       % (req_to_install, req_to_install.source_dir))
+
     def install_files(self, finder, force_root_egg_info=False, bundle=False):
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
