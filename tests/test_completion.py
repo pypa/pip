@@ -16,7 +16,7 @@ _pip_completion()
 complete -o default -F _pip_completion pip"""
 
     result = run_pip('completion', '--bash')
-    assert bash_completion in result.stdout, "bash completion is wrong"
+    assert bash_completion in result.stdout, 'bash completion is wrong'
 
 
 
@@ -37,6 +37,17 @@ function _pip_completion {
 compctl -K _pip_completion pip"""
 
     result = run_pip('completion', '--zsh')
-    assert zsh_completion in result.stdout, "zsh completion is wrong"
+    assert zsh_completion in result.stdout, 'zsh completion is wrong'
+
+
+
+def test_completion_for_unknown_shell():
+    """
+    Test getting completion for an unknown shell
+    """
+    reset_env()
+    error_msg = 'error: no such option: --myfooshell'
+    result = run_pip('completion', '--myfooshell', expect_error=True)
+    assert error_msg in result.stderr, 'tests for an unknown shell failed'
 
 
