@@ -13,7 +13,7 @@ import urllib
 import ConfigParser
 from distutils.sysconfig import get_python_version
 from email.FeedParser import FeedParser
-from pip.locations import bin_py, site_packages
+from pip.locations import bin_py
 from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
 from pip.log import logger

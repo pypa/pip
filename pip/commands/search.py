@@ -33,9 +33,7 @@ class SearchCommand(Command):
 
         terminal_width = None
         if sys.stdout.isatty():
-            terminal_size = get_terminal_size()
-            if terminal_size is not None:
-                terminal_width = terminal_size[0]
+            terminal_width = get_terminal_size()[0]
 
         print_results(hits, terminal_width=terminal_width)
 

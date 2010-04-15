@@ -6,7 +6,6 @@ import re
 import threading
 import posixpath
 import pkg_resources
-import operator
 import urllib2
 import urlparse
 import httplib
