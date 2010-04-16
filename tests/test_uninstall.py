@@ -115,7 +115,17 @@ def test_uninstall_from_reqs_file():
         PyLogo<0.4
         """))
     result = run_pip('install', '-r', 'test-req.txt')
+    write_file('test-req.txt', textwrap.dedent("""\
+        # -f, -i, and --extra-index-url should all be ignored by uninstall
+        -f http://www.example.com
+        -i http://www.example.com
+        --extra-index-url http://www.example.com
+        
+        -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
+        # and something else to test out:
+        PyLogo<0.4
+        """))
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    diff = diff_states(result.files_before, result2.files_after, ignore=['build', 'src']).values()
+    diff = diff_states(result.files_before, result2.files_after, ignore=['build', 'src', 'test-req.txt']).values()
     assert diff == [{}, {}, {}], diff
 
