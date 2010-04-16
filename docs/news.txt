@@ -4,6 +4,11 @@ News for pip
 hg tip
 ------
 
+* Nothing yet
+
+0.7
+---
+
 * Fixed uninstallation on Windows
 * Added ``pip search`` command.
 * Tab-complete names of installed distributions for ``pip uninstall``.
