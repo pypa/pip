@@ -1,6 +1,11 @@
 News for pip
 ============
 
+hg tip
+------
+
+* Nothing yet
+
 0.7
 ---
 
