@@ -39,6 +39,8 @@ hg tip
 * Handle missing VCS with an error message. Thanks Alexandre Conrad.
 * Added --no-download option to install; pairs with --no-install to separate
   download and installation into two steps. Thanks Simon Cross.
+* Fix uninstalling from requirements file containing -f, -i, or
+  --extra-index-url.
 
 0.6.3
 -----
