@@ -716,6 +716,7 @@ class RequirementSet(object):
         self.ignore_dependencies = ignore_dependencies
         self.successfully_downloaded = []
         self.successfully_installed = []
+        self.reqs_to_cleanup = []
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -806,7 +807,8 @@ class RequirementSet(object):
                                        'an equivalent install with --no-install?)'
                                        % (req_to_install, req_to_install.source_dir))
 
-    def install_files(self, finder, force_root_egg_info=False, bundle=False):
+    def prepare_files(self, finder, force_root_egg_info=False, bundle=False):
+        """Prepare process. Create temp directories, download and/or unpack files."""
         unnamed = list(self.unnamed_requirements)
         reqs = self.requirements.values()
         while reqs or unnamed:
@@ -835,8 +837,8 @@ class RequirementSet(object):
                 else:
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
-            is_bundle = False
             try:
+                is_bundle = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
                         location = req_to_install.build_location(self.src_dir)
@@ -927,13 +929,31 @@ class RequirementSet(object):
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
                 else:
-                    req_to_install.remove_temporary_source()
+                    self.reqs_to_cleanup.append(req_to_install)
                 if install:
                     self.successfully_downloaded.append(req_to_install)
                     if bundle and (req_to_install.url and req_to_install.url.startswith('file:///')):
                         self.copy_to_builddir(req_to_install)
             finally:
                 logger.indent -= 2
+
+    def cleanup_files(self, bundle=False):
+        """Clean up files, remove builds."""
+        logger.notify('Cleaning up...')
+        logger.indent += 2
+        for req in self.reqs_to_cleanup:
+            req.remove_temporary_source()
+        try:
+            # create_bundle() is responsible for removing build_dir and
+            # src_dir after compression. create_bundle() is ran afterwards.
+            if not bundle:
+                for directory in self.build_dir,:
+                    if not os.path.exists(directory):
+                        continue
+                    logger.info('Removing %s...' % directory)
+                    os.rmdir(directory)
+        finally:
+            logger.indent -= 2
 
     def copy_to_builddir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir

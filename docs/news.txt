@@ -41,6 +41,7 @@ hg tip
   download and installation into two steps. Thanks Simon Cross.
 * Fix uninstalling from requirements file containing -f, -i, or
   --extra-index-url.
+* Leftover build directories are now removed. Thanks Alexandre Conrad.
 
 0.6.3
 -----
