@@ -1,8 +1,8 @@
 News for pip
 ============
 
-hg tip
-------
+0.7
+---
 
 * Fixed uninstallation on Windows
 * Added ``pip search`` command.
