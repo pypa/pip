@@ -172,7 +172,12 @@ class InstallCommand(Command):
                                    requirement_set.successfully_downloaded])
             if downloaded:
                 logger.notify('Successfully downloaded %s' % downloaded)
-        requirement_set.cleanup_files(bundle=self.bundle)
+        elif self.bundle:
+            requirement_set.create_bundle(self.bundle_filename)
+            logger.notify('Created bundle in %s' % self.bundle_filename)
+        # Clean up
+        if not options.no_install:
+            requirement_set.cleanup_files(bundle=self.bundle)
         return requirement_set
 
 InstallCommand()

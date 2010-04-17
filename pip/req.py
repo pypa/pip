@@ -943,17 +943,21 @@ class RequirementSet(object):
         logger.indent += 2
         for req in self.reqs_to_cleanup:
             req.remove_temporary_source()
-        try:
-            # create_bundle() is responsible for removing build_dir and
-            # src_dir after compression. create_bundle() is ran afterwards.
-            if not bundle:
-                for directory in self.build_dir,:
-                    if not os.path.exists(directory):
-                        continue
-                    logger.info('Removing %s...' % directory)
-                    os.rmdir(directory)
-        finally:
-            logger.indent -= 2
+
+        # The build dir can always be removed.
+        remove_dir = [self.build_dir]
+
+        # The source dir of a bundle can always be removed.
+        if bundle:
+            remove_dir.append(self.src_dir)
+
+        for dir in remove_dir:
+            if os.path.exists(dir):
+                logger.info('Removing temporary dir %s...' % dir)
+                ## FIXME: should this use pip.util.rmtree?
+                shutil.rmtree(dir)
+
+        logger.indent -= 2
 
     def copy_to_builddir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
@@ -1295,14 +1299,6 @@ class RequirementSet(object):
 
         zip.writestr('pip-manifest.txt', self.bundle_requirements())
         zip.close()
-        # Unlike installation, this will always delete the build directories
-        logger.info('Removing temporary build dir %s and source dir %s'
-                    % (self.build_dir, self.src_dir))
-        for dir in self.build_dir, self.src_dir:
-            if os.path.exists(dir):
-                ## FIXME: should this use pip.util.rmtree?
-                shutil.rmtree(dir)
-
 
     BUNDLE_HEADER = '''\
 # This is a pip bundle file, that contains many source packages

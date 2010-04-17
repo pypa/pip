@@ -24,12 +24,8 @@ class BundleCommand(InstallCommand):
         options.ignore_installed = True
         logger.notify('Putting temporary build files in %s and source/develop files in %s'
                       % (display_path(options.build_dir), display_path(options.src_dir)))
-        bundle_filename = args[0]
-        args = args[1:]
+        self.bundle_filename = args.pop(0)
         requirement_set = super(BundleCommand, self).run(options, args)
-        # FIXME: here it has to do something
-        requirement_set.create_bundle(bundle_filename)
-        logger.notify('Created bundle in %s' % bundle_filename)
         return requirement_set
 
 BundleCommand()
