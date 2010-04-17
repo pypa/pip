@@ -158,7 +158,7 @@ class InstallCommand(Command):
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
         if not options.no_download:
-            requirement_set.install_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+            requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
         else:
             requirement_set.locate_files()
         if not options.no_install and not self.bundle:
@@ -172,6 +172,7 @@ class InstallCommand(Command):
                                    requirement_set.successfully_downloaded])
             if downloaded:
                 logger.notify('Successfully downloaded %s' % downloaded)
+        requirement_set.cleanup_files(bundle=self.bundle)
         return requirement_set
 
 InstallCommand()

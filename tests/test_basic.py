@@ -1,4 +1,4 @@
-from os.path import abspath, join, dirname, curdir, pardir
+from os.path import abspath, exists, join, dirname, curdir, pardir
 from test_pip import here, reset_env, run_pip, pyversion, lib_py, mkdir
 
 def test_correct_pip_version():
@@ -253,3 +253,14 @@ def test_install_pardir():
     result = run_pip('install', pardir, cwd=run_from, expect_error=False)
     assert (lib_py + 'site-packages/fspkg') in result.files_created, str(result.stdout)
     assert (lib_py + 'site-packages/FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+
+def test_cleanup():
+    """
+    Test clean up of build directory after an install.
+
+    """
+    reset_env()
+    # FIXME: We may want to test more scenarios
+    result = run_pip('install', 'INITools==dev', expect_error=False)
+    build = join(here, "test-scratch", "build")
+    assert not exists(build), "build dir still exists: %s" % build
