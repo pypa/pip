@@ -48,7 +48,14 @@ def reset_env(environ=None):
 
     # put the test-scratch virtualenv's bin dir first on the script path
     env.script_path.insert(0, virtualenv_bin_dir(env.base_path))
-    
+
+    # test that test-scratch virtualenv creation produced sensible venv python
+    result = env.run('python', '-c', 'import sys; print sys.executable')
+    pythonbin = result.stdout.strip()
+    if pythonbin != os.path.join(virtualenv_bin_dir(env.base_path), "python"):
+        raise RuntimeError("Python sys.executable (%r) isn't the "
+                           "test-scratch venv python" % pythonbin)
+
     # make sure we have current setuptools to avoid svn incompatibilities
     env.run('easy_install', 'setuptools==0.6c11')
 
