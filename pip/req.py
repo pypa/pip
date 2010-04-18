@@ -1345,23 +1345,23 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             # No longer used, but previously these were used in
             # requirement files, so we'll ignore.
             pass
-        elif finder and line.startswith('-f') or line.startswith('--find-links'):
+        elif line.startswith('-f') or line.startswith('--find-links'):
             if line.startswith('-f'):
                 line = line[2:].strip()
             else:
                 line = line[len('--find-links'):].strip().lstrip('=')
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
-            finder.find_links.append(line)
+            if finder: finder.find_links.append(line)
         elif line.startswith('-i') or line.startswith('--index-url'):
             if line.startswith('-i'):
                 line = line[2:].strip()
             else:
                 line = line[len('--index-url'):].strip().lstrip('=')
-            finder.index_urls = [line]
+            if finder: finder.index_urls = [line]
         elif line.startswith('--extra-index-url'):
             line = line[len('--extra-index-url'):].strip().lstrip('=')
-            finder.index_urls.append(line)
+            if finder: finder.index_urls.append(line)
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
