@@ -188,6 +188,7 @@ def open_logfile(filename, mode='a'):
     the file to separate past activity from current activity.
     """
     filename = os.path.expanduser(filename)
+    filename = os.path.abspath(filename)
     dirname = os.path.dirname(filename)
     if not os.path.exists(dirname):
         os.makedirs(dirname)

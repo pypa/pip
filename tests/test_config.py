@@ -4,6 +4,8 @@ import textwrap
 from test_pip import here, reset_env, run_pip, clear_environ, write_file
 import os
 
+from pip.basecommand import open_logfile
+
 def test_options_from_env_vars():
     """
     Test if ConfigOptionParser reads env vars (e.g. not using PyPI here)
@@ -76,3 +78,13 @@ def test_config_file_override_stack():
     assert "Getting page http://pypi.appspot.com/INITools" not in result.stdout
     assert "Getting page http://pypi.python.org/simple/INITools" in result.stdout
 
+def test_log_file_no_directory():
+    """
+    Test opening a log file with no directory name.
+    
+    """
+    fp = open_logfile('testpip.log')
+    fp.write('can write')
+    fp.close()
+    assert os.path.exists(fp.name)
+    os.remove(fp.name)
