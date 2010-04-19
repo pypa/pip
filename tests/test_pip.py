@@ -42,12 +42,11 @@ def reset_env(environ=None):
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
     environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
+    # put the test-scratch virtualenv's bin dir first on the script path
+    environ['PATH'] = "%s%s%s" % (virtualenv_bin_dir(base_path), os.pathsep, environ['PATH'])
 
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
-
-    # put the test-scratch virtualenv's bin dir first on the script path
-    env.script_path.insert(0, virtualenv_bin_dir(env.base_path))
 
     # test that test-scratch virtualenv creation produced sensible venv python
     result = env.run('python', '-c', 'import sys; print sys.executable')
