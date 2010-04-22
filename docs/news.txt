@@ -9,6 +9,8 @@ News for pip
 * Temporary files are consistently cleaned up, especially after
   installing bundles, also from Alex Conrad.
 
+* Tests now require at least ScriptTest 1.0.3.
+
 0.7
 ---
 
