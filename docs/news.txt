@@ -1,6 +1,11 @@
 News for pip
 ============
 
+tip
+---
+
+* Fixed opening of logfile with no directory name. Thanks Alexandre Conrad.
+
 0.7
 ---
 

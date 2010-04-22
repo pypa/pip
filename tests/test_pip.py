@@ -42,13 +42,20 @@ def reset_env(environ=None):
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
     environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
+    # put the test-scratch virtualenv's bin dir first on the script path
+    environ['PATH'] = "%s%s%s" % (virtualenv_bin_dir(base_path), os.pathsep, environ['PATH'])
 
-    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
+    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ,
+                              capture_temp=True, assert_no_temp=True)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
 
-    # put the test-scratch virtualenv's bin dir first on the script path
-    env.script_path.insert(0, virtualenv_bin_dir(env.base_path))
-    
+    # test that test-scratch virtualenv creation produced sensible venv python
+    result = env.run('python', '-c', 'import sys; print sys.executable')
+    pythonbin = result.stdout.strip()
+    if pythonbin != os.path.join(virtualenv_bin_dir(env.base_path), "python"):
+        raise RuntimeError("Python sys.executable (%r) isn't the "
+                           "test-scratch venv python" % pythonbin)
+
     # make sure we have current setuptools to avoid svn incompatibilities
     env.run('easy_install', 'setuptools==0.6c11')
 
@@ -100,7 +107,7 @@ def diff_states(start, end, ignore=None):
 
     Ignores mtime and other file attributes; only presence/absence and
     size are considered.
-    
+
     """
     ignore = ignore or []
     start_keys = set([k for k in start.keys()
@@ -118,4 +125,3 @@ def diff_states(start, end, ignore=None):
 if __name__ == '__main__':
     sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
     sys.exit(1)
-
