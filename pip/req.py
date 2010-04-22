@@ -521,49 +521,53 @@ execfile(__file__)
             return
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
-
-        install_args = [sys.executable, '-c',
-                        "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
-                        'install', '--single-version-externally-managed', '--record', record_filename]
-
-        if in_venv():
-            ## FIXME: I'm not sure if this is a reasonable location; probably not
-            ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          'python' + get_python_version())]
-        logger.notify('Running setup.py install for %s' % self.name)
-        logger.indent += 2
         try:
-            call_subprocess(install_args + install_options,
-                cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
+
+            install_args = [sys.executable, '-c',
+                            "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
+                            'install', '--single-version-externally-managed', '--record', record_filename]
+
+            if in_venv():
+                ## FIXME: I'm not sure if this is a reasonable location; probably not
+                ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
+                install_args += ['--install-headers',
+                                 os.path.join(sys.prefix, 'include', 'site',
+                                              'python' + get_python_version())]
+            logger.notify('Running setup.py install for %s' % self.name)
+            logger.indent += 2
+            try:
+                call_subprocess(install_args + install_options,
+                    cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
+            finally:
+                logger.indent -= 2
+            self.install_succeeded = True
+            f = open(record_filename)
+            for line in f:
+                line = line.strip()
+                if line.endswith('.egg-info'):
+                    egg_info_dir = line
+                    break
+            else:
+                logger.warn('Could not find .egg-info directory in install record for %s' % self)
+                ## FIXME: put the record somewhere
+                ## FIXME: should this be an error?
+                return
+            f.close()
+            new_lines = []
+            f = open(record_filename)
+            for line in f:
+                filename = line.strip()
+                if os.path.isdir(filename):
+                    filename += os.path.sep
+                new_lines.append(make_path_relative(filename, egg_info_dir))
+            f.close()
+            f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
+            f.write('\n'.join(new_lines)+'\n')
+            f.close()
         finally:
-            logger.indent -= 2
-        self.install_succeeded = True
-        f = open(record_filename)
-        for line in f:
-            line = line.strip()
-            if line.endswith('.egg-info'):
-                egg_info_dir = line
-                break
-        else:
-            logger.warn('Could not find .egg-info directory in install record for %s' % self)
-            ## FIXME: put the record somewhere
-            return
-        f.close()
-        new_lines = []
-        f = open(record_filename)
-        for line in f:
-            filename = line.strip()
-            if os.path.isdir(filename):
-                filename += os.path.sep
-            new_lines.append(make_path_relative(filename, egg_info_dir))
-        f.close()
-        f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-        f.write('\n'.join(new_lines)+'\n')
-        f.close()
-        os.remove(record_filename)
-        os.rmdir(temp_location)
+            if os.path.exists(record_filename):
+                os.remove(record_filename)
+            os.rmdir(temp_location)
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
@@ -858,7 +862,7 @@ class RequirementSet(object):
                     ##editable in a req, a non deterministic error
                     ##occurs when the script attempts to unpack the
                     ##build directory
-                    
+
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
@@ -978,7 +982,6 @@ class RequirementSet(object):
                 else:
                     vcs_backend.unpack(location)
                 return
-        temp_dir = tempfile.mkdtemp()
         if link.url.lower().startswith('file:'):
             source = url_to_path(link.url)
             content_type = mimetypes.guess_type(source)[0]
@@ -990,6 +993,7 @@ class RequirementSet(object):
             else:
                 self.unpack_file(source, location, content_type, link)
             return
+        temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
         md5_hash = link.md5_hash
         target_url = link.url.split('#', 1)[0]
         target_file = None
@@ -1451,7 +1455,7 @@ class UninstallPathSet(object):
 
         """
         return is_local(path)
-        
+
     def _can_uninstall(self):
         if not dist_is_local(self.dist):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
