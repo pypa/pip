@@ -6,6 +6,9 @@ tip
 
 * Fixed opening of logfile with no directory name. Thanks Alexandre Conrad.
 
+* Temporary files are consistently cleaned up, especially after
+  installing bundles, also from Alex Conrad.
+
 0.7
 ---
 
