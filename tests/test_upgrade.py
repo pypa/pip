@@ -6,7 +6,7 @@ from test_pip import here, reset_env, run_pip, pyversion, lib_py, get_env, diff_
 def test_no_upgrade_unless_requested():
     """
     No upgrade if not specifically requested.
-    
+
     """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
@@ -16,7 +16,7 @@ def test_no_upgrade_unless_requested():
 def test_upgrade_to_specific_version():
     """
     It does upgrade to specific version requested.
-    
+
     """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
@@ -26,7 +26,7 @@ def test_upgrade_to_specific_version():
 def test_upgrade_if_requested():
     """
     And it does upgrade if requested.
-    
+
     """
     reset_env()
     result = run_pip('install', 'INITools==0.1', expect_error=True)
@@ -36,7 +36,7 @@ def test_upgrade_if_requested():
 def test_uninstall_before_upgrade():
     """
     Automatic uninstall-before-upgrade.
-    
+
     """
     reset_env()
     result = run_pip('install', 'INITools==0.2', expect_error=True)
@@ -49,7 +49,7 @@ def test_uninstall_before_upgrade():
 def test_upgrade_from_reqs_file():
     """
     Upgrade from a requirements file.
-    
+
     """
     reset_env()
     write_file('test-req.txt', textwrap.dedent("""\
@@ -71,7 +71,7 @@ def test_uninstall_rollback():
     """
     Test uninstall-rollback (using test package with a setup.py
     crafted to fail on install).
-    
+
     """
     reset_env()
     env = get_env()
@@ -82,5 +82,4 @@ def test_uninstall_rollback():
     assert result2.returncode == 1, str(result2)
     env.run(join(env.base_path, 'bin', 'python'), '-c', "import broken; print broken.VERSION").stdout
     '0.1\n'
-    assert diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt']).values() == [{}, {}, {}]
-
+    assert diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt']).values() == [{}, {}, {}], diff_states(result.files_after, result2.files_after, ignore=['build', 'pip-log.txt'])
