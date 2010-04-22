@@ -45,7 +45,8 @@ def reset_env(environ=None):
     # put the test-scratch virtualenv's bin dir first on the script path
     environ['PATH'] = "%s%s%s" % (virtualenv_bin_dir(base_path), os.pathsep, environ['PATH'])
 
-    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ)
+    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ,
+                              capture_temp=True, assert_no_temp=True)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
 
     # test that test-scratch virtualenv creation produced sensible venv python
@@ -106,7 +107,7 @@ def diff_states(start, end, ignore=None):
 
     Ignores mtime and other file attributes; only presence/absence and
     size are considered.
-    
+
     """
     ignore = ignore or []
     start_keys = set([k for k in start.keys()
@@ -124,4 +125,3 @@ def diff_states(start, end, ignore=None):
 if __name__ == '__main__':
     sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
     sys.exit(1)
-
