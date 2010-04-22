@@ -1,3 +1,6 @@
+Branching (for developing pip)
+==============================
+
 Normally in Mercurial the main branch is called "default." In the pip
 repository, because of how it was imported from Subversion, the main branch
 has historically been "trunk" instead.  This has occasionally caused
@@ -23,7 +26,7 @@ $ hg pull http://bitbucket.org/somebody/pip
 $ hg up trunk  # update to their latest commit, on "trunk"
 $ hg commit -m 'close trunk branch, again'
 $ hg up default # update back to mainline
-$ hg merge trunk 
+$ hg merge trunk
 $ hg commit -m 'merged changes from somebody'
 
 (Yes, it seems like it ought to be possible to merge a branch and close it

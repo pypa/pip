@@ -12,6 +12,7 @@ entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
    news
    requirement-format
    configuration
+   license
 
 .. comment: split here
 
@@ -84,7 +85,7 @@ Uninstall
 ---------
 
 pip is able to uninstall most installed packages with ``pip uninstall
-package-name``. 
+package-name``.
 
 Known exceptions include pure-distutils packages installed with
 ``python setup.py install`` (such packages leave behind no metadata allowing
@@ -106,10 +107,10 @@ When installing software, and Python packages in particular, it's common that
 you get a lot of libraries installed.  You just did ``easy_install MyPackage``
 and you get a dozen packages.  Each of these packages has its own version.
 
-Maybe you ran that installation and it works.  Great!  Will it keep working? 
+Maybe you ran that installation and it works.  Great!  Will it keep working?
 Did you have to provide special options to get it to find everything?  Did you
 have to install a bunch of other optional pieces?  Most of all, will you be able
-to do it again?  Requirements files give you a way to create an *environment*: 
+to do it again?  Requirements files give you a way to create an *environment*:
 a *set* of packages that work together.
 
 If you've ever tried to setup an application on a new system, or with slightly
@@ -189,7 +190,7 @@ Bundles
 Another way to distribute a set of libraries is a bundle format (specific to
 pip).  This format is not stable at this time (there simply hasn't been
 any feedback, nor a great deal of thought).  A bundle file contains all the
-source for your package, and you can have pip install them all together. 
+source for your package, and you can have pip install them all together.
 Once you have the bundle file further network access won't be necessary.  To
 build a bundle file, do::
 
