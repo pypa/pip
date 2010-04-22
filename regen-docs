@@ -9,8 +9,8 @@ fi
 mkdir -p docs/_static docs/_build
 sphinx-build -E -b html docs/ docs/_build || exit 1
 if [ "$CMD" = "publish" ] ; then
-  cd docs/
+  cd docs/_build/
   echo "Uploading files..."
-  scp -r _build/ root@cloudsilverlining.org:/var/lib/silverlining/writable-roots/bbdocs/pip.openplans.org/
+  scp -r * root@cloudsilverlining.org:/var/lib/silverlining/writable-roots/bbdocs/pip.openplans.org/
   ssh root@cloudsilverlining.org 'chown -R www-data:www-data /var/lib/silverlining/writable-roots/bbdocs/'
 fi
