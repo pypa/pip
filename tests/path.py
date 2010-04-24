@@ -31,9 +31,23 @@ class Path(unicode):
     """ '/home/a' // [bc.d, ef.g] -> [/home/a/bc.d, /home/a/ef.g] """
     return [Path(self, path) for path in paths]
 
+
+
+  def __sub__(self, path):
+    """ Makes this path relative to another path. """
+    """ path_obj - '/home/a' """
+    """ path_obj - path_obj2 """
+    return Path(os.path.relpath(self, path))
+
+  def __rsub__(self, path):
+    """ Returns path relative to this path. """
+    """ "/home/a" - path_obj """
+    return Path(os.path.relpath(path, self))
+
+
   def __add__(self, path):
     """ Path('/home/a') + 'bc.d' -> '/home/abc.d' """
-    return Path(unicode(self) + path)
+    return Path(_base(self) + path)
 
   def __radd__(self, path):
     """ '/home/a' + Path('bc.d') -> '/home/abc.d' """

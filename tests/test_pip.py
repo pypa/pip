@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import os, sys, tempfile, shutil, atexit
+import os, sys, tempfile, shutil, glob, atexit
+from path import Path
 
 pyversion = sys.version[:3]
 
@@ -67,6 +68,7 @@ def install_setuptools(env):
 def reset_env(environ = None):
     global env
     env = TestPipEnvironment(environ)
+    
     return env
 
 env = None
