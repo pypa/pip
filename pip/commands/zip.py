@@ -134,12 +134,12 @@ class ZipCommand(Command):
             zip = zipfile.ZipFile(zip_filename)
             to_save = []
             for name in zip.namelist():
-                if name.startswith('%s/' % module_name):
+                if name.startswith(module_name + os.path.sep):
                     content = zip.read(name)
                     dest = os.path.join(package_path, name)
                     if not os.path.exists(os.path.dirname(dest)):
                         os.makedirs(os.path.dirname(dest))
-                    if not content and dest.endswith('/'):
+                    if not content and dest.endswith(os.path.sep):
                         if not os.path.exists(dest):
                             os.makedirs(dest)
                     else:
@@ -263,7 +263,7 @@ class ZipCommand(Command):
             if not os.path.isdir(path) and zipfile.is_zipfile(path):
                 zip = zipfile.ZipFile(path, 'r')
                 try:
-                    zip.read('%s/__init__.py' % package)
+                    zip.read(os.path.join(package,'__init__.py'))
                 except KeyError:
                     pass
                 else:

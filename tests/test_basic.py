@@ -164,7 +164,7 @@ def test_install_editable_from_git():
     assert egg_link.bytes[:-1].strip().endswith(e.env_path/ 'src' / 'django-feedutil'), egg_link.bytes
     assert e.site_packages / 'easy-install.pth' in result.files_updated
     assert e.relative_env_path / 'src' / 'django-feedutil' in result.files_created
-    assert e.relative_env_path / 'src' / 'django-feedutil/.git' in result.files_created
+    assert e.relative_env_path / 'src' / 'django-feedutil' / '.git' in result.files_created
 
 def test_install_editable_from_hg():
     """
@@ -180,7 +180,7 @@ def test_install_editable_from_hg():
     assert egg_link.bytes[:-1].strip().endswith(e.env_path/ 'src' / 'django-registration'), egg_link.bytes
     assert e.site_packages / 'easy-install.pth' in result.files_updated
     assert e.relative_env_path / 'src' / 'django-registration' in result.files_created
-    assert e.relative_env_path / 'src' / 'django-registration/.hg' in result.files_created
+    assert e.relative_env_path / 'src' / 'django-registration'/'.hg' in result.files_created
 
 
 def test_vcs_url_final_slash_normalization():
@@ -206,7 +206,7 @@ def test_install_editable_from_bazaar():
     assert egg_link.bytes[:-1].strip().endswith(e.env_path/ 'src' / 'django-wikiapp'), egg_link.bytes
     assert e.site_packages / 'easy-install.pth' in result.files_updated
     assert e.relative_env_path / 'src' / 'django-wikiapp' in result.files_created
-    assert e.relative_env_path / 'src' / 'django-wikiapp/.bzr' in result.files_created
+    assert e.relative_env_path / 'src' /'django-wikiapp' / '.bzr' in result.files_created
 
 
 def test_vcs_url_urlquote_normalization():

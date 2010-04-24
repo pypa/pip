@@ -1328,7 +1328,7 @@ class RequirementSet(object):
         return ''.join(parts)
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+'/'), (
+        assert name.startswith(prefix+os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
