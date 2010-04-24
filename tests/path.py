@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 # Author: Aziz Köksal
-import os, shutil
+import os, shutil, sys
 
-class Path(unicode):
+_base = os.path.supports_unicode_filenames and unicode or str
+
+class Path(_base):
   """ Models a path in an object oriented way. """
   sep = os.sep # File system path separator: '/' or '\'.
   pathsep = os.pathsep # Separator in the PATH environment variable.
 
   def __new__(cls, *paths):
-    return unicode.__new__(cls, os.path.join(*paths) if len(paths) else '')
+    return _base.__new__(cls, os.path.join(*paths) if len(paths) else '')
 
   def __div__(self, path):
     """ Joins this path with another path. """
@@ -51,10 +53,13 @@ class Path(unicode):
 
   def __radd__(self, path):
     """ '/home/a' + Path('bc.d') -> '/home/abc.d' """
-    return Path(path + unicode(self))
+    return Path(path + _base(self))
 
   def __repr__(self):
-    return u"Path(%s)" % unicode.__repr__(self)
+    return u"Path(%s)" % _base.__repr__(self)
+
+  def __hash__(self):
+    return _base.__hash__(self)
 
   @property
   def name(self):
@@ -90,6 +95,11 @@ class Path(unicode):
   def normpath(self):
     """ '/home/x/.././a//bc.d' -> '/home/a/bc.d' """
     return Path(os.path.normpath(self))
+
+  @property
+  def normcase(self):
+    """ Deals with case-insensitive filesystems """
+    return Path(os.path.normcase(self))
 
   @property
   def folder(self):
@@ -175,4 +185,4 @@ class Path(unicode):
 
   def glob(self, pattern):
     from glob import glob
-    return map(Path, glob(unicode(self/pattern)))
+    return map(Path, glob(_base(self/pattern)))
