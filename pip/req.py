@@ -1522,6 +1522,8 @@ class UninstallPathSet(object):
                     new_path = os.path.join(self.save_dir, new_path)
                     logger.info('Removing file or directory %s' % path)
                     self._moved_paths.append(path)
+                    if not os.path.exists(os.path.dirname(new_path)):
+                        os.makedirs(os.path.dirname(new_path))
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
