@@ -3,22 +3,24 @@ import os, sys
 
 pyversion = sys.version[:3]
 lib_py = 'lib/python%s/' % pyversion
+
+# the directory containing all the tests
 here = os.path.dirname(os.path.abspath(__file__))
+
+# the root of this pip source distribution
+src = os.path.dirname(here) 
+
 base_path = os.path.join(here, 'test-scratch')
 download_cache = os.path.join(here, 'test-cache')
 if not os.path.exists(download_cache):
     os.makedirs(download_cache)
 
 # Tweak the path so we can find scripttest
-sys.path = [os.path.join(os.path.dirname(here), 'scripttest')] + sys.path
+sys.path = [src, os.path.join(src, 'scripttest')] + sys.path
 from scripttest import TestFileEnvironment
 
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
-
-# put this checkout of pip first on sys.path
-# necessary to support unit tests that don't use ScriptTest
-sys.path.insert(0, os.path.dirname(here))
 
 try:
     any
@@ -94,7 +96,7 @@ def reset_env(environ=None):
     env.run('pip', 'uninstall', '-y', 'pip')
 
     # Install this version instead
-    env.run('python', 'setup.py', 'install', cwd=os.path.dirname(here))
+    env.run('python', 'setup.py', 'install', cwd=src)
 
 def run_pip(*args, **kw):
     args = ('pip',) + args
