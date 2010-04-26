@@ -55,48 +55,57 @@ def install_setuptools(env):
         return env.run(os.path.join(tempdir, 'easy_install'), version)
     finally:
         shutil.rmtree(tempdir)
-            
-    
-env = None
-def reset_env(environ=None):
+
+def reset_env(environ = None):
     global env
-    if not environ:
-        environ = os.environ.copy()
-        environ = clear_environ(environ)
-        environ['PIP_DOWNLOAD_CACHE'] = download_cache
-    environ['PIP_NO_INPUT'] = '1'
-    environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
+    env = TestPipEnvironment(environ)
+    return env
 
-    env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ,
+env = None
+            
+class TestPipEnvironment(TestFileEnvironment):
+    
+    def __init__(self, environ=None):
+        global env
+        env = self
+        
+        if not environ:
+            environ = os.environ.copy()
+            environ = clear_environ(environ)
+            environ['PIP_DOWNLOAD_CACHE'] = download_cache
+        environ['PIP_NO_INPUT'] = '1'
+        environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
+
+        super(TestPipEnvironment,self).__init__(
+            base_path, ignore_hidden=False, environ=environ,
                               capture_temp=True, assert_no_temp=True, split_cmd=False)
-    env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
+        env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
 
+        # Figure out where the virtualenv is putting things
+        where = env.run(sys.executable, '-c', 
+                        'import virtualenv;'
+                        'virtualenv.logger = virtualenv.Logger([]);'
+                        'print repr(virtualenv.path_locations(%r))'%env.base_path)
+        env.home_dir, env.lib_dir, env.inc_dir, env.bin_dir = eval(where.stdout.strip())
 
-    # Figure out where the virtualenv is putting things
-    where = env.run(sys.executable, '-c', 
-                    'import virtualenv;'
-                    'virtualenv.logger = virtualenv.Logger([]);'
-                    'print repr(virtualenv.path_locations(%r))'%env.base_path)
-    env.home_dir, env.lib_dir, env.inc_dir, env.bin_dir = eval(where.stdout.strip())
+        # put the test-scratch virtualenv's bin dir first on the script path
+        env.environ['PATH'] = os.path.pathsep.join( (env.bin_dir, env.environ['PATH']) )
 
-    # put the test-scratch virtualenv's bin dir first on the script path
-    env.environ['PATH'] = os.path.pathsep.join( (env.bin_dir, env.environ['PATH']) )
+        # test that test-scratch virtualenv creation produced sensible venv python
+        result = env.run('python', '-c', 'import sys; print sys.executable')
+        pythonbin = result.stdout.strip()
+        if pythonbin != os.path.join(env.bin_dir, "python"):
+            raise RuntimeError("Python sys.executable (%r) isn't the "
+                               "test-scratch venv python" % pythonbin)
 
-    # test that test-scratch virtualenv creation produced sensible venv python
-    result = env.run('python', '-c', 'import sys; print sys.executable')
-    pythonbin = result.stdout.strip()
-    if pythonbin != os.path.join(env.bin_dir, "python"):
-        raise RuntimeError("Python sys.executable (%r) isn't the "
-                           "test-scratch venv python" % pythonbin)
+        # make sure we have current setuptools to avoid svn incompatibilities
+        install_setuptools(env)
 
-    # make sure we have current setuptools to avoid svn incompatibilities
-    install_setuptools(env)
+        # Uninstall whatever version of pip came with the virtualenv
+        env.run('pip', 'uninstall', '-y', 'pip')
 
-    # Uninstall whatever version of pip came with the virtualenv
-    env.run('pip', 'uninstall', '-y', 'pip')
-
-    # Install this version instead
-    env.run('python', 'setup.py', 'install', cwd=src)
+        # Install this version instead
+        env.run('python', 'setup.py', 'install', cwd=src)
 
 def run_pip(*args, **kw):
     args = ('pip',) + args
