@@ -35,12 +35,6 @@ def clear_environ(environ):
     return dict(((k, v) for k, v in environ.iteritems()
                 if not k.lower().startswith('pip_')))
 
-def virtualenv_bin_dir(path):
-    if sys.platform == 'win32':
-        return os.path.join(path, 'Scripts')
-    else:
-        return os.path.join(path, 'bin')
-
 def install_setuptools(env):
     easy_install = os.path.join(env.bin_dir, 'easy_install')
     version = 'setuptools==0.6c11'
