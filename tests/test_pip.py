@@ -64,17 +64,26 @@ def reset_env(environ=None):
         environ['PIP_DOWNLOAD_CACHE'] = download_cache
     environ['PIP_NO_INPUT'] = '1'
     environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
-    # put the test-scratch virtualenv's bin dir first on the script path
-    environ['PATH'] = "%s%s%s" % (virtualenv_bin_dir(base_path), os.pathsep, environ['PATH'])
 
     env = TestFileEnvironment(base_path, ignore_hidden=False, environ=environ,
                               capture_temp=True, assert_no_temp=True, split_cmd=False)
     env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
 
+
+    # Figure out where the virtualenv is putting things
+    where = env.run(sys.executable, '-c', 
+                    'import virtualenv;'
+                    'virtualenv.logger = virtualenv.Logger([]);'
+                    'print repr(virtualenv.path_locations(%r))'%env.base_path)
+    env.home_dir, env.lib_dir, env.inc_dir, env.bin_dir = eval(where.stdout.strip())
+
+    # put the test-scratch virtualenv's bin dir first on the script path
+    env.environ['PATH'] = os.path.pathsep.join( (env.bin_dir, env.environ['PATH']) )
+
     # test that test-scratch virtualenv creation produced sensible venv python
     result = env.run('python', '-c', 'import sys; print sys.executable')
     pythonbin = result.stdout.strip()
-    if pythonbin != os.path.join(virtualenv_bin_dir(env.base_path), "python"):
+    if pythonbin != os.path.join(env.bin_dir, "python"):
         raise RuntimeError("Python sys.executable (%r) isn't the "
                            "test-scratch venv python" % pythonbin)
 
