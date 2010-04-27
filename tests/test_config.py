@@ -4,8 +4,6 @@ import textwrap
 from test_pip import here, reset_env, run_pip, clear_environ, write_file
 import os
 
-from pip.basecommand import open_logfile
-
 def test_options_from_env_vars():
     """
     Test if ConfigOptionParser reads env vars (e.g. not using PyPI here)
@@ -83,6 +81,7 @@ def test_log_file_no_directory():
     Test opening a log file with no directory name.
     
     """
+    from pip.basecommand import open_logfile
     fp = open_logfile('testpip.log')
     fp.write('can write')
     fp.close()

@@ -14,6 +14,10 @@ from scripttest import TestFileEnvironment
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
+# put this checkout of pip first on sys.path
+# necessary to support unit tests that don't use ScriptTest
+sys.path.insert(0, os.path.dirname(here))
+
 try:
     any
 except NameError:
