@@ -1,23 +1,38 @@
 #!/usr/bin/env python
-import os, sys
+import os, sys, tempfile, shutil, atexit
 
 pyversion = sys.version[:3]
-lib_py = 'lib/python%s/' % pyversion
 
 # the directory containing all the tests
 here = os.path.dirname(os.path.abspath(__file__))
 
 # the root of this pip source distribution
 src = os.path.dirname(here) 
+download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
 
-base_path = os.path.join(here, 'test-scratch')
-download_cache = os.path.join(here, 'test-cache')
-if not os.path.exists(download_cache):
-    os.makedirs(download_cache)
+def demand_dirs(path):
+    if not os.path.exists(path): 
+        os.makedirs(path)
+    
+demand_dirs(download_cache)
 
-# Tweak the path so we can find scripttest
+# Tweak the path so we can find up-to-date pip sources
+# (http://bitbucket.org/ianb/pip/issue/98) and scripttest (because my
+# split_cmd patch hasn't been accepted/released yet).
 sys.path = [src, os.path.join(src, 'scripttest')] + sys.path
 from scripttest import TestFileEnvironment
+
+def create_virtualenv(where):
+    save_argv = sys.argv
+    
+    try:
+        import virtualenv
+        sys.argv = ['virtualenv', '--quiet', '--no-site-packages', where]
+        virtualenv.main()
+    finally: 
+        sys.argv = save_argv
+
+    return virtualenv.path_locations(where)
 
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
@@ -41,11 +56,10 @@ def install_setuptools(env):
     if sys.platform != 'win32':
         return env.run(easy_install, version)
     
-    import tempfile, shutil
     tempdir = tempfile.mkdtemp()
     try:
-        shutil.copy2(easy_install+'.exe', tempdir)
-        shutil.copy2(easy_install+'-script.py', tempdir)
+        for f in glob.glob(easy_install+'*'):
+            shutil.copy2(f, tempdir)
         return env.run(os.path.join(tempdir, 'easy_install'), version)
     finally:
         shutil.rmtree(tempdir)
@@ -56,66 +70,104 @@ def reset_env(environ = None):
     return env
 
 env = None
-            
+
+#
+# This cleanup routine prevents the __del__ method that cleans up the
+# tree of the last TestPipEnvironment from firing after shutil has
+# already been unloaded.
+#
+def _cleanup():
+    global env
+    del env
+    shutil.rmtree(download_cache, ignore_errors=True)
+
+atexit.register(_cleanup)
+
 class TestPipEnvironment(TestFileEnvironment):
     
     def __init__(self, environ=None):
-        global env
-        env = self
         
+        self.root_path = Path(tempfile.mkdtemp('-piptest'))
+
+        # We will set up a virtual environment at root_path.  
+        self.scratch_path = self.root_path / 'scratch'
+
+        # where we'll create the virtualenv for testing
+        self.relative_env_path = Path('env')
+        self.env_path = self.root_path / self.relative_env_path
+
         if not environ:
             environ = os.environ.copy()
             environ = clear_environ(environ)
-            environ['PIP_DOWNLOAD_CACHE'] = download_cache
+            environ['PIP_DOWNLOAD_CACHE'] = str(download_cache)
+
         environ['PIP_NO_INPUT'] = '1'
-        environ['PIP_LOG_FILE'] = os.path.join(base_path, 'pip-log.txt')
+        environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
 
         super(TestPipEnvironment,self).__init__(
-            base_path, ignore_hidden=False, environ=environ,
-                              capture_temp=True, assert_no_temp=True, split_cmd=False)
-        env.run(sys.executable, '-m', 'virtualenv', '--no-site-packages', env.base_path)
+            self.root_path, ignore_hidden=False, 
+            environ=environ, split_cmd=False, start_clear=False,
+            cwd=self.scratch_path, capture_temp=True, assert_no_temp=True
+            )
 
-        # Figure out where the virtualenv is putting things
-        where = env.run(sys.executable, '-c', 
-                        'import virtualenv;'
-                        'virtualenv.logger = virtualenv.Logger([]);'
-                        'print repr(virtualenv.path_locations(%r))'%env.base_path)
-        env.home_dir, env.lib_dir, env.inc_dir, env.bin_dir = eval(where.stdout.strip())
+        demand_dirs(self.env_path)
+        demand_dirs(self.scratch_path)
 
-        # put the test-scratch virtualenv's bin dir first on the script path
-        env.environ['PATH'] = os.path.pathsep.join( (env.bin_dir, env.environ['PATH']) )
+        # Create a virtualenv and remember where it's putting things.
+        self.home_dir, self.lib_dir, self.inc_dir, self.bin_dir = tuple(Path(x) for x in create_virtualenv(self.env_path))
+
+        assert self.lib_dir.startswith(self.root_path)
+        self.site_packages = Path(self.lib_dir[len(self.root_path):].lstrip(Path.sep)) / 'site-packages'
+
+        # put the test-scratch virtualenv's bin dir first on the PATH
+        self.environ['PATH'] = os.path.pathsep.join( (self.bin_dir, env.environ['PATH']) )
 
         # test that test-scratch virtualenv creation produced sensible venv python
-        result = env.run('python', '-c', 'import sys; print sys.executable')
+        result = self.run('python', '-c', 'import sys; print sys.executable')
         pythonbin = result.stdout.strip()
-        if pythonbin != os.path.join(env.bin_dir, "python"):
+        if pythonbin != os.path.join(self.bin_dir, "python"):
             raise RuntimeError("Python sys.executable (%r) isn't the "
                                "test-scratch venv python" % pythonbin)
 
         # make sure we have current setuptools to avoid svn incompatibilities
-        install_setuptools(env)
+        install_setuptools(self)
 
-        # Uninstall whatever version of pip came with the virtualenv
-        env.run('pip', 'uninstall', '-y', 'pip')
+        # Uninstall whatever version of pip came with the virtualenv.
+        # Earlier versions of pip were incapable of
+        # self-uninstallation on Windows, so we use the one we're testing.
+        self.run('python', '-c', 
+                 'import sys;sys.path.insert(0, %r);import pip;sys.exit(pip.main());' % os.path.dirname(here), 
+                 'uninstall', '-y', 'pip')
 
         # Install this version instead
-        env.run('python', 'setup.py', 'install', cwd=src)
+        self.run('python', 'setup.py', 'install', cwd=src)
+
+    def __del__(self):
+        shutil.rmtree(self.root_path, ignore_errors=True)
 
 def run_pip(*args, **kw):
-    args = ('pip',) + args
-    #print >> sys.__stdout__, 'running', ' '.join(args)
-    result = env.run(*args, **kw)
-    return result
+    assert not 'run_from' in kw, '**** Use "cwd" instead of "run_from"!'
+    return env.run('pip', cwd=run_from, *args, **kw)
 
-def write_file(filename, text):
-    f = open(os.path.join(base_path, filename), 'w')
+def write_file(filename, text, dest=None):
+    """Write a file in the dest (default=env.scratch_path)
+    
+    """
+    env = get_env()
+    if dest:
+        complete_path = dest/ filename
+    else:
+        complete_path = env.scratch_path/ filename
+    f = open(complete_path, 'w')
     f.write(text)
     f.close()
 
 def mkdir(dirname):
-    os.mkdir(os.path.join(base_path, dirname))
+    os.mkdir(os.path.join(get_env().scratch_path, dirname))
 
 def get_env():
+    if env is None:
+        reset_env()
     return env
 
 # FIXME ScriptTest does something similar, but only within a single
