@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os, sys, tempfile, shutil, glob, atexit
-from path import Path
+from path import *
 
 pyversion = sys.version[:3]
 
@@ -122,14 +122,16 @@ class TestPipEnvironment(TestFileEnvironment):
         self.site_packages = Path(self.lib_dir[len(self.root_path):].lstrip(Path.sep)) / 'site-packages'
 
         # put the test-scratch virtualenv's bin dir first on the PATH
-        self.environ['PATH'] = os.path.pathsep.join( (self.bin_dir, env.environ['PATH']) )
+        self.environ['PATH'] = os.path.pathsep.join( (self.bin_dir, self.environ['PATH']) )
 
         # test that test-scratch virtualenv creation produced sensible venv python
         result = self.run('python', '-c', 'import sys; print sys.executable')
         pythonbin = result.stdout.strip()
-        if pythonbin != os.path.join(self.bin_dir, "python"):
-            raise RuntimeError("Python sys.executable (%r) isn't the "
-                               "test-scratch venv python" % pythonbin)
+
+        if Path(pythonbin).noext != self.bin_dir/'python':
+            raise RuntimeError(
+                "Oops! 'python' in our test environment runs %r" 
+                " rather than expected %r" % (pythonbin, self.bin_dir/'python'))
 
         # make sure we have current setuptools to avoid svn incompatibilities
         install_setuptools(self)
@@ -148,8 +150,10 @@ class TestPipEnvironment(TestFileEnvironment):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
 def run_pip(*args, **kw):
-    assert not 'run_from' in kw, '**** Use "cwd" instead of "run_from"!'
-    return env.run('pip', cwd=run_from, *args, **kw)
+    # assert not 'run_from' in kw, '**** Use "cwd" instead of "run_from"!'
+    cwd = kw.get('run_from', get_env().cwd)
+    kw.pop('run_from', None)
+    return env.run('pip', cwd=cwd, *args, **kw)
 
 def write_file(filename, text, dest=None):
     """Write a file in the dest (default=env.scratch_path)

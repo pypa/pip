@@ -186,3 +186,5 @@ class Path(_base):
   def glob(self, pattern):
     from glob import glob
     return map(Path, glob(_base(self/pattern)))
+
+curdir = Path(os.path.curdir)
