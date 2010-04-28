@@ -62,7 +62,7 @@ def test_uninstall_easy_installed_console_scripts():
     env = reset_env()
     result = env.run('easy_install', 'virtualenv')
     assert (env.bin_dir/'virtualenv') in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
+    result2 = run_pip('uninstall', 'virtualenv', '-y')
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
 
 def test_uninstall_editable_from_svn():
@@ -71,9 +71,9 @@ def test_uninstall_editable_from_svn():
     
     """
     env = reset_env()
-    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev', expect_error=True)
-    egg_link = result.files_created[env.site_packages/ 'INITools.egg-link']
-    result2 = run_pip('uninstall', '-y', 'initools', expect_error=True)
+    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev')
+    result.assert_installed('INITools')
+    result2 = run_pip('uninstall', '-y', 'initools')
     assert (env.relative_env_path/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src'/'initools', env.relative_env_path/'build']).values() == [{}, {}, {}]
 

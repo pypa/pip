@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, tempfile, shutil, glob, atexit
+import os, sys, tempfile, shutil, glob, atexit, textwrap
 from path import *
 
 pyversion = sys.version[:3]
@@ -73,6 +73,15 @@ def reset_env(environ = None):
 
 env = None
 
+class TestFailure(AssertionError):
+    """
+    
+    An "assertion" failed during testing.
+
+    """
+    pass
+
+
 #
 # This cleanup routine prevents the __del__ method that cleans up the
 # tree of the last TestPipEnvironment from firing after shutil has
@@ -84,6 +93,63 @@ def _cleanup():
     shutil.rmtree(download_cache, ignore_errors=True)
 
 atexit.register(_cleanup)
+
+class TestPipResult(object):
+
+    def __init__(self, impl):
+        self._impl = impl
+
+    def __getattr__(self, attr):
+        return getattr(self._impl,attr)
+        
+    def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
+        e = self.test_env
+
+        pkg_dir = e.relative_env_path/ 'src'/ pkg_name.lower()
+
+        egg_link_path = e.site_packages / pkg_name + '.egg-link'
+        if without_egg_link:
+            if egg_link_path in self.files_created:
+                raise TestFailure, 'unexpected egg link file created: %r' % egg_link_path
+        else:
+            egg_link_file = self.files_created[egg_link_path]
+
+            if not (# FIXME: I don't understand why there's a trailing . here
+                    egg_link_file.bytes.endswith('.')
+                and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
+                raise TestFailure, textwrap.dedent(u'''\
+                Incorrect egg_link file %r
+                Expected ending: %r
+                ------- Actual contents -------
+                %s
+                -------------------------------''' % (
+                        egg_link_file, 
+                        pkg_dir + u'\n.',
+                        egg_link_file.bytes))
+
+        pth_file = Path.string(e.site_packages / 'easy-install.pth')
+
+        if (pth_file in self.files_updated) == without_egg_link:
+            raise TestFailure, '%r unexpectedly %supdated by install' % (
+                pth_file, ('' if without_egg_link else 'not '))
+
+        if (pkg_dir in self.files_created) == (curdir in without_files):
+            raise TestFailure, textwrap.dedent('''\
+            expected package directory %r %sto be created
+            actually created:
+            %s
+            ''') % (
+                Path.string(pkg_dir), 
+                ('not ' if curdir in without_files else ''), 
+                sorted(self.files_created.keys()))
+
+        for f in with_files:
+            if not (pkg_dir/f).normpath in self.files_created:
+                raise TestFailure, 'Package directory %r missing expected content %f' % (pkg_dir,f)
+
+        for f in without_files:
+            if (pkg_dir/f).normpath in self.files_created:
+                raise TestFailure, 'Package directory %r has unexpected content %f' % (pkg_dir,f)
 
 class TestPipEnvironment(TestFileEnvironment):
     
@@ -146,14 +212,19 @@ class TestPipEnvironment(TestFileEnvironment):
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src)
 
+    def run(self, *args, **kw):
+        cwd = kw.pop('cwd', None)
+        run_from = kw.pop('run_from',None)
+        assert not cwd or not run_from, "Don't use run_from; it's going away"
+        cwd = Path.string(cwd or run_from or self.cwd)
+        assert not isinstance(cwd,Path)
+        return TestPipResult( super(TestPipEnvironment,self).run(cwd=cwd,*args,**kw) )
+
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
 def run_pip(*args, **kw):
-    # assert not 'run_from' in kw, '**** Use "cwd" instead of "run_from"!'
-    cwd = kw.get('run_from', get_env().cwd)
-    kw.pop('run_from', None)
-    return env.run('pip', cwd=cwd, *args, **kw)
+    return env.run('pip', *args, **kw)
 
 def write_file(filename, text, dest=None):
     """Write a file in the dest (default=env.scratch_path)

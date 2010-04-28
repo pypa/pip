@@ -2,7 +2,7 @@
 import zipfile
 import textwrap
 from os.path import abspath, exists, join
-from test_pip import base_path, here, reset_env, run_pip, write_file
+from test_pip import here, reset_env, run_pip, write_file
 
 
 def test_cleanup_after_install_from_pypi():
@@ -10,10 +10,10 @@ def test_cleanup_after_install_from_pypi():
     Test clean up after installing a package from PyPI.
     
     """
-    reset_env()
+    env = reset_env()
     result = run_pip('install', 'INITools==0.2', expect_error=True)
-    build = join(base_path, "build")
-    src = join(base_path, "src")
+    build = env.scratch_path/"build"
+    src = env.scratch_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
     assert not exists(src), "unexpected src/ dir exists: %s" % src
 
