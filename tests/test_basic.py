@@ -113,15 +113,15 @@ def test_no_install_followed_by_no_download():
     env = reset_env()
 
     result = run_pip('install', 'INITools==0.2', '--no-install', expect_error=True)
-    assert (lib_py + 'site-packages/INITools-0.2-py%s.egg-info' % pyversion) not in result.files_created, str(result)
-    assert (env.site-packages/'initools') not in result.files_created, sorted(result.files_created.keys())
-    build_dir = Path('scratch')/'build'/'INITools'
-    assert build_dir in result.files_created
+    assert (env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion) not in result.files_created, str(result)
+    assert (env.site_packages/'initools') not in result.files_created, sorted(result.files_created.keys())
+    build_dir = Path('env')/'build'/'INITools'
+    assert build_dir in result.files_created, result.files_created
     assert build_dir/'INITools.egg-info' in result.files_created
 
     result = run_pip('install', 'INITools==0.2', '--no-download',  expect_error=True)
-    assert (env.site-packages/'INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, str(result)
-    assert (env.site-packages/'initools') in result.files_created, sorted(result.files_created.keys())
+    assert (env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (env.site_packages/'initools') in result.files_created, sorted(result.files_created.keys())
     assert build_dir not in result.files_created
     assert build_dir/'INITools.egg-info' not in result.files_created
 
@@ -198,8 +198,8 @@ def test_install_from_local_directory():
     env = reset_env()
     to_install = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', to_install, expect_error=False)
-    assert (env.site-packages/'fspkg') in result.files_created, str(result.stdout)
-    assert (env.site-packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
+    assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
 
 def test_install_from_local_directory_with_no_setup_py():
     """
@@ -217,19 +217,19 @@ def test_install_curdir():
     Test installing current directory ('.').
 
     """
-    reset_env()
+    env=reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', curdir, cwd=run_from, expect_error=False)
-    assert (env.site-packages/'fspkg') in result.files_created, str(result.stdout)
-    assert (env.site-packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
+    assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
 
 def test_install_pardir():
     """
     Test installing parent directory ('..').
 
     """
-    reset_env()
+    env=reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg', 'fspkg'))
     result = run_pip('install', pardir, cwd=run_from, expect_error=False)
-    assert (env.site-packages/'fspkg') in result.files_created, str(result.stdout)
-    assert (env.site-packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
+    assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)

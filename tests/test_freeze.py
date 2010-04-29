@@ -24,7 +24,7 @@ def test_freeze():
         # and something else to test out:
         simplejson<=1.7.4
         """))
-    result = run_pip('install', '-r', env.base_path/ 'initools-req.txt')
+    result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze
@@ -113,7 +113,7 @@ def test_freeze_mercurial_clone():
     checker = OutputChecker()
     result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=os.path.join(env.base_path, 'django-dbtemplates'))
+            cwd=env.scratch_path/'django-dbtemplates')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
@@ -141,7 +141,7 @@ def test_freeze_bazaar_clone():
     checker = OutputChecker()
     result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
     result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
-            cwd=os.path.join(env.base_path, 'django-wikiapp'))
+            cwd=env.scratch_path/'django-wikiapp')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze

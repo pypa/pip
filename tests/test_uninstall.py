@@ -50,7 +50,7 @@ def test_uninstall_console_scripts():
     """
     env = reset_env()
     result = run_pip('install', 'virtualenv', expect_error=True)
-    assert (env.bin_dir/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert (env.relative_env_path/'bin'/'virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
 
