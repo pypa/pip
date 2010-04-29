@@ -1,16 +1,6 @@
 import sys
-force_setuptools = False
-for command in ('upload', 'develop', 'egg_info',):
-    if command in sys.argv:
-        force_setuptools = True
-if sys.platform == 'win32':
-    force_setuptools = True
-if force_setuptools:
-    from setuptools import setup
-else:
-    from distutils.core import setup
+from setuptools import setup
 import os
-
 
 version = "0.7.1"
 
