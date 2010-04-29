@@ -14,11 +14,6 @@ of pip with ``easy_install pip==dev``.
 """
 long_description = long_description + open(index_filename).read().split('split here', 1)[1]
 
-if sys.platform == 'win32':
-    kw = dict(entry_points=dict(console_scripts=['pip=pip:main']))
-else:
-    kw = dict(scripts=['scripts/pip'])
-
 setup(name='pip',
       version=version,
       description="pip installs packages.  Python packages.  An easy_install replacement",
@@ -36,4 +31,5 @@ setup(name='pip',
       url='http://pip.openplans.org',
       license='MIT',
       packages=['pip', 'pip.commands', 'pip.vcs'],
-      **kw)
+      entry_points=dict(console_scripts=['pip=pip:main'])
+      )
