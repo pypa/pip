@@ -3,6 +3,7 @@ import textwrap
 from os.path import join
 from tempfile import mkdtemp
 from test_pip import here, reset_env, run_pip, get_env, diff_states, write_file
+from path import Path
 
 #site_pkg = join(lib_py, 'site-packages')
 #easy_install_pth = join(site_pkg, 'easy-install.pth')
@@ -61,7 +62,7 @@ def test_uninstall_easy_installed_console_scripts():
     """
     env = reset_env()
     result = env.run('easy_install', 'virtualenv')
-    assert (env.bin_dir/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert (env.relative_env_path/'bin'/'virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y')
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
 
@@ -75,7 +76,7 @@ def test_uninstall_editable_from_svn():
     result.assert_installed('INITools')
     result2 = run_pip('uninstall', '-y', 'initools')
     assert (env.relative_env_path/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src'/'initools', env.relative_env_path/'build']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src', env.relative_env_path/'build']).values() == [{}, {}, {}]
 
     
 def test_uninstall_editable_with_source_outside_venv():
@@ -115,4 +116,4 @@ def test_uninstall_from_reqs_file():
         PyLogo<0.4
         """))
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', env.relative_env_path/'src'/'initools']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', env.relative_env_path/'src', Path('scratch')/'test-req.txt']).values() == [{}, {}, {}]
