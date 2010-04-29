@@ -101,7 +101,11 @@ class TestPipResult(object):
 
     def __getattr__(self, attr):
         return getattr(self._impl,attr)
-        
+
+    # Python doesn't automatically forward __str__ through __getattr__
+    def __str__(self):
+        return str(self._impl)
+
     def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
         e = self.test_env
 
