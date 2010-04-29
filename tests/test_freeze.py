@@ -37,7 +37,7 @@ def test_freeze():
     # Now lets try it with an svn checkout::
     result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.base_path/ 'initools-trunk')
+            cwd=env.scratch_path/ 'initools-trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
