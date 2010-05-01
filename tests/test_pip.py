@@ -102,10 +102,6 @@ class TestPipResult(object):
     def __getattr__(self, attr):
         return getattr(self._impl,attr)
 
-    # Python doesn't automatically forward __str__ through __getattr__
-    def __str__(self):
-        return str(self._impl)
-
     if sys.platform == 'win32':
         @property
         def stdout(self):
@@ -115,6 +111,13 @@ class TestPipResult(object):
         def stderr(self):
             return self._impl.stderr.replace('\r\n', '\n')
             
+        def __str__(self):
+            return str(self._impl).replace('\r\n','\n')
+    else:
+        # Python doesn't automatically forward __str__ through __getattr__
+        def __str__(self):
+            return str(self._impl)
+
     def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
         e = self.test_env
 
