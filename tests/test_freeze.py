@@ -32,7 +32,7 @@ def test_freeze():
         INITools==0.2
         simplejson==1.7.4...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    assert checker.check_output(expected, str(result), ELLIPSIS), [expected,str(result)]
 
     # Now lets try it with an svn checkout::
     result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')

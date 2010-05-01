@@ -106,6 +106,15 @@ class TestPipResult(object):
     def __str__(self):
         return str(self._impl)
 
+    if sys.platform == 'win32':
+        @property
+        def stdout(self):
+            return self._impl.stdout.replace('\r\n', '\n')
+
+        @property
+        def stderr(self):
+            return self._impl.stderr.replace('\r\n', '\n')
+            
     def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
         e = self.test_env
 
