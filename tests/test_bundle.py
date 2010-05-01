@@ -4,6 +4,7 @@ import textwrap
 from os.path import abspath, join, dirname, pardir
 from test_pip import here, reset_env, run_pip, write_file 
 from path import Path
+from pip.util import path_to_url2
 
 def test_create_bundle():
     """
@@ -13,7 +14,7 @@ def test_create_bundle():
 
     """
     env = reset_env()
-    fspkg = 'file://%s/FSPkg' % join(here, 'packages')
+    fspkg = path_to_url2(Path(here)/'packages'/'FSPkg')
     dummy = run_pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s

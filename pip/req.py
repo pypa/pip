@@ -958,8 +958,7 @@ class RequirementSet(object):
         for dir in remove_dir:
             if os.path.exists(dir):
                 logger.info('Removing temporary dir %s...' % dir)
-                ## FIXME: should this use pip.util.rmtree?
-                shutil.rmtree(dir)
+                rmtree(dir)
 
         logger.indent -= 2
 
