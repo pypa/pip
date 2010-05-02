@@ -1,7 +1,7 @@
 
 import os
 import textwrap
-from test_pip import reset_env, run_pip, write_file
+from test_pip import reset_env, run_pip, write_file, pyversion
 
 def test_requirements_file():
     """
@@ -15,11 +15,10 @@ def test_requirements_file():
         simplejson<=1.7.4
         """))
     result = run_pip('install', '-r', env.scratch_path / 'initools-req.txt')
-    assert len(result.wildcard_matches('env/lib/python*/site-packages/INITools-0.2-py*.egg-info')) == 1
-    assert len(result.wildcard_matches('env/lib/python*/site-packages/initools')) == 1
-    dirs = result.wildcard_matches('env/lib/python*/site-packages/simplejson*')
-    assert len(dirs) == 2
-    assert dirs[0].dir, dirs[1].dir == (True, True)
+    assert env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion in result.files_created
+    assert env.site_packages/'initools' in result.files_created
+    assert result.files_created[env.site_packages/'simplejson'].dir
+    assert result.files_created[env.site_packages/'simplejson-1.7.4-py%s.egg-info' % pyversion].dir
 
 def test_multiple_requirements_files():
     """
@@ -34,6 +33,7 @@ def test_multiple_requirements_files():
         simplejson<=1.7.4
         """))
     result = run_pip('install', '-r', env.scratch_path / 'initools-req.txt')
-    assert len(result.wildcard_matches('env/lib/python*/site-packages/simplejson*')) == 2
-    assert 'env/src/initools' in result.files_created
+    assert result.files_created[env.site_packages/'simplejson'].dir
+    assert result.files_created[env.site_packages/'simplejson-1.7.4-py%s.egg-info' % pyversion].dir
+    assert env.venv/'src'/'initools' in result.files_created
 

@@ -115,7 +115,7 @@ def test_no_install_followed_by_no_download():
     result = run_pip('install', 'INITools==0.2', '--no-install', expect_error=True)
     assert (env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion) not in result.files_created, str(result)
     assert (env.site_packages/'initools') not in result.files_created, sorted(result.files_created.keys())
-    build_dir = Path('env')/'build'/'INITools'
+    build_dir = env.venv/'build'/'INITools'
     assert build_dir in result.files_created, result.files_created
     assert build_dir/'INITools.egg-info' in result.files_created
 

@@ -153,7 +153,7 @@ def test_freeze_bazaar_clone():
     reset_env()
     env = get_env()
     result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
-    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
+    result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-wikiapp')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\

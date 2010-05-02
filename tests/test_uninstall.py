@@ -1,13 +1,10 @@
 
-import textwrap
+import textwrap, sys
 from os.path import join
 from tempfile import mkdtemp
 from test_pip import here, reset_env, run_pip, get_env, diff_states, write_file
 from path import Path
 import pprint
-
-#site_pkg = join(lib_py, 'site-packages')
-#easy_install_pth = join(site_pkg, 'easy-install.pth')
 
 def test_simple_uninstall():
     """
@@ -18,7 +15,7 @@ def test_simple_uninstall():
     result = run_pip('install', 'INITools==0.2', expect_error=True)
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.venv/'build', 'cache']).values() == [{}, {}, {}]
 
 def test_uninstall_with_scripts():
     """
@@ -31,7 +28,7 @@ def test_uninstall_with_scripts():
     easy_install_pth_bytes = result.files_updated[easy_install_pth].bytes
     assert('pylogo' in easy_install_pth_bytes.lower()), easy_install_pth_bytes
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
-    diff = diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache', easy_install_pth])
+    diff = diff_states(result.files_before, result2.files_after, ignore=[env.venv/'build', 'cache', easy_install_pth])
     easy_install_pth_bytes2 = result.files_updated[easy_install_pth].bytes
     if sys.platform == 'win32':
         easy_install_pth_bytes2.replace('\r\n','\n')
@@ -60,9 +57,9 @@ def test_uninstall_console_scripts():
     """
     env = reset_env()
     result = run_pip('install', 'virtualenv', expect_error=True)
-    assert (Path(env.bin_dir[len(env.home_dir):])/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.venv/'build', 'cache']).values() == [{}, {}, {}]
 
 def test_uninstall_easy_installed_console_scripts():
     """
@@ -71,9 +68,9 @@ def test_uninstall_easy_installed_console_scripts():
     """
     env = reset_env()
     result = env.run('easy_install', 'virtualenv')
-    assert (Path(env.bin_dir[len(env.home_dir):])/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y')
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.venv/'build', 'cache']).values() == [{}, {}, {}]
 
 def test_uninstall_editable_from_svn():
     """
@@ -84,8 +81,8 @@ def test_uninstall_editable_from_svn():
     result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev')
     result.assert_installed('INITools')
     result2 = run_pip('uninstall', '-y', 'initools')
-    assert (env.relative_env_path/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src', env.relative_env_path/'build']).values() == [{}, {}, {}], result
+    assert (env.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.venv/'src', env.venv/'build']).values() == [{}, {}, {}], result
 
     
 def test_uninstall_editable_with_source_outside_venv():
@@ -99,7 +96,7 @@ def test_uninstall_editable_with_source_outside_venv():
     result2 = run_pip('install', '-e', tmpdir)
     assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
-    assert diff_states(result.files_before, result3.files_after, ignore=[env.relative_env_path/'build']).values() == [{}, {}, {}], result
+    assert diff_states(result.files_before, result3.files_after, ignore=[env.venv/'build']).values() == [{}, {}, {}], result
 
     
 def test_uninstall_from_reqs_file():
@@ -125,4 +122,4 @@ def test_uninstall_from_reqs_file():
         PyLogo<0.4
         """))
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', env.relative_env_path/'src', Path('scratch')/'test-req.txt']).values() == [{}, {}, {}], result
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.venv/'build', env.venv/'src', Path('scratch')/'test-req.txt']).values() == [{}, {}, {}], result

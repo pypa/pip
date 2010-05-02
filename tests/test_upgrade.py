@@ -82,4 +82,4 @@ def test_uninstall_rollback():
     assert result2.returncode == 1, str(result2)
     env.run( 'python', '-c', "import broken; print broken.VERSION").stdout
     '0.1\n'
-    assert diff_states(result.files_after, result2.files_after, ignore=[env.relative_env_path/'build', 'pip-log.txt']).values() == [{}, {}, {}]
+    assert diff_states(result.files_after, result2.files_after, ignore=[env.venv/'build', 'pip-log.txt']).values() == [{}, {}, {}]

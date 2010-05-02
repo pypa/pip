@@ -35,6 +35,12 @@ def create_virtualenv(where):
 
     return virtualenv.path_locations(where)
 
+def relpath(root, other):
+    """a poor man's os.path.relpath, since we may not have Python 2.6"""
+    prefix = root+Path.sep
+    assert other.startswith(prefix)
+    return Path(other[len(prefix):])
+
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
@@ -52,7 +58,7 @@ def clear_environ(environ):
                 if not k.lower().startswith('pip_')))
 
 def install_setuptools(env):
-    easy_install = os.path.join(env.bin_dir, 'easy_install')
+    easy_install = os.path.join(env.bin_path, 'easy_install')
     version = 'setuptools==0.6c11'
     if sys.platform != 'win32':
         return env.run(easy_install, version)
@@ -121,7 +127,7 @@ class TestPipResult(object):
     def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
         e = self.test_env
 
-        pkg_dir = e.relative_env_path/ 'src'/ pkg_name.lower()
+        pkg_dir = e.venv/ 'src'/ pkg_name.lower()
 
         egg_link_path = e.site_packages / pkg_name + '.egg-link'
         if without_egg_link:
@@ -168,17 +174,40 @@ class TestPipResult(object):
                 raise TestFailure, 'Package directory %r has unexpected content %f' % (pkg_dir,f)
 
 class TestPipEnvironment(TestFileEnvironment):
-    
+    """A specialized TestFileEnvironment for testing pip"""
+
+    #
+    # Attribute naming convention
+    # ---------------------------
+    # 
+    # Instances of this class have many attributes representing paths
+    # in the filesystem.  To keep things straight, absolute paths have
+    # a name of the form xxxx_path and relative paths have a name that
+    # does not end in '_path'.
+
+    # The following paths are relative to the root_path, and should be
+    # treated by clients as instance attributes.  The fact that they
+    # are defined in the class is an implementation detail
+
+    # where we'll create the virtual Python installation for testing
+    #
+    # Named with a leading dot to reduce the chance of spurious
+    # results due to being mistaken for the virtualenv package.
+    venv = Path('.virtualenv') 
+
+    # The root of a directory tree to be used arbitrarily by tests
+    scratch = Path('scratch')
+
+    exe = '.exe' if sys.platform == 'win32' else ''
+
     def __init__(self, environ=None):
         
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
         # We will set up a virtual environment at root_path.  
-        self.scratch_path = self.root_path / 'scratch'
+        self.scratch_path = self.root_path / self.scratch
 
-        # where we'll create the virtualenv for testing
-        self.relative_env_path = Path('env')
-        self.env_path = self.root_path / self.relative_env_path
+        self.venv_path = self.root_path / self.venv
 
         if not environ:
             environ = os.environ.copy()
@@ -194,26 +223,32 @@ class TestPipEnvironment(TestFileEnvironment):
             cwd=self.scratch_path, capture_temp=True, assert_no_temp=True
             )
 
-        demand_dirs(self.env_path)
+        demand_dirs(self.venv_path)
         demand_dirs(self.scratch_path)
 
         # Create a virtualenv and remember where it's putting things.
-        self.home_dir, self.lib_dir, self.inc_dir, self.bin_dir = tuple(Path(x) for x in create_virtualenv(self.env_path))
+        virtualenv_paths = create_virtualenv(self.venv_path)
+        assert self.venv_path == virtualenv_paths[0] # sanity check
 
-        assert self.lib_dir.startswith(self.root_path)
-        self.site_packages = Path(self.lib_dir[len(self.root_path):].lstrip(Path.sep)) / 'site-packages'
+        for id,path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            setattr(self, id+'_path', Path(path))
+            setattr(self, id, relpath(self.root_path,path))
+            
+        assert self.venv == TestPipEnvironment.venv # sanity check
+
+        self.site_packages = self.lib/'site-packages'
 
         # put the test-scratch virtualenv's bin dir first on the PATH
-        self.environ['PATH'] = os.path.pathsep.join( (self.bin_dir, self.environ['PATH']) )
+        self.environ['PATH'] = Path.pathsep.join( (self.bin_path, self.environ['PATH']) )
 
         # test that test-scratch virtualenv creation produced sensible venv python
         result = self.run('python', '-c', 'import sys; print sys.executable')
         pythonbin = result.stdout.strip()
 
-        if Path(pythonbin).noext != self.bin_dir/'python':
+        if Path(pythonbin).noext != self.bin_path/'python':
             raise RuntimeError(
                 "Oops! 'python' in our test environment runs %r" 
-                " rather than expected %r" % (pythonbin, self.bin_dir/'python'))
+                " rather than expected %r" % (pythonbin, self.bin_path/'python'))
 
         # make sure we have current setuptools to avoid svn incompatibilities
         install_setuptools(self)

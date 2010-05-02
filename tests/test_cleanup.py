@@ -25,8 +25,8 @@ def test_cleanup_after_install_editable_from_hg():
     """
     env = reset_env()
     result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
-    build = env.env_path/'build'
-    src = env.env_path/'src'
+    build = env.venv_path/'build'
+    src = env.venv_path/'src'
     assert not exists(build), "build/ dir still exists: %s" % build
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
 
@@ -38,8 +38,8 @@ def test_cleanup_after_install_from_local_directory():
     env = reset_env()
     to_install = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', to_install, expect_error=False)
-    build = env.env_path/'build'
-    src = env.env_path/'src'
+    build = env.venv_path/'build'
+    src = env.venv_path/'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
 
@@ -51,8 +51,8 @@ def test_cleanup_after_create_bundle():
     env = reset_env()
     # Install an editable to create a src/ dir.
     dummy = run_pip('install', '-e', 'git://github.com/jezdez/django-feedutil.git#egg=django-feedutil')
-    build = env.env_path/"build"
-    src = env.env_path/"src"
+    build = env.venv_path/"build"
+    src = env.venv_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
 
