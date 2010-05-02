@@ -4,6 +4,7 @@ from os.path import join
 from tempfile import mkdtemp
 from test_pip import here, reset_env, run_pip, get_env, diff_states, write_file
 from path import Path
+import pprint
 
 #site_pkg = join(lib_py, 'site-packages')
 #easy_install_pth = join(site_pkg, 'easy-install.pth')
@@ -27,9 +28,17 @@ def test_uninstall_with_scripts():
     env = reset_env()
     result = env.run('easy_install', 'PyLogo')
     easy_install_pth = env.site_packages/ 'easy-install.pth'
-    assert('PyLogo' in result.files_updated[easy_install_pth].bytes), result.files_after[easy_install_pth].bytes
+    easy_install_pth_bytes = result.files_updated[easy_install_pth].bytes
+    assert('pylogo' in easy_install_pth_bytes.lower()), easy_install_pth_bytes
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
+    diff = diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache', easy_install_pth])
+    easy_install_pth_bytes2 = result.files_updated[easy_install_pth].bytes
+    if sys.platform == 'win32':
+        easy_install_pth_bytes2.replace('\r\n','\n')
+    assert easy_install_pth_bytes == easy_install_pth_bytes2, pprint.pformat(easy_install_pth_bytes, easy_install_pth_bytes2)
+    ### This assertion is currently (correctly) failing on Windows,
+    ### indicating that env\Scripts\pylogo.exe.manifest isn't getting cleaned up
+    assert diff.values() == [{}, {}, {}], pprint.pformat(diff)
 
 def test_uninstall_namespace_package():
     """
@@ -51,7 +60,7 @@ def test_uninstall_console_scripts():
     """
     env = reset_env()
     result = run_pip('install', 'virtualenv', expect_error=True)
-    assert (env.relative_env_path/'bin'/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert (Path(env.bin_dir[len(env.home_dir):])/'virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
 
@@ -62,7 +71,7 @@ def test_uninstall_easy_installed_console_scripts():
     """
     env = reset_env()
     result = env.run('easy_install', 'virtualenv')
-    assert (env.relative_env_path/'bin'/'virtualenv') in result.files_created, sorted(result.files_created.keys())
+    assert (Path(env.bin_dir[len(env.home_dir):])/'virtualenv') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y')
     assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', 'cache']).values() == [{}, {}, {}]
 
@@ -76,7 +85,7 @@ def test_uninstall_editable_from_svn():
     result.assert_installed('INITools')
     result2 = run_pip('uninstall', '-y', 'initools')
     assert (env.relative_env_path/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src', env.relative_env_path/'build']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'src', env.relative_env_path/'build']).values() == [{}, {}, {}], result
 
     
 def test_uninstall_editable_with_source_outside_venv():
@@ -90,7 +99,7 @@ def test_uninstall_editable_with_source_outside_venv():
     result2 = run_pip('install', '-e', tmpdir)
     assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
-    assert diff_states(result.files_before, result3.files_after, ignore=[env.relative_env_path/'build']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result3.files_after, ignore=[env.relative_env_path/'build']).values() == [{}, {}, {}], result
 
     
 def test_uninstall_from_reqs_file():
@@ -116,4 +125,4 @@ def test_uninstall_from_reqs_file():
         PyLogo<0.4
         """))
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
-    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', env.relative_env_path/'src', Path('scratch')/'test-req.txt']).values() == [{}, {}, {}]
+    assert diff_states(result.files_before, result2.files_after, ignore=[env.relative_env_path/'build', env.relative_env_path/'src', Path('scratch')/'test-req.txt']).values() == [{}, {}, {}], result
