@@ -1,9 +1,26 @@
 
-import os
+import os, sys
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from test_pip import  reset_env, run_pip, pyversion,  write_file, get_env
 
+def _check_output(result, expected):
+    checker = OutputChecker()
+    actual = str(result)
+
+    ## FIXME!  The following is a TOTAL hack.  For some reason the
+    ## __str__ result for pkg_resources.Requirement gets downcased on
+    ## Windows.  Since INITools is the only package we're installing
+    ## in this file with funky case requirements, I'm forcibly
+    ## upcasing it.  You can also normalize everything to lowercase,
+    ## but then you have to remember to upcase <BLANKLINE>.  The right
+    ## thing to do in the end is probably to find out how to report
+    ## the proper fully-cased package name in our error message.
+    if sys.platform == 'win32':
+        actual = actual.replace('initools','INITools')
+
+    def banner(msg): return '\n========== %s ==========\n'%msg
+    assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
 def test_freeze():
     """
@@ -18,7 +35,6 @@ def test_freeze():
     
     """
     env = reset_env()
-    checker = OutputChecker()
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
@@ -32,7 +48,7 @@ def test_freeze():
         INITools==0.2
         simplejson==1.7.4...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), [expected,str(result)]
+    _check_output(result, expected)
 
     # Now lets try it with an svn checkout::
     result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
@@ -45,7 +61,7 @@ def test_freeze():
         -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
         simplejson==1.7.4...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     # Now, straight from trunk (but not editable/setup.py develop)::
     result = env.run('easy_install', 'http://svn.colorstudy.com/INITools/trunk')
@@ -60,7 +76,7 @@ def test_freeze():
         INITools==...dev-r...
         simplejson==1.7.4...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     # Bah, that's no good!  Let's give it a hint::
     result = run_pip('freeze', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
@@ -72,7 +88,7 @@ def test_freeze():
         -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
         simplejson==1.7.4...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
 def test_freeze_git_clone():
     """
@@ -80,7 +96,6 @@ def test_freeze_git_clone():
     
     """
     env = reset_env()
-    checker = OutputChecker()
     result = env.run('git', 'clone', 'git://github.com/jezdez/django-pagination.git', 'django-pagination')
     result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
             cwd= env.scratch_path/ 'django-pagination', expect_stderr=True)
@@ -92,7 +107,7 @@ def test_freeze_git_clone():
         -- stdout: --------------------
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -101,7 +116,7 @@ def test_freeze_git_clone():
         -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
         -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
 def test_freeze_mercurial_clone():
     """
@@ -110,7 +125,6 @@ def test_freeze_mercurial_clone():
     """
     reset_env()
     env = get_env()
-    checker = OutputChecker()
     result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-dbtemplates')
@@ -120,7 +134,7 @@ def test_freeze_mercurial_clone():
         -- stdout: --------------------
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -129,7 +143,7 @@ def test_freeze_mercurial_clone():
         -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
         -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
 def test_freeze_bazaar_clone():
     """
@@ -138,7 +152,6 @@ def test_freeze_bazaar_clone():
     """
     reset_env()
     env = get_env()
-    checker = OutputChecker()
     result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
     result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
             cwd=env.scratch_path/'django-wikiapp')
@@ -148,7 +161,7 @@ def test_freeze_bazaar_clone():
         -- stdout: --------------------
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -157,7 +170,7 @@ def test_freeze_bazaar_clone():
         -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
         -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
         ...""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
 def test_freeze_with_local_option():
     """
@@ -165,7 +178,6 @@ def test_freeze_with_local_option():
     
     """
     reset_env()
-    checker = OutputChecker()
     result = run_pip('install', 'initools==0.2')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -174,7 +186,7 @@ def test_freeze_with_local_option():
         INITools==0.2
         wsgiref==...
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
 
     result = run_pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -182,4 +194,4 @@ def test_freeze_with_local_option():
         -- stdout: --------------------
         INITools==0.2
         <BLANKLINE>""")
-    assert checker.check_output(expected, str(result), ELLIPSIS), result
+    _check_output(result, expected)
