@@ -1495,6 +1495,11 @@ class UninstallPathSet(object):
                 short_paths.add(path)
         return short_paths
 
+    def __stash(self, path):
+        return os.path.join(
+            self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
+
+
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
@@ -1518,8 +1523,7 @@ class UninstallPathSet(object):
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
                 for path in paths:
-                    new_path = os.path.splitdrive(path)[1].lstrip(os.path.sep)
-                    new_path = os.path.join(self.save_dir, new_path)
+                    new_path = self.__stash(path)
                     logger.info('Removing file or directory %s' % path)
                     self._moved_paths.append(path)
                     if not os.path.exists(os.path.dirname(new_path)):
@@ -1539,7 +1543,7 @@ class UninstallPathSet(object):
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
         for path in self._moved_paths:
-            tmp_path = os.path.join(self.save_dir, path.lstrip(os.path.sep))
+            tmp_path = self.__stash(path)
             logger.info('Replacing %s' % path)
             renames(tmp_path, path)
         for pth in self.pth:

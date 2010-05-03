@@ -339,14 +339,27 @@ def diff_states(start, end, ignore=None):
             updated[k] = end[k]
     return dict(deleted=deleted, created=created, updated=updated)
 
-def assert_all_changes( start_result, end_result, expected_changes ):
+def assert_all_changes( start_state, end_state, expected_changes ):
     """
-    Accepts two TestPipResult objects (possibly both the same object)
-    and a list of (relative) paths.  Fails if anything changed that
-    isn't listed in the expected_changes.  Note: listing a directory
-    means anything below that directory can be expected to have changed.
+    Fails if anything changed that isn't listed in the
+    expected_changes.  
+
+    start_state is either a dict mapping paths to
+    scripttest.[FoundFile|FoundDir] objects or a TestPipResult whose
+    files_before we'll test.  end_state is either a similar dict or a
+    TestPipResult whose files_after we'll test.
+
+    Note: listing a directory means anything below
+    that directory can be expected to have changed.
     """
-    diff = diff_states( start_result.files_before, end_result.files_after, ignore=expected_changes )
+    start_files = start_state
+    end_files = end_state
+    if isinstance(start_state, TestPipResult):
+        start_files = start_state.files_before
+    if isinstance(end_state, TestPipResult):
+        end_files = end_state.files_after
+
+    diff = diff_states( start_files, end_files, ignore=expected_changes )
     if diff.values() != [{},{},{}]:
         import pprint
         raise TestFailure, 'Unexpected changes:\n' + '\n'.join(
