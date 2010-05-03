@@ -222,7 +222,7 @@ class ZipCommand(Command):
                         os.unlink(pth)
                 else:
                     if not self.simulate:
-                        f = open(pth, 'w')
+                        f = open(pth, 'wb')
                         f.writelines(new_lines)
                         f.close()
                 return
@@ -243,7 +243,7 @@ class ZipCommand(Command):
                 lines.append(filename+'\n')
             else:
                 lines = [filename + '\n']
-            f = open(dest, 'w')
+            f = open(dest, 'wb')
             f.writelines(lines)
             f.close()
 

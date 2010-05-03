@@ -1578,7 +1578,7 @@ class UninstallPthEntries(object):
                 pass
         finally:
             pass
-        fh = open(self.file, 'w')
+        fh = open(self.file, 'wb')
         fh.writelines(lines)
         fh.close()
 
@@ -1587,7 +1587,7 @@ class UninstallPthEntries(object):
             logger.error('Cannot roll back changes to %s, none were made' % self.file)
             return False
         logger.info('Rolling %s back to previous state' % self.file)
-        fh = open(self.file, 'w')
+        fh = open(self.file, 'wb')
         fh.writelines(self._saved_lines)
         fh.close()
         return True
