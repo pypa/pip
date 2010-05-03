@@ -1,7 +1,7 @@
 from os import makedirs
 from os.path import join
 import textwrap
-from test_pip import here, reset_env, run_pip, pyversion,  diff_states, write_file
+from test_pip import here, reset_env, run_pip, pyversion,  write_file
 from path import Path
 
 def test_download_if_requested():

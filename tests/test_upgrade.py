@@ -1,7 +1,7 @@
 
 from os.path import join
 import textwrap
-from test_pip import here, reset_env, run_pip, get_env, diff_states, write_file
+from test_pip import here, reset_env, run_pip, get_env, assert_all_changes, write_file
 
 def test_no_upgrade_unless_requested():
     """
@@ -44,7 +44,7 @@ def test_uninstall_before_upgrade():
     result2 = run_pip('install', 'INITools==0.3', expect_error=True)
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
-    assert diff_states(result.files_before, result3.files_after, ignore=['env/build', 'cache']).values() == [{}, {}, {}]
+    assert_all_changes(result, result3, ['env/build', 'cache'])
 
 def test_upgrade_from_reqs_file():
     """
@@ -65,8 +65,7 @@ def test_upgrade_from_reqs_file():
         """))
     result2 = run_pip('install', '--upgrade', '-r', env.scratch_path/ 'test-req.txt')
     result3 = run_pip('uninstall', '-r', env.scratch_path/ 'test-req.txt', '-y')
-    res = diff_states(result.files_before, result3.files_after, ignore=['env/build', 'cache', 'scratch/test-req.txt']).values() 
-    assert res == [{}, {}, {}], res
+    assert_all_changes(result, result3, ['env/build', 'cache', 'scratch/test-req.txt'])
 
 def test_uninstall_rollback():
     """
@@ -82,4 +81,4 @@ def test_uninstall_rollback():
     assert result2.returncode == 1, str(result2)
     env.run( 'python', '-c', "import broken; print broken.VERSION").stdout
     '0.1\n'
-    assert diff_states(result.files_after, result2.files_after, ignore=[env.venv/'build', 'pip-log.txt']).values() == [{}, {}, {}]
+    assert_all_changes(result, result2, [env.venv/'build', 'pip-log.txt'])

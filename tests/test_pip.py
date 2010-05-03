@@ -338,6 +338,22 @@ def diff_states(start, end, ignore=None):
             updated[k] = end[k]
     return dict(deleted=deleted, created=created, updated=updated)
 
+def assert_all_changes( start_result, end_result, expected_changes ):
+    """
+    Accepts two TestPipResult objects (possibly both the same object)
+    and a list of (relative) paths.  Fails if anything changed that
+    isn't listed in the expected_changes.  Note: listing a directory
+    means anything below that directory can be expected to have changed.
+    """
+    diff = diff_states( start_result.files_before, end_result.files_after, ignore=expected_changes )
+    if diff.values() != [{},{},{}]:
+        import pprint
+        raise TestFailure, 'Unexpected changes:\n' + '\n'.join(
+            [k + ': ' + ', '.join(v.keys()) for k,v in diff.items()])
+
+    # Don't throw away this potentially useful information
+    return diff
+
 if __name__ == '__main__':
     sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
     sys.exit(1)
