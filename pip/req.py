@@ -449,6 +449,7 @@ execfile(__file__)
                     paths_to_remove.add(os.path.join(bin_py, name))
                     if sys.platform == 'win32':
                         paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
+                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
                         paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
