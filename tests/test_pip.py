@@ -326,6 +326,7 @@ def diff_states(start, end, ignore=None):
 
     """
     ignore = ignore or []
+    # FIXME: this code ignores too much, e.g. foo/bar when only foo/b is specified
     start_keys = set([k for k in start.keys()
                       if not any([k.startswith(i) for i in ignore])])
     end_keys = set([k for k in end.keys()
