@@ -1562,6 +1562,11 @@ class UninstallPthEntries(object):
         self._saved_lines = None
 
     def add(self, entry):
+        # On Windows, entries that describe absolute paths outside of
+        # site-packages are written with backslashes, but all the
+        # others use forward slashes.
+        if sys.platform == 'win32' and not os.path.splitdrive(entry)[0]:
+            entry = entry.replace('\\','/')
         self.entries.add(entry)
 
     def remove(self):
