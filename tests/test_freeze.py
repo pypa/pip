@@ -17,17 +17,17 @@ def test_freeze():
     test style instead of using doctest output checker)
     
     """
-    reset_env()
+    env = reset_env()
     checker = OutputChecker()
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
         simplejson<=1.7.4
         """))
-    result = run_pip('install', '-r', 'initools-req.txt')
+    result = run_pip('install', '-r', env.base_path/ 'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze
+        Script result: pip freeze
         -- stdout: --------------------
         INITools==0.2
         simplejson==1.7.4...
@@ -35,10 +35,9 @@ def test_freeze():
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Now lets try it with an svn checkout::
-    env = get_env()
     result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
-    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
-            cwd=os.path.join(env.base_path, 'initools-trunk'))
+    result = env.run('python', 'setup.py', 'develop',
+            cwd=env.base_path/ 'initools-trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
@@ -49,7 +48,7 @@ def test_freeze():
     assert checker.check_output(expected, str(result), ELLIPSIS), result
 
     # Now, straight from trunk (but not editable/setup.py develop)::
-    result = env.run(os.path.join(env.bin_dir, 'easy_install'), 'http://svn.colorstudy.com/INITools/trunk')
+    result = env.run('easy_install', 'http://svn.colorstudy.com/INITools/trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
@@ -113,7 +112,7 @@ def test_freeze_mercurial_clone():
     env = get_env()
     checker = OutputChecker()
     result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
-    result = env.run(os.path.join(env.bin_dir, 'python'), 'setup.py', 'develop',
+    result = env.run('python', 'setup.py', 'develop',
             cwd=os.path.join(env.base_path, 'django-dbtemplates'))
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
