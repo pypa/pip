@@ -354,9 +354,14 @@ class HTMLPage(object):
         url = url.split('#', 1)[0]
         if cache.too_many_failures(url):
             return None
-        if url.lower().startswith('svn'):
-            logger.debug('Cannot look at svn URL %s' % link)
-            return None
+
+        # Check for VCS schemes that do not support lookup as web pages.
+        from pip.vcs import VcsSupport
+        for scheme in VcsSupport.schemes:
+            if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+                logger.debug('Cannot look at %(scheme)s URL %(link)s' % locals())
+                return None
+
         if cache is not None:
             inst = cache.get_page(url)
             if inst is not None:
