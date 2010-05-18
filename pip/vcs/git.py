@@ -6,12 +6,13 @@ from pip import call_subprocess
 from pip.util import display_path
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
+from urllib import url2pathname
 
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
     repo_name = 'clone'
-    schemes = ('git', 'git+http', 'git+ssh', 'git+git')
+    schemes = ('git', 'git+http', 'git+ssh', 'git+git', 'git+file')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
@@ -195,7 +196,9 @@ class Git(VersionControl):
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
             url = url.replace('ssh://', '')
-            return url, rev
-        return super(Git, self).get_url_rev()
+        else:                       
+            url, rev = super(Git, self).get_url_rev()
+
+        return url,rev
 
 vcs.register(Git)
