@@ -277,6 +277,22 @@ def normalize_path(path):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+def geturl(urllib2_resp):
+    """
+    Use instead of urllib.addinfourl.geturl(), which appears to have
+    some issues with dropping the double slash for certain schemes
+    (e.g. file://).  This implementation is probably over-eager, as it
+    always restores '://' if it is missing, and it appears some url
+    schemata aren't always followed by '//' after the colon, but as
+    far as I know pip doesn't need any of those.
+    """
+    url = urllib2_resp.geturl()
+    i = url.find(':')+1
+    if url[i:].startswith('//'):
+        return url
+    else:
+        return url[:i] + '//' + url[i:]
+    
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content)"""
@@ -301,7 +317,7 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urllib2.urlopen(url)
-            return resp.geturl(), resp.read()
+            return geturl(resp), resp.read()
     f = open(url)
     content = f.read()
     f.close()

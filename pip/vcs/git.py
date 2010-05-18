@@ -16,6 +16,21 @@ class Git(VersionControl):
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
 
+    def __init__(self, url=None, *args, **kwargs):
+
+        # Works around an apparent Git bug
+        # (see http://article.gmane.org/gmane.comp.version-control.git/146500)
+        if url:
+            scheme,netloc,path,query,fragment = urlsplit(url)
+            if scheme.endswith('file'):
+                initial_slashes = path[:-len(path.lstrip('/'))]
+                newpath = initial_slashes + url2pathname(path).replace('\\','/').lstrip('/')
+                url = urlunsplit((scheme, netloc, newpath, query, fragment))
+                after_plus = scheme.find('+')+1
+                url = scheme[:after_plus]+ urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
+
+        super(Git,self).__init__(url, *args, **kwargs)
+
     def parse_vcs_bundle_file(self, content):
         url = rev = None
         for line in content.splitlines():
@@ -176,6 +191,7 @@ class Git(VersionControl):
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
         if not '://' in self.url:
+            assert not 'file:' in self.url
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
             url = url.replace('ssh://', '')

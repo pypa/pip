@@ -25,7 +25,7 @@ from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
-from pip.util import in_venv
+from pip.util import in_venv, geturl
 from pip import call_subprocess
 from pip.backwardcompat import any, md5
 from pip.index import Link
@@ -1039,8 +1039,8 @@ class RequirementSet(object):
                 ext = mimetypes.guess_extension(content_type)
                 if ext:
                     filename += ext
-            if not ext and link.url != resp.geturl():
-                ext = os.path.splitext(resp.geturl())[1]
+            if not ext and link.url != geturl(resp):
+                ext = os.path.splitext(geturl(resp))[1]
                 if ext:
                     filename += ext
             temp_location = os.path.join(temp_dir, filename)
