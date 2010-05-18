@@ -69,7 +69,7 @@ def test_install_editable_from_svn():
     
     """
     e = reset_env()
-    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev', expect_error=True)
+    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev')
     result.assert_installed('INITools', with_files=['.svn'])
 
 def test_download_editable_to_custom_path():
@@ -80,8 +80,7 @@ def test_download_editable_to_custom_path():
     reset_env()
     mkdir('customdl')
     result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev',
-        '--src', 'customsrc', '--download', 'customdl',
-        expect_error=True)
+        '--src', 'customsrc', '--download', 'customdl')
     customsrc = Path('scratch')/'customsrc'/'initools'
     assert customsrc in result.files_created, sorted(result.files_created.keys())
     assert customsrc/'setup.py' in result.files_created, sorted(result.files_created.keys())
