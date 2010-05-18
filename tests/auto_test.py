@@ -52,6 +52,22 @@ def call(*args):
 def assert_in_path(exe):
     system(exe, '--version')
 
+def clean(root):
+    print >> sys.stderr, 'Cleaning ...',
+    for dirpath, dirnames, filenames in os.walk(root):
+        for f in filenames:
+            if f.endswith('.pyc'):
+                os.unlink(Path(dirpath)/f)
+    rmtree(root/'build')
+    rmtree(root/'dist')
+    rmtree(root/'pip.egg-info')
+    rmtree(root/'tests'/'test-scratch')
+    rmtree(root/'tests'/'test-cache')
+    try: os.unlink(root/'tests'/'packages'/'FSPkg'/'FSPkg.egg-info'/'PKG-INFO')
+    except: pass
+    print >> sys.stderr, 'ok'
+
+
 def main(argv):
     here = Path(sys.path[0])
     script_name = Path(__file__).name
@@ -72,14 +88,7 @@ def main(argv):
     #
     # Delete everything that could lead to stale test results
     #
-    print >> sys.stderr, 'Cleaning ...',
-    for dirpath, dirnames, filenames in os.walk(pip_root):
-        for f in filenames:
-            if f.endswith('.pyc'):
-                os.unlink(Path(dirpath)/f)
-    rmtree(pip_root/'build')
-    rmtree(pip_root/'dist')
-    print >> sys.stderr, 'ok'
+    clean( pip_root )
     
     save_dir = os.getcwd()
     temp_dir = mkdtemp('-pip_auto_test')
@@ -89,7 +98,7 @@ def main(argv):
         #
         # Prepare a clean, writable workspace
         #
-        print >> sys.stderr, 'Preparing test environment ...',
+        print >> sys.stderr, 'Preparing test environment ...'
         venv, lib, include, bin = create_virtualenv(temp_dir)
 
         abs_bin = Path(bin).abspath
@@ -105,10 +114,13 @@ def main(argv):
         pip = abs_bin/'pip'+exe
         download_cache = '--download-cache=' \
             + Path(gettempdir())/'pip-test-download-cache'
-        call(pip, 'install', '-q', download_cache, 'virtualenv')
-        call(pip, 'install', '-q', download_cache, 'nose')
-        # for now, we need a pre-release version of scripttest
-        call(pip, 'install', '-q', download_cache, 'scripttest')
+        def pip_install(*pkg):
+            print >> sys.stderr, '   pip install',' '.join(pkg), '...',
+            call(pip, 'install', '-q', download_cache, *pkg)
+            print >> sys.stderr, 'ok'
+        pip_install('virtualenv')
+        pip_install('--no-index', '-f', 'http://pypi.python.org/packages/source/n/nose/', 'nose')
+        pip_install('scripttest>=1.0.4')
         print >> sys.stderr, 'ok'
         nosetests = abs_bin/'nosetests'+exe
         call( nosetests, '-w', pip_root/'tests', *argv[1:] )
@@ -116,6 +128,8 @@ def main(argv):
     finally:
         os.chdir(save_dir)
         rmtree(temp_dir)
+        # Keep VCSes from seeing spurious new/changed files
+        clean(pip_root)
 
 
 if __name__ == '__main__':
