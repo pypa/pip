@@ -510,7 +510,7 @@ execfile(__file__)
             logger.notify('Saved %s' % display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+'/'), (
+        assert name.startswith(prefix+os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
