@@ -7,6 +7,7 @@ from pip.util import display_path
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
 from urllib import url2pathname
+from urlparse import urlsplit, urlunsplit
 
 class Git(VersionControl):
     name = 'git'
