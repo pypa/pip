@@ -433,3 +433,10 @@ def get_terminal_size():
     if not cr:
         cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
     return int(cr[1]), int(cr[0])
+
+# Insurance against "creative" interpretation of the RFC:
+# http://bugs.python.org/issue8732
+def urlopen(url):
+    if isinstance(url, basestring):
+        url = urllib2.Request(url, headers={'Accept-encoding':'identity'})
+    return urllib2.urlopen(url)

@@ -6,6 +6,7 @@ import re
 import threading
 import posixpath
 import pkg_resources
+import urllib
 import urllib2
 import urlparse
 import httplib
@@ -14,7 +15,7 @@ from Queue import Queue
 from Queue import Empty as QueueEmpty
 from pip.log import logger
 from pip.util import Inf, path_to_url2, url_to_path, geturl
-from pip.util import normalize_name, splitext
+from pip.util import normalize_name, splitext, urlopen
 from pip.exceptions import DistributionNotFound
 
 __all__ = ['PackageFinder']
@@ -395,10 +396,9 @@ class HTMLPage(object):
                             return None
             logger.debug('Getting page %s' % url)
             try:
-                resp = urllib2.urlopen(url)
+                resp = urlopen(url)
             except IOError:
-                import urllib
-                resp = urllib2.urlopen(urllib.basejoin(url,'index.html'))
+                resp = urlopen(urllib.basejoin(url,'index.html'))
 
             real_url = geturl(resp)
             headers = resp.info()
