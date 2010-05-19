@@ -102,8 +102,15 @@ atexit.register(_cleanup)
 
 class TestPipResult(object):
 
-    def __init__(self, impl):
+    def __init__(self, impl, verbose=False):
         self._impl = impl
+        
+        if verbose:
+            print self.stdout
+            if self.stderr:
+                print '======= stderr ========'
+                print self.stderr
+                print '======================='
 
     def __getattr__(self, attr):
         return getattr(self._impl,attr)
@@ -203,6 +210,8 @@ class TestPipEnvironment(TestFileEnvironment):
 
     exe = '.exe' if sys.platform == 'win32' else ''
 
+    verbose = False
+
     def __init__(self, environ=None):
         
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
@@ -261,18 +270,20 @@ class TestPipEnvironment(TestFileEnvironment):
         # self-uninstallation on Windows, so we use the one we're testing.
         self.run('python', '-c', 
                  'import sys;sys.path.insert(0, %r);import pip;sys.exit(pip.main());' % os.path.dirname(here), 
-                 'uninstall', '-y', 'pip')
+                 'uninstall', '-vvv', '-y', 'pip')
 
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src)
 
     def run(self, *args, **kw):
+        if self.verbose:
+            print '>> running', args, kw
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from',None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = Path.string(cwd or run_from or self.cwd)
         assert not isinstance(cwd,Path)
-        return TestPipResult( super(TestPipEnvironment,self).run(cwd=cwd,*args,**kw) )
+        return TestPipResult( super(TestPipEnvironment,self).run(cwd=cwd,*args,**kw), verbose=self.verbose )
 
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
