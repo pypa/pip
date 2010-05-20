@@ -28,7 +28,7 @@ def create_virtualenv(where):
     
     try:
         import virtualenv
-        sys.argv = ['virtualenv', '--quiet', '--no-site-packages', where]
+        sys.argv = ['virtualenv', '--quiet', '--no-site-packages', '--unzip-setuptools', where]
         virtualenv.main()
     finally: 
         sys.argv = save_argv
