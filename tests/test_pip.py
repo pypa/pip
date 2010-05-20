@@ -132,8 +132,11 @@ class TestPipResult(object):
         egg_link_path = e.site_packages / pkg_name + '.egg-link'
         if without_egg_link:
             if egg_link_path in self.files_created:
-                raise TestFailure, 'unexpected egg link file created: %r' % egg_link_path
+                raise TestFailure, 'unexpected egg link file created: %r\n%s' % (egg_link_path, self)
         else:
+            if not egg_link_path in self.files_created:
+                raise TestFailure, 'expected egg link file missing: %r\n%s' % (egg_link_path, self)
+
             egg_link_file = self.files_created[egg_link_path]
 
             if not (# FIXME: I don't understand why there's a trailing . here

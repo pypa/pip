@@ -48,10 +48,9 @@ def test_install_from_pypi():
     
     """
     e = reset_env()
-    result = run_pip('install', '-vvv', 'INITools==0.2', expect_error=True)
-    new_files = sorted(result.files_created.keys())
-    assert (e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, sorted(result.files_created.keys())
-    assert (e.site_packages / 'initools') in result.files_created, sorted(result.files_created.keys())
+    result = run_pip('install', '-vvv', 'INITools==0.2')
+    assert (e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (e.site_packages / 'initools') in result.files_created, str(result)
 
 def test_editable_install():
     """
