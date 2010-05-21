@@ -5,7 +5,7 @@ from path import *
 pyversion = sys.version[:3]
 
 # the directory containing all the tests
-here = os.path.dirname(os.path.abspath(__file__))
+here = Path(__file__).abspath.folder
 
 # the root of this pip source distribution
 src = os.path.dirname(here) 
