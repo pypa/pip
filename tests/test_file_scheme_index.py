@@ -11,6 +11,5 @@ def test_install():
     """
     env = reset_env()
     result = run_pip('install', '-vvv', '--index-url', index_url, 'FSPkg', expect_error=False)
-    site_packages = Path('site-packages')
-    assert [ x for x in result.files_created if x.endswith(site_packages/'fspkg') ], str(result)
-    assert [ x for x in result.files_created if x.endswith(site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) ], str(result)
+    assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
+    assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
