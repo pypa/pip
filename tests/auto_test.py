@@ -3,20 +3,9 @@ from subprocess import check_call, PIPE
 from path import Path
 import shutil
 from tempfile import mkdtemp, gettempdir
+from test_pip import create_virtualenv
 
 exe = '.EXE' if sys.platform == 'win32' else ''
-
-def create_virtualenv(where):
-    save_argv = sys.argv
-    
-    try:
-        import virtualenv
-        sys.argv = ['virtualenv', '--quiet', '--unzip-setuptools', '--no-site-packages', where]
-        virtualenv.main()
-    finally: 
-        sys.argv = save_argv
-
-    return virtualenv.path_locations(where)
 
 def rmtree(path):
     # From pathutils by Michael Foord: http://www.voidspace.org.uk/python/pathutils.html
@@ -47,7 +36,12 @@ def system(*args):
     check_call(args, stdout=PIPE, shell=(sys.platform=='win32'))
 
 def call(*args):
-    check_call(args)
+    if not '--distribute' in sys.argv:
+        check_call(args)
+    else:
+        env = os.environ.copy()
+        env['PIP_TEST_USE_DISTRIBUTE']='1'
+        check_call(args, env=env)
 
 def assert_in_path(exe):
     system(exe, '--version')
@@ -99,7 +93,7 @@ def main(argv):
         # Prepare a clean, writable workspace
         #
         print >> sys.stderr, 'Preparing test environment ...'
-        venv, lib, include, bin = create_virtualenv(temp_dir)
+        venv, lib, include, bin = create_virtualenv(temp_dir, distribute=('--distribute' in sys.argv))
 
         abs_bin = Path(bin).abspath
 
@@ -123,7 +117,7 @@ def main(argv):
         pip_install('scripttest>=1.0.4')
         print >> sys.stderr, 'ok'
         nosetests = abs_bin/'nosetests'+exe
-        call( nosetests, '-w', pip_root/'tests', *argv[1:] )
+        call( nosetests, '-w', pip_root/'tests', *(x for x in argv[1:] if x != '--distribute') )
 
     finally:
         os.chdir(save_dir)

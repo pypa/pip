@@ -23,12 +23,13 @@ demand_dirs(download_cache)
 sys.path = [src, os.path.join(src, 'scripttest')] + sys.path
 from scripttest import TestFileEnvironment
 
-def create_virtualenv(where):
+def create_virtualenv(where, distribute=False):
     save_argv = sys.argv
     
     try:
         import virtualenv
-        sys.argv = ['virtualenv', '--quiet', '--no-site-packages', '--unzip-setuptools', where]
+        distribute_opt = ['--distribute'] if distribute else []
+        sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--no-site-packages', '--unzip-setuptools', where]
         virtualenv.main()
     finally: 
         sys.argv = save_argv
@@ -238,8 +239,11 @@ class TestPipEnvironment(TestFileEnvironment):
         demand_dirs(self.venv_path)
         demand_dirs(self.scratch_path)
 
+        use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+
         # Create a virtualenv and remember where it's putting things.
-        virtualenv_paths = create_virtualenv(self.venv_path)
+        virtualenv_paths = create_virtualenv(self.venv_path, distribute=use_distribute)
+
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
         for id,path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
@@ -263,7 +267,8 @@ class TestPipEnvironment(TestFileEnvironment):
                 " rather than expected %r" % (pythonbin, self.bin_path/'python'))
 
         # make sure we have current setuptools to avoid svn incompatibilities
-        install_setuptools(self)
+        if not use_distribute:
+            install_setuptools(self)
 
         # Uninstall whatever version of pip came with the virtualenv.
         # Earlier versions of pip were incapable of

@@ -1,8 +1,10 @@
 
-import os, sys
+import os, sys, re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from test_pip import  reset_env, run_pip, pyversion,  write_file, get_env
+
+distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
 def _check_output(result, expected):
     checker = OutputChecker()
@@ -18,6 +20,10 @@ def _check_output(result, expected):
     ## the proper fully-cased package name in our error message.
     if sys.platform == 'win32':
         actual = actual.replace('initools','INITools')
+
+    # This allows our existing tests to work when run in a context
+    # with distribute installed.
+    actual = distribute_re.sub('', actual)
 
     def banner(msg): return '\n========== %s ==========\n'%msg
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
