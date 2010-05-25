@@ -3,6 +3,7 @@ syntax: glob
 MANIFEST
 tests/test-scratch/*
 tests/test-cache/*
+tests/packages/FSPkg/FSPkg.egg-info/PKG-INFO
 testenv
 pip.egg-info/*
 dist/*
