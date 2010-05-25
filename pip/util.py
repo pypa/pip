@@ -60,7 +60,7 @@ def backup_dir(dir, ext='.bak'):
         n += 1
         extension = ext + str(n)
     return dir + extension
-    
+
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
@@ -270,7 +270,7 @@ def make_path_relative(path, rel_to):
 def normalize_path(path):
     """
     Convert a path to its canonical, case-normalized, absolute version.
-    
+
     """
     return os.path.normcase(os.path.realpath(path))
 
@@ -287,12 +287,12 @@ def geturl(urllib2_resp):
     far as I know pip doesn't need any of those.
     """
     url = urllib2_resp.geturl()
-    i = url.find(':')+1
-    if url[i:].startswith('//'):
+    scheme, rest = url.split(':', 1)
+    if rest.startswith('//'):
         return url
     else:
-        return url[:i] + '//' + url[i:]
-    
+        return '%s//%s' % (scheme, rest)
+
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content)"""
@@ -345,7 +345,7 @@ def in_venv():
 
     """
     return hasattr(sys, 'real_prefix')
-        
+
 def is_local(path):
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
@@ -363,7 +363,7 @@ def dist_is_local(dist):
     (i.e. within current virtualenv).
 
     Always True if we're not in a virtualenv.
-    
+
     """
     return is_local(dist_location(dist))
 
@@ -393,7 +393,7 @@ def egg_link_path(dist):
     .egg-link and easy-install.pth files).
 
     This won't find a globally-installed develop egg if we're in a
-    virtualenv. 
+    virtualenv.
 
     """
     return os.path.join(site_packages, dist.project_name) + '.egg-link'

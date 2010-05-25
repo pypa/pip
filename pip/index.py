@@ -60,7 +60,7 @@ class PackageFinder(object):
             url = path_to_url2(path)
             if guess_type(url, strict=False)[0] == 'text/html':
                 urls.append(url)
-            else: 
+            else:
                 files.append(url)
 
         for url in locations:
@@ -69,9 +69,9 @@ class PackageFinder(object):
                 if os.path.isdir(path):
                     path = os.path.realpath(path)
                     for item in os.listdir(path):
-                        sort_path(os.path.join(path,item))
+                        sort_path(os.path.join(path, item))
                 elif os.path.isfile(path):
-                    sort_path(os.path.join(path,item))
+                    sort_path(os.path.join(path, item))
             else:
                 urls.append(url)
         return files, urls
@@ -387,7 +387,7 @@ class HTMLPage(object):
             try:
                 resp = urlopen(url)
             except IOError:
-                resp = urlopen(urllib.basejoin(url,'index.html'))
+                resp = urlopen(urllib.basejoin(url, 'index.html'))
 
             real_url = geturl(resp)
             headers = resp.info()
