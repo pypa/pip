@@ -194,10 +194,6 @@ def open_logfile(filename, mode='a'):
         os.makedirs(dirname)
     exists = os.path.exists(filename)
     
-    dir = os.path.dirname(filename)
-    if dir and not os.path.exists(dir):
-        os.makedirs(dir)
-        
     log_fp = open(filename, mode)
     if exists:
         print >> log_fp, '-'*60
