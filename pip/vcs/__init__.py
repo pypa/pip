@@ -75,16 +75,6 @@ class VcsSupport(object):
             return self.get_backend(vc_type)
         return None
 
-    def repositories(self, link):
-        """
-        Return an iterator over backend objects, one for each backend
-        type appropriate to link
-        """
-        for backend_class in vcs.backends:
-            if link.scheme in backend_class.schemes:
-                yield backend_class(link.url)
-        
-
 vcs = VcsSupport()
 
 

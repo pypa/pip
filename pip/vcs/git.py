@@ -51,20 +51,14 @@ class Git(VersionControl):
     def unpack(self, location):
         """Clone the Git repository at the url to the destination location"""
         url, rev = self.get_url_rev()
-            
         logger.notify('Cloning Git repository %s to %s' % (url, location))
         logger.indent += 2
         try:
             if os.path.exists(location):
                 os.rmdir(location)
-            if not rev:
-                rev = 'HEAD'
             call_subprocess(
-                [self.cmd, 'clone', '-n', url, location],
+                [self.cmd, 'clone', url, location],
                 filter_stdout=self._filter, show_stdout=False)
-            call_subprocess(
-                [self.cmd, 'checkout', '-b', rev],
-                    filter_stdout=self._filter, show_stdout=False, cwd=location)
         finally:
             logger.indent -= 2
 
@@ -141,31 +135,17 @@ class Git(VersionControl):
             [self.cmd, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_remote_refs(self, *ls_remote_args):
-        """
-        Return an iterator over triples (pipversion, ref, SHA1) for
-        each symbolic reference in the repository, where pipversion is
-        a version number in pip format, ref is the symbolic name for
-        that revision in the repository, and SHA1 is that revision's
-        immutable revision number.
-        """
-        url,rev = self.get_url_rev()
-        remote_refs = call_subprocess(
-            (self.cmd, 'ls-remote')+ ls_remote_args + (url,), show_stdout=False)
-
-        return ((ref.rsplit('/',1)[-1], ref, sha) for (sha,ref) in 
-                (line.strip().split() for line in remote_refs.splitlines() ))
-    
-    def get_tag_revs(self, location = None):
-        tag_revs = {}
+    def get_tag_revs(self, location):
         tags = call_subprocess(
             [self.cmd, 'tag', '-l'],
             show_stdout=False, raise_on_returncode=False, cwd=location)
+        tag_revs = []
         for line in tags.splitlines():
             tag = line.strip()
             rev = call_subprocess(
                 [self.cmd, 'rev-parse', tag], show_stdout=False, cwd=location)
-            tag_revs[rev.strip()] = tag
+            tag_revs.append((rev.strip(), tag))
+        tag_revs = dict(tag_revs)
         return tag_revs
 
     def get_branch_revs(self, location):

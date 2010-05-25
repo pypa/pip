@@ -974,12 +974,14 @@ class RequirementSet(object):
     def unpack_url(self, link, location, only_download=False):
         if only_download:
             location = self.download_dir
-        for repo in vcs.repositories(link):
-            if only_download:
-                repo.export(location)
-            else:
-                repo.unpack(location)
-            return
+        for backend in vcs.backends:
+            if link.scheme in backend.schemes:
+                vcs_backend = backend(link.url)
+                if only_download:
+                    vcs_backend.export(location)
+                else:
+                    vcs_backend.unpack(location)
+                return
         if link.url.lower().startswith('file:'):
             source = url_to_path(link.url)
             content_type = mimetypes.guess_type(source)[0]

@@ -249,17 +249,6 @@ class PackageFinder(object):
             if link.url in seen_links:
                 continue
             seen_links[link.url] = None
-
-            # First see if any VCS backends can handle it
-            from pip.vcs import vcs
-            for repo in vcs.repositories(link):
-                for version,ref,rev in repo.get_remote_refs():
-                    yield (pkg_resources.parse_version(version),
-                           Link(
-                            re.sub('($|[#?].*)', '@'+ref+r'\1', link.url), # inserting version
-                            link.comes_from),
-                           version)
-
             if link.egg_fragment:
                 egg_info = link.egg_fragment
             else:
