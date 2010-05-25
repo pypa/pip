@@ -1475,7 +1475,6 @@ class UninstallPathSet(object):
     def add_pth(self, pth_file, entry):
         pth_file = normalize_path(pth_file)
         if self._permitted(pth_file):
-            entry = os.path.normcase(entry)
             if pth_file not in self.pth:
                 self.pth[pth_file] = UninstallPthEntries(pth_file)
             self.pth[pth_file].add(entry)
@@ -1564,9 +1563,11 @@ class UninstallPthEntries(object):
         self._saved_lines = None
 
     def add(self, entry):
-        # On Windows, entries that describe absolute paths outside of
-        # site-packages are written with backslashes, but all the
-        # others use forward slashes.
+        entry = os.path.normcase(entry)
+        # On Windows, os.path.normcase converts the entry to use
+        # backslashes.  This is correct for entries that describe absolute
+        # paths outside of site-packages, but all the others use forward
+        # slashes.
         if sys.platform == 'win32' and not os.path.splitdrive(entry)[0]:
             entry = entry.replace('\\','/')
         self.entries.add(entry)
