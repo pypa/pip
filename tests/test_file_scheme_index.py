@@ -1,8 +1,7 @@
 from test_pip import here, reset_env, run_pip, pyversion
 from path import Path
-from urllib import pathname2url
 
-index_url = 'file://' + pathname2url(Path(here).abspath/'index')
+index_url = 'file://' + str(Path(here).abspath/'index').replace('\\', '/')
 
 def test_install():
     """
