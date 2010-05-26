@@ -5,7 +5,7 @@ import shutil
 from tempfile import mkdtemp, gettempdir
 from test_pip import create_virtualenv
 
-exe = '.EXE' if sys.platform == 'win32' else ''
+exe = sys.platform == 'win32' and '.EXE' or ''
 
 def rmtree(path):
     # From pathutils by Michael Foord: http://www.voidspace.org.uk/python/pathutils.html

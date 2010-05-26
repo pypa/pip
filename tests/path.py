@@ -12,7 +12,9 @@ class Path(_base):
   string = _base
 
   def __new__(cls, *paths):
-    return _base.__new__(cls, os.path.join(*paths) if len(paths) else '')
+    if len(paths):
+      return _base.__new__(cls, os.path.join(*paths))
+    return _base.__new__(cls)
 
   def __div__(self, path):
     """ Joins this path with another path. """

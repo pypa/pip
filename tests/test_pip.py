@@ -28,7 +28,7 @@ def create_virtualenv(where, distribute=False):
     
     try:
         import virtualenv
-        distribute_opt = ['--distribute'] if distribute else []
+        distribute_opt = distribute and ['--distribute'] or []
         sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--no-site-packages', '--unzip-setuptools', where]
         virtualenv.main()
     finally: 
@@ -164,7 +164,7 @@ class TestPipResult(object):
 
         if (pth_file in self.files_updated) == without_egg_link:
             raise TestFailure, '%r unexpectedly %supdated by install' % (
-                pth_file, ('' if without_egg_link else 'not '))
+                pth_file, (not without_egg_link and 'not ' or ''))
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
             raise TestFailure, textwrap.dedent('''\
@@ -173,7 +173,7 @@ class TestPipResult(object):
             %s
             ''') % (
                 Path.string(pkg_dir), 
-                ('not ' if curdir in without_files else ''), 
+                (curdir in without_files and 'not ' or ''), 
                 sorted(self.files_created.keys()))
 
         for f in with_files:
@@ -209,7 +209,7 @@ class TestPipEnvironment(TestFileEnvironment):
     # The root of a directory tree to be used arbitrarily by tests
     scratch = Path('scratch')
 
-    exe = '.exe' if sys.platform == 'win32' else ''
+    exe = sys.platform == 'win32' and '.exe' or ''
 
     verbose = False
 

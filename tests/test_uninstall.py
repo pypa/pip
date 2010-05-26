@@ -29,7 +29,7 @@ def test_uninstall_with_scripts():
     env = reset_env()
     result = env.run('easy_install', 'PyLogo')
     easy_install_pth = env.site_packages/ 'easy-install.pth'
-    pylogo = 'pylogo' if sys.platform == 'win32' else 'PyLogo'
+    pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
