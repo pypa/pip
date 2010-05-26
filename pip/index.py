@@ -384,10 +384,13 @@ class HTMLPage(object):
                                 cache.set_is_archive(url)
                             return None
             logger.debug('Getting page %s' % url)
-            try:
-                resp = urlopen(url)
-            except IOError:
-                resp = urlopen(urllib.basejoin(url, 'index.html'))
+            
+            # Tack index.html onto file:// URLs that point to directories
+            # normcase helpfully translates path separators for us on Windows
+            if url.startswith('file://') and os.path.isdir(os.path.normcase(url[7:])):
+                url = urllib.basejoin(url, 'index.html')
+
+            resp = urlopen(url)
 
             real_url = geturl(resp)
             headers = resp.info()
