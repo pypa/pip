@@ -348,7 +348,8 @@ def diff_states(start, end, ignore=None):
     def prefix_match(path, prefix):
         if path == prefix: 
             return True
-        return path.startswith(prefix) and path[len(prefix)] == os.path.sep
+        prefix = prefix.rstrip(os.path.sep) + os.path.sep
+        return path.startswith(prefix)
         
     start_keys = set([k for k in start.keys()
                       if not any([prefix_match(k, i) for i in ignore])])
