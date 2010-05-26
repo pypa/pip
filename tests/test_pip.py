@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os, sys, tempfile, shutil, glob, atexit, textwrap
+
 from path import *
+from scripttest import TestFileEnvironment
 
 pyversion = sys.version[:3]
 
@@ -18,10 +20,8 @@ def demand_dirs(path):
 demand_dirs(download_cache)
 
 # Tweak the path so we can find up-to-date pip sources
-# (http://bitbucket.org/ianb/pip/issue/98) and scripttest (because my
-# split_cmd patch hasn't been accepted/released yet).
-sys.path = [src, os.path.join(src, 'scripttest')] + sys.path
-from scripttest import TestFileEnvironment
+# (http://bitbucket.org/ianb/pip/issue/98)
+sys.path = [src] + sys.path
 
 def create_virtualenv(where, distribute=False):
     save_argv = sys.argv
