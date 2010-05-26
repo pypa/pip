@@ -71,7 +71,7 @@ class PackageFinder(object):
                     for item in os.listdir(path):
                         sort_path(os.path.join(path, item))
                 elif os.path.isfile(path):
-                    sort_path(os.path.join(path, item))
+                    sort_path(path)
             else:
                 urls.append(url)
         return files, urls
