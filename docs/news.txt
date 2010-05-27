@@ -1,6 +1,12 @@
 News for pip
 ============
 
+0.7.2
+-----
+
+* Set ``zip_safe=False`` to avoid problems some people are encountering
+  where pip gets installed as a zip file.
+
 0.7.1
 -----
 

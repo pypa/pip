@@ -2,7 +2,7 @@ import sys
 from setuptools import setup
 import os
 
-version = "0.7.1"
+version = "0.7.2"
 
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')
