@@ -17,6 +17,7 @@ from pip.log import logger
 from pip.util import Inf, path_to_url2, url_to_path, geturl
 from pip.util import normalize_name, splitext, urlopen
 from pip.exceptions import DistributionNotFound
+from pip.backwardcompat import WindowsError
 
 __all__ = ['PackageFinder']
 
