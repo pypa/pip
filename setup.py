@@ -1,16 +1,6 @@
 import sys
-force_setuptools = False
-for command in ('upload', 'develop', 'egg_info',):
-    if command in sys.argv:
-        force_setuptools = True
-if sys.platform == 'win32':
-    force_setuptools = True
-if force_setuptools:
-    from setuptools import setup
-else:
-    from distutils.core import setup
+from setuptools import setup
 import os
-
 
 version = "0.7.1"
 
@@ -23,11 +13,6 @@ the `in-development version <http://bitbucket.org/ianb/pip/get/tip.gz#egg=pip-de
 of pip with ``easy_install pip==dev``.
 """
 long_description = long_description + open(index_filename).read().split('split here', 1)[1]
-
-if sys.platform == 'win32':
-    kw = dict(entry_points=dict(console_scripts=['pip=pip:main']))
-else:
-    kw = dict(scripts=['scripts/pip'])
 
 setup(name='pip',
       version=version,
@@ -46,4 +31,6 @@ setup(name='pip',
       url='http://pip.openplans.org',
       license='MIT',
       packages=['pip', 'pip.commands', 'pip.vcs'],
-      **kw)
+      entry_points=dict(console_scripts=['pip=pip:main']),
+      zip_safe=False
+      )
