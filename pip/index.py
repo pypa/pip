@@ -399,7 +399,7 @@ class HTMLPage(object):
             real_url = geturl(resp)
             headers = resp.info()
             inst = cls(resp.read(), real_url, headers)
-        except (urllib2.HTTPError, urllib2.URLError, socket.timeout, socket.error), e:
+        except (urllib2.HTTPError, urllib2.URLError, socket.timeout, socket.error, WindowsError), e:
             desc = str(e)
             if isinstance(e, socket.timeout):
                 log_meth = logger.info
