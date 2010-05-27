@@ -386,8 +386,8 @@ class HTMLPage(object):
             logger.debug('Getting page %s' % url)
             
             # Tack index.html onto file:// URLs that point to directories
-            # normcase helpfully translates path separators for us on Windows
-            if url.startswith('file://') and os.path.isdir(os.path.normcase(url[7:])):
+            (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
+            if scheme == 'file' and os.path.isdir(urllib.url2pathname(path)):
                 url = urllib.basejoin(url, 'index.html')
 
             resp = urlopen(url)
