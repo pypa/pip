@@ -6,6 +6,9 @@ tip
 
 * Real Windows support (with passing tests). Thanks Dave Abrahams.
 
+* Set zip_safe=False to avoid problems some people are encountering where
+  pip is installed as a zip file.
+
 0.7.1
 -----
 
