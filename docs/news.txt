@@ -1,6 +1,11 @@
 News for pip
 ============
 
+tip
+---
+
+* Real Windows support (with passing tests). Thanks Dave Abrahams.
+
 0.7.1
 -----
 
