@@ -4,6 +4,11 @@ News for pip
 tip
 ---
 
+* Pip now accepts file:// index URLs. Thanks Dave Abrahams.
+
+* Various cleanup to make test-running more consistent and less fragile.
+  Thanks Dave Abrahams.
+
 * Real Windows support (with passing tests). Thanks Dave Abrahams.
 
 * Set zip_safe=False to avoid problems some people are encountering where
