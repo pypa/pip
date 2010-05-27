@@ -388,7 +388,11 @@ class HTMLPage(object):
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
             if scheme == 'file' and os.path.isdir(urllib.url2pathname(path)):
+                # add trailing slash if not present so urljoin doesn't trim final segment
+                if not url.endswith('/'):
+                    url += '/'
                 url = urlparse.urljoin(url, 'index.html')
+                logger.debug(' file: URL is directory, getting %s' % url)
 
             resp = urlopen(url)
 
