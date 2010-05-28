@@ -18,7 +18,7 @@ Introduction
 
 pip installs packages.  Python packages.
 
-If you use `virtualenv <http://virtualenv.openplans.org>`_ -- a tool
+If you use `virtualenv <http://virtualenv.openplans.org>`__ -- a tool
 for installing libraries in a local and isolated manner -- you'll
 automatically get a copy of pip.  Free bonus!
 
@@ -83,7 +83,7 @@ pip is meant to improve on easy_install.  Some of the improvements:
   set of packages.
 
 pip is complementary with `virtualenv
-<http://pypi.python.org/pypi/virtualenv>`_, and it is encouraged that you use
+<http://pypi.python.org/pypi/virtualenv>`__, and it is encouraged that you use
 virtualenv to isolate your installation.
 
 Community
@@ -243,7 +243,7 @@ Using pip with virtualenv
 -------------------------
 
 pip is most nutritious when used with `virtualenv
-<http://pypi.python.org/pypi/virtualenv>`_.  One of the reasons pip
+<http://pypi.python.org/pypi/virtualenv>`__.  One of the reasons pip
 doesn't install "multi-version" eggs is that virtualenv removes much of the need
 for it.  Because pip is installed by virtualenv, just use
 ``path/to/my/environment/bin/pip`` to install things into that
