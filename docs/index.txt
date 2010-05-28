@@ -1,10 +1,7 @@
 pip
 ===
 
-pip installs Python packages.  It is a replacement for
-``easy_install``.  Documentation follows; to download `visit the PyPI
-entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
-<http://bitbucket.org/ianb/pip/>`_).
+pip installs Python packages.
 
 .. toctree::
    :maxdepth: 1
@@ -18,6 +15,42 @@ entry <http://pypi.python.org/pypi/pip>`_ (or the `repository
 
 Introduction
 ------------
+
+pip installs packages.  Python packages.
+
+If you use `virtualenv <http://virtualenv.openplans.org>`_ -- a tool
+for installing libraries in a local and isolated manner -- you'll
+automatically get a copy of pip.  Free bonus!
+
+Once you have pip, you can use it like this::
+
+    $ pip install SomePackage
+
+SomePackage is some package you'll find on `PyPI
+<http://pypi.python.org/pypi/>`_.  This installs the package and all
+its dependencies.
+
+pip does other stuff too, with packages, but install is the biggest
+one.  You can ``pip uninstall`` too.
+
+You can also install from a URL (that points to a tar or zip file),
+install from some version control system (use URLs like
+``hg+http://domain/repo`` -- or prefix ``git+``, ``svn+`` etc).  pip
+knows a bunch of stuff about revisions and stuff, so if you need to do
+things like install a very specific revision from a repository pip can
+do that too.
+
+If you've ever used ``python setup.py develop``, you can do something
+like that with ``pip install -e ./`` -- this works with packages that
+use ``distutils`` too (usually this only works with Setuptools
+projects).
+
+You can use ``pip install --upgrade SomePackage`` to upgrade to a
+newer version, or ``pip install SomePackage==1.0.4`` to install a very
+specific version.
+
+Pip Compared To easy_install
+----------------------------
 
 pip is a replacement for `easy_install
 <http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It uses mostly the
@@ -212,26 +245,9 @@ Using pip with virtualenv
 pip is most nutritious when used with `virtualenv
 <http://pypi.python.org/pypi/virtualenv>`_.  One of the reasons pip
 doesn't install "multi-version" eggs is that virtualenv removes much of the need
-for it.
-
-pip does not have to be installed to use it, you can run ``python
-path/to/pip.py`` and it will work.  This is intended to avoid the
-bootstrapping problem of installation.  You can also run pip inside
-any virtualenv environment, like::
-
-    $ virtualenv new-env/
-    ... creates new-env/ ...
-    $ pip install -E new-env/ MyPackage
-
-This is exactly equivalent to::
-
-    $ ./new-env/bin/python path/to/pip.py install MyPackage
-
-Except, if you have ``virtualenv`` installed and the path ``new-env/``
-doesn't exist, then a new virtualenv will be created.
-
-pip also has two advanced features for working with virtualenvs -- both of
-which activated by defining a variable in your environment.
+for it.  Because pip is installed by virtualenv, just use
+``path/to/my/environment/bin/pip`` to install things into that
+specific environment.
 
 To tell pip to only run if there is a virtualenv currently activated,
 and to bail if not, use::
