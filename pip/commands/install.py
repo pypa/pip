@@ -123,6 +123,14 @@ class InstallCommand(Command):
             "Use multiple --install-option options to pass multiple options to setup.py install.  "
             "If you are using an option with a directory path, be sure to use absolute path.")
 
+        self.parser.add_option(
+            '--global-option',
+            dest='global_options',
+            action='append',
+            help="Extra global options to be supplied to the setup.py"
+            "call before the install command"
+        )
+
     def run(self, options, args):
         if not options.build_dir:
             options.build_dir = build_prefix
@@ -134,6 +142,7 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        global_options = options.global_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
@@ -163,7 +172,7 @@ class InstallCommand(Command):
         else:
             requirement_set.locate_files()
         if not options.no_install and not self.bundle:
-            requirement_set.install(install_options)
+            requirement_set.install(install_options, global_options)
             installed = ' '.join([req.name for req in
                                   requirement_set.successfully_installed])
             if installed:

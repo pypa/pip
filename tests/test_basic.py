@@ -250,3 +250,15 @@ def test_install_pardir():
     result = run_pip('install', pardir, cwd=run_from, expect_error=False)
     assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
     assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+
+
+def test_install_global_option():
+    """
+    test using global distutils options.
+
+    in particular those that disable the actual install action\
+
+    """
+    reset_env()
+    result = run_pip('install', '--global-option=--version', "INITools==0.1")
+    assert '0.1\n' in result.stdout

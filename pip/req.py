@@ -517,7 +517,7 @@ execfile(__file__)
         name = name.replace(os.path.sep, '/')
         return name
 
-    def install(self, install_options):
+    def install(self, install_options, global_options=()):
         if self.editable:
             self.install_editable()
             return
@@ -525,9 +525,14 @@ execfile(__file__)
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
 
-            install_args = [sys.executable, '-c',
-                            "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
-                            'install', '--single-version-externally-managed', '--record', record_filename]
+            install_args = [
+                sys.executable, '-c',
+                "import setuptools;__file__=%r;execfile(__file__)" % self.setup_py
+            ] + list(global_options) + [
+                'install',
+                '--single-version-externally-managed',
+                '--record', record_filename,
+            ]
 
             if in_venv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -542,6 +547,9 @@ execfile(__file__)
                     cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
             finally:
                 logger.indent -= 2
+            if not os.path.exists(record_filename):
+                logger.notify('Record file %s not found' % record_filename)
+                return
             self.install_succeeded = True
             f = open(record_filename)
             for line in f:
@@ -1224,7 +1232,7 @@ class RequirementSet(object):
         finally:
             tar.close()
 
-    def install(self, install_options):
+    def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = sorted([r for r in self.requirements.values()
                              if self.upgrade or not r.satisfied_by],
@@ -1243,7 +1251,7 @@ class RequirementSet(object):
                     finally:
                         logger.indent -= 2
                 try:
-                    requirement.install(install_options)
+                    requirement.install(install_options, global_options)
                 except:
                     # if install did not succeed, rollback previous uninstall
                     if requirement.conflicts_with and not requirement.install_succeeded:
