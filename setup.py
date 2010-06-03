@@ -32,4 +32,6 @@ setup(name='pip',
       license='MIT',
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main']),
+      test_suite='nose.collector',
+      tests_require=['nose', 'virtualenv', 'scripttest'],
       zip_safe=False)
