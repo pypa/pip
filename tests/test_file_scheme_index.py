@@ -1,9 +1,8 @@
-import urllib2
-
+import urllib
 from test_pip import here, reset_env, run_pip, pyversion
 from path import Path
 
-index_url = 'file://' + urllib2.quote(str(Path(here).abspath/'in dex').replace('\\', '/'))
+index_url = 'file://' + urllib.quote(str(Path(here).abspath/'in dex').replace('\\', '/'))
 
 
 def test_install():

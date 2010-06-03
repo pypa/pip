@@ -27,7 +27,7 @@ from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
 from pip.util import in_venv, geturl
 from pip import call_subprocess
-from pip.backwardcompat import any, md5
+from pip.backwardcompat import any, md5, copytree
 from pip.index import Link
 
 
@@ -978,8 +978,7 @@ class RequirementSet(object):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
         logger.info("Copying %s to %s" %(req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
-        shutil.copytree(req_to_install.source_dir, dest)
-        shutil.copymode(req_to_install.source_dir, dest)
+        copytree(req_to_install.source_dir, dest)
         call_subprocess(["python", "%s/setup.py"%dest, "clean"])
 
     def unpack_url(self, link, location, only_download=False):
@@ -1000,7 +999,7 @@ class RequirementSet(object):
                 # delete the location since shutil will create it again :(
                 if os.path.isdir(location):
                     shutil.rmtree(location)
-                shutil.copytree(source, location)
+                copytree(source, location)
             else:
                 self.unpack_file(source, location, content_type, link)
             return
