@@ -527,12 +527,12 @@ execfile(__file__)
 
             install_args = [
                 sys.executable, '-c',
-                "import setuptools;__file__=%r;execfile(__file__)" % self.setup_py
-            ] + list(global_options) + [
+                "import setuptools;__file__=%r;"\
+                "execfile(__file__)" % self.setup_py] +\
+                list(global_options) + [
                 'install',
                 '--single-version-externally-managed',
-                '--record', record_filename,
-            ]
+                '--record', record_filename]
 
             if in_venv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not

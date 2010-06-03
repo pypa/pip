@@ -128,8 +128,7 @@ class InstallCommand(Command):
             dest='global_options',
             action='append',
             help="Extra global options to be supplied to the setup.py"
-            "call before the install command"
-        )
+            "call before the install command")
 
     def run(self, options, args):
         if not options.build_dir:
