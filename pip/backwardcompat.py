@@ -27,7 +27,7 @@ except NameError:
 
 
 def copytree(src, dst):
-    if sys.version_info < ('2', '5'):
+    if sys.version_info < (2, 5):
         before_last_dir = os.path.dirname(dst)
         if not os.path.exists(before_last_dir):
             os.makedirs(before_last_dir)
