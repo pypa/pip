@@ -5,6 +5,7 @@ from path import Path
 
 index_url = 'file://' + urllib2.quote(str(Path(here).abspath/'in dex').replace('\\', '/'))
 
+
 def test_install():
     """
     Test installing from a local index.

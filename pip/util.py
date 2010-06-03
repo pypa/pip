@@ -23,9 +23,11 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'get_file_content', 'renames', 'get_terminal_size']
 
+
 def rmtree(dir):
     shutil.rmtree(dir, ignore_errors=True,
                   onerror=rmtree_errorhandler)
+
 
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
@@ -43,6 +45,7 @@ def rmtree_errorhandler(func, path, exc_info):
     # use the original function to repeat the operation
     func(path)
 
+
 def display_path(path):
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
@@ -50,6 +53,7 @@ def display_path(path):
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]
     return path
+
 
 def backup_dir(dir, ext='.bak'):
     """Figure out the name of a directory to back up the given dir to
@@ -61,6 +65,7 @@ def backup_dir(dir, ext='.bak'):
         extension = ext + str(n)
     return dir + extension
 
+
 def splitext(path):
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
@@ -68,6 +73,7 @@ def splitext(path):
         ext = base[-4:] + ext
         base = base[:-4]
     return base, ext
+
 
 def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
@@ -95,6 +101,7 @@ def find_command(cmd, paths=None, pathext=None):
             return cmd_path
     return None
 
+
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
     while 1:
@@ -108,14 +115,17 @@ def ask(message, options):
         else:
             return response
 
+
 class _Inf(object):
     """I am bigger than everything!"""
     def __cmp__(self, a):
         if self is a:
             return 0
         return 1
+
     def __repr__(self):
         return 'Inf'
+
 Inf = _Inf()
 del _Inf
 
@@ -134,8 +144,10 @@ def url_to_path(url):
         path = '/' + path
     return path
 
+
 _drive_re = re.compile('^([a-z]):', re.I)
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
+
 
 def path_to_url(path):
     """
@@ -148,6 +160,7 @@ def path_to_url(path):
     url = url.replace(os.path.sep, '/')
     url = url.lstrip('/')
     return 'file:///' + url
+
 
 def path_to_url2(path):
     """
@@ -162,10 +175,13 @@ def path_to_url2(path):
         url = url.lstrip('/')
     return 'file:///' + drive + url
 
+
 _normalize_re = re.compile(r'[^a-z]', re.I)
+
 
 def normalize_name(name):
     return _normalize_re.sub('-', name.lower())
+
 
 def format_size(bytes):
     if bytes > 1000*1000:
@@ -177,6 +193,7 @@ def format_size(bytes):
     else:
         return '%ibytes' % bytes
 
+
 def is_url(name):
     """Returns true if the name looks like a URL"""
     from pip.vcs import vcs
@@ -184,6 +201,7 @@ def is_url(name):
         return False
     scheme = name.split(':', 1)[0].lower()
     return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+
 
 def is_installable_dir(path):
     """Return True if `path` is a directory containing a setup.py file."""
@@ -194,6 +212,7 @@ def is_installable_dir(path):
         return True
     return False
 
+
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
     archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
@@ -202,10 +221,12 @@ def is_archive_file(name):
         return True
     return False
 
+
 def is_svn_page(html):
     """Returns true if the page appears to be the index page of an svn repository"""
     return (re.search(r'<title>[^<]*Revision \d+:', html)
             and re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
+
 
 def file_contents(filename):
     fp = open(filename, 'rb')
@@ -213,6 +234,7 @@ def file_contents(filename):
         return fp.read()
     finally:
         fp.close()
+
 
 def split_leading_dir(path):
     path = str(path)
@@ -224,6 +246,7 @@ def split_leading_dir(path):
         return path.split('\\', 1)
     else:
         return path, ''
+
 
 def has_leading_dir(paths):
     """Returns true if all the paths have the same leading path name
@@ -238,6 +261,7 @@ def has_leading_dir(paths):
         elif prefix != common_prefix:
             return False
     return True
+
 
 def make_path_relative(path, rel_to):
     """
@@ -267,6 +291,7 @@ def make_path_relative(path, rel_to):
         return '.' + os.path.sep
     return os.path.sep.join(full_parts)
 
+
 def normalize_path(path):
     """
     Convert a path to its canonical, case-normalized, absolute version.
@@ -274,8 +299,10 @@ def normalize_path(path):
     """
     return os.path.normcase(os.path.realpath(path))
 
+
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+
 
 def geturl(urllib2_resp):
     """
@@ -292,6 +319,7 @@ def geturl(urllib2_resp):
         return url
     else:
         return '%s//%s' % (scheme, rest)
+
 
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
@@ -323,6 +351,7 @@ def get_file_content(url, comes_from=None):
     f.close()
     return url, content
 
+
 def renames(old, new):
     """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
@@ -339,12 +368,14 @@ def renames(old, new):
         except OSError:
             pass
 
+
 def in_venv():
     """
     Return True if we're running inside a virtualenv, False otherwise.
 
     """
     return hasattr(sys, 'real_prefix')
+
 
 def is_local(path):
     """
@@ -357,6 +388,7 @@ def is_local(path):
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 
+
 def dist_is_local(dist):
     """
     Return True if given Distribution object is installed locally
@@ -366,6 +398,7 @@ def dist_is_local(dist):
 
     """
     return is_local(dist_location(dist))
+
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
@@ -385,6 +418,7 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
         local_test = lambda d: True
     return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
 
+
 def egg_link_path(dist):
     """
     Return the path where we'd expect to find a .egg-link file for
@@ -397,6 +431,7 @@ def egg_link_path(dist):
 
     """
     return os.path.join(site_packages, dist.project_name) + '.egg-link'
+
 
 def dist_location(dist):
     """
@@ -411,12 +446,15 @@ def dist_location(dist):
         return egg_link
     return dist.location
 
+
 def get_terminal_size():
     """Returns a tuple (x, y) representing the width(x) and the height(x)
     in characters of the terminal window."""
     def ioctl_GWINSZ(fd):
         try:
-            import fcntl, termios, struct
+            import fcntl
+            import termios
+            import struct
             cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
         '1234'))
         except:
@@ -434,9 +472,10 @@ def get_terminal_size():
         cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
     return int(cr[1]), int(cr[0])
 
+
 # Insurance against "creative" interpretation of the RFC:
 # http://bugs.python.org/issue8732
 def urlopen(url):
     if isinstance(url, basestring):
-        url = urllib2.Request(url, headers={'Accept-encoding':'identity'})
+        url = urllib2.Request(url, headers={'Accept-encoding': 'identity'})
     return urllib2.urlopen(url)

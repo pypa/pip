@@ -9,6 +9,7 @@ from pip.log import logger
 from pip.exceptions import InstallationError
 from pip.basecommand import Command
 
+
 class ZipCommand(Command):
     name = 'zip'
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
@@ -263,7 +264,7 @@ class ZipCommand(Command):
             if not os.path.isdir(path) and zipfile.is_zipfile(path):
                 zip = zipfile.ZipFile(path, 'r')
                 try:
-                    zip.read(os.path.join(package,'__init__.py'))
+                    zip.read(os.path.join(package, '__init__.py'))
                 except KeyError:
                     pass
                 else:
@@ -340,5 +341,6 @@ class ZipCommand(Command):
                          if not f.lower().endswith('.pyc')]
             total += len(filenames)
         return total
+
 
 ZipCommand()

@@ -3,10 +3,11 @@ import os
 import textwrap
 from test_pip import reset_env, run_pip, write_file, pyversion
 
+
 def test_requirements_file():
     """
     Test installing from a requirements file.
-    
+
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
@@ -20,10 +21,11 @@ def test_requirements_file():
     assert result.files_created[env.site_packages/'simplejson'].dir
     assert result.files_created[env.site_packages/'simplejson-1.7.4-py%s.egg-info' % pyversion].dir
 
+
 def test_multiple_requirements_files():
     """
     Test installing from multiple nested requirements files.
-    
+
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\

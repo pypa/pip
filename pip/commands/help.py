@@ -2,6 +2,7 @@ from pip.basecommand import Command, command_dict, load_all_commands
 from pip.exceptions import InstallationError
 from pip.baseparser import parser
 
+
 class HelpCommand(Command):
     name = 'help'
     usage = '%prog'
@@ -26,5 +27,6 @@ class HelpCommand(Command):
             if command.hidden:
                 continue
             print '  %s: %s' % (command.name, command.summary)
+
 
 HelpCommand()

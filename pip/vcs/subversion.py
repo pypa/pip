@@ -11,6 +11,7 @@ _svn_rev_re = re.compile('committed-rev="(\d+)"')
 _svn_url_re = re.compile(r'URL: (.+)')
 _svn_revision_re = re.compile(r'Revision: (.+)')
 
+
 class Subversion(VersionControl):
     name = 'svn'
     dirname = '.svn'
@@ -140,7 +141,7 @@ class Subversion(VersionControl):
             f.close()
 
             if data.startswith('8') or data.startswith('9') or data.startswith('10'):
-                data = map(str.splitlines,data.split('\n\x0c\n'))
+                data = map(str.splitlines, data.split('\n\x0c\n'))
                 del data[0][0]  # get rid of the '8'
                 dirurl = data[0][3]
                 revs = [int(d[9]) for d in data if len(d)>9 and d[9]]+[0]
@@ -190,7 +191,7 @@ class Subversion(VersionControl):
         data = f.read()
         f.close()
         if data.startswith('8') or data.startswith('9') or data.startswith('10'):
-            data = map(str.splitlines,data.split('\n\x0c\n'))
+            data = map(str.splitlines, data.split('\n\x0c\n'))
             del data[0][0]  # get rid of the '8'
             return data[0][3]
         elif data.startswith('<?xml'):

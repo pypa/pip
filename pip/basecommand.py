@@ -18,10 +18,12 @@ __all__ = ['command_dict', 'Command', 'load_all_commands',
 
 command_dict = {}
 
+
 class Command(object):
     name = None
     usage = None
     hidden = False
+
     def __init__(self):
         assert self.name
         self.parser = ConfigOptionParser(
@@ -48,7 +50,7 @@ class Command(object):
 
     def setup_logging(self):
         pass
-        
+
     def main(self, complete_args, args, initial_options):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
@@ -65,7 +67,7 @@ class Command(object):
             logger.explicit_levels = True
 
         self.setup_logging()
-            
+
         if options.require_venv and not options.venv:
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
@@ -141,6 +143,7 @@ class Command(object):
             log_fp.close()
         return exit
 
+
 ## FIXME: should get moved somewhere else:
 def setup_proxy_handler(proxystr=''):
     """Set the proxy handler given the option passed on the command
@@ -151,6 +154,7 @@ def setup_proxy_handler(proxystr=''):
         proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
         opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
         urllib2.install_opener(opener)
+
 
 def get_proxy(proxystr=''):
     """Get the proxy given the option passed on the command line.  If an
@@ -174,12 +178,14 @@ def get_proxy(proxystr=''):
     else:
         return None
 
+
 def format_exc(exc_info=None):
     if exc_info is None:
         exc_info = sys.exc_info()
     out = StringIO()
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
+
 
 def open_logfile(filename, mode='a'):
     """Open the named log file in append mode.
@@ -193,12 +199,13 @@ def open_logfile(filename, mode='a'):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     exists = os.path.exists(filename)
-    
+
     log_fp = open(filename, mode)
     if exists:
         print >> log_fp, '-'*60
         print >> log_fp, '%s run on %s' % (sys.argv[0], time.strftime('%c'))
     return log_fp
+
 
 def load_command(name):
     full_name = 'pip.commands.%s' % name
@@ -209,9 +216,11 @@ def load_command(name):
     except ImportError:
         pass
 
+
 def load_all_commands():
     for name in command_names():
         load_command(name)
+
 
 def command_names():
     dir = os.path.join(os.path.dirname(__file__), 'commands')

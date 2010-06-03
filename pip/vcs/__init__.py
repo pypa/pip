@@ -10,6 +10,7 @@ from pip.log import logger
 
 __all__ = ['vcs', 'get_source_requirement', 'import_vcs_support']
 
+
 class VcsSupport(object):
     _registry = {}
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
@@ -75,8 +76,8 @@ class VcsSupport(object):
             return self.get_backend(vc_type)
         return None
 
-vcs = VcsSupport()
 
+vcs = VcsSupport()
 
 
 class VersionControl(object):
@@ -218,12 +219,14 @@ class VersionControl(object):
     def get_src_requirement(self, dist, location, find_tags=False):
         raise NotImplementedError
 
+
 def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         return version_control().get_src_requirement(dist, location, find_tags)
     logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
     return dist.as_requirement()
+
 
 def import_vcs_support():
     # Import all the version control support modules:

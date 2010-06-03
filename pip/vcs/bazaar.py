@@ -7,6 +7,7 @@ from pip.log import logger
 from pip.util import rmtree, display_path
 from pip.vcs import vcs, VersionControl
 
+
 class Bazaar(VersionControl):
     name = 'bzr'
     dirname = '.bzr'
@@ -129,5 +130,6 @@ class Bazaar(VersionControl):
         else:
             full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+
 
 vcs.register(Bazaar)

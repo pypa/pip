@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-import os, sys, tempfile, shutil, glob, atexit, textwrap
+import os
+import sys
+import tempfile
+import shutil
+import glob
+import atexit
+import textwrap
 
 from path import *
 from scripttest import TestFileEnvironment
@@ -10,31 +16,34 @@ pyversion = sys.version[:3]
 here = Path(__file__).abspath.folder
 
 # the root of this pip source distribution
-src = os.path.dirname(here) 
+src = os.path.dirname(here)
 download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
 
+
 def demand_dirs(path):
-    if not os.path.exists(path): 
+    if not os.path.exists(path):
         os.makedirs(path)
-    
+
 demand_dirs(download_cache)
 
 # Tweak the path so we can find up-to-date pip sources
 # (http://bitbucket.org/ianb/pip/issue/98)
 sys.path = [src] + sys.path
 
+
 def create_virtualenv(where, distribute=False):
     save_argv = sys.argv
-    
+
     try:
         import virtualenv
         distribute_opt = distribute and ['--distribute'] or []
         sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--no-site-packages', '--unzip-setuptools', where]
         virtualenv.main()
-    finally: 
+    finally:
         sys.argv = save_argv
 
     return virtualenv.path_locations(where)
+
 
 def relpath(root, other):
     """a poor man's os.path.relpath, since we may not have Python 2.6"""
@@ -45,6 +54,7 @@ def relpath(root, other):
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
+
 try:
     any
 except NameError:
@@ -54,16 +64,18 @@ except NameError:
                 return True
         return False
 
+
 def clear_environ(environ):
     return dict(((k, v) for k, v in environ.iteritems()
                 if not k.lower().startswith('pip_')))
+
 
 def install_setuptools(env):
     easy_install = os.path.join(env.bin_path, 'easy_install')
     version = 'setuptools==0.6c11'
     if sys.platform != 'win32':
         return env.run(easy_install, version)
-    
+
     tempdir = tempfile.mkdtemp()
     try:
         for f in glob.glob(easy_install+'*'):
@@ -72,17 +84,19 @@ def install_setuptools(env):
     finally:
         shutil.rmtree(tempdir)
 
-def reset_env(environ = None):
+
+def reset_env(environ=None):
     global env
     env = TestPipEnvironment(environ)
-    
+
     return env
 
 env = None
 
+
 class TestFailure(AssertionError):
     """
-    
+
     An "assertion" failed during testing.
 
     """
@@ -101,11 +115,12 @@ def _cleanup():
 
 atexit.register(_cleanup)
 
+
 class TestPipResult(object):
 
     def __init__(self, impl, verbose=False):
         self._impl = impl
-        
+
         if verbose:
             print self.stdout
             if self.stderr:
@@ -114,7 +129,7 @@ class TestPipResult(object):
                 print '======================='
 
     def __getattr__(self, attr):
-        return getattr(self._impl,attr)
+        return getattr(self._impl, attr)
 
     if sys.platform == 'win32':
         @property
@@ -124,9 +139,9 @@ class TestPipResult(object):
         @property
         def stderr(self):
             return self._impl.stderr.replace('\r\n', '\n')
-            
+
         def __str__(self):
-            return str(self._impl).replace('\r\n','\n')
+            return str(self._impl).replace('\r\n', '\n')
     else:
         # Python doesn't automatically forward __str__ through __getattr__
         def __str__(self):
@@ -140,49 +155,54 @@ class TestPipResult(object):
         egg_link_path = e.site_packages / pkg_name + '.egg-link'
         if without_egg_link:
             if egg_link_path in self.files_created:
-                raise TestFailure, 'unexpected egg link file created: %r\n%s' % (egg_link_path, self)
+                raise TestFailure('unexpected egg link file created: '\
+                                  '%r\n%s' % (egg_link_path, self))
         else:
             if not egg_link_path in self.files_created:
-                raise TestFailure, 'expected egg link file missing: %r\n%s' % (egg_link_path, self)
+                raise TestFailure('expected egg link file missing: '\
+                                  '%r\n%s' % (egg_link_path, self))
 
             egg_link_file = self.files_created[egg_link_path]
 
             if not (# FIXME: I don't understand why there's a trailing . here
                     egg_link_file.bytes.endswith('.')
                 and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
-                raise TestFailure, textwrap.dedent(u'''\
+                raise TestFailure(textwrap.dedent(u'''\
                 Incorrect egg_link file %r
                 Expected ending: %r
                 ------- Actual contents -------
                 %s
                 -------------------------------''' % (
-                        egg_link_file, 
+                        egg_link_file,
                         pkg_dir + u'\n.',
-                        egg_link_file.bytes))
+                        egg_link_file.bytes)))
 
         pth_file = Path.string(e.site_packages / 'easy-install.pth')
 
         if (pth_file in self.files_updated) == without_egg_link:
-            raise TestFailure, '%r unexpectedly %supdated by install' % (
-                pth_file, (not without_egg_link and 'not ' or ''))
+            raise TestFailure('%r unexpectedly %supdated by install' % (
+                pth_file, (not without_egg_link and 'not ' or '')))
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
-            raise TestFailure, textwrap.dedent('''\
+            raise TestFailure(textwrap.dedent('''\
             expected package directory %r %sto be created
             actually created:
             %s
             ''') % (
-                Path.string(pkg_dir), 
-                (curdir in without_files and 'not ' or ''), 
-                sorted(self.files_created.keys()))
+                Path.string(pkg_dir),
+                (curdir in without_files and 'not ' or ''),
+                sorted(self.files_created.keys())))
 
         for f in with_files:
             if not (pkg_dir/f).normpath in self.files_created:
-                raise TestFailure, 'Package directory %r missing expected content %f' % (pkg_dir,f)
+                raise TestFailure('Package directory %r missing '\
+                                  'expected content %f' % (pkg_dir, f))
 
         for f in without_files:
             if (pkg_dir/f).normpath in self.files_created:
-                raise TestFailure, 'Package directory %r has unexpected content %f' % (pkg_dir,f)
+                raise TestFailure('Package directory %r has '\
+                                  'unexpected content %f' % (pkg_dir, f))
+
 
 class TestPipEnvironment(TestFileEnvironment):
     """A specialized TestFileEnvironment for testing pip"""
@@ -190,7 +210,7 @@ class TestPipEnvironment(TestFileEnvironment):
     #
     # Attribute naming convention
     # ---------------------------
-    # 
+    #
     # Instances of this class have many attributes representing paths
     # in the filesystem.  To keep things straight, absolute paths have
     # a name of the form xxxx_path and relative paths have a name that
@@ -204,7 +224,7 @@ class TestPipEnvironment(TestFileEnvironment):
     #
     # Named with a leading dot to reduce the chance of spurious
     # results due to being mistaken for the virtualenv package.
-    venv = Path('.virtualenv') 
+    venv = Path('.virtualenv')
 
     # The root of a directory tree to be used arbitrarily by tests
     scratch = Path('scratch')
@@ -214,10 +234,10 @@ class TestPipEnvironment(TestFileEnvironment):
     verbose = False
 
     def __init__(self, environ=None):
-        
+
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
-        # We will set up a virtual environment at root_path.  
+        # We will set up a virtual environment at root_path.
         self.scratch_path = self.root_path / self.scratch
 
         self.venv_path = self.root_path / self.venv
@@ -230,11 +250,10 @@ class TestPipEnvironment(TestFileEnvironment):
         environ['PIP_NO_INPUT'] = '1'
         environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
 
-        super(TestPipEnvironment,self).__init__(
-            self.root_path, ignore_hidden=False, 
+        super(TestPipEnvironment, self).__init__(
+            self.root_path, ignore_hidden=False,
             environ=environ, split_cmd=False, start_clear=False,
-            cwd=self.scratch_path, capture_temp=True, assert_no_temp=True
-            )
+            cwd=self.scratch_path, capture_temp=True, assert_no_temp=True)
 
         demand_dirs(self.venv_path)
         demand_dirs(self.scratch_path)
@@ -246,16 +265,16 @@ class TestPipEnvironment(TestFileEnvironment):
 
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
-        for id,path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+        for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
             setattr(self, id+'_path', Path(path))
-            setattr(self, id, relpath(self.root_path,path))
-            
+            setattr(self, id, relpath(self.root_path, path))
+
         assert self.venv == TestPipEnvironment.venv # sanity check
 
         self.site_packages = self.lib/'site-packages'
 
         # put the test-scratch virtualenv's bin dir first on the PATH
-        self.environ['PATH'] = Path.pathsep.join( (self.bin_path, self.environ['PATH']) )
+        self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         # test that test-scratch virtualenv creation produced sensible venv python
         result = self.run('python', '-c', 'import sys; print sys.executable')
@@ -263,7 +282,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         if Path(pythonbin).noext != self.bin_path/'python':
             raise RuntimeError(
-                "Oops! 'python' in our test environment runs %r" 
+                "Oops! 'python' in our test environment runs %r"
                 " rather than expected %r" % (pythonbin, self.bin_path/'python'))
 
         # make sure we have current setuptools to avoid svn incompatibilities
@@ -273,8 +292,8 @@ class TestPipEnvironment(TestFileEnvironment):
         # Uninstall whatever version of pip came with the virtualenv.
         # Earlier versions of pip were incapable of
         # self-uninstallation on Windows, so we use the one we're testing.
-        self.run('python', '-c', 
-                 'import sys;sys.path.insert(0, %r);import pip;sys.exit(pip.main());' % os.path.dirname(here), 
+        self.run('python', '-c',
+                 'import sys;sys.path.insert(0, %r);import pip;sys.exit(pip.main());' % os.path.dirname(here),
                  'uninstall', '-vvv', '-y', 'pip')
 
         # Install this version instead
@@ -284,21 +303,23 @@ class TestPipEnvironment(TestFileEnvironment):
         if self.verbose:
             print '>> running', args, kw
         cwd = kw.pop('cwd', None)
-        run_from = kw.pop('run_from',None)
+        run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = Path.string(cwd or run_from or self.cwd)
-        assert not isinstance(cwd,Path)
-        return TestPipResult( super(TestPipEnvironment,self).run(cwd=cwd,*args,**kw), verbose=self.verbose )
+        assert not isinstance(cwd, Path)
+        return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
+
 def run_pip(*args, **kw):
     return env.run('pip', *args, **kw)
 
+
 def write_file(filename, text, dest=None):
     """Write a file in the dest (default=env.scratch_path)
-    
+
     """
     env = get_env()
     if dest:
@@ -309,13 +330,16 @@ def write_file(filename, text, dest=None):
     f.write(text)
     f.close()
 
+
 def mkdir(dirname):
     os.mkdir(os.path.join(get_env().scratch_path, dirname))
+
 
 def get_env():
     if env is None:
         reset_env()
     return env
+
 
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across
@@ -345,12 +369,13 @@ def diff_states(start, end, ignore=None):
 
     """
     ignore = ignore or []
+
     def prefix_match(path, prefix):
-        if path == prefix: 
+        if path == prefix:
             return True
         prefix = prefix.rstrip(os.path.sep) + os.path.sep
         return path.startswith(prefix)
-        
+
     start_keys = set([k for k in start.keys()
                       if not any([prefix_match(k, i) for i in ignore])])
     end_keys = set([k for k in end.keys()
@@ -363,10 +388,11 @@ def diff_states(start, end, ignore=None):
             updated[k] = end[k]
     return dict(deleted=deleted, created=created, updated=updated)
 
-def assert_all_changes( start_state, end_state, expected_changes ):
+
+def assert_all_changes(start_state, end_state, expected_changes):
     """
     Fails if anything changed that isn't listed in the
-    expected_changes.  
+    expected_changes.
 
     start_state is either a dict mapping paths to
     scripttest.[FoundFile|FoundDir] objects or a TestPipResult whose
@@ -383,14 +409,15 @@ def assert_all_changes( start_state, end_state, expected_changes ):
     if isinstance(end_state, TestPipResult):
         end_files = end_state.files_after
 
-    diff = diff_states( start_files, end_files, ignore=expected_changes )
-    if diff.values() != [{},{},{}]:
+    diff = diff_states(start_files, end_files, ignore=expected_changes)
+    if diff.values() != [{}, {}, {}]:
         import pprint
-        raise TestFailure, 'Unexpected changes:\n' + '\n'.join(
-            [k + ': ' + ', '.join(v.keys()) for k,v in diff.items()])
+        raise TestFailure('Unexpected changes:\n' + '\n'.join(
+            [k + ': ' + ', '.join(v.keys()) for k, v in diff.items()]))
 
     # Don't throw away this potentially useful information
     return diff
+
 
 if __name__ == '__main__':
     sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")

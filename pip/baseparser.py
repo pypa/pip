@@ -8,6 +8,7 @@ import os
 from distutils.util import strtobool
 from pip.locations import default_config_file, default_log_file
 
+
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly

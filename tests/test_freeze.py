@@ -1,10 +1,12 @@
-
-import os, sys, re
+import os
+import sys
+import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from test_pip import  reset_env, run_pip, pyversion,  write_file, get_env
+from test_pip import  reset_env, run_pip, pyversion, write_file, get_env
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
+
 
 def _check_output(result, expected):
     checker = OutputChecker()
@@ -19,14 +21,16 @@ def _check_output(result, expected):
     ## thing to do in the end is probably to find out how to report
     ## the proper fully-cased package name in our error message.
     if sys.platform == 'win32':
-        actual = actual.replace('initools','INITools')
+        actual = actual.replace('initools', 'INITools')
 
     # This allows our existing tests to work when run in a context
     # with distribute installed.
     actual = distribute_re.sub('', actual)
 
-    def banner(msg): return '\n========== %s ==========\n'%msg
+    def banner(msg):
+        return '\n========== %s ==========\n' % msg
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
+
 
 def test_freeze():
     """
@@ -38,7 +42,7 @@ def test_freeze():
 
     TODO: refactor this test into multiple tests? (and maybe different
     test style instead of using doctest output checker)
-    
+
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
@@ -96,15 +100,16 @@ def test_freeze():
         <BLANKLINE>""")
     _check_output(result, expected)
 
+
 def test_freeze_git_clone():
     """
     Test freezing a Git clone.
-    
+
     """
     env = reset_env()
     result = env.run('git', 'clone', 'git://github.com/jezdez/django-pagination.git', 'django-pagination')
     result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
-            cwd= env.scratch_path/ 'django-pagination', expect_stderr=True)
+            cwd=env.scratch_path/'django-pagination', expect_stderr=True)
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path / 'django-pagination')
     result = run_pip('freeze', expect_stderr=True)
@@ -124,10 +129,11 @@ def test_freeze_git_clone():
         ...""")
     _check_output(result, expected)
 
+
 def test_freeze_mercurial_clone():
     """
     Test freezing a Mercurial clone.
-    
+
     """
     reset_env()
     env = get_env()
@@ -151,10 +157,11 @@ def test_freeze_mercurial_clone():
         ...""")
     _check_output(result, expected)
 
+
 def test_freeze_bazaar_clone():
     """
     Test freezing a Bazaar clone.
-    
+
     """
     reset_env()
     env = get_env()
@@ -178,10 +185,11 @@ def test_freeze_bazaar_clone():
         ...""")
     _check_output(result, expected)
 
+
 def test_freeze_with_local_option():
     """
     Test that wsgiref (from global site-packages) is reported normally, but not with --local.
-    
+
     """
     reset_env()
     result = run_pip('install', 'initools==0.2')

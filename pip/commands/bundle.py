@@ -4,6 +4,7 @@ from pip.log import logger
 from pip.exceptions import InstallationError
 from pip.commands.install import InstallCommand
 
+
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
@@ -27,5 +28,6 @@ class BundleCommand(InstallCommand):
         self.bundle_filename = args.pop(0)
         requirement_set = super(BundleCommand, self).run(options, args)
         return requirement_set
+
 
 BundleCommand()

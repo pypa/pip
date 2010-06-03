@@ -7,6 +7,7 @@ from pip.log import logger
 from pip.basecommand import Command
 from pip.util import get_installed_distributions
 
+
 class FreezeCommand(Command):
     name = 'freeze'
     usage = '%prog [OPTIONS]'
@@ -37,7 +38,7 @@ class FreezeCommand(Command):
 
     def setup_logging(self):
         logger.move_stdout_to_stderr()
-        
+
     def run(self, options, args):
         requirement = options.requirement
         find_links = options.find_links or []
@@ -103,5 +104,6 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
+
 
 FreezeCommand()

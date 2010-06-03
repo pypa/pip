@@ -1,10 +1,10 @@
-
 import zipfile
 import textwrap
 from os.path import abspath, join, dirname, pardir
-from test_pip import here, reset_env, run_pip, write_file 
+from test_pip import here, reset_env, run_pip, write_file
 from path import Path
 from pip.util import path_to_url2
+
 
 def test_create_bundle():
     """

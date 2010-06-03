@@ -6,6 +6,7 @@ import subprocess
 from pip.exceptions import BadCommand
 from pip.log import logger
 
+
 def restart_in_venv(venv, base, site_packages, args):
     """
     Restart this script using the interpreter in the given virtual environment

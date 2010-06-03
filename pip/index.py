@@ -21,6 +21,7 @@ from pip.backwardcompat import WindowsError
 
 __all__ = ['PackageFinder']
 
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -77,7 +78,6 @@ class PackageFinder(object):
                 urls.append(url)
         return files, urls
 
-
     def find_requirement(self, req, upgrade):
         url_name = req.url_name
         # Only check main index if index URL is given:
@@ -89,8 +89,9 @@ class PackageFinder(object):
             page = self._get_page(main_index_url, req)
             if page is None:
                 url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+
         def mkurl_pypi_url(url):
-            loc =  posixpath.join(url, url_name)
+            loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -331,6 +332,7 @@ class PageCache(object):
         for url in urls:
             self._pages[url] = page
 
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -385,7 +387,7 @@ class HTMLPage(object):
                                 cache.set_is_archive(url)
                             return None
             logger.debug('Getting page %s' % url)
-            
+
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
             if scheme == 'file' and os.path.isdir(urllib.url2pathname(path)):
@@ -517,6 +519,7 @@ class HTMLPage(object):
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
 
+
 class Link(object):
 
     def __init__(self, url, comes_from=None):
@@ -582,6 +585,7 @@ class Link(object):
     def show_url(self):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
 
+
 def get_requirement_from_url(url):
     """Get a requirement from the URL, if possible.  This looks for #egg
     in the URL"""
@@ -590,6 +594,7 @@ def get_requirement_from_url(url):
     if not egg_info:
         egg_info = splitext(link.filename)[0]
     return package_to_requirement(egg_info)
+
 
 def package_to_requirement(package_name):
     """Translate a name like Foo-1.2 to Foo==1.3"""

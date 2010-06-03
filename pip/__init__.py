@@ -11,6 +11,7 @@ from pip.basecommand import command_dict, load_command, load_all_commands
 from pip.vcs import vcs, get_src_requirement, import_vcs_support
 from pip.util import get_installed_distributions
 
+
 def autocomplete():
     """Command and option completion for the main option parser (and options)
     and its subcommands (and options).
@@ -18,7 +19,7 @@ def autocomplete():
     Enable by sourcing one of the completion shell scripts (bash or zsh).
     """
     # Don't complete if user hasn't sourced bash_completion file.
-    if not os.environ.has_key('PIP_AUTO_COMPLETE'):
+    if 'PIP_AUTO_COMPLETE' not in os.environ:
         return
     cwords = os.environ['COMP_WORDS'].split()[1:]
     cword = int(os.environ['COMP_CWORD'])
@@ -74,6 +75,7 @@ def autocomplete():
                             if opt.help != optparse.SUPPRESS_HELP]
         print ' '.join(filter(lambda x: x.startswith(current), subcommands))
     sys.exit(1)
+
 
 def main(initial_args=None):
     if initial_args is None:

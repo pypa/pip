@@ -6,6 +6,7 @@ from pip.locations import build_prefix, src_prefix
 from pip.basecommand import Command
 from pip.index import PackageFinder
 
+
 class InstallCommand(Command):
     name = 'install'
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
@@ -179,5 +180,6 @@ class InstallCommand(Command):
         if not options.no_install:
             requirement_set.cleanup_files(bundle=self.bundle)
         return requirement_set
+
 
 InstallCommand()

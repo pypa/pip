@@ -20,7 +20,6 @@ complete -o default -F _pip_completion pip"""
     assert bash_completion in result.stdout, 'bash completion is wrong'
 
 
-
 def test_completion_for_zsh():
     """
     Test getting completion for zsh shell
@@ -31,7 +30,7 @@ function _pip_completion {
   local words cword
   read -Ac words
   read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \\ 
+  reply=( $( COMP_WORDS="$words[*]" \\
              COMP_CWORD=$(( cword-1 )) \\
              PIP_AUTO_COMPLETE=1 $words[1] ) )
 }
@@ -39,7 +38,6 @@ compctl -K _pip_completion pip"""
 
     result = run_pip('completion', '--zsh')
     assert zsh_completion in result.stdout, 'zsh completion is wrong'
-
 
 
 def test_completion_for_unknown_shell():

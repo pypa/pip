@@ -7,6 +7,7 @@ from pip.util import get_terminal_size
 from pip.log import logger
 from distutils.version import StrictVersion, LooseVersion
 
+
 class SearchCommand(Command):
     name = 'search'
     usage = '%prog QUERY'
@@ -42,6 +43,7 @@ class SearchCommand(Command):
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
+
 def transform_hits(hits):
     """
     The list from pypi is really a list of versions. We want a list of
@@ -68,6 +70,7 @@ def transform_hits(hits):
     # each record has a unique name now, so we will convert the dict into a list sorted by score
     package_list = sorted(packages.values(), lambda x, y: cmp(y['score'], x['score']))
     return package_list
+
 
 def print_results(hits, name_column_width=25, terminal_width=None):
     installed_packages = [p.project_name for p in pkg_resources.working_set]
@@ -96,6 +99,7 @@ def print_results(hits, name_column_width=25, terminal_width=None):
         except UnicodeEncodeError:
             pass
 
+
 def compare_versions(version1, version2):
     try:
         return cmp(StrictVersion(version1), StrictVersion(version2))
@@ -103,7 +107,9 @@ def compare_versions(version1, version2):
     except ValueError:
         return cmp(LooseVersion(version1), LooseVersion(version2))
 
+
 def highest_version(versions):
     return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
+
 
 SearchCommand()

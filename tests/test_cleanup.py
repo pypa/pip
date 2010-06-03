@@ -1,15 +1,14 @@
-
 import zipfile
 import textwrap
 from os.path import abspath, exists, join
 from test_pip import here, reset_env, run_pip, write_file
-from path import Path;
+from path import Path
 
 
 def test_cleanup_after_install_from_pypi():
     """
     Test clean up after installing a package from PyPI.
-    
+
     """
     env = reset_env()
     result = run_pip('install', 'INITools==0.2', expect_error=True)
@@ -18,10 +17,11 @@ def test_cleanup_after_install_from_pypi():
     assert not exists(build), "build/ dir still exists: %s" % build
     assert not exists(src), "unexpected src/ dir exists: %s" % src
 
+
 def test_cleanup_after_install_editable_from_hg():
     """
     Test clean up after cloning from Mercurial.
-    
+
     """
     env = reset_env()
     result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
@@ -29,6 +29,7 @@ def test_cleanup_after_install_editable_from_hg():
     src = env.venv_path/'src'
     assert not exists(build), "build/ dir still exists: %s" % build
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
+
 
 def test_cleanup_after_install_from_local_directory():
     """
@@ -42,6 +43,7 @@ def test_cleanup_after_install_from_local_directory():
     src = env.venv_path/'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
+
 
 def test_cleanup_after_create_bundle():
     """

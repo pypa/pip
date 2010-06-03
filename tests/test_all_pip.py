@@ -12,6 +12,7 @@ def all_projects():
     projects = [m.group(1) for m in re.finditer(r'<a.*?>(.+)</a>', data)]
     return projects
 
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
@@ -35,6 +36,7 @@ def main(args=None):
     while os.stat(pending_fn).st_size:
         _test_packages(output, pending_fn)
     print 'Finished all pending!'
+
 
 def _test_packages(output, pending_fn):
     package = get_last_item(pending_fn)
@@ -72,12 +74,14 @@ def _test_packages(output, pending_fn):
         add_package(os.path.join(output, 'success.txt'), package)
         pop_last_item(pending_fn, package)
         shutil.rmtree(dest_dir)
-        
+
+
 def get_last_item(fn):
     f = open(fn, 'r')
     lines = f.readlines()
     f.close()
     return lines[-1].strip()
+
 
 def pop_last_item(fn, line=None):
     f = open(fn, 'r')
@@ -90,10 +94,12 @@ def pop_last_item(fn, line=None):
     f.writelines(lines)
     f.close()
 
+
 def add_package(filename, package):
     f = open(filename, 'a')
     f.write(package + '\n')
     f.close()
+
 
 if __name__ == '__main__':
     main()

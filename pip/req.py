@@ -30,6 +30,7 @@ from pip import call_subprocess
 from pip.backwardcompat import any, md5
 from pip.index import Link
 
+
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
@@ -695,6 +696,7 @@ execfile(__file__)
         assert self.source_dir
         return os.path.join(self.source_dir, 'pip-delete-this-directory.txt')
 
+
 DELETE_MARKER_MESSAGE = '''\
 This file is placed here by pip to indicate the source was put
 here by pip.
@@ -702,6 +704,7 @@ here by pip.
 Once this package is successfully installed this source code will be
 deleted (unless you remove this file).
 '''
+
 
 class RequirementSet(object):
 
@@ -1334,7 +1337,9 @@ class RequirementSet(object):
         name = name.replace(os.path.sep, '/')
         return name
 
+
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
+
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_match = None
@@ -1372,16 +1377,19 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 line = line[len('--find-links'):].strip().lstrip('=')
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
-            if finder: finder.find_links.append(line)
+            if finder:
+                finder.find_links.append(line)
         elif line.startswith('-i') or line.startswith('--index-url'):
             if line.startswith('-i'):
                 line = line[2:].strip()
             else:
                 line = line[len('--index-url'):].strip().lstrip('=')
-            if finder: finder.index_urls = [line]
+            if finder:
+                finder.index_urls = [line]
         elif line.startswith('--extra-index-url'):
             line = line[len('--extra-index-url'):].strip().lstrip('=')
-            if finder: finder.index_urls.append(line)
+            if finder:
+                finder.index_urls.append(line)
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
@@ -1394,6 +1402,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             else:
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
+
 
 def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
@@ -1436,6 +1445,7 @@ def parse_editable(editable_req, default_vcs=None):
         # Strip off -dev, -0.2, etc.
         req = match.group(1)
     return req, url
+
 
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
@@ -1497,7 +1507,6 @@ class UninstallPathSet(object):
     def _stash(self, path):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
-
 
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
@@ -1569,7 +1578,7 @@ class UninstallPthEntries(object):
         # paths outside of site-packages, but all the others use forward
         # slashes.
         if sys.platform == 'win32' and not os.path.splitdrive(entry)[0]:
-            entry = entry.replace('\\','/')
+            entry = entry.replace('\\', '/')
         self.entries.add(entry)
 
     def remove(self):
@@ -1600,6 +1609,7 @@ class UninstallPthEntries(object):
         fh.writelines(self._saved_lines)
         fh.close()
         return True
+
 
 class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make

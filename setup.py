@@ -32,5 +32,4 @@ setup(name='pip',
       license='MIT',
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main']),
-      zip_safe=False
-      )
+      zip_safe=False)

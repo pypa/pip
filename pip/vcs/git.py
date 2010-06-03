@@ -9,6 +9,7 @@ from pip.log import logger
 from urllib import url2pathname
 from urlparse import urlsplit, urlunsplit
 
+
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
@@ -23,15 +24,15 @@ class Git(VersionControl):
         # Works around an apparent Git bug
         # (see http://article.gmane.org/gmane.comp.version-control.git/146500)
         if url:
-            scheme,netloc,path,query,fragment = urlsplit(url)
+            scheme, netloc, path, query, fragment = urlsplit(url)
             if scheme.endswith('file'):
                 initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = initial_slashes + url2pathname(path).replace('\\','/').lstrip('/')
+                newpath = initial_slashes + url2pathname(path).replace('\\', '/').lstrip('/')
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
                 after_plus = scheme.find('+')+1
                 url = scheme[:after_plus]+ urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
 
-        super(Git,self).__init__(url, *args, **kwargs)
+        super(Git, self).__init__(url, *args, **kwargs)
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None
@@ -86,7 +87,7 @@ class Git(VersionControl):
         if rev in revisions:
             # if rev is a sha
             return [rev]
-        inverse_revisions = dict((v,k) for k, v in revisions.iteritems())
+        inverse_revisions = dict((v, k) for k, v in revisions.iteritems())
         if rev not in inverse_revisions: # is rev a name or tag?
             origin_rev = 'origin/%s' % rev
             if origin_rev in inverse_revisions:
@@ -197,9 +198,10 @@ class Git(VersionControl):
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
             url = url.replace('ssh://', '')
-        else:                       
+        else:
             url, rev = super(Git, self).get_url_rev()
 
-        return url,rev
+        return url, rev
+
 
 vcs.register(Git)
