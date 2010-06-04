@@ -1,0 +1,45 @@
+=================
+Running the Tests
+=================
+
+System Requirements
+===================
+
+Pip uses some system tools - VCS related tools - in its tests, so you need to
+intall them (Linux)::
+
+    sudo apt-get install subversion bzr git-core mercurial
+
+Or downloading and installing `Subversion
+<http://subversion.apache.org/packages.html>`_, `Bazaar
+<http://wiki.bazaar.canonical.com/Download>`_, `Git
+<http://git-scm.com/download>`_ and `Mercurial
+<http://mercurial.selenic.com/downloads/>`_ manually.
+
+
+How To Run Tests
+================
+
+After all requirements (system and python) are installed, just run nosetests on
+``tests`` folder::
+
+    $ python setup.py test
+
+
+
+Troubleshooting
+===============
+
+Locale Warnings
+---------------
+
+There was a problem with locales configuration when running tests in a Hudson
+CI Server that broke some tests. The problem was not with pip, but with
+`locales` configuration. Hudson was not setting LANG environment variable
+correctly, so the solution to fix it was changing default language to
+en_US.UTF-8.
+The following has been done in a Ubuntu Server 9.10 machine::
+
+    $ sudo locale-gen en_US en_US.UTF-8
+    $ sudo dpkg-reconfigure locales
+    $ sudo update-locale LANG=en_US.UTF-8
