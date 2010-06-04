@@ -1,11 +1,8 @@
-
 import textwrap
 import sys
 from os.path import join
 from tempfile import mkdtemp
-from test_pip import here, reset_env, run_pip, get_env, assert_all_changes, write_file
-from path import Path
-import pprint
+from test_pip import reset_env, run_pip, assert_all_changes, write_file
 
 
 def test_simple_uninstall():

@@ -2,7 +2,6 @@
 # Author: Aziz Köksal
 import os
 import shutil
-import sys
 
 _base = os.path.supports_unicode_filenames and unicode or str
 

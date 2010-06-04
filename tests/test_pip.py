@@ -411,7 +411,6 @@ def assert_all_changes(start_state, end_state, expected_changes):
 
     diff = diff_states(start_files, end_files, ignore=expected_changes)
     if diff.values() != [{}, {}, {}]:
-        import pprint
         raise TestFailure('Unexpected changes:\n' + '\n'.join(
             [k + ': ' + ', '.join(v.keys()) for k, v in diff.items()]))
 

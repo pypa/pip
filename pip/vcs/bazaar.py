@@ -125,7 +125,6 @@ class Bazaar(VersionControl):
 
         if current_rev in tag_revs:
             # It's a tag
-            tag = tag_revs.get(current_rev, current_rev)
             full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         else:
             full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)

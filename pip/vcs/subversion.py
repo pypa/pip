@@ -106,7 +106,6 @@ class Subversion(VersionControl):
                 [self.cmd, 'checkout', '-q'] + rev_options + [url, dest])
 
     def get_location(self, dist, dependency_links):
-        egg_fragment_re = re.compile(r'#egg=(.*)$')
         for url in dependency_links:
             egg_fragment = Link(url).egg_fragment
             if not egg_fragment:

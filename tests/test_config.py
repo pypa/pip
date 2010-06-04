@@ -1,7 +1,7 @@
+import os
 import tempfile
 import textwrap
-from test_pip import here, reset_env, run_pip, clear_environ, write_file
-import os
+from test_pip import reset_env, run_pip, clear_environ, write_file
 
 
 def test_options_from_env_vars():

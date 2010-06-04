@@ -1,4 +1,4 @@
-from os.path import abspath, exists, join, dirname, curdir, pardir
+from os.path import abspath, join, dirname, curdir, pardir
 from test_pip import here, reset_env, run_pip, pyversion, mkdir
 from path import Path
 
@@ -74,7 +74,7 @@ def test_install_editable_from_svn():
     Test checking out from svn.
 
     """
-    e = reset_env()
+    reset_env()
     result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev')
     result.assert_installed('INITools', with_files=['.svn'])
 
@@ -159,7 +159,7 @@ def test_install_editable_from_git():
     Test cloning from Git.
 
     """
-    e = reset_env()
+    reset_env()
     result = run_pip('install', '-e', 'git://github.com/jezdez/django-feedutil.git#egg=django-feedutil', expect_error=True)
     result.assert_installed('django-feedutil', with_files=['.git'])
 
@@ -169,7 +169,7 @@ def test_install_editable_from_hg():
     Test cloning from Mercurial.
 
     """
-    e = reset_env()
+    reset_env()
     result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
     result.assert_installed('django-registration', with_files=['.hg'])
 
@@ -189,7 +189,7 @@ def test_install_editable_from_bazaar():
     Test checking out from Bazaar.
 
     """
-    e = reset_env()
+    reset_env()
     result = run_pip('install', '-e', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/@174#egg=django-wikiapp', expect_error=True)
     result.assert_installed('django-wikiapp', with_files=['.bzr'])
 

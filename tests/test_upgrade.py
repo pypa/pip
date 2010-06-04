@@ -1,7 +1,7 @@
 
 from os.path import join
 import textwrap
-from test_pip import here, reset_env, run_pip, get_env, assert_all_changes, write_file
+from test_pip import here, reset_env, run_pip, assert_all_changes, write_file
 
 
 def test_no_upgrade_unless_requested():

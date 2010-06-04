@@ -1,5 +1,3 @@
-
-import os
 import textwrap
 from test_pip import reset_env, run_pip, write_file, pyversion
 

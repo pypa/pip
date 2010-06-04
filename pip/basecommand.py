@@ -78,7 +78,6 @@ class Command(object):
 
         if args and args[-1] == '___VENV_RESTART___':
             ## FIXME: We don't do anything this this value yet:
-            venv_location = args[-2]
             args = args[:-2]
             options.venv = None
         else:

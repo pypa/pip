@@ -1,8 +1,6 @@
-import zipfile
 import textwrap
 from os.path import abspath, exists, join
 from test_pip import here, reset_env, run_pip, write_file
-from path import Path
 
 
 def test_cleanup_after_install_from_pypi():
@@ -11,7 +9,7 @@ def test_cleanup_after_install_from_pypi():
 
     """
     env = reset_env()
-    result = run_pip('install', 'INITools==0.2', expect_error=True)
+    run_pip('install', 'INITools==0.2', expect_error=True)
     build = env.scratch_path/"build"
     src = env.scratch_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
@@ -24,7 +22,7 @@ def test_cleanup_after_install_editable_from_hg():
 
     """
     env = reset_env()
-    result = run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
+    run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
     build = env.venv_path/'build'
     src = env.venv_path/'src'
     assert not exists(build), "build/ dir still exists: %s" % build
@@ -38,7 +36,7 @@ def test_cleanup_after_install_from_local_directory():
     """
     env = reset_env()
     to_install = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', to_install, expect_error=False)
+    run_pip('install', to_install, expect_error=False)
     build = env.venv_path/'build'
     src = env.venv_path/'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
@@ -52,7 +50,7 @@ def test_cleanup_after_create_bundle():
     """
     env = reset_env()
     # Install an editable to create a src/ dir.
-    dummy = run_pip('install', '-e', 'git://github.com/jezdez/django-feedutil.git#egg=django-feedutil')
+    run_pip('install', '-e', 'git://github.com/jezdez/django-feedutil.git#egg=django-feedutil')
     build = env.venv_path/"build"
     src = env.venv_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
@@ -65,7 +63,7 @@ def test_cleanup_after_create_bundle():
             -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
             pip''' % fspkg)
     write_file('bundle-req.txt', pkg_lines)
-    result = run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
+    run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
     build_bundle = env.scratch_path/"build-bundle"
     src_bundle = env.scratch_path/"src-bundle"
     assert not exists(build_bundle), "build-bundle/ dir still exists: %s" % build_bundle

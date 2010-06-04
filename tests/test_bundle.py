@@ -1,6 +1,6 @@
 import zipfile
 import textwrap
-from os.path import abspath, join, dirname, pardir
+from os.path import join
 from test_pip import here, reset_env, run_pip, write_file
 from path import Path
 from pip.util import path_to_url2
@@ -15,7 +15,7 @@ def test_create_bundle():
     """
     env = reset_env()
     fspkg = path_to_url2(Path(here)/'packages'/'FSPkg')
-    dummy = run_pip('install', '-e', fspkg)
+    run_pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s
             -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev

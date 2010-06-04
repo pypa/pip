@@ -18,7 +18,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'url_to_path', 'path_to_url',
            'path_to_url2', 'normalize_name',
            'format_size', 'is_url', 'is_installable_dir', 'is_archive_file',
-           'strip_prefix', 'is_svn_page', 'file_contents',
+           'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
            'get_file_content', 'renames', 'get_terminal_size']
