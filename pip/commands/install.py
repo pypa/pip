@@ -130,6 +130,14 @@ class InstallCommand(Command):
             help="Extra global options to be supplied to the setup.py"
             "call before the install command")
 
+    def _build_package_finder(self, options, index_urls):
+        """
+        Create a package finder appropriate to this install command.
+        This method is meant to be overridden by subclasses, not
+        called directly.
+        """
+        return PackageFinder(find_links=options.find_links, index_urls=index_urls)
+
     def run(self, options, args):
         if not options.build_dir:
             options.build_dir = build_prefix
@@ -146,9 +154,9 @@ class InstallCommand(Command):
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
-        finder = PackageFinder(
-            find_links=options.find_links,
-            index_urls=index_urls)
+
+        finder = self._build_package_finder(options, index_urls)
+
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=options.src_dir,
