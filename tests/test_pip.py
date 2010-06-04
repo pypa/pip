@@ -6,9 +6,8 @@ import shutil
 import glob
 import atexit
 import textwrap
-
-from path import *
 from scripttest import TestFileEnvironment
+from path import Path, curdir
 
 pyversion = sys.version[:3]
 
