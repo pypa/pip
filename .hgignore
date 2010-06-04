@@ -6,6 +6,8 @@ tests/test-cache/*
 tests/packages/FSPkg/FSPkg.egg-info/PKG-INFO
 testenv
 pip.egg-info/*
+ScriptTest-*.egg
+nose-*.egg/*
 dist/*
 docs/_build/*
 build/*
