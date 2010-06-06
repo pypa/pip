@@ -296,7 +296,7 @@ class TestPipEnvironment(TestFileEnvironment):
                  'uninstall', '-vvv', '-y', 'pip')
 
         # Install this version instead
-        self.run('python', 'setup.py', 'install', cwd=src)
+        self.run('python', 'setup.py', 'install', cwd=src, expect_stderr=True)
 
     def run(self, *args, **kw):
         if self.verbose:

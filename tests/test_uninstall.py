@@ -23,7 +23,7 @@ def test_uninstall_with_scripts():
 
     """
     env = reset_env()
-    result = env.run('easy_install', 'PyLogo')
+    result = env.run('easy_install', 'PyLogo', expect_stderr=True)
     easy_install_pth = env.site_packages/ 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
@@ -63,7 +63,7 @@ def test_uninstall_easy_installed_console_scripts():
 
     """
     env = reset_env()
-    result = env.run('easy_install', 'virtualenv')
+    result = env.run('easy_install', 'virtualenv', expect_stderr=True)
     assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
