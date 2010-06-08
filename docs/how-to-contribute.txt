@@ -34,7 +34,7 @@ All tests should pass
 ---------------------
 
 Almost all changes to pip should be accompanied by automated tests -
-specially ones add new behavior.
+especially ones adding new behavior.
 `Nose`_ is used to find and run all tests. Take a look at :doc:`running-tests`
 to see what you need and how you should run the tests.
 
