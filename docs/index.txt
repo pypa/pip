@@ -9,6 +9,7 @@ pip installs Python packages.
    news
    requirement-format
    configuration
+   how-to-contribute
    license
 
 .. comment: split here
