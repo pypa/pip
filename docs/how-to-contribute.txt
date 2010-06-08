@@ -1,0 +1,88 @@
+========================
+How To Contribute to Pip
+========================
+
+
+All kinds of contributions are welcome - code, tests, documentation,
+bug reports, ideas, etc.
+
+
+.. _contributing-with-code:
+
+Contributing with Code
+======================
+
+Forking through Bitbucket
+-------------------------
+
+First of all, you need to fork the the official repository, which is
+http://bitbucket.org/ianb/pip.
+
+Log in to Bitbucket, go to `Ian Bicking's repository page
+<http://bitbucket.org/ianb/pip>`_, follow the **fork** link, wait for Bitbucket
+to copy the repository and then clone your fork, like::
+
+    $ hg clone http://bitbucket.org/YOU_USER_NAME/pip
+    
+Now you can change whatever you want, commit, push to your fork and when your
+contribution is done, follow the **pull request** link and send us a request
+explaining what you did and why.
+
+
+
+All tests should pass
+---------------------
+
+Almost all changes to pip should be accompanied by automated tests -
+specially ones add new behavior.
+`Nose`_ is used to find and run all tests. Take a look at :doc:`running-tests`
+to see what you need and how you should run the tests.
+
+Before sending us a pull request, please, be sure all tests pass.
+
+
+Using a Continuous Integration server
+-------------------------------------
+
+We have a continuous integration server running all pip related tests at 
+http://ci.cloudsilverlining.org/view/pip. But if you want to have your own,
+you can learn how to set up a Hudson CI server like that in the
+:doc:`ci-server-step-by-step` page.
+
+
+
+Contributing with Tests
+=======================
+
+Pip's test coverage is not as good as we would like, so contributions of
+additional tests are welcome. You can contribute these the same way you would
+contribute any other kind of code: see the :ref:`contributing-with-code`
+section.
+
+
+Contributing with Bug Reports
+=============================
+
+Pip project is hosted at `Bitbucket`_ and uses its issue tracker system.
+
+If you have found a bug and want to report it, go to `pip issue tracker page`_,
+click **Create new**, add a descriptive
+title (so we can easily identify what the bug is) and fill the description box
+explaining how you got the bug, what pip version you were using and what is
+your operating system, so we can reproduce the bug to try fixing it.
+
+
+
+Contributing with Ideas
+=======================
+
+We are always open to new ideas, and we will enjoy yours. You can send
+enhancement ideas and proposals via `pip issue tracker page`_,
+`virtualenv mailing list`_, or #pip channel at freenode.
+
+
+
+.. _nose:  http://somethingaboutorange.com/mrl/projects/nose/0.11.3/
+.. _Bitbucket: http://bitbucket.org/
+.. _pip issue tracker page: http://bitbucket.org/ianb/pip/issues>
+.. _virtualenv mailing list: 
