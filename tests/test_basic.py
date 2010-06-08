@@ -22,7 +22,7 @@ def test_correct_pip_version():
                    result.stdout).group(2)
     pip_folder = join(src_folder, 'pip')
     pip_folder_outputed = join(dir, 'pip')
-    
+
     diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
 
     # If any non-matching .py files exist, we have a problem: run_pip
@@ -134,7 +134,7 @@ def test_no_install_followed_by_no_download():
     initools_folder = env.site_packages/'initools'
     build_dir = env.venv/'build'/'INITools'
 
-    result1 = run_pip('install', 'INITools==0.2', '--no-install', expect_error=True)   
+    result1 = run_pip('install', 'INITools==0.2', '--no-install', expect_error=True)
     assert egg_info_folder not in result1.files_created, str(result1)
     assert initools_folder not in result1.files_created, sorted(result1.files_created)
     assert build_dir in result1.files_created, result1.files_created
