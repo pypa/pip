@@ -1,7 +1,7 @@
 import textwrap
 from os.path import abspath, exists, join
 from test_pip import (here, reset_env, run_pip, write_file,
-                       mercurial_repos, subversion_repos)
+                      mercurial_repos, subversion_repos)
 
 
 def test_cleanup_after_install_from_pypi():

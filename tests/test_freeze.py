@@ -2,7 +2,8 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from test_pip import  reset_env, run_pip, write_file, get_env
+from test_pip import (reset_env, run_pip, write_file, get_env,
+                      mercurial_repos, git_repos)
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -88,13 +89,13 @@ def test_freeze():
     _check_output(result, expected)
 
     # Bah, that's no good!  Let's give it a hint::
-    result = run_pip('freeze', '-f', 'http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev', expect_stderr=True)
+    result = run_pip('freeze', '-f', 'file://%s/INITools/trunk#egg=INITools-dev' % mercurial_repos, expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+        Script result: ...pip freeze -f file://.../mercurial/INITools/trunk#egg=INITools-dev
         -- stdout: --------------------
-        -f http://svn.colorstudy.com/INITools/trunk#egg=INITools-dev
+        -f file://.../mercurial/INITools/trunk#egg=INITools-dev
         # Installing as editable to satisfy requirement INITools==...dev-r...:
-        -e svn+http://svn.colorstudy.com/INITools/trunk@...#egg=INITools-...dev_r...
+        -e svn+file://.../mercurial/INITools/trunk@...#egg=INITools-...dev_r...
         simplejson==1.7.4...
         <BLANKLINE>""")
     _check_output(result, expected)
@@ -106,7 +107,7 @@ def test_freeze_git_clone():
 
     """
     env = reset_env()
-    result = env.run('git', 'clone', 'git://github.com/jezdez/django-pagination.git', 'django-pagination')
+    result = env.run('git', 'clone', 'file://%s/django-pagination' % git_repos, 'django-pagination')
     result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
             cwd=env.scratch_path/'django-pagination', expect_stderr=True)
     result = env.run('python', 'setup.py', 'develop',
@@ -115,17 +116,19 @@ def test_freeze_git_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...
-        ...""")
+        -e git+file://%s/django-pagination@...#egg=django_pagination-...
+        ...""" % git_repos)
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f', 'git://github.com/jezdez/django-pagination.git#egg=django_pagination', expect_stderr=True)
+    result = run_pip('freeze', '-f',
+                     'git+file://%s/django-pagination#egg=django_pagination' % git_repos,
+                     expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
+        Script result: pip freeze -f git+file://%(repo)s/django-pagination#egg=django_pagination
         -- stdout: --------------------
-        -f git://github.com/jezdez/django-pagination.git#egg=django_pagination
-        -e git://github.com/jezdez/django-pagination.git@...#egg=django_pagination-...-dev
-        ...""")
+        -f git+file://%(repo)s/django-pagination#egg=django_pagination
+        -e git+file://%(repo)s/django-pagination@...#egg=django_pagination-...-dev
+        ...""" % {'repo': git_repos})
     _check_output(result, expected)
 
 
@@ -136,24 +139,29 @@ def test_freeze_mercurial_clone():
     """
     reset_env()
     env = get_env()
-    result = env.run('hg', 'clone', '-r', 'f8f7eaf275c5', 'http://bitbucket.org/jezdez/django-dbtemplates/', 'django-dbtemplates')
+    result = env.run('hg', 'clone',
+                     '-r', 'f8f7eaf275c5',
+                     'file://%s/django-dbtemplates/' % mercurial_repos,
+                     'django-dbtemplates')
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-dbtemplates')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
-        ...""")
+        -e hg+file://%s/django-dbtemplates@...#egg=django_dbtemplates-...
+        ...""" % mercurial_repos)
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f', 'hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates', expect_stderr=True)
+    result = run_pip('freeze', '-f',
+                     'hg+file://%s/django-dbtemplates#egg=django_dbtemplates' % mercurial_repos,
+                     expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
+        Script result: ...pip freeze -f hg+file://%(repo)s/django-dbtemplates#egg=django_dbtemplates
         -- stdout: --------------------
-        -f hg+http://bitbucket.org/jezdez/django-dbtemplates#egg=django_dbtemplates
-        -e hg+http://bitbucket.org/jezdez/django-dbtemplates/@...#egg=django_dbtemplates-...
-        ...""")
+        -f hg+file://%(repo)s/django-dbtemplates#egg=django_dbtemplates
+        -e hg+file://%(repo)s/django-dbtemplates@...#egg=django_dbtemplates-...
+        ...""" % {'repo': mercurial_repos})
     _check_output(result, expected)
 
 
