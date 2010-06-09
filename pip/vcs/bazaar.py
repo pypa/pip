@@ -94,7 +94,7 @@ class Bazaar(VersionControl):
                       'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
-                    if repo.startswith(os.path.sep):
+                    if self._is_file_scheme(repo):
                         return path_to_url2(repo)
                     return repo
         return None
@@ -132,6 +132,14 @@ class Bazaar(VersionControl):
         else:
             full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+
+    def _is_file_scheme(self, repo):
+        """
+           posix absolute paths start with os.path.sep,
+           win32 ones ones start with drive (like c:\\folder)
+        """
+        drive, tail = os.path.splitdrive(repo)
+        return repo.startswith(os.path.sep) or drive
 
 
 vcs.register(Bazaar)
