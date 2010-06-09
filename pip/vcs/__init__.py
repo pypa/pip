@@ -92,6 +92,14 @@ class VersionControl(object):
     def _filter(self, line):
         return (logger.INFO, line)
 
+    def _is_file_url_scheme(self, repo):
+        """
+           posix absolute paths start with os.path.sep,
+           win32 ones ones start with drive (like c:\\folder)
+        """
+        drive, tail = os.path.splitdrive(repo)
+        return repo.startswith(os.path.sep) or drive
+
     @property
     def cmd(self):
         if self._cmd is not None:
