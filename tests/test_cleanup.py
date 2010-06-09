@@ -64,7 +64,7 @@ def test_cleanup_after_create_bundle():
     fspkg = 'file://%s/FSPkg' %join(here, 'packages')
     pkg_lines = textwrap.dedent('''\
             -e %s
-            -e svn+file://%sINITools/trunk#egg=initools-dev
+            -e svn+file://%s/INITools/trunk#egg=initools-dev
             pip''' % (fspkg, subversion_repos))
     write_file('bundle-req.txt', pkg_lines)
     run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
