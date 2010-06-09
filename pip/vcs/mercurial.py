@@ -4,7 +4,7 @@ import tempfile
 import re
 import ConfigParser
 from pip import call_subprocess
-from pip.util import display_path, path_to_url
+from pip.util import display_path, path_to_url2
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 
@@ -97,8 +97,8 @@ class Mercurial(VersionControl):
         url = call_subprocess(
             [self.cmd, 'showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
-        if url.startswith('/') or url.startswith('\\'):
-            url = path_to_url(url)
+        if self._is_file_url_scheme(url):
+            url = path_to_url2(url)
         return url.strip()
 
     def get_tag_revs(self, location):
