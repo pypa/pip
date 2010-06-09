@@ -4,7 +4,7 @@ import tempfile
 import re
 from pip import call_subprocess
 from pip.log import logger
-from pip.util import rmtree, display_path
+from pip.util import rmtree, display_path, path_to_url
 from pip.vcs import vcs, VersionControl
 
 
@@ -93,7 +93,10 @@ class Bazaar(VersionControl):
             for x in ('checkout of branch: ',
                       'parent branch: '):
                 if line.startswith(x):
-                    return line.split(x)[1]
+                    repo = line.split(x)[1]
+                    if repo.startswith('/') or repo.startswith('\\'):
+                        return path_to_url(repo)
+                    return repo
         return None
 
     def get_revision(self, location):
