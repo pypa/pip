@@ -264,7 +264,6 @@ class PackageFinder(object):
         if link.egg_fragment:
             egg_info = link.egg_fragment
         else:
-            path = link.path
             egg_info, ext = link.splitext()
             if not ext:
                 if link not in self.logged_links:

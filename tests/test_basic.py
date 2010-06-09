@@ -1,6 +1,6 @@
 import re
 import filecmp
-from os.path import abspath, join, dirname, curdir, pardir
+from os.path import abspath, join, curdir, pardir
 from test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                        git_repos, mercurial_repos, bazaar_repos,
                        subversion_repos, src_folder)
