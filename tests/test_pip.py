@@ -29,7 +29,9 @@ def path_to_url(path):
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
     url = '/'.join([urllib.quote(part) for part in filepath])
-    return drive + url
+    if drive:
+        return '/' + drive + url
+    return url
 
 
 def demand_dirs(path):
