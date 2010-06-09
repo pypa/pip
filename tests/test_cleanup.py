@@ -1,6 +1,7 @@
 import textwrap
 from os.path import abspath, exists, join
-from test_pip import here, reset_env, run_pip, write_file
+from test_pip import (here, reset_env, run_pip, write_file,
+                       mercurial_repos, subversion_repos)
 
 
 def test_cleanup_after_install_from_pypi():
@@ -22,7 +23,10 @@ def test_cleanup_after_install_editable_from_hg():
 
     """
     env = reset_env()
-    run_pip('install', '-e', 'hg+http://bitbucket.org/ubernostrum/django-registration/#egg=django-registration', expect_error=True)
+    run_pip('install',
+            '-e',
+            'hg+file://%s/django-registration/#egg=django-registration' % mercurial_repos,
+            expect_error=True)
     build = env.venv_path/'build'
     src = env.venv_path/'src'
     assert not exists(build), "build/ dir still exists: %s" % build
@@ -60,8 +64,8 @@ def test_cleanup_after_create_bundle():
     fspkg = 'file://%s/FSPkg' %join(here, 'packages')
     pkg_lines = textwrap.dedent('''\
             -e %s
-            -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
-            pip''' % fspkg)
+            -e svn+file://%sINITools/trunk#egg=initools-dev
+            pip''' % (fspkg, subversion_repos))
     write_file('bundle-req.txt', pkg_lines)
     run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
     build_bundle = env.scratch_path/"build-bundle"
