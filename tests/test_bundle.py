@@ -1,7 +1,8 @@
 import zipfile
 import textwrap
 from os.path import join
-from test_pip import here, reset_env, run_pip, write_file
+from test_pip import (here, reset_env, run_pip, write_file,
+                       subversion_repos)
 from path import Path
 from pip.util import path_to_url2
 
@@ -18,8 +19,8 @@ def test_create_bundle():
     run_pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s
-            -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
-            pip''' % fspkg)
+            -e svn+file://%s/INITools/trunk#egg=initools-dev
+            pip''' % (fspkg, subversion_repos))
     write_file('bundle-req.txt', pkg_lines)
     # Create a bundle in env.scratch_path/ test.pybundle
     result = run_pip('bundle', '-r', env.scratch_path/ 'bundle-req.txt', env.scratch_path/ 'test.pybundle')
