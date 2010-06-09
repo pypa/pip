@@ -3,7 +3,7 @@ import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from test_pip import (reset_env, run_pip, write_file, get_env,
-                      mercurial_repos, git_repos)
+                      mercurial_repos, git_repos, bazaar_repos)
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -172,24 +172,27 @@ def test_freeze_bazaar_clone():
     """
     reset_env()
     env = get_env()
-    result = env.run('bzr', 'checkout', '-r', '174', 'http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/', 'django-wikiapp')
+    result = env.run('bzr', 'checkout', '-r', '174',
+                     'file://%s/django-wikiapp-release-0.1' % bazaar_repos, 'django-wikiapp')
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-wikiapp')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
-        ...""")
+        -e bzr+file://%s/django-wikiapp-release-0.1@...#egg=django_wikiapp-...
+        ...""" % bazaar_repos)
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f', 'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp', expect_stderr=True)
+    result = run_pip('freeze', '-f',
+                     'bzr+file://%s/django-wikiapp-release-0.1/#egg=django-wikiapp' % bazaar_repos,
+                     expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
+        Script result: ...pip freeze -f bzr+file://%(repo)s/django-wikiapp-release-0.1/#egg=django-wikiapp
         -- stdout: --------------------
-        -f bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/#egg=django-wikiapp
-        -e bzr+http://bazaar.launchpad.net/...django-wikiapp/django-wikiapp/release-0.1/@...#egg=django_wikiapp-...
-        ...""")
+        -f bzr+file://%(repo)s/django-wikiapp-release-0.1/#egg=django-wikiapp
+        -e bzr+file://%(repo)s/django-wikiapp-release-0.1@...#egg=django_wikiapp-...
+        ...""" % {'repo': bazaar_repos})
     _check_output(result, expected)
 
 
