@@ -147,7 +147,7 @@ class FrozenRequirement(object):
                     else:
                         rev = '{%s}' % date_match.group(1)
                     editable = True
-                    req = 'svn+%s@%s#egg=%s' % (svn_location, rev, cls.egg_name(dist))
+                    req = '%s@%s#egg=%s' % (svn_location, rev, cls.egg_name(dist))
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod
