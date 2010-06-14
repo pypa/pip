@@ -19,7 +19,7 @@ def test_create_bundle():
     run_pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s
-            -e %s#egg=initools-dev
+            -e svn+%s#egg=initools-dev
             pip''' % (fspkg, local_repo('svn+http://svn.colorstudy.com/INITools/trunk')))
     write_file('bundle-req.txt', pkg_lines)
     # Create a bundle in env.scratch_path/ test.pybundle

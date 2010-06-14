@@ -77,7 +77,7 @@ def test_install_editable_from_svn():
     reset_env()
     result = run_pip('install',
                      '-e',
-                     '%s#egg=initools-dev' %
+                     'svn+%s#egg=initools-dev' %
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'))
     result.assert_installed('INITools', with_files=['.svn'])
 
@@ -90,7 +90,8 @@ def test_download_editable_to_custom_path():
     mkdir('customdl')
     result = run_pip('install',
                      '-e',
-                     '%s#egg=initools-dev' % local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     'svn+%s#egg=initools-dev' %
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      '--src',
                      'customsrc',
                      '--download',
@@ -113,13 +114,16 @@ def test_editable_no_install_followed_by_no_download():
 
     result = run_pip('install',
                      '-e',
-                     '%s#egg=initools-dev' % local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     'svn+%s#egg=initools-dev' %
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      '--no-install', expect_error=True)
     result.assert_installed('INITools', without_egg_link=True, with_files=['.svn'])
 
     result = run_pip('install',
                      '-e',
-                     '%s#egg=initools-dev' % local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),                     '--no-download', expect_error=True)
+                     'svn+%s#egg=initools-dev' %
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     '--no-download', expect_error=True)
     result.assert_installed('INITools', without_files=[curdir, '.svn'])
 
 
@@ -171,7 +175,8 @@ def test_install_editable_from_git():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-feedutil' % local_repo('git://github.com/jezdez/django-feedutil.git'),
+                     'git+%s#egg=django-feedutil' %
+                     local_repo('git+http://github.com/jezdez/django-feedutil.git'),
                      expect_error=True)
     result.assert_installed('django-feedutil', with_files=['.git'])
 
@@ -182,7 +187,7 @@ def test_install_editable_from_hg():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-registration' %
+                     'hg+%s#egg=django-registration' %
                      local_repo('hg+http://bitbucket.org/ubernostrum/django-registration'),
                      expect_error=True)
     result.assert_installed('django-registration', with_files=['.hg'])
@@ -194,7 +199,7 @@ def test_vcs_url_final_slash_normalization():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/#egg=django-registration' %
+                     'hg+%s/#egg=django-registration' %
                      local_repo('hg+http://bitbucket.org/ubernostrum/django-registration'),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
@@ -206,7 +211,7 @@ def test_install_editable_from_bazaar():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/@174#egg=django-wikiapp' %
+                     'bzr+%s/@174#egg=django-wikiapp' %
                      local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      expect_error=True)
     result.assert_installed('django-wikiapp', with_files=['.bzr'])
@@ -218,7 +223,7 @@ def test_vcs_url_urlquote_normalization():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/#egg=django-wikiapp' %
+                     'bzr+%s/#egg=django-wikiapp' %
                      local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
