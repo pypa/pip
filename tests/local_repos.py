@@ -12,8 +12,12 @@ def _create_initools_repository():
 
 def _dump_initools_repository():
     filename, _ = urllib.urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/d7a9beef1bbe/initools_colorstudy.dump')
-    initools_folder = os.path.join(_get_vcs_folder())#, 'INITools')
-    subprocess.call('svnadmin load . < %s' % filename, cwd=initools_folder, shell=True)
+    initools_folder = os.path.join(_get_vcs_folder(), 'INITools')
+    devnull = open(os.devnull, 'w')
+    dump = open(filename)
+    subprocess.call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
+    dump.close()
+    devnull.close()
 
 
 def _create_svn_repository_for_initools():
