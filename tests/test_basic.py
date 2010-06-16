@@ -1,8 +1,8 @@
 import re
 import filecmp
 from os.path import abspath, join, curdir, pardir
-from test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                       src_folder, local_repo)
+from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder
+from local_repos import local_repo
 from path import Path
 
 

@@ -7,7 +7,6 @@ import glob
 import atexit
 import textwrap
 import urllib
-from pip.vcs import subversion, git, bazaar, mercurial
 from scripttest import TestFileEnvironment
 from path import Path, curdir
 

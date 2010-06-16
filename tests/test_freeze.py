@@ -2,8 +2,9 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from test_pip import (reset_env, run_pip, write_file, get_env,
-                      local_repo)
+from test_pip import reset_env, run_pip, write_file, get_env
+from local_repos import local_repo
+
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -59,18 +60,20 @@ def test_freeze():
         simplejson==1.7.4...
         <BLANKLINE>""")
     _check_output(result, expected)
-
+    
     # Now lets try it with an svn checkout::
-    result = env.run('svn', 'co', '-r3472', 'http://svn.colorstudy.com/INITools/trunk', 'initools-trunk')
+    result = env.run('svn', 'co', '-r3472',
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     'initools-trunk')
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/ 'initools-trunk')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e svn+http://svn.colorstudy.com/INITools/trunk@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
+        -e svn+%s@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
         simplejson==1.7.4...
-        <BLANKLINE>""")
+        <BLANKLINE>""" % local_repo('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
     # Now, straight from trunk (but not editable/setup.py develop)::
@@ -104,7 +107,7 @@ def test_freeze():
     _check_output(result, expected)
 
 
-def test_freeze_git_clone():
+#def test_freeze_git_clone():
     """
     Test freezing a Git clone.
 

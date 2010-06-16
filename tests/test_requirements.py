@@ -1,5 +1,6 @@
 import textwrap
 from test_pip import reset_env, run_pip, write_file, pyversion
+from local_repos import local_repo
 
 
 def test_requirements_file():
@@ -27,8 +28,8 @@ def test_multiple_requirements_files():
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
-        -e svn+http://svn.colorstudy.com/INITools/trunk@3139#egg=INITools-dev
-        -r simplejson-req.txt"""))
+        -e svn+%s@3139#egg=INITools-dev
+        -r simplejson-req.txt""" % local_repo('http://svn.colorstudy.com/INITools/trunk')))
     write_file('simplejson-req.txt', textwrap.dedent("""\
         simplejson<=1.7.4
         """))
