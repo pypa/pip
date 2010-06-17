@@ -55,8 +55,6 @@ def _get_vcs_checkout_url(remote_repository):
         repository_name = os.path.basename(remote_repository)
 
     destination_path = os.path.join(vcs_repos, repository_name)
-    # svn doesnt work with clones
-    # by now the repository is kept in vcs_repos folder
     if not os.path.exists(destination_path):
         vcs_class(remote_repository).obtain(destination_path)
     return path_to_url('/'.join([vcs_repos, repository_name, branch]))
