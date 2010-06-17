@@ -7,6 +7,7 @@ import glob
 import atexit
 import textwrap
 import urllib
+import tarfile
 from scripttest import TestFileEnvironment
 from path import Path, curdir
 
@@ -312,6 +313,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
+        self._use_fake_pypi_server()
 
     def run(self, *args, **kw):
         if self.verbose:
@@ -325,6 +327,39 @@ class TestPipEnvironment(TestFileEnvironment):
 
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
+
+    def _copy_wsgi_intercept_files(self):
+        download_and_extract_bz2_file_to_here(
+                'http://bitbucket.org/hltbra/'
+                'pip-fake-pypi-server/raw/0859b02feb0f/'
+                'wsgi_intercept_clean.tar.bz2')
+    
+    def _copy_pypiserver_fake_files(self):
+        download_and_extract_bz2_file_to_here(
+                'http://bitbucket.org/hltbra/'
+                'pip-fake-pypi-server/raw/10ef24c13180/'
+                'pypiserver.tar.bz2')
+
+    def _use_fake_pypi_server(self):
+        if not os.path.exists(here/'pypiserver'):
+            self._copy_pypiserver_fake_files()
+        if not os.path.exists(here/'wsgi_intercept'):
+            self._copy_wsgi_intercept_files()
+        site_packages = self.root_path / self.site_packages
+        pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
+        pth.write('import sys; sys.path.insert(0, "%s"); '
+                  'import pypi_server; '
+                  'pypi_server.use_fake_pypi(); '
+                  'sys.path.pop(0)' % here.abspath)
+        pth.close()
+
+
+def download_and_extract_bz2_file_to_here(file_url):
+    filepath, _ = urllib.urlretrieve(file_url)
+    wsgi_intercept = tarfile.open(filepath)
+    for filepath in wsgi_intercept:
+        wsgi_intercept.extract(filepath, here)
+    wsgi_intercept.close()
 
 
 def run_pip(*args, **kw):
