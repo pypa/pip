@@ -15,7 +15,7 @@ pyversion = sys.version[:3]
 here = Path(__file__).abspath.folder
 
 # the root of this pip source distribution
-src = os.path.dirname(here)
+src_folder = here.folder
 download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
 
 
@@ -27,7 +27,7 @@ demand_dirs(download_cache)
 
 # Tweak the path so we can find up-to-date pip sources
 # (http://bitbucket.org/ianb/pip/issue/98)
-sys.path = [src] + sys.path
+sys.path = [src_folder] + sys.path
 
 
 def create_virtualenv(where, distribute=False):
@@ -84,13 +84,13 @@ def install_setuptools(env):
         shutil.rmtree(tempdir)
 
 
+env = None
+
+
 def reset_env(environ=None):
     global env
     env = TestPipEnvironment(environ)
-
     return env
-
-env = None
 
 
 class TestFailure(AssertionError):
@@ -296,7 +296,7 @@ class TestPipEnvironment(TestFileEnvironment):
                  'uninstall', '-vvv', '-y', 'pip')
 
         # Install this version instead
-        self.run('python', 'setup.py', 'install', cwd=src, expect_stderr=True)
+        self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
 
     def run(self, *args, **kw):
         if self.verbose:
