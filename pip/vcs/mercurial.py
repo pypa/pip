@@ -97,7 +97,7 @@ class Mercurial(VersionControl):
         url = call_subprocess(
             [self.cmd, 'showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
-        if self._is_file_url_scheme(url):
+        if self._is_local_repository(url):
             url = path_to_url2(url)
         return url.strip()
 

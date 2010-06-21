@@ -92,7 +92,7 @@ class VersionControl(object):
     def _filter(self, line):
         return (logger.INFO, line)
 
-    def _is_file_url_scheme(self, repo):
+    def _is_local_repository(self, repo):
         """
            posix absolute paths start with os.path.sep,
            win32 ones ones start with drive (like c:\\folder)

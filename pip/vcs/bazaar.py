@@ -94,7 +94,7 @@ class Bazaar(VersionControl):
                       'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
-                    if self._is_file_url_scheme(repo):
+                    if self._is_local_repository(repo):
                         return path_to_url2(repo)
                     return repo
         return None
