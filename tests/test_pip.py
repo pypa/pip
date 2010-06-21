@@ -31,8 +31,8 @@ def path_to_url(path):
     filepath = path.split(os.path.sep)
     url = '/'.join([urllib.quote(part) for part in filepath])
     if drive:
-        return '/' + drive + url
-    return url
+        return 'file:///' + drive + url
+    return 'file://' +url
 
 
 def demand_dirs(path):
