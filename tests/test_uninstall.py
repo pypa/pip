@@ -3,6 +3,7 @@ import sys
 from os.path import join
 from tempfile import mkdtemp
 from test_pip import reset_env, run_pip, assert_all_changes, write_file
+from local_repos import local_repo
 
 
 def test_simple_uninstall():
@@ -75,7 +76,8 @@ def test_uninstall_editable_from_svn():
 
     """
     env = reset_env()
-    result = run_pip('install', '-e', 'svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev')
+    result = run_pip('install', '-e', 'svn+%s#egg=initools-dev' %
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'))
     result.assert_installed('INITools')
     result2 = run_pip('uninstall', '-y', 'initools')
     assert (env.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
@@ -89,7 +91,7 @@ def test_uninstall_editable_with_source_outside_venv():
     """
     tmpdir = join(mkdtemp(), 'virtualenv')
     env = reset_env()
-    result = env.run('hg', 'clone', 'http://bitbucket.org/ianb/virtualenv/', tmpdir)
+    result = env.run('hg', 'clone', local_repo('hg+http://bitbucket.org/ianb/virtualenv'), tmpdir)
     result2 = run_pip('install', '-e', tmpdir)
     assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
@@ -103,10 +105,10 @@ def test_uninstall_from_reqs_file():
     """
     env = reset_env()
     write_file('test-req.txt', textwrap.dedent("""\
-        -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
+        -e svn+%s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """))
+        """ % local_repo('svn+http://svn.colorstudy.com/INITools/trunk')))
     result = run_pip('install', '-r', 'test-req.txt')
     write_file('test-req.txt', textwrap.dedent("""\
         # -f, -i, and --extra-index-url should all be ignored by uninstall
@@ -114,10 +116,10 @@ def test_uninstall_from_reqs_file():
         -i http://www.example.com
         --extra-index-url http://www.example.com
 
-        -e svn+http://svn.colorstudy.com/INITools/trunk#egg=initools-dev
+        -e svn+%s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """))
+        """ % local_repo('svn+http://svn.colorstudy.com/INITools/trunk')))
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
         result, result2, [env.venv/'build', env.venv/'src', env.scratch/'test-req.txt'])
