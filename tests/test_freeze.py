@@ -3,7 +3,7 @@ import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from test_pip import reset_env, run_pip, write_file, get_env
-from local_repos import local_repo
+from local_repos import local_checkout, local_repo
 
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -71,9 +71,9 @@ def test_freeze():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e svn+%s@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
+        -e %s@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
         simplejson==1.7.4...
-        <BLANKLINE>""" % local_repo('svn+http://svn.colorstudy.com/INITools/trunk'))
+        <BLANKLINE>""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
     # Now, straight from trunk (but not editable/setup.py develop)::
@@ -93,17 +93,17 @@ def test_freeze():
 
     # Bah, that's no good!  Let's give it a hint::
     result = run_pip('freeze', '-f',
-                     'svn+%s#egg=INITools-dev' %
-                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     '%s#egg=INITools-dev' %
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f svn+%(repo)s#egg=INITools-dev
+        Script result: ...pip freeze -f %(repo)s#egg=INITools-dev
         -- stdout: --------------------
-        -f svn+%(repo)s#egg=INITools-dev
+        -f %(repo)s#egg=INITools-dev
         # Installing as editable to satisfy requirement INITools==...dev-r...:
-        -e svn+%(repo)s@...#egg=INITools-...dev_r...
+        -e %(repo)s@...#egg=INITools-...dev_r...
         simplejson==1.7.4...
-        <BLANKLINE>""" % {'repo': local_repo('svn+http://svn.colorstudy.com/INITools/trunk')})
+        <BLANKLINE>""" % {'repo': local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')})
     _check_output(result, expected)
 
 
@@ -122,19 +122,19 @@ def test_freeze():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e git+%s@...#egg=django_pagination-...
-        ...""" % local_repo('git+http://github.com/jezdez/django-pagination.git'))
+        -e %s@...#egg=django_pagination-...
+        ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     'git+%s#egg=django_pagination' % local_repo('git+http://github.com/jezdez/django-pagination.git'),
+                     '%s#egg=django_pagination' % local_checkout('git+http://github.com/jezdez/django-pagination.git'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze -f git+%(repo)s#egg=django_pagination
+        Script result: pip freeze -f %(repo)s#egg=django_pagination
         -- stdout: --------------------
-        -f git+%(repo)s#egg=django_pagination
-        -e git+%(repo)s@...#egg=django_pagination-...-dev
-        ...""" % {'repo': local_repo('git+http://github.com/jezdez/django-pagination.git')})
+        -f %(repo)s#egg=django_pagination
+        -e %(repo)s@...#egg=django_pagination-...-dev
+        ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
     _check_output(result, expected)
 
 
@@ -155,19 +155,19 @@ def test_freeze_mercurial_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e hg+%s@...#egg=django_dbtemplates-...
-        ...""" % local_repo('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
+        -e %s@...#egg=django_dbtemplates-...
+        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     'hg+%s#egg=django_dbtemplates' % local_repo('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
+                     '%s#egg=django_dbtemplates' % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f hg+%(repo)s#egg=django_dbtemplates
+        Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
         -- stdout: --------------------
-        -f hg+%(repo)s#egg=django_dbtemplates
-        -e hg+%(repo)s@...#egg=django_dbtemplates-...
-        ...""" % {'repo': local_repo('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
+        -f %(repo)s#egg=django_dbtemplates
+        -e %(repo)s@...#egg=django_dbtemplates-...
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
     _check_output(result, expected)
 
 
@@ -187,21 +187,21 @@ def test_freeze_bazaar_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e bzr+%s@...#egg=django_wikiapp-...
-        ...""" % local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
+        -e %s@...#egg=django_wikiapp-...
+        ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     'bzr+%s/#egg=django-wikiapp' %
-                     local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
+                     '%s/#egg=django-wikiapp' %
+                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f bzr+%(repo)s/#egg=django-wikiapp
+        Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
-        -f bzr+%(repo)s/#egg=django-wikiapp
-        -e bzr+%(repo)s@...#egg=django_wikiapp-...
+        -f %(repo)s/#egg=django-wikiapp
+        -e %(repo)s@...#egg=django_wikiapp-...
         ...""" % {'repo':
-                  local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
+                  local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
     _check_output(result, expected)
 
 

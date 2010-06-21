@@ -1,7 +1,7 @@
 import textwrap
 from os.path import abspath, exists, join
 from test_pip import here, reset_env, run_pip, write_file
-from local_repos import local_repo
+from local_repos import local_checkout
 
 
 def test_cleanup_after_install_from_pypi():
@@ -25,8 +25,8 @@ def test_cleanup_after_install_editable_from_hg():
     env = reset_env()
     run_pip('install',
             '-e',
-            'hg+%s#egg=django-registration' %
-            local_repo('hg+http://bitbucket.org/ubernostrum/django-registration'),
+            '%s#egg=django-registration' %
+            local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
             expect_error=True)
     build = env.venv_path/'build'
     src = env.venv_path/'src'
@@ -56,8 +56,8 @@ def test_cleanup_after_create_bundle():
     env = reset_env()
     # Install an editable to create a src/ dir.
     run_pip('install', '-e',
-            'git+%s#egg=django-feedutil' %
-            local_repo('git+http://github.com/jezdez/django-feedutil.git'))
+            '%s#egg=django-feedutil' %
+            local_checkout('git+http://github.com/jezdez/django-feedutil.git'))
     build = env.venv_path/"build"
     src = env.venv_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
@@ -67,8 +67,8 @@ def test_cleanup_after_create_bundle():
     fspkg = 'file://%s/FSPkg' %join(here, 'packages')
     pkg_lines = textwrap.dedent('''\
             -e %s
-            -e svn+%s#egg=initools-dev
-            pip''' % (fspkg, local_repo('svn+http://svn.colorstudy.com/INITools/trunk')))
+            -e %s#egg=initools-dev
+            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
     write_file('bundle-req.txt', pkg_lines)
     run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
     build_bundle = env.scratch_path/"build-bundle"

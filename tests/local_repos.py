@@ -34,7 +34,7 @@ def _get_vcs_folder():
     return folder_name
 
 
-def _get_vcs_checkout_url(remote_repository):
+def _get_vcs_and_checkout_url(remote_repository):
     vcs_repos = _get_vcs_folder()
     vcs_classes = {'svn': subversion.Subversion,
                    'git': git.Git,
@@ -57,10 +57,14 @@ def _get_vcs_checkout_url(remote_repository):
     destination_path = os.path.join(vcs_repos, repository_name)
     if not os.path.exists(destination_path):
         vcs_class(remote_repository).obtain(destination_path)
-    return path_to_url('/'.join([vcs_repos, repository_name, branch]))
+    return '%s+%s' % (vcs, path_to_url('/'.join([vcs_repos, repository_name, branch])))
+
+
+def local_checkout(remote_repo):
+    if remote_repo.startswith('svn'):
+        _create_svn_repository_for_initools()
+    return _get_vcs_and_checkout_url(remote_repo)
 
 
 def local_repo(remote_repo):
-    if remote_repo.startswith('svn'):
-        _create_svn_repository_for_initools()
-    return _get_vcs_checkout_url(remote_repo)
+    return local_checkout(remote_repo).split('+', 1)[1] 
