@@ -347,7 +347,7 @@ class TestPipEnvironment(TestFileEnvironment):
             self._copy_wsgi_intercept_files()
         site_packages = self.root_path / self.site_packages
         pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
-        pth.write('import sys; sys.path.insert(0, "%s"); '
+        pth.write('import sys; sys.path.insert(0, %r); '
                   'import pypi_server; '
                   'pypi_server.use_fake_pypi(); '
                   'sys.path.pop(0)' % here.abspath)
