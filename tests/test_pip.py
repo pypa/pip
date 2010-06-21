@@ -350,7 +350,7 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.write('import sys; sys.path.insert(0, %r); '
                   'import pypi_server; '
                   'pypi_server.use_fake_pypi(); '
-                  'sys.path.pop(0)' % here.abspath)
+                  'sys.path.pop(0)' % str(here.abspath))
         pth.close()
 
 
