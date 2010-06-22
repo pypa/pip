@@ -44,7 +44,7 @@ def pypi_app():
         start_response('200 OK', headers)
         if not os.path.exists(filepath):
                 return ''
-        return [open(filepath).read()]
+        return [open(filepath, 'rb').read()]
     return wsgi_app
 
 
