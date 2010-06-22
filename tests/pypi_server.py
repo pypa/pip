@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import wsgi_intercept
 from wsgi_intercept.urllib2_intercept import install_opener
@@ -7,17 +8,16 @@ from wsgi_intercept.urllib2_intercept import install_opener
 PYPI_DEFAULT_STATIC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pypiserver")
 
 
-def get_similar_pages(url):
-    """
-    >>> get_similar_pages('http://pypi.python.org/simple/initools')
-    'http://pypi.python.org/simple/INITools'
-    >>> get_similar_pages('http://pypi.python.org/simple/initools/0.2')
-    'http://pypi.python.org/simple/INITools/0.2'
-    >>> get_similar_pages('http://pypi.python.org/simple/setuptools_git')
-    'http://pypi.python.org/simple/setuptools-git'
-    >>> get_similar_pages('http://pypi.python.org/simple/setuptools_git/setuptools_git-0.3.4.tar.gz')
-    'http://pypi.python.org/simple/setuptools-git/setuptools_git-0.3.4.tar.gz'
-    """
+def _test_get_similar_urls():
+    assert get_similar_urls('/simple/initools') == '/simple/INITools'
+    assert get_similar_urls('/simple/initools/0.2') == '/simple/INITools/0.2'
+    assert get_similar_urls('/simple/setuptools_git') == '/simple/setuptools-git'
+    assert get_similar_urls('/simple/setuptools_git/') == '/simple/setuptools-git/'
+    assert get_similar_urls('/simple/setuptools_git/setuptools_git-0.3.4.tar.gz') == '/simple/setuptools-git/setuptools_git-0.3.4.tar.gz'
+
+
+
+def get_similar_urls(url):
     r = re.search(r'/simple/([^/]+)', url)
     here = os.path.dirname(os.path.abspath(__file__))
     all_packages = os.listdir(os.path.join(here, 'pypiserver', 'simple'))
@@ -33,14 +33,13 @@ def get_similar_pages(url):
 def pypi_app():
     def wsgi_app(environ, start_response):
         headers = [('Content-type', 'text/html')]
-        path_tree = environ['PATH_INFO'].split('/')
+        path_tree = get_similar_urls(environ['PATH_INFO']).split('/')
         url = os.path.join(PYPI_DEFAULT_STATIC_PATH, *path_tree)
         filepath = url
         if environ['PATH_INFO'].endswith('.gz'):
             headers = [('Content-type', 'application/x-gtar')]
         else:
             filepath = os.path.join(url, 'index.html')
-        filepath = get_similar_pages(filepath)
         start_response('200 OK', headers)
         if not os.path.exists(filepath):
                 return ''
@@ -52,3 +51,7 @@ def use_fake_pypi():
     # allow wsgi_intercept to work with urllib2 fakes
     install_opener()
     wsgi_intercept.add_wsgi_intercept('pypi.python.org', 80, pypi_app)
+
+
+if __name__ == '__main__':
+    _test_get_similar_urls()
