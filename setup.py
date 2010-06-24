@@ -33,5 +33,5 @@ setup(name='pip',
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main']),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv', 'scripttest'],
+      tests_require=['nose', 'virtualenv', 'scripttest', 'wsgi_intercept', 'wsgiproxy', 'WebOb==dev,>=0.9.8post1'],
       zip_safe=False)
