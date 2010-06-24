@@ -107,7 +107,7 @@ def test_freeze():
     _check_output(result, expected)
 
 
-#def test_freeze_git_clone():
+def test_freeze_git_clone():
     """
     Test freezing a Git clone.
 
