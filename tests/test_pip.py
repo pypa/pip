@@ -313,7 +313,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
-        self._use_fake_pypi_server()
+        self._use_cached_pypi_server()
 
     def run(self, *args, **kw):
         if self.verbose:
@@ -328,29 +328,24 @@ class TestPipEnvironment(TestFileEnvironment):
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
-    def _copy_wsgi_intercept_files(self):
-        download_and_extract_bz2_file_to_here(
-                'http://bitbucket.org/hltbra/'
-                'pip-fake-pypi-server/raw/0859b02feb0f/'
-                'wsgi_intercept_clean.tar.bz2')
-    
-    def _copy_pypiserver_fake_files(self):
-        download_and_extract_bz2_file_to_here(
-                'http://bitbucket.org/hltbra/'
-                'pip-fake-pypi-server/raw/10ef24c13180/'
-                'pypiserver.tar.bz2')
+    def _find_package_path(self, module):
+        return os.path.dirname(os.path.dirname(__import__(module).__file__))
 
-    def _use_fake_pypi_server(self):
-        if not os.path.exists(here/'pypiserver'):
-            self._copy_pypiserver_fake_files()
-        if not os.path.exists(here/'wsgi_intercept'):
-            self._copy_wsgi_intercept_files()
+    def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
         pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
-        pth.write('import sys; sys.path.insert(0, %r); '
-                  'import pypi_server; '
-                  'pypi_server.use_fake_pypi(); '
-                  'sys.path.pop(0)' % str(here.abspath))
+        pth.write('import sys; ')
+        cache_dependencies = 'webob paste wsgiproxy wsgi_intercept'.split()
+        dependency_paths = [self._find_package_path(d) for d in cache_dependencies]
+        for path in dependency_paths:
+            pth.write('sys.path.insert(0, %r); ' % path)
+        pth.write('sys.path.insert(0, %r); ' % str(here))
+        pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
+        pth.write('import pkg_resources; ')
+        # it is necessary to remove them to not affect the tests
+        for path in dependency_paths:
+            pth.write('pkg_resources.working_set.entries.remove(%r); ' % path)
+        pth.write('sys.path.remove(%r); ' % str(here))
         pth.close()
 
 
