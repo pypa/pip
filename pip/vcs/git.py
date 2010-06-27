@@ -78,23 +78,21 @@ class Git(VersionControl):
 
     def check_rev_options(self, rev, dest, rev_options):
         """Check the revision options before checkout to compensate that tags
-        and branches may need origin/ as a prefix"""
-        if rev is None:
-            # bail and use preset
-            return rev_options
+        and branches may need origin/ as a prefix.
+        Returns the SHA1 of the branch or tag if found.
+        """
         revisions = self.get_tag_revs(dest)
         revisions.update(self.get_branch_revs(dest))
-        if rev in revisions:
-            # if rev is a sha
-            return [rev]
         inverse_revisions = dict((v, k) for k, v in revisions.iteritems())
-        if rev not in inverse_revisions: # is rev a name or tag?
-            origin_rev = 'origin/%s' % rev
-            if origin_rev in inverse_revisions:
-                rev = inverse_revisions[origin_rev]
-            else:
-                logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
-        return [rev]
+        # Check if rev is a branch name
+        origin_rev = 'origin/%s' % rev
+        if origin_rev in inverse_revisions:
+            return [inverse_revisions[origin_rev]]
+        elif rev in inverse_revisions:
+            return [inverse_revisions[rev]]
+        else:
+            logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
+            return rev_options
 
     def switch(self, dest, url, rev_options):
         call_subprocess(
@@ -118,12 +116,11 @@ class Git(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
-            checked_rev = self.check_rev_options(rev, dest, rev_options)
-            # only explicitely checkout the "revision" in case the check
-            # found a valid tag, commit or branch
-            if rev_options != checked_rev:
-                call_subprocess(
-                    [self.cmd, 'checkout', '-q'] + checked_rev, cwd=dest)
+            if rev:
+                rev_options = self.check_rev_options(rev, dest, rev_options)
+                # Only do a checkout if rev_options differs from HEAD
+                if not self.get_revision(dest).startswith(rev_options[0]):
+                    call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
         url = call_subprocess(
