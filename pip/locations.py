@@ -4,7 +4,12 @@ import sys
 import os
 from distutils import sysconfig
 
-if getattr(sys, 'real_prefix', None):
+
+def _running_under_virtualenv():
+    return hasattr(sys, 'real_prefix')
+
+
+if _running_under_virtualenv():
     ## FIXME: is build/ a good name?
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
