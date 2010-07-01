@@ -9,6 +9,12 @@ pip.egg-info/*
 ScriptTest-*.egg
 virtualenv-*.egg
 nose-*.egg/*
+wsgi_intercept-*.egg/*
+WSGIProxy-*.egg/*
+WebOb-*.egg
+Paste-*.egg/*
+tests/vcs_repos/*
+tests/tests_cache/*
 dist/*
 docs/_build/*
 build/*
