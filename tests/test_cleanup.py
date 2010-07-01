@@ -1,7 +1,9 @@
+import os
 import textwrap
 from os.path import abspath, exists, join
-from test_pip import here, reset_env, run_pip, write_file
+from test_pip import here, reset_env, run_pip, write_file, mkdir
 from local_repos import local_checkout
+from path import Path
 
 
 def test_cleanup_after_install_from_pypi():
@@ -78,3 +80,33 @@ def test_cleanup_after_create_bundle():
 
     # Make sure previously created src/ from editable still exists
     assert exists(src), "expected src dir doesn't exist: %s" % src
+
+
+def test_no_install_and_download_should_not_leave_build_dir():
+    """
+    It should remove build/ dir if it was pip that created
+    """
+    env = reset_env()
+    mkdir('downloaded_packages')
+    assert not os.path.exists(env.venv_path/'/build')
+    result = run_pip('install', '--no-install', 'INITools==0.2', '-d', 'downloaded_packages')
+    assert Path('scratch')/'downloaded_packages/build' not in result.files_created, 'pip should not leave build/ dir'
+    assert not os.path.exists(env.venv_path/'/build'), "build/ dir should be deleted"
+
+
+def test_download_should_not_delete_existing_build_dir():
+    """
+    It should not delete build/ if existing before run the command
+    """
+    env = reset_env()
+    mkdir(env.venv_path/'build')
+    f = open(env.venv_path/'build'/'somefile.txt', 'w')
+    f.write('I am not empty!')
+    f.close()
+    run_pip('install', '--no-install', 'INITools==0.2', '-d', '.')
+    f = open(env.venv_path/'build'/'somefile.txt')
+    content = f.read()
+    f.close()
+    assert os.path.exists(env.venv_path/'build'), "build/ should be left if it exists before pip run"
+    assert content == 'I am not empty!', "it should not affect build/ and its content"
+    assert ['somefile.txt'] == os.listdir(env.venv_path/'build')

@@ -29,6 +29,10 @@ from pip.util import in_venv, geturl
 from pip import call_subprocess
 from pip.backwardcompat import any, md5, copytree
 from pip.index import Link
+from pip.locations import build_prefix
+
+
+PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 
 
 class InstallRequirement(object):
@@ -142,7 +146,7 @@ class InstallRequirement(object):
             name = self.name
         # FIXME: Is there a better place to create the build_dir? (hg and bzr need this)
         if not os.path.exists(build_dir):
-            os.makedirs(build_dir)
+            _make_build_dir(build_dir)
         return os.path.join(build_dir, name)
 
     def correct_build_location(self):
@@ -162,7 +166,7 @@ class InstallRequirement(object):
         new_location = os.path.join(new_build_dir, name)
         if not os.path.exists(new_build_dir):
             logger.debug('Creating directory %s' % new_build_dir)
-            os.makedirs(new_build_dir)
+            _make_build_dir(new_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
@@ -501,7 +505,7 @@ execfile(__file__)
                     zipdir.external_attr = 0755 << 16L
                     zip.writestr(zipdir, '')
                 for filename in filenames:
-                    if filename == 'pip-delete-this-directory.txt':
+                    if filename ==  PIP_DELETE_MARKER_FILENAME:
                         continue
                     filename = os.path.join(dirpath, filename)
                     name = self._clean_zip_name(filename, dir)
@@ -702,7 +706,7 @@ execfile(__file__)
     @property
     def delete_marker_filename(self):
         assert self.source_dir
-        return os.path.join(self.source_dir, 'pip-delete-this-directory.txt')
+        return os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)
 
 
 DELETE_MARKER_MESSAGE = '''\
@@ -862,7 +866,7 @@ class RequirementSet(object):
                     else:
                         location = req_to_install.source_dir
                     if not os.path.exists(self.build_dir):
-                        os.makedirs(self.build_dir)
+                        _make_build_dir(self.build_dir)
                     req_to_install.update_editable(not self.is_download)
                     if self.is_download:
                         req_to_install.run_egg_info()
@@ -918,9 +922,6 @@ class RequirementSet(object):
                                 # directory is created for packing in the bundle
                                 req_to_install.run_egg_info(force_root_egg_info=True)
                             req_to_install.assert_source_matches_version()
-                            f = open(req_to_install.delete_marker_filename, 'w')
-                            f.write(DELETE_MARKER_MESSAGE)
-                            f.close()
                             #@@ sketchy way of identifying packages not grabbed from an index
                             if bundle and req_to_install.url:
                                 self.copy_to_builddir(req_to_install)
@@ -960,8 +961,9 @@ class RequirementSet(object):
         for req in self.reqs_to_cleanup:
             req.remove_temporary_source()
 
-        # The build dir can always be removed.
-        remove_dir = [self.build_dir]
+        remove_dir = []
+        if self._pip_has_created_build_dir():
+            remove_dir.append(self.build_dir)
 
         # The source dir of a bundle can always be removed.
         if bundle:
@@ -973,6 +975,10 @@ class RequirementSet(object):
                 rmtree(dir)
 
         logger.indent -= 2
+
+    def _pip_has_created_build_dir(self):
+        return (self.build_dir == build_prefix and
+                os.path.exists(os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)))
 
     def copy_to_builddir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
@@ -1301,7 +1307,7 @@ class RequirementSet(object):
                     name = self._clean_zip_name(dirname, dir)
                     zip.writestr(basename + '/' + name + '/', '')
                 for filename in filenames:
-                    if filename == 'pip-delete-this-directory.txt':
+                    if filename == PIP_DELETE_MARKER_FILENAME:
                         continue
                     filename = os.path.join(dirpath, filename)
                     name = self._clean_zip_name(filename, dir)
@@ -1343,6 +1349,17 @@ class RequirementSet(object):
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
         return name
+
+
+def _make_build_dir(build_dir):
+    os.makedirs(build_dir)
+    _write_delete_marker_message(os.path.join(build_dir, PIP_DELETE_MARKER_FILENAME))
+
+
+def _write_delete_marker_message(filepath):
+    marker_fp = open(filepath, 'w')
+    marker_fp.write(DELETE_MARKER_MESSAGE)
+    marker_fp.close()
 
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
