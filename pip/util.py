@@ -369,7 +369,7 @@ def renames(old, new):
             pass
 
 
-def in_venv():
+def running_under_virtualenv():
     """
     Return True if we're running inside a virtualenv, False otherwise.
 
@@ -384,7 +384,7 @@ def is_local(path):
     If we're not in a virtualenv, all paths are considered "local."
 
     """
-    if not in_venv():
+    if not running_under_virtualenv():
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 

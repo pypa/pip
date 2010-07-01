@@ -25,7 +25,7 @@ from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
-from pip.util import in_venv, geturl
+from pip.util import running_under_virtualenv, geturl
 from pip import call_subprocess
 from pip.backwardcompat import any, md5, copytree
 from pip.index import Link
@@ -538,7 +538,7 @@ execfile(__file__)
                 '--single-version-externally-managed',
                 '--record', record_filename]
 
-            if in_venv():
+            if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
                 ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
                 install_args += ['--install-headers',
