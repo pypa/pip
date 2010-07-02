@@ -28,7 +28,7 @@ def test_multiple_requirements_files():
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
-        -e %s@3139#egg=INITools-dev
+        -e %s@10#egg=INITools-dev
         -r simplejson-req.txt""" % local_checkout('http://svn.colorstudy.com/INITools/trunk')))
     write_file('simplejson-req.txt', textwrap.dedent("""\
         simplejson<=1.7.4

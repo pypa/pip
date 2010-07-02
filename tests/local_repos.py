@@ -11,7 +11,7 @@ def _create_initools_repository():
 
 
 def _dump_initools_repository():
-    filename, _ = urllib.urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/d7a9beef1bbe/initools_colorstudy.dump')
+    filename, _ = urllib.urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/INITools_modified.dump')
     initools_folder = os.path.join(_get_vcs_folder(), 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
@@ -49,8 +49,6 @@ def _get_vcs_and_checkout_url(remote_repository):
     if vcs == 'svn':
         branch = os.path.basename(remote_repository)
         repository_name = os.path.basename(remote_repository[:-len(branch)-1]) # remove the slash
-        # the INITools svn repository has a tree including INITools folder
-        branch = 'INITools/' + branch
     else:
         repository_name = os.path.basename(remote_repository)
 

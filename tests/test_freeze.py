@@ -62,7 +62,7 @@ def test_freeze():
     _check_output(result, expected)
     
     # Now lets try it with an svn checkout::
-    result = env.run('svn', 'co', '-r3472',
+    result = env.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
     result = env.run('python', 'setup.py', 'develop',
@@ -71,7 +71,7 @@ def test_freeze():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@3472#egg=INITools-0.2.1dev_r3472-py2...-dev_r3472
+        -e %s@10#egg=INITools-0.3.1dev_r10-py2...-dev_r10
         simplejson==1.7.4...
         <BLANKLINE>""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
