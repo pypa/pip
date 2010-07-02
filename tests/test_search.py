@@ -1,9 +1,10 @@
-
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-from pip.commands.search import compare_versions, highest_version, transform_hits
+import xmlrpclib
+import pip.download
+from pip.commands.search import (compare_versions,
+                                 highest_version,
+                                 transform_hits,
+                                 SearchCommand,)
+from mock import Mock
 from test_pip import run_pip, reset_env
 
 
@@ -41,3 +42,17 @@ def test_search():
     output = run_pip('search', 'pip', expect_error=True)
     assert 'pip installs packages' in output.stdout
 
+
+def test_searching_through_Search_class():
+    """
+    Verify if ``pip.vcs.Search`` uses tests xmlrpclib.Transport class
+    """
+    pip.download.xmlrpclib_transport = fake_transport = Mock()
+    query = 'mylittlequerythatdoesnotexists'
+    dumped_xmlrpc_request = xmlrpclib.dumps(({'name': query, 'summary': query}, 'or'), 'search')
+    expected = [{'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
+    fake_transport.request.return_value = (expected,)
+    pypi_searcher = SearchCommand()
+    result = pypi_searcher.search(query, 'http://pypi.python.org/pypi')
+    assert expected == result, result
+    fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=0)
