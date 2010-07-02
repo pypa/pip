@@ -4,8 +4,9 @@ import tempfile
 import re
 from pip import call_subprocess
 from pip.log import logger
-from pip.util import rmtree, display_path, path_to_url2
+from pip.util import rmtree, display_path
 from pip.vcs import vcs, VersionControl
+from pip.download import path_to_url2
 
 
 class Bazaar(VersionControl):

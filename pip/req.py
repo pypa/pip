@@ -18,18 +18,17 @@ from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree, format_size
-from pip.util import splitext, ask, backup_dir
-from pip.util import url_to_path, path_to_url
-from pip.util import is_url, is_installable_dir, is_archive_file, is_local, dist_is_local
-from pip.util import renames, normalize_path, egg_link_path
+from pip.util import ask, backup_dir
+from pip.util import is_installable_dir, is_local, dist_is_local
+from pip.util import renames, normalize_path, egg_link_path, splitext
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
-from pip.util import get_file_content
-from pip.util import geturl
 from pip import call_subprocess
 from pip.backwardcompat import any, md5, copytree
 from pip.index import Link
 from pip.locations import build_prefix
+from pip.download import (get_file_content, is_url, url_to_path,
+                          path_to_url, geturl, is_archive_file)
 
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
