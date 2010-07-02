@@ -451,6 +451,8 @@ def get_terminal_size():
         '1234'))
         except:
             return None
+        if cr == (0, 0):
+            return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not cr:
