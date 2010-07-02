@@ -4,6 +4,7 @@ import urllib
 from pip.vcs import subversion, git, bazaar, mercurial
 from path import Path
 from test_pip import path_to_url, here
+from pypi_server import PyPIProxy
 
 
 def _create_initools_repository():
@@ -21,21 +22,21 @@ def _dump_initools_repository():
 
 
 def _create_svn_repository_for_initools():
-    vcs_repos = _get_vcs_folder()
-    if not os.path.exists(os.path.join(vcs_repos, 'INITools')):
+    tests_cache = _get_vcs_folder()
+    if not os.path.exists(os.path.join(tests_cache, 'INITools')):
         _create_initools_repository()
         _dump_initools_repository()
 
 
 def _get_vcs_folder():
-    folder_name = here/'vcs_repos'
+    folder_name = PyPIProxy.CACHE_PATH
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)
     return folder_name
 
 
 def _get_vcs_and_checkout_url(remote_repository):
-    vcs_repos = _get_vcs_folder()
+    tests_cache = _get_vcs_folder()
     vcs_classes = {'svn': subversion.Subversion,
                    'git': git.Git,
                    'bzr': bazaar.Bazaar,
@@ -52,10 +53,10 @@ def _get_vcs_and_checkout_url(remote_repository):
     else:
         repository_name = os.path.basename(remote_repository)
 
-    destination_path = os.path.join(vcs_repos, repository_name)
+    destination_path = os.path.join(tests_cache, repository_name)
     if not os.path.exists(destination_path):
         vcs_class(remote_repository).obtain(destination_path)
-    return '%s+%s' % (vcs, path_to_url('/'.join([vcs_repos, repository_name, branch])))
+    return '%s+%s' % (vcs, path_to_url('/'.join([tests_cache, repository_name, branch])))
 
 
 def local_checkout(remote_repo):
