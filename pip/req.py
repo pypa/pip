@@ -13,7 +13,7 @@ import urllib
 import ConfigParser
 from distutils.sysconfig import get_python_version
 from email.FeedParser import FeedParser
-from pip.locations import bin_py
+from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
 from pip.log import logger
@@ -25,7 +25,7 @@ from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative, is_svn_page, file_contents
 from pip.util import has_leading_dir, split_leading_dir
 from pip.util import get_file_content
-from pip.util import running_under_virtualenv, geturl
+from pip.util import geturl
 from pip import call_subprocess
 from pip.backwardcompat import any, md5, copytree
 from pip.index import Link

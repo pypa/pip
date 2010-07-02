@@ -11,7 +11,7 @@ import pkg_resources
 
 from pip.backwardcompat import WindowsError
 from pip.exceptions import InstallationError
-from pip.locations import site_packages
+from pip.locations import site_packages, running_under_virtualenv
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'splitext', 'ask', 'Inf',
@@ -367,14 +367,6 @@ def renames(old, new):
             os.removedirs(head)
         except OSError:
             pass
-
-
-def running_under_virtualenv():
-    """
-    Return True if we're running inside a virtualenv, False otherwise.
-
-    """
-    return hasattr(sys, 'real_prefix')
 
 
 def is_local(path):

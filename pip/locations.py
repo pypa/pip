@@ -3,7 +3,14 @@
 import sys
 import os
 from distutils import sysconfig
-from pip.util import running_under_virtualenv
+
+
+def running_under_virtualenv():
+    """
+    Return True if we're running inside a virtualenv, False otherwise.
+
+    """
+    return hasattr(sys, 'real_prefix')
 
 
 if running_under_virtualenv():
