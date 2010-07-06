@@ -39,7 +39,7 @@ def test_search():
 
     """
     reset_env()
-    output = run_pip('search', 'pip', expect_error=True)
+    output = run_pip('search', 'pip')
     assert 'pip installs packages' in output.stdout
 
 
