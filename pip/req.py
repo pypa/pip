@@ -3,10 +3,8 @@ import os
 import shutil
 import re
 import zipfile
-import tarfile
 import pkg_resources
 import tempfile
-import mimetypes
 import urlparse
 import urllib2
 import urllib
@@ -17,18 +15,19 @@ from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree, format_size
+from pip.util import display_path, rmtree
 from pip.util import ask, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local
-from pip.util import renames, normalize_path, egg_link_path, splitext
-from pip.util import make_path_relative, is_svn_page, file_contents
-from pip.util import has_leading_dir, split_leading_dir
+from pip.util import renames, normalize_path, egg_link_path
+from pip.util import make_path_relative
 from pip import call_subprocess
-from pip.backwardcompat import any, md5, copytree
+from pip.backwardcompat import any, copytree
 from pip.index import Link
 from pip.locations import build_prefix
 from pip.download import (get_file_content, is_url, url_to_path,
-                          path_to_url, geturl, is_archive_file)
+                          path_to_url, is_archive_file,
+                          unpack_vcs_link, is_vcs_url, is_file_url,
+                          unpack_file_url, unpack_http_url)
 
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
@@ -923,7 +922,7 @@ class RequirementSet(object):
                             req_to_install.assert_source_matches_version()
                             #@@ sketchy way of identifying packages not grabbed from an index
                             if bundle and req_to_install.url:
-                                self.copy_to_builddir(req_to_install)
+                                self.copy_to_build_dir(req_to_install)
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
@@ -949,7 +948,7 @@ class RequirementSet(object):
                 if install:
                     self.successfully_downloaded.append(req_to_install)
                     if bundle and (req_to_install.url and req_to_install.url.startswith('file:///')):
-                        self.copy_to_builddir(req_to_install)
+                        self.copy_to_build_dir(req_to_install)
             finally:
                 logger.indent -= 2
 
@@ -979,7 +978,7 @@ class RequirementSet(object):
         return (self.build_dir == build_prefix and
                 os.path.exists(os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)))
 
-    def copy_to_builddir(self, req_to_install):
+    def copy_to_build_dir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
         logger.info("Copying %s to %s" %(req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
@@ -989,252 +988,14 @@ class RequirementSet(object):
     def unpack_url(self, link, location, only_download=False):
         if only_download:
             location = self.download_dir
-        for backend in vcs.backends:
-            if link.scheme in backend.schemes:
-                vcs_backend = backend(link.url)
-                if only_download:
-                    vcs_backend.export(location)
-                else:
-                    vcs_backend.unpack(location)
-                return
-        if link.url.lower().startswith('file:'):
-            source = url_to_path(link.url)
-            content_type = mimetypes.guess_type(source)[0]
-            if os.path.isdir(source):
-                # delete the location since shutil will create it again :(
-                if os.path.isdir(location):
-                    shutil.rmtree(location)
-                copytree(source, location)
-            else:
-                self.unpack_file(source, location, content_type, link)
-            return
-        temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
-        md5_hash = link.md5_hash
-        target_url = link.url.split('#', 1)[0]
-        target_file = None
-        if self.download_cache:
-            self.download_cache = os.path.expanduser(self.download_cache)
-            if not os.path.isdir(self.download_cache):
-                logger.indent -= 2
-                logger.notify('Creating supposed download cache at %s' % self.download_cache)
-                logger.indent += 2
-                os.makedirs(self.download_cache)
-            target_file = os.path.join(self.download_cache,
-                                       urllib.quote(target_url, ''))
-        if (target_file and os.path.exists(target_file)
-            and os.path.exists(target_file+'.content-type')):
-            fp = open(target_file+'.content-type')
-            content_type = fp.read().strip()
-            fp.close()
-            if md5_hash:
-                download_hash = md5()
-                fp = open(target_file, 'rb')
-                while 1:
-                    chunk = fp.read(4096)
-                    if not chunk:
-                        break
-                    download_hash.update(chunk)
-                fp.close()
-            temp_location = target_file
-            logger.notify('Using download cache from %s' % target_file)
+        if is_vcs_url(link):
+            return unpack_vcs_link(link, location, only_download)
+        elif is_file_url(link):
+            return unpack_file_url(link, location)
         else:
-            try:
-                resp = urllib2.urlopen(target_url)
-            except urllib2.HTTPError, e:
-                logger.fatal("HTTP error %s while getting %s" % (e.code, link))
-                raise
-            except IOError, e:
-                # Typically an FTP error
-                logger.fatal("Error %s while getting %s" % (e, link))
-                raise
-            content_type = resp.info()['content-type']
-            filename = link.filename
-            ext = splitext(filename)[1]
-            if not ext:
-                ext = mimetypes.guess_extension(content_type)
-                if ext:
-                    filename += ext
-            if not ext and link.url != geturl(resp):
-                ext = os.path.splitext(geturl(resp))[1]
-                if ext:
-                    filename += ext
-            temp_location = os.path.join(temp_dir, filename)
-            fp = open(temp_location, 'wb')
-            if md5_hash:
-                download_hash = md5()
-            try:
-                total_length = int(resp.info()['content-length'])
-            except (ValueError, KeyError):
-                total_length = 0
-            downloaded = 0
-            show_progress = total_length > 40*1000 or not total_length
-            show_url = link.show_url
-            try:
-                if show_progress:
-                    ## FIXME: the URL can get really long in this message:
-                    if total_length:
-                        logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
-                    else:
-                        logger.start_progress('Downloading %s (unknown size): ' % show_url)
-                else:
-                    logger.notify('Downloading %s' % show_url)
-                logger.debug('Downloading from URL %s' % link)
-                while 1:
-                    chunk = resp.read(4096)
-                    if not chunk:
-                        break
-                    downloaded += len(chunk)
-                    if show_progress:
-                        if not total_length:
-                            logger.show_progress('%s' % format_size(downloaded))
-                        else:
-                            logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
-                    if md5_hash:
-                        download_hash.update(chunk)
-                    fp.write(chunk)
-                fp.close()
-            finally:
-                if show_progress:
-                    logger.end_progress('%s downloaded' % format_size(downloaded))
-        if md5_hash:
-            download_hash = download_hash.hexdigest()
-            if download_hash != md5_hash:
-                logger.fatal("MD5 hash of the package %s (%s) doesn't match the expected hash %s!"
-                             % (link, download_hash, md5_hash))
-                raise InstallationError('Bad MD5 hash for package %s' % link)
-        if only_download:
-            self.copy_file(temp_location, location, content_type, link)
-        else:
-            self.unpack_file(temp_location, location, content_type, link)
-        if target_file and target_file != temp_location:
-            logger.notify('Storing download in cache at %s' % display_path(target_file))
-            shutil.copyfile(temp_location, target_file)
-            fp = open(target_file+'.content-type', 'w')
-            fp.write(content_type)
-            fp.close()
-            os.unlink(temp_location)
-        if target_file is None:
-            os.unlink(temp_location)
-        os.rmdir(temp_dir)
-
-    def copy_file(self, filename, location, content_type, link):
-        copy = True
-        download_location = os.path.join(location, link.filename)
-        if os.path.exists(download_location):
-            response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
-                           % display_path(download_location), ('i', 'w', 'b'))
-            if response == 'i':
-                copy = False
-            elif response == 'w':
-                logger.warn('Deleting %s' % display_path(download_location))
-                os.remove(download_location)
-            elif response == 'b':
-                dest_file = backup_dir(download_location)
-                logger.warn('Backing up %s to %s'
-                            % (display_path(download_location), display_path(dest_file)))
-                shutil.move(download_location, dest_file)
-        if copy:
-            shutil.copy(filename, download_location)
-            logger.indent -= 2
-            logger.notify('Saved %s' % display_path(download_location))
-
-    def unpack_file(self, filename, location, content_type, link):
-        if (content_type == 'application/zip'
-            or filename.endswith('.zip')
-            or filename.endswith('.pybundle')
-            or zipfile.is_zipfile(filename)):
-            self.unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
-        elif (content_type == 'application/x-gzip'
-              or tarfile.is_tarfile(filename)
-              or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
-            self.untar_file(filename, location)
-        elif (content_type and content_type.startswith('text/html')
-              and is_svn_page(file_contents(filename))):
-            # We don't really care about this
-            from pip.vcs.subversion import Subversion
-            Subversion('svn+' + link.url).unpack(location)
-        else:
-            ## FIXME: handle?
-            ## FIXME: magic signatures?
-            logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
-                         % (filename, location, content_type))
-            raise InstallationError('Cannot determine archive format of %s' % location)
-
-    def unzip_file(self, filename, location, flatten=True):
-        """Unzip the file (zip file located at filename) to the destination
-        location"""
-        if not os.path.exists(location):
-            os.makedirs(location)
-        zipfp = open(filename, 'rb')
-        try:
-            zip = zipfile.ZipFile(zipfp)
-            leading = has_leading_dir(zip.namelist()) and flatten
-            for name in zip.namelist():
-                data = zip.read(name)
-                fn = name
-                if leading:
-                    fn = split_leading_dir(name)[1]
-                fn = os.path.join(location, fn)
-                dir = os.path.dirname(fn)
-                if not os.path.exists(dir):
-                    os.makedirs(dir)
-                if fn.endswith('/') or fn.endswith('\\'):
-                    # A directory
-                    if not os.path.exists(fn):
-                        os.makedirs(fn)
-                else:
-                    fp = open(fn, 'wb')
-                    try:
-                        fp.write(data)
-                    finally:
-                        fp.close()
-        finally:
-            zipfp.close()
-
-    def untar_file(self, filename, location):
-        """Untar the file (tar file located at filename) to the destination location"""
-        if not os.path.exists(location):
-            os.makedirs(location)
-        if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-            mode = 'r:gz'
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.tbz'):
-            mode = 'r:bz2'
-        elif filename.lower().endswith('.tar'):
-            mode = 'r'
-        else:
-            logger.warn('Cannot determine compression type for file %s' % filename)
-            mode = 'r:*'
-        tar = tarfile.open(filename, mode)
-        try:
-            leading = has_leading_dir([member.name for member in tar.getmembers()])
-            for member in tar.getmembers():
-                fn = member.name
-                if leading:
-                    fn = split_leading_dir(fn)[1]
-                path = os.path.join(location, fn)
-                if member.isdir():
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                else:
-                    try:
-                        fp = tar.extractfile(member)
-                    except (KeyError, AttributeError), e:
-                        # Some corrupt tar files seem to produce this
-                        # (specifically bad symlinks)
-                        logger.warn(
-                            'In the tar file %s the member %s is invalid: %s'
-                            % (filename, member.name, e))
-                        continue
-                    if not os.path.exists(os.path.dirname(path)):
-                        os.makedirs(os.path.dirname(path))
-                    destfp = open(path, 'wb')
-                    try:
-                        shutil.copyfileobj(fp, destfp)
-                    finally:
-                        destfp.close()
-                    fp.close()
-        finally:
-            tar.close()
+            if self.download_cache:
+                self.download_cache = os.path.expanduser(self.download_cache)
+            return unpack_http_url(link, location, self.download_cache, only_download)
 
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""

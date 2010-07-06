@@ -5,8 +5,12 @@ import stat
 import re
 import posixpath
 import pkg_resources
+import zipfile
+import tarfile
+from pip.exceptions import InstallationError
 from pip.backwardcompat import WindowsError
 from pip.locations import site_packages, running_under_virtualenv
+from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -15,7 +19,9 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
-           'renames', 'get_terminal_size']
+           'renames', 'get_terminal_size',
+           'unzip_file', 'untar_file', 'create_download_cache_folder',
+           'cache_download', 'unpack_file']
 
 
 def rmtree(dir):
@@ -331,6 +337,8 @@ def get_terminal_size():
             return None
         if cr == (0, 0):
             return None
+        if cr == (0, 0):
+            return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not cr:
@@ -343,4 +351,123 @@ def get_terminal_size():
     if not cr:
         cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
     return int(cr[1]), int(cr[0])
+
+
+def unzip_file(filename, location, flatten=True):
+    """Unzip the file (zip file located at filename) to the destination
+    location"""
+    if not os.path.exists(location):
+        os.makedirs(location)
+    zipfp = open(filename, 'rb')
+    try:
+        zip = zipfile.ZipFile(zipfp)
+        leading = has_leading_dir(zip.namelist()) and flatten
+        for name in zip.namelist():
+            data = zip.read(name)
+            fn = name
+            if leading:
+                fn = split_leading_dir(name)[1]
+            fn = os.path.join(location, fn)
+            dir = os.path.dirname(fn)
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+            if fn.endswith('/') or fn.endswith('\\'):
+                # A directory
+                if not os.path.exists(fn):
+                    os.makedirs(fn)
+            else:
+                fp = open(fn, 'wb')
+                try:
+                    fp.write(data)
+                finally:
+                    fp.close()
+    finally:
+        zipfp.close()
+
+
+def untar_file(filename, location):
+    """Untar the file (tar file located at filename) to the destination location"""
+    if not os.path.exists(location):
+        os.makedirs(location)
+    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
+        mode = 'r:gz'
+    elif filename.lower().endswith('.bz2') or filename.lower().endswith('.tbz'):
+        mode = 'r:bz2'
+    elif filename.lower().endswith('.tar'):
+        mode = 'r'
+    else:
+        logger.warn('Cannot determine compression type for file %s' % filename)
+        mode = 'r:*'
+    tar = tarfile.open(filename, mode)
+    try:
+        leading = has_leading_dir([member.name for member in tar.getmembers()])
+        for member in tar.getmembers():
+            fn = member.name
+            if leading:
+                fn = split_leading_dir(fn)[1]
+            path = os.path.join(location, fn)
+            if member.isdir():
+                if not os.path.exists(path):
+                    os.makedirs(path)
+            else:
+                try:
+                    fp = tar.extractfile(member)
+                except (KeyError, AttributeError), e:
+                    # Some corrupt tar files seem to produce this
+                    # (specifically bad symlinks)
+                    logger.warn(
+                        'In the tar file %s the member %s is invalid: %s'
+                        % (filename, member.name, e))
+                    continue
+                if not os.path.exists(os.path.dirname(path)):
+                    os.makedirs(os.path.dirname(path))
+                destfp = open(path, 'wb')
+                try:
+                    shutil.copyfileobj(fp, destfp)
+                finally:
+                    destfp.close()
+                fp.close()
+    finally:
+        tar.close()
+
+
+def create_download_cache_folder(folder):
+    logger.indent -= 2
+    logger.notify('Creating supposed download cache at %s' % folder)
+    logger.indent += 2
+    os.makedirs(folder)
+
+
+def cache_download(target_file, temp_location, content_type):
+    logger.notify('Storing download in cache at %s' % display_path(target_file))
+    shutil.copyfile(temp_location, target_file)
+    fp = open(target_file+'.content-type', 'w')
+    fp.write(content_type)
+    fp.close()
+    os.unlink(temp_location)
+
+
+def unpack_file(filename, location, content_type, link):
+    if (content_type == 'application/zip'
+        or filename.endswith('.zip')
+        or filename.endswith('.pybundle')
+        or zipfile.is_zipfile(filename)):
+        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+    elif (content_type == 'application/x-gzip'
+          or tarfile.is_tarfile(filename)
+          or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+        untar_file(filename, location)
+    elif (content_type and content_type.startswith('text/html')
+          and is_svn_page(file_contents(filename))):
+        # We don't really care about this
+        from pip.vcs.subversion import Subversion
+        Subversion('svn+' + link.url).unpack(location)
+    else:
+        ## FIXME: handle?
+        ## FIXME: magic signatures?
+        logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
+                     % (filename, location, content_type))
+        raise InstallationError('Cannot determine archive format of %s' % location)
+
+
 

@@ -3,8 +3,23 @@ import re
 import urllib
 import urllib2
 import os
+import mimetypes
+import shutil
+import tempfile
+from pip.backwardcompat import md5, copytree
 from pip.exceptions import InstallationError
-from pip.util import splitext
+from pip.util import (splitext,
+                      format_size, display_path, backup_dir, ask,
+                      unpack_file, create_download_cache_folder, cache_download)
+from pip.vcs import vcs
+from pip.log import logger
+
+
+__all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
+           'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
+           'geturl', 'is_archive_file', 'unpack_vcs_link',
+           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url',]
+
 
 xmlrpclib_transport = xmlrpclib.Transport()
 
@@ -54,7 +69,6 @@ def urlopen(url):
 
 def is_url(name):
     """Returns true if the name looks like a URL"""
-    from pip.vcs import vcs
     if ':' not in name:
         return False
     scheme = name.split(':', 1)[0].lower()
@@ -115,13 +129,20 @@ def geturl(urllib2_resp):
     always restores '://' if it is missing, and it appears some url
     schemata aren't always followed by '//' after the colon, but as
     far as I know pip doesn't need any of those.
+    The URI RFC can be found at: http://tools.ietf.org/html/rfc1630
+
+    This function assumes that
+        scheme:/foo/bar
+    is the same as
+        scheme:///foo/bar
     """
     url = urllib2_resp.geturl()
     scheme, rest = url.split(':', 1)
     if rest.startswith('//'):
         return url
     else:
-        return '%s//%s' % (scheme, rest)
+        # FIXME: write a good test to cover it
+        return '%s://%s' % (scheme, rest)
 
 
 def is_archive_file(name):
@@ -132,4 +153,185 @@ def is_archive_file(name):
         return True
     return False
 
+
+def unpack_vcs_link(link, location, only_download=False):
+    vcs_backend = _get_used_vcs_backend(link)
+    if only_download:
+        vcs_backend.export(location)
+    else:
+        vcs_backend.unpack(location)
+
+
+def unpack_file_url(link, location):
+    source = url_to_path(link.url)
+    content_type = mimetypes.guess_type(source)[0]
+    if os.path.isdir(source):
+        # delete the location since shutil will create it again :(
+        if os.path.isdir(location):
+            shutil.rmtree(location)
+        copytree(source, location)
+    else:
+        unpack_file(source, location, content_type, link)
+
+
+def _get_used_vcs_backend(link):
+    for backend in vcs.backends:
+        if link.scheme in backend.schemes:
+            vcs_backend = backend(link.url)
+            return vcs_backend
+
+
+def is_vcs_url(link):
+   return bool(_get_used_vcs_backend(link))
+    
+
+def is_file_url(link):
+    return link.url.lower().startswith('file:')
+
+
+def _check_md5(download_hash, link):
+    download_hash = download_hash.hexdigest()
+    if download_hash != link.md5_hash:
+        logger.fatal("MD5 hash of the package %s (%s) doesn't match the expected hash %s!"
+                     % (link, download_hash, link.md5_hash))
+        raise InstallationError('Bad MD5 hash for package %s' % link)
+
+
+def _get_md5_from_file(target_file, link):
+    download_hash = md5()
+    fp = open(target_file, 'rb')
+    while 1:
+        chunk = fp.read(4096)
+        if not chunk:
+            break
+        download_hash.update(chunk)
+    fp.close()
+    return download_hash
+
+
+def _download_url(resp, link, temp_location):
+    fp = open(temp_location, 'wb')
+    download_hash = None
+    if link.md5_hash:
+        download_hash = md5()
+    try:
+        total_length = int(resp.info()['content-length'])
+    except (ValueError, KeyError):
+        total_length = 0
+    downloaded = 0
+    show_progress = total_length > 40*1000 or not total_length
+    show_url = link.show_url
+    try:
+        if show_progress:
+            ## FIXME: the URL can get really long in this message:
+            if total_length:
+                logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
+            else:
+                logger.start_progress('Downloading %s (unknown size): ' % show_url)
+        else:
+            logger.notify('Downloading %s' % show_url)
+        logger.debug('Downloading from URL %s' % link)
+
+        while 1:
+            chunk = resp.read(4096)
+            if not chunk:
+                break
+            downloaded += len(chunk)
+            if show_progress:
+                if not total_length:
+                    logger.show_progress('%s' % format_size(downloaded))
+                else:
+                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+            if link.md5_hash:
+                download_hash.update(chunk)
+            fp.write(chunk)
+        fp.close()
+    finally:
+        if show_progress:
+            logger.end_progress('%s downloaded' % format_size(downloaded))
+    return download_hash
+
+
+def _copy_file(filename, location, content_type, link):
+    copy = True
+    download_location = os.path.join(location, link.filename)
+    if os.path.exists(download_location):
+        response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
+                       % display_path(download_location), ('i', 'w', 'b'))
+        if response == 'i':
+            copy = False
+        elif response == 'w':
+            logger.warn('Deleting %s' % display_path(download_location))
+            os.remove(download_location)
+        elif response == 'b':
+            dest_file = backup_dir(download_location)
+            logger.warn('Backing up %s to %s'
+                        % (display_path(download_location), display_path(dest_file)))
+            shutil.move(download_location, dest_file)
+    if copy:
+        shutil.copy(filename, download_location)
+        logger.indent -= 2
+        logger.notify('Saved %s' % display_path(download_location))
+
+
+def unpack_http_url(link, location, download_cache, only_download):
+    temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
+    target_url = link.url.split('#', 1)[0]
+    target_file = None
+    download_hash = None
+    if download_cache:
+        target_file = os.path.join(download_cache,
+                                   urllib.quote(target_url, ''))
+        if not os.path.isdir(download_cache):
+            create_download_cache_folder(download_cache)
+    if (target_file
+        and os.path.exists(target_file)
+        and os.path.exists(target_file+'.content-type')):
+        fp = open(target_file+'.content-type')
+        content_type = fp.read().strip()
+        fp.close()
+        if link.md5_hash:
+            download_hash = _get_md5_from_file(target_file, link)
+        temp_location = target_file
+        logger.notify('Using download cache from %s' % target_file)
+    else:
+        resp = _get_response_from_url(target_url, link)
+        content_type = resp.info()['content-type']
+        filename = link.filename
+        ext = splitext(filename)[1]
+        if not ext:
+            ext = mimetypes.guess_extension(content_type)
+            if ext:
+                filename += ext
+        if not ext and link.url != geturl(resp):
+            ext = os.path.splitext(geturl(resp))[1]
+            if ext:
+                filename += ext
+        temp_location = os.path.join(temp_dir, filename)
+        download_hash = _download_url(resp, link, temp_location)
+    if link.md5_hash:
+        _check_md5(download_hash, link)
+    if only_download:
+        _copy_file(temp_location, location, content_type, link)
+    else:
+        unpack_file(temp_location, location, content_type, link)
+    if target_file and target_file != temp_location:
+        cache_download(target_file, temp_location, content_type)
+    if target_file is None:
+        os.unlink(temp_location)
+    os.rmdir(temp_dir)
+
+
+
+def _get_response_from_url(target_url, link):
+    try:
+        resp = urllib2.urlopen(target_url)
+    except urllib2.HTTPError, e:
+        logger.fatal("HTTP error %s while getting %s" % (e.code, link))
+        raise
+    except IOError, e:
+        # Typically an FTP error
+        logger.fatal("Error %s while getting %s" % (e, link))
+        raise
+    return resp
 
