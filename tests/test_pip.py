@@ -335,16 +335,8 @@ class TestPipEnvironment(TestFileEnvironment):
         site_packages = self.root_path / self.site_packages
         pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
         pth.write('import sys; ')
-        cache_dependencies = 'webob paste wsgiproxy wsgi_intercept'.split()
-        dependency_paths = [self._find_package_path(d) for d in cache_dependencies]
-        for path in dependency_paths:
-            pth.write('sys.path.insert(0, %r); ' % path)
         pth.write('sys.path.insert(0, %r); ' % str(here))
         pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
-        pth.write('import pkg_resources; ')
-        # it is necessary to remove them to not affect the tests
-        for path in dependency_paths:
-            pth.write('pkg_resources.working_set.entries.remove(%r); ' % path)
         pth.write('sys.path.remove(%r); ' % str(here))
         pth.close()
 
