@@ -531,7 +531,7 @@ execfile(__file__)
 
     def install(self, install_options, global_options=()):
         if self.editable:
-            self.install_editable()
+            self.install_editable(install_options)
             return
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
@@ -603,7 +603,7 @@ execfile(__file__)
                 rmtree(self._temp_build_dir)
             self._temp_build_dir = None
 
-    def install_editable(self):
+    def install_editable(self, install_options):
         logger.notify('Running setup.py develop for %s' % self.name)
         logger.indent += 2
         try:
@@ -611,7 +611,7 @@ execfile(__file__)
             call_subprocess(
                 [sys.executable, '-c',
                  "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py),
-                 'develop', '--no-deps'], cwd=self.source_dir, filter_stdout=self._filter_install,
+                 'develop', '--no-deps'] + install_options, cwd=self.source_dir, filter_stdout=self._filter_install,
                 show_stdout=False)
         finally:
             logger.indent -= 2
