@@ -83,6 +83,18 @@ pip is meant to improve on easy_install.  Some of the improvements:
 * Simple to define fixed sets of requirements and reliably reproduce a
   set of packages.
 
+pip doesn't do everything that easy_install does. Specifically:
+
+* It cannot install from eggs.  It only installs from source.  (In the
+  future it would be good if it could install binaries from Windows ``.exe``
+  or ``.msi`` -- binary install on other platforms is not a priority.)
+
+* It doesn't understand Setuptools extras (like ``package[test]``).  This should
+  be added eventually.
+
+* It is incompatible with some packages that extensively customize distutils
+  or setuptools in their ``setup.py`` files.
+
 pip is complementary with `virtualenv
 <http://pypi.python.org/pypi/virtualenv>`__, and it is encouraged that you use
 virtualenv to isolate your installation.
@@ -96,24 +108,6 @@ follow.  Bugs can go on the `pip issue tracker
 <http://bitbucket.org/ianb/pip/issues/>`_.  Discussion should happen on the
 `virtualenv email group
 <http://groups.google.com/group/python-virtualenv?hl=en>`_.
-
-Differences From easy_install
------------------------------
-
-pip cannot install some packages.  Specifically:
-
-* It cannot install from eggs.  It only installs from source.  (In the future it would be good if it could install binaries from Windows ``.exe`` or ``.msi`` -- binary install on other platforms is not a priority.)
-
-* It doesn't understand Setuptools extras (like ``package[test]``).  This should
-  be added eventually.
-
-* It is incompatible with some packages that customize distutils or setuptools
-  in their ``setup.py`` files.
-
-* Maybe it doesn't work on Windows.  At least, the author doesn't test on
-  Windows often.
-
-* It also has some extra features.  Extra features the author thinks are great.
 
 Uninstall
 ---------
