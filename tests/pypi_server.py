@@ -87,7 +87,7 @@ class CachedResponse(object):
         fp = open(filepath, 'wb')
         # when it uses file:// scheme, code is None and there is no msg attr
         # but it has been successfully opened
-        status = '%s %s' % (getattr(response, 'code', 200), getattr(response, 'msg', 'OK'))
+        status = '%s %s' % (getattr(response, 'code', 200) or 200, getattr(response, 'msg', 'OK'))
         headers = ['%s: %s' % (key, value) for key, value in response.headers.items()]
         body = response.read()
         fp.write('\n'.join([status] + headers + ['', body]))
