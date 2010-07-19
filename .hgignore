@@ -13,6 +13,7 @@ wsgi_intercept-*.egg/*
 WSGIProxy-*.egg/*
 WebOb-*.egg
 Paste-*.egg/*
+mock-*egg
 tests/tests_cache/*
 dist/*
 docs/_build/*
