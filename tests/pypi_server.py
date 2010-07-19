@@ -87,7 +87,7 @@ class CachedResponse(object):
         fp = open(filepath, 'wb')
         # when it uses file:// scheme, code is None and there is no msg attr
         # but it has been successfully opened
-        status = '%s %s' % (response.getcode() or 200, getattr(response, 'msg', 'OK'))
+        status = '%s %s' % (response.code or 200, getattr(response, 'msg', 'OK'))
         headers = ['%s: %s' % (key, value) for key, value in response.headers.items()]
         body = response.read()
         fp.write('\n'.join([status] + headers + ['', body]))
@@ -124,7 +124,6 @@ def test_cache_proxy():
     r = CachedResponse(url, here)
     try:
         assert r.code == response.code
-        assert r.getcode() == response.getcode()
         assert r.msg == response.msg
         assert r.read() == response.read()
         assert r.url == response.url
