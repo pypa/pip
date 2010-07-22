@@ -329,13 +329,20 @@ class TestPipEnvironment(TestFileEnvironment):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
     def _find_package_path(self, module):
-        return os.path.dirname(os.path.dirname(__import__(module).__file__))
+        __import__(module)
+        mod = sys.modules[module]
+        if not hasattr(mod, '__file__'):
+            raise AttributeError('Module %r has no __file__, cannot determine path' % mod)
+        location = os.path.dirname(os.path.abspath(mod.__file__))
+        if '.' in module:
+            location = os.path.dirname(location)
+        return os.path.dirname(location)
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
         pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
         pth.write('import sys; ')
-        cache_dependencies = 'webob paste wsgiproxy wsgi_intercept'.split()
+        cache_dependencies = 'webob paste.proxy wsgiproxy wsgi_intercept'.split()
         dependency_paths = [self._find_package_path(d) for d in cache_dependencies]
         for path in dependency_paths:
             pth.write('sys.path.insert(0, %r); ' % path)
@@ -359,6 +366,10 @@ def download_and_extract_bz2_file_to_here(file_url):
 
 def run_pip(*args, **kw):
     return env.run('pip', *args, **kw)
+
+
+def get_env():
+    return env
 
 
 def write_file(filename, text, dest=None):
