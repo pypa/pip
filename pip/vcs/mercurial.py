@@ -4,9 +4,10 @@ import tempfile
 import re
 import ConfigParser
 from pip import call_subprocess
-from pip.util import display_path, path_to_url2
+from pip.util import display_path
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
+from pip.download import path_to_url2
 
 
 class Mercurial(VersionControl):

@@ -77,7 +77,10 @@ def test_freeze():
     _check_output(result, expected)
 
     # Now, straight from trunk (but not editable/setup.py develop)::
-    result = env.run('easy_install', 'http://svn.colorstudy.com/INITools/trunk')
+    result = env.run('svn', 'co',
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     'initools_to_easy_install')
+    result = env.run('easy_install', env.scratch_path/'initools_to_easy_install')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze

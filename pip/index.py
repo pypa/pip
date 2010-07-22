@@ -14,10 +14,11 @@ import socket
 from Queue import Queue
 from Queue import Empty as QueueEmpty
 from pip.log import logger
-from pip.util import Inf, path_to_url2, url_to_path, geturl
-from pip.util import normalize_name, splitext, urlopen
+from pip.util import Inf
+from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
 from pip.backwardcompat import WindowsError
+from pip.download import urlopen, path_to_url2, url_to_path, geturl
 
 __all__ = ['PackageFinder']
 

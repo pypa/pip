@@ -1,7 +1,7 @@
 import zipfile
 import textwrap
 from os.path import join
-from pip.util import path_to_url2
+from pip.download import path_to_url2
 from test_pip import here, reset_env, run_pip, write_file
 from path import Path
 from local_repos import local_checkout

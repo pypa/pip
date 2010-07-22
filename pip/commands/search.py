@@ -2,6 +2,7 @@ import sys
 import xmlrpclib
 import textwrap
 import pkg_resources
+import pip.download
 from pip.basecommand import Command
 from pip.util import get_terminal_size
 from pip.log import logger
@@ -39,7 +40,7 @@ class SearchCommand(Command):
         print_results(hits, terminal_width=terminal_width)
 
     def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(index_url)
+        pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
