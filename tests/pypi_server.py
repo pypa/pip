@@ -49,7 +49,11 @@ class CachedResponse(object):
         if not os.path.exists(filename):
             self._cache_url(filename)
         fp = open(filename, 'rb')
-        self.code, self.msg = fp.next().strip().split()
+        try:
+            line = fp.next().strip()
+            self.code, self.msg = line.split(None, 1)
+        except ValueError:
+            raise ValueError('Bad field line: %r' % line)
         self.code = int(self.code)
         for line in fp:
             if line == '\n':
