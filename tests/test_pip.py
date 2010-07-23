@@ -7,7 +7,6 @@ import glob
 import atexit
 import textwrap
 import urllib
-import tarfile
 from scripttest import TestFileEnvironment
 from path import Path, curdir
 
@@ -328,16 +327,6 @@ class TestPipEnvironment(TestFileEnvironment):
     def __del__(self):
         shutil.rmtree(self.root_path, ignore_errors=True)
 
-    def _find_package_path(self, module):
-        __import__(module)
-        mod = sys.modules[module]
-        if not hasattr(mod, '__file__'):
-            raise AttributeError('Module %r has no __file__, cannot determine path' % mod)
-        location = os.path.dirname(os.path.abspath(mod.__file__))
-        if '.' in module:
-            location = os.path.dirname(location)
-        return os.path.dirname(location)
-
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
         pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
@@ -348,20 +337,8 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.close()
 
 
-def download_and_extract_bz2_file_to_here(file_url):
-    filepath, _ = urllib.urlretrieve(file_url)
-    wsgi_intercept = tarfile.open(filepath)
-    for filepath in wsgi_intercept:
-        wsgi_intercept.extract(filepath, here)
-    wsgi_intercept.close()
-
-
 def run_pip(*args, **kw):
     return env.run('pip', *args, **kw)
-
-
-def get_env():
-    return env
 
 
 def write_file(filename, text, dest=None):
