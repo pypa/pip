@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-import sys
 import os
 import optparse
+import pkgutil
 import subprocess
+import sys
 import re
-from pip.log import logger
+
+from pip.basecommand import command_dict, load_command, load_all_commands
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
-from pip.basecommand import command_dict, load_command, load_all_commands
-from pip.vcs import vcs, get_src_requirement, import_vcs_support
+from pip.log import logger
 from pip.util import get_installed_distributions
 
 
@@ -76,11 +77,18 @@ def autocomplete():
         print ' '.join(filter(lambda x: x.startswith(current), subcommands))
     sys.exit(1)
 
+def version_control():
+    # Import all the version control support modules:
+    from pip import vcs
+    for importer, modname, ispkg in \
+            pkgutil.walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
+        __import__(modname)
 
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
     autocomplete()
+    version_control()
     options, args = parser.parse_args(initial_args)
     if options.help and not args:
         args = ['help']
@@ -115,6 +123,7 @@ class FrozenRequirement(object):
     def from_dist(cls, dist, dependency_links, find_tags=False):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
+        from pip.vcs import vcs, get_src_requirement
         if vcs.get_backend_name(location):
             editable = True
             req = get_src_requirement(dist, location, find_tags)
@@ -233,7 +242,6 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         return ''.join(all_output)
 
-import_vcs_support()
 
 if __name__ == '__main__':
     exit = main()

@@ -4,9 +4,10 @@ import os
 import shutil
 import urlparse
 import urllib
-from pip.util import display_path, backup_dir, find_command, ask
+
 from pip.exceptions import BadCommand
 from pip.log import logger
+from pip.util import display_path, backup_dir, find_command, ask
 
 
 __all__ = ['vcs', 'get_src_requirement', 'import_vcs_support']
@@ -235,12 +236,3 @@ def get_src_requirement(dist, location, find_tags):
         return version_control().get_src_requirement(dist, location, find_tags)
     logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
     return dist.as_requirement()
-
-
-def import_vcs_support():
-    # Import all the version control support modules:
-    here = os.path.dirname(__file__)
-    for name in os.listdir(here):
-        if name != '__init__.py' and name.endswith('.py'):
-            name = os.path.splitext(name)[0]
-            __import__('pip.vcs.%s' % name)

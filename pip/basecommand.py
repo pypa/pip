@@ -6,8 +6,11 @@ import socket
 import urllib2
 import urllib
 from cStringIO import StringIO
+from pkgutil import walk_packages
 import traceback
 import time
+
+from pip import commands
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.exceptions import BadCommand, InstallationError, UninstallationError
@@ -222,9 +225,5 @@ def load_all_commands():
 
 
 def command_names():
-    dir = os.path.join(os.path.dirname(__file__), 'commands')
-    names = []
-    for name in os.listdir(dir):
-        if name.endswith('.py') and os.path.isfile(os.path.join(dir, name)):
-            names.append(os.path.splitext(name)[0])
-    return names
+    names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
+    return list(names)
