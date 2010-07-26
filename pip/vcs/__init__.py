@@ -8,7 +8,8 @@ from pip.util import display_path, backup_dir, find_command, ask
 from pip.exceptions import BadCommand
 from pip.log import logger
 
-__all__ = ['vcs', 'get_source_requirement', 'import_vcs_support']
+
+__all__ = ['vcs', 'get_src_requirement', 'import_vcs_support']
 
 
 class VcsSupport(object):
