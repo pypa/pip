@@ -11,12 +11,8 @@ from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
+from pip.backwardcompat import walk_packages
 
-try:
-    from pkgutil import walk_packages
-except ImportError:
-    # let's fall back as long as we can
-    from pip.backwardcompat import walk_packages
 
 def autocomplete():
     """Command and option completion for the main option parser (and options)

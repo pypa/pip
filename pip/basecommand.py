@@ -14,12 +14,7 @@ from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.exceptions import BadCommand, InstallationError, UninstallationError
 from pip.venv import restart_in_venv
-
-try:
-    from pkgutil import walk_packages
-except ImportError:
-    # let's fall back as long as we can
-    from pip.backwardcompat import walk_packages
+from pip.backwardcompat import walk_packages
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
