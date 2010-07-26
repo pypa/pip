@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import optparse
-import pkgutil
+
 import subprocess
 import sys
 import re
@@ -12,6 +12,11 @@ from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
 
+try:
+    from pkgutil import walk_packages
+except ImportError:
+    # let's fall back as long as we can
+    from pip.backwardcompat import walk_packages
 
 def autocomplete():
     """Command and option completion for the main option parser (and options)
@@ -81,7 +86,7 @@ def version_control():
     # Import all the version control support modules:
     from pip import vcs
     for importer, modname, ispkg in \
-            pkgutil.walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
+            walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
         __import__(modname)
 
 def main(initial_args=None):
