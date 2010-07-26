@@ -279,8 +279,18 @@ execfile(__file__)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
+
+            if not filenames:
+                raise InstallationError('No files/directores in %s (from %s)' % (base, filename))
             assert filenames, "No files/directories in %s (from %s)" % (base, filename)
-            assert len(filenames) == 1, "Unexpected files/directories in %s: %s" % (base, ' '.join(filenames))
+
+            # if we have more than one match, we pick the toplevel one.  This can
+            # easily be the case if there is a dist folder which contains an
+            # extracted tarball for testing purposes.
+            if len(filenames) > 1:
+                filenames.sort(key=lambda x: x.count(os.path.sep) +
+                                             (os.path.altsep and
+                                              x.count(os.path.altsep) or 0))
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
 
