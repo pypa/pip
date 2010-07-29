@@ -60,7 +60,7 @@ def test_freeze():
         simplejson==1.7.4...
         <BLANKLINE>""")
     _check_output(result, expected)
-    
+
     # Now lets try it with an svn checkout::
     result = env.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),

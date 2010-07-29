@@ -72,6 +72,7 @@ if 'PYTHONPATH' in os.environ:
 try:
     any
 except NameError:
+
     def any(seq):
         for item in seq:
             if item:
@@ -146,6 +147,7 @@ class TestPipResult(object):
         return getattr(self._impl, attr)
 
     if sys.platform == 'win32':
+
         @property
         def stdout(self):
             return self._impl.stdout.replace('\r\n', '\n')
@@ -158,6 +160,7 @@ class TestPipResult(object):
             return str(self._impl).replace('\r\n', '\n')
     else:
         # Python doesn't automatically forward __str__ through __getattr__
+
         def __str__(self):
             return str(self._impl)
 

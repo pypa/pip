@@ -25,11 +25,13 @@ except ImportError:
 try:
     any = any
 except NameError:
+
     def any(seq):
         for item in seq:
             if item:
                 return True
         return False
+
 
 def copytree(src, dst):
     if sys.version_info < (2, 5):

@@ -27,7 +27,7 @@ class CachedResponse(object):
     CachedResponse always cache url access and returns the cached response.
     It returns an object compatible with ``urllib.addinfourl``,
     it means the object is like the result of a call like::
-    
+
         >>> response = urllib2.urlopen('http://example.com')
     """
 

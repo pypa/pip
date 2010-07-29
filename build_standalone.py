@@ -10,6 +10,7 @@ try:
 except:
     compression = zipfile.ZIP_STORED
 
+
 def main():
     file_name = 'pip.zip'
     zf = zipfile.PyZipFile(file_name, mode='w', compression=compression)

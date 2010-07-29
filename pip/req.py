@@ -513,7 +513,7 @@ execfile(__file__)
                     zipdir.external_attr = 0755 << 16L
                     zip.writestr(zipdir, '')
                 for filename in filenames:
-                    if filename ==  PIP_DELETE_MARKER_FILENAME:
+                    if filename == PIP_DELETE_MARKER_FILENAME:
                         continue
                     filename = os.path.join(dirpath, filename)
                     name = self._clean_zip_name(filename, dir)

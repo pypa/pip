@@ -78,12 +78,14 @@ def autocomplete():
         print ' '.join(filter(lambda x: x.startswith(current), subcommands))
     sys.exit(1)
 
+
 def version_control():
     # Import all the version control support modules:
     from pip import vcs
     for importer, modname, ispkg in \
             walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
         __import__(modname)
+
 
 def main(initial_args=None):
     if initial_args is None:

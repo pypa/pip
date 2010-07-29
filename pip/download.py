@@ -18,7 +18,7 @@ from pip.log import logger
 __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url',]
+           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
 
 xmlrpclib_transport = xmlrpclib.Transport()
@@ -182,8 +182,8 @@ def _get_used_vcs_backend(link):
 
 
 def is_vcs_url(link):
-   return bool(_get_used_vcs_backend(link))
-    
+    return bool(_get_used_vcs_backend(link))
+
 
 def is_file_url(link):
     return link.url.lower().startswith('file:')
@@ -320,7 +320,6 @@ def unpack_http_url(link, location, download_cache, only_download):
     if target_file is None:
         os.unlink(temp_location)
     os.rmdir(temp_dir)
-
 
 
 def _get_response_from_url(target_url, link):

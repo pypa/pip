@@ -66,4 +66,4 @@ def local_checkout(remote_repo):
 
 
 def local_repo(remote_repo):
-    return local_checkout(remote_repo).split('+', 1)[1] 
+    return local_checkout(remote_repo).split('+', 1)[1]

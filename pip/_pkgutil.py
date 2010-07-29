@@ -15,6 +15,7 @@ __all__ = [
     'ImpImporter', 'ImpLoader', 'read_code', 'extend_path',
 ]
 
+
 def read_code(stream):
     # This helper is needed in order for the PEP 302 emulation to
     # correctly handle compiled files
@@ -31,6 +32,7 @@ def read_code(stream):
 def simplegeneric(func):
     """Make a trivial single-dispatch generic function"""
     registry = {}
+
     def wrapper(*args, **kw):
         ob = args[0]
         try:
@@ -41,8 +43,12 @@ def simplegeneric(func):
             mro = cls.__mro__
         except AttributeError:
             try:
+
+
                 class cls(cls, object):
                     pass
+
+
                 mro = cls.__mro__[1:]
             except TypeError:
                 mro = object,   # must be an ExtensionClass or some such  :(
@@ -302,7 +308,6 @@ class ImpLoader:
                 self.source = self._get_delegate().get_source()
         return self.source
 
-
     def _get_delegate(self):
         return ImpImporter(self.filename).find_module('__init__')
 
@@ -430,6 +435,7 @@ def iter_importers(fullname=""):
     if '.' not in fullname:
         yield ImpImporter()
 
+
 def get_loader(module_or_name):
     """Get a PEP 302 "loader" object for module_or_name
 
@@ -454,6 +460,7 @@ def get_loader(module_or_name):
     else:
         fullname = module_or_name
     return find_loader(fullname)
+
 
 def find_loader(fullname):
     """Find a PEP 302 "loader" object for fullname
@@ -544,6 +551,7 @@ def extend_path(path, name):
                 f.close()
 
     return path
+
 
 def get_data(package, resource):
     """Get a resource from a package.

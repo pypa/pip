@@ -1,3 +1,4 @@
 #!/usr/bin/env python
-import pip, sys
+import pip
+import sys
 sys.exit(pip.main())
