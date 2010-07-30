@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+import glob
+import os
+import pip
+import shutil
+import sys
+import tempfile
+import zipfile
+
+try:
+    import zlib
+    COMPRESSION = zipfile.ZIP_DEFLATED
+except:
+    COMPRESSION = zipfile.ZIP_STORED
+
+MAIN_PY = """\
+#!/usr/bin/env python
+import pip, sys
+sys.exit(pip.main())
+"""
+
+def main():
+    file_name = os.path.join(os.getcwd(), 'pipx')
+    temp_dir = tempfile.mkdtemp('-standalone', 'pip-')
+    dst = os.path.join(temp_dir, 'pip')
+    src = os.path.dirname(os.path.abspath(pip.__file__))
+    shutil.copytree(src, dst)
+
+    with open(os.path.join(temp_dir, '__main__.py'), 'w') as main_py:
+        main_py.write(MAIN_PY)
+
+    os.chdir(temp_dir)
+    zf = zipfile.PyZipFile(file_name, mode='w', compression=COMPRESSION)
+    try:
+        zf.debug = 3
+        zf.writepy('pip')
+        zf.writepy('__main__.py')
+    finally:
+        zf.close()
+
+    with open(file_name, 'r') as pipz:
+        content = pipz.read()
+
+    with open(file_name, 'w') as pipz:
+        pipz.write("#!/usr/bin/env python\n"+content)
+
+    if hasattr(os, 'chmod'):
+        oldmode = os.stat(file_name).st_mode & 07777
+        newmode = (oldmode | 0555) & 07777
+        os.chmod(file_name, newmode)
+        print 'Made resulting file %s executable.' % file_name
+
+if __name__ == '__main__':
+    main()

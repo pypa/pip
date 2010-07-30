@@ -1,5 +1,11 @@
 #!/bin/sh
 
+FILE="${0#./}"
+DIR="${FILE%/*}"
+CWD=$(pwd)
+
+cd $DIR/..
+
 CMD="$1"
 if [ "$CMD" = "release" ] ; then
   python -c 'import setuptools; __file__="setup.py"; execfile(__file__)' register sdist upload
@@ -14,3 +20,5 @@ if [ "$CMD" = "publish" ] ; then
   scp -r * root@cloudsilverlining.org:/var/lib/silverlining/writable-roots/bbdocs/pip.openplans.org/
   ssh root@cloudsilverlining.org 'chown -R www-data:www-data /var/lib/silverlining/writable-roots/bbdocs/'
 fi
+
+cd $CWD
