@@ -103,7 +103,7 @@ class Git(VersionControl):
             [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def update(self, dest, rev_options):
-        call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
+        call_subprocess([self.cmd, 'pull', '-q'], cwd=dest)
         call_subprocess(
             [self.cmd, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
 
