@@ -28,13 +28,21 @@ If you need to give pip (and by association easy_install) hints
 about where to find a package, you can use the ``-f``
 (``--find-links``) option, like::
 
-    -f http://someserver.org/MyPackage-3.0.tar.gz
+    $ pip -f http://someserver.org/index-of-packages MyPackage==3.0
 
-If the package is named like ``PackageName-Version.tar.gz`` (or a zip)
-then you don't need ``#egg=...``.  Note that you cannot provide
-multiple ``-f`` arguments to easy_install, but you can in a
-requirements file (they all get concatenated into a single ``-f`` for
-easy_install).
+Pip will then look for a link at http://someserver.org/index-of-packages
+that matches version ``3.0`` of ``MyPackage`` -- the link should be
+like ``MyPackage-3.0.tar.gz``.
+
+Note that you cannot provide multiple ``-f`` arguments to easy_install,
+but you can in a requirements file (they all get concatenated into
+a single ``-f`` for easy_install).
+
+And if you want to install from a tarball or zip file with a direct link,
+you don't need ``-f`` option, you just need to pass the absolute url, like::
+
+    $ pip install http://someserver.org/packages/MyPackage-3.0.tar.gz
+
 
 Version Control
 ---------------
