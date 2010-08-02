@@ -1,6 +1,6 @@
 import sys
-from setuptools import setup
 import os
+from setuptools import setup
 
 version = "0.7.1"
 
@@ -35,7 +35,7 @@ setup(name='pip',
       url='http://pip.openplans.org',
       license='MIT',
       packages=['pip', 'pip.commands', 'pip.vcs'],
-      entry_points=dict(console_scripts=['pip=pip:main']),
+      entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
       tests_require=['nose', 'virtualenv', 'scripttest', 'mock'],
       zip_safe=False)
