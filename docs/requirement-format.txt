@@ -34,10 +34,6 @@ Pip will then look for a link at http://someserver.org/index-of-packages
 that matches version ``3.0`` of ``MyPackage`` -- the link should be
 like ``MyPackage-3.0.tar.gz``.
 
-Note that you cannot provide multiple ``-f`` arguments to easy_install,
-but you can in a requirements file (they all get concatenated into
-a single ``-f`` for easy_install).
-
 And if you want to install from a tarball or zip file with a direct link,
 you don't need ``-f`` option, you just need to pass the absolute url, like::
 
