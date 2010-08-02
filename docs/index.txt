@@ -185,7 +185,7 @@ break MyApp.  If that happens you can update the requirements file to
 force an earlier version of Library, and you can do that without
 having to re-release MyApp at all.
 
-Read the `requirements file format <requirement-format.html>`_ to
+Read the `requirements file format <http://pip.openplans.org/requirement-format.html>`_ to
 learn about other features.
 
 Freezing Requirements
