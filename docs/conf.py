@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2009, The Open Planning Project'
+copyright = '2010, Ian Bicking and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

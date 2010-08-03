@@ -1,8 +1,11 @@
 News for pip
 ============
 
-tip
+0.8
 ---
+
+* Track which ``build/`` directories pip creates, never remove directories
+  it doesn't create.  From Hugo Lopes Tavares.
 
 * Pip now accepts file:// index URLs. Thanks Dave Abrahams.
 
@@ -10,6 +13,20 @@ tip
   Thanks Dave Abrahams.
 
 * Real Windows support (with passing tests). Thanks Dave Abrahams.
+
+* ``pip-2.7`` etc. scripts are created (Python-version specific scripts)
+
+* ``contrib/build-standalone`` script creates a runnable ``.zip`` form of
+  pip, from Jannis Leidel
+
+* Editable git repos are updated when reinstalled
+
+* Fix problem with ``--editable`` when multiple ``.egg-info/`` directories
+  are found.
+
+* A number of VCS-related fixes for ``pip freeze``, from Hugo Lopes Tavares.
+
+* Significant test framework changes, from Hugo Lopes Tavares.
 
 0.7.2
 -----
