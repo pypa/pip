@@ -1,7 +1,8 @@
 import textwrap
 from path import Path
 from test_pip import (here, reset_env, run_pip, assert_all_changes,
-                      write_file, mkdir)
+                      write_file, mkdir, _create_test_package,
+                      _change_test_package_version)
 
 
 def test_no_upgrade_unless_requested():
@@ -104,37 +105,3 @@ def test_editable_git_upgrade():
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
     assert 'some different version' in version2.stdout
-
-
-def _create_test_package(env):
-    mkdir('version_pkg')
-    version_pkg_path = env.scratch_path/'version_pkg'
-    write_file('version_pkg.py', textwrap.dedent('''\
-                                def main():
-                                    print('0.1')
-                                '''), version_pkg_path)
-    write_file('setup.py', textwrap.dedent('''\
-                        from setuptools import setup, find_packages
-                        setup(name='version_pkg',
-                              version='0.1',
-                              packages=find_packages(),
-                              py_modules=['version_pkg'],
-                              entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
-                        '''), version_pkg_path)
-    env.run('git', 'init', cwd=version_pkg_path)
-    env.run('git', 'add', '.', cwd=version_pkg_path)
-    env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path)
-    return version_pkg_path
-
-
-def _change_test_package_version(env, version_pkg_path):
-    write_file('version_pkg.py', textwrap.dedent('''\
-        def main():
-            print("some different version")'''), version_pkg_path)
-    env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'messed version',
-            cwd=version_pkg_path, expect_stderr=True)
-
