@@ -1,4 +1,5 @@
 import re
+import os
 import filecmp
 import textwrap
 from os.path import abspath, join, curdir, pardir
