@@ -357,14 +357,14 @@ def test_install_folder_using_dot_slash():
 
 
 def test_install_folder_using_slash_in_the_end():
-    """
-    Test installing a folder using pip install foldername/
+    r"""
+    Test installing a folder using pip install foldername/ or foldername\
     """
     env = reset_env()
     mkdir('mock')
     pkg_path = env.scratch_path/'mock'
     write_file('setup.py', mock100_setup_py, pkg_path)
-    result = run_pip('install', 'mock/')
+    result = run_pip('install', 'mock' + os.path.sep)
     egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
 
