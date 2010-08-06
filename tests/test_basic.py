@@ -1,7 +1,8 @@
 import re
 import filecmp
+import textwrap
 from os.path import abspath, join, curdir, pardir
-from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder
+from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder, write_file
 from local_repos import local_checkout
 from path import Path
 
@@ -323,3 +324,60 @@ def test_install_global_option():
     reset_env()
     result = run_pip('install', '--global-option=--version', "INITools==0.1")
     assert '0.1\n' in result.stdout
+
+
+def test_install_package_with_same_name_in_curdir():
+    """
+    Test installing a package with the same name of a local folder
+    """
+    env = reset_env()
+    mkdir('mock==0.6')
+    result = run_pip('install', 'mock==0.6')
+    egg_folder = env.site_packages / 'mock-0.6.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+
+
+mock100_setup_py = textwrap.dedent('''\
+                        from setuptools import setup
+                        setup(name='mock',
+                              version='100.1')''')
+
+
+def test_install_folder_using_dot_slash():
+    """
+    Test installing a folder using pip install ./foldername
+    """
+    env = reset_env()
+    mkdir('mock')
+    pkg_path = env.scratch_path/'mock'
+    write_file('setup.py', mock100_setup_py, pkg_path)
+    result = run_pip('install', './mock')
+    egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+
+
+def test_install_folder_using_slash_in_the_end():
+    """
+    Test installing a folder using pip install foldername/
+    """
+    env = reset_env()
+    mkdir('mock')
+    pkg_path = env.scratch_path/'mock'
+    write_file('setup.py', mock100_setup_py, pkg_path)
+    result = run_pip('install', 'mock/')
+    egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+
+
+def test_install_folder_using_relative_path():
+    """
+    Test installing a folder using pip install folder1/folder2
+    """
+    env = reset_env()
+    mkdir('initools')
+    mkdir(Path('initools')/'mock')
+    pkg_path = env.scratch_path/'initools'/'mock'
+    write_file('setup.py', mock100_setup_py, pkg_path)
+    result = run_pip('install', Path('initools')/'mock')
+    egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
