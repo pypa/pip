@@ -84,7 +84,7 @@ class InstallRequirement(object):
             ## FIXME: I think getting the requirement here is a bad idea:
             #req = get_requirement_from_url(url)
             req = None
-        elif (os.path.isdir(path) and '/' in name) or name.startswith('.'):
+        elif os.path.isdir(path) and ('/' in name or name.startswith('.')):
             if not is_installable_dir(path):
                 raise InstallationError("Directory %r is not installable. File 'setup.py' not found."
                                         % name)
