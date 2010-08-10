@@ -299,7 +299,7 @@ And for zsh::
 Alternatively, you can use the result of the ``completion`` command
 directly with the eval function of you shell, e.g. by adding::
 
-    eval `pip completion --bash`
+    eval "`pip completion --bash`"
 
 to your startup file.
 
