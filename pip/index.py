@@ -3,6 +3,7 @@
 import sys
 import os
 import re
+import mimetypes
 import threading
 import posixpath
 import pkg_resources
@@ -53,7 +54,6 @@ class PackageFinder(object):
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
         """
-        from mimetypes import guess_type
         files = []
         urls = []
 
@@ -61,7 +61,7 @@ class PackageFinder(object):
         # list
         def sort_path(path):
             url = path_to_url2(path)
-            if guess_type(url, strict=False)[0] == 'text/html':
+            if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
                 urls.append(url)
             else:
                 files.append(url)
