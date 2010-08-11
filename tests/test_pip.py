@@ -332,7 +332,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
-        pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
+        pth = open(os.path.join(site_packages, 'pypi_intercept.pth'), 'w')
         pth.write('import sys; ')
         pth.write('sys.path.insert(0, %r); ' % str(here))
         pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
