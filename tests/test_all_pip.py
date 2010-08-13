@@ -4,7 +4,10 @@ import sys
 import os
 import subprocess
 import shutil
-from test_pip import here
+from os.path import dirname, abspath
+
+
+src_folder = dirname(dirname(abspath(__file__)))
 
 
 def all_projects():
@@ -51,7 +54,7 @@ def _test_packages(output, pending_fn):
     print 'Installing development pip'
     code = subprocess.call([os.path.join(dest_dir, 'bin', 'python'),
                             'setup.py', 'install'],
-                            cwd=os.path.dirname(here))
+                            cwd=src_folder)
     assert not code, 'pip installation failed'
     print 'Trying installation of %s' % dest_dir
     code = subprocess.call([os.path.join(dest_dir, 'bin', 'pip'),
