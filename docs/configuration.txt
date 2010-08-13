@@ -106,3 +106,12 @@ environment variable::
 Which is the same as passing the option to pip directly::
 
     pip --default-timeout=60 install ipython
+
+This also works for appending command line options, like ``--find-links``.
+Just leave an empty space between the passsed values, e.g.::
+
+    export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+
+is the same as calling::
+
+    pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
