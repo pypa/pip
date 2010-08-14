@@ -4,8 +4,6 @@ News for pip
 tip
 ---
 
-* Fixed broken pip script introduced when adding the ability to build a
-  standalone version.
 
 0.8
 ---
