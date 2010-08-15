@@ -316,3 +316,24 @@ indexed.
 
 pip searches http://pypi.python.org/pypi by default but alternative indexes
 can be searched by using the ``--index`` flag.
+
+Mirror support
+--------------
+
+The `PyPI mirroring infrastructure <http://pypi.python.org/mirrors>`_ as
+described in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_ can be
+used by passing the ``--use-mirrors`` option to the install command.
+Alternatively, you can use the other ways to configure pip, e.g.::
+
+    $ export PIP_USE_MIRRORS=true
+
+If enabled, pip will automatically query the DNS entry of the mirror index URL
+to find the list of mirrors to use. In case you want to override this list,
+please use the ``--mirrors`` option of the install command, or add to your pip
+configuration file::
+
+    [install]
+    use-mirrors = true
+    mirrors =
+        http://d.pypi.python.org
+        http://b.pypi.python.org

@@ -45,7 +45,7 @@ class InstallCommand(Command):
             '-i', '--index-url', '--pypi-url',
             dest='index_url',
             metavar='URL',
-            default='http://pypi.python.org/simple',
+            default='http://pypi.python.org/simple/',
             help='Base URL of Python Package Index (default %default)')
         self.parser.add_option(
             '--extra-index-url',
@@ -60,6 +60,19 @@ class InstallCommand(Command):
             action='store_true',
             default=False,
             help='Ignore package index (only looking at --find-links URLs instead)')
+        self.parser.add_option(
+            '-M', '--use-mirrors',
+            dest='use_mirrors',
+            action='store_true',
+            default=False,
+            help='Use the PyPI mirrors as a fallback in case the main index is down.')
+        self.parser.add_option(
+            '--mirrors',
+            dest='mirrors',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='Specific mirror URLs to query when --use-mirrors is used')
 
         self.parser.add_option(
             '-b', '--build', '--build-dir', '--build-directory',
@@ -136,7 +149,10 @@ class InstallCommand(Command):
         This method is meant to be overridden by subclasses, not
         called directly.
         """
-        return PackageFinder(find_links=options.find_links, index_urls=index_urls)
+        return PackageFinder(find_links=options.find_links,
+                             index_urls=index_urls,
+                             use_mirrors=options.use_mirrors,
+                             mirrors=options.mirrors)
 
     def run(self, options, args):
         if not options.build_dir:

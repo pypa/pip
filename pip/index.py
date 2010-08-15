@@ -11,17 +11,22 @@ import urllib
 import urllib2
 import urlparse
 import httplib
+import random
 import socket
+import string
 from Queue import Queue
 from Queue import Empty as QueueEmpty
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
-from pip.backwardcompat import WindowsError
+from pip.backwardcompat import WindowsError, product
 from pip.download import urlopen, path_to_url2, url_to_path, geturl
 
 __all__ = ['PackageFinder']
+
+
+DEFAULT_MIRROR_URL = "last.pypi.python.org"
 
 
 class PackageFinder(object):
@@ -31,15 +36,19 @@ class PackageFinder(object):
     packages, by reading pages and looking for appropriate links
     """
 
-    failure_limit = 3
-
-    def __init__(self, find_links, index_urls):
+    def __init__(self, find_links, index_urls,
+            use_mirrors=False, mirrors=None, main_mirror_url=None):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
         self.cache = PageCache()
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
+        if use_mirrors:
+            self.mirror_urls = self._get_mirror_urls(mirrors, main_mirror_url)
+            logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
+        else:
+            self.mirror_urls = []
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -91,6 +100,10 @@ class PackageFinder(object):
             if page is None:
                 url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
 
+        # Combine index URLs with mirror URLs here to allow
+        # adding more index URLs from requirements files
+        all_index_urls = self.index_urls + self.mirror_urls
+
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
@@ -103,7 +116,7 @@ class PackageFinder(object):
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url)
-                for url in self.index_urls] + self.find_links
+                for url in all_index_urls] + self.find_links
         else:
             locations = list(self.find_links)
         locations.extend(self.dependency_links)
@@ -311,6 +324,26 @@ class PackageFinder(object):
 
     def _get_page(self, link, req):
         return HTMLPage.get_page(link, req, cache=self.cache)
+
+    def _get_mirror_urls(self, mirrors=None, main_mirror_url=None):
+        """Retrieves a list of URLs from the main mirror DNS entry
+        unless a list of mirror URLs are passed.
+        """
+        if not mirrors:
+            mirrors = get_mirrors(main_mirror_url)
+            # Should this be made "less random"? E.g. netselect like?
+            random.shuffle(mirrors)
+
+        mirror_urls = set()
+        for mirror_url in mirrors:
+            # Make sure we have a valid URL
+            if not ("http://" or "https://" or "file://") in mirror_url:
+                mirror_url = "http://%s" % mirror_url
+            if not mirror_url.endswith("/simple"):
+                mirror_url = "%s/simple/" % mirror_url
+            mirror_urls.add(mirror_url)
+
+        return list(mirror_urls)
 
 
 class PageCache(object):
@@ -619,3 +652,42 @@ def package_to_requirement(package_name):
         return '%s==%s' % (name, version)
     else:
         return name
+
+
+def get_mirrors(hostname=None):
+    """Return the list of mirrors from the last record found on the DNS
+    entry::
+
+    >>> from pip.index import get_mirrors
+    >>> get_mirrors()
+    ['a.pypi.python.org', 'b.pypi.python.org', 'c.pypi.python.org',
+    'd.pypi.python.org']
+
+    Originally written for the distutils2 project by Alexis Metaireau.
+    """
+    if hostname is None:
+        hostname = DEFAULT_MIRROR_URL
+
+    # return the last mirror registered on PyPI.
+    try:
+        hostname = socket.gethostbyname_ex(hostname)[0]
+    except socket.gaierror:
+        return []
+    end_letter = hostname.split(".", 1)
+
+    # determine the list from the last one.
+    return ["%s.%s" % (s, end_letter[1]) for s in string_range(end_letter[0])]
+
+
+def string_range(last):
+    """Compute the range of string between "a" and last.
+
+    This works for simple "a to z" lists, but also for "a to zz" lists.
+    """
+    for k in range(len(last)):
+        for x in product(string.ascii_lowercase, repeat=k+1):
+            result = ''.join(x)
+            yield result
+            if result == last:
+                return
+

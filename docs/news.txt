@@ -4,6 +4,9 @@ News for pip
 tip
 ---
 
+* Added support for `PyPI mirrors <http://pypi.python.org/mirrors>`_ as
+  defined in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_, from
+  Jannis Leidel.
 
 0.8
 ---
