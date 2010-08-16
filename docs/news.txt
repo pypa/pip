@@ -8,9 +8,6 @@ tip
   defined in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_, from
   Jannis Leidel.
 
-tip
----
-
 * Fixed issue #138 - Git revisions ignored. Thanks John-Scott Atlakson.
 
 * Fixed issue #95 - Initial editable install of github package from a tag fails. Thanks John-Scott Atlakson.
