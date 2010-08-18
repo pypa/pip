@@ -289,6 +289,11 @@ class TestPipEnvironment(TestFileEnvironment):
         assert self.venv == TestPipEnvironment.venv # sanity check
 
         self.site_packages = self.lib/'site-packages'
+        self.user_base_path = self.venv_path/'user'
+        self.user_site_path = self.venv_path/'user'/self.lib.name/'site-packages'
+        self.user_site = relpath(self.root_path, self.user_site_path)
+        demand_dirs(self.user_base_path)
+        self.environ["PYTHONUSERBASE"] = self.user_base_path
 
         # put the test-scratch virtualenv's bin dir first on the PATH
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))

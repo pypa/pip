@@ -277,6 +277,17 @@ def test_install_curdir():
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
+def test_install_curdir_usersite():
+    """
+    Test installing current directory ('.') into usersite
+    """
+    env = reset_env()
+    run_from = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+    assert fspkg_folder in result.files_created, str(result.stdout)
+    assert egg_info_folder in result.files_created, str(result)
 
 def test_install_pardir():
     """
