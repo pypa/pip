@@ -130,6 +130,12 @@ class InstallCommand(Command):
             help="Extra global options to be supplied to the setup.py"
             "call before the install command")
 
+        self.parser.add_option(
+            '--user',
+            dest='use_user_site',
+            action='store_true',
+            help='Install to user-site')
+
     def _build_package_finder(self, options, index_urls):
         """
         Create a package finder appropriate to this install command.
@@ -149,6 +155,8 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        if options.use_user_site:
+            install_options.append('--user')
         global_options = options.global_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
