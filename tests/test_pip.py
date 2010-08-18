@@ -290,7 +290,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
-        self.user_site_path = self.venv_path/'user'/self.lib.name/'site-packages'
+        self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
         self.user_site = relpath(self.root_path, self.user_site_path)
         demand_dirs(self.user_base_path)
         self.environ["PYTHONUSERBASE"] = self.user_base_path

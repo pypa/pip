@@ -284,7 +284,7 @@ def test_install_curdir_usersite():
     env = reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = env.site_packages/'fspkg'
+    fspkg_folder = env.user_site/'fspkg'
     egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
