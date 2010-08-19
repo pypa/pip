@@ -348,8 +348,8 @@ def test_install_global_option_using_editable():
     reset_env()
     result = run_pip('install', '--global-option=--version',
                      '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'))
-    assert '0.1\n' in result.stdout
+                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv@1.4.1'))
+    assert '1.4.1\n' in result.stdout
 
 
 def test_install_package_with_same_name_in_curdir():

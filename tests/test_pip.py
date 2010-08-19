@@ -22,13 +22,14 @@ download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
 
 def path_to_url(path):
     """
-    Convert a path to URI. The path will be made absolute and have quoted path parts.
+    Convert a path to URI. The path will be made absolute and
+    will not have quoted path parts.
     (adapted from pip.util)
     """
     path = os.path.normpath(os.path.abspath(path))
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
-    url = '/'.join([urllib.quote(part) for part in filepath])
+    url = '/'.join(filepath)
     if drive:
         return 'file:///' + drive + url
     return 'file://' +url
