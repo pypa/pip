@@ -327,6 +327,30 @@ def test_install_global_option():
     assert '0.1\n' in result.stdout
 
 
+def test_install_using_install_option_and_editable():
+    """
+    Test installing a tool using -e and --install-option
+    """
+    env = reset_env()
+    mkdir('scripts')
+    result = run_pip('install', '-e', '%s#egg=virtualenv' %
+                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'),
+                     '--install-option="--install-scripts=scripts"')
+    virtualenv_bin = Path('scripts')/'virtualenv'+env.exe
+    assert virtualenv_bin in result.files_created, str(result)
+
+
+def test_install_global_option_using_editable():
+    """
+    Test using global distutils options, but in an editable installation
+    """
+    reset_env()
+    result = run_pip('install', '--global-option=--version',
+                     '-e', '%s#egg=virtualenv' %
+                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'))
+    assert '0.1\n' in result.stdout
+
+
 def test_install_package_with_same_name_in_curdir():
     """
     Test installing a package with the same name of a local folder
