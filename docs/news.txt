@@ -14,6 +14,9 @@ tip
 
 * Fixed issue #107 - Can't install if a directory in cwd has the same name as the package you're installing.
 
+* Fixed issue #39 - --install-option="--prefix=~/.local" ignored with -e.
+Thanks Ronny Pfannschmidt and Wil Tan.
+
 
 
 0.8
