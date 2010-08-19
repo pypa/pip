@@ -300,7 +300,6 @@ def test_install_curdir_usersite_editable():
     result = run_pip('install', '--user', '-e',
                      '%s#egg=initools-dev' %
                      local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    print result
     result.assert_installed('INITools', use_user_site=True)
 
 def test_install_pardir():
