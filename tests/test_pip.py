@@ -445,6 +445,7 @@ def assert_all_changes(start_state, end_state, expected_changes):
     # Don't throw away this potentially useful information
     return diff
 
+
 def _create_test_package(env):
     mkdir('version_pkg')
     version_pkg_path = env.scratch_path/'version_pkg'

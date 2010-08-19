@@ -27,6 +27,7 @@ def test_git_with_branch_name_as_revision():
     version = env.run('version_pkg')
     assert 'some different version' in version.stdout
 
+
 def test_git_with_tag_name_as_revision():
     """
     Git backend should be able to install from tag names

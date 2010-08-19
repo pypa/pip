@@ -51,7 +51,7 @@ def test_command_line_append_flags():
 
 def test_command_line_appends_correctly():
     """
-    Test multiple appending options set by environmental variables. 
+    Test multiple appending options set by environmental variables.
 
     """
     environ = clear_environ(os.environ.copy())
@@ -61,7 +61,6 @@ def test_command_line_appends_correctly():
     print result.stdout
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
     assert "Analyzing links from page http://example.com" in result.stdout
-
 
 
 def test_config_file_override_stack():
