@@ -198,10 +198,19 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
+
+        import setuptools
+        if (options.use_user_site and
+            requirement_set.has_editables and
+            not getattr(setuptools, '_distribute', False)):
+
+            raise InstallationError('--user --editable not supported with setuptools, use distribute')
+
         if not options.no_download:
             requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
         else:
             requirement_set.locate_files()
+
         if not options.no_install and not self.bundle:
             requirement_set.install(install_options, global_options)
             installed = ' '.join([req.name for req in

@@ -775,6 +775,14 @@ class RequirementSet(object):
         return False
 
     @property
+    def has_editables(self):
+        if any(req.editable for req in self.requirements.values()):
+            return True
+        if any(req.editable for req in self.unnamed_requirements):
+            return True
+        return False
+
+    @property
     def is_download(self):
         if self.download_dir:
             self.download_dir = os.path.expanduser(self.download_dir)

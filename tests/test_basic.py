@@ -303,6 +303,7 @@ def test_install_curdir():
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
+
 def test_install_curdir_usersite():
     """
     Test installing current directory ('.') into usersite
@@ -315,9 +316,10 @@ def test_install_curdir_usersite():
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
-def test_install_curdir_usersite_editable():
+
+def test_install_subversion_usersite_editable_with_distribute():
     """
-    Test installing current directory ('.') into usersite
+    Test installing current directory ('.') into usersite after installing distribute
     """
     env = reset_env()
     (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
@@ -327,6 +329,21 @@ def test_install_curdir_usersite_editable():
                      '%s#egg=initools-dev' %
                      local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     result.assert_installed('INITools', use_user_site=True)
+
+
+def test_install_subversion_usersite_editable_with_setuptools_fails():
+    """
+    Test installing current directory ('.') into usersite using setuptools
+    """
+    env = reset_env()
+    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+
+    result = run_pip('install', '--user', '-e',
+                     '%s#egg=initools-dev' %
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     expect_error=True)
+    print result.stdout
+    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
