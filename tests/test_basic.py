@@ -342,7 +342,6 @@ def test_install_subversion_usersite_editable_with_setuptools_fails():
                      '%s#egg=initools-dev' %
                      local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
                      expect_error=True)
-    print result.stdout
     assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
