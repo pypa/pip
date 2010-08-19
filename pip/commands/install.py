@@ -1,4 +1,4 @@
-import os
+import os, sys
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
@@ -200,6 +200,11 @@ class InstallCommand(Command):
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
 
+        if (options.use_user_site and
+            sys.version_info < (2, 6)):
+            
+            raise InstallationError('--user is only supported in Python version 2.6 and newer')
+                
         import setuptools
         if (options.use_user_site and
             requirement_set.has_editables and

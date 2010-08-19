@@ -2,6 +2,7 @@ import re
 import os
 import filecmp
 import textwrap
+import sys
 from os.path import abspath, join, curdir, pardir
 from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder, write_file
 from local_repos import local_checkout
@@ -304,45 +305,57 @@ def test_install_curdir():
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_curdir_usersite():
-    """
-    Test installing current directory ('.') into usersite
-    """
-    env = reset_env()
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = env.user_site/'fspkg'
-    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-    assert fspkg_folder in result.files_created, str(result.stdout)
-    assert egg_info_folder in result.files_created, str(result)
+# user-site only exists in Python 2.6+
+if sys.version_info < (2, 6):
+    def test_install_curdir_usersite_fails_in_old_python():
+        """
+        Test --user option on older Python versions (pre 2.6) fails intelligibly
+        """
+        env = reset_env()
+        run_from = abspath(join(here, 'packages', 'FSPkg'))
+        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
+        assert '--user is only supported in Python version 2.6 and newer' in result.stdout
+
+else:
+    def test_install_curdir_usersite():
+        """
+        Test installing current directory ('.') into usersite
+        """
+        env = reset_env()
+        run_from = abspath(join(here, 'packages', 'FSPkg'))
+        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+        fspkg_folder = env.user_site/'fspkg'
+        egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        assert fspkg_folder in result.files_created, str(result.stdout)
+        assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_subversion_usersite_editable_with_distribute():
-    """
-    Test installing current directory ('.') into usersite after installing distribute
-    """
-    env = reset_env()
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+    def test_install_subversion_usersite_editable_with_distribute():
+        """
+        Test installing current directory ('.') into usersite after installing distribute
+        """
+        env = reset_env()
+        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-    run_pip('install', '-U', 'distribute') #XXX: only works with distribute
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    result.assert_installed('INITools', use_user_site=True)
+        run_pip('install', '-U', 'distribute') #XXX: only works with distribute
+        result = run_pip('install', '--user', '-e',
+                         '%s#egg=initools-dev' %
+                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+        result.assert_installed('INITools', use_user_site=True)
 
 
-def test_install_subversion_usersite_editable_with_setuptools_fails():
-    """
-    Test installing current directory ('.') into usersite using setuptools
-    """
-    env = reset_env()
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+    def test_install_subversion_usersite_editable_with_setuptools_fails():
+        """
+        Test installing current directory ('.') into usersite using setuptools
+        """
+        env = reset_env()
+        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_error=True)
-    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
+        result = run_pip('install', '--user', '-e',
+                         '%s#egg=initools-dev' %
+                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                         expect_error=True)
+        assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
