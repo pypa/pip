@@ -4,6 +4,9 @@ News for pip
 tip
 ---
 
+* Added global --user flag as shortcut for --install-option="--user". From
+  Ronny Pfannschmidt.
+
 * Added support for `PyPI mirrors <http://pypi.python.org/mirrors>`_ as
   defined in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_, from
   Jannis Leidel.
