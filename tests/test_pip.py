@@ -164,12 +164,15 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False):
+    def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False, use_user_site=False):
         e = self.test_env
 
         pkg_dir = e.venv/ 'src'/ pkg_name.lower()
 
-        egg_link_path = e.site_packages / pkg_name + '.egg-link'
+        if use_user_site:
+            egg_link_path = e.user_site / pkg_name + '.egg-link'
+        else:
+            egg_link_path = e.site_packages / pkg_name + '.egg-link'
         if without_egg_link:
             if egg_link_path in self.files_created:
                 raise TestFailure('unexpected egg link file created: '\
@@ -194,7 +197,10 @@ class TestPipResult(object):
                         pkg_dir + u'\n.',
                         egg_link_file.bytes)))
 
-        pth_file = Path.string(e.site_packages / 'easy-install.pth')
+        if use_user_site:
+            pth_file = Path.string(e.user_site / 'easy-install.pth')
+        else:
+            pth_file = Path.string(e.site_packages / 'easy-install.pth')
 
         if (pth_file in self.files_updated) == without_egg_link:
             raise TestFailure('%r unexpectedly %supdated by install' % (
@@ -291,9 +297,13 @@ class TestPipEnvironment(TestFileEnvironment):
         self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
         self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
+
         self.user_site = relpath(self.root_path, self.user_site_path)
-        demand_dirs(self.user_base_path)
+        demand_dirs(self.user_site_path)
         self.environ["PYTHONUSERBASE"] = self.user_base_path
+
+        # create easy-install.pth in user_site, so we always have it updated instead of created
+        open(self.user_site_path/'easy-install.pth', 'w').close()
 
         # put the test-scratch virtualenv's bin dir first on the PATH
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
