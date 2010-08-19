@@ -44,10 +44,8 @@ def simplegeneric(func):
         except AttributeError:
             try:
 
-
                 class cls(cls, object):
                     pass
-
 
                 mro = cls.__mro__[1:]
             except TypeError:

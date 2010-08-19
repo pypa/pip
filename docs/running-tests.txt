@@ -20,8 +20,8 @@ Or downloading and installing `Subversion
 How To Run Tests
 ================
 
-After all requirements (system and python) are installed, just run nosetests on
-``tests`` folder::
+After all requirements (system and python) are installed,
+just run the following command::
 
     $ python setup.py test
 

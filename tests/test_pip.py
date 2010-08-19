@@ -22,13 +22,14 @@ download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
 
 def path_to_url(path):
     """
-    Convert a path to URI. The path will be made absolute and have quoted path parts.
+    Convert a path to URI. The path will be made absolute and
+    will not have quoted path parts.
     (adapted from pip.util)
     """
     path = os.path.normpath(os.path.abspath(path))
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
-    url = '/'.join([urllib.quote(part) for part in filepath])
+    url = '/'.join(filepath)
     if drive:
         return 'file:///' + drive + url
     return 'file://' +url
@@ -347,7 +348,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
-        pth = open(os.path.join(site_packages, 'wsgi_intercept_pypi.pth'), 'w')
+        pth = open(os.path.join(site_packages, 'pypi_intercept.pth'), 'w')
         pth.write('import sys; ')
         pth.write('sys.path.insert(0, %r); ' % str(here))
         pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
@@ -458,6 +459,39 @@ def assert_all_changes(start_state, end_state, expected_changes):
 
     # Don't throw away this potentially useful information
     return diff
+
+
+def _create_test_package(env):
+    mkdir('version_pkg')
+    version_pkg_path = env.scratch_path/'version_pkg'
+    write_file('version_pkg.py', textwrap.dedent('''\
+                                def main():
+                                    print('0.1')
+                                '''), version_pkg_path)
+    write_file('setup.py', textwrap.dedent('''\
+                        from setuptools import setup, find_packages
+                        setup(name='version_pkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_pkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
+                        '''), version_pkg_path)
+    env.run('git', 'init', cwd=version_pkg_path)
+    env.run('git', 'add', '.', cwd=version_pkg_path)
+    env.run('git', 'commit', '-q',
+            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path)
+    return version_pkg_path
+
+
+def _change_test_package_version(env, version_pkg_path):
+    write_file('version_pkg.py', textwrap.dedent('''\
+        def main():
+            print("some different version")'''), version_pkg_path)
+    env.run('git', 'commit', '-q',
+            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '-am', 'messed version',
+            cwd=version_pkg_path, expect_stderr=True)
 
 
 if __name__ == '__main__':
