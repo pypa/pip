@@ -5,6 +5,7 @@ from pip.log import logger
 from pip.locations import build_prefix, src_prefix
 from pip.basecommand import Command
 from pip.index import PackageFinder
+from pip.exceptions import InstallationError
 
 
 class InstallCommand(Command):
