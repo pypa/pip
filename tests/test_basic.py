@@ -332,12 +332,13 @@ def test_install_using_install_option_and_editable():
     Test installing a tool using -e and --install-option
     """
     env = reset_env()
-    mkdir('scripts')
+    folder = 'script_folder'
+    mkdir(folder)
     result = run_pip('install', '-e', '%s#egg=virtualenv' %
                       local_checkout('hg+http://bitbucket.org/ianb/virtualenv'),
-                     '--install-option="--install-scripts=scripts"')
-    virtualenv_bin = Path('scripts')/'virtualenv'+env.exe
-    assert virtualenv_bin in result.files_created, str(result)
+                     '--install-option=--script-dir=%s' % folder)
+    virtualenv_bin = env.venv/'src'/'virtualenv'/folder/'virtualenv'+env.exe
+    assert virtualenv_bin in result.files_created
 
 
 def test_install_global_option_using_editable():
