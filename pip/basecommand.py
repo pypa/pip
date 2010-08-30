@@ -1,17 +1,19 @@
 """Base Command class, and related routines"""
 
-import sys
+from cStringIO import StringIO
+import getpass
 import os
 import socket
-import urllib2
-import urllib
-from cStringIO import StringIO
+import sys
 import traceback
 import time
+import urllib
+import urllib2
 
 from pip import commands
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.download import urlopen
 from pip.exceptions import BadCommand, InstallationError, UninstallationError
 from pip.venv import restart_in_venv
 from pip.backwardcompat import walk_packages
@@ -20,6 +22,9 @@ __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
 
 command_dict = {}
+
+# for backwards compatibiliy
+get_proxy = urlopen.get_proxy
 
 
 class Command(object):
@@ -117,7 +122,7 @@ class Command(object):
 
         socket.setdefaulttimeout(options.timeout or None)
 
-        setup_proxy_handler(options.proxy)
+        urlopen.setup(proxystr=options.proxy)
 
         exit = 0
         try:
@@ -146,39 +151,6 @@ class Command(object):
         return exit
 
 
-## FIXME: should get moved somewhere else:
-def setup_proxy_handler(proxystr=''):
-    """Set the proxy handler given the option passed on the command
-    line.  If an empty string is passed it looks at the HTTP_PROXY
-    environment variable.  """
-    proxy = get_proxy(proxystr)
-    if proxy:
-        proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
-        opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
-        urllib2.install_opener(opener)
-
-
-def get_proxy(proxystr=''):
-    """Get the proxy given the option passed on the command line.  If an
-    empty string is passed it looks at the HTTP_PROXY environment
-    variable."""
-    if not proxystr:
-        proxystr = os.environ.get('HTTP_PROXY', '')
-    if proxystr:
-        if '@' in proxystr:
-            user_password, server_port = proxystr.split('@', 1)
-            if ':' in user_password:
-                user, password = user_password.split(':', 1)
-            else:
-                user = user_password
-                import getpass
-                prompt = 'Password for %s@%s: ' % (user, server_port)
-                password = urllib.quote(getpass.getpass(prompt))
-            return '%s:%s@%s' % (user, password, server_port)
-        else:
-            return proxystr
-    else:
-        return None
 
 
 def format_exc(exc_info=None):
@@ -227,3 +199,4 @@ def load_all_commands():
 def command_names():
     names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
     return list(names)
+

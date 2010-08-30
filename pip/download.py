@@ -1,7 +1,9 @@
 import xmlrpclib
 import re
+import getpass
 import urllib
 import urllib2
+import urlparse
 import os
 import mimetypes
 import shutil
@@ -47,7 +49,7 @@ def get_file_content(url, comes_from=None):
             url = path
         else:
             ## FIXME: catch some errors
-            resp = urllib2.urlopen(url)
+            resp = urlopen(url)
             return geturl(resp), resp.read()
     f = open(url)
     content = f.read()
@@ -58,13 +60,115 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+class URLOpener(object):
+    """
+    pip's own URL helper that adds HTTP auth and proxy support
+    """
+    def __init__(self):
+        self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
-# Insurance against "creative" interpretation of the RFC:
-# http://bugs.python.org/issue8732
-def urlopen(url):
-    if isinstance(url, basestring):
-        url = urllib2.Request(url, headers={'Accept-encoding': 'identity'})
-    return urllib2.urlopen(url)
+    def __call__(self, url):
+        """
+        If the given url contains auth info or if a normal request gets a 401
+        response, an attempt is made to fetch the resource using basic HTTP
+        auth.
+
+        """
+        url, username, password = self.extract_credentials(url)
+        if username is None:
+            return urllib2.urlopen(self.get_request(url))
+        return self.get_response(url, username, password)
+
+    def get_request(self, url):
+        """
+        Wraps the URL to retrieve to protects against "creative"
+        interpretation of the RFC: http://bugs.python.org/issue8732
+        """
+        if isinstance(url, basestring):
+            url = urllib2.Request(url, headers={'Accept-encoding': 'identity'})
+        return url
+
+    def get_response(self, url, username=None, password=None):
+        """
+        does the dirty work of actually getting the rsponse object using urllib2
+        and its HTTP auth builtins.
+        """
+        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        pass_url = urlparse.urlunsplit(('_none_', netloc, path, query, frag)).replace('_none_://', '', 1)
+        req = self.get_request(url)
+
+        stored_username, stored_password = self.passman.find_user_password(None, netloc)
+        # see if we have a password stored
+        if stored_username is None:
+            if username and password:
+                self.passman.add_password(None, netloc, username, password)
+            stored_username, stored_password = self.passman.find_user_password(None, netloc)
+        authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
+        opener = urllib2.build_opener(authhandler)
+        # FIXME: should catch a 401 and offer to let the user reenter credentials
+        return opener.open(req)
+
+    def setup(self, proxystr=''):
+        """
+        Sets the proxy handler given the option passed on the command
+        line.  If an empty string is passed it looks at the HTTP_PROXY
+        environment variable.
+        """
+        proxy = self.get_proxy(proxystr)
+        if proxy:
+            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
+            opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
+            urllib2.install_opener(opener)
+
+    def extract_credentials(self, url):
+        """
+        Extracts user/password from a url.
+
+        Returns a tuple:
+            (url-without-auth, username, password)
+        """
+        result = urlparse.urlsplit(url)
+        scheme, netloc, path, query, frag = result
+
+        if result.username is None:
+            return url, None, None
+        elif result.password is None:
+            # remove the auth credentials from the url part
+            netloc = netloc.replace('%s@' % result.username, '', 1)
+            # prompt for the password
+            prompt = 'Password for %s@%s: ' % (result.username, netloc)
+            result.password = urllib.quote(getpass.getpass(prompt))
+        else:
+            # remove the auth credentials from the url part
+            netloc = netloc.replace('%s:%s@' % (result.username, result.password), '', 1)
+
+        target_url = urlparse.urlunsplit((scheme, netloc, path, query, frag))
+        return target_url, result.username, result.password
+
+    def get_proxy(self, proxystr=''):
+        """
+        Get the proxy given the option passed on the command line.
+        If an empty string is passed it looks at the HTTP_PROXY
+        environment variable.
+        """
+        if not proxystr:
+            proxystr = os.environ.get('HTTP_PROXY', '')
+        if proxystr:
+            if '@' in proxystr:
+                user_password, server_port = proxystr.split('@', 1)
+                if ':' in user_password:
+                    user, password = user_password.split(':', 1)
+                else:
+                    user = user_password
+                    prompt = 'Password for %s@%s: ' % (user, server_port)
+                    password = urllib.quote(getpass.getpass(prompt))
+                return '%s:%s@%s' % (user, password, server_port)
+            else:
+                return proxystr
+        else:
+            return None
+
+urlopen = URLOpener()
 
 
 def is_url(name):
@@ -324,7 +428,7 @@ def unpack_http_url(link, location, download_cache, only_download):
 
 def _get_response_from_url(target_url, link):
     try:
-        resp = urllib2.urlopen(target_url)
+        resp = urlopen(target_url)
     except urllib2.HTTPError, e:
         logger.fatal("HTTP error %s while getting %s" % (e.code, link))
         raise
