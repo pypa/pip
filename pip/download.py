@@ -127,7 +127,10 @@ class URLOpener(object):
         Returns a tuple:
             (url-without-auth, username, password)
         """
-        result = urlparse.urlsplit(url)
+        if isinstance(url, urllib2.Request):
+            result = urlparse.urlsplit(url.get_full_url())
+        else:
+            result = urlparse.urlsplit(url)
         scheme, netloc, path, query, frag = result
 
         if result.username is None:
