@@ -51,9 +51,13 @@ def get_file_content(url, comes_from=None):
             ## FIXME: catch some errors
             resp = urlopen(url)
             return geturl(resp), resp.read()
-    f = open(url)
-    content = f.read()
-    f.close()
+    try:
+        f = open(url)
+        content = f.read()
+    except IOError, e:
+        raise InstallationError('Could not open requirements file: %s' % str(e))
+    else:
+        f.close()
     return url, content
 
 
