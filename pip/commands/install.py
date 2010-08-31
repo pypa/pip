@@ -200,11 +200,18 @@ class InstallCommand(Command):
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
 
+        if not requirement_set.has_requirements:
+            if options.find_links:
+                raise InstallationError('You must give at least one '
+                    'requirement to %s (maybe you meant "pip install %s"?)'
+                    % (self.name, " ".join(options.find_links)))
+            raise InstallationError('You must give at least one '
+                'requirement to %s (see "pip help install")' % self.name)
+
         if (options.use_user_site and
             sys.version_info < (2, 6)):
-            
             raise InstallationError('--user is only supported in Python version 2.6 and newer')
-                
+
         import setuptools
         if (options.use_user_site and
             requirement_set.has_editables and

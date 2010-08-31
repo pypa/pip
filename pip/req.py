@@ -775,6 +775,10 @@ class RequirementSet(object):
         return False
 
     @property
+    def has_requirements(self):
+        return self.requirements.values() or self.unnamed_requirements
+
+    @property
     def has_editables(self):
         if any(req.editable for req in self.requirements.values()):
             return True
