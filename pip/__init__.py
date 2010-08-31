@@ -96,7 +96,7 @@ def main(initial_args=None):
     if options.help and not args:
         args = ['help']
     if not args:
-        parser.error('You must give a command (use "pip help" see a list of commands)')
+        parser.error('You must give a command (use "pip help" to see a list of commands)')
     command = args[0].lower()
     load_command(command)
     ## FIXME: search for a command match?
