@@ -5,8 +5,9 @@ import optparse
 import subprocess
 import sys
 import re
+import difflib
 
-from pip.basecommand import command_dict, load_command, load_all_commands
+from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
@@ -99,10 +100,18 @@ def main(initial_args=None):
         parser.error('You must give a command (use "pip help" to see a list of commands)')
     command = args[0].lower()
     load_command(command)
-    ## FIXME: search for a command match?
     if command not in command_dict:
-        parser.error('No command by the name %(script)s %(arg)s\n  (maybe you meant "%(script)s install %(arg)s")'
-                     % dict(script=os.path.basename(sys.argv[0]), arg=command))
+        close_commands = difflib.get_close_matches(command, command_names())
+        if close_commands:
+            guess = close_commands[0]
+            if args[1:]:
+                guess = "%s %s" % (guess, " ".join(args[1:]))
+        else:
+            guess = 'install %s' % command
+        error_dict = {'arg': command, 'guess': guess,
+                      'script': os.path.basename(sys.argv[0])}
+        parser.error('No command by the name %(script)s %(arg)s\n  '
+                     '(maybe you meant "%(script)s %(guess)s")' % error_dict)
     command = command_dict[command]
     return command.main(initial_args, args[1:], options)
 
