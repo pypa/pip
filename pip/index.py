@@ -485,10 +485,10 @@ class HTMLPage(object):
         req = Urllib2HeadRequest(url, headers={'Host': netloc})
         resp = urlopen(req)
         try:
-            if resp.code != 200 and scheme not in ('ftp', 'ftps'):
+            if hasattr(resp, 'code') and resp.code != 200 and scheme not in ('ftp', 'ftps'):
                 ## FIXME: doesn't handle redirects
                 return ''
-            return resp.info().getheader('Content-Type') or ''
+            return resp.info().get('content-type', '')
         finally:
             resp.close()
 
