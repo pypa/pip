@@ -205,8 +205,8 @@ class InstallCommand(Command):
                 raise InstallationError('You must give at least one '
                     'requirement to %s (maybe you meant "pip install %s"?)'
                     % (self.name, " ".join(options.find_links)))
-            raise InstallationError('You must give at least one '
-                'requirement to %s (see "pip help install")' % self.name)
+            raise InstallationError('You must give at least one requirement '
+                'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
 
         if (options.use_user_site and
             sys.version_info < (2, 6)):

@@ -1,7 +1,6 @@
-from pip.req import InstallRequirement, RequirementSet
-from pip.req import parse_requirements
+from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
-
+from pip.exceptions import InstallationError
 
 class UninstallCommand(Command):
     name = 'uninstall'
@@ -35,6 +34,9 @@ class UninstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, options=options):
                 requirement_set.add_requirement(req)
+        if not requirement_set.has_requirements:
+            raise InstallationError('You must give at least one requirement '
+                'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
         requirement_set.uninstall(auto_confirm=options.yes)
 
 UninstallCommand()
