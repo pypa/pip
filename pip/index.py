@@ -21,7 +21,7 @@ from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
 from pip.backwardcompat import WindowsError, product
-from pip.download import urlopen, path_to_url2, url_to_path, geturl
+from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 
 __all__ = ['PackageFinder']
 
@@ -478,26 +478,19 @@ class HTMLPage(object):
     def _get_content_type(url):
         """Get the Content-Type of the given url, using a HEAD request"""
         scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if scheme == 'http':
-            ConnClass = httplib.HTTPConnection
-        elif scheme == 'https':
-            ConnClass = httplib.HTTPSConnection
-        else:
+        if not scheme in ('http', 'https', 'ftp', 'ftps'):
             ## FIXME: some warning or something?
             ## assertion error?
             return ''
-        if query:
-            path += '?' + query
-        conn = ConnClass(netloc)
+        req = Urllib2HeadRequest(url, headers={'Host': netloc})
+        resp = urlopen(req)
         try:
-            conn.request('HEAD', path, headers={'Host': netloc})
-            resp = conn.getresponse()
-            if resp.status != 200:
+            if resp.code != 200 and scheme not in ('ftp', 'ftps'):
                 ## FIXME: doesn't handle redirects
                 return ''
-            return resp.getheader('Content-Type') or ''
+            return resp.info().getheader('Content-Type') or ''
         finally:
-            conn.close()
+            resp.close()
 
     @property
     def base_url(self):

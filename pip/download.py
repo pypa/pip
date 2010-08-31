@@ -441,3 +441,6 @@ def _get_response_from_url(target_url, link):
         raise
     return resp
 
+class Urllib2HeadRequest(urllib2.Request):
+    def get_method(self):
+        return "HEAD"
