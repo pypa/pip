@@ -80,8 +80,15 @@ class URLOpener(object):
         """
         url, username, password = self.extract_credentials(url)
         if username is None:
-            return urllib2.urlopen(self.get_request(url))
-        return self.get_response(url, username, password)
+            try:
+                response = urllib2.urlopen(self.get_request(url))
+            except urllib2.HTTPError, e:
+                if e.code != 401:
+                    raise
+                response = self.get_response(url)
+        else:
+            response = self.get_response(url, username, password)
+        return response
 
     def get_request(self, url):
         """
@@ -104,6 +111,9 @@ class URLOpener(object):
         stored_username, stored_password = self.passman.find_user_password(None, netloc)
         # see if we have a password stored
         if stored_username is None:
+            if username is None and self.prompting:
+                username = urllib.quote(raw_input('User for %s: ' % netloc))
+                password = urllib.quote(getpass.getpass('Password: '))
             if username and password:
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
@@ -112,17 +122,26 @@ class URLOpener(object):
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
 
-    def setup(self, proxystr=''):
+    def setup(self, proxystr='', prompting=True):
         """
         Sets the proxy handler given the option passed on the command
         line.  If an empty string is passed it looks at the HTTP_PROXY
         environment variable.
         """
+        self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
             proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
+
+    def parse_credentials(self, netloc):
+        if "@" in netloc:
+            userinfo = netloc.rsplit("@", 1)[0]
+            if ":" in userinfo:
+                return userinfo.split(":", 1)
+            return userinfo, None
+        return None, None
 
     def extract_credentials(self, url):
         """
@@ -137,20 +156,21 @@ class URLOpener(object):
             result = urlparse.urlsplit(url)
         scheme, netloc, path, query, frag = result
 
-        if result.username is None:
+        username, password = self.parse_credentials(netloc)
+        if username is None:
             return url, None, None
-        elif result.password is None:
+        elif password is None and self.prompting:
             # remove the auth credentials from the url part
-            netloc = netloc.replace('%s@' % result.username, '', 1)
+            netloc = netloc.replace('%s@' % username, '', 1)
             # prompt for the password
-            prompt = 'Password for %s@%s: ' % (result.username, netloc)
-            result.password = urllib.quote(getpass.getpass(prompt))
+            prompt = 'Password for %s@%s: ' % (username, netloc)
+            password = urllib.quote(getpass.getpass(prompt))
         else:
             # remove the auth credentials from the url part
-            netloc = netloc.replace('%s:%s@' % (result.username, result.password), '', 1)
+            netloc = netloc.replace('%s:%s@' % (username, password), '', 1)
 
         target_url = urlparse.urlunsplit((scheme, netloc, path, query, frag))
-        return target_url, result.username, result.password
+        return target_url, username, password
 
     def get_proxy(self, proxystr=''):
         """

@@ -189,6 +189,13 @@ parser.add_option(
     metavar='FILENAME',
     default=default_log_file,
     help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    # Don't ask for input
+    '--no-input',
+    dest='no_input',
+    action='store_true',
+    default=False,
+    help=optparse.SUPPRESS_HELP)
 
 parser.add_option(
     '--proxy',

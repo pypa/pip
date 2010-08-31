@@ -51,7 +51,8 @@ class Command(object):
         # Make sure we have all global options carried over
         for attr in ['log', 'venv', 'proxy', 'venv_base', 'require_venv',
                      'respect_venv', 'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs', 'skip_requirements_regex']:
+                     'timeout', 'default_vcs', 'skip_requirements_regex',
+                     'no_input']:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -122,7 +123,7 @@ class Command(object):
 
         socket.setdefaulttimeout(options.timeout or None)
 
-        urlopen.setup(proxystr=options.proxy)
+        urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
         exit = 0
         try:
