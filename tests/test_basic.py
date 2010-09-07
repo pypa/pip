@@ -380,6 +380,14 @@ def test_install_global_option():
     assert '0.1\n' in result.stdout
 
 
+def test_install_with_pax_header():
+    """
+    test installing from a tarball with pax header for python<2.6
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages'))
+    result = run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+
 def test_install_using_install_option_and_editable():
     """
     Test installing a tool using -e and --install-option
