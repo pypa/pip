@@ -407,7 +407,7 @@ def untar_file(filename, location):
         ])
         for member in tar.getmembers():
             fn = member.name
-            if fn=='pax_global_header':
+            if fn == 'pax_global_header':
                 continue
             if leading:
                 fn = split_leading_dir(fn)[1]
