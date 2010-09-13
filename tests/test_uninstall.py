@@ -1,5 +1,6 @@
 import textwrap
 import sys
+import shutil
 from os.path import join
 from tempfile import mkdtemp
 from test_pip import reset_env, run_pip, assert_all_changes, write_file
@@ -89,7 +90,15 @@ def test_uninstall_editable_with_source_outside_venv():
     Test uninstalling editable install from existing source outside the venv.
 
     """
-    tmpdir = join(mkdtemp(), 'virtualenv')
+    try:
+        temp = mkdtemp()
+        tmpdir = join(temp, 'virtualenv')
+        _test_uninstall_editable_with_source_outside_venv(tmpdir)
+    finally:
+        shutil.rmtree(temp)
+
+
+def _test_uninstall_editable_with_source_outside_venv(tmpdir):
     env = reset_env()
     result = env.run('hg', 'clone', local_repo('hg+http://bitbucket.org/ianb/virtualenv'), tmpdir)
     result2 = run_pip('install', '-e', tmpdir)

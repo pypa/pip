@@ -69,7 +69,14 @@ def test_config_file_override_stack():
     local, overriding all with a command line flag).
 
     """
-    f, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
+    try:
+        _, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
+        _test_config_file_override_stack(config_file)
+    finally:
+        os.remove(config_file)
+
+
+def _test_config_file_override_stack(config_file):
     environ = clear_environ(os.environ.copy())
     environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
     reset_env(environ)
