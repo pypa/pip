@@ -599,9 +599,9 @@ execfile(__file__)
             if self.source_dir:
                 rmtree(self.source_dir)
             self.source_dir = None
-            if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-                rmtree(self._temp_build_dir)
-            self._temp_build_dir = None
+        if self._temp_build_dir and os.path.exists(self._temp_build_dir):
+            rmtree(self._temp_build_dir)
+        self._temp_build_dir = None
 
     def install_editable(self, install_options, global_options=()):
         logger.notify('Running setup.py develop for %s' % self.name)
