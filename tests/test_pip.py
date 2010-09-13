@@ -17,7 +17,7 @@ here = Path(__file__).abspath.folder
 
 # the root of this pip source distribution
 src_folder = here.folder
-download_cache = os.path.join(tempfile.mkdtemp(), 'pip-test-cache')
+download_cache = tempfile.mkdtemp(prefix='pip-test-cache')
 
 
 def path_to_url(path):
@@ -39,7 +39,6 @@ def demand_dirs(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-demand_dirs(download_cache)
 
 # Tweak the path so we can find up-to-date pip sources
 # (http://bitbucket.org/ianb/pip/issue/98)
@@ -269,7 +268,7 @@ class TestPipEnvironment(TestFileEnvironment):
         if not environ:
             environ = os.environ.copy()
             environ = clear_environ(environ)
-            environ['PIP_DOWNLOAD_CACHE'] = str(download_cache)
+            environ['PIP_DOWNLOAD_CACHE'] = download_cache
 
         environ['PIP_NO_INPUT'] = '1'
         environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
@@ -344,7 +343,7 @@ class TestPipEnvironment(TestFileEnvironment):
         return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def __del__(self):
-        shutil.rmtree(self.root_path, ignore_errors=True)
+        shutil.rmtree(str(self.root_path), ignore_errors=True)
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
