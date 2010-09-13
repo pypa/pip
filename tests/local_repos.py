@@ -19,6 +19,7 @@ def _dump_initools_repository():
     subprocess.call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
     dump.close()
     devnull.close()
+    os.remove(filename)
 
 
 def _create_svn_repository_for_initools():
