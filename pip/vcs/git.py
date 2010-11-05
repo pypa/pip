@@ -14,7 +14,7 @@ class Git(VersionControl):
     name = 'git'
     dirname = '.git'
     repo_name = 'clone'
-    schemes = ('git', 'git+http', 'git+ssh', 'git+git', 'git+file')
+    schemes = ('git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file')
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')

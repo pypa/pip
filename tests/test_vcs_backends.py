@@ -1,6 +1,17 @@
 from test_pip import (reset_env, run_pip,
                       _create_test_package, _change_test_package_version)
 
+def test_install_editable_from_git_with_https():
+    """
+    Test cloning from Git with https.
+    """
+    env = reset_env()
+    result = run_pip('install', '-e',
+                     '%s#egg=django-feedutil' %
+                     local_checkout('git+https://github.com/jezdez/django-feedutil.git'),
+                     expect_error=True)
+    result.assert_installed('django-feedutil', with_files=['.git'])
+
 
 def test_git_with_sha1_revisions():
     """
