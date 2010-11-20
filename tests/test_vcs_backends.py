@@ -1,5 +1,6 @@
-from test_pip import (reset_env, run_pip,
+from test_pip import (reset_env, run_pip, pyversion,
                       _create_test_package, _change_test_package_version)
+from local_repos import local_checkout
 
 def test_install_editable_from_git_with_https():
     """
@@ -50,4 +51,20 @@ def test_git_with_tag_name_as_revision():
     run_pip('install', '-e', '%s@test_tag#egg=version_pkg' % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')))
     version = env.run('version_pkg')
     assert '0.1' in version.stdout
+
+
+def test_git_with_tag_name_and_update():
+    """
+    Test cloning a git repository and updating to a different version.
+    """
+    reset_env()
+    result = run_pip('install', '-e', '%s#egg=django-staticfiles' %
+                     local_checkout('git+http://github.com/jezdez/django-staticfiles.git'),
+                     expect_error=True)
+    result.assert_installed('django-staticfiles', with_files=['.git'])
+    result = run_pip('install', '--global-option=--version', '-e',
+                     '%s@0.3.1#egg=django-staticfiles' %
+                     local_checkout('git+http://github.com/jezdez/django-staticfiles.git'),
+                     expect_error=True)
+    assert '0.3.1\n' in result.stdout
 
