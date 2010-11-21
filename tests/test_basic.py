@@ -306,6 +306,7 @@ def test_install_curdir():
 
 
 # user-site only exists in Python 2.6+
+# and --user is _only_ possible using distribute!
 if sys.version_info < (2, 6):
     def test_install_curdir_usersite_fails_in_old_python():
         """
@@ -322,6 +323,7 @@ else:
         Test installing current directory ('.') into usersite
         """
         env = reset_env()
+        env.run('easy_install', 'distribute')
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = env.user_site/'fspkg'
@@ -335,9 +337,9 @@ else:
         Test installing current directory ('.') into usersite after installing distribute
         """
         env = reset_env()
+        env.run('easy_install', 'distribute')
         (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-        run_pip('install', '-U', 'distribute') #XXX: only works with distribute
         result = run_pip('install', '--user', '-e',
                          '%s#egg=initools-dev' %
                          local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))

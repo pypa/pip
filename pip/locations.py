@@ -22,6 +22,11 @@ else:
     build_prefix = os.path.join(os.getcwd(), 'build')
     src_prefix = os.path.join(os.getcwd(), 'src')
 
+# under Mac OS X + virtualenv sys.prefix is not properly resolved
+# it is something like /path/to/python/bin/..
+build_prefix = os.path.abspath(build_prefix)
+src_prefix = os.path.abspath(src_prefix)
+
 # FIXME doesn't account for venv linked to global site-packages
 
 site_packages = sysconfig.get_python_lib()
