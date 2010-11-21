@@ -2,6 +2,7 @@ from test_pip import (reset_env, run_pip, pyversion,
                       _create_test_package, _change_test_package_version)
 from local_repos import local_checkout
 
+
 def test_install_editable_from_git_with_https():
     """
     Test cloning from Git with https.
@@ -68,3 +69,16 @@ def test_git_with_tag_name_and_update():
                      expect_error=True)
     assert '0.3.1\n' in result.stdout
 
+
+def test_git_branch_should_not_be_changed():
+    """
+    Editable installations should not change branch
+    related to issue #32 and #161
+    """
+    env = reset_env()
+    run_pip('install', '-e', '%s#egg=django-staticfiles' %
+                local_checkout('git+http://github.com/jezdez/django-staticfiles.git'),
+                expect_error=True)
+    source_dir = env.venv_path/'src'/'django-staticfiles'
+    result = env.run('git', 'branch', cwd=source_dir)
+    assert '* master' in result.stdout
