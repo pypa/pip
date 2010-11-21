@@ -100,9 +100,10 @@ class Git(VersionControl):
             [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def update(self, dest, rev_options):
+        # First fetch changes from the default remote
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
-        call_subprocess(
-            [self.cmd, 'checkout', '-q', '-f'] + rev_options, cwd=dest)
+        # Then reset to wanted revision (maby even origin/master)
+        call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -110,7 +111,7 @@ class Git(VersionControl):
             rev_options = [rev]
             rev_display = ' (to %s)' % rev
         else:
-            rev_options = ['master']
+            rev_options = ['origin/master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
