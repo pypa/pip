@@ -1366,7 +1366,7 @@ class UninstallPathSet(object):
     def commit(self):
         """Remove temporary save dir: rollback will no longer be possible."""
         if self.save_dir is not None:
-            shutil.rmtree(self.save_dir)
+            rmtree(self.save_dir)
             self.save_dir = None
             self._moved_paths = []
 

@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from pip.backwardcompat import md5, copytree
 from pip.exceptions import InstallationError
-from pip.util import (splitext,
+from pip.util import (splitext, rmtree,
                       format_size, display_path, backup_dir, ask,
                       unpack_file, create_download_cache_folder, cache_download)
 from pip.vcs import vcs
@@ -299,7 +299,7 @@ def unpack_file_url(link, location):
     if os.path.isdir(source):
         # delete the location since shutil will create it again :(
         if os.path.isdir(location):
-            shutil.rmtree(location)
+            rmtree(location)
         copytree(source, location)
     else:
         unpack_file(source, location, content_type, link)

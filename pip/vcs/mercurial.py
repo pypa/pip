@@ -57,7 +57,7 @@ class Mercurial(VersionControl):
                 [self.cmd, 'archive', location],
                 filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
         finally:
-            shutil.rmtree(temp_dir)
+            rmtree(temp_dir)
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')

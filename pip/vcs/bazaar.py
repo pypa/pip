@@ -56,7 +56,7 @@ class Bazaar(VersionControl):
             call_subprocess([self.cmd, 'export', location], cwd=temp_dir,
                             filter_stdout=self._filter, show_stdout=False)
         finally:
-            shutil.rmtree(temp_dir)
+            rmtree(temp_dir)
 
     def switch(self, dest, url, rev_options):
         call_subprocess([self.cmd, 'switch', url], cwd=dest)

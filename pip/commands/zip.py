@@ -4,7 +4,7 @@ import fnmatch
 import os
 import shutil
 import zipfile
-from pip.util import display_path, backup_dir
+from pip.util import display_path, backup_dir, rmtree
 from pip.log import logger
 from pip.exceptions import InstallationError
 from pip.basecommand import Command
@@ -198,7 +198,7 @@ class ZipCommand(Command):
                     zip.close()
                 logger.info('Removing old directory %s' % display_path(filename))
                 if not self.simulate:
-                    shutil.rmtree(filename)
+                    rmtree(filename)
             except:
                 ## FIXME: need to do an undo here
                 raise

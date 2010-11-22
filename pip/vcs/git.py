@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import re
 from pip import call_subprocess
-from pip.util import display_path
+from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
 from urllib import url2pathname
@@ -73,7 +73,7 @@ class Git(VersionControl):
                 [self.cmd, 'checkout-index', '-a', '-f', '--prefix', location],
                 filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
         finally:
-            shutil.rmtree(temp_dir)
+            rmtree(temp_dir)
 
     def check_rev_options(self, rev, dest, rev_options):
         """Check the revision options before checkout to compensate that tags
