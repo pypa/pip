@@ -82,3 +82,13 @@ def test_git_branch_should_not_be_changed():
     source_dir = env.venv_path/'src'/'django-staticfiles'
     result = env.run('git', 'branch', cwd=source_dir)
     assert '* master' in result.stdout
+
+def test_git_with_non_editable_unpacking():
+    """
+    Test cloning a git repository from a non-editable URL with a given tag.
+    """
+    reset_env()
+    result = run_pip('install', '--global-option=--version', local_checkout(
+                     'git+http://github.com/jezdez/django-staticfiles.git@0.3.1#egg=django-staticfiles'
+                     ), expect_error=True)
+    assert '0.3.1\n' in result.stdout

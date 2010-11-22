@@ -224,7 +224,9 @@ class VersionControl(object):
         return checkout
 
     def unpack(self, location):
-        raise NotImplementedError
+        if os.path.exists(location):
+            rmtree(location)
+        self.obtain(location)
 
     def get_src_requirement(self, dist, location, find_tags=False):
         raise NotImplementedError
