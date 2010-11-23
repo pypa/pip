@@ -2,7 +2,7 @@ import textwrap
 from path import Path
 from test_pip import (here, reset_env, run_pip, assert_all_changes,
                       write_file, mkdir, _create_test_package,
-                      _change_test_package_version)
+                      _change_test_package_version, pyversion)
 
 
 def test_no_upgrade_unless_requested():
@@ -21,10 +21,12 @@ def test_upgrade_to_specific_version():
     It does upgrade to specific version requested.
 
     """
-    reset_env()
+    env = reset_env()
     run_pip('install', 'INITools==0.1', expect_error=True)
     result = run_pip('install', 'INITools==0.2', expect_error=True)
     assert result.files_created, 'pip install with specific version did not upgrade'
+    assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion in result.files_deleted
+    assert env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion in result.files_created
 
 
 def test_upgrade_if_requested():
@@ -32,10 +34,11 @@ def test_upgrade_if_requested():
     And it does upgrade if requested.
 
     """
-    reset_env()
+    env = reset_env()
     run_pip('install', 'INITools==0.1', expect_error=True)
     result = run_pip('install', '--upgrade', 'INITools', expect_error=True)
     assert result.files_created, 'pip install --upgrade did not upgrade'
+    assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
 
 def test_uninstall_before_upgrade():
@@ -105,3 +108,15 @@ def test_editable_git_upgrade():
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
     assert 'some different version' in version2.stdout
+
+def test_should_not_install_always_from_cache():
+    """
+    If there is an old cached package, pip should download the newer version
+    Related to issue #175
+    """
+    env = reset_env()
+    run_pip('install', 'INITools==0.2', expect_error=True)
+    run_pip('uninstall', '-y', 'INITools')
+    result = run_pip('install', 'INITools==0.1', expect_error=True)
+    assert env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion not in result.files_created
+    assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion in result.files_created
