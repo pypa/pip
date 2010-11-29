@@ -947,6 +947,7 @@ class RequirementSet(object):
                             #@@ sketchy way of identifying packages not grabbed from an index
                             if bundle and req_to_install.url:
                                 self.copy_to_build_dir(req_to_install)
+                                install = False
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
