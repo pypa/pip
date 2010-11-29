@@ -1,6 +1,11 @@
 News for pip
 ============
 
+hg tip
+------
+
+* Avoid redundant unpacking of bundles (from pwaller)
+
 0.8.1
 -----
 
