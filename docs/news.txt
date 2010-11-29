@@ -6,6 +6,18 @@ hg tip
 
 * Avoid redundant unpacking of bundles (from pwaller)
 
+* Fixed issue #32, #150, #161 - Fixed checking out the correct
+  tag/branch/commit when updating an editable Git requirement.
+
+* Fixed issue #49 - Added ability to install version control requirements
+  without making them editable, e.g.::
+
+    pip install hg+http://bitbucket.org/ianb/pip/
+
+* Fixed issue #175 - Correctly locate build and source directory on Mac OS X.
+
+* Added ``git+https://`` scheme to Git VCS backend.
+
 0.8.1
 -----
 
