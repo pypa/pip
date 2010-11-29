@@ -1,8 +1,8 @@
 News for pip
 ============
 
-tip
----
+0.8.1
+-----
 
 * Added global --user flag as shortcut for --install-option="--user". From
   Ronny Pfannschmidt.
