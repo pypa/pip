@@ -92,3 +92,22 @@ def test_git_with_non_editable_unpacking():
                      'git+http://github.com/jezdez/django-staticfiles.git@0.3.1#egg=django-staticfiles'
                      ), expect_error=True)
     assert '0.3.1\n' in result.stdout
+
+def test_git_with_editable_where_egg_contains_dev_string():
+    """
+    Test cloning a git repository from an editable url witch contains "dev" string
+    """
+    reset_env()
+    result = run_pip('install', '-e', '%s#egg=django-devserver' %
+                     local_checkout('git+git://github.com/dcramer/django-devserver.git'))
+    result.assert_installed('django-devserver', with_files=['.git'])
+
+def test_git_with_non_editable_where_egg_contains_dev_string():
+    """
+    Test cloning a git repository from a non-editable url witch contains "dev" string
+    """
+    env = reset_env()
+    result = run_pip('install', '%s#egg=django-devserver' %
+                     local_checkout('git+git://github.com/dcramer/django-devserver.git'))
+    devserver_folder = env.site_packages/'devserver'
+    assert devserver_folder in result.files_created, str(result)

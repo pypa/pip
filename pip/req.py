@@ -1249,7 +1249,7 @@ def parse_editable(editable_req, default_vcs=None):
     else:
         req = match.group(1)
     ## FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)', req)
+    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
     if match:
         # Strip off -dev, -0.2, etc.
         req = match.group(1)
