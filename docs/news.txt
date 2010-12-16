@@ -1,6 +1,12 @@
 News for pip
 ============
 
+tip
+---
+
+* Fixed issue #163 - Egg name not properly resolved. Thanks Igor Sobreira
+
+
 0.8.2
 -----
 
