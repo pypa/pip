@@ -6,6 +6,8 @@ tip
 
 * Fixed issue #163 - Egg name not properly resolved. Thanks Igor Sobreira
 
+* Fixed issue #178 - Non-alphabetical installation of requirements. Thanks Igor Sobreira
+
 
 0.8.2
 -----
