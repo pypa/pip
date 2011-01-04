@@ -728,6 +728,37 @@ deleted (unless you remove this file).
 '''
 
 
+class Requirements(object):
+
+    def __init__(self):
+        self._keys = []
+        self._dict = {}
+
+    def keys(self):
+        return self._keys
+
+    def values(self):
+        values_list = []
+        for key in self._keys:
+            values_list.append(self._dict[key])
+        return values_list
+
+    def __contains__(self, item):
+        return item in self._keys
+    
+    def __setitem__(self, key, value):
+        if key not in self._keys:
+            self._keys.append(key)
+        self._dict[key] = value
+    
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __repr__(self):
+        values = [ '%s: %s' % (repr(k), repr(self[k])) for k in self.keys() ]
+        return 'Requirements({%s})' % ', '.join(values)
+
+
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
@@ -739,7 +770,7 @@ class RequirementSet(object):
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
-        self.requirements = {}
+        self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
         self.unnamed_requirements = []
@@ -1024,9 +1055,9 @@ class RequirementSet(object):
 
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
-        to_install = sorted([r for r in self.requirements.values()
-                             if self.upgrade or not r.satisfied_by],
-                            key=lambda p: p.name.lower())
+        to_install = [r for r in self.requirements.values()
+                      if self.upgrade or not r.satisfied_by]
+
         if to_install:
             logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
         logger.indent += 2
@@ -1114,16 +1145,12 @@ class RequirementSet(object):
 
     def bundle_requirements(self):
         parts = [self.BUNDLE_HEADER]
-        for req in sorted(
-            [req for req in self.requirements.values()
-             if not req.comes_from],
-            key=lambda x: x.name):
+        for req in [req for req in self.requirements.values()
+                    if not req.comes_from]:
             parts.append('%s==%s\n' % (req.name, req.installed_version))
         parts.append('# These packages were installed to satisfy the above requirements:\n')
-        for req in sorted(
-            [req for req in self.requirements.values()
-             if req.comes_from],
-            key=lambda x: x.name):
+        for req in [req for req in self.requirements.values()
+                    if req.comes_from]:
             parts.append('%s==%s\n' % (req.name, req.installed_version))
         ## FIXME: should we do something with self.unnamed_requirements?
         return ''.join(parts)
