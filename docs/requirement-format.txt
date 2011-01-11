@@ -121,13 +121,13 @@ isn't, however, very friendly with `frozen requirements
 Indexes, find-links
 -------------------
 
-You can also provide values for the ``--index`` and ``--find-links``
+You can also provide values for the ``--index-url`` and ``--find-links``
 options in your requirement files, like::
 
-    --index http://example.com/private-pypi/
+    --index-url http://example.com/private-pypi/
 
-Note that using ``--index`` removes the use of `PyPI
-<http://pypi.python.org>`_, while using ``--extra-index`` will add
+Note that using ``--index-url`` removes the use of `PyPI
+<http://pypi.python.org>`_, while using ``--extra-index-url`` will add
 additional indexes.
 
 ``--find-links`` is more ad-hoc; instead of a complete "index", you
