@@ -169,7 +169,7 @@ def test_freeze_mercurial_clone():
         Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
         -- stdout: --------------------
         -f %(repo)s#egg=django_dbtemplates
-        -e %(repo)s@...#egg=django_dbtemplates-...
+        -e %(repo)s@...#egg=django_dbtemplates-dev
         ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
     _check_output(result, expected)
 

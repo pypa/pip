@@ -97,7 +97,8 @@ class Mercurial(VersionControl):
             if tags_match:
                 tag = tags_match.group(1)
                 rev = tags_match.group(2)
-                tag_revs.append((rev.strip(), tag.strip()))
+                if "tip" != tag:
+                    tag_revs.append((rev.strip(), tag.strip()))
         return dict(tag_revs)
 
     def get_branch_revs(self, location):
@@ -109,7 +110,8 @@ class Mercurial(VersionControl):
             if branches_match:
                 branch = branches_match.group(1)
                 rev = branches_match.group(2)
-                branch_revs.append((rev.strip(), branch.strip()))
+                if "default" != branch:
+                    branch_revs.append((rev.strip(), branch.strip()))
         return dict(branch_revs)
 
     def get_revision(self, location):
@@ -140,9 +142,9 @@ class Mercurial(VersionControl):
             full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         elif current_rev in branch_revs:
             # It's the tip of a branch
-            full_egg_name = '%s-%s' % (dist.egg_name(), branch_revs[current_rev])
+            full_egg_name = '%s-%s' % (egg_project_name, branch_revs[current_rev])
         else:
-            full_egg_name = '%s-dev' % dist.egg_name()
+            full_egg_name = '%s-dev' % egg_project_name
         return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
 
 vcs.register(Mercurial)

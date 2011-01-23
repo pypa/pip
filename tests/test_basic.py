@@ -470,3 +470,14 @@ def test_install_folder_using_relative_path():
     result = run_pip('install', Path('initools')/'mock')
     egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
+
+def test_install_package_which_contains_dev_in_name():
+    """
+    Test installing package from pypi witch contains 'dev' in name
+    """
+    env = reset_env()
+    result = run_pip('install', 'django-devserver==0.0.4')
+    devserver_folder = env.site_packages/'devserver'
+    egg_info_folder = env.site_packages/'django_devserver-0.0.4-py%s.egg-info' % pyversion
+    assert devserver_folder in result.files_created, str(result.stdout)
+    assert egg_info_folder in result.files_created, str(result)
