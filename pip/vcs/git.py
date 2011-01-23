@@ -166,10 +166,10 @@ class Git(VersionControl):
         elif (current_rev in branch_revs and
               branch_revs[current_rev] != 'origin/master'):
             # It's the head of a branch
-            full_egg_name = '%s-%s' % (dist.egg_name(),
+            full_egg_name = '%s-%s' % (egg_project_name,
                                        branch_revs[current_rev].replace('origin/', ''))
         else:
-            full_egg_name = '%s-dev' % dist.egg_name()
+            full_egg_name = '%s-dev' % egg_project_name
 
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
