@@ -72,8 +72,10 @@ class Git(VersionControl):
         # Check if rev is a branch name
         origin_rev = 'origin/%s' % rev
         if origin_rev in inverse_revisions:
+            # a remote tag or branch name
             return [inverse_revisions[origin_rev]]
         elif rev in inverse_revisions:
+            # a local tag or branch name
             return [inverse_revisions[rev]]
         else:
             logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
@@ -89,6 +91,8 @@ class Git(VersionControl):
         # First fetch changes from the default remote
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maby even origin/master)
+        if rev_options:
+            rev_options = self.check_rev_options(rev_options[0], dest, rev_options)
         call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
 
     def obtain(self, dest):
