@@ -8,6 +8,8 @@ tip
 
 * Fixed issue #178 - Non-alphabetical installation of requirements. Thanks Igor Sobreira
 
+* Fixed issue #199 - Documentation mentions --index instead of --index-url. Thanks Kelsey Hightower
+
 
 0.8.2
 -----
