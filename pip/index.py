@@ -634,7 +634,7 @@ def get_requirement_from_url(url):
 
 def package_to_requirement(package_name):
     """Translate a name like Foo-1.2 to Foo==1.3"""
-    match = re.search(r'^(.*?)(-dev|-\d.*)', package_name)
+    match = re.search(r'^(.*?)-(dev|\d.*)', package_name)
     if match:
         name = match.group(1)
         version = match.group(2)
