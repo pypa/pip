@@ -10,6 +10,9 @@ tip
 
 * Fixed issue #199 - Documentation mentions --index instead of --index-url. Thanks Kelsey Hightower
 
+* Fixed issue #204 - rmtree undefined in mercurial.py. Thanks Kelsey Hightower
+
+
 
 0.8.2
 -----
