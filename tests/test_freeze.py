@@ -136,7 +136,7 @@ def test_freeze_git_clone():
         Script result: pip freeze -f %(repo)s#egg=django_pagination
         -- stdout: --------------------
         -f %(repo)s#egg=django_pagination
-        -e %(repo)s@...#egg=django_pagination-...-dev
+        -e %(repo)s@...#egg=django_pagination-dev
         ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
     _check_output(result, expected)
 
