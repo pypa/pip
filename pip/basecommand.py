@@ -1,14 +1,11 @@
 """Base Command class, and related routines"""
 
 from cStringIO import StringIO
-import getpass
 import os
 import socket
 import sys
 import traceback
 import time
-import urllib
-import urllib2
 
 from pip import commands
 from pip.log import logger

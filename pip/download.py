@@ -105,7 +105,6 @@ class URLOpener(object):
         and its HTTP auth builtins.
         """
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
-        pass_url = urlparse.urlunsplit(('_none_', netloc, path, query, frag)).replace('_none_://', '', 1)
         req = self.get_request(url)
 
         stored_username, stored_password = self.passman.find_user_password(None, netloc)
