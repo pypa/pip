@@ -54,6 +54,18 @@ def test_uninstall_before_upgrade():
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build', 'cache'])
 
+def test_uninstall_before_upgrade_from_url():
+    """
+    Automatic uninstall-before-upgrade from URL.
+
+    """
+    env = reset_env()
+    result = run_pip('install', 'INITools==0.2', expect_error=True)
+    assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('install', 'http://pypi.python.org/packages/source/I/INITools/INITools-0.3.tar.gz', expect_error=True)
+    assert result2.files_created, 'upgrade to INITools 0.3 failed'
+    result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
+    assert_all_changes(result, result3, [env.venv/'build', 'cache'])
 
 def test_upgrade_from_reqs_file():
     """

@@ -979,6 +979,12 @@ class RequirementSet(object):
                             if bundle and req_to_install.url:
                                 self.copy_to_build_dir(req_to_install)
                                 install = False
+                        # req_to_install.req is only avail after unpack for URL pkgs
+                        # repeat check_if_exists to uninstall-on-upgrade (#14)
+                        req_to_install.check_if_exists()
+                        if req_to_install.satisfied_by:
+                            req_to_install.conflicts_with = req_to_install.satisfied_by
+                            req_to_install.satisfied_by = None
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
