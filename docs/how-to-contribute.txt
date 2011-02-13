@@ -84,5 +84,5 @@ enhancement ideas and proposals via `pip issue tracker page`_,
 
 .. _nose:  http://somethingaboutorange.com/mrl/projects/nose/0.11.3/
 .. _Bitbucket: http://bitbucket.org/
-.. _pip issue tracker page: http://bitbucket.org/ianb/pip/issues>
+.. _pip issue tracker page: http://bitbucket.org/ianb/pip/issues
 .. _virtualenv mailing list: http://groups.google.com/group/python-virtualenv/
