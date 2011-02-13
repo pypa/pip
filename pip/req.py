@@ -220,7 +220,8 @@ class InstallRequirement(object):
         finally:
             logger.indent -= 2
         if not self.req:
-            self.req = pkg_resources.Requirement.parse(self.pkg_info()['Name'])
+            self.req = pkg_resources.Requirement.parse(
+                "%(Name)s==%(Version)s" % self.pkg_info())
             self.correct_build_location()
 
     ## FIXME: This is a lame hack, entirely for PasteScript which has
@@ -978,6 +979,15 @@ class RequirementSet(object):
                             #@@ sketchy way of identifying packages not grabbed from an index
                             if bundle and req_to_install.url:
                                 self.copy_to_build_dir(req_to_install)
+                                install = False
+                        # req_to_install.req is only avail after unpack for URL pkgs
+                        # repeat check_if_exists to uninstall-on-upgrade (#14)
+                        req_to_install.check_if_exists()
+                        if req_to_install.satisfied_by:
+                            if self.upgrade:
+                                req_to_install.conflicts_with = req_to_install.satisfied_by
+                                req_to_install.satisfied_by = None
+                            else:
                                 install = False
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
