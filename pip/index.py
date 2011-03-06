@@ -10,7 +10,6 @@ import pkg_resources
 import urllib
 import urllib2
 import urlparse
-import httplib
 import random
 import socket
 import string

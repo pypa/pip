@@ -1,5 +1,3 @@
-import os
-import shutil
 import tempfile
 import re
 from pip import call_subprocess

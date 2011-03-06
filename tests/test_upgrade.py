@@ -1,7 +1,6 @@
 import textwrap
-from path import Path
 from test_pip import (here, reset_env, run_pip, assert_all_changes,
-                      write_file, mkdir, _create_test_package,
+                      write_file, _create_test_package,
                       _change_test_package_version, pyversion)
 
 
@@ -54,6 +53,32 @@ def test_uninstall_before_upgrade():
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build', 'cache'])
 
+def test_uninstall_before_upgrade_from_url():
+    """
+    Automatic uninstall-before-upgrade from URL.
+
+    """
+    env = reset_env()
+    result = run_pip('install', 'INITools==0.2', expect_error=True)
+    assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('install', 'http://pypi.python.org/packages/source/I/INITools/INITools-0.3.tar.gz', expect_error=True)
+    assert result2.files_created, 'upgrade to INITools 0.3 failed'
+    result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
+    assert_all_changes(result, result3, [env.venv/'build', 'cache'])
+
+def test_upgrade_to_same_version_from_url():
+    """
+    When installing from a URL the same version that is already installed, no
+    need to uninstall and reinstall if --upgrade is not specified.
+
+    """
+    env = reset_env()
+    result = run_pip('install', 'INITools==0.3', expect_error=True)
+    assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('install', 'http://pypi.python.org/packages/source/I/INITools/INITools-0.3.tar.gz', expect_error=True)
+    assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
+    result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
+    assert_all_changes(result, result3, [env.venv/'build', 'cache'])
 
 def test_upgrade_from_reqs_file():
     """
