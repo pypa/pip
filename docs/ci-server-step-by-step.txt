@@ -139,7 +139,7 @@ tell Hudson how it will build your job. The most important
 steps are listed (assume Mercurial plugin is installed):
 
 * Check "Mercurial" in Source Control Management section
-* Fill in the repository URL with **http://bitbucket.org/ianb/pip**
+* Fill in the repository URL with **https://github.com/pypa/pip**
 * Mark "Build periodically" in *Build Triggers* section
 * Add "0 0 \* \* \*" (without quotes) to tell hudson you want to
   run your build everyday at midnight

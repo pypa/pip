@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2010, Ian Bicking and contributors'
+copyright = '2008-2011, The pip developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -188,7 +188,7 @@ htmlhelp_basename = 'pipdocs'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'pip.tex', u'pip Documentation',
-   u'The Open Planning Project', 'manual'),
+   u'The pip developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

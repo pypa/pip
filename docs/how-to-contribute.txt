@@ -12,22 +12,21 @@ bug reports, ideas, etc.
 Contributing with Code
 ======================
 
-Forking through Bitbucket
--------------------------
+Forking through Github
+----------------------
 
 First of all, you need to fork the the official repository, which is
-http://bitbucket.org/ianb/pip.
+https://github.com/pypa/pip.
 
-Log in to Bitbucket, go to `Ian Bicking's repository page
-<http://bitbucket.org/ianb/pip>`_, follow the **fork** link, wait for Bitbucket
+Log in to Github, go to the `pip repository page
+<https://github.com/pypa/pip>`_, follow the **fork** link, wait for Github
 to copy the repository and then clone your fork, like::
 
-    $ hg clone http://bitbucket.org/YOU_USER_NAME/pip
+    $ git clone https://github.com/YOU_USER_NAME/pip
     
 Now you can change whatever you want, commit, push to your fork and when your
 contribution is done, follow the **pull request** link and send us a request
 explaining what you did and why.
-
 
 
 All tests should pass
@@ -63,7 +62,7 @@ section.
 Contributing with Bug Reports
 =============================
 
-Pip project is hosted at `Bitbucket`_ and uses its issue tracker system.
+Pip project is hosted at `Github`_ and uses its issue tracker system.
 
 If you have found a bug and want to report it, go to `pip issue tracker page`_,
 click **Create new**, add a descriptive
@@ -83,6 +82,6 @@ enhancement ideas and proposals via `pip issue tracker page`_,
 
 
 .. _nose:  http://somethingaboutorange.com/mrl/projects/nose/0.11.3/
-.. _Bitbucket: http://bitbucket.org/
-.. _pip issue tracker page: http://bitbucket.org/ianb/pip/issues
+.. _Github: http://github.com/
+.. _pip issue tracker page: https://github.com/pypa/pip/issues
 .. _virtualenv mailing list: http://groups.google.com/group/python-virtualenv/

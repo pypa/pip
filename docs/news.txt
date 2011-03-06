@@ -27,7 +27,7 @@ tip
 * Fixed issue #49 - Added ability to install version control requirements
   without making them editable, e.g.::
 
-    pip install hg+http://bitbucket.org/ianb/pip/
+    pip install git+https://github.com/pypa/pip/
 
 * Fixed issue #175 - Correctly locate build and source directory on Mac OS X.
 

@@ -10,7 +10,7 @@ pip installs Python packages.
    requirement-format
    configuration
    how-to-contribute
-   license
+   running-tests
 
 .. comment: split here
 
@@ -105,7 +105,7 @@ Community
 The homepage for pip is temporarily located `on PyPI
 <http://pypi.python.org/pypi/pip>`_ -- a more proper homepage will
 follow.  Bugs can go on the `pip issue tracker
-<http://bitbucket.org/ianb/pip/issues/>`_.  Discussion should happen on the
+<https://github.com/pypa/pip/issues/>`_.  Discussion should happen on the
 `virtualenv email group
 <http://groups.google.com/group/python-virtualenv?hl=en>`_.
 
