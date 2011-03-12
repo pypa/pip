@@ -1,5 +1,3 @@
-# use glob syntax.
-syntax: glob
 MANIFEST
 tests/test-scratch/*
 tests/test-cache/*
@@ -23,4 +21,3 @@ build/*
 pip-log.txt
 pip.log
 *.~
-
