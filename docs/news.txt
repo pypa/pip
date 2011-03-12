@@ -1,8 +1,12 @@
 News for pip
 ============
 
-tip
----
+0.8.3
+-----
+
+* Moved main repository to Github: https://github.com/pypa/pip
+
+* Transferred primary maintenance from Ian to Jannis Leidel, Carl Meyer, Brian Rosner
 
 * Fixed issue #14 - No uninstall-on-upgrade with URL package. Thanks Oliver Tonnhofer
 
@@ -14,7 +18,11 @@ tip
 
 * Fixed issue #204 - rmtree undefined in mercurial.py. Thanks Kelsey Hightower
 
+* Fixed bug in Git vcs backend that would break during reinstallation.
 
+* Fixed bug in Mercurial vcs backend related to pip freeze and branch/tag resolution.
+
+* Fixed bug in version string parsing related to the suffix "-dev".
 
 0.8.2
 -----
