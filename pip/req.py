@@ -407,14 +407,24 @@ execfile(__file__)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
+        # workaround for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
+        debian_egg_info_path = pip_egg_info_path.replace(
+            '-py%s' % pkg_resources.PY_MAJOR, '')
         easy_install_egg = dist.egg_name() + '.egg'
         develop_egg_link = egg_link_path(dist)
-        if os.path.exists(pip_egg_info_path):
+
+        pip_egg_info_exists = os.path.exists(pip_egg_info_path)
+        debian_egg_info_exists = os.path.exists(debian_egg_info_path)
+        if pip_egg_info_exists or debian_egg_info_exists:
             # package installed by pip
-            paths_to_remove.add(pip_egg_info_path)
+            if pip_egg_info_exists:
+                egg_info_path = pip_egg_info_path
+            else:
+                egg_info_path = debian_egg_info_path
+            paths_to_remove.add(egg_info_path)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
-                    path = os.path.normpath(os.path.join(pip_egg_info_path, installed_file))
+                    path = os.path.normpath(os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
             if dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
