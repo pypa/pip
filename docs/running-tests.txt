@@ -25,6 +25,17 @@ just run the following command::
 
     $ python setup.py test
 
+Running tests directly with Nose
+--------------------------------
+
+Create a virtualenv, and install required packages::
+
+	mkvirtualenv pip_dev
+	pip install nose virtualenv scripttest mock
+
+Run nosetests::
+
+	nosetests
 
 
 Troubleshooting
