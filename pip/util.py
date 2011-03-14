@@ -86,9 +86,9 @@ def find_command(cmd, paths=None, pathext=None):
         for ext in pathext:
             # then including the extension
             cmd_path_ext = cmd_path + ext
-            if os.path.exists(cmd_path_ext):
+            if os.path.isfile(cmd_path_ext):
                 return cmd_path_ext
-        if os.path.exists(cmd_path):
+        if os.path.isfile(cmd_path):
             return cmd_path
     return None
 

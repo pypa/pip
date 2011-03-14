@@ -483,3 +483,18 @@ def test_install_package_which_contains_dev_in_name():
     egg_info_folder = env.site_packages/'django_devserver-0.0.4-py%s.egg-info' % pyversion
     assert devserver_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+def test_find_command_folder_in_path():
+    """
+    If a folder named e.g. 'git' is in PATH, and find_command is looking for
+    the 'git' executable, it should not match the folder, but rather keep
+    looking.
+    """
+    env = reset_env()
+    mkdir('path_one'); path_one = env.scratch_path/'path_one'
+    mkdir(path_one/'foo')
+    mkdir('path_two'); path_two = env.scratch_path/'path_two'
+    write_file(path_two/'foo', '# nothing')
+    from pip.util import find_command
+    found_path = find_command('foo', map(str, [path_one, path_two]))
+    assert found_path == path_two/'foo'
