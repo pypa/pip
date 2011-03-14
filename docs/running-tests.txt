@@ -28,14 +28,19 @@ just run the following command::
 Running tests directly with Nose
 --------------------------------
 
-Create a virtualenv, and install required packages::
+If you want to run only a selection of the tests, you'll need to run them
+directly with nose instead. Create a virtualenv, and install required
+packages::
 
-	mkvirtualenv pip_dev
-	pip install nose virtualenv scripttest mock
+    pip install nose virtualenv scripttest mock
 
 Run nosetests::
 
-	nosetests
+    nosetests
+
+Or select just a single test file to run::
+
+    cd tests; nosetests test_upgrade.py
 
 
 Troubleshooting
