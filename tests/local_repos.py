@@ -8,7 +8,7 @@ from pypi_server import PyPIProxy
 
 
 def _create_initools_repository():
-    subprocess.call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
+    subprocess.check_call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
 
 
 def _dump_initools_repository():
@@ -16,7 +16,7 @@ def _dump_initools_repository():
     initools_folder = os.path.join(_get_vcs_folder(), 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess.call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
+    subprocess.check_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
     dump.close()
     devnull.close()
     os.remove(filename)
