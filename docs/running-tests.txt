@@ -38,9 +38,9 @@ Run nosetests::
 
     nosetests
 
-Or select just a single test file to run::
+Or select just a single test to run::
 
-    cd tests; nosetests test_upgrade.py
+    cd tests; nosetests test_upgrade.py:test_uninstall_rollback
 
 
 Troubleshooting
