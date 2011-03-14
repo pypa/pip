@@ -48,22 +48,22 @@ def _test_packages(output, pending_fn):
     print 'Creating virtualenv in %s' % dest_dir
     create_venv(dest_dir)
     print 'Uninstalling actual pip'
-    code = subprocess.call([os.path.join(dest_dir, 'bin', 'pip'),
+    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
                             'uninstall', '-y', 'pip'])
     assert not code, 'pip uninstallation failed'
     print 'Installing development pip'
-    code = subprocess.call([os.path.join(dest_dir, 'bin', 'python'),
+    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'python'),
                             'setup.py', 'install'],
                             cwd=src_folder)
     assert not code, 'pip installation failed'
     print 'Trying installation of %s' % dest_dir
-    code = subprocess.call([os.path.join(dest_dir, 'bin', 'pip'),
+    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
                             'install', package])
     if code:
         print 'Installation of %s failed' % package
         print 'Now checking easy_install...'
         create_venv(dest_dir)
-        code = subprocess.call([os.path.join(dest_dir, 'bin', 'easy_install'),
+        code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'easy_install'),
                                 package])
         if code:
             print 'easy_install also failed'
@@ -83,7 +83,7 @@ def create_venv(dest_dir):
     if os.path.exists(dest_dir):
         shutil.rmtree(dest_dir)
     print('Creating virtualenv in %s' % dest_dir)
-    code = subprocess.call(['virtualenv', '--no-site-packages', dest_dir])
+    code = subprocess.check_call(['virtualenv', '--no-site-packages', dest_dir])
     assert not code, "virtualenv failed"
 
 
