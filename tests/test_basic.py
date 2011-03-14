@@ -323,7 +323,8 @@ else:
         Test installing current directory ('.') into usersite
         """
         env = reset_env()
-        env.run('easy_install', 'distribute')
+        # expect error because distribute tries to patch setuptools
+        env.run('easy_install', 'distribute', expect_error=True)
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = env.user_site/'fspkg'
@@ -337,7 +338,8 @@ else:
         Test installing current directory ('.') into usersite after installing distribute
         """
         env = reset_env()
-        env.run('easy_install', 'distribute')
+        # expect error because distribute tries to patch setuptools
+        env.run('easy_install', 'distribute', expect_error=True)
         (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
         result = run_pip('install', '--user', '-e',
