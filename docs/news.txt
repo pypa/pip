@@ -1,6 +1,16 @@
 News for pip
 ============
 
+tip (unreleased)
+----------------
+
+* Fixed finding of VCS binaries to not be fooled by same-named directories.
+  Thanks Alex Morega.
+
+* Fixed uninstall of packages from system Python for users of Debian/Ubuntu
+  python-setuptools package (workaround until fixed in Debian and Ubuntu).
+
+
 0.8.3
 -----
 
