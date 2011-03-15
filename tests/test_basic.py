@@ -335,7 +335,7 @@ else:
 
     def test_install_subversion_usersite_editable_with_distribute():
         """
-        Test installing current directory ('.') into usersite after installing distribute
+        Test installing subversion repository into usersite
         """
         env = reset_env()
         # expect error because distribute tries to patch setuptools
