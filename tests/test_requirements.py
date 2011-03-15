@@ -43,7 +43,7 @@ def test_multiple_requirements_files():
 def test_respect_order_in_requirements_file():
     env = reset_env()
     write_file('frameworks-req.txt', textwrap.dedent("""\
-        coverage
+        bidict
         ordereddict
         mock
         """))
@@ -51,8 +51,8 @@ def test_respect_order_in_requirements_file():
     downloaded = [line for line in result.stdout.split('\n')
                   if 'Downloading/unpacking' in line]
     
-    assert 'coverage' in downloaded[0], 'First download should ' \
-            'be "coverage" but was "%s"' % downloaded[0] 
+    assert 'bidict' in downloaded[0], 'First download should ' \
+            'be "bidict" but was "%s"' % downloaded[0] 
     assert 'ordereddict' in downloaded[1], 'Second download should ' \
             'be "ordereddict" but was "%s"' % downloaded[1]
     assert 'mock' in downloaded[2], 'Third download should ' \
