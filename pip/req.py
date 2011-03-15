@@ -5,12 +5,6 @@ import re
 import zipfile
 import pkg_resources
 import tempfile
-import urlparse
-import urllib2
-import urllib
-import ConfigParser
-from distutils.sysconfig import get_python_version
-from email.FeedParser import FeedParser
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
@@ -21,7 +15,10 @@ from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip import call_subprocess
-from pip.backwardcompat import any, copytree
+from pip.backwardcompat import (any, copytree, urlparse, urllib,
+                                ConfigParser, string_types, HTTPError,
+                                FeedParser, get_python_version,
+                                b)
 from pip.index import Link
 from pip.locations import build_prefix
 from pip.download import (get_file_content, is_url, url_to_path,
@@ -37,7 +34,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, update=True):
-        if isinstance(req, basestring):
+        if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
         self.req = req
         self.comes_from = comes_from
@@ -110,7 +107,7 @@ class InstallRequirement(object):
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
-            if isinstance(self.comes_from, basestring):
+            if isinstance(self.comes_from, string_types):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
@@ -123,7 +120,7 @@ class InstallRequirement(object):
             return None
         s = str(self.req)
         if self.comes_from:
-            if isinstance(self.comes_from, basestring):
+            if isinstance(self.comes_from, string_types):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
@@ -239,7 +236,7 @@ def replacement_run(self):
             writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
-execfile(__file__)
+exec(compile(open(__file__).read(), __file__, 'exec'))
 """
 
     def egg_info_data(self, filename):
@@ -521,7 +518,7 @@ execfile(__file__)
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
                     zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
-                    zipdir.external_attr = 0755 << 16L
+                    zipdir.external_attr = 0x1ED << 16
                     zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
@@ -551,7 +548,7 @@ execfile(__file__)
             install_args = [
                 sys.executable, '-c',
                 "import setuptools;__file__=%r;"\
-                "execfile(__file__)" % self.setup_py] +\
+                "exec(compile(open(__file__).read(), __file__, 'exec'))" % self.setup_py] +\
                 list(global_options) + [
                 'install',
                 '--single-version-externally-managed',
@@ -621,7 +618,7 @@ execfile(__file__)
             ## FIXME: should we do --install-headers here too?
             call_subprocess(
                 [sys.executable, '-c',
-                 "import setuptools; __file__=%r; execfile(%r)" % (self.setup_py, self.setup_py)]
+                 "import setuptools; __file__=%r; exec(compile(open(__file__).read(), __file__, 'exec'))" % self.setup_py]
                 + list(global_options) + ['develop', '--no-deps'] + list(install_options),
 
                 cwd=self.source_dir, filter_stdout=self._filter_install,
@@ -818,7 +815,7 @@ class RequirementSet(object):
 
     @property
     def has_requirements(self):
-        return self.requirements.values() or self.unnamed_requirements
+        return list(self.requirements.values()) or self.unnamed_requirements
 
     @property
     def has_editables(self):
@@ -858,7 +855,7 @@ class RequirementSet(object):
         ## FIXME: duplicates code from install_files; relevant code should
         ##        probably be factored out into a separate method
         unnamed = list(self.unnamed_requirements)
-        reqs = self.requirements.values()
+        reqs = list(self.requirements.values())
         while reqs or unnamed:
             if unnamed:
                 req_to_install = unnamed.pop(0)
@@ -894,7 +891,7 @@ class RequirementSet(object):
     def prepare_files(self, finder, force_root_egg_info=False, bundle=False):
         """Prepare process. Create temp directories, download and/or unpack files."""
         unnamed = list(self.unnamed_requirements)
-        reqs = self.requirements.values()
+        reqs = list(self.requirements.values())
         while reqs or unnamed:
             if unnamed:
                 req_to_install = unnamed.pop(0)
@@ -957,7 +954,8 @@ class RequirementSet(object):
                         if url:
                             try:
                                 self.unpack_url(url, location, self.is_download)
-                            except urllib2.HTTPError, e:
+                            except HTTPError:
+                                e = sys.exc_info()[1]
                                 logger.fatal('Could not install requirement %s because of error %s'
                                              % (req_to_install, e))
                                 raise InstallationError(
@@ -1007,7 +1005,8 @@ class RequirementSet(object):
                         for req in req_to_install.requirements():
                             try:
                                 name = pkg_resources.Requirement.parse(req).project_name
-                            except ValueError, e:
+                            except ValueError:
+                                e = sys.exc_info()[1]
                                 ## FIXME: proper warning
                                 logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
                                 continue
@@ -1439,19 +1438,21 @@ class UninstallPthEntries(object):
 
     def remove(self):
         logger.info('Removing pth entries from %s:' % self.file)
-        fh = open(self.file, 'r')
+        fh = open(self.file, 'rb')
+        # windows uses '\r\n' with py3k, but uses '\n' with py2.x
         lines = fh.readlines()
         self._saved_lines = lines
         fh.close()
-        try:
-            for entry in self.entries:
-                logger.info('Removing entry: %s' % entry)
+        if any(b('\r\n') in line for line in lines):
+            endline = '\r\n'
+        else:
+            endline = '\n'
+        for entry in self.entries:
             try:
-                lines.remove(entry + '\n')
+                logger.info('Removing entry: %s' % entry)
+                lines.remove(b(entry + endline))
             except ValueError:
                 pass
-        finally:
-            pass
         fh = open(self.file, 'wb')
         fh.writelines(lines)
         fh.close()
@@ -1475,6 +1476,12 @@ class FakeFile(object):
 
     def readline(self):
         try:
-            return self._gen.next()
+            try:
+                return next(self._gen)
+            except NameError:
+                return self._gen.next()
         except StopIteration:
             return ''
+
+    def __iter__(self):
+        return self._gen

@@ -3,8 +3,9 @@ import sys
 import shutil
 from os.path import join
 from tempfile import mkdtemp
-from test_pip import reset_env, run_pip, assert_all_changes, write_file
-from local_repos import local_repo, local_checkout
+from tests.test_pip import (reset_env, run_pip, assert_all_changes, write_file,
+                            pyversion, LOCAL_PYPI_ARGS)
+from tests.local_repos import local_repo, local_checkout
 
 
 def test_simple_uninstall():
@@ -53,7 +54,11 @@ def test_uninstall_console_scripts():
 
     """
     env = reset_env()
-    result = run_pip('install', 'virtualenv', expect_error=True)
+    args = ['install']
+    if pyversion >= '3':
+        args.extend(LOCAL_PYPI_ARGS)
+    args.append('virtualenv')
+    result = run_pip(*args, expect_error=True)
     assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
@@ -65,7 +70,11 @@ def test_uninstall_easy_installed_console_scripts():
 
     """
     env = reset_env()
-    result = env.run('easy_install', 'virtualenv', expect_stderr=True)
+    args = ['easy_install']
+    if pyversion >= '3':
+        args.extend(LOCAL_PYPI_ARGS)
+    args.append('virtualenv')
+    result = env.run(*args, expect_stderr=True)
     assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'virtualenv', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
@@ -102,7 +111,7 @@ def _test_uninstall_editable_with_source_outside_venv(tmpdir):
     env = reset_env()
     result = env.run('hg', 'clone', local_repo('hg+http://bitbucket.org/ianb/virtualenv'), tmpdir)
     result2 = run_pip('install', '-e', tmpdir)
-    assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), result2.files_created.keys()
+    assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build'])
 

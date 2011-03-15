@@ -4,10 +4,10 @@ import filecmp
 import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
-from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder, write_file
-from local_repos import local_checkout
-from path import Path
-
+from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
+                            src_folder, write_file, LOCAL_PYPI_ARGS)
+from tests.local_repos import local_checkout
+from tests.path import Path
 
 def test_correct_pip_version():
     """
@@ -213,10 +213,13 @@ def test_install_editable_from_git():
     Test cloning from Git.
     """
     reset_env()
-    result = run_pip('install', '-e',
-                     '%s#egg=django-feedutil' %
-                     local_checkout('git+http://github.com/jezdez/django-feedutil.git'),
-                     expect_error=True)
+    args = ['install']
+    if pyversion >= '3':
+        args.extend(LOCAL_PYPI_ARGS)
+    args.extend(['-e',
+                 '%s#egg=django-feedutil' %
+                 local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+    result = run_pip(*args, expect_error=True)
     result.assert_installed('django-feedutil', with_files=['.git'])
 
 
@@ -333,7 +336,7 @@ else:
         assert egg_info_folder in result.files_created, str(result)
 
 
-    def test_install_subversion_usersite_editable_with_distribute():
+    def test_install_subversion_usersite_editable_with_distribute(): # VMS fails because abiflags not in environment
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
@@ -348,18 +351,20 @@ else:
         result.assert_installed('INITools', use_user_site=True)
 
 
-    def test_install_subversion_usersite_editable_with_setuptools_fails():
-        """
-        Test installing current directory ('.') into usersite using setuptools
-        """
-        env = reset_env()
-        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+    if sys.version_info < (3,):
+        # We don't try to use setuptools for 3.X.
+        def test_install_subversion_usersite_editable_with_setuptools_fails():
+            """
+            Test installing current directory ('.') into usersite using setuptools
+            """
+            env = reset_env()
+            (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-        result = run_pip('install', '--user', '-e',
-                         '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                         expect_error=True)
-        assert '--user --editable not supported with setuptools, use distribute' in result.stdout
+            result = run_pip('install', '--user', '-e',
+                             '%s#egg=initools-dev' %
+                             local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                             expect_error=True)
+            assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
@@ -399,8 +404,12 @@ def test_install_using_install_option_and_editable():
     env = reset_env()
     folder = 'script_folder'
     mkdir(folder)
+    if pyversion[0] >= '3':
+        url = 'hg+http://bitbucket.org/vinay.sajip/virtualenv'
+    else:
+        url = 'hg+http://bitbucket.org/ianb/virtualenv'
     result = run_pip('install', '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'),
+                      local_checkout(url),
                      '--install-option=--script-dir=%s' % folder)
     virtualenv_bin = env.venv/'src'/'virtualenv'/folder/'virtualenv'+env.exe
     assert virtualenv_bin in result.files_created
@@ -411,10 +420,17 @@ def test_install_global_option_using_editable():
     Test using global distutils options, but in an editable installation
     """
     reset_env()
+    if pyversion >= '3':
+        url = 'hg+http://bitbucket.org/vinay.sajip/virtualenv'
+    else:
+        url = 'hg+http://bitbucket.org/ianb/virtualenv@1.4.1'
     result = run_pip('install', '--global-option=--version',
                      '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv@1.4.1'))
-    assert '1.4.1\n' in result.stdout
+                      local_checkout(url))
+    if pyversion >= '3':
+        print(result.stdout)
+    else:
+        assert '1.4.1\n' in result.stdout
 
 
 def test_install_package_with_same_name_in_curdir():

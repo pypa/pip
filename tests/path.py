@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 # Author: Aziz Köksal
 import os
+import sys
 import shutil
+
+if sys.version_info >= (3,):
+    unicode = str
+    u = str
+else:
+    unicode = unicode
+    u = lambda s: s.decode('utf-8')
 
 _base = os.path.supports_unicode_filenames and unicode or str
 
@@ -23,16 +31,22 @@ class Path(_base):
         """ path_obj / 'bc.d' """
         """ path_obj / path_obj2 """
         return Path(self, path)
+    
+    __truediv__ = __div__
 
     def __rdiv__(self, path):
         """ Joins this path with another path. """
         """ "/home/a" / path_obj """
         return Path(path, self)
 
+    __rtruediv__ = __rdiv__
+
     def __idiv__(self, path):
         """ Like __div__ but also assigns to the variable. """
         """ path_obj /= 'bc.d' """
         return Path(self, path)
+
+    __itruediv__ = __idiv__
 
     def __floordiv__(self, paths):
         """ Returns a list of paths prefixed with 'self'. """
@@ -59,7 +73,7 @@ class Path(_base):
         return Path(path + _base(self))
 
     def __repr__(self):
-        return u"Path(%s)" % _base.__repr__(self)
+        return u("Path(%s)" % _base.__repr__(self))
 
     def __hash__(self):
         return _base.__hash__(self)
@@ -145,12 +159,12 @@ class Path(_base):
                 del kwargs["followlinks"]
         return os.walk(self, **kwargs)
 
-    def mkdir(self, mode=0777):
+    def mkdir(self, mode=0x1FF):
         """ Creates a directory, if it doesn't exist already. """
         if not self.exists:
             os.mkdir(self, mode)
 
-    def makedirs(self, mode=0777):
+    def makedirs(self, mode=0x1FF):
         """ Like mkdir(), but also creates parent directories. """
         if not self.exists:
             os.makedirs(self, mode)
@@ -188,6 +202,6 @@ class Path(_base):
 
     def glob(self, pattern):
         from glob import glob
-        return map(Path, glob(_base(self/pattern)))
+        return list(map(Path, glob(_base(self/pattern))))
 
 curdir = Path(os.path.curdir)

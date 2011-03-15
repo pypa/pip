@@ -1,7 +1,6 @@
-from test_pip import (reset_env, run_pip, pyversion,
+from tests.test_pip import (reset_env, run_pip, pyversion,
                       _create_test_package, _change_test_package_version)
-from local_repos import local_checkout
-
+from tests.local_repos import local_checkout
 
 def test_install_editable_from_git_with_https():
     """

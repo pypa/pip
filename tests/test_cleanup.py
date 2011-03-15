@@ -1,10 +1,10 @@
 import os
 import textwrap
 from os.path import abspath, exists, join
-from test_pip import here, reset_env, run_pip, write_file, mkdir
-from local_repos import local_checkout
-from path import Path
-
+from tests.test_pip import (here, reset_env, run_pip, write_file, mkdir,
+                            pyversion, LOCAL_PYPI_ARGS)
+from tests.local_repos import local_checkout
+from tests.path import Path
 
 def test_cleanup_after_install_from_pypi():
     """
@@ -49,7 +49,6 @@ def test_cleanup_after_install_from_local_directory():
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
 
-
 def test_cleanup_after_create_bundle():
     """
     Test clean up after making a bundle. Make sure (build|src)-bundle/ dirs are removed but not src/.
@@ -57,9 +56,13 @@ def test_cleanup_after_create_bundle():
     """
     env = reset_env()
     # Install an editable to create a src/ dir.
-    run_pip('install', '-e',
-            '%s#egg=django-feedutil' %
-            local_checkout('git+http://github.com/jezdez/django-feedutil.git'))
+    args = ['install']
+    if pyversion >= '3':
+        args.extend(LOCAL_PYPI_ARGS)
+    args.extend(['-e',
+                 '%s#egg=django-feedutil' %
+                    local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+    run_pip(*args)
     build = env.venv_path/"build"
     src = env.venv_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build

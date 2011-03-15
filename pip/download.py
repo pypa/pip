@@ -1,14 +1,12 @@
-import xmlrpclib
 import re
 import getpass
-import urllib
-import urllib2
-import urlparse
+import sys
 import os
 import mimetypes
 import shutil
 import tempfile
-from pip.backwardcompat import md5, copytree
+from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
+                                urlparse, string_types, HTTPError)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree,
                       format_size, display_path, backup_dir, ask,
@@ -54,7 +52,8 @@ def get_file_content(url, comes_from=None):
     try:
         f = open(url)
         content = f.read()
-    except IOError, e:
+    except IOError:
+        e = sys.exc_info()[1]
         raise InstallationError('Could not open requirements file: %s' % str(e))
     else:
         f.close()
@@ -82,7 +81,8 @@ class URLOpener(object):
         if username is None:
             try:
                 response = urllib2.urlopen(self.get_request(url))
-            except urllib2.HTTPError, e:
+            except urllib2.HTTPError:
+                e = sys.exc_info()[1]
                 if e.code != 401:
                     raise
                 response = self.get_response(url)
@@ -95,7 +95,7 @@ class URLOpener(object):
         Wraps the URL to retrieve to protects against "creative"
         interpretation of the RFC: http://bugs.python.org/issue8732
         """
-        if isinstance(url, basestring):
+        if isinstance(url, string_types):
             url = urllib2.Request(url, headers={'Accept-encoding': 'identity'})
         return url
 
@@ -455,10 +455,12 @@ def unpack_http_url(link, location, download_cache, only_download):
 def _get_response_from_url(target_url, link):
     try:
         resp = urlopen(target_url)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError:
+        e = sys.exc_info()[1]
         logger.fatal("HTTP error %s while getting %s" % (e.code, link))
         raise
-    except IOError, e:
+    except IOError:
+        e = sys.exc_info()[1]
         # Typically an FTP error
         logger.fatal("Error %s while getting %s" % (e, link))
         raise

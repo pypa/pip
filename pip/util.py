@@ -8,7 +8,7 @@ import pkg_resources
 import zipfile
 import tarfile
 from pip.exceptions import InstallationError
-from pip.backwardcompat import WindowsError
+from pip.backwardcompat import WindowsError, string_types, raw_input
 from pip.locations import site_packages, running_under_virtualenv
 from pip.log import logger
 
@@ -70,7 +70,7 @@ def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
     if paths is None:
         paths = os.environ.get('PATH', []).split(os.pathsep)
-    if isinstance(paths, basestring):
+    if isinstance(paths, string_types):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
@@ -101,8 +101,8 @@ def ask(message, options):
         response = raw_input(message)
         response = response.strip().lower()
         if response not in options:
-            print 'Your response (%r) was not one of the expected responses: %s' % (
-                response, ', '.join(options))
+            print('Your response (%r) was not one of the expected responses: %s' % (
+                response, ', '.join(options)))
         else:
             return response
 
@@ -158,7 +158,7 @@ def is_svn_page(html):
 def file_contents(filename):
     fp = open(filename, 'rb')
     try:
-        return fp.read()
+        return fp.read().decode('utf-8')
     finally:
         fp.close()
 
@@ -418,7 +418,8 @@ def untar_file(filename, location):
             else:
                 try:
                     fp = tar.extractfile(member)
-                except (KeyError, AttributeError), e:
+                except (KeyError, AttributeError):
+                    e = sys.exc_info()[1]
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warn(

@@ -2,7 +2,7 @@
 
 import sys
 import os
-from distutils import sysconfig
+from pip.backwardcompat import get_python_lib
 
 
 def running_under_virtualenv():
@@ -29,7 +29,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = sysconfig.get_python_lib()
+site_packages = get_python_lib()
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')

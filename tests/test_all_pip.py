@@ -20,60 +20,60 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     if not args:
-        print 'Usage: test_all_pip.py <output-dir>'
+        print('Usage: test_all_pip.py <output-dir>'
         sys.exit(1)
     output = os.path.abspath(args[0])
     if not os.path.exists(output):
-        print 'Creating %s' % output
+        print('Creating %s' % output)
         os.makedirs(output)
     pending_fn = os.path.join(output, 'pending.txt')
     if not os.path.exists(pending_fn):
-        print 'Downloading pending list'
+        print('Downloading pending list')
         projects = all_projects()
-        print 'Found %s projects' % len(projects)
+        print('Found %s projects' % len(projects)
         f = open(pending_fn, 'w')
         for name in projects:
             f.write(name + '\n')
         f.close()
-    print 'Starting testing...'
+    print('Starting testing...')
     while os.stat(pending_fn).st_size:
         _test_packages(output, pending_fn)
-    print 'Finished all pending!'
+    print('Finished all pending!')
 
 
 def _test_packages(output, pending_fn):
     package = get_last_item(pending_fn)
-    print 'Testing package %s' % package
+    print('Testing package %s' % package)
     dest_dir = os.path.join(output, package)
-    print 'Creating virtualenv in %s' % dest_dir
+    print('Creating virtualenv in %s' % dest_dir)
     create_venv(dest_dir)
-    print 'Uninstalling actual pip'
+    print('Uninstalling actual pip')
     code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
                             'uninstall', '-y', 'pip'])
     assert not code, 'pip uninstallation failed'
-    print 'Installing development pip'
+    print('Installing development pip')
     code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'python'),
                             'setup.py', 'install'],
                             cwd=src_folder)
     assert not code, 'pip installation failed'
-    print 'Trying installation of %s' % dest_dir
+    print('Trying installation of %s' % dest_dir)
     code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
                             'install', package])
     if code:
-        print 'Installation of %s failed' % package
-        print 'Now checking easy_install...'
+        print('Installation of %s failed' % package)
+        print('Now checking easy_install...')
         create_venv(dest_dir)
         code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'easy_install'),
                                 package])
         if code:
-            print 'easy_install also failed'
+            print('easy_install also failed')
             add_package(os.path.join(output, 'easy-failure.txt'), package)
         else:
-            print 'easy_install succeeded'
+            print('easy_install succeeded')
             add_package(os.path.join(output, 'failure.txt'), package)
         pop_last_item(pending_fn, package)
     else:
-        print 'Installation of %s succeeded' % package
+        print('Installation of %s succeeded' % package)
         add_package(os.path.join(output, 'success.txt'), package)
         pop_last_item(pending_fn, package)
         shutil.rmtree(dest_dir)
