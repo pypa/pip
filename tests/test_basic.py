@@ -325,7 +325,9 @@ else:
         env = reset_env()
         # expect error because distribute tries to patch setuptools
         env.run('easy_install', 'distribute', expect_error=True)
+        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
         run_from = abspath(join(here, 'packages', 'FSPkg'))
+
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = env.user_site/'fspkg'
         egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
