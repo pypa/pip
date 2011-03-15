@@ -69,10 +69,13 @@ def test_config_file_override_stack():
     local, overriding all with a command line flag).
 
     """
+    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
     try:
-        _, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
         _test_config_file_override_stack(config_file)
     finally:
+        # `os.close` is a workaround for a bug in subprocess
+        # http://bugs.python.org/issue3210
+        os.close(fd)
         os.remove(config_file)
 
 
