@@ -4,6 +4,8 @@ News for pip
 tip (unreleased)
 ----------------
 
+* Download progress only shown on a real TTY. Thanks Alex Morega.
+
 * Fixed finding of VCS binaries to not be fooled by same-named directories.
   Thanks Alex Morega.
 
