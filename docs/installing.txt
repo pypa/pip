@@ -1,0 +1,28 @@
+Installing pip
+==============
+
+Using easy_install
+------------------
+This may have to be run as root. ::
+
+    $ easy_install -U pip
+
+Using source
+------------
+You can find the source on PyPi: http://pypi.python.org/pypi/pip::
+
+    $ tar xvfz pip-*.*.*.tar.gz
+    $ cd pip-*.*.*
+    $ python setup.py install # may need to be root
+
+Installing development version
+------------------------------
+
+First you will need to clone the git repo::
+
+    $ git clone https://github.com/pypa/pip.git
+
+Now we can install from the repo::
+
+    $ cd pip
+    $ python setup.py install # may need to be root
