@@ -75,11 +75,15 @@ class Logger(object):
                 else:
                     consumer(rendered)
 
+    def _show_progress(self):
+        """Should we display download progress?"""
+        return (self.stdout_level_matches(self.NOTIFY) and sys.stdout.isatty())
+
     def start_progress(self, msg):
         assert not self.in_progress, (
             "Tried to start_progress(%r) while in_progress %r"
             % (msg, self.in_progress))
-        if self.level_matches(self.NOTIFY, self._stdout_level()):
+        if self._show_progress():
             sys.stdout.write(' '*self.indent + msg)
             sys.stdout.flush()
             self.in_progress_hanging = True
@@ -91,7 +95,7 @@ class Logger(object):
     def end_progress(self, msg='done.'):
         assert self.in_progress, (
             "Tried to end_progress without start_progress")
-        if self.stdout_level_matches(self.NOTIFY):
+        if self._show_progress():
             if not self.in_progress_hanging:
                 # Some message has been printed out since start_progress
                 sys.stdout.write('...' + self.in_progress + msg + '\n')
