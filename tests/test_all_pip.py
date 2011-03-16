@@ -1,9 +1,9 @@
-import urllib2
 import re
 import sys
 import os
 import subprocess
 import shutil
+from pip.backwardcompat import urllib
 from os.path import dirname, abspath
 
 
@@ -11,7 +11,7 @@ src_folder = dirname(dirname(abspath(__file__)))
 
 
 def all_projects():
-    data = urllib2.urlopen('http://pypi.python.org/simple/').read()
+    data = urllib.urlopen('http://pypi.python.org/simple/').read()
     projects = [m.group(1) for m in re.finditer(r'<a.*?>(.+)</a>', data)]
     return projects
 
