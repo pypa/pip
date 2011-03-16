@@ -20,7 +20,7 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     if not args:
-        print('Usage: test_all_pip.py <output-dir>'
+        print('Usage: test_all_pip.py <output-dir>')
         sys.exit(1)
     output = os.path.abspath(args[0])
     if not os.path.exists(output):
@@ -30,7 +30,7 @@ def main(args=None):
     if not os.path.exists(pending_fn):
         print('Downloading pending list')
         projects = all_projects()
-        print('Found %s projects' % len(projects)
+        print('Found %s projects' % len(projects))
         f = open(pending_fn, 'w')
         for name in projects:
             f.write(name + '\n')
