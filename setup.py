@@ -2,7 +2,7 @@ import sys
 import os
 from setuptools import setup
 
-version = "0.8.2"
+version = "0.9.0"
 
 doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
 index_filename = os.path.join(doc_dir, 'index.txt')
@@ -37,5 +37,5 @@ setup(name='pip',
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv', 'scripttest', 'mock'],
+      tests_require=['nose', 'scripttest', 'mock'],
       zip_safe=False)
