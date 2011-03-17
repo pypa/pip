@@ -128,7 +128,7 @@ def test_freeze_git_clone():
         expected = textwrap.dedent("""\
             Script result: ...pip freeze
             -- stdout: --------------------
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %s@...#egg=django_pagination-...
             wsgiref==0.1.2
             ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
@@ -148,7 +148,7 @@ def test_freeze_git_clone():
             Script result: pip freeze -f %(repo)s#egg=django_pagination
             -- stdout: --------------------
             -f %(repo)s#egg=django_pagination
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %(repo)s@...#egg=django_pagination-dev
             wsgiref==0.1.2
             ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
@@ -180,7 +180,7 @@ def test_freeze_mercurial_clone():
         expected = textwrap.dedent("""\
             Script result: ...pip freeze
             -- stdout: --------------------
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %s@...#egg=django_dbtemplates-...
             wsgiref==0.1.2
             ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
@@ -200,7 +200,7 @@ def test_freeze_mercurial_clone():
             Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
             -- stdout: --------------------
             -f %(repo)s#egg=django_dbtemplates
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %(repo)s@...#egg=django_dbtemplates-dev
             wsgiref==0.1.2
             ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
@@ -231,7 +231,7 @@ def test_freeze_bazaar_clone():
         expected = textwrap.dedent("""\
             Script result: ...pip freeze
             -- stdout: --------------------
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %s@...#egg=django_wikiapp-...
             wsgiref==0.1.2
             ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
@@ -252,7 +252,7 @@ def test_freeze_bazaar_clone():
             Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
             -- stdout: --------------------
             -f %(repo)s/#egg=django-wikiapp
-            distribute==0.6.15dev
+            distribute==0.6.15
             -e %(repo)s@...#egg=django_wikiapp-...
             wsgiref==0.1.2
             ...""" % {'repo':
@@ -281,7 +281,7 @@ def test_freeze_with_local_option():
             Script result: ...pip freeze
             -- stdout: --------------------
             INITools==0.2
-            distribute==0.6.15dev
+            distribute==0.6.15
             wsgiref==...
             <BLANKLINE>""")
     else:
@@ -305,7 +305,7 @@ def test_freeze_with_local_option():
             Script result: ...pip freeze --local
             -- stdout: --------------------
             INITools==0.2
-            distribute==0.6.15dev
+            distribute==0.6.15
             <BLANKLINE>""")
     else:
         expected = textwrap.dedent("""\
