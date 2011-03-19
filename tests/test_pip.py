@@ -7,7 +7,6 @@ import glob
 import atexit
 import textwrap
 from scripttest import TestFileEnvironment
-from pip.backwardcompat import urllib
 from tests.path import Path, curdir, u
 
 pyversion = sys.version[:3]
