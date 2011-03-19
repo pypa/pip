@@ -32,16 +32,13 @@ def _check_output(result, expected):
         return '\n========== %s ==========\n' % msg
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
-def test_freeze():
+def test_freeze_basic():
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
     info to the standard library, so stuff like wsgiref will show up in
     the freezing.  (Probably that should be accounted for in pip, but
     currently it is not).
-
-    TODO: refactor this test into multiple tests? (and maybe different
-    test style instead of using doctest output checker)
 
     """
     env = reset_env()
@@ -60,7 +57,9 @@ def test_freeze():
         <BLANKLINE>""")
     _check_output(result, expected)
 
-    # Now lets try it with an svn checkout::
+def test_freeze_svn():
+    """Now lets try it with an svn checkout"""
+    env = reset_env()
     result = env.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
@@ -70,42 +69,9 @@ def test_freeze():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@10#egg=INITools-0.3.1dev_r10-py2...-dev_r10
-        MarkupSafe==0.12...
+        -e %s@10#egg=INITools-0.3.1dev_r10-py...-dev_r10
+        ...
         <BLANKLINE>""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    _check_output(result, expected)
-
-    # Now, straight from trunk (but not editable/setup.py develop)::
-    result = env.run('svn', 'co',
-                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     'initools_to_easy_install')
-    result = env.run('easy_install', env.scratch_path/'initools_to_easy_install')
-    result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        Script result: ...pip freeze
-        -- stderr: --------------------
-        Warning: cannot find svn location for INITools==...dev-r...
-        <BLANKLINE>
-        -- stdout: --------------------
-        ## FIXME: could not find svn URL in dependency_links for this package:
-        INITools==...dev-r...
-        MarkupSafe==0.12...
-        <BLANKLINE>""")
-    _check_output(result, expected)
-
-    # Bah, that's no good!  Let's give it a hint::
-    result = run_pip('freeze', '-f',
-                     '%s#egg=INITools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_stderr=True)
-    expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s#egg=INITools-dev
-        -- stdout: --------------------
-        -f %(repo)s#egg=INITools-dev
-        # Installing as editable to satisfy requirement INITools==...dev-r...:
-        -e %(repo)s@...#egg=INITools-...dev_r...
-        MarkupSafe==0.12...
-        <BLANKLINE>""" % {'repo': local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')})
     _check_output(result, expected)
 
 
@@ -121,41 +87,22 @@ def test_freeze_git_clone():
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path / 'django-pagination')
     result = run_pip('freeze', expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            distribute==0.6.15
-            -e %s@...#egg=django_pagination-...
-            wsgiref==0.1.2
-            ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            -e %s@...#egg=django_pagination-...
-            ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze
+        -- stdout: --------------------
+        -e %s@...#egg=django_pagination-...
+        ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
                      '%s#egg=django_pagination' % local_checkout('git+http://github.com/jezdez/django-pagination.git'),
                      expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: pip freeze -f %(repo)s#egg=django_pagination
-            -- stdout: --------------------
-            -f %(repo)s#egg=django_pagination
-            distribute==0.6.15
-            -e %(repo)s@...#egg=django_pagination-dev
-            wsgiref==0.1.2
-            ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
-    else:
-        expected = textwrap.dedent("""\
-            Script result: pip freeze -f %(repo)s#egg=django_pagination
-            -- stdout: --------------------
-            -f %(repo)s#egg=django_pagination
-            -e %(repo)s@...#egg=django_pagination-dev
-            ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
+    expected = textwrap.dedent("""\
+        Script result: pip freeze -f %(repo)s#egg=django_pagination
+        -- stdout: --------------------
+        -f %(repo)s#egg=django_pagination
+        -e %(repo)s@...#egg=django_pagination-dev
+        ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
     _check_output(result, expected)
 
 
@@ -173,41 +120,22 @@ def test_freeze_mercurial_clone():
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-dbtemplates')
     result = run_pip('freeze', expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            distribute==0.6.15
-            -e %s@...#egg=django_dbtemplates-...
-            wsgiref==0.1.2
-            ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            -e %s@...#egg=django_dbtemplates-...
-            ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze
+        -- stdout: --------------------
+        -e %s@...#egg=django_dbtemplates-...
+        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
                      '%s#egg=django_dbtemplates' % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
                      expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
-            -- stdout: --------------------
-            -f %(repo)s#egg=django_dbtemplates
-            distribute==0.6.15
-            -e %(repo)s@...#egg=django_dbtemplates-dev
-            wsgiref==0.1.2
-            ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
-            -- stdout: --------------------
-            -f %(repo)s#egg=django_dbtemplates
-            -e %(repo)s@...#egg=django_dbtemplates-dev
-            ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
+        -- stdout: --------------------
+        -f %(repo)s#egg=django_dbtemplates
+        -e %(repo)s@...#egg=django_dbtemplates-dev
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
     _check_output(result, expected)
 
 
@@ -224,44 +152,24 @@ def test_freeze_bazaar_clone():
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path/'django-wikiapp')
     result = run_pip('freeze', expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            distribute==0.6.15
-            -e %s@...#egg=django_wikiapp-...
-            wsgiref==0.1.2
-            ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            -e %s@...#egg=django_wikiapp-...
-            ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze
+        -- stdout: --------------------
+        -e %s@...#egg=django_wikiapp-...
+        ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
                      '%s/#egg=django-wikiapp' %
                      local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
-            -- stdout: --------------------
-            -f %(repo)s/#egg=django-wikiapp
-            distribute==0.6.15
-            -e %(repo)s@...#egg=django_wikiapp-...
-            wsgiref==0.1.2
-            ...""" % {'repo':
-                      local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
-            -- stdout: --------------------
-            -f %(repo)s/#egg=django-wikiapp
-            -e %(repo)s@...#egg=django_wikiapp-...
-            ...""" % {'repo':
-                      local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
+        -- stdout: --------------------
+        -f %(repo)s/#egg=django-wikiapp
+        -e %(repo)s@...#egg=django_wikiapp-...
+        ...""" % {'repo':
+                  local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
     _check_output(result, expected)
 
 
@@ -273,21 +181,12 @@ def test_freeze_with_local_option():
     reset_env()
     result = run_pip('install', 'initools==0.2')
     result = run_pip('freeze', expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            INITools==0.2
-            distribute==0.6.15
-            wsgiref==...
-            <BLANKLINE>""")
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze
-            -- stdout: --------------------
-            INITools==0.2
-            wsgiref==...
-            <BLANKLINE>""")
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze
+        -- stdout: --------------------
+        INITools==0.2
+        wsgiref==...
+        <BLANKLINE>""")
 
     # The following check is broken (see
     # http://bitbucket.org/ianb/pip/issue/110).  For now we are simply
@@ -297,17 +196,9 @@ def test_freeze_with_local_option():
     # _check_output(result, expected)
 
     result = run_pip('freeze', '--local', expect_stderr=True)
-    if pyversion >= '3':
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze --local
-            -- stdout: --------------------
-            INITools==0.2
-            distribute==0.6.15
-            <BLANKLINE>""")
-    else:
-        expected = textwrap.dedent("""\
-            Script result: ...pip freeze --local
-            -- stdout: --------------------
-            INITools==0.2
-            <BLANKLINE>""")
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze --local
+        -- stdout: --------------------
+        INITools==0.2
+        <BLANKLINE>""")
     _check_output(result, expected)
