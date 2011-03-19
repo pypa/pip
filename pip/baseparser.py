@@ -3,9 +3,9 @@
 import sys
 import optparse
 import pkg_resources
-import ConfigParser
 import os
 from distutils.util import strtobool
+from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
 
 
@@ -50,7 +50,7 @@ class ConfigOptionParser(optparse.OptionParser):
         # 2. environmental variables
         config.update(dict(self.get_environ_vars()))
         # Then set the options with those values
-        for key, val in config.iteritems():
+        for key, val in config.items():
             key = key.replace('_', '-')
             if not key.startswith('--'):
                 key = '--%s' % key # only prefer long opts
@@ -68,8 +68,9 @@ class ConfigOptionParser(optparse.OptionParser):
                     val = strtobool(val)
                 try:
                     val = option.convert_value(key, val)
-                except optparse.OptionValueError, e:
-                    print ("An error occured during configuration: %s" % e)
+                except optparse.OptionValueError:
+                    e = sys.exc_info()[1]
+                    print("An error occured during configuration: %s" % e)
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
@@ -82,7 +83,7 @@ class ConfigOptionParser(optparse.OptionParser):
 
     def get_environ_vars(self, prefix='PIP_'):
         """Returns a generator with all environmental vars with prefix PIP_"""
-        for key, val in os.environ.iteritems():
+        for key, val in os.environ.items():
             if key.startswith(prefix):
                 yield (key.replace(prefix, '').lower(), val)
 
@@ -96,7 +97,7 @@ class ConfigOptionParser(optparse.OptionParser):
         defaults = self.update_defaults(self.defaults.copy()) # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
-            if isinstance(default, basestring):
+            if isinstance(default, string_types):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)

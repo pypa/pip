@@ -25,10 +25,10 @@ def restart_in_venv(venv, base, site_packages, args):
         try:
             import virtualenv
         except ImportError:
-            print 'The virtual environment does not exist: %s' % venv
-            print 'and virtualenv is not installed, so a new environment cannot be created'
+            print('The virtual environment does not exist: %s' % venv)
+            print('and virtualenv is not installed, so a new environment cannot be created')
             sys.exit(3)
-        print 'Creating new virtualenv environment in %s' % venv
+        print('Creating new virtualenv environment in %s' % venv)
         virtualenv.logger = logger
         logger.indent += 2
         virtualenv.create_environment(venv, site_packages=site_packages)

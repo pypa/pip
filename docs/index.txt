@@ -7,6 +7,7 @@ pip installs Python packages.
    :maxdepth: 1
 
    news
+   installing
    requirement-format
    configuration
    how-to-contribute

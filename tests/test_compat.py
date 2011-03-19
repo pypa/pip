@@ -3,7 +3,7 @@ Tests for compatibility workarounds.
 
 """
 import os
-from test_pip import reset_env, run_pip, pyversion, assert_all_changes
+from tests.test_pip import reset_env, run_pip, pyversion, assert_all_changes
 
 
 def test_debian_egg_name_workaround():

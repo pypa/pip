@@ -1,6 +1,6 @@
 import textwrap
-from test_pip import reset_env, run_pip, write_file
-from path import Path
+from tests.test_pip import reset_env, run_pip, write_file
+from tests.path import Path
 
 
 def test_download_if_requested():

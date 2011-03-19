@@ -1,25 +1,9 @@
-import urllib
-import urllib2
 import os
-from UserDict import DictMixin
+import pip.backwardcompat
+from pip.backwardcompat import urllib, string_types, b, u, emailmessage
 
 
-urlopen_original = urllib2.urlopen
-
-
-class IgnoringCaseDict(DictMixin):
-
-    def __init__(self):
-        self._dict = dict()
-
-    def __getitem__(self, key):
-        return self._dict[key.lower()]
-
-    def __setitem__(self, key, value):
-        self._dict[key.lower()] = value
-
-    def keys(self):
-        return self._dict.keys()
+urlopen_original = pip.backwardcompat.urllib2.urlopen
 
 
 class CachedResponse(object):
@@ -32,16 +16,17 @@ class CachedResponse(object):
     """
 
     def __init__(self, url, folder):
-        self.headers = IgnoringCaseDict() # maybe use httplib.HTTPMessage ??
+        self.headers = emailmessage.Message()
         self.code = 500
         self.msg = 'Internal Server Error'
         # url can be a simple string, or a urllib2.Request object
-        if isinstance(url, basestring):
+        if isinstance(url, string_types):
             self.url = url
         else:
             self.url = url.get_full_url()
-            self.headers.update(url.headers)
-        self._body = ''
+            for key, value in url.headers.items():
+                self.headers[key] = value
+        self._body = b('')
         self._set_all_fields(folder)
 
     def _set_all_fields(self, folder):
@@ -50,16 +35,17 @@ class CachedResponse(object):
             self._cache_url(filename)
         fp = open(filename, 'rb')
         try:
-            line = fp.next().strip()
+            line = fp.readline().strip()
             self.code, self.msg = line.split(None, 1)
         except ValueError:
             raise ValueError('Bad field line: %r' % line)
         self.code = int(self.code)
+        self.msg = u(self.msg)
         for line in fp:
-            if line == '\n':
+            if line == b('\n'):
                 break
-            key, value = line.split(': ')
-            self.headers[key] = value.strip()
+            key, value = line.split(b(': '), 1)
+            self.headers[u(key)] = u(value.strip())
         for line in fp:
             self._body += line
         fp.close()
@@ -91,10 +77,10 @@ class CachedResponse(object):
         fp = open(filepath, 'wb')
         # when it uses file:// scheme, code is None and there is no msg attr
         # but it has been successfully opened
-        status = '%s %s' % (getattr(response, 'code', 200) or 200, getattr(response, 'msg', 'OK'))
-        headers = ['%s: %s' % (key, value) for key, value in response.headers.items()]
+        status = b('%s %s' % (getattr(response, 'code', 200) or 200, getattr(response, 'msg', 'OK')))
+        headers = [b('%s: %s' % (key, value)) for key, value in list(response.headers.items())]
         body = response.read()
-        fp.write('\n'.join([status] + headers + ['', body]))
+        fp.write(b('\n').join([status] + headers + [b(''), body]))
         fp.close()
 
 
@@ -111,11 +97,15 @@ class PyPIProxy(object):
     def _monkey_patch_urllib2_to_cache_everything(self):
         def urlopen(url):
             return CachedResponse(url, self.CACHE_PATH)
-        urllib2.urlopen = urlopen
+        pip.backwardcompat.urllib2.urlopen = urlopen
 
     def _create_cache_folder(self):
         if not os.path.exists(self.CACHE_PATH):
             os.mkdir(self.CACHE_PATH)
+
+
+def assert_equal(a, b):
+    assert a == b, "\nexpected:\n%r\ngot:\n%r" % (b, a)
 
 
 def test_cache_proxy():
@@ -124,16 +114,16 @@ def test_cache_proxy():
     filepath = os.path.join(here, urllib.quote(url, ''))
     if os.path.exists(filepath):
         os.remove(filepath)
-    response = urllib2.urlopen(url)
+    response = pip.backwardcompat.urllib2.urlopen(url)
     r = CachedResponse(url, here)
     try:
-        assert r.code == response.code
-        assert r.msg == response.msg
-        assert r.read() == response.read()
-        assert r.url == response.url
-        assert r.geturl() == response.geturl()
-        assert r.headers.keys() == response.headers.keys()
-        assert r.info().keys() == response.info().keys()
-        assert r.headers['content-length'] == response.headers['content-length']
+        assert_equal(r.code, response.code)
+        assert_equal(r.msg, response.msg)
+        assert_equal(r.read(), response.read())
+        assert_equal(r.url, response.url)
+        assert_equal(r.geturl(), response.geturl())
+        assert_equal(set(r.headers.keys()), set(response.headers.keys()))
+        assert_equal(set(r.info().keys()), set(response.info().keys()))
+        assert_equal(r.headers['content-length'], response.headers['content-length'])
     finally:
         os.remove(filepath)

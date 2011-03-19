@@ -1,22 +1,27 @@
 import os
 import subprocess
-import urllib
 from pip.vcs import subversion, git, bazaar, mercurial
-from path import Path
-from test_pip import path_to_url, here
-from pypi_server import PyPIProxy
+from pip.backwardcompat import urlretrieve
+from tests.test_pip import path_to_url
+from tests.pypi_server import PyPIProxy
+
+
+if hasattr(subprocess, "check_call"):
+    subprocess_call = subprocess.check_call
+else:
+    subprocess_call = subprocess.call
 
 
 def _create_initools_repository():
-    subprocess.check_call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
+    subprocess_call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
 
 
 def _dump_initools_repository():
-    filename, _ = urllib.urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/INITools_modified.dump')
+    filename, _ = urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/INITools_modified.dump')
     initools_folder = os.path.join(_get_vcs_folder(), 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess.check_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
+    subprocess_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
     dump.close()
     devnull.close()
     os.remove(filename)

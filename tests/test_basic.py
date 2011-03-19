@@ -4,10 +4,10 @@ import filecmp
 import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
-from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder, write_file
-from local_repos import local_checkout
-from path import Path
-
+from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
+                            src_folder, write_file)
+from tests.local_repos import local_checkout
+from tests.path import Path
 
 def test_correct_pip_version():
     """
@@ -47,10 +47,10 @@ def test_pip_second_command_line_interface_works():
     assert initools_folder in result.files_created, str(result)
 
 
-def test_distutils_configuration_setting():
-    """
-    Test the distutils-configuration-setting command (which is distinct from other commands).
-    """
+#def test_distutils_configuration_setting():
+#    """
+#    Test the distutils-configuration-setting command (which is distinct from other commands).
+#    """
     #print run_pip('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
     #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
     #-- stdout: --------------------
@@ -213,10 +213,11 @@ def test_install_editable_from_git():
     Test cloning from Git.
     """
     reset_env()
-    result = run_pip('install', '-e',
-                     '%s#egg=django-feedutil' %
-                     local_checkout('git+http://github.com/jezdez/django-feedutil.git'),
-                     expect_error=True)
+    args = ['install']
+    args.extend(['-e',
+                 '%s#egg=django-feedutil' %
+                 local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+    result = run_pip(*args, **{"expect_error": True})
     result.assert_installed('django-feedutil', with_files=['.git'])
 
 
@@ -312,7 +313,7 @@ if sys.version_info < (2, 6):
         """
         Test --user option on older Python versions (pre 2.6) fails intelligibly
         """
-        env = reset_env()
+        reset_env()
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
         assert '--user is only supported in Python version 2.6 and newer' in result.stdout
@@ -322,9 +323,7 @@ else:
         """
         Test installing current directory ('.') into usersite
         """
-        env = reset_env()
-        # expect error because distribute tries to patch setuptools
-        env.run('easy_install', 'distribute', expect_error=True)
+        env = reset_env(use_distribute=True)
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = env.user_site/'fspkg'
@@ -333,13 +332,11 @@ else:
         assert egg_info_folder in result.files_created, str(result)
 
 
-    def test_install_subversion_usersite_editable_with_distribute():
+    def test_install_subversion_usersite_editable_with_distribute(): # VMS fails because abiflags not in environment
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
-        env = reset_env()
-        # expect error because distribute tries to patch setuptools
-        env.run('easy_install', 'distribute', expect_error=True)
+        env = reset_env(use_distribute=True)
         (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
         result = run_pip('install', '--user', '-e',
@@ -348,18 +345,20 @@ else:
         result.assert_installed('INITools', use_user_site=True)
 
 
-    def test_install_subversion_usersite_editable_with_setuptools_fails():
-        """
-        Test installing current directory ('.') into usersite using setuptools
-        """
-        env = reset_env()
-        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+    if sys.version_info < (3,):
+        # We don't try to use setuptools for 3.X.
+        def test_install_subversion_usersite_editable_with_setuptools_fails():
+            """
+            Test installing current directory ('.') into usersite using setuptools
+            """
+            env = reset_env()
+            (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-        result = run_pip('install', '--user', '-e',
-                         '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                         expect_error=True)
-        assert '--user --editable not supported with setuptools, use distribute' in result.stdout
+            result = run_pip('install', '--user', '-e',
+                             '%s#egg=initools-dev' %
+                             local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                             expect_error=True)
+            assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
@@ -390,7 +389,7 @@ def test_install_with_pax_header():
     """
     reset_env()
     run_from = abspath(join(here, 'packages'))
-    result = run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+    run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
 
 def test_install_using_install_option_and_editable():
     """
@@ -399,8 +398,9 @@ def test_install_using_install_option_and_editable():
     env = reset_env()
     folder = 'script_folder'
     mkdir(folder)
+    url = 'git+git://github.com/pypa/virtualenv'
     result = run_pip('install', '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'),
+                      local_checkout(url),
                      '--install-option=--script-dir=%s' % folder)
     virtualenv_bin = env.venv/'src'/'virtualenv'/folder/'virtualenv'+env.exe
     assert virtualenv_bin in result.files_created
@@ -411,10 +411,11 @@ def test_install_global_option_using_editable():
     Test using global distutils options, but in an editable installation
     """
     reset_env()
+    url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = run_pip('install', '--global-option=--version',
-                     '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv@1.4.1'))
-    assert '1.4.1\n' in result.stdout
+                     '-e', '%s@0.2.5#egg=anyjson' %
+                      local_checkout(url))
+    assert '0.2.5\n' in result.stdout
 
 
 def test_install_package_with_same_name_in_curdir():
@@ -475,7 +476,7 @@ def test_install_folder_using_relative_path():
 
 def test_install_package_which_contains_dev_in_name():
     """
-    Test installing package from pypi witch contains 'dev' in name
+    Test installing package from pypi which contains 'dev' in name
     """
     env = reset_env()
     result = run_pip('install', 'django-devserver==0.0.4')

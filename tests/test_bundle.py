@@ -2,9 +2,9 @@ import zipfile
 import textwrap
 from os.path import join
 from pip.download import path_to_url2
-from test_pip import here, reset_env, run_pip, write_file
-from path import Path
-from local_repos import local_checkout
+from tests.test_pip import here, reset_env, run_pip, write_file
+from tests.path import Path
+from tests.local_repos import local_checkout
 
 
 def test_create_bundle():

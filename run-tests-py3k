@@ -1,0 +1,7 @@
+#!/bin/bash
+python -c 'import mock' 2>/dev/null || easy_install mock
+python -c 'import nose' 2>/dev/null || easy_install http://bitbucket.org/jpellerin/nose3/get/539ffaa993f4.zip
+python -c 'import scripttest' 2>/dev/null || easy_install http://bitbucket.org/ianb/scripttest/get/4782629a179f.zip
+python setup.py install
+nosetests3 -v
+

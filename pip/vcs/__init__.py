@@ -2,9 +2,8 @@
 
 import os
 import shutil
-import urlparse
-import urllib
 
+from pip.backwardcompat import urlparse, urllib
 from pip.exceptions import BadCommand
 from pip.log import logger
 from pip.util import display_path, backup_dir, find_command, ask, rmtree
@@ -28,7 +27,7 @@ class VcsSupport(object):
 
     @property
     def backends(self):
-        return self._registry.values()
+        return list(self._registry.values())
 
     @property
     def dirnames(self):

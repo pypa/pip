@@ -7,19 +7,18 @@ import mimetypes
 import threading
 import posixpath
 import pkg_resources
-import urllib
-import urllib2
-import urlparse
 import random
 import socket
 import string
-from Queue import Queue
-from Queue import Empty as QueueEmpty
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
-from pip.backwardcompat import WindowsError, product
+from pip.backwardcompat import (WindowsError,
+                                Queue, httplib, urlparse,
+                                URLError, HTTPError, u,
+                                product, url2pathname)
+from pip.backwardcompat import Empty as QueueEmpty
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 
 __all__ = ['PackageFinder']
@@ -432,7 +431,7 @@ class HTMLPage(object):
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
-            if scheme == 'file' and os.path.isdir(urllib.url2pathname(path)):
+            if scheme == 'file' and os.path.isdir(url2pathname(path)):
                 # add trailing slash if not present so urljoin doesn't trim final segment
                 if not url.endswith('/'):
                     url += '/'
@@ -443,21 +442,22 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
-            inst = cls(resp.read(), real_url, headers)
-        except (urllib2.HTTPError, urllib2.URLError, socket.timeout, socket.error, OSError, WindowsError), e:
+            inst = cls(u(resp.read()), real_url, headers)
+        except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
+            e = sys.exc_info()[1]
             desc = str(e)
             if isinstance(e, socket.timeout):
                 log_meth = logger.info
                 level =1
                 desc = 'timed out'
-            elif isinstance(e, urllib2.URLError):
+            elif isinstance(e, URLError):
                 log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
                     level = 1
                 else:
                     level = 2
-            elif isinstance(e, urllib2.HTTPError) and e.code == 404:
+            elif isinstance(e, HTTPError) and e.code == 404:
                 ## FIXME: notify?
                 log_meth = logger.info
                 level = 2
