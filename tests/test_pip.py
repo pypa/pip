@@ -103,9 +103,13 @@ def install_setuptools(env):
 env = None
 
 
-def reset_env(environ=None):
+def reset_env(environ=None, use_distribute=None):
     global env
-    env = FastTestPipEnvironment(environ)
+    # FastTestPipEnv reuses env, not safe if use_distribute specified
+    if use_distribute is None:
+        env = FastTestPipEnvironment(environ)
+    else:
+        env = TestPipEnvironment(environ, use_distribute=use_distribute)
     return env
 
 
@@ -256,7 +260,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     verbose = False
 
-    def __init__(self, environ=None):
+    def __init__(self, environ=None, use_distribute=None):
 
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
@@ -281,7 +285,8 @@ class TestPipEnvironment(TestFileEnvironment):
         demand_dirs(self.venv_path)
         demand_dirs(self.scratch_path)
 
-        use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+        if use_distribute is None:
+            use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
 
         # Create a virtualenv and remember where it's putting things.
         virtualenv_paths = create_virtualenv(self.venv_path, distribute=use_distribute)
@@ -360,6 +365,7 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
         pth.write('sys.path.remove(%r); ' % str(here))
         pth.close()
+
 
 class FastTestPipEnvironment(TestPipEnvironment):
     def __init__(self, environ=None):
