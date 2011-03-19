@@ -8,7 +8,6 @@ import sys
 import imp
 import os.path
 from types import ModuleType
-from pip.backwardcompat import string_types
 
 __all__ = [
     'get_importer', 'iter_importers', 'get_loader', 'find_loader',
@@ -522,6 +521,8 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
 
     path = path[:] # Start with a copy of the existing path
+
+    from pip.backwardcompat import string_types
 
     for dir in sys.path:
         if not isinstance(dir, string_types) or not os.path.isdir(dir):
