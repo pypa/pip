@@ -21,5 +21,3 @@ build/*
 pip-log.txt
 pip.log
 *.~
-tests/test_ws/
-tests/test_ws_backup/

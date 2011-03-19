@@ -371,8 +371,8 @@ class FastTestPipEnvironment(TestPipEnvironment):
     def __init__(self, environ=None):
         import virtualenv
 
-        self.root_path = here / 'test_ws'
-        self.backup_path = here / 'test_ws_backup'
+        self.root_path = here / 'tests_cache' / 'test_ws'
+        self.backup_path = here / 'tests_cache' / 'test_ws_backup'
 
         self.scratch_path = self.root_path / self.scratch
 
