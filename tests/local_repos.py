@@ -6,8 +6,14 @@ from tests.test_pip import path_to_url
 from tests.pypi_server import PyPIProxy
 
 
+if hasattr(subprocess, "check_call"):
+    subprocess_call = subprocess.check_call
+else:
+    subprocess_call = subprocess.call
+
+
 def _create_initools_repository():
-    subprocess.check_call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
+    subprocess.call('svnadmin create INITools'.split(), cwd=_get_vcs_folder())
 
 
 def _dump_initools_repository():
@@ -15,7 +21,7 @@ def _dump_initools_repository():
     initools_folder = os.path.join(_get_vcs_folder(), 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess.check_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
+    subprocess.call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
     dump.close()
     devnull.close()
     os.remove(filename)
