@@ -8,6 +8,7 @@ import atexit
 import textwrap
 from scripttest import TestFileEnvironment
 from tests.path import Path, curdir, u
+from pip.util import rmtree
 
 pyversion = sys.version[:3]
 
@@ -96,7 +97,7 @@ def install_setuptools(env):
             shutil.copy2(f, tempdir)
         return env.run(os.path.join(tempdir, 'easy_install'), version)
     finally:
-        shutil.rmtree(tempdir)
+        rmtree(tempdir)
 
 
 env = None
@@ -129,7 +130,7 @@ class TestFailure(AssertionError):
 def _cleanup():
     global env
     del env
-    shutil.rmtree(download_cache, ignore_errors=True)
+    rmtree(download_cache, ignore_errors=True)
 
 atexit.register(_cleanup)
 
@@ -354,7 +355,7 @@ class TestPipEnvironment(TestFileEnvironment):
         return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def __del__(self):
-        shutil.rmtree(str(self.root_path), ignore_errors=True)
+        rmtree(str(self.root_path), ignore_errors=True)
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
@@ -411,7 +412,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         if self.root_path.exists:
-            shutil.rmtree(self.root_path)
+            rmtree(self.root_path)
         if self.backup_path.exists:
             shutil.copytree(self.backup_path, self.root_path, True)
         else:

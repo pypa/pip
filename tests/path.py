@@ -13,6 +13,7 @@ else:
 
 _base = os.path.supports_unicode_filenames and unicode or str
 
+from pip.util import rmtree
 
 class Path(_base):
     """ Models a path in an object oriented way. """
@@ -180,7 +181,7 @@ class Path(_base):
 
     def rmtree(self, noerrors=True):
         """ Removes a directory tree. Ignores errors by default. """
-        return shutil.rmtree(self, ignore_errors=noerrors)
+        return rmtree(self, ignore_errors=noerrors)
 
     def copy(self, to):
         shutil.copy(self, to)

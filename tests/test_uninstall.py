@@ -99,7 +99,7 @@ def test_uninstall_editable_with_source_outside_venv():
         tmpdir = join(temp, 'virtualenv')
         _test_uninstall_editable_with_source_outside_venv(tmpdir)
     finally:
-        shutil.rmtree(temp)
+        rmtree(temp)
 
 
 def _test_uninstall_editable_with_source_outside_venv(tmpdir):

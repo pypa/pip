@@ -24,8 +24,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'cache_download', 'unpack_file']
 
 
-def rmtree(dir):
-    shutil.rmtree(dir, ignore_errors=True,
+def rmtree(dir, ignore_errors=True):
+    shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
 

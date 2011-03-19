@@ -1,10 +1,12 @@
+import os
 import re
 import sys
-import os
 import subprocess
 import shutil
-from pip.backwardcompat import urllib
 from os.path import dirname, abspath
+
+from pip.backwardcompat import urllib
+from pip.util import rmtree
 
 
 src_folder = dirname(dirname(abspath(__file__)))
@@ -76,12 +78,12 @@ def _test_packages(output, pending_fn):
         print('Installation of %s succeeded' % package)
         add_package(os.path.join(output, 'success.txt'), package)
         pop_last_item(pending_fn, package)
-        shutil.rmtree(dest_dir)
+        rmtree(dest_dir)
 
 
 def create_venv(dest_dir):
     if os.path.exists(dest_dir):
-        shutil.rmtree(dest_dir)
+        rmtree(dest_dir)
     print('Creating virtualenv in %s' % dest_dir)
     code = subprocess.check_call(['virtualenv', '--no-site-packages', dest_dir])
     assert not code, "virtualenv failed"
