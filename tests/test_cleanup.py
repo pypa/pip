@@ -2,7 +2,7 @@ import os
 import textwrap
 from os.path import abspath, exists, join
 from tests.test_pip import (here, reset_env, run_pip, write_file, mkdir,
-                            pyversion, LOCAL_PYPI_ARGS)
+                            pyversion)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -57,8 +57,6 @@ def test_cleanup_after_create_bundle():
     env = reset_env()
     # Install an editable to create a src/ dir.
     args = ['install']
-    if pyversion >= '3':
-        args.extend(LOCAL_PYPI_ARGS)
     args.extend(['-e',
                  '%s#egg=django-feedutil' %
                     local_checkout('git+http://github.com/jezdez/django-feedutil.git')])

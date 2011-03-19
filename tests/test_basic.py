@@ -5,7 +5,7 @@ import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file, LOCAL_PYPI_ARGS)
+                            src_folder, write_file)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -214,8 +214,6 @@ def test_install_editable_from_git():
     """
     reset_env()
     args = ['install']
-    if pyversion >= '3':
-        args.extend(LOCAL_PYPI_ARGS)
     args.extend(['-e',
                  '%s#egg=django-feedutil' %
                  local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
@@ -404,10 +402,7 @@ def test_install_using_install_option_and_editable():
     env = reset_env()
     folder = 'script_folder'
     mkdir(folder)
-    if pyversion[0] >= '3':
-        url = 'hg+http://bitbucket.org/vinay.sajip/virtualenv'
-    else:
-        url = 'hg+http://bitbucket.org/ianb/virtualenv'
+    url = 'git://github.com/pypa/virtualenv'
     result = run_pip('install', '-e', '%s#egg=virtualenv' %
                       local_checkout(url),
                      '--install-option=--script-dir=%s' % folder)
@@ -420,17 +415,11 @@ def test_install_global_option_using_editable():
     Test using global distutils options, but in an editable installation
     """
     reset_env()
-    if pyversion >= '3':
-        url = 'hg+http://bitbucket.org/vinay.sajip/virtualenv'
-    else:
-        url = 'hg+http://bitbucket.org/ianb/virtualenv@1.4.1'
+    url = 'git://github.com/pypa/virtualenv@1.4.1'
     result = run_pip('install', '--global-option=--version',
                      '-e', '%s#egg=virtualenv' %
                       local_checkout(url))
-    if pyversion >= '3':
-        print(result.stdout)
-    else:
-        assert '1.4.1\n' in result.stdout
+    assert '1.4.1\n' in result.stdout
 
 
 def test_install_package_with_same_name_in_curdir():

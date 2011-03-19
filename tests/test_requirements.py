@@ -8,10 +8,7 @@ def test_requirements_file():
     Test installing from a requirements file.
 
     """
-    if pyversion >= '3':
-        other_lib_name, other_lib_version = 'anyjson', '0.3'
-    else:
-        other_lib_name, other_lib_version = 'simplejson', '1.7.4'
+    other_lib_name, other_lib_version = 'anyjson', '0.3'
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
@@ -31,10 +28,7 @@ def test_multiple_requirements_files():
     Test installing from multiple nested requirements files.
 
     """
-    if pyversion >= '3':
-        other_lib_name, other_lib_version = 'anyjson', '0.3'
-    else:
-        other_lib_name, other_lib_version = 'simplejson', '1.7.4'
+    other_lib_name, other_lib_version = 'anyjson', '0.3'
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
         -e %s@10#egg=INITools-dev
@@ -60,9 +54,9 @@ def test_respect_order_in_requirements_file():
     result = run_pip('install', '-r', env.scratch_path / 'frameworks-req.txt')
     downloaded = [line for line in result.stdout.split('\n')
                   if 'Downloading/unpacking' in line]
-    
+
     assert 'bidict' in downloaded[0], 'First download should ' \
-            'be "bidict" but was "%s"' % downloaded[0] 
+            'be "bidict" but was "%s"' % downloaded[0]
     assert 'ordereddict' in downloaded[1], 'Second download should ' \
             'be "ordereddict" but was "%s"' % downloaded[1]
     assert 'mock' in downloaded[2], 'Third download should ' \

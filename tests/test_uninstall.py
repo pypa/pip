@@ -4,7 +4,7 @@ import shutil
 from os.path import join
 from tempfile import mkdtemp
 from tests.test_pip import (reset_env, run_pip, assert_all_changes, write_file,
-                            pyversion, LOCAL_PYPI_ARGS)
+                            pyversion)
 from tests.local_repos import local_repo, local_checkout
 
 
@@ -55,8 +55,6 @@ def test_uninstall_console_scripts():
     """
     env = reset_env()
     args = ['install']
-    if pyversion >= '3':
-        args.extend(LOCAL_PYPI_ARGS)
     args.append('virtualenv')
     result = run_pip(*args, expect_error=True)
     assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
@@ -71,8 +69,6 @@ def test_uninstall_easy_installed_console_scripts():
     """
     env = reset_env()
     args = ['easy_install']
-    if pyversion >= '3':
-        args.extend(LOCAL_PYPI_ARGS)
     args.append('virtualenv')
     result = env.run(*args, expect_stderr=True)
     assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())

@@ -12,10 +12,6 @@ from tests.path import Path, curdir, u
 
 pyversion = sys.version[:3]
 
-# Used for Python 3 local repo with Python-3 compatible stuff
-#LOCAL_PYPI_ARGS = ['-i', 'http://localhost:8000/']
-LOCAL_PYPI_ARGS = []
-
 # the directory containing all the tests
 here = Path(__file__).abspath.folder
 
@@ -371,7 +367,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
         self.root_path = here / 'test_ws'
         self.backup_path = here / 'test_ws_backup'
-        
+
         self.scratch_path = self.root_path / self.scratch
 
         # We will set up a virtual environment at root_path.

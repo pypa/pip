@@ -58,9 +58,9 @@ def test_command_line_appends_correctly():
     environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com http://example.com'
     reset_env(environ)
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
-    print(result.stdout)
-    assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
-    assert "Analyzing links from page http://example.com" in result.stdout
+
+    assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout, result.stdout
+    assert "Analyzing links from page http://example.com" in result.stdout, result.stdout
 
 
 def test_config_file_override_stack():
