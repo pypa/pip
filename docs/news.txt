@@ -4,6 +4,8 @@ News for pip
 tip (unreleased)
 ----------------
 
+* Added Python 3 support! Huge thanks to Vinay Sajip and Vitaly Babiy.
+
 * Fixed finding of VCS binaries to not be fooled by same-named directories.
   Thanks Alex Morega.
 
