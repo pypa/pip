@@ -70,8 +70,7 @@ def test_freeze_svn():
         Script result: ...pip freeze
         -- stdout: --------------------
         -e %s@10#egg=INITools-0.3.1dev_r10-py...-dev_r10
-        ...
-        <BLANKLINE>""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+        ...""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
 
