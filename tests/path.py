@@ -159,12 +159,12 @@ class Path(_base):
                 del kwargs["followlinks"]
         return os.walk(self, **kwargs)
 
-    def mkdir(self, mode=0x1FF):
+    def mkdir(self, mode=0x1FF): # 0o777
         """ Creates a directory, if it doesn't exist already. """
         if not self.exists:
             os.mkdir(self, mode)
 
-    def makedirs(self, mode=0x1FF):
+    def makedirs(self, mode=0x1FF): # 0o777
         """ Like mkdir(), but also creates parent directories. """
         if not self.exists:
             os.makedirs(self, mode)

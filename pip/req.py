@@ -518,7 +518,7 @@ exec(compile(open(__file__).read(), __file__, 'exec'))
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
                     zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
-                    zipdir.external_attr = 0x1ED << 16
+                    zipdir.external_attr = 0x1ED << 16 # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
