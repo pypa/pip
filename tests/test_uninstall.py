@@ -3,8 +3,7 @@ import sys
 import shutil
 from os.path import join
 from tempfile import mkdtemp
-from tests.test_pip import (reset_env, run_pip, assert_all_changes, write_file,
-                            pyversion)
+from tests.test_pip import reset_env, run_pip, assert_all_changes, write_file
 from tests.local_repos import local_repo, local_checkout
 
 
@@ -55,10 +54,10 @@ def test_uninstall_console_scripts():
     """
     env = reset_env()
     args = ['install']
-    args.append('virtualenv')
+    args.append('discover')
     result = run_pip(*args, expect_error=True)
-    assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'virtualenv', '-y', expect_error=True)
+    assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('uninstall', 'discover', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
 
@@ -69,10 +68,10 @@ def test_uninstall_easy_installed_console_scripts():
     """
     env = reset_env()
     args = ['easy_install']
-    args.append('virtualenv')
+    args.append('discover')
     result = env.run(*args, expect_stderr=True)
-    assert env.bin/'virtualenv'+env.exe in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'virtualenv', '-y')
+    assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('uninstall', 'discover', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
 
@@ -105,7 +104,7 @@ def test_uninstall_editable_with_source_outside_venv():
 
 def _test_uninstall_editable_with_source_outside_venv(tmpdir):
     env = reset_env()
-    result = env.run('hg', 'clone', local_repo('hg+http://bitbucket.org/ianb/virtualenv'), tmpdir)
+    result = env.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv'), tmpdir)
     result2 = run_pip('install', '-e', tmpdir)
     assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
     result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
