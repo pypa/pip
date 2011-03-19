@@ -55,7 +55,7 @@ def test_uninstall_console_scripts():
     env = reset_env()
     args = ['install']
     args.append('discover')
-    result = run_pip(*args, expect_error=True)
+    result = run_pip(*args, **{"expect_error": True})
     assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'discover', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
@@ -69,7 +69,7 @@ def test_uninstall_easy_installed_console_scripts():
     env = reset_env()
     args = ['easy_install']
     args.append('discover')
-    result = env.run(*args, expect_stderr=True)
+    result = env.run(*args, **{"expect_stderr": True})
     assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'discover', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
