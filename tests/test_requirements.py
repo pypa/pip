@@ -32,7 +32,7 @@ def test_multiple_requirements_files():
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
         -e %s@10#egg=INITools-dev
-        -r %s-req.txt""" % (local_checkout('http://svn.colorstudy.com/INITools/trunk'),
+        -r %s-req.txt""" % (local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
                             other_lib_name)))
     write_file('%s-req.txt' % other_lib_name, textwrap.dedent("""\
         %s<=%s
