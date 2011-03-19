@@ -28,7 +28,11 @@ tip (unreleased)
 
 * Fixed issue #204 - rmtree undefined in mercurial.py. Thanks Kelsey Hightower
 
+* Fixed bug in Git vcs backend that would break during reinstallation.
 
+* Fixed bug in Mercurial vcs backend related to pip freeze and branch/tag resolution.
+
+* Fixed bug in version string parsing related to the suffix "-dev".
 
 0.8.2
 -----
