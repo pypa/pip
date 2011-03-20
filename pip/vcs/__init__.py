@@ -9,7 +9,7 @@ from pip.log import logger
 from pip.util import display_path, backup_dir, find_command, ask, rmtree
 
 
-__all__ = ['vcs', 'get_src_requirement', 'import_vcs_support']
+__all__ = ['vcs', 'get_src_requirement']
 
 
 class VcsSupport(object):
