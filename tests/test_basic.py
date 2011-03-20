@@ -327,6 +327,9 @@ def test_install_curdir_usersite():
     """
     if sys.version_info < (2, 6):
         raise SkipTest()
+    # FIXME distutils --user option seems to be broken in pypy
+    if hasattr(sys, "pypy_version_info"):
+        raise SkipTest()
     env = reset_env(use_distribute=True)
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
@@ -343,6 +346,9 @@ def test_install_subversion_usersite_editable_with_distribute():
     """
     if sys.version_info < (2, 6):
         raise SkipTest()
+    # FIXME distutils --user option seems to be broken in pypy
+    if hasattr(sys, "pypy_version_info"):
+        raise SkipTest()
     env = reset_env(use_distribute=True)
     (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
@@ -354,7 +360,7 @@ def test_install_subversion_usersite_editable_with_distribute():
 
 def test_install_subversion_usersite_editable_with_setuptools_fails():
     """
-    Test installing current directory ('.') into usersite using setuptools
+    Test installing current directory ('.') into usersite using setuptools fails
     """
     # --user only works on 2.6 or higher
     if sys.version_info < (2, 6):
@@ -363,7 +369,9 @@ def test_install_subversion_usersite_editable_with_setuptools_fails():
     elif sys.version_info >= (3,):
         raise SkipTest()
     env = reset_env()
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+    no_site_packages = env.lib_path/'no-global-site-packages.txt'
+    if os.path.isfile(no_site_packages):
+        no_site_packages.rm() # this re-enables user_site
 
     result = run_pip('install', '--user', '-e',
                      '%s#egg=initools-dev' %
