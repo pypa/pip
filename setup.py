@@ -48,5 +48,5 @@ setup(name="pip",
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'scripttest', 'mock'],
+      tests_require=['nose', 'virtualenv', 'scripttest', 'mock'],
       zip_safe=False)
