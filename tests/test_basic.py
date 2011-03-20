@@ -20,8 +20,8 @@ def test_correct_pip_version():
     result = run_pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
-    dir = re.match(r'pip \d(.[\d])+ from (.*) \(python \d(.[\d])+\)$',
-                   result.stdout).group(2)
+    dir = re.match(r'pip \d(\.[\d])+(\.(pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
+                   result.stdout).group(4)
     pip_folder = join(src_folder, 'pip')
     pip_folder_outputed = join(dir, 'pip')
 
