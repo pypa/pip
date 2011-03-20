@@ -6,7 +6,7 @@ import shutil
 import glob
 import atexit
 import textwrap
-from scripttest import TestFileEnvironment
+from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
 
@@ -338,7 +338,7 @@ class TestPipEnvironment(TestFileEnvironment):
         self._use_cached_pypi_server()
 
     def _ignore_file(self, fn):
-        if fn.endswith('__pycache__'):
+        if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
             result = super(TestPipEnvironment, self)._ignore_file(fn)
@@ -462,11 +462,10 @@ def run_pip(*args, **kw):
     result = env.run('pip', *args, **kw)
     ignore = []
     for path, f in result.files_before.items():
-        if path in result.files_updated:
-            full_path = env.base_path / path
-            s = str(full_path)
-            if os.path.isdir(s) and '__pycache__' in os.listdir(s):
-                ignore.append(path)
+        # ignore updated directories, often due to .pyc or __pycache__
+        if (path in result.files_updated and
+            isinstance(result.files_updated[path], FoundDir)):
+            ignore.append(path)
     for path in ignore:
         del result.files_updated[path]
     return result
