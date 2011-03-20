@@ -1,5 +1,5 @@
 import os
-from test_pip import reset_env, run_pip, get_env
+from tests.test_pip import reset_env, run_pip, get_env
 
 
 def test_completion_for_bash():

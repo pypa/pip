@@ -1,7 +1,8 @@
 import textwrap
-from test_pip import (here, reset_env, run_pip, assert_all_changes,
-                      write_file, _create_test_package,
-                      _change_test_package_version, pyversion)
+from os.path import join
+from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
+                            write_file, pyversion, _create_test_package,
+                            _change_test_package_version)
 
 
 def test_no_upgrade_unless_requested():
@@ -109,13 +110,12 @@ def test_uninstall_rollback():
 
     """
     env = reset_env()
-    find_links = 'file://' + here/'packages'
+    find_links = 'file://' + join(here, 'packages')
     result = run_pip('install', '-f', find_links, '--no-index', 'broken==0.1')
-    assert env.site_packages / 'broken.py' in result.files_created, result.files_created.keys()
+    assert env.site_packages / 'broken.py' in result.files_created, list(result.files_created.keys())
     result2 = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)
     assert result2.returncode == 1, str(result2)
-    env.run('python', '-c', "import broken; print broken.VERSION").stdout
-    '0.1\n'
+    assert env.run('python', '-c', "import broken; print(broken.VERSION)").stdout == '0.1\n'
     assert_all_changes(result.files_after, result2, [env.venv/'build', 'pip-log.txt'])
 
 

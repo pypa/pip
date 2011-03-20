@@ -217,7 +217,7 @@ class ZipCommand(Command):
             if lines != new_lines:
                 logger.info('Removing reference to %s from .pth file %s'
                             % (display_path(filename), display_path(pth)))
-                if not filter(None, new_lines):
+                if not [line for line in new_lines if line]:
                     logger.info('%s file would be empty: deleting' % display_path(pth))
                     if not self.simulate:
                         os.unlink(pth)

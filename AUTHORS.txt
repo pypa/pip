@@ -30,4 +30,5 @@ Peter Waller
 Ronny Pfannschmidt
 Simon Cross
 Thomas Johansson
+Vinay Sajip
 Wil Tan

@@ -4,10 +4,13 @@ import filecmp
 import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
-from test_pip import here, reset_env, run_pip, pyversion, mkdir, src_folder, write_file
-from local_repos import local_checkout
-from path import Path
 
+from nose import SkipTest
+
+from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
+                            src_folder, write_file)
+from tests.local_repos import local_checkout
+from tests.path import Path
 
 def test_correct_pip_version():
     """
@@ -20,8 +23,8 @@ def test_correct_pip_version():
     result = run_pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
-    dir = re.match(r'pip \d(.[\d])+ from (.*) \(python \d(.[\d])+\)$',
-                   result.stdout).group(2)
+    dir = re.match(r'pip \d(\.[\d])+(\.(pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
+                   result.stdout).group(4)
     pip_folder = join(src_folder, 'pip')
     pip_folder_outputed = join(dir, 'pip')
 
@@ -47,10 +50,10 @@ def test_pip_second_command_line_interface_works():
     assert initools_folder in result.files_created, str(result)
 
 
-def test_distutils_configuration_setting():
-    """
-    Test the distutils-configuration-setting command (which is distinct from other commands).
-    """
+#def test_distutils_configuration_setting():
+#    """
+#    Test the distutils-configuration-setting command (which is distinct from other commands).
+#    """
     #print run_pip('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
     #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
     #-- stdout: --------------------
@@ -213,10 +216,11 @@ def test_install_editable_from_git():
     Test cloning from Git.
     """
     reset_env()
-    result = run_pip('install', '-e',
-                     '%s#egg=django-feedutil' %
-                     local_checkout('git+http://github.com/jezdez/django-feedutil.git'),
-                     expect_error=True)
+    args = ['install']
+    args.extend(['-e',
+                 '%s#egg=django-feedutil' %
+                 local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+    result = run_pip(*args, **{"expect_error": True})
     result.assert_installed('django-feedutil', with_files=['.git'])
 
 
@@ -305,63 +309,75 @@ def test_install_curdir():
     assert egg_info_folder in result.files_created, str(result)
 
 
-# user-site only exists in Python 2.6+
-# and --user is _only_ possible using distribute!
-if sys.version_info < (2, 6):
-    def test_install_curdir_usersite_fails_in_old_python():
-        """
-        Test --user option on older Python versions (pre 2.6) fails intelligibly
-        """
-        env = reset_env()
-        run_from = abspath(join(here, 'packages', 'FSPkg'))
-        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-        assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-else:
-    def test_install_curdir_usersite():
-        """
-        Test installing current directory ('.') into usersite
-        """
-        env = reset_env()
-        # expect error because distribute tries to patch setuptools
-        env.run('easy_install', 'distribute', expect_error=True)
-        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
-        run_from = abspath(join(here, 'packages', 'FSPkg'))
-
-        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-        fspkg_folder = env.user_site/'fspkg'
-        egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-        assert fspkg_folder in result.files_created, str(result.stdout)
-        assert egg_info_folder in result.files_created, str(result)
+def test_install_curdir_usersite_fails_in_old_python():
+    """
+    Test --user option on older Python versions (pre 2.6) fails intelligibly
+    """
+    if sys.version_info >= (2, 6):
+        raise SkipTest()
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
+    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
 
 
-    def test_install_subversion_usersite_editable_with_distribute():
-        """
-        Test installing subversion repository into usersite
-        """
-        env = reset_env()
-        # expect error because distribute tries to patch setuptools
-        env.run('easy_install', 'distribute', expect_error=True)
-        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+def test_install_curdir_usersite():
+    """
+    Test installing current directory ('.') into usersite
+    """
+    if sys.version_info < (2, 6):
+        raise SkipTest()
+    # FIXME distutils --user option seems to be broken in pypy
+    if hasattr(sys, "pypy_version_info"):
+        raise SkipTest()
+    env = reset_env(use_distribute=True)
+    run_from = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+    fspkg_folder = env.user_site/'fspkg'
+    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+    assert fspkg_folder in result.files_created, str(result.stdout)
 
-        result = run_pip('install', '--user', '-e',
-                         '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-        result.assert_installed('INITools', use_user_site=True)
+    assert egg_info_folder in result.files_created, str(result)
 
 
-    def test_install_subversion_usersite_editable_with_setuptools_fails():
-        """
-        Test installing current directory ('.') into usersite using setuptools
-        """
-        env = reset_env()
-        (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
+def test_install_subversion_usersite_editable_with_distribute():
+    """
+    Test installing current directory ('.') into usersite after installing distribute
+    """
+    if sys.version_info < (2, 6):
+        raise SkipTest()
+    # FIXME distutils --user option seems to be broken in pypy
+    if hasattr(sys, "pypy_version_info"):
+        raise SkipTest()
+    env = reset_env(use_distribute=True)
+    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
 
-        result = run_pip('install', '--user', '-e',
-                         '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                         expect_error=True)
-        assert '--user --editable not supported with setuptools, use distribute' in result.stdout
+    result = run_pip('install', '--user', '-e',
+                     '%s#egg=initools-dev' %
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+    result.assert_installed('INITools', use_user_site=True)
+
+
+def test_install_subversion_usersite_editable_with_setuptools_fails():
+    """
+    Test installing current directory ('.') into usersite using setuptools fails
+    """
+    # --user only works on 2.6 or higher
+    if sys.version_info < (2, 6):
+        raise SkipTest()
+    # We don't try to use setuptools for 3.X.
+    elif sys.version_info >= (3,):
+        raise SkipTest()
+    env = reset_env()
+    no_site_packages = env.lib_path/'no-global-site-packages.txt'
+    if os.path.isfile(no_site_packages):
+        no_site_packages.rm() # this re-enables user_site
+
+    result = run_pip('install', '--user', '-e',
+                     '%s#egg=initools-dev' %
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     expect_error=True)
+    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
@@ -392,7 +408,7 @@ def test_install_with_pax_header():
     """
     reset_env()
     run_from = abspath(join(here, 'packages'))
-    result = run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+    run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
 
 def test_install_using_install_option_and_editable():
     """
@@ -401,8 +417,9 @@ def test_install_using_install_option_and_editable():
     env = reset_env()
     folder = 'script_folder'
     mkdir(folder)
+    url = 'git+git://github.com/pypa/virtualenv'
     result = run_pip('install', '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv'),
+                      local_checkout(url),
                      '--install-option=--script-dir=%s' % folder)
     virtualenv_bin = env.venv/'src'/'virtualenv'/folder/'virtualenv'+env.exe
     assert virtualenv_bin in result.files_created
@@ -413,10 +430,11 @@ def test_install_global_option_using_editable():
     Test using global distutils options, but in an editable installation
     """
     reset_env()
+    url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = run_pip('install', '--global-option=--version',
-                     '-e', '%s#egg=virtualenv' %
-                      local_checkout('hg+http://bitbucket.org/ianb/virtualenv@1.4.1'))
-    assert '1.4.1\n' in result.stdout
+                     '-e', '%s@0.2.5#egg=anyjson' %
+                      local_checkout(url))
+    assert '0.2.5\n' in result.stdout
 
 
 def test_install_package_with_same_name_in_curdir():
@@ -477,7 +495,7 @@ def test_install_folder_using_relative_path():
 
 def test_install_package_which_contains_dev_in_name():
     """
-    Test installing package from pypi witch contains 'dev' in name
+    Test installing package from pypi which contains 'dev' in name
     """
     env = reset_env()
     result = run_pip('install', 'django-devserver==0.0.4')
