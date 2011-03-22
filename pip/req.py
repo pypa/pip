@@ -236,7 +236,7 @@ def replacement_run(self):
             writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
-exec(compile(open(__file__).read(), __file__, 'exec'))
+exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 """
 
     def egg_info_data(self, filename):
@@ -544,11 +544,10 @@ exec(compile(open(__file__).read(), __file__, 'exec'))
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-
             install_args = [
                 sys.executable, '-c',
                 "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read(), __file__, 'exec'))" % self.setup_py] +\
+                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
                 list(global_options) + [
                 'install',
                 '--single-version-externally-managed',
@@ -618,7 +617,7 @@ exec(compile(open(__file__).read(), __file__, 'exec'))
             ## FIXME: should we do --install-headers here too?
             call_subprocess(
                 [sys.executable, '-c',
-                 "import setuptools; __file__=%r; exec(compile(open(__file__).read(), __file__, 'exec'))" % self.setup_py]
+                 "import setuptools; __file__=%r; exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
                 + list(global_options) + ['develop', '--no-deps'] + list(install_options),
 
                 cwd=self.source_dir, filter_stdout=self._filter_install,
