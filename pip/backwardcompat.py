@@ -34,6 +34,8 @@ except NameError:
                 return True
         return False
 
+console_encoding = sys.__stdout__.encoding
+
 if sys.version_info >= (3,):
     from io import StringIO
     from functools import reduce
@@ -54,6 +56,9 @@ if sys.version_info >= (3,):
         return s.encode('utf-8')
     def u(s):
         return s.decode('utf-8')
+    def console_to_str(s):
+        return s.decode(console_encoding)
+    bytes = bytes
     string_types = (str,)
     raw_input = input
 else:
@@ -72,6 +77,9 @@ else:
         return s
     def u(s):
         return s
+    def console_to_str(s):
+        return s
+    bytes = str
     string_types = (basestring,)
     reduce = reduce
     cmp = cmp

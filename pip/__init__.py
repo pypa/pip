@@ -12,7 +12,7 @@ from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
-from pip.backwardcompat import u, walk_packages
+from pip.backwardcompat import u, walk_packages, console_to_str
 
 
 def autocomplete():
@@ -222,7 +222,7 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         stdout = proc.stdout
         while 1:
-            line = u(stdout.readline())
+            line = console_to_str(stdout.readline())
             if not line:
                 break
             line = line.rstrip()
