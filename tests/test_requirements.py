@@ -1,7 +1,9 @@
 import textwrap
+from pip.backwardcompat import urllib
 from pip.req import Requirements
-from tests.test_pip import reset_env, run_pip, write_file, pyversion
+from tests.test_pip import reset_env, run_pip, write_file, pyversion, here
 from tests.local_repos import local_checkout
+from tests.path import Path
 
 def test_requirements_file():
     """
@@ -22,6 +24,19 @@ def test_requirements_file():
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[env.site_packages/fn].dir
 
+def test_relative_requirements_file():
+    """
+    Test installing from a requirements file with a relative path with an egg= definition..
+
+    """
+    url = 'file://' + str(urllib.quote(Path(here).abspath + '/packages/../packages/FSPkg') + '#egg=FSPkg').replace('\\', '/')
+    env = reset_env()
+    write_file('file-egg-req.txt', textwrap.dedent("""\
+        %s
+        """ % url))
+    result = run_pip('install', '-vvv', '-r', env.scratch_path / 'file-egg-req.txt')
+    assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
+    assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
 
 def test_multiple_requirements_files():
     """
