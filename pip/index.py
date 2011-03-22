@@ -578,13 +578,9 @@ class Link(object):
 
     @property
     def filename(self):
-        url = self.url
-        url = url.split('#', 1)[0]
-        url = url.split('?', 1)[0]
-        url = url.rstrip('/')
+        url = self.url_fragment
         name = posixpath.basename(url)
-        assert name, (
-            'URL %r produced no filename' % url)
+        assert name, ('URL %r produced no filename' % url)
         return name
 
     @property
@@ -597,6 +593,14 @@ class Link(object):
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))
+
+    @property
+    def url_fragment(self):
+        url = self.url
+        url = url.split('#', 1)[0]
+        url = url.split('?', 1)[0]
+        url = url.rstrip('/')
+        return url
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 
