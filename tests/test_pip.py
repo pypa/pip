@@ -126,14 +126,17 @@ class TestFailure(AssertionError):
 
 
 #
-# This cleanup routine prevents the __del__ method that cleans up the
-# tree of the last TestPipEnvironment from firing after shutil has
-# already been unloaded.
+# This cleanup routine prevents the __del__ method that cleans up the tree of
+# the last TestPipEnvironment from firing after shutil has already been
+# unloaded.  It also ensures that FastTestPipEnvironment doesn't leave an
+# environment hanging around that might confuse the next test run.
 #
 def _cleanup():
     global env
     del env
     rmtree(download_cache, ignore_errors=True)
+    rmtree(fast_test_env_root, ignore_errors=True)
+    rmtree(fast_test_env_backup, ignore_errors=True)
 
 atexit.register(_cleanup)
 
@@ -370,12 +373,16 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.close()
 
 
+fast_test_env_root = here / 'tests_cache' / 'test_ws'
+fast_test_env_backup = here / 'tests_cache' / 'test_ws_backup'
+
+
 class FastTestPipEnvironment(TestPipEnvironment):
     def __init__(self, environ=None):
         import virtualenv
 
-        self.root_path = here / 'tests_cache' / 'test_ws'
-        self.backup_path = here / 'tests_cache' / 'test_ws_backup'
+        self.root_path = fast_test_env_root
+        self.backup_path = fast_test_env_backup
 
         self.scratch_path = self.root_path / self.scratch
 
