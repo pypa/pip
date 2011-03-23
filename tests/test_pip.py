@@ -6,6 +6,8 @@ import shutil
 import glob
 import atexit
 import textwrap
+import site
+
 from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
@@ -18,6 +20,7 @@ here = Path(__file__).abspath.folder
 # the root of this pip source distribution
 src_folder = here.folder
 download_cache = tempfile.mkdtemp(prefix='pip-test-cache')
+site_packages_suffix = site.USER_SITE[len(site.USER_BASE) + 1:]
 
 
 def path_to_url(path):
@@ -301,7 +304,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
-        self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
+        self.user_site_path = self.venv_path/'user'/site_packages_suffix
 
         self.user_site = relpath(self.root_path, self.user_site_path)
         demand_dirs(self.user_site_path)
