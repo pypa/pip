@@ -1,7 +1,7 @@
 MANIFEST
 tests/test-scratch/*
 tests/test-cache/*
-tests/packages/FSPkg/FSPkg.egg-info/PKG-INFO
+tests/packages/FSPkg/FSPkg.egg-info
 testenv
 pip.egg-info/*
 ScriptTest-*.egg
