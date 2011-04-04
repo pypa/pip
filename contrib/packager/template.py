@@ -40,7 +40,7 @@ if __name__ == "__main__":
         temp_dir = unpack(sources)
         sys.path.insert(0, temp_dir)
 
-        entry = "@ENTRY@"
+        entry = """@ENTRY@"""
         do_exec(entry, locals())
     finally:
         shutil.rmtree(temp_dir)
