@@ -5,7 +5,7 @@ News / Changelog
 ---
 
 * Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
-  Hightower, and Alex Grönholm, among others.
+  Hightower, and Alex Gronholm, among others.
 
 * Download progress only shown on a real TTY. Thanks Alex Morega.
 
