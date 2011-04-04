@@ -1,7 +1,7 @@
 Installation instructions
 =========================
 
-The recommended way to use pip is within `<virtualenv
+The recommended way to use pip is within `virtualenv
 <http://www.virtualenv.org>`_, since every virtualenv has pip installed in it
 automatically. This does not require root access or modify your system Python
 installation. For instance::
