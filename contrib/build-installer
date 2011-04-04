@@ -5,11 +5,14 @@ import sys
 from packager import generate_script
 
 here = os.path.dirname(os.path.abspath(__file__))
-file_name = os.path.join(here, 'run-pip.py')
+file_name = os.path.join(here, 'install-pip.py')
 
 def main():
-    sys.stdout.write("Creating standalone pip...")
-    script = generate_script('import pip; pip.main()', ['pip'])
+    sys.stdout.write("Creating pip bootstrapper...")
+    script = generate_script(
+        entry='import pip; pip.bootstrap()',
+        packages=['pip'],
+    )
     with open(file_name, 'w') as f:
         f.write(script)
     sys.stdout.write('done.\n')
