@@ -1,6 +1,23 @@
 Installation instructions
 =========================
 
+Prerequisites
+-------------
+
+Prior to installing pip make sure you have either
+`setuptools <http://pypi.python.org/pypi/setuptools>`_ or its more up to
+date fork `distribute <http://pypi.python.org/pypi/distribute>`_ installed.
+Please consult your operating system's package manager or install it
+manually::
+
+    $ curl -O http://python-distribute.org/distribute_setup.py
+    $ python distribute_setup.py
+
+.. warning::
+
+    In case you are using Python 3.X you **have** to use distribute since
+    setuptools doesn't support Python 3.X.
+
 Using installer
 ---------------
 
@@ -11,11 +28,6 @@ and execute it, using the Python interpreter of your choice::
     $ python get-pip.py
 
 This may have to be run as root.
-
-.. note::
-
-    Make sure you have `distribute <http://pypi.python.org/pypi/distribute>`_
-    installed before using the installer!
 
 Using source
 ------------
