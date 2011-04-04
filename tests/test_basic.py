@@ -7,6 +7,8 @@ from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
 
+from pip.util import rmtree
+
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file)
 from tests.local_repos import local_checkout
@@ -302,6 +304,10 @@ def test_install_curdir():
     """
     env = reset_env()
     run_from = abspath(join(here, 'packages', 'FSPkg'))
+    # Python 2.4 Windows balks if this exists already
+    egg_info = join(run_from, "FSPkg.egg-info")
+    if os.path.isdir(egg_info):
+        rmtree(egg_info)
     result = run_pip('install', curdir, cwd=run_from, expect_error=False)
     fspkg_folder = env.site_packages/'fspkg'
     egg_info_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion

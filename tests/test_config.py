@@ -23,13 +23,13 @@ def test_command_line_options_override_env_vars():
 
     """
     environ = clear_environ(os.environ.copy())
-    environ['PIP_INDEX_URL'] = 'http://pypi.appspot.com/'
+    environ['PIP_INDEX_URL'] = 'http://b.pypi.python.org/simple/'
     reset_env(environ)
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page http://pypi.appspot.com/INITools" in result.stdout
+    assert "Getting page http://b.pypi.python.org/simple/INITools" in result.stdout
     reset_env(environ)
     result = run_pip('install', '-vvv', '--index-url', 'http://download.zope.org/ppix', 'INITools', expect_error=True)
-    assert "http://pypi.appspot.com/INITools" not in result.stdout
+    assert "b.pypi.python.org" not in result.stdout
     assert "Getting page http://download.zope.org/ppix" in result.stdout
 
 

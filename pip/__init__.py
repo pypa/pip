@@ -7,7 +7,7 @@ import sys
 import re
 import difflib
 
-from pip.backwardcompat import u, walk_packages
+from pip.backwardcompat import u, walk_packages, console_to_str
 from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
@@ -227,7 +227,7 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         stdout = proc.stdout
         while 1:
-            line = u(stdout.readline())
+            line = console_to_str(stdout.readline())
             if not line:
                 break
             line = line.rstrip()

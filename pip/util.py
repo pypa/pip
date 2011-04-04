@@ -24,7 +24,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'cache_download', 'unpack_file']
 
 
-def rmtree(dir, ignore_errors=True):
+def rmtree(dir, ignore_errors=False):
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -34,8 +34,10 @@ def rmtree_errorhandler(func, path, exc_info):
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
     exctype, value = exc_info[:2]
-    # lookin for a windows error
-    if exctype is not WindowsError or 'Access is denied' not in str(value):
+    # On Python 2.4, it will be OSError number 13
+    # On all more recent Pythons, it'll be WindowsError number 5
+    if not ((exctype is WindowsError and value.args[0] == 5) or
+            (exctype is OSError and value.args[0] == 13)):
         raise
     # file type should currently be read only
     if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
