@@ -10,8 +10,11 @@ file_name = os.path.join(here, 'run-pip.py')
 def main():
     sys.stdout.write("Creating standalone pip...")
     script = generate_script('import pip; pip.main()', ['pip'])
-    with open(file_name, 'w') as f:
+    f = open(file_name, 'w')
+    try:
         f.write(script)
+    finally:
+        f.close()
     sys.stdout.write('done.\n')
     if hasattr(os, 'chmod'):
         oldmode = os.stat(file_name).st_mode & 07777

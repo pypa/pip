@@ -9,12 +9,12 @@ file_name = os.path.join(here, 'get-pip.py')
 
 def main():
     sys.stdout.write("Creating pip bootstrapper...")
-    script = generate_script(
-        entry='import pip; pip.bootstrap()',
-        packages=['pip'],
-    )
-    with open(file_name, 'w') as f:
+    script = generate_script('import pip; pip.bootstrap()', ['pip'])
+    f = open(file_name, 'w')
+    try:
         f.write(script)
+    finally:
+        f.close()
     sys.stdout.write('done.\n')
     if hasattr(os, 'chmod'):
         oldmode = os.stat(file_name).st_mode & 07777
