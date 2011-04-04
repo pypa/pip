@@ -1,5 +1,5 @@
-News for pip
-============
+News / Changelog
+================
 
 1.0
 ---

@@ -1,5 +1,5 @@
-Installing pip
-==============
+Installation instructions
+=========================
 
 Using installer
 ---------------
