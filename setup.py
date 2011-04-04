@@ -1,27 +1,25 @@
-import codecs
-import os
 import sys
-
+import os
 from setuptools import setup
 
 # If you change this version, change it also in docs/conf.py
 version = "1.0"
+
 doc_dir = os.path.join(os.path.dirname(__file__), "docs")
-
-def read(filename):
-    if sys.version_info >= (3,):
-        unicode = str
-    filename = os.path.join(doc_dir, filename)
-    return unicode(codecs.open(filename, encoding='utf-8').read())
-
+index_filename = os.path.join(doc_dir, "index.txt")
+news_filename = os.path.join(doc_dir, "news.txt")
 long_description = """\
 The main website for pip is `www.pip-installer.org
 <http://www.pip-installer.org>`_.  You can also install
 the `in-development version <https://github.com/pypa/pip/tarball/master#egg=pip-dev>`_
 of pip with ``easy_install pip==dev``.
 """
-long_description += read("index.txt").split("split here", 1)[1]
-long_description += "\n\n" + read("news.txt")
+f = open(index_filename)
+long_description += f.read().split("split here", 1)[1]
+f.close()
+f = open(news_filename)
+long_description += "\n\n" + f.read()
+f.close()
 
 setup(name="pip",
       version=version,
