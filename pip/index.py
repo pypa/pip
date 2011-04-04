@@ -283,6 +283,11 @@ class PackageFinder(object):
             egg_info = link.egg_fragment
         else:
             egg_info, ext = link.splitext()
+            # for some reason filename is double url quoted at this point
+            if (os.path.basename(egg_info).startswith('http')
+                    and '%252F' in egg_info):
+                logger.debug('resolving egg info from cache link: %s' % link)
+                egg_info = egg_info.split('%252F')[-1]
             if not ext:
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; not a file' % link)
