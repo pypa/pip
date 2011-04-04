@@ -44,11 +44,8 @@ setup(name="pip",
       author_email='python-virtualenv@groups.google.com',
       url='http://www.pip-installer.org',
       license='MIT',
-      dependency_links=[
-          'https://github.com/pypa/virtualenv/tarball/master#egg=virtualenv-1.5.2.post2',
-          ],
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv==1.5.2.post2', 'scripttest==1.1.1', 'mock'],
+      tests_require=['nose', 'virtualenv>=1.6', 'scripttest==1.1.1', 'mock'],
       zip_safe=False)
