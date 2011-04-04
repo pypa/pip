@@ -31,7 +31,7 @@ This may have to be run as root.
 
 Using source
 ------------
-You can find the source on PyPi: http://pypi.python.org/pypi/pip::
+You can find the source on PyPI: http://pypi.python.org/pypi/pip::
 
     $ tar xvfz pip-*.*.*.tar.gz
     $ cd pip-*.*.*
