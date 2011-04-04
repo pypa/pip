@@ -1,8 +1,8 @@
 News for pip
 ============
 
-tip (unreleased)
-----------------
+1.0
+---
 
 * Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
   Hightower, and Alex Grönholm, among others.
