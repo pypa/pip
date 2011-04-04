@@ -5,7 +5,7 @@ import sys
 from packager import generate_script
 
 here = os.path.dirname(os.path.abspath(__file__))
-file_name = os.path.join(here, 'install-pip.py')
+file_name = os.path.join(here, 'get-pip.py')
 
 def main():
     sys.stdout.write("Creating pip bootstrapper...")

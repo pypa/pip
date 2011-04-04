@@ -1,11 +1,21 @@
 Installing pip
 ==============
 
-Using easy_install
-------------------
-This may have to be run as root. ::
+Using installer
+---------------
 
-    $ easy_install -U pip
+Download `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+and execute it, using the Python interpreter of your choice::
+
+    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ python get-pip.py
+
+This may have to be run as root.
+
+.. note::
+
+    Make sure you have `distribute <http://pypi.python.org/pypi/distribute>`_
+    installed before using the installer!
 
 Using source
 ------------
