@@ -77,7 +77,17 @@ class PackageFinder(object):
                 urls.append(url)
             else:
                 files.append(url)
-
+        if 'cache' in locations:
+            # special keyword to include cache dir in --find-links
+            # this resolution could go several places, perhaps should be in
+            # command?
+            try:
+                cache = os.environ['PIP_DOWNLOAD_CACHE']
+            except KeyError:
+                raise ValueError("cache specified as --find-link but no "\
+                        + "download cache specified")
+            logger.debug("adding download cache to find-links locations")
+            locations[locations.index('cache')] = 'file://%s' % cache
         for url in locations:
             if url.startswith('file:'):
                 path = url_to_path(url)
