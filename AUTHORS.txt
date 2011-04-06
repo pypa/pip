@@ -1,8 +1,10 @@
 Alex Grönholm
+Alex Morega
 Alexandre Conrad
 Armin Ronacher
 Brian Rosner
 Carl Meyer
+Christian Oudard
 Cody Soyland
 Daniel Holth
 Dave Abrahams
@@ -31,4 +33,5 @@ Ronny Pfannschmidt
 Simon Cross
 Thomas Johansson
 Vinay Sajip
+Vitaly Babiy
 Wil Tan

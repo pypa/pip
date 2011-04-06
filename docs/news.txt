@@ -1,11 +1,11 @@
-News for pip
-============
+News / Changelog
+================
 
-tip (unreleased)
-----------------
+1.0
+---
 
 * Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
-  Hightower, and Alex Grönholm, among others.
+  Hightower, and Alex Gronholm, among others.
 
 * Download progress only shown on a real TTY. Thanks Alex Morega.
 
@@ -15,6 +15,19 @@ tip (unreleased)
 * Fixed uninstall of packages from system Python for users of Debian/Ubuntu
   python-setuptools package (workaround until fixed in Debian and Ubuntu).
 
+* Added `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+  installer. Simple download and execute it, using the Python interpreter of
+  your choice::
+
+    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ python get-pip.py
+
+  This may have to be run as root.
+
+  .. note::
+
+      Make sure you have `distribute <http://pypi.python.org/pypi/distribute>`_
+      installed before using the installer!
 
 0.8.3
 -----
