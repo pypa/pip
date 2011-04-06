@@ -26,3 +26,12 @@ Now we can install from the repo::
 
     $ cd pip
     $ python setup.py install # may need to be root
+
+Dependencies
+------------
+
+Installing pip requires setuptools.
+
+Running pip requires setuptools and pkg_resources.  In addition, if
+you use the --environment (-E) option to create virtualenvs, virtualenv
+must be installed.
