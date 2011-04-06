@@ -69,8 +69,10 @@ Now we can install from the repo::
 Dependencies
 ------------
 
-Installing pip requires setuptools.
+As noted above, installing pip requires setuptools or distribute.
 
-Running pip requires setuptools and pkg_resources.  In addition, if
-you use the --environment (-E) option to create virtualenvs, virtualenv
-must be installed.
+Running pip requires the `setuptools` and `pkg_resources` modules,
+both provided by the setuptools or distribute packages.  In addition,
+if you use the --environment (-E) option to create virtualenvs, the
+`virtualenv` module must be available.  It is provided by the virtualenv
+package.
