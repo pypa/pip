@@ -7,12 +7,12 @@ import sys
 import re
 import difflib
 
+from pip.backwardcompat import u, walk_packages, console_to_str
 from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
-from pip.backwardcompat import u, walk_packages, console_to_str
 
 
 def autocomplete():
@@ -115,6 +115,11 @@ def main(initial_args=None):
     command = command_dict[command]
     return command.main(initial_args, args[1:], options)
 
+def bootstrap():
+    """
+    Bootstrapping function to be called from install-pip.py script.
+    """
+    return main(['install', '--upgrade', 'pip'])
 
 ############################################################
 ## Writing freeze files

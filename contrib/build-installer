@@ -5,7 +5,7 @@ import sys
 from packager import generate_script
 
 here = os.path.dirname(os.path.abspath(__file__))
-file_name = os.path.join(here, 'run-pip.py')
+file_name = os.path.join(here, 'get-pip.py')
 
 entry = """
 import sys
@@ -16,11 +16,11 @@ except ImportError:
     raise SystemExit("An error occured while trying to run %s. Make sure "
                      "you have setuptools or distribute installed." % __file__)
 import pip
-pip.main()
+pip.bootstrap()
 """
 
 def main():
-    sys.stdout.write("Creating standalone pip...")
+    sys.stdout.write("Creating pip bootstrapper...")
     script = generate_script(entry, ['pip'])
     f = open(file_name, 'w')
     try:

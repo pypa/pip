@@ -1,22 +1,61 @@
-Installing pip
-==============
+Installation instructions
+=========================
 
-Using easy_install
-------------------
-This may have to be run as root. ::
+The recommended way to use pip is within `virtualenv
+<http://www.virtualenv.org>`_, since every virtualenv has pip installed in it
+automatically. This does not require root access or modify your system Python
+installation. For instance::
 
-    $ easy_install -U pip
+    $ curl -O https://github.com/pypa/virtualenv/blob/master/virtualenv.py
+    $ python virtualenv.py my_new_env
+    $ . my_new_env/bin/activate
+    (my_new_env)$ pip install ...
 
-Using source
-------------
-You can find the source on PyPi: http://pypi.python.org/pypi/pip::
+If you do want to install pip globally into your Python installation, see the
+instructions below.
 
-    $ tar xvfz pip-*.*.*.tar.gz
-    $ cd pip-*.*.*
+Prerequisites
+-------------
+
+Prior to installing pip make sure you have either `setuptools
+<http://pypi.python.org/pypi/setuptools>`_ or `distribute
+<http://pypi.python.org/pypi/distribute>`_ installed.  Please consult your
+operating system's package manager or install it manually::
+
+    $ curl -O http://python-distribute.org/distribute_setup.py
+    $ python distribute_setup.py
+
+.. warning::
+
+    If you are using Python 3.X you **must** use distribute; setuptools doesn't
+    support Python 3.X.
+
+Using the installer
+-------------------
+
+Download `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+and execute it, using the Python interpreter of your choice::
+
+    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ python get-pip.py
+
+This may have to be run as root.
+
+Alternative installation procedures
+-----------------------------------
+
+Using the source distribution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can find the source on `PyPI <http://pypi.python.org/pypi/pip>`_::
+
+    $ curl -O http://pypi.python.org/packages/source/p/pip/pip-1.0.tar.gz
+    $ tar xvfz pip-1.0.tar.gz
+    $ cd pip-1.0
     $ python setup.py install # may need to be root
 
-Installing development version
-------------------------------
+Installing the development version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First you will need to clone the git repo::
 

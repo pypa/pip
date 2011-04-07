@@ -3,7 +3,7 @@ import os
 from setuptools import setup
 
 # If you change this version, change it also in docs/conf.py
-version = "1.0.0.pre1"
+version = "1.0"
 
 doc_dir = os.path.join(os.path.dirname(__file__), "docs")
 index_filename = os.path.join(doc_dir, "index.txt")
@@ -23,11 +23,10 @@ f.close()
 
 setup(name="pip",
       version=version,
-      description="pip installs packages.  Python packages.  An easy_install replacement",
+      description="pip installs packages. Python packages. An easy_install replacement",
       long_description=long_description,
       classifiers=[
-        'Development Status :: 4 - Beta',
-        #'Development Status :: 5 - Production/Stable',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Topic :: Software Development :: Build Tools',
@@ -45,11 +44,8 @@ setup(name="pip",
       author_email='python-virtualenv@groups.google.com',
       url='http://www.pip-installer.org',
       license='MIT',
-      dependency_links=[
-          'https://github.com/pypa/virtualenv/tarball/master#egg=virtualenv-1.5.2.post2',
-          ],
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv==1.5.2.post2', 'scripttest==1.1.1', 'mock'],
+      tests_require=['nose', 'virtualenv>=1.6', 'scripttest==1.1.1', 'mock'],
       zip_safe=False)
