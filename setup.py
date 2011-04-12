@@ -11,7 +11,7 @@ news_filename = os.path.join(doc_dir, "news.txt")
 long_description = """\
 The main website for pip is `www.pip-installer.org
 <http://www.pip-installer.org>`_.  You can also install
-the `in-development version <https://github.com/pypa/pip/tarball/master#egg=pip-dev>`_
+the `in-development version <https://github.com/pypa/pip/tarball/develop#egg=pip-dev>`_
 of pip with ``easy_install pip==dev``.
 """
 f = open(index_filename)

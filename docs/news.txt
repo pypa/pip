@@ -1,6 +1,11 @@
 News / Changelog
 ================
 
+HEAD
+----
+
+* Start to use git-flow.
+
 1.0
 ---
 
