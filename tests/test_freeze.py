@@ -113,28 +113,28 @@ def test_freeze_mercurial_clone():
     reset_env()
     env = get_env()
     result = env.run('hg', 'clone',
-                     '-r', 'f8f7eaf275c5',
-                     local_repo('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
-                     'django-dbtemplates')
+                     '-r', '7bc186caa7dc',
+                     local_repo('hg+http://bitbucket.org/jezdez/django-authority'),
+                     'django-authority')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'django-dbtemplates')
+            cwd=env.scratch_path/'django-authority')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@...#egg=django_dbtemplates-...
-        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
+        -e %s@...#egg=django_authority-...
+        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s#egg=django_dbtemplates' % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
+                     '%s#egg=django_authority' % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
+        Script result: ...pip freeze -f %(repo)s#egg=django_authority
         -- stdout: --------------------
-        -f %(repo)s#egg=django_dbtemplates
-        -e %(repo)s@...#egg=django_dbtemplates-dev
-        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
+        -f %(repo)s#egg=django_authority
+        -e %(repo)s@...#egg=django_authority-dev
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
     _check_output(result, expected)
 
 
