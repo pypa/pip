@@ -16,7 +16,7 @@ class Subversion(VersionControl):
     name = 'svn'
     dirname = '.svn'
     repo_name = 'checkout'
-    schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https')
+    schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn')
     bundle_file = 'svn-checkout.txt'
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
             'svn checkout --force -r %(rev)s %(url)s .\n')

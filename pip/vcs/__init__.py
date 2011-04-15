@@ -14,7 +14,7 @@ __all__ = ['vcs', 'get_src_requirement']
 
 class VcsSupport(object):
     _registry = {}
-    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
+    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
         # Register more schemes with urlparse for various version control systems
