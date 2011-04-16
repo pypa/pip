@@ -117,7 +117,7 @@ def test_freeze_mercurial_clone():
                      local_repo('hg+http://bitbucket.org/jezdez/django-authority'),
                      'django-authority')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'django-authority')
+            cwd=env.scratch_path/'django-authority', expect_stderr=True)
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
