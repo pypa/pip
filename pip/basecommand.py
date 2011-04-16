@@ -134,6 +134,10 @@ class Command(object):
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
+        except KeyboardInterrupt:
+            logger.fatal('Operation cancelled by user')
+            logger.info('Exception information:\n%s' % format_exc())
+            exit = 1
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             exit = 2
