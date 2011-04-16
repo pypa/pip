@@ -50,6 +50,17 @@ def test_search():
     assert 'pip installs packages' in output.stdout
 
 
+def test_multiple_search():
+    """
+    End to end test of search command.
+
+    """
+    reset_env()
+    output = run_pip('search', 'pip', 'virtualenv')
+    assert 'pip installs packages' in output.stdout
+    assert 'Virtual Python Environment builder' in output.stdout
+
+
 def test_searching_through_Search_class():
     """
     Verify if ``pip.vcs.Search`` uses tests xmlrpclib.Transport class
