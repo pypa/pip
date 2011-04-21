@@ -350,10 +350,9 @@ def _download_url(resp, link, temp_location):
         total_length = 0
     downloaded = 0
     show_progress = total_length > 40*1000 or not total_length
-    show_url = link.show_url
+    show_url = link.url
     try:
         if show_progress:
-            ## FIXME: the URL can get really long in this message:
             if total_length:
                 logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
             else:

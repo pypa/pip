@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import mimetypes
+import operator
 import threading
 import posixpath
 import pkg_resources
@@ -47,6 +48,10 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
+
+        all_origins = self.index_urls + self.mirror_urls + self.find_links
+        self.origin_preferences = dict([(e[1], e[0]) for e in enumerate(all_origins)])
+        logger.debug('Origin preferences: %s' % self.origin_preferences)
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -163,9 +168,18 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            applicable_versions.append((link, version))
-        applicable_versions = sorted(applicable_versions, key=lambda v: pkg_resources.parse_version(v[1]), reverse=True)
-        existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
+            preference = None
+            for origin in self.origin_preferences.keys():
+                link_url = link.comes_from and link.comes_from.url or link.url
+                if link_url.startswith(origin):
+                    preference = self.origin_preferences[origin]
+                    break
+            applicable_versions.append((link, version, parsed_version, preference))
+        # sort applicable_versions by origin preference
+        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(3))
+        # and then by version
+        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(2), reverse=True)
+        existing_applicable = bool([link for link, version, parsed_version, preference in applicable_versions if link is Inf])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is Inf:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
@@ -184,8 +198,8 @@ class PackageFinder(object):
                         % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
             return None
         if len(applicable_versions) > 1:
-            logger.info('Using version %s (newest of versions: %s)' %
-                        (applicable_versions[0][1], ', '.join([version for link, version in applicable_versions])))
+            logger.info('Using version %s from %s (newest of versions:\n    %s\n  )' %
+                        (applicable_versions[0][1], applicable_versions[0][0].url, '\n    '.join([str(version) for version in applicable_versions])))
         return applicable_versions[0][0]
 
     def _find_url_name(self, index_url, url_name, req):
