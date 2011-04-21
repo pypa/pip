@@ -6,8 +6,9 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
+from mock import Mock, patch
 
-from pip.util import rmtree
+from pip.util import rmtree, find_command
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file)
@@ -521,6 +522,30 @@ def test_find_command_folder_in_path():
     mkdir(path_one/'foo')
     mkdir('path_two'); path_two = env.scratch_path/'path_two'
     write_file(path_two/'foo', '# nothing')
-    from pip.util import find_command
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
+
+@patch('os.path.isfile')
+def test_find_command_trys_all_pathext(mock_isfile):
+    """
+    If no pathext should check default list of extensions, if file does not
+    exist.
+    """
+    mock_isfile.return_value = False
+    old_sep = os.pathsep
+    os.pathsep = ':'
+
+    mock_isfile.start()
+
+    found_path = find_command('foo', 'path_one')
+
+    paths = [ 'path_one/foo.com', 'path_one/foo.exe', 'path_one/foo.bat', 
+              'path_one/foo.cmd', 'path_one/foo' ]
+
+    # TODO(pnasrat): Can we improve this
+    expected = [ ((p,),) for p in paths ]
+    assert found_path is None, "Should not find path"
+    assert mock_isfile.call_args_list == expected, "%s" % (mock_isfile.call_args_list,)
+
+    mock_isfile.stop()
+    os.pathsep = old_sep
