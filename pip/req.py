@@ -752,12 +752,12 @@ class Requirements(object):
 
     def __contains__(self, item):
         return item in self._keys
-    
+
     def __setitem__(self, key, value):
         if key not in self._keys:
             self._keys.append(key)
         self._dict[key] = value
-    
+
     def __getitem__(self, key):
         return self._dict[key]
 
@@ -1054,10 +1054,11 @@ class RequirementSet(object):
 
     def copy_to_build_dir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
-        logger.info("Copying %s to %s" %(req_to_install.name, target_dir))
+        logger.info("Copying %s to %s" % (req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
         copytree(req_to_install.source_dir, dest)
-        call_subprocess(["python", "%s/setup.py"%dest, "clean"])
+        call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
+                        command_desc='python setup.py clean')
 
     def unpack_url(self, link, location, only_download=False):
         if only_download:
@@ -1077,7 +1078,7 @@ class RequirementSet(object):
                       if self.upgrade or not r.satisfied_by]
 
         if to_install:
-            logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
+            logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
         logger.indent += 2
         try:
             for requirement in to_install:
