@@ -541,7 +541,7 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
     found_path = find_command('foo', 'path_one')
 
-    paths = [ 'path_one/foo.com', 'path_one/foo.exe', 'path_one/foo' ]
+    paths = [ os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
     assert found_path is None, "Should not find path"
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
@@ -564,7 +564,7 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     pathext = os.pathsep.join([".RUN", ".CMD"])
     found_path = find_command('foo', 'path_one', pathext)
 
-    paths = [ 'path_one/foo.run', 'path_one/foo.cmd', 'path_one/foo' ]
+    paths = [ os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
     assert found_path is None, "Should not find path"
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
