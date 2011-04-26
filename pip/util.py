@@ -76,8 +76,7 @@ def find_command(cmd, paths=None, pathext=None):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
-        default_pathext = os.pathsep.join([ '.COM', '.EXE', '.BAT', '.CMD' ])
-        pathext = os.environ.get('PATHEXT', default_pathext)
+        pathext = get_pathext()
     pathext = [ext for ext in pathext.lower().split(os.pathsep)]
     # don't use extensions if the command ends with one of them
     if os.path.splitext(cmd)[1].lower() in pathext:
@@ -95,6 +94,12 @@ def find_command(cmd, paths=None, pathext=None):
             return cmd_path
     return None
 
+def get_pathext(default_pathext=None):
+    """Returns the path extensions from environment or a default"""
+    if default_pathext is None:
+        default_pathext = os.pathsep.join([ '.COM', '.EXE', '.BAT', '.CMD' ])
+    pathext = os.environ.get('PATHEXT', default_pathext)
+    return pathext
 
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
