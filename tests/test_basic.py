@@ -525,8 +525,9 @@ def test_find_command_folder_in_path():
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
 
+@patch('pip.util.get_pathext')
 @patch('os.path.isfile')
-def test_find_command_trys_all_pathext(mock_isfile):
+def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     """
     If no pathext should check default list of extensions, if file does not
     exist.
@@ -536,12 +537,37 @@ def test_find_command_trys_all_pathext(mock_isfile):
     old_sep = os.pathsep
     os.pathsep = ':'
 
+    getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
+
     found_path = find_command('foo', 'path_one')
 
-    paths = [ 'path_one/foo.com', 'path_one/foo.exe', 'path_one/foo.bat', 
-              'path_one/foo.cmd', 'path_one/foo' ]
+    paths = [ 'path_one/foo.com', 'path_one/foo.exe', 'path_one/foo' ]
     expected = [ ((p,),) for p in paths ]
     assert found_path is None, "Should not find path"
-    assert mock_isfile.call_args_list == expected, "%s" % (mock_isfile.call_args_list,)
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert getpath_mock.called, "Should call get_pathext"
+
+    os.pathsep = old_sep
+
+@patch('pip.util.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
+    """
+    If pathext supplied find_command should use all of its list of extensions to find file.
+    """
+    mock_isfile.return_value = False
+    # Patching os.pathsep failed on type checking
+    old_sep = os.pathsep
+    os.pathsep = ':'
+    getpath_mock.return_value = ".FOO"
+
+    pathext = os.pathsep.join([".RUN", ".CMD"])
+    found_path = find_command('foo', 'path_one', pathext)
+
+    paths = [ 'path_one/foo.run', 'path_one/foo.cmd', 'path_one/foo' ]
+    expected = [ ((p,),) for p in paths ]
+    assert found_path is None, "Should not find path"
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert not getpath_mock.called, "Should not call get_pathext"
 
     os.pathsep = old_sep
