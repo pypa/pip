@@ -6,6 +6,7 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
+from nose.tools import assert_raises
 from mock import Mock, patch
 
 from pip.util import rmtree, find_command
@@ -530,7 +531,6 @@ def test_does_not_find_command_because_there_is_no_path():
     """
     Test calling `pip.utils.find_command` when there is no PATH env variable
     """
-    from pip.util import find_command
     environ_before = os.environ
     os.environ = {}
     try:
@@ -557,11 +557,10 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
     getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
 
-    found_path = find_command('foo', 'path_one')
-
     paths = [ os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
-    assert found_path is None, "Should not find path"
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one')
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert getpath_mock.called, "Should call get_pathext"
 
@@ -580,11 +579,11 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     getpath_mock.return_value = ".FOO"
 
     pathext = os.pathsep.join([".RUN", ".CMD"])
-    found_path = find_command('foo', 'path_one', pathext)
 
     paths = [ os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
-    assert found_path is None, "Should not find path"
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
 
