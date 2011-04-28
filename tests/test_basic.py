@@ -560,11 +560,12 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     paths = [ os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one')
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert getpath_mock.called, "Should call get_pathext"
-
-    os.pathsep = old_sep
+    try:
+        assert_raises(BadCommand, find_command, 'foo', 'path_one')
+        assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+        assert getpath_mock.called, "Should call get_pathext"
+    finally:
+        os.pathsep = old_sep
 
 @patch('pip.util.get_pathext')
 @patch('os.path.isfile')
@@ -583,8 +584,9 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     paths = [ os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert not getpath_mock.called, "Should not call get_pathext"
-
-    os.pathsep = old_sep
+    try:
+        assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+        assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+        assert not getpath_mock.called, "Should not call get_pathext"
+    finally:
+        os.pathsep = old_sep
