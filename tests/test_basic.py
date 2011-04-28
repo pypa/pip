@@ -6,9 +6,11 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
+from nose.tools import assert_raises
 from mock import Mock, patch
 
 from pip.util import rmtree, find_command
+from pip.exceptions import BadCommand
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file)
@@ -525,6 +527,22 @@ def test_find_command_folder_in_path():
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
 
+def test_does_not_find_command_because_there_is_no_path():
+    """
+    Test calling `pip.utils.find_command` when there is no PATH env variable
+    """
+    environ_before = os.environ
+    os.environ = {}
+    try:
+        find_command('anycommand')
+    except BadCommand:
+        e = sys.exc_info()[1]
+        assert e.args == ("Cannot find command 'anycommand'",)
+    else:
+        raise AssertionError("`find_command` should raise `BadCommand`")
+    finally:
+        os.environ = environ_before
+
 @patch('pip.util.get_pathext')
 @patch('os.path.isfile')
 def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
@@ -539,15 +557,15 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
     getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
 
-    found_path = find_command('foo', 'path_one')
-
     paths = [ os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
-    assert found_path is None, "Should not find path"
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert getpath_mock.called, "Should call get_pathext"
 
-    os.pathsep = old_sep
+    try:
+        assert_raises(BadCommand, find_command, 'foo', 'path_one')
+        assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+        assert getpath_mock.called, "Should call get_pathext"
+    finally:
+        os.pathsep = old_sep
 
 @patch('pip.util.get_pathext')
 @patch('os.path.isfile')
@@ -562,12 +580,13 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     getpath_mock.return_value = ".FOO"
 
     pathext = os.pathsep.join([".RUN", ".CMD"])
-    found_path = find_command('foo', 'path_one', pathext)
 
     paths = [ os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo'] ]
     expected = [ ((p,),) for p in paths ]
-    assert found_path is None, "Should not find path"
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert not getpath_mock.called, "Should not call get_pathext"
 
-    os.pathsep = old_sep
+    try:
+        assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+        assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+        assert not getpath_mock.called, "Should not call get_pathext"
+    finally:
+        os.pathsep = old_sep
