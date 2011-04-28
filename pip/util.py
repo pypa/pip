@@ -7,7 +7,7 @@ import posixpath
 import pkg_resources
 import zipfile
 import tarfile
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
 from pip.locations import site_packages, running_under_virtualenv
 from pip.log import logger
@@ -71,7 +71,7 @@ def backup_dir(dir, ext='.bak'):
 def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
     if paths is None:
-        paths = os.environ.get('PATH', []).split(os.pathsep)
+        paths = os.environ.get('PATH', '').split(os.pathsep)
     if isinstance(paths, string_types):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
@@ -92,7 +92,8 @@ def find_command(cmd, paths=None, pathext=None):
                 return cmd_path_ext
         if os.path.isfile(cmd_path):
             return cmd_path
-    return None
+    raise BadCommand('Cannot find command %r' % cmd)
+
 
 def get_pathext(default_pathext=None):
     """Returns the path extensions from environment or a default"""

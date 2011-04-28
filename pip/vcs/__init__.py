@@ -4,7 +4,6 @@ import os
 import shutil
 
 from pip.backwardcompat import urlparse, urllib
-from pip.exceptions import BadCommand
 from pip.log import logger
 from pip.util import display_path, backup_dir, find_command, ask, rmtree
 
@@ -106,8 +105,6 @@ class VersionControl(object):
         if self._cmd is not None:
             return self._cmd
         command = find_command(self.name)
-        if command is None:
-            raise BadCommand('Cannot find command %r' % self.name)
         logger.info('Found command %r at %r' % (self.name, command))
         self._cmd = command
         return command

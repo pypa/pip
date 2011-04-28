@@ -9,6 +9,7 @@ from nose import SkipTest
 from mock import Mock, patch
 
 from pip.util import rmtree, find_command
+from pip.exceptions import BadCommand
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file)
@@ -524,6 +525,23 @@ def test_find_command_folder_in_path():
     write_file(path_two/'foo', '# nothing')
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
+
+def test_does_not_find_command_because_there_is_no_path():
+    """
+    Test calling `pip.utils.find_command` when there is no PATH env variable
+    """
+    from pip.util import find_command
+    environ_before = os.environ
+    os.environ = {}
+    try:
+        find_command('anycommand')
+    except BadCommand:
+        e = sys.exc_info()[1]
+        assert e.args == ("Cannot find command 'anycommand'",)
+    else:
+        raise AssertionError("`find_command` should raise `BadCommand`")
+    finally:
+        os.environ = environ_before
 
 @patch('pip.util.get_pathext')
 @patch('os.path.isfile')
