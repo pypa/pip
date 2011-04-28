@@ -5,6 +5,7 @@ HEAD
 ----
 
 * Start to use git-flow.
+* Fixed issue #274 - `find_command` should not raise AttributeError
 
 1.0
 ---
