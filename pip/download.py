@@ -331,7 +331,10 @@ def _check_md5(download_hash, link):
 def _get_md5_from_file(target_file, link):
     download_hash = md5()
     fp = open(target_file, 'rb')
-    for chunk in iter(lambda: fp.read(4096), ''):
+    while True:
+        chunk = fp.read(4096)
+        if not chunk:
+            break
         download_hash.update(chunk)
     fp.close()
     return download_hash
@@ -360,7 +363,10 @@ def _download_url(resp, link, temp_location):
             logger.notify('Downloading %s' % show_url)
         logger.debug('Downloading from URL %s' % link)
 
-        for chunk in iter(lambda: resp.read(4096), ''):
+        while True:
+            chunk = resp.read(4096)
+            if not chunk:
+                break
             downloaded += len(chunk)
             if show_progress:
                 if not total_length:
