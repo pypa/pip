@@ -534,12 +534,13 @@ def test_does_not_find_command_because_there_is_no_path():
     environ_before = os.environ
     os.environ = {}
     try:
-        find_command('anycommand')
-    except BadCommand:
-        e = sys.exc_info()[1]
-        assert e.args == ("Cannot find command 'anycommand'",)
-    else:
-        raise AssertionError("`find_command` should raise `BadCommand`")
+      try:
+          find_command('anycommand')
+      except BadCommand:
+          e = sys.exc_info()[1]
+          assert e.args == ("Cannot find command 'anycommand'",)
+      else:
+          raise AssertionError("`find_command` should raise `BadCommand`")
     finally:
         os.environ = environ_before
 
