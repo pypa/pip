@@ -27,7 +27,7 @@ class SearchCommand(Command):
         if not args:
             logger.warn('ERROR: Missing required argument (search query).')
             return
-        query = ' '.join(args)
+        query = args
         index_url = options.index
 
         pypi_hits = self.search(query, index_url)

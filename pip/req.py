@@ -73,28 +73,34 @@ class InstallRequirement(object):
         """
         url = None
         name = name.strip()
-        req = name
+        req = None
         path = os.path.normpath(os.path.abspath(name))
+        link = None
 
         if is_url(name):
-            url = name
-            ## FIXME: I think getting the requirement here is a bad idea:
-            #req = get_requirement_from_url(url)
-            req = None
+            link = Link(name)
         elif os.path.isdir(path) and (os.path.sep in name or name.startswith('.')):
             if not is_installable_dir(path):
-                raise InstallationError("Directory %r is not installable. File 'setup.py' not found."
-                                        % name)
-            url = path_to_url(name)
-            #req = get_requirement_from_url(url)
-            req = None
+                raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", name)
+            link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
-                logger.warn('Requirement %r looks like a filename, but the file does not exist'
-                            % name)
-            url = path_to_url(name)
-            #req = get_requirement_from_url(url)
-            req = None
+                logger.warn('Requirement %r looks like a filename, but the file does not exist', name)
+            link = Link(path_to_url(name))
+
+        # If the line has an egg= definition, but isn't editable, pull the requirement out.
+        # Otherwise, assume the name is the req for the non URL/path/archive case.
+        if link and req is None:
+          url = link.url_fragment
+          req = link.egg_fragment
+
+          # Handle relative file URLs
+          if link.scheme == 'file' and re.search(r'\.\./', url):
+            url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
+
+        else:
+          req = name
+
         return cls(req, comes_from, url=url)
 
     def __str__(self):
@@ -752,12 +758,12 @@ class Requirements(object):
 
     def __contains__(self, item):
         return item in self._keys
-    
+
     def __setitem__(self, key, value):
         if key not in self._keys:
             self._keys.append(key)
         self._dict[key] = value
-    
+
     def __getitem__(self, key):
         return self._dict[key]
 
@@ -1054,10 +1060,11 @@ class RequirementSet(object):
 
     def copy_to_build_dir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
-        logger.info("Copying %s to %s" %(req_to_install.name, target_dir))
+        logger.info("Copying %s to %s" % (req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
         copytree(req_to_install.source_dir, dest)
-        call_subprocess(["python", "%s/setup.py"%dest, "clean"])
+        call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
+                        command_desc='python setup.py clean')
 
     def unpack_url(self, link, location, only_download=False):
         if only_download:
@@ -1077,7 +1084,7 @@ class RequirementSet(object):
                       if self.upgrade or not r.satisfied_by]
 
         if to_install:
-            logger.notify('Installing collected packages: %s' % (', '.join([req.name for req in to_install])))
+            logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
         logger.indent += 2
         try:
             for requirement in to_install:

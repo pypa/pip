@@ -1,9 +1,10 @@
-import re
+import cgi
 import getpass
-import sys
-import os
 import mimetypes
+import os
+import re
 import shutil
+import sys
 import tempfile
 from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
                                 urlparse, string_types, HTTPError)
@@ -330,7 +331,7 @@ def _check_md5(download_hash, link):
 def _get_md5_from_file(target_file, link):
     download_hash = md5()
     fp = open(target_file, 'rb')
-    while 1:
+    while True:
         chunk = fp.read(4096)
         if not chunk:
             break
@@ -362,7 +363,7 @@ def _download_url(resp, link, temp_location):
             logger.notify('Downloading %s' % show_url)
         logger.debug('Downloading from URL %s' % link)
 
-        while 1:
+        while True:
             chunk = resp.read(4096)
             if not chunk:
                 break
@@ -416,7 +417,7 @@ def unpack_http_url(link, location, download_cache, only_download):
             create_download_cache_folder(download_cache)
     if (target_file
         and os.path.exists(target_file)
-        and os.path.exists(target_file+'.content-type')):
+        and os.path.exists(target_file + '.content-type')):
         fp = open(target_file+'.content-type')
         content_type = fp.read().strip()
         fp.close()
@@ -427,7 +428,14 @@ def unpack_http_url(link, location, download_cache, only_download):
     else:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info()['content-type']
-        filename = link.filename
+        filename = link.filename  # fallback
+        # Have a look at the Content-Disposition header for a better guess
+        content_disposition = resp.info().get('content-disposition')
+        if content_disposition:
+            type, params = cgi.parse_header(content_disposition)
+            # We use ``or`` here because we don't want to use an "empty" value
+            # from the filename param.
+            filename = params.get('filename') or filename
         ext = splitext(filename)[1]
         if not ext:
             ext = mimetypes.guess_extension(content_type)
@@ -465,6 +473,7 @@ def _get_response_from_url(target_url, link):
         logger.fatal("Error %s while getting %s" % (e, link))
         raise
     return resp
+
 
 class Urllib2HeadRequest(urllib2.Request):
     def get_method(self):

@@ -50,6 +50,17 @@ def test_search():
     assert 'pip installs packages' in output.stdout
 
 
+def test_multiple_search():
+    """
+    Test searching for multiple packages at once.
+
+    """
+    reset_env()
+    output = run_pip('search', 'pip', 'INITools')
+    assert 'pip installs packages' in output.stdout
+    assert 'Tools for parsing and using INI-style files' in output.stdout
+
+
 def test_searching_through_Search_class():
     """
     Verify if ``pip.vcs.Search`` uses tests xmlrpclib.Transport class

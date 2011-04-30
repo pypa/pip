@@ -7,6 +7,14 @@ All kinds of contributions are welcome - code, tests, documentation,
 bug reports, ideas, etc.
 
 
+Release Schedule
+================
+
+Minor releases of pip (e.g. 1.1, 1.2, 1.3...) occur every four months
+(beginning with the release of pip 1.0 on April 4, 2011). Two weeks before a
+scheduled release, a new branch ``release/X.Y`` is created for release testing
+and preparation. This branch is only open to bugfixes.
+
 .. _contributing-with-code:
 
 Contributing with Code
@@ -23,27 +31,44 @@ Log in to Github, go to the `pip repository page
 to copy the repository and then clone your fork, like::
 
     $ git clone https://github.com/YOU_USER_NAME/pip
-    
+
 Now you can change whatever you want, commit, push to your fork and when your
 contribution is done, follow the **pull request** link and send us a request
 explaining what you did and why.
 
+Branches
+--------
+
+Pip uses the `git-flow`_ branching model. The default branch on GitHub is
+``develop``, and all development work (new features and bugfixes) should happen
+in that branch. The ``master`` branch is stable, and reflects the last released
+state.
+
+.. _git-flow: http://nvie.com/posts/a-successful-git-branching-model/
 
 All tests should pass
 ---------------------
 
 Almost all changes to pip should be accompanied by automated tests -
 especially ones adding new behavior.
+
 `Nose`_ is used to find and run all tests. Take a look at :doc:`running-tests`
 to see what you need and how you should run the tests.
 
 Before sending us a pull request, please, be sure all tests pass.
 
+Supported Python versions
+-------------------------
 
-Using a Continuous Integration server
--------------------------------------
+Pip supports Python versions 2.4, 2.5, 2.6, 2.7, 3.1, and 3.2, from a single
+codebase (without use of 2to3 translation). Untested contributions frequently
+break Python 2.4 or 3.x compatibility. Please run the tests on at least 2.4 and
+3.2 and report your results when sending a pull request.
 
-We have a continuous integration server running all pip related tests at 
+Continuous Integration server
+-----------------------------
+
+We have a continuous integration server running all pip related tests at
 http://ci.cloudsilverlining.org/view/pip. But if you want to have your own,
 you can learn how to set up a Hudson CI server like that in the
 :doc:`ci-server-step-by-step` page.
