@@ -11,6 +11,7 @@ installation. For instance::
     $ . my_new_env/bin/activate
     (my_new_env)$ pip install ...
 
+When used in this manner, pip will only affect the active virtual environment.
 If you do want to install pip globally into your Python installation, see the
 instructions below.
 
