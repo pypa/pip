@@ -6,8 +6,8 @@ Next release (1.1) schedule
 
 Beta release mid-July 2011, final release early August.
 
-develop
--------
+1.0.1 (2011-04-30)
+------------------
 
 * Start to use git-flow.
 * Fixed issue #274 - `find_command` should not raise AttributeError
@@ -15,6 +15,7 @@ develop
 * Fixed issue #233 - pathext handling on Windows.
 * Fixed issue #252 - svn+svn protocol.
 * Fixed issue #44 - multiple CLI searches.
+* Fixed issue #266 - current working directory when running setup.py clean.
 
 1.0 (2011-04-04)
 ----------------
