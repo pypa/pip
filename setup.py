@@ -8,14 +8,18 @@ version = "1.0.1"
 doc_dir = os.path.join(os.path.dirname(__file__), "docs")
 index_filename = os.path.join(doc_dir, "index.txt")
 news_filename = os.path.join(doc_dir, "news.txt")
-long_description = """\
+long_description = """
+
 The main website for pip is `www.pip-installer.org
 <http://www.pip-installer.org>`_.  You can also install
 the `in-development version <https://github.com/pypa/pip/tarball/develop#egg=pip-dev>`_
 of pip with ``easy_install pip==dev``.
+
 """
 f = open(index_filename)
-long_description += f.read().split("split here", 1)[1]
+# remove the toctree from sphinx index, as it breaks long_description
+parts = f.read().split("split here", 2)
+long_description = parts[0] + long_description + parts[2]
 f.close()
 f = open(news_filename)
 long_description += "\n\n" + f.read()
