@@ -104,12 +104,13 @@ Bazaar
 ~~~~~~
 
 Pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
-``bzr+sftp`` and ``bzr+ftp`` schemes::
+``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes::
 
     -e bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject
     -e bzr+sftp://user@myproject.org/MyProject/trunk/#egg=MyProject
     -e bzr+ssh://user@myproject.org/MyProject/trunk/#egg=MyProject
     -e bzr+ftp://user@myproject.org/MyProject/trunk/#egg=MyProject
+    -e bzr+lp:MyProject#egg=MyProject
 
 Tags or revisions can be installed like this::
 
