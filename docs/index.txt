@@ -13,9 +13,9 @@ SomePackage``.
 
 In order to use pip, you must first install `setuptools
 <http://pypi.python.org/pypi/setuptools>`_ or `distribute
-<http://pypi.python.org/pypi/distribute>`_.
-If you use virtualenv, a copy of pip will be automatically be installed
-in each virtual environment you create.
+<http://pypi.python.org/pypi/distribute>`_.  If you use `virtualenv
+<http://www.virtualenv.org>`_, a copy of pip will be automatically be
+installed in each virtual environment you create.
 
 .. comment: split here
 
