@@ -17,6 +17,8 @@ In order to use pip, you must first install `setuptools
 If you use virtualenv, a copy of pip will be automatically be installed
 in each virtual environment you create.
 
+.. comment: split here
+
 .. toctree::
    :maxdepth: 1
 
