@@ -5,7 +5,7 @@ from setuptools import setup
 # If you change this version, change it also in docs/conf.py
 version = "1.0.1"
 
-doc_dir = os.path.join(os.path.dirname(__file__), "docs")
+doc_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "docs")
 index_filename = os.path.join(doc_dir, "index.txt")
 news_filename = os.path.join(doc_dir, "news.txt")
 long_description = """
