@@ -91,15 +91,15 @@ class InstallRequirement(object):
         # If the line has an egg= definition, but isn't editable, pull the requirement out.
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
-          url = link.url_fragment
-          req = link.egg_fragment
+            url = link.url_fragment
+            req = link.egg_fragment
 
-          # Handle relative file URLs
-          if link.scheme == 'file' and re.search(r'\.\./', url):
-            url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
+            # Handle relative file URLs
+            if link.scheme == 'file' and re.search(r'\.\./', url):
+                url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
 
         else:
-          req = name
+            req = name
 
         return cls(req, comes_from, url=url)
 
@@ -768,7 +768,7 @@ class Requirements(object):
         return self._dict[key]
 
     def __repr__(self):
-        values = [ '%s: %s' % (repr(k), repr(self[k])) for k in self.keys() ]
+        values = ['%s: %s' % (repr(k), repr(self[k])) for k in self.keys()]
         return 'Requirements({%s})' % ', '.join(values)
 
 

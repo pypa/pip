@@ -18,7 +18,7 @@ def test_bazaar_simple_urls():
     ssh_bzr_repo = Bazaar(url='bzr+ssh://bzr.myproject.org/MyProject/trunk/#egg=MyProject')
     ftp_bzr_repo = Bazaar(url='bzr+ftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject')
     sftp_bzr_repo = Bazaar(url='bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject')
-    launchpad_bzr_repo  = Bazaar(url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject')
+    launchpad_bzr_repo = Bazaar(url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject')
 
     assert http_bzr_repo.get_url_rev() == ('http://bzr.myproject.org/MyProject/trunk/', None)
     assert https_bzr_repo.get_url_rev() == ('https://bzr.myproject.org/MyProject/trunk/', None)

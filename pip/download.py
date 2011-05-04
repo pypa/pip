@@ -64,6 +64,7 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+
 class URLOpener(object):
     """
     pip's own URL helper that adds HTTP auth and proxy support
