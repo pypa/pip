@@ -18,7 +18,6 @@ class Bazaar(VersionControl):
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
 
-
     def __init__(self, url=None, *args, **kwargs):
         super(Bazaar, self).__init__(url, *args, **kwargs)
         urlparse.non_hierarchical.extend(['lp'])

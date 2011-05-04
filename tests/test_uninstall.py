@@ -7,6 +7,7 @@ from tests.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
 
+
 def test_simple_uninstall():
     """
     Test simple install and uninstall.

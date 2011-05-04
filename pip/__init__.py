@@ -115,6 +115,7 @@ def main(initial_args=None):
     command = command_dict[command]
     return command.main(initial_args, args[1:], options)
 
+
 def bootstrap():
     """
     Bootstrapping function to be called from install-pip.py script.

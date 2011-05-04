@@ -50,12 +50,16 @@ if sys.version_info >= (3,):
     import xmlrpc.client as xmlrpclib
     import urllib.parse as urlparse
     import http.client as httplib
+
     def cmp(a, b):
         return (a > b) - (a < b)
+
     def b(s):
         return s.encode('utf-8')
+
     def u(s):
         return s.decode('utf-8')
+
     def console_to_str(s):
         return s.decode(console_encoding)
     bytes = bytes
@@ -73,10 +77,13 @@ else:
     import ConfigParser
     import xmlrpclib
     import httplib
+
     def b(s):
         return s
+
     def u(s):
         return s
+
     def console_to_str(s):
         return s
     bytes = str
@@ -92,6 +99,7 @@ except ImportError:
     from email.FeedParser import FeedParser
 
 from distutils.sysconfig import get_python_lib, get_python_version
+
 
 def copytree(src, dst):
     if sys.version_info < (2, 5):

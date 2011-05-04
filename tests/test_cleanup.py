@@ -6,6 +6,7 @@ from tests.test_pip import (here, reset_env, run_pip, write_file, mkdir,
 from tests.local_repos import local_checkout
 from tests.path import Path
 
+
 def test_cleanup_after_install_from_pypi():
     """
     Test clean up after installing a package from PyPI.
@@ -48,6 +49,7 @@ def test_cleanup_after_install_from_local_directory():
     src = env.venv_path/'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
+
 
 def test_cleanup_after_create_bundle():
     """

@@ -54,6 +54,7 @@ def test_uninstall_before_upgrade():
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build', 'cache'])
 
+
 def test_uninstall_before_upgrade_from_url():
     """
     Automatic uninstall-before-upgrade from URL.
@@ -66,6 +67,7 @@ def test_uninstall_before_upgrade_from_url():
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build', 'cache'])
+
 
 def test_upgrade_to_same_version_from_url():
     """
@@ -80,6 +82,7 @@ def test_upgrade_to_same_version_from_url():
     assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [env.venv/'build', 'cache'])
+
 
 def test_upgrade_from_reqs_file():
     """
@@ -133,6 +136,7 @@ def test_editable_git_upgrade():
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
     assert 'some different version' in version2.stdout
+
 
 def test_should_not_install_always_from_cache():
     """
