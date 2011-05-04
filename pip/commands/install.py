@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger

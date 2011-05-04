@@ -10,6 +10,7 @@ import zlib
 import tempfile
 import shutil
 
+
 def unpack(sources):
     temp_dir = tempfile.mkdtemp('-scratchdir', 'unpacker-')
     for package, content in sources.items():
@@ -25,8 +26,9 @@ def unpack(sources):
             mod.close()
     return temp_dir
 
+
 if __name__ == "__main__":
-    if sys.version_info >= (3,0):
+    if sys.version_info >= (3, 0):
         exec("def do_exec(co, loc): exec(co, loc)\n")
         import pickle
         sources = sources.encode("ascii") # ensure bytes

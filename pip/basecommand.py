@@ -154,8 +154,6 @@ class Command(object):
         return exit
 
 
-
-
 def format_exc(exc_info=None):
     if exc_info is None:
         exc_info = sys.exc_info()

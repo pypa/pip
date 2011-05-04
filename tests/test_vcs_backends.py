@@ -2,6 +2,7 @@ from tests.test_pip import (reset_env, run_pip,
                       _create_test_package, _change_test_package_version)
 from tests.local_repos import local_checkout
 
+
 def test_install_editable_from_git_with_https():
     """
     Test cloning from Git with https.
@@ -82,6 +83,7 @@ def test_git_branch_should_not_be_changed():
     result = env.run('git', 'branch', cwd=source_dir)
     assert '* master' in result.stdout
 
+
 def test_git_with_non_editable_unpacking():
     """
     Test cloning a git repository from a non-editable URL with a given tag.
@@ -92,6 +94,7 @@ def test_git_with_non_editable_unpacking():
                      ), expect_error=True)
     assert '0.3.1\n' in result.stdout
 
+
 def test_git_with_editable_where_egg_contains_dev_string():
     """
     Test cloning a git repository from an editable url which contains "dev" string
@@ -100,6 +103,7 @@ def test_git_with_editable_where_egg_contains_dev_string():
     result = run_pip('install', '-e', '%s#egg=django-devserver' %
                      local_checkout('git+git://github.com/dcramer/django-devserver.git'))
     result.assert_installed('django-devserver', with_files=['.git'])
+
 
 def test_git_with_non_editable_where_egg_contains_dev_string():
     """

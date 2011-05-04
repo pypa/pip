@@ -468,6 +468,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
     def __del__(self):
         pass # shutil.rmtree(str(self.root_path), ignore_errors=True)
 
+
 def run_pip(*args, **kw):
     result = env.run('pip', *args, **kw)
     ignore = []

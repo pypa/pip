@@ -8,6 +8,7 @@ from pip.backwardcompat import url2pathname, urlparse
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
 
+
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
