@@ -6,6 +6,13 @@ Next release (1.1) schedule
 
 Beta release mid-July 2011, final release early August.
 
+develop (unreleased)
+--------------------
+
+* Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
+  restart-in-venv mechanism that's broken, and neither one is useful since
+  every virtualenv now has pip inside it.
+
 1.0.1 (2011-04-30)
 ------------------
 

@@ -123,38 +123,9 @@ parser.add_option(
     action='store_true',
     help='Show help')
 parser.add_option(
-    '-E', '--environment',
-    dest='venv',
-    metavar='DIR',
-    help='virtualenv environment to run pip in (either give the '
-    'interpreter or the environment base directory)')
-parser.add_option(
-    '-s', '--enable-site-packages',
-    dest='site_packages',
-    action='store_true',
-    help='Include site-packages in virtualenv if one is to be '
-    'created. Ignored if --environment is not used or '
-    'the virtualenv already exists.')
-parser.add_option(
-    # Defines a default root directory for virtualenvs, relative
-    # virtualenvs names/paths are considered relative to it.
-    '--virtualenv-base',
-    dest='venv_base',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
     # Run only if inside a virtualenv, bail if not.
     '--require-virtualenv', '--require-venv',
     dest='require_venv',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
-    # Use automatically an activated virtualenv instead of installing
-    # globally. -E will be ignored if used.
-    '--respect-virtualenv', '--respect-venv',
-    dest='respect_venv',
     action='store_true',
     default=False,
     help=optparse.SUPPRESS_HELP)

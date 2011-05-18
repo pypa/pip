@@ -254,11 +254,6 @@ and to bail if not, use::
 
     export PIP_REQUIRE_VIRTUALENV=true
 
-To tell pip to automatically use the currently active virtualenv::
-
-    export PIP_RESPECT_VIRTUALENV=true
-
-Providing an environment with ``-E`` will be ignored.
 
 Using pip with virtualenvwrapper
 ---------------------------------
