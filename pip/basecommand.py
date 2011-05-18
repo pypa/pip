@@ -11,7 +11,7 @@ from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
 from pip.exceptions import BadCommand, InstallationError, UninstallationError
-from pip.backwardcompat import StringIO, urllib, urllib2, walk_packages
+from pip.backwardcompat import StringIO, walk_packages
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']

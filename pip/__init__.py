@@ -7,7 +7,7 @@ import sys
 import re
 import difflib
 
-from pip.backwardcompat import u, walk_packages, console_to_str
+from pip.backwardcompat import walk_packages, console_to_str
 from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
