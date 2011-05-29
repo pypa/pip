@@ -425,6 +425,17 @@ def untar_file(filename, location):
             if member.isdir():
                 if not os.path.exists(path):
                     os.makedirs(path)
+            elif member.issym():
+                try:
+                    tar._extract_member(member, path)
+                except:
+                    e = sys.exc_info()[1]
+                    # Some corrupt tar files seem to produce this
+                    # (specifically bad symlinks)
+                    logger.warn(
+                        'In the tar file %s the member %s is invalid: %s'
+                        % (filename, member.name, e))
+                    continue
             else:
                 try:
                     fp = tar.extractfile(member)
