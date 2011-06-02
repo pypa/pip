@@ -997,7 +997,7 @@ class RequirementSet(object):
                         # repeat check_if_exists to uninstall-on-upgrade (#14)
                         req_to_install.check_if_exists()
                         if req_to_install.satisfied_by:
-                            if self.upgrade:
+                            if self.upgrade or self.ignore_installed:
                                 req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
