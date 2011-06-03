@@ -3,6 +3,7 @@
 import sys
 import os
 import re
+import gzip
 import mimetypes
 import threading
 import posixpath
@@ -10,11 +11,12 @@ import pkg_resources
 import random
 import socket
 import string
+import zlib
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound
-from pip.backwardcompat import (WindowsError,
+from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
@@ -442,7 +444,15 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
-            inst = cls(u(resp.read()), real_url, headers)
+            contents = resp.read()
+            encoding = headers.get('Content-Encoding', None)
+            #XXX need to handle exceptions and add testing for this
+            if encoding is not None:
+                if encoding == 'gzip':
+                    contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
+                if encoding == 'deflate':
+                    contents = zlib.decompress(contents)
+            inst = cls(u(contents), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
