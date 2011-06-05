@@ -37,7 +37,7 @@ except NameError:
 console_encoding = sys.__stdout__.encoding
 
 if sys.version_info >= (3,):
-    from io import StringIO
+    from io import StringIO, BytesIO
     from functools import reduce
     from urllib.error import URLError, HTTPError
     from queue import Queue, Empty
@@ -91,6 +91,7 @@ else:
     reduce = reduce
     cmp = cmp
     raw_input = raw_input
+    BytesIO = StringIO
 
 try:
     from email.parser import FeedParser
