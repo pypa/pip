@@ -63,7 +63,8 @@ class InstallRequirement(object):
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
-            source_dir = None
+            source_dir = os.environ.get("PIP_SOURCE_DIR", None)
+
         return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
 
     @classmethod
