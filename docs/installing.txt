@@ -34,10 +34,10 @@ operating system's package manager or install it manually::
 Using the installer
 -------------------
 
-Download `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+Download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
 and execute it, using the Python interpreter of your choice::
 
-    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
     $ python get-pip.py
 
 This may have to be run as root.
