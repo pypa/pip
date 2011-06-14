@@ -6,7 +6,7 @@ The recommended way to use pip is within `virtualenv
 automatically. This does not require root access or modify your system Python
 installation. For instance::
 
-    $ curl -O https://github.com/pypa/virtualenv/raw/master/virtualenv.py
+    $ curl -O https://raw.github.com/pypa/virtualenv/master/virtualenv.py
     $ python virtualenv.py my_new_env
     $ . my_new_env/bin/activate
     (my_new_env)$ pip install ...
