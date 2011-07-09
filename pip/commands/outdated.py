@@ -1,10 +1,10 @@
-import sys
 import pkg_resources
-import pip
-import xmlrpclib
-from pip.log import logger
+
 from pip.basecommand import Command
-from pip.commands.search import transform_hits, highest_version
+from pip.exceptions import DistributionNotFound
+from pip.index import PackageFinder
+from pip.log import logger
+from pip.req import InstallRequirement
 from pip.util import get_installed_distributions
 
 
@@ -24,32 +24,63 @@ class OutdatedCommand(Command):
                 ' globally-installed packages')
 
         self.parser.add_option(
-            '--index',
-            dest='index',
+            '-f', '--find-links',
+            dest='find_links',
+            action='append',
+            default=[],
             metavar='URL',
-            default='http://pypi.python.org/pypi',
+            help='URL to look for packages at')
+        self.parser.add_option(
+            '-i', '--index-url', '--pypi-url',
+            dest='index_url',
+            metavar='URL',
+            default='http://pypi.python.org/simple/',
             help='Base URL of Python Package Index (default %default)')
+        self.parser.add_option(
+            '--extra-index-url',
+            dest='extra_index_urls',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='Extra URLs of package indexes to use in addition to --index-url')
+        self.parser.add_option(
+            '--no-index',
+            dest='no_index',
+            action='store_true',
+            default=False,
+            help='Ignore package index (only looking at --find-links URLs instead)')
+        self.parser.add_option(
+            '-M', '--use-mirrors',
+            dest='use_mirrors',
+            action='store_true',
+            default=False,
+            help='Use the PyPI mirrors as a fallback in case the main index is down.')
+        self.parser.add_option(
+            '--mirrors',
+            dest='mirrors',
+            metavar='URL',
+            action='append',
+            default=[],
+            help='Specific mirror URLs to query when --use-mirrors is used')
 
-    def setup_logging(self):
-        logger.move_stdout_to_stderr()
-
-    def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(
-            index_url,
-            pip.download.xmlrpclib_transport,
-        )
-        hits = pypi.search({'name': query}, 'or')
-        return hits
+    def _build_package_finder(self, options, index_urls):
+        """
+        Create a package finder appropriate to this outdated command.
+        """
+        return PackageFinder(find_links=options.find_links,
+                             index_urls=index_urls,
+                             use_mirrors=options.use_mirrors,
+                             mirrors=options.mirrors)
 
     def run(self, options, args):
         local_only = options.local
-        index_url = options.index
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
+            index_urls = []
 
         installations = {}
         dependency_links = []
-        find_tags = False
-
-        f = sys.stdout
 
         for dist in pkg_resources.working_set:
             if dist.has_metadata('dependency_links.txt'):
@@ -58,28 +89,27 @@ class OutdatedCommand(Command):
                 )
 
         for dist in get_installed_distributions(local_only=local_only):
-            req = pip.FrozenRequirement.from_dist(
-                dist, dependency_links, find_tags=find_tags,
-            )
+            req = InstallRequirement.from_line(dist.key, None)
             installations[req.name] = req
 
-        pypi_hits = self.search(
-            [i.name for i in installations.values()],
-            index_url,
-        )
-        hits = transform_hits(pypi_hits)
+        finder = self._build_package_finder(options, index_urls)
+        finder.add_dependency_links(dependency_links)
 
-        for hit in hits:
-            name = hit['name']
+        for req in installations.values():
             try:
-                if name in installations:
-                    req = installations[name].req
-                    latest = highest_version(hit['versions'])
-                    if req.specs[0][1] != latest:
-                        f.write('%s (LATEST: %s)\n' % (str(req), latest))
+                link = finder.find_requirement(req, True)
+            except DistributionNotFound:
+                continue
 
-            except UnicodeEncodeError:
-                pass
+            # It might be a good idea that link or finder had a public method
+            # that returned version
+            remote_version = finder._link_package_versions(link, req.name)[0][2]
 
+            req.check_if_exists()
+            installed_version = req.installed_version
+
+            if remote_version > installed_version:
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (str(req), installed_version, remote_version))
+            
 
 OutdatedCommand()
