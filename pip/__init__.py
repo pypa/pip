@@ -7,12 +7,12 @@ import sys
 import re
 import difflib
 
+from pip.backwardcompat import u, walk_packages, console_to_str
 from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
-from pip.backwardcompat import walk_packages
 
 
 def autocomplete():
@@ -53,7 +53,7 @@ def autocomplete():
             # if there are no dists installed, fall back to option completion
             if installed:
                 for dist in installed:
-                    print dist
+                    print(dist)
                 sys.exit(1)
         subcommand = command_dict.get(subcommand_name)
         options += [(opt.get_opt_string(), opt.nargs)
@@ -61,7 +61,7 @@ def autocomplete():
                     if opt.help != optparse.SUPPRESS_HELP]
         # filter out previously specified options from available options
         prev_opts = [x.split('=')[0] for x in cwords[1:cword-1]]
-        options = filter(lambda (x, v): x not in prev_opts, options)
+        options = [(x, v) for (x, v) in options if x not in prev_opts]
         # filter options by current input
         options = [(k, v) for k, v in options if k.startswith(current)]
         for option in options:
@@ -69,14 +69,14 @@ def autocomplete():
             # append '=' to options which require args
             if option[1]:
                 opt_label += '='
-            print opt_label
+            print(opt_label)
     else:
         # show options of main parser only when necessary
         if current.startswith('-') or current.startswith('--'):
             subcommands += [opt.get_opt_string()
                             for opt in parser.option_list
                             if opt.help != optparse.SUPPRESS_HELP]
-        print ' '.join(filter(lambda x: x.startswith(current), subcommands))
+        print(' '.join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
 
 
@@ -115,6 +115,11 @@ def main(initial_args=None):
     command = command_dict[command]
     return command.main(initial_args, args[1:], options)
 
+def bootstrap():
+    """
+    Bootstrapping function to be called from install-pip.py script.
+    """
+    return main(['install', '--upgrade', 'pip'])
 
 ############################################################
 ## Writing freeze files
@@ -213,7 +218,8 @@ def call_subprocess(cmd, show_stdout=True,
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
             cwd=cwd, env=env)
-    except Exception, e:
+    except Exception:
+        e = sys.exc_info()[1]
         logger.fatal(
             "Error %s while executing command %s" % (e, command_desc))
         raise
@@ -221,7 +227,7 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         stdout = proc.stdout
         while 1:
-            line = stdout.readline()
+            line = console_to_str(stdout.readline())
             if not line:
                 break
             line = line.rstrip()

@@ -3,7 +3,8 @@ Tests for compatibility workarounds.
 
 """
 import os
-from test_pip import reset_env, run_pip, pyversion, assert_all_changes
+from tests.test_pip import (here, reset_env, run_pip, pyversion,
+                            assert_all_changes)
 
 
 def test_debian_egg_name_workaround():
@@ -42,3 +43,14 @@ def test_debian_egg_name_workaround():
     # Try the uninstall and verify that everything is removed.
     result2 = run_pip("uninstall", "INITools", "-y")
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+
+
+def test_setup_py_with_dos_line_endings():
+    """
+    It doesn't choke on a setup.py file that uses DOS line endings (\\r\\n).
+
+    Refs https://github.com/pypa/pip/issues/237
+    """
+    reset_env()
+    to_install = os.path.abspath(os.path.join(here, 'packages', 'LineEndings'))
+    run_pip('install', to_install, expect_error=False)

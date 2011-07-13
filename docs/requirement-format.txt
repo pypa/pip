@@ -24,6 +24,15 @@ The ``#egg=MyProject`` part is important, because while you can
 install simply given the svn location, the project name is useful in
 other places.
 
+You can also specify the egg name for a non-editable url. This is useful to
+point to HEAD locations on the local filesystem:
+
+    file:///path/to/your/lib/project#egg=MyProject
+
+or relative paths:
+
+    file:../../lib/project#egg=MyProject
+
 If you need to give pip (and by association easy_install) hints
 about where to find a package, you can use the ``-f``
 (``--find-links``) option, like::
@@ -48,9 +57,10 @@ Right now pip knows of the following major version control systems:
 Subversion
 ~~~~~~~~~~
 
-Pip supports the URL schemes ``svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
+Pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
 You can also give specific revisions to an SVN URL, like::
 
+    -e svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
     -e svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check

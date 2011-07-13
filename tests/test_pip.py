@@ -6,9 +6,11 @@ import shutil
 import glob
 import atexit
 import textwrap
-import urllib
-from scripttest import TestFileEnvironment
-from path import Path, curdir
+import site
+
+from scripttest import TestFileEnvironment, FoundDir
+from tests.path import Path, curdir, u
+from pip.util import rmtree
 
 pyversion = sys.version[:3]
 
@@ -18,6 +20,7 @@ here = Path(__file__).abspath.folder
 # the root of this pip source distribution
 src_folder = here.folder
 download_cache = tempfile.mkdtemp(prefix='pip-test-cache')
+site_packages_suffix = site.USER_SITE[len(site.USER_BASE) + 1:]
 
 
 def path_to_url(path):
@@ -81,7 +84,7 @@ except NameError:
 
 
 def clear_environ(environ):
-    return dict(((k, v) for k, v in environ.iteritems()
+    return dict(((k, v) for k, v in environ.items()
                 if not k.lower().startswith('pip_')))
 
 
@@ -97,15 +100,19 @@ def install_setuptools(env):
             shutil.copy2(f, tempdir)
         return env.run(os.path.join(tempdir, 'easy_install'), version)
     finally:
-        shutil.rmtree(tempdir)
+        rmtree(tempdir)
 
 
 env = None
 
 
-def reset_env(environ=None):
+def reset_env(environ=None, use_distribute=None):
     global env
-    env = TestPipEnvironment(environ)
+    # FastTestPipEnv reuses env, not safe if use_distribute specified
+    if use_distribute is None:
+        env = FastTestPipEnvironment(environ)
+    else:
+        env = TestPipEnvironment(environ, use_distribute=use_distribute)
     return env
 
 
@@ -119,14 +126,17 @@ class TestFailure(AssertionError):
 
 
 #
-# This cleanup routine prevents the __del__ method that cleans up the
-# tree of the last TestPipEnvironment from firing after shutil has
-# already been unloaded.
+# This cleanup routine prevents the __del__ method that cleans up the tree of
+# the last TestPipEnvironment from firing after shutil has already been
+# unloaded.  It also ensures that FastTestPipEnvironment doesn't leave an
+# environment hanging around that might confuse the next test run.
 #
 def _cleanup():
     global env
     del env
-    shutil.rmtree(download_cache, ignore_errors=True)
+    rmtree(download_cache, ignore_errors=True)
+    rmtree(fast_test_env_root, ignore_errors=True)
+    rmtree(fast_test_env_backup, ignore_errors=True)
 
 atexit.register(_cleanup)
 
@@ -137,11 +147,11 @@ class TestPipResult(object):
         self._impl = impl
 
         if verbose:
-            print self.stdout
+            print(self.stdout)
             if self.stderr:
-                print '======= stderr ========'
-                print self.stderr
-                print '======================='
+                print('======= stderr ========')
+                print(self.stderr)
+                print('=======================')
 
     def __getattr__(self, attr):
         return getattr(self._impl, attr)
@@ -187,15 +197,15 @@ class TestPipResult(object):
             if not (# FIXME: I don't understand why there's a trailing . here
                     egg_link_file.bytes.endswith('.')
                 and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
-                raise TestFailure(textwrap.dedent(u'''\
+                raise TestFailure(textwrap.dedent(u('''\
                 Incorrect egg_link file %r
                 Expected ending: %r
                 ------- Actual contents -------
                 %s
                 -------------------------------''' % (
                         egg_link_file,
-                        pkg_dir + u'\n.',
-                        egg_link_file.bytes)))
+                        pkg_dir + u('\n.'),
+                        egg_link_file.bytes))))
 
         if use_user_site:
             pth_file = Path.string(e.user_site / 'easy-install.pth')
@@ -256,7 +266,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     verbose = False
 
-    def __init__(self, environ=None):
+    def __init__(self, environ=None, use_distribute=None):
 
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
@@ -268,7 +278,7 @@ class TestPipEnvironment(TestFileEnvironment):
         if not environ:
             environ = os.environ.copy()
             environ = clear_environ(environ)
-            environ['PIP_DOWNLOAD_CACHE'] = download_cache
+            environ['PIP_DOWNLOAD_CACHE'] = str(download_cache)
 
         environ['PIP_NO_INPUT'] = '1'
         environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
@@ -281,7 +291,8 @@ class TestPipEnvironment(TestFileEnvironment):
         demand_dirs(self.venv_path)
         demand_dirs(self.scratch_path)
 
-        use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+        if use_distribute is None:
+            use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
 
         # Create a virtualenv and remember where it's putting things.
         virtualenv_paths = create_virtualenv(self.venv_path, distribute=use_distribute)
@@ -296,7 +307,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
-        self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
+        self.user_site_path = self.venv_path/'user'/site_packages_suffix
 
         self.user_site = relpath(self.root_path, self.user_site_path)
         demand_dirs(self.user_site_path)
@@ -309,7 +320,7 @@ class TestPipEnvironment(TestFileEnvironment):
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         # test that test-scratch virtualenv creation produced sensible venv python
-        result = self.run('python', '-c', 'import sys; print sys.executable')
+        result = self.run('python', '-c', 'import sys; print(sys.executable)')
         pythonbin = result.stdout.strip()
 
         if Path(pythonbin).noext != self.bin_path/'python':
@@ -325,16 +336,23 @@ class TestPipEnvironment(TestFileEnvironment):
         # Earlier versions of pip were incapable of
         # self-uninstallation on Windows, so we use the one we're testing.
         self.run('python', '-c',
-                 'import sys;sys.path.insert(0, %r);import pip;sys.exit(pip.main());' % os.path.dirname(here),
+                 '"import sys; sys.path.insert(0, %r); import pip; sys.exit(pip.main());"' % os.path.dirname(here),
                  'uninstall', '-vvv', '-y', 'pip')
 
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
         self._use_cached_pypi_server()
 
+    def _ignore_file(self, fn):
+        if fn.endswith('__pycache__') or fn.endswith(".pyc"):
+            result = True
+        else:
+            result = super(TestPipEnvironment, self)._ignore_file(fn)
+        return result
+
     def run(self, *args, **kw):
         if self.verbose:
-            print '>> running', args, kw
+            print('>> running %s %s' % (args, kw))
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
@@ -343,7 +361,7 @@ class TestPipEnvironment(TestFileEnvironment):
         return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def __del__(self):
-        shutil.rmtree(str(self.root_path), ignore_errors=True)
+        rmtree(str(self.root_path), ignore_errors=True)
 
     def _use_cached_pypi_server(self):
         site_packages = self.root_path / self.site_packages
@@ -355,8 +373,112 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.close()
 
 
+fast_test_env_root = here / 'tests_cache' / 'test_ws'
+fast_test_env_backup = here / 'tests_cache' / 'test_ws_backup'
+
+
+class FastTestPipEnvironment(TestPipEnvironment):
+    def __init__(self, environ=None):
+        import virtualenv
+
+        self.root_path = fast_test_env_root
+        self.backup_path = fast_test_env_backup
+
+        self.scratch_path = self.root_path / self.scratch
+
+        # We will set up a virtual environment at root_path.
+        self.venv_path = self.root_path / self.venv
+
+        if not environ:
+            environ = os.environ.copy()
+            environ = clear_environ(environ)
+            environ['PIP_DOWNLOAD_CACHE'] = str(download_cache)
+
+        environ['PIP_NO_INPUT'] = '1'
+        environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
+
+        TestFileEnvironment.__init__(self,
+            self.root_path, ignore_hidden=False,
+            environ=environ, split_cmd=False, start_clear=False,
+            cwd=self.scratch_path, capture_temp=True, assert_no_temp=True)
+
+        virtualenv_paths = virtualenv.path_locations(self.venv_path)
+
+        for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            setattr(self, id+'_path', Path(path))
+            setattr(self, id, relpath(self.root_path, path))
+
+        assert self.venv == TestPipEnvironment.venv # sanity check
+
+        self.site_packages = self.lib/'site-packages'
+        self.user_base_path = self.venv_path/'user'
+        self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
+
+        self.user_site = relpath(self.root_path, self.user_site_path)
+
+        self.environ["PYTHONUSERBASE"] = self.user_base_path
+
+        # put the test-scratch virtualenv's bin dir first on the PATH
+        self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
+
+        if self.root_path.exists:
+            rmtree(self.root_path)
+        if self.backup_path.exists:
+            shutil.copytree(self.backup_path, self.root_path, True)
+        else:
+            demand_dirs(self.venv_path)
+            demand_dirs(self.scratch_path)
+
+            use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+
+            # Create a virtualenv and remember where it's putting things.
+            create_virtualenv(self.venv_path, distribute=use_distribute)
+
+            demand_dirs(self.user_site_path)
+
+            # create easy-install.pth in user_site, so we always have it updated instead of created
+            open(self.user_site_path/'easy-install.pth', 'w').close()
+
+            # test that test-scratch virtualenv creation produced sensible venv python
+            result = self.run('python', '-c', 'import sys; print(sys.executable)')
+            pythonbin = result.stdout.strip()
+
+            if Path(pythonbin).noext != self.bin_path/'python':
+                raise RuntimeError(
+                    "Oops! 'python' in our test environment runs %r"
+                    " rather than expected %r" % (pythonbin, self.bin_path/'python'))
+
+            # make sure we have current setuptools to avoid svn incompatibilities
+            if not use_distribute:
+                install_setuptools(self)
+
+            # Uninstall whatever version of pip came with the virtualenv.
+            # Earlier versions of pip were incapable of
+            # self-uninstallation on Windows, so we use the one we're testing.
+            self.run('python', '-c',
+                     '"import sys; sys.path.insert(0, %r); import pip; sys.exit(pip.main());"' % os.path.dirname(here),
+                     'uninstall', '-vvv', '-y', 'pip')
+
+            # Install this version instead
+            self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
+            shutil.copytree(self.root_path, self.backup_path, True)
+        self._use_cached_pypi_server()
+        assert self.root_path.exists
+
+    def __del__(self):
+        pass # shutil.rmtree(str(self.root_path), ignore_errors=True)
+
 def run_pip(*args, **kw):
-    return env.run('pip', *args, **kw)
+    result = env.run('pip', *args, **kw)
+    ignore = []
+    for path, f in result.files_before.items():
+        # ignore updated directories, often due to .pyc or __pycache__
+        if (path in result.files_updated and
+            isinstance(result.files_updated[path], FoundDir)):
+            ignore.append(path)
+    for path in ignore:
+        del result.files_updated[path]
+    return result
 
 
 def write_file(filename, text, dest=None):
@@ -452,7 +574,7 @@ def assert_all_changes(start_state, end_state, expected_changes):
         end_files = end_state.files_after
 
     diff = diff_states(start_files, end_files, ignore=expected_changes)
-    if diff.values() != [{}, {}, {}]:
+    if list(diff.values()) != [{}, {}, {}]:
         raise TestFailure('Unexpected changes:\n' + '\n'.join(
             [k + ': ' + ', '.join(v.keys()) for k, v in diff.items()]))
 

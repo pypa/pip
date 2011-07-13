@@ -1,11 +1,11 @@
 import sys
-import xmlrpclib
 import textwrap
 import pkg_resources
 import pip.download
 from pip.basecommand import Command
 from pip.util import get_terminal_size
 from pip.log import logger
+from pip.backwardcompat import xmlrpclib, reduce, cmp
 from distutils.version import StrictVersion, LooseVersion
 
 
@@ -27,7 +27,7 @@ class SearchCommand(Command):
         if not args:
             logger.warn('ERROR: Missing required argument (search query).')
             return
-        query = ' '.join(args)
+        query = args
         index_url = options.index
 
         pypi_hits = self.search(query, index_url)
@@ -69,7 +69,7 @@ def transform_hits(hits):
                 packages[name]['score'] = score
 
     # each record has a unique name now, so we will convert the dict into a list sorted by score
-    package_list = sorted(packages.values(), lambda x, y: cmp(y['score'], x['score']))
+    package_list = sorted(packages.values(), key=lambda x: x['score'], reverse=True)
     return package_list
 
 

@@ -19,14 +19,13 @@ class HelpCommand(Command):
             command.parser.print_help()
             return
         parser.print_help()
-        print
-        print 'Commands available:'
+        print('\nCommands available:')
         commands = list(set(command_dict.values()))
         commands.sort(key=lambda x: x.name)
         for command in commands:
             if command.hidden:
                 continue
-            print '  %s: %s' % (command.name, command.summary)
+            print('  %s: %s' % (command.name, command.summary))
 
 
 HelpCommand()

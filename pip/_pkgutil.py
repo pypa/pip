@@ -324,7 +324,7 @@ try:
     from zipimport import zipimporter
 
     def iter_zipimport_modules(importer, prefix=''):
-        dirlist = zipimport._zip_directory_cache[importer.archive].keys()
+        dirlist = list(zipimport._zip_directory_cache[importer.archive].keys())
         dirlist.sort()
         _prefix = importer.prefix
         plen = len(_prefix)
@@ -522,8 +522,10 @@ def extend_path(path, name):
 
     path = path[:] # Start with a copy of the existing path
 
+    from pip.backwardcompat import string_types
+
     for dir in sys.path:
-        if not isinstance(dir, basestring) or not os.path.isdir(dir):
+        if not isinstance(dir, string_types) or not os.path.isdir(dir):
             continue
         subdir = os.path.join(dir, pname)
         # XXX This may still add duplicate entries to path on
@@ -537,7 +539,8 @@ def extend_path(path, name):
         if os.path.isfile(pkgfile):
             try:
                 f = open(pkgfile)
-            except IOError, msg:
+            except IOError:
+                msg = sys.exc_info()[1]
                 sys.stderr.write("Can't open %s: %s\n" %
                                  (pkgfile, msg))
             else:

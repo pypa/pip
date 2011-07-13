@@ -1,12 +1,13 @@
 import os
 import tempfile
 import re
-import ConfigParser
+import sys
 from pip import call_subprocess
 from pip.util import display_path, rmtree
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url2
+from pip.backwardcompat import ConfigParser
 
 
 class Mercurial(VersionControl):
@@ -53,7 +54,8 @@ class Mercurial(VersionControl):
             config_file = open(repo_config, 'w')
             config.write(config_file)
             config_file.close()
-        except (OSError, ConfigParser.NoSectionError), e:
+        except (OSError, ConfigParser.NoSectionError):
+            e = sys.exc_info()[1]
             logger.warn(
                 'Could not switch Mercurial repository to %s: %s'
                 % (url, e))

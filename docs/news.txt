@@ -1,8 +1,27 @@
-News for pip
-============
+News / Changelog
+================
 
-tip (unreleased)
+Next release (1.1) schedule
+---------------------------
+
+Beta release mid-July 2011, final release early August.
+
+1.0.1 (2011-04-30)
+------------------
+
+* Start to use git-flow.
+* Fixed issue #274 - `find_command` should not raise AttributeError
+* Fixed issue #273 - respect Content-Disposition header. Thanks Bradley Ayers.
+* Fixed issue #233 - pathext handling on Windows.
+* Fixed issue #252 - svn+svn protocol.
+* Fixed issue #44 - multiple CLI searches.
+* Fixed issue #266 - current working directory when running setup.py clean.
+
+1.0 (2011-04-04)
 ----------------
+
+* Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
+  Hightower, and Alex Gronholm, among others.
 
 * Download progress only shown on a real TTY. Thanks Alex Morega.
 
@@ -12,6 +31,19 @@ tip (unreleased)
 * Fixed uninstall of packages from system Python for users of Debian/Ubuntu
   python-setuptools package (workaround until fixed in Debian and Ubuntu).
 
+* Added `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+  installer. Simply download and execute it, using the Python interpreter of
+  your choice::
+
+    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ python get-pip.py
+
+  This may have to be run as root.
+
+  .. note::
+
+      Make sure you have `distribute <http://pypi.python.org/pypi/distribute>`_
+      installed before using the installer!
 
 0.8.3
 -----

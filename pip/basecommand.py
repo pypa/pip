@@ -1,6 +1,5 @@
 """Base Command class, and related routines"""
 
-from cStringIO import StringIO
 import os
 import socket
 import sys
@@ -13,7 +12,7 @@ from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpForma
 from pip.download import urlopen
 from pip.exceptions import BadCommand, InstallationError, UninstallationError
 from pip.venv import restart_in_venv
-from pip.backwardcompat import walk_packages
+from pip.backwardcompat import StringIO, urllib, urllib2, walk_packages
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
@@ -125,12 +124,18 @@ class Command(object):
         exit = 0
         try:
             self.run(options, args)
-        except (InstallationError, UninstallationError), e:
+        except (InstallationError, UninstallationError):
+            e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
-        except BadCommand, e:
+        except BadCommand:
+            e = sys.exc_info()[1]
             logger.fatal(str(e))
+            logger.info('Exception information:\n%s' % format_exc())
+            exit = 1
+        except KeyboardInterrupt:
+            logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
             exit = 1
         except:
@@ -174,8 +179,8 @@ def open_logfile(filename, mode='a'):
 
     log_fp = open(filename, mode)
     if exists:
-        print >> log_fp, '-'*60
-        print >> log_fp, '%s run on %s' % (sys.argv[0], time.strftime('%c'))
+        log_fp.write('%s\n' % ('-'*60))
+        log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
 
 

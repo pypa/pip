@@ -4,8 +4,9 @@ from pip import call_subprocess
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
-from urllib import url2pathname
-from urlparse import urlsplit, urlunsplit
+from pip.backwardcompat import url2pathname, urlparse
+urlsplit = urlparse.urlsplit
+urlunsplit = urlparse.urlunsplit
 
 class Git(VersionControl):
     name = 'git'
@@ -66,7 +67,7 @@ class Git(VersionControl):
         """
         revisions = self.get_tag_revs(dest)
         revisions.update(self.get_branch_revs(dest))
-        inverse_revisions = dict((v, k) for k, v in revisions.iteritems())
+        inverse_revisions = dict((v, k) for k, v in revisions.items())
         # Check if rev is a branch name
         origin_rev = 'origin/%s' % rev
         if origin_rev in inverse_revisions:

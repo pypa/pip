@@ -2,20 +2,18 @@
 
 import os
 import shutil
-import urlparse
-import urllib
 
-from pip.exceptions import BadCommand
+from pip.backwardcompat import urlparse, urllib
 from pip.log import logger
 from pip.util import display_path, backup_dir, find_command, ask, rmtree
 
 
-__all__ = ['vcs', 'get_src_requirement', 'import_vcs_support']
+__all__ = ['vcs', 'get_src_requirement']
 
 
 class VcsSupport(object):
     _registry = {}
-    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp']
+    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
         # Register more schemes with urlparse for various version control systems
@@ -28,7 +26,7 @@ class VcsSupport(object):
 
     @property
     def backends(self):
-        return self._registry.values()
+        return list(self._registry.values())
 
     @property
     def dirnames(self):
@@ -107,8 +105,6 @@ class VersionControl(object):
         if self._cmd is not None:
             return self._cmd
         command = find_command(self.name)
-        if command is None:
-            raise BadCommand('Cannot find command %r' % self.name)
         logger.info('Found command %r at %r' % (self.name, command))
         self._cmd = command
         return command

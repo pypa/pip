@@ -2,8 +2,8 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from test_pip import reset_env, run_pip, write_file, get_env
-from local_repos import local_checkout, local_repo
+from tests.test_pip import reset_env, run_pip, write_file, get_env, pyversion
+from tests.local_repos import local_checkout, local_repo
 
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -32,8 +32,7 @@ def _check_output(result, expected):
         return '\n========== %s ==========\n' % msg
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
-
-def test_freeze():
+def test_freeze_basic():
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -41,15 +40,12 @@ def test_freeze():
     the freezing.  (Probably that should be accounted for in pip, but
     currently it is not).
 
-    TODO: refactor this test into multiple tests? (and maybe different
-    test style instead of using doctest output checker)
-
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
-        simplejson<=1.7.4
+        MarkupSafe<=0.12
         """))
     result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
@@ -57,11 +53,13 @@ def test_freeze():
         Script result: pip freeze
         -- stdout: --------------------
         INITools==0.2
-        simplejson==1.7.4...
+        MarkupSafe==0.12...
         <BLANKLINE>""")
     _check_output(result, expected)
 
-    # Now lets try it with an svn checkout::
+def test_freeze_svn():
+    """Now lets try it with an svn checkout"""
+    env = reset_env()
     result = env.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
@@ -71,42 +69,8 @@ def test_freeze():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@10#egg=INITools-0.3.1dev_r10-py2...-dev_r10
-        simplejson==1.7.4...
-        <BLANKLINE>""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    _check_output(result, expected)
-
-    # Now, straight from trunk (but not editable/setup.py develop)::
-    result = env.run('svn', 'co',
-                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     'initools_to_easy_install')
-    result = env.run('easy_install', env.scratch_path/'initools_to_easy_install')
-    result = run_pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        Script result: ...pip freeze
-        -- stderr: --------------------
-        Warning: cannot find svn location for INITools==...dev-r...
-        <BLANKLINE>
-        -- stdout: --------------------
-        ## FIXME: could not find svn URL in dependency_links for this package:
-        INITools==...dev-r...
-        simplejson==1.7.4...
-        <BLANKLINE>""")
-    _check_output(result, expected)
-
-    # Bah, that's no good!  Let's give it a hint::
-    result = run_pip('freeze', '-f',
-                     '%s#egg=INITools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_stderr=True)
-    expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s#egg=INITools-dev
-        -- stdout: --------------------
-        -f %(repo)s#egg=INITools-dev
-        # Installing as editable to satisfy requirement INITools==...dev-r...:
-        -e %(repo)s@...#egg=INITools-...dev_r...
-        simplejson==1.7.4...
-        <BLANKLINE>""" % {'repo': local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')})
+        -e %s@10#egg=INITools-0.3.1dev_r10-py...-dev_r10
+        ...""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
 
@@ -149,28 +113,28 @@ def test_freeze_mercurial_clone():
     reset_env()
     env = get_env()
     result = env.run('hg', 'clone',
-                     '-r', 'f8f7eaf275c5',
-                     local_repo('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
-                     'django-dbtemplates')
+                     '-r', '7bc186caa7dc',
+                     local_repo('hg+http://bitbucket.org/jezdez/django-authority'),
+                     'django-authority')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'django-dbtemplates')
+            cwd=env.scratch_path/'django-authority', expect_stderr=True)
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@...#egg=django_dbtemplates-...
-        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'))
+        -e %s@...#egg=django_authority-...
+        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s#egg=django_dbtemplates' % local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates'),
+                     '%s#egg=django_authority' % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s#egg=django_dbtemplates
+        Script result: ...pip freeze -f %(repo)s#egg=django_authority
         -- stdout: --------------------
-        -f %(repo)s#egg=django_dbtemplates
-        -e %(repo)s@...#egg=django_dbtemplates-dev
-        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-dbtemplates')})
+        -f %(repo)s#egg=django_authority
+        -e %(repo)s@...#egg=django_authority-dev
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
     _check_output(result, expected)
 
 

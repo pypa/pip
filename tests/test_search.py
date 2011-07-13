@@ -1,11 +1,18 @@
-import xmlrpclib
 import pip.download
 from pip.commands.search import (compare_versions,
                                  highest_version,
                                  transform_hits,
                                  SearchCommand,)
+from pip.backwardcompat import xmlrpclib, b
 from mock import Mock
-from test_pip import run_pip, reset_env
+from tests.test_pip import run_pip, reset_env, pyversion
+from tests.pypi_server import assert_equal
+
+
+if pyversion >= '3':
+    VERBOSE_FALSE = False
+else:
+    VERBOSE_FALSE = 0
 
 
 def test_version_compare():
@@ -30,7 +37,7 @@ def test_pypi_xml_transformation():
             {'_pypi_ordering': 50, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'}]
     expected = [{'score': 200, 'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'},
             {'score': 50, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
-    assert expected == transform_hits(pypi_hits)
+    assert_equal(expected, transform_hits(pypi_hits))
 
 
 def test_search():
@@ -43,16 +50,27 @@ def test_search():
     assert 'pip installs packages' in output.stdout
 
 
+def test_multiple_search():
+    """
+    Test searching for multiple packages at once.
+
+    """
+    reset_env()
+    output = run_pip('search', 'pip', 'INITools')
+    assert 'pip installs packages' in output.stdout
+    assert 'Tools for parsing and using INI-style files' in output.stdout
+
+
 def test_searching_through_Search_class():
     """
     Verify if ``pip.vcs.Search`` uses tests xmlrpclib.Transport class
     """
     pip.download.xmlrpclib_transport = fake_transport = Mock()
     query = 'mylittlequerythatdoesnotexists'
-    dumped_xmlrpc_request = xmlrpclib.dumps(({'name': query, 'summary': query}, 'or'), 'search')
+    dumped_xmlrpc_request = b(xmlrpclib.dumps(({'name': query, 'summary': query}, 'or'), 'search'))
     expected = [{'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
     fake_transport.request.return_value = (expected,)
     pypi_searcher = SearchCommand()
     result = pypi_searcher.search(query, 'http://pypi.python.org/pypi')
     assert expected == result, result
-    fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=0)
+    fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=VERBOSE_FALSE)

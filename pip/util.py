@@ -7,8 +7,8 @@ import posixpath
 import pkg_resources
 import zipfile
 import tarfile
-from pip.exceptions import InstallationError
-from pip.backwardcompat import WindowsError
+from pip.exceptions import InstallationError, BadCommand
+from pip.backwardcompat import WindowsError, string_types, raw_input
 from pip.locations import site_packages, running_under_virtualenv
 from pip.log import logger
 
@@ -24,8 +24,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'cache_download', 'unpack_file']
 
 
-def rmtree(dir):
-    shutil.rmtree(dir, ignore_errors=True,
+def rmtree(dir, ignore_errors=False):
+    shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
 
@@ -34,8 +34,10 @@ def rmtree_errorhandler(func, path, exc_info):
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
     exctype, value = exc_info[:2]
-    # lookin for a windows error
-    if exctype is not WindowsError or 'Access is denied' not in str(value):
+    # On Python 2.4, it will be OSError number 13
+    # On all more recent Pythons, it'll be WindowsError number 5
+    if not ((exctype is WindowsError and value.args[0] == 5) or
+            (exctype is OSError and value.args[0] == 13)):
         raise
     # file type should currently be read only
     if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
@@ -69,12 +71,12 @@ def backup_dir(dir, ext='.bak'):
 def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
     if paths is None:
-        paths = os.environ.get('PATH', []).split(os.pathsep)
-    if isinstance(paths, basestring):
+        paths = os.environ.get('PATH', '').split(os.pathsep)
+    if isinstance(paths, string_types):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
-        pathext = os.environ.get('PATHEXT', '.COM;.EXE;.BAT;.CMD')
+        pathext = get_pathext()
     pathext = [ext for ext in pathext.lower().split(os.pathsep)]
     # don't use extensions if the command ends with one of them
     if os.path.splitext(cmd)[1].lower() in pathext:
@@ -90,8 +92,15 @@ def find_command(cmd, paths=None, pathext=None):
                 return cmd_path_ext
         if os.path.isfile(cmd_path):
             return cmd_path
-    return None
+    raise BadCommand('Cannot find command %r' % cmd)
 
+
+def get_pathext(default_pathext=None):
+    """Returns the path extensions from environment or a default"""
+    if default_pathext is None:
+        default_pathext = os.pathsep.join([ '.COM', '.EXE', '.BAT', '.CMD' ])
+    pathext = os.environ.get('PATHEXT', default_pathext)
+    return pathext
 
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
@@ -101,8 +110,8 @@ def ask(message, options):
         response = raw_input(message)
         response = response.strip().lower()
         if response not in options:
-            print 'Your response (%r) was not one of the expected responses: %s' % (
-                response, ', '.join(options))
+            print('Your response (%r) was not one of the expected responses: %s' % (
+                response, ', '.join(options)))
         else:
             return response
 
@@ -158,7 +167,7 @@ def is_svn_page(html):
 def file_contents(filename):
     fp = open(filename, 'rb')
     try:
-        return fp.read()
+        return fp.read().decode('utf-8')
     finally:
         fp.close()
 
@@ -418,7 +427,8 @@ def untar_file(filename, location):
             else:
                 try:
                     fp = tar.extractfile(member)
-                except (KeyError, AttributeError), e:
+                except (KeyError, AttributeError):
+                    e = sys.exc_info()[1]
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warn(
