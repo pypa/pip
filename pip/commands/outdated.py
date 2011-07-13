@@ -90,6 +90,7 @@ class OutdatedCommand(Command):
 
         for dist in get_installed_distributions(local_only=local_only):
             req = InstallRequirement.from_line(dist.key, None)
+            req.check_if_exists()
             installations[req.name] = req
 
         finder = self._build_package_finder(options, index_urls)
@@ -98,6 +99,10 @@ class OutdatedCommand(Command):
         for req in installations.values():
             try:
                 link = finder.find_requirement(req, True)
+
+                # If link is None, means installed version is most up-to-date
+                if link is None:
+                    continue
             except DistributionNotFound:
                 continue
 
@@ -105,11 +110,8 @@ class OutdatedCommand(Command):
             # that returned version
             remote_version = finder._link_package_versions(link, req.name)[0][2]
 
-            req.check_if_exists()
-            installed_version = req.installed_version
-
-            if remote_version > installed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (str(req), installed_version, remote_version))
+            if remote_version > req.installed_version:
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (str(req), req.installed_version, remote_version))
             
 
 OutdatedCommand()
