@@ -1257,7 +1257,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 if line.startswith('-e'):
                     line = line[2:].strip()
                 else:
-                    line = line[len('--editable'):].strip()
+                    line = line[len('--editable'):].strip().lstrip('=')
                 req = InstallRequirement.from_editable(
                     line, comes_from=comes_from, default_vcs=options.default_vcs)
             else:
