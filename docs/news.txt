@@ -13,6 +13,14 @@ develop (unreleased)
   restart-in-venv mechanism that's broken, and neither one is useful since
   every virtualenv now has pip inside it.
 
+1.0.2 (2011-07-16)
+------------------
+
+* Fixed docs issues.
+* Fixed issue #295 - Reinstall a package when using the ``install -I`` option
+* Fixed issue #283 - Finds a Git tag pointing to same commit as origin/master
+* Fixed issue #279 - Use absolute path for path to docs in setup.py
+
 1.0.1 (2011-04-30)
 ------------------
 
