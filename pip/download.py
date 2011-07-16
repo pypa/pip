@@ -348,7 +348,7 @@ def _download_url(resp, link, temp_location):
         download_hash = md5()
     try:
         total_length = int(resp.info()['content-length'])
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
     show_progress = total_length > 40*1000 or not total_length
