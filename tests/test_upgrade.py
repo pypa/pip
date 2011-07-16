@@ -145,3 +145,14 @@ def test_should_not_install_always_from_cache():
     result = run_pip('install', 'INITools==0.1', expect_error=True)
     assert env.site_packages/'INITools-0.2-py%s.egg-info' % pyversion not in result.files_created
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion in result.files_created
+
+def test_install_with_ignoreinstalled_requested():
+    """
+    It installs package if ignore installed is set.
+
+    """
+    env = reset_env()
+    run_pip('install', 'INITools==0.1', expect_error=True)
+    result = run_pip('install', '-I' , 'INITools', expect_error=True)
+    assert result.files_created, 'pip install -I did not install'
+    assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created

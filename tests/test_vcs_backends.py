@@ -110,3 +110,18 @@ def test_git_with_non_editable_where_egg_contains_dev_string():
                      local_checkout('git+git://github.com/dcramer/django-devserver.git'))
     devserver_folder = env.site_packages/'devserver'
     assert devserver_folder in result.files_created, str(result)
+
+
+def test_git_with_ambiguous_revs():
+    """
+    Test git with two "names" (tag/branch) pointing to the same commit
+    """
+    env = reset_env()
+    version_pkg_path = _create_test_package(env)
+    package_url = 'git+file://%s@0.1#egg=version_pkg' % (version_pkg_path.abspath.replace('\\', '/'))
+    env.run('git', 'tag', '0.1', cwd=version_pkg_path)
+    result = run_pip('install', '-e', package_url)
+    assert 'Could not find a tag or branch' not in result.stdout
+    # it is 'version-pkg' instead of 'version_pkg' because
+    # egg-link name is version-pkg.egg-link because it is a single .py module
+    result.assert_installed('version-pkg', with_files=['.git'])

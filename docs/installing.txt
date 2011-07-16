@@ -6,11 +6,12 @@ The recommended way to use pip is within `virtualenv
 automatically. This does not require root access or modify your system Python
 installation. For instance::
 
-    $ curl -O https://github.com/pypa/virtualenv/raw/master/virtualenv.py
+    $ curl -O https://raw.github.com/pypa/virtualenv/master/virtualenv.py
     $ python virtualenv.py my_new_env
     $ . my_new_env/bin/activate
     (my_new_env)$ pip install ...
 
+When used in this manner, pip will only affect the active virtual environment.
 If you do want to install pip globally into your Python installation, see the
 instructions below.
 
@@ -33,10 +34,10 @@ operating system's package manager or install it manually::
 Using the installer
 -------------------
 
-Download `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+Download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
 and execute it, using the Python interpreter of your choice::
 
-    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
     $ python get-pip.py
 
 This may have to be run as root.

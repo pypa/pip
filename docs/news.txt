@@ -6,6 +6,14 @@ Next release (1.1) schedule
 
 Beta release mid-July 2011, final release early August.
 
+1.0.2 (2011-07-16)
+------------------
+
+* Fixed docs issues.
+* Fixed issue #295 - Reinstall a package when using the ``install -I`` option
+* Fixed issue #283 - Finds a Git tag pointing to same commit as origin/master
+* Fixed issue #279 - Use absolute path for path to docs in setup.py
+
 1.0.1 (2011-04-30)
 ------------------
 
@@ -31,11 +39,11 @@ Beta release mid-July 2011, final release early August.
 * Fixed uninstall of packages from system Python for users of Debian/Ubuntu
   python-setuptools package (workaround until fixed in Debian and Ubuntu).
 
-* Added `get-pip.py <https://github.com/pypa/pip/raw/master/contrib/get-pip.py>`_
+* Added `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
   installer. Simply download and execute it, using the Python interpreter of
   your choice::
 
-    $ curl -O https://github.com/pypa/pip/raw/master/contrib/get-pip.py
+    $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
     $ python get-pip.py
 
   This may have to be run as root.

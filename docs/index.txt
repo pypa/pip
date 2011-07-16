@@ -1,7 +1,23 @@
 pip
 ===
 
-pip installs Python packages.
+pip is a tool for installing and managing Python packages, such as those
+found in the `Python Package Index <http://pypi.python.org/pypi>`_.
+
+pip is a replacement for `easy_install
+<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It mostly
+uses the same techniques for finding packages, so packages that are
+easy_installable should be pip-installable as well.  This means that
+you can use ``pip install SomePackage`` instead of ``easy_install
+SomePackage``.
+
+In order to use pip, you must first install `setuptools
+<http://pypi.python.org/pypi/setuptools>`_ or `distribute
+<http://pypi.python.org/pypi/distribute>`_.  If you use `virtualenv
+<http://www.virtualenv.org>`_, a copy of pip will be automatically be
+installed in each virtual environment you create.
+
+.. comment: split here
 
 .. toctree::
    :maxdepth: 1
@@ -15,14 +31,8 @@ pip installs Python packages.
 
 .. comment: split here
 
-Introduction
-------------
-
-pip installs packages.  Python packages.
-
-If you use `virtualenv <http://virtualenv.openplans.org>`__ -- a tool
-for installing libraries in a local and isolated manner -- you'll
-automatically get a copy of pip.  Free bonus!
+Usage
+-----
 
 Once you have pip, you can use it like this::
 
@@ -53,11 +63,6 @@ specific version.
 
 Pip Compared To easy_install
 ----------------------------
-
-pip is a replacement for `easy_install
-<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It uses mostly the
-same techniques for finding packages, so packages that were made
-easy_installable should be pip-installable as well.
 
 pip is meant to improve on easy_install.  Some of the improvements:
 
@@ -103,10 +108,9 @@ virtualenv to isolate your installation.
 Community
 ---------
 
-The homepage for pip is temporarily located `on PyPI
-<http://pypi.python.org/pypi/pip>`_ -- a more proper homepage will
-follow.  Bugs can go on the `pip issue tracker
-<https://github.com/pypa/pip/issues/>`_.  Discussion should happen on the
+The homepage for pip is at `pip-installer.org <http://www.pip-installer.org/>`_.
+Bugs can be filed in the `pip issue tracker
+<https://github.com/pypa/pip/issues/>`_.  Discussion happens on the
 `virtualenv email group
 <http://groups.google.com/group/python-virtualenv?hl=en>`_.
 
