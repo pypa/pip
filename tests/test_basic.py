@@ -349,7 +349,6 @@ def test_install_curdir_usersite():
 
     assert egg_info_folder in result.files_created, str(result)
 
-
 def test_install_subversion_usersite_editable_with_distribute():
     """
     Test installing current directory ('.') into usersite after installing distribute
