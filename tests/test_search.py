@@ -80,5 +80,5 @@ def test_search_missing_argument():
     Test missing required argument for search
     """
     env = reset_env(use_distribute=True)
-    result = run_pip('search', expect_error=False)
-    assert 'Missing required argument (search query).' in result.stdout
+    result = run_pip('search', expect_error=True)
+    assert 'ERROR: Missing required argument (search query).' in result.stdout
