@@ -10,7 +10,8 @@ from pip import commands
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
-from pip.exceptions import BadCommand, InstallationError, UninstallationError
+from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
+                            CommandError)
 from pip.backwardcompat import StringIO, walk_packages
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
@@ -89,29 +90,39 @@ class Command(object):
         urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
         exit = 0
+        store_log = False
         try:
             self.run(options, args)
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
+            store_log = True
             exit = 1
         except BadCommand:
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
+            store_log = True
+            exit = 1
+        except CommandError:
+            e = sys.exc_info()[1]
+            logger.fatal('ERROR: %s' % e)
+            logger.info('Exception information:\n%s' % format_exc())
             exit = 1
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
+            store_log = True
             exit = 1
         except:
             logger.fatal('Exception:\n%s' % format_exc())
+            store_log = True
             exit = 2
 
         if log_fp is not None:
             log_fp.close()
-        if exit:
+        if store_log:
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
