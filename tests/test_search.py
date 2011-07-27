@@ -74,3 +74,11 @@ def test_searching_through_Search_class():
     result = pypi_searcher.search(query, 'http://pypi.python.org/pypi')
     assert expected == result, result
     fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=VERBOSE_FALSE)
+
+def test_search_missing_argument():
+    """
+    Test missing required argument for search
+    """
+    env = reset_env(use_distribute=True)
+    result = run_pip('search', expect_error=True)
+    assert 'ERROR: Missing required argument (search query).' in result.stdout

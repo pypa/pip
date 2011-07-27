@@ -6,8 +6,11 @@ from pip.basecommand import Command
 from pip.util import get_terminal_size
 from pip.log import logger
 from pip.backwardcompat import xmlrpclib, reduce, cmp
+from pip.exceptions import CommandError
 from distutils.version import StrictVersion, LooseVersion
 
+class SearchCommandError(CommandError):
+    pass
 
 class SearchCommand(Command):
     name = 'search'
@@ -25,8 +28,7 @@ class SearchCommand(Command):
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Missing required argument (search query).')
-            return
+            raise CommandError('Missing required argument (search query).')
         query = args
         index_url = options.index
 
