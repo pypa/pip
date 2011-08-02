@@ -2,7 +2,7 @@ import sys
 import textwrap
 import pkg_resources
 import pip.download
-from pip.basecommand import Command
+from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size
 from pip.log import logger
 from pip.backwardcompat import xmlrpclib, reduce, cmp
@@ -10,7 +10,6 @@ from pip.exceptions import CommandError
 from distutils.version import StrictVersion, LooseVersion
 
 
-SUCCESS = 0
 NO_MATCHES_FOUND = 23
 
 

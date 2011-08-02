@@ -22,6 +22,8 @@ command_dict = {}
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
 
+SUCCESS = 0
+ERROR = 1
 
 class Command(object):
     name = None
@@ -93,6 +95,8 @@ class Command(object):
         store_log = False
         try:
             status = self.run(options, args)
+            # FIXME: all commands should return an exit status
+            # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 exit = status
         except (InstallationError, UninstallationError):

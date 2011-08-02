@@ -1,10 +1,8 @@
-from pip.basecommand import Command, command_dict, load_all_commands
+from pip.basecommand import (Command, command_dict,
+                             load_all_commands, SUCCESS,
+                             ERROR)
 from pip.exceptions import CommandError
 from pip.baseparser import parser
-
-
-ERROR = 1
-SUCCESS = 0
 
 
 class HelpCommand(Command):
