@@ -1,6 +1,10 @@
 from pip.basecommand import Command, command_dict, load_all_commands
-from pip.exceptions import InstallationError
+from pip.exceptions import CommandError
 from pip.baseparser import parser
+
+
+ERROR = 1
+SUCCESS = 0
 
 
 class HelpCommand(Command):
@@ -14,10 +18,10 @@ class HelpCommand(Command):
             ## FIXME: handle errors better here
             command = args[0]
             if command not in command_dict:
-                raise InstallationError('No command with the name: %s' % command)
+                raise CommandError('No command with the name: %s' % command)
             command = command_dict[command]
             command.parser.print_help()
-            return
+            return SUCCESS
         parser.print_help()
         print('\nCommands available:')
         commands = list(set(command_dict.values()))
@@ -26,6 +30,6 @@ class HelpCommand(Command):
             if command.hidden:
                 continue
             print('  %s: %s' % (command.name, command.summary))
-
+        return SUCCESS
 
 HelpCommand()
