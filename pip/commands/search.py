@@ -9,8 +9,10 @@ from pip.backwardcompat import xmlrpclib, reduce, cmp
 from pip.exceptions import CommandError
 from distutils.version import StrictVersion, LooseVersion
 
-class SearchCommandError(CommandError):
-    pass
+
+SUCCESS = 0
+NO_MATCHES_FOUND = 23
+
 
 class SearchCommand(Command):
     name = 'search'
@@ -40,6 +42,9 @@ class SearchCommand(Command):
             terminal_width = get_terminal_size()[0]
 
         print_results(hits, terminal_width=terminal_width)
+        if pypi_hits:
+            return SUCCESS
+        return NO_MATCHES_FOUND
 
     def search(self, query, index_url):
         pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)

@@ -92,7 +92,9 @@ class Command(object):
         exit = 0
         store_log = False
         try:
-            self.run(options, args)
+            status = self.run(options, args)
+            if isinstance(status, int):
+                exit = status
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
