@@ -24,6 +24,8 @@ get_proxy = urlopen.get_proxy
 
 SUCCESS = 0
 ERROR = 1
+UNKNOWN_ERROR = 2
+VIRTUALENV_NOT_FOUND = 3
 
 class Command(object):
     name = None
@@ -79,7 +81,7 @@ class Command(object):
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
                 logger.fatal('Could not find an activated virtualenv (required).')
-                sys.exit(3)
+                sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.log:
             log_fp = open_logfile(options.log, 'a')
@@ -91,7 +93,7 @@ class Command(object):
 
         urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
-        exit = 0
+        exit = SUCCESS
         store_log = False
         try:
             status = self.run(options, args)
@@ -104,28 +106,27 @@ class Command(object):
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except BadCommand:
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except CommandError:
             e = sys.exc_info()[1]
             logger.fatal('ERROR: %s' % e)
             logger.info('Exception information:\n%s' % format_exc())
-            exit = 1
+            exit = ERROR
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
-            exit = 2
-
+            exit = UNKNOWN_ERROR
         if log_fp is not None:
             log_fp.close()
         if store_log:
