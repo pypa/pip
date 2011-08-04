@@ -9,8 +9,10 @@ from pip.backwardcompat import xmlrpclib, reduce, cmp
 from pip.exceptions import CommandError
 from distutils.version import StrictVersion, LooseVersion
 
+
 class SearchCommandError(CommandError):
     pass
+
 
 class SearchCommand(Command):
     name = 'search'
