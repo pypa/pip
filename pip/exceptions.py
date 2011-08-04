@@ -16,5 +16,6 @@ class DistributionNotFound(InstallationError):
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
 
+
 class CommandError(Exception):
     """Raised when there is an error in command-line arguments"""
