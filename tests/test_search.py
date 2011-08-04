@@ -75,6 +75,7 @@ def test_searching_through_Search_class():
     assert expected == result, result
     fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=VERBOSE_FALSE)
 
+
 def test_search_missing_argument():
     """
     Test missing required argument for search
