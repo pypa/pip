@@ -23,6 +23,11 @@ class Bazaar(VersionControl):
         urlparse.non_hierarchical.extend(['lp'])
         urlparse.uses_fragment.extend(['lp'])
 
+    def __init__(self, url=None, *args, **kwargs):
+        if "#egg=" in url:
+            url = url[:url.index("#egg")]
+        super(Bazaar, self).__init__(url, *args, **kwargs)
+
     def parse_vcs_bundle_file(self, content):
         url = rev = None
         for line in content.splitlines():
