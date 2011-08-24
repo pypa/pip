@@ -41,6 +41,34 @@ def test_upgrade_if_requested():
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
 
+def test_upgrade_with_newest_already_installed():
+    """
+    If the newest version of a package is already installed, the package should
+    not be reinstalled and the user should be informed.
+    """
+
+    env = reset_env()
+    run_pip('install', 'INITools')
+    result = run_pip('install', '--upgrade', 'INITools')
+    assert not result.files_created, 'pip install --upgrade INITools upgraded when it should not have'
+    assert 'already up-to-date' in result.stdout
+
+
+def test_upgrade_force_reinstall_newest():
+    """
+    Force reinstallation of a package even if it is already at its newest
+    version if --force-reinstall is supplied.
+    """
+
+    env = reset_env()
+    result = run_pip('install', 'INITools')
+    assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+    result2 = run_pip('install', '--upgrade', '--force-reinstall', 'INITools')
+    assert result2.files_updated, 'upgrade to INITools 0.3 failed'
+    result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
+    assert_all_changes(result, result3, [env.venv/'build', 'cache'])
+
+
 def test_uninstall_before_upgrade():
     """
     Automatic uninstall-before-upgrade.
@@ -161,3 +189,4 @@ def test_install_with_ignoreinstalled_requested():
     result = run_pip('install', '-I', 'INITools', expect_error=True)
     assert result.files_created, 'pip install -I did not install'
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
+
