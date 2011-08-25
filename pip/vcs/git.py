@@ -104,7 +104,7 @@ class Git(VersionControl):
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
-            call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            call_subprocess([self.cmd, 'clone', '--depth', '1', '-q', url, dest])
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
