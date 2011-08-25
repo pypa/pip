@@ -200,14 +200,17 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-
         if not requirement_set.has_requirements:
+            opts = {'name': self.name}
             if options.find_links:
-                raise InstallationError('You must give at least one '
-                    'requirement to %s (maybe you meant "pip install %s"?)'
-                    % (self.name, " ".join(options.find_links)))
-            raise InstallationError('You must give at least one requirement '
-                'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
+                msg = ('You must give at least one requirement to %(name)s '
+                       '(maybe you meant "pip %(name)s %(links)s"?)' %
+                       dict(opts, links=' '.join(options.find_links)))
+            else:
+                msg = ('You must give at least one requirement '
+                       'to %(name)s (see "pip help %(name)s")' % opts)
+            logger.warn(msg)
+            return
 
         if (options.use_user_site and
             sys.version_info < (2, 6)):
