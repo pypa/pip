@@ -197,11 +197,11 @@ class InstallCommand(Command):
         for name in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
+        filename = None
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-
-        if not requirement_set.has_requirements:
+        if not requirement_set.has_requirements and not filename in options.requirements:
             if options.find_links:
                 raise InstallationError('You must give at least one '
                     'requirement to %s (maybe you meant "pip install %s"?)'
