@@ -1100,7 +1100,7 @@ class RequirementSet(object):
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = [r for r in self.requirements.values()
-                      if (self.upgrade and not r.satisfied_by) or not r.satisfied_by]
+                      if not r.satisfied_by]
 
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
