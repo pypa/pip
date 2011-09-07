@@ -7,6 +7,7 @@ import posixpath
 import pkg_resources
 import zipfile
 import tarfile
+from fnmatch import fnmatch
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
 from pip.locations import site_packages, running_under_virtualenv
@@ -105,9 +106,20 @@ def get_pathext(default_pathext=None):
 
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
+    canned_actions={}
+    for (env_varname, env_val) in os.environ.iteritems():
+        if env_varname.startswith('PIP_INPUT_'):
+            canned_actions[env_val] = os.environ.get('PIP_ACTION_%s' % (env_varname[len('PIP_INPUT_'):]))
+    for (pattern, response) in canned_actions.iteritems():
+        if fnmatch(message, pattern):
+            if response not in options:
+                print 'Canned response (%r) is not one of the expected responses: %s' % (
+                    response, ', '.join(options))
+            else:
+                return response
+    if os.environ.get('PIP_NO_INPUT'):
+        raise Exception('No input was expected ($PIP_NO_INPUT set); question: %s' % message)
     while 1:
-        if os.environ.get('PIP_NO_INPUT'):
-            raise Exception('No input was expected ($PIP_NO_INPUT set); question: %s' % message)
         response = raw_input(message)
         response = response.strip().lower()
         if response not in options:
