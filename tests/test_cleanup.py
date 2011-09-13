@@ -60,8 +60,8 @@ def test_cleanup_after_create_bundle():
     # Install an editable to create a src/ dir.
     args = ['install']
     args.extend(['-e',
-                 '%s#egg=django-feedutil' %
-                    local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+                 '%s#egg=django-vcstorage' %
+                    local_checkout('git+http://github.com/jezdez/django-vcstorage.git')])
     run_pip(*args)
     build = env.venv_path/"build"
     src = env.venv_path/"src"
