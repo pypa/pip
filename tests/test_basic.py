@@ -224,10 +224,10 @@ def test_install_editable_from_git():
     reset_env()
     args = ['install']
     args.extend(['-e',
-                 '%s#egg=django-vcstorage' %
-                 local_checkout('git+http://github.com/jezdez/django-vcstorage.git')])
+                 '%s#egg=pip-test-package' %
+                 local_checkout('git+http://github.com/pypa/pip-test-package.git')])
     result = run_pip(*args, **{"expect_error": True})
-    result.assert_installed('django-vcstorage', with_files=['.git'])
+    result.assert_installed('pip-test-package', with_files=['.git'])
 
 
 def test_install_editable_from_hg():

@@ -9,10 +9,10 @@ def test_install_editable_from_git_with_https():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-vcstorage' %
-                     local_checkout('git+https://github.com/jezdez/django-vcstorage.git'),
+                     '%s#egg=pip-test-package' %
+                     local_checkout('git+https://github.com/pypa/pip-test-package.git'),
                      expect_error=True)
-    result.assert_installed('django-vcstorage', with_files=['.git'])
+    result.assert_installed('pip-test-package', with_files=['.git'])
 
 
 def test_git_with_sha1_revisions():
@@ -59,13 +59,13 @@ def test_git_with_tag_name_and_update():
     Test cloning a git repository and updating to a different version.
     """
     reset_env()
-    result = run_pip('install', '-e', '%s#egg=django-vcstorage' %
-                     local_checkout('git+http://github.com/jezdez/django-vcstorage.git'),
+    result = run_pip('install', '-e', '%s#egg=pip-test-package' %
+                     local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_error=True)
-    result.assert_installed('django-vcstorage', with_files=['.git'])
+    result.assert_installed('pip-test-package', with_files=['.git'])
     result = run_pip('install', '--global-option=--version', '-e',
-                     '%s@0.1.1#egg=django-vcstorage' %
-                     local_checkout('git+http://github.com/jezdez/django-vcstorage.git'),
+                     '%s@0.1.1#egg=pip-test-package' %
+                     local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_error=True)
     assert '0.1.1\n' in result.stdout
 
@@ -76,10 +76,10 @@ def test_git_branch_should_not_be_changed():
     related to issue #32 and #161
     """
     env = reset_env()
-    run_pip('install', '-e', '%s#egg=django-vcstorage' %
-                local_checkout('git+http://github.com/jezdez/django-vcstorage.git'),
+    run_pip('install', '-e', '%s#egg=pip-test-package' %
+                local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                 expect_error=True)
-    source_dir = env.venv_path/'src'/'django-vcstorage'
+    source_dir = env.venv_path/'src'/'pip-test-package'
     result = env.run('git', 'branch', cwd=source_dir)
     assert '* master' in result.stdout
 
@@ -90,7 +90,7 @@ def test_git_with_non_editable_unpacking():
     """
     reset_env()
     result = run_pip('install', '--global-option=--version', local_checkout(
-                     'git+http://github.com/jezdez/django-vcstorage.git@0.1.1#egg=django-staticfiles'
+                     'git+http://github.com/pypa/pip-test-package.git@0.1.1#egg=pip-test-package'
                      ), expect_error=True)
     assert '0.1.1\n' in result.stdout
 

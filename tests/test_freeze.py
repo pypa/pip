@@ -84,7 +84,7 @@ def test_freeze_git_clone():
     env = reset_env()
     result = env.run('git', 'clone', local_repo('git+http://github.com/jezdez/django-pagination.git'), 'django-pagination')
     result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
-            cwd=env.scratch_path/'django-pagination', expect_stderr=True)
+            cwd=env.scratch_path / 'django-pagination', expect_stderr=True)
     result = env.run('python', 'setup.py', 'develop',
             cwd=env.scratch_path / 'django-pagination')
     result = run_pip('freeze', expect_stderr=True)
