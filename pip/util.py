@@ -107,10 +107,10 @@ def get_pathext(default_pathext=None):
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
     canned_actions={}
-    for (env_varname, env_val) in os.environ.iteritems():
+    for (env_varname, env_val) in os.environ.items():
         if env_varname.startswith('PIP_INPUT_'):
             canned_actions[env_val] = os.environ.get('PIP_ACTION_%s' % (env_varname[len('PIP_INPUT_'):]))
-    for (pattern, response) in canned_actions.iteritems():
+    for (pattern, response) in canned_actions.items():
         if fnmatch(message, pattern):
             if response not in options:
                 print 'Canned response (%r) is not one of the expected responses: %s' % (
