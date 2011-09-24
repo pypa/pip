@@ -28,8 +28,7 @@ installed in each virtual environment you create.
    requirements
    configuration
    other-tools
-   how-to-contribute
-   running-tests
+   contributing
 
 .. comment: split here
 
