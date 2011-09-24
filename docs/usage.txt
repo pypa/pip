@@ -1,0 +1,64 @@
+=====
+Usage
+=====
+
+Install packages
+----------------
+
+Once you have pip, you can use it like this::
+
+    $ pip install SomePackage
+
+SomePackage is some package you'll find on `PyPI
+<http://pypi.python.org/pypi/>`_.  This installs the package and all
+its dependencies.
+
+pip does other stuff too, with packages, but install is the biggest
+one.  You can ``pip uninstall`` too.
+
+You can also install from a URL (that points to a tar or zip file),
+install from some version control system (use URLs like
+``hg+http://domain/repo`` -- or prefix ``git+``, ``svn+`` etc).  pip
+knows a bunch of stuff about revisions and stuff, so if you need to do
+things like install a very specific revision from a repository pip can
+do that too.
+
+If you've ever used ``python setup.py develop``, you can do something
+like that with ``pip install -e ./`` -- this works with packages that
+use ``distutils`` too (usually this only works with Setuptools
+projects).
+
+You can use ``pip install --upgrade SomePackage`` to upgrade to a
+newer version, or ``pip install SomePackage==1.0.4`` to install a very
+specific version.
+
+Uninstall packages
+------------------
+
+pip is able to uninstall most installed packages with ``pip uninstall
+package-name``.
+
+Known exceptions include pure-distutils packages installed with
+``python setup.py install`` (such packages leave behind no metadata allowing
+determination of what files were installed), and script wrappers installed
+by develop-installs (``python setup.py develop``).
+
+pip also performs an automatic uninstall of an old version of a package
+before upgrading to a newer version, so outdated files (and egg-info data)
+from conflicting versions aren't left hanging around to cause trouble. The
+old version of the package is automatically restored if the new version
+fails to download or install.
+
+Searching for packages
+----------------------
+
+pip can search the `Python Package Index <http://pypi.python.org/pypi>`_ (PyPI)
+for packages using the ``pip search`` command. To search, run::
+
+    $ pip search "query"
+
+The query will be used to search the names and summaries of all packages
+indexed.
+
+pip searches http://pypi.python.org/pypi by default but alternative indexes
+can be searched by using the ``--index`` flag.
