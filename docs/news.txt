@@ -1,5 +1,9 @@
-News / Changelog
-================
+====
+News
+====
+
+Changelog
+=========
 
 Next release (1.1) schedule
 ---------------------------

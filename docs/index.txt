@@ -20,15 +20,15 @@ installed in each virtual environment you create.
 .. comment: split here
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   news
    installing
    usage
    requirements
    configuration
    other-tools
    contributing
+   news
 
 .. comment: split here
 
