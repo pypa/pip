@@ -9,12 +9,9 @@ Once you have pip, you can use it like this::
 
     $ pip install SomePackage
 
-SomePackage is some package you'll find on `PyPI
+`SomePackage` is some package you'll find on `PyPI
 <http://pypi.python.org/pypi/>`_.  This installs the package and all
 its dependencies.
-
-pip does other stuff too, with packages, but install is the biggest
-one.  You can ``pip uninstall`` too.
 
 You can also install from a URL (that points to a tar or zip file),
 install from some version control system (use URLs like
@@ -23,14 +20,39 @@ knows a bunch of stuff about revisions and stuff, so if you need to do
 things like install a very specific revision from a repository pip can
 do that too.
 
-If you've ever used ``python setup.py develop``, you can do something
-like that with ``pip install -e ./`` -- this works with packages that
-use ``distutils`` too (usually this only works with Setuptools
-projects).
-
 You can use ``pip install --upgrade SomePackage`` to upgrade to a
 newer version, or ``pip install SomePackage==1.0.4`` to install a very
 specific version.
+
+Edit mode
+*********
+
+Packages normally_ install under ``site-packages``, but when you're
+making changes, it makes more sense to run the package straight from the
+checked-out source tree. "Editable" installs create a ``.pth`` file in
+``site-packages`` that extends Python's import path to find the
+package::
+
+    $ pip install -e path/to/SomePackage
+
+.. _normally: http://docs.python.org/install/index.html#how-installation-works
+
+Version control systems
+***********************
+
+Pip knows how to check out a package from version control. The
+repository will be checked out in a temporary folder, installed, and
+cleaned up::
+
+    $ pip install git+https://github.com/simplejson/simplejson.git
+    $ pip install svn+svn://svn.zope.org/repos/main/zope.interface/trunk/
+
+This can be combined with the `-e` flag, and Pip will perform the
+checkout in ``./src/``. You need to supply a name for the checkout
+folder by appending a hash to the repository URL::
+
+    $ pip install -e git+https://github.com/lakshmivyas/hyde.git#egg=hyde
+
 
 Uninstall packages
 ------------------
