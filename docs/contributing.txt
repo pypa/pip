@@ -1,6 +1,6 @@
-========================
-How To Contribute to Pip
-========================
+=================
+How to contribute
+=================
 
 
 All kinds of contributions are welcome - code, tests, documentation,
@@ -72,6 +72,61 @@ We have a continuous integration server running all pip related tests at
 http://ci.cloudsilverlining.org/view/pip. But if you want to have your own,
 you can learn how to set up a Hudson CI server like that in the
 :doc:`ci-server-step-by-step` page.
+
+
+
+Running the Tests
+=================
+
+Pip uses some system tools - VCS related tools - in its tests, so you need to
+intall them (Linux)::
+
+    sudo apt-get install subversion bzr git-core mercurial
+
+Or downloading and installing `Subversion
+<http://subversion.apache.org/packages.html>`_, `Bazaar
+<http://wiki.bazaar.canonical.com/Download>`_, `Git
+<http://git-scm.com/download>`_ and `Mercurial
+<http://mercurial.selenic.com/downloads/>`_ manually.
+
+
+After all requirements (system and python) are installed,
+just run the following command::
+
+    $ python setup.py test
+
+Running tests directly with Nose
+--------------------------------
+
+If you want to run only a selection of the tests, you'll need to run them
+directly with nose instead. Create a virtualenv, and install required
+packages::
+
+    pip install nose virtualenv scripttest mock
+
+Run nosetests::
+
+    nosetests
+
+Or select just a single test to run::
+
+    cd tests; nosetests test_upgrade.py:test_uninstall_rollback
+
+
+Troubleshooting
+---------------
+
+Locale Warnings
+    There was a problem with locales configuration when running tests in a Hudson
+    CI Server that broke some tests. The problem was not with pip, but with
+    `locales` configuration. Hudson was not setting LANG environment variable
+    correctly, so the solution to fix it was changing default language to
+    en_US.UTF-8.
+    The following has been done in a Ubuntu Server 9.10 machine::
+
+        $ sudo locale-gen en_US en_US.UTF-8
+        $ sudo dpkg-reconfigure locales
+        $ sudo update-locale LANG=en_US.UTF-8
 
 
 

@@ -115,3 +115,27 @@ Just leave an empty space between the passsed values, e.g.::
 is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
+Configuration options
+---------------------
+
+Mirror support
+**************
+
+The `PyPI mirroring infrastructure <http://pypi.python.org/mirrors>`_ as
+described in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_ can be
+used by passing the ``--use-mirrors`` option to the install command.
+Alternatively, you can use the other ways to configure pip, e.g.::
+
+    $ export PIP_USE_MIRRORS=true
+
+If enabled, pip will automatically query the DNS entry of the mirror index URL
+to find the list of mirrors to use. In case you want to override this list,
+please use the ``--mirrors`` option of the install command, or add to your pip
+configuration file::
+
+    [install]
+    use-mirrors = true
+    mirrors =
+        http://d.pypi.python.org
+        http://b.pypi.python.org

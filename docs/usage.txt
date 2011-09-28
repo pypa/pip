@@ -1,0 +1,108 @@
+=====
+Usage
+=====
+
+Install packages
+----------------
+
+Once you have pip, you can use it like this::
+
+    $ pip install SomePackage
+
+`SomePackage` is some package you'll find on `PyPI
+<http://pypi.python.org/pypi/>`_.  This installs the package and all
+its dependencies.
+
+You can also install from a URL (that points to a tar or zip file),
+install from some version control system (use URLs like
+``hg+http://domain/repo`` -- or prefix ``git+``, ``svn+`` etc).  pip
+knows a bunch of stuff about revisions and stuff, so if you need to do
+things like install a very specific revision from a repository pip can
+do that too.
+
+You can use ``pip install --upgrade SomePackage`` to upgrade to a
+newer version, or ``pip install SomePackage==1.0.4`` to install a very
+specific version.
+
+Edit mode
+*********
+
+Packages normally_ install under ``site-packages``, but when you're
+making changes, it makes more sense to run the package straight from the
+checked-out source tree. "Editable" installs create a ``.pth`` file in
+``site-packages`` that extends Python's import path to find the
+package::
+
+    $ pip install -e path/to/SomePackage
+
+.. _normally: http://docs.python.org/install/index.html#how-installation-works
+
+Version control systems
+***********************
+
+Pip knows how to check out a package from version control. The
+repository will be checked out in a temporary folder, installed, and
+cleaned up::
+
+    $ pip install git+https://github.com/simplejson/simplejson.git
+    $ pip install svn+svn://svn.zope.org/repos/main/zope.interface/trunk/
+
+This can be combined with the `-e` flag, and Pip will perform the
+checkout in ``./src/``. You need to supply a name for the checkout
+folder by appending a hash to the repository URL::
+
+    $ pip install -e git+https://github.com/lakshmivyas/hyde.git#egg=hyde
+
+
+Uninstall packages
+------------------
+
+pip is able to uninstall most installed packages with ``pip uninstall
+package-name``.
+
+Known exceptions include pure-distutils packages installed with
+``python setup.py install`` (such packages leave behind no metadata allowing
+determination of what files were installed), and script wrappers installed
+by develop-installs (``python setup.py develop``).
+
+pip also performs an automatic uninstall of an old version of a package
+before upgrading to a newer version, so outdated files (and egg-info data)
+from conflicting versions aren't left hanging around to cause trouble. The
+old version of the package is automatically restored if the new version
+fails to download or install.
+
+Searching for packages
+----------------------
+
+pip can search the `Python Package Index <http://pypi.python.org/pypi>`_ (PyPI)
+for packages using the ``pip search`` command. To search, run::
+
+    $ pip search "query"
+
+The query will be used to search the names and summaries of all packages
+indexed.
+
+pip searches http://pypi.python.org/pypi by default but alternative indexes
+can be searched by using the ``--index`` flag.
+
+Bundles
+-------
+
+Another way to distribute a set of libraries is a bundle format (specific to
+pip).  This format is not stable at this time (there simply hasn't been
+any feedback, nor a great deal of thought).  A bundle file contains all the
+source for your package, and you can have pip install them all together.
+Once you have the bundle file further network access won't be necessary.  To
+build a bundle file, do::
+
+    $ pip bundle MyApp.pybundle MyApp
+
+(Using a `requirements file`_ would be wise.)  Then someone else can get the
+file ``MyApp.pybundle`` and run::
+
+    $ pip install MyApp.pybundle
+
+This is *not* a binary format.  This only packages source.  If you have binary
+packages, then the person who installs the files will have to have a compiler,
+any necessary headers installed, etc.  Binary packages are hard, this is
+relatively easy.
