@@ -1,5 +1,6 @@
 import os
 import re
+from urlparse import urlsplit
 from pip import call_subprocess
 from pip.index import Link
 from pip.util import rmtree, display_path
@@ -83,6 +84,11 @@ class Subversion(VersionControl):
         else:
             rev_options = []
             rev_display = ''
+        r = urlsplit(url)
+        if r.username:
+            rev_options += ['--username', r.username]
+        if r.password:
+            rev_options += ['--password', r.password]
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
