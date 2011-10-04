@@ -102,6 +102,11 @@ def get_pathext(default_pathext=None):
     pathext = os.environ.get('PATHEXT', default_pathext)
     return pathext
 
+def path_exists(message, options):
+    for action in os.environ.get('PIP_EXISTS_ACTION', ''):
+        if action in options:
+            return action
+    return ask(message, options)
 
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
