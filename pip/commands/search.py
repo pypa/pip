@@ -25,7 +25,7 @@ class SearchCommand(Command):
             '--index',
             dest='index',
             metavar='URL',
-            default='http://pypi.python.org/pypi',
+            default='https://pypi.python.org/pypi',
             help='Base URL of Python Package Index (default %default)')
 
     def run(self, options, args):

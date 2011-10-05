@@ -23,6 +23,7 @@ download_cache = tempfile.mkdtemp(prefix='pip-test-cache')
 site_packages_suffix = site.USER_SITE[len(site.USER_BASE) + 1:]
 
 
+
 def path_to_url(path):
     """
     Convert a path to URI. The path will be made absolute and
@@ -282,6 +283,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
         environ['PIP_NO_INPUT'] = '1'
         environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
+        environ['PIP_USE_MIRRORS'] = 'false'
 
         super(TestPipEnvironment, self).__init__(
             self.root_path, ignore_hidden=False,

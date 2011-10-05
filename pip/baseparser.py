@@ -199,5 +199,11 @@ parser.add_option(
     type='str',
     default='',
     help=optparse.SUPPRESS_HELP)
+parser.add_option(
+    '--refresh-serverkey',
+    dest='refresh_serverkey',
+    action='store_true',
+    default=False,
+    help="Refresh the cached version of PyPI's server key")
 
 parser.disable_interspersed_args()

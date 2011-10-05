@@ -7,12 +7,14 @@ import traceback
 import time
 
 from pip import commands
-from pip.log import logger
-from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.backwardcompat import StringIO, walk_packages, u
+from pip.baseparser import (parser, ConfigOptionParser,
+                            UpdatingDefaultsHelpFormatter)
 from pip.download import urlopen
-from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError)
-from pip.backwardcompat import StringIO, walk_packages
+from pip.exceptions import (BadCommand, InstallationError,
+                            UninstallationError, CommandError)
+from pip.log import logger
+from pip.locations import serverkey_file
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
@@ -48,10 +50,30 @@ class Command(object):
         for attr in ['log', 'proxy', 'require_venv',
                      'log_explicit_levels', 'log_file',
                      'timeout', 'default_vcs', 'skip_requirements_regex',
-                     'no_input']:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+                     'no_input', 'refresh_serverkey']:
+            setattr(options, attr,
+                    getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
+
+    def refresh_serverkey(self, url='https://pypi.python.org/serverkey'):
+        serverkey_cache = open(serverkey_file, 'wb')
+        try:
+            try:
+                content = urlopen(url).read()
+                serverkey_cache.write(content)
+            except Exception:
+                e = sys.exc_info()[1]
+                raise
+                raise InstallationError('Could not refresh local cache (%s) '
+                                        'of PyPI server key (%s): %s' %
+                                        (serverkey_file, url, e))
+            else:
+                logger.notify('Refreshed local cache (%s) of '
+                              'PyPI server key (%s):\n\n%s' %
+                              (serverkey_file, url, u(content)))
+        finally:
+            serverkey_cache.close()
 
     def setup_logging(self):
         pass
@@ -60,10 +82,10 @@ class Command(object):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
-        level = 1 # Notify
+        level = 1  # Notify
         level += options.verbose
         level -= options.quiet
-        level = logger.level_for_integer(4-level)
+        level = logger.level_for_integer(4 - level)
         complete_log = []
         logger.consumers.extend(
             [(level, sys.stdout),
@@ -76,8 +98,12 @@ class Command(object):
         if options.require_venv:
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
-                logger.fatal('Could not find an activated virtualenv (required).')
+                logger.fatal('Could not find an activated '
+                             'virtualenv (required).')
                 sys.exit(3)
+
+        if not os.path.exists(serverkey_file) or options.refresh_serverkey:
+            self.refresh_serverkey()
 
         if options.log:
             log_fp = open_logfile(options.log, 'a')
@@ -155,7 +181,7 @@ def open_logfile(filename, mode='a'):
 
     log_fp = open(filename, mode)
     if exists:
-        log_fp.write('%s\n' % ('-'*60))
+        log_fp.write('%s\n' % ('-' * 60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
 
@@ -178,4 +204,3 @@ def load_all_commands():
 def command_names():
     names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
     return list(names)
-

@@ -1,28 +1,30 @@
-import sys
 import os
-import shutil
 import re
-import zipfile
-import pkg_resources
+import shutil
+import socket
+import sys
 import tempfile
-from pip.locations import bin_py, running_under_virtualenv
+import zipfile
+from pkg_resources import (get_distribution, Requirement, PY_MAJOR,
+                           VersionConflict, DistributionNotFound)
+
+from pip import call_subprocess
+from pip.index import Link
+from pip.log import logger
+from pip.locations import bin_py, running_under_virtualenv, build_prefix
 from pip.exceptions import InstallationError, UninstallationError
 from pip.vcs import vcs
-from pip.log import logger
-from pip.util import display_path, rmtree
-from pip.util import ask, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local
-from pip.util import renames, normalize_path, egg_link_path
-from pip.util import make_path_relative
-from pip import call_subprocess
 from pip.backwardcompat import (any, copytree, urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
-                                FeedParser, get_python_version,
-                                b)
-from pip.index import Link
-from pip.locations import build_prefix
+                                FeedParser, get_python_version, b,
+                                WindowsError, URLError)
+
+
+from pip.util import (display_path, rmtree, ask, backup_dir,
+                      is_installable_dir, is_local, dist_is_local, renames,
+                      normalize_path, egg_link_path, make_path_relative)
 from pip.download import (get_file_content, is_url, url_to_path,
-                          path_to_url, is_archive_file,
+                          path_to_url, is_archive_file, urlopen,
                           unpack_vcs_link, is_vcs_url, is_file_url,
                           unpack_file_url, unpack_http_url)
 
@@ -35,7 +37,7 @@ class InstallRequirement(object):
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, update=True):
         if isinstance(req, string_types):
-            req = pkg_resources.Requirement.parse(req)
+            req = Requirement.parse(req)
         self.req = req
         self.comes_from = comes_from
         self.source_dir = source_dir
@@ -56,6 +58,8 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        # The server signature from PyPI
+        self._serversig = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -68,7 +72,8 @@ class InstallRequirement(object):
 
     @classmethod
     def from_line(cls, name, comes_from=None):
-        """Creates an InstallRequirement from a name, which might be a
+        """
+        Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
         url = None
@@ -79,17 +84,21 @@ class InstallRequirement(object):
 
         if is_url(name):
             link = Link(name)
-        elif os.path.isdir(path) and (os.path.sep in name or name.startswith('.')):
+        elif os.path.isdir(path) and (
+                os.path.sep in name or name.startswith('.')):
             if not is_installable_dir(path):
-                raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", name)
+                raise InstallationError("Directory %r is not installable. "
+                                        "File 'setup.py' not found.", name)
             link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
-                logger.warn('Requirement %r looks like a filename, but the file does not exist', name)
+                logger.warn('Requirement %r looks like a filename, '
+                            'but the file does not exist', name)
             link = Link(path_to_url(name))
 
-        # If the line has an egg= definition, but isn't editable, pull the requirement out.
-        # Otherwise, assume the name is the req for the non URL/path/archive case.
+        # If the line has an egg= definition, but isn't editable,
+        # pull the requirement out. Otherwise, assume the name is
+        # the req for the non URL/path/archive case.
         if link and req is None:
             url = link.url_fragment
             req = link.egg_fragment
@@ -195,6 +204,22 @@ class InstallRequirement(object):
     def setup_py(self):
         return os.path.join(self.source_dir, 'setup.py')
 
+    @property
+    def serversig(self):
+        if self._serversig is None:
+            if self.req is not None:
+                sig_url = 'https://pypi.python.org/serversig/%s/' % self.url_name
+                try:
+                    self._serversig = urlopen(sig_url).read()
+                except (HTTPError, URLError, socket.timeout,
+                        socket.error, OSError, WindowsError):
+                    # return empty string in case this was just a
+                    # temporary connection failure
+                    return ''
+            else:
+                self._serversig = ''
+        return self._serversig
+
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
         if self.name:
@@ -223,7 +248,7 @@ class InstallRequirement(object):
         finally:
             logger.indent -= 2
         if not self.req:
-            self.req = pkg_resources.Requirement.parse(
+            self.req = Requirement.parse(
                 "%(Name)s==%(Version)s" % self.pkg_info())
             self.correct_build_location()
 
@@ -411,8 +436,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
         # workaround for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
-        debian_egg_info_path = pip_egg_info_path.replace(
-            '-py%s' % pkg_resources.PY_MAJOR, '')
+        debian_egg_info_path = pip_egg_info_path.replace('-py%s' % PY_MAJOR, '')
         easy_install_egg = dist.egg_name() + '.egg'
         develop_egg_link = egg_link_path(dist)
 
@@ -473,11 +497,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
             if config.has_section('console_scripts'):
                 for name, value in config.items('console_scripts'):
-                    paths_to_remove.add(os.path.join(bin_py, name))
+                    this_bin = os.path.join(bin_py, name)
+                    paths_to_remove.add(this_bin)
                     if sys.platform == 'win32':
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
+                        paths_to_remove.add(this_bin + '.exe')
+                        paths_to_remove.add(this_bin + '.exe.manifest')
+                        paths_to_remove.add(this_bin + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -486,15 +511,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.uninstalled:
             self.uninstalled.rollback()
         else:
-            logger.error("Can't rollback %s, nothing uninstalled."
-                         % (self.project_name,))
+            logger.error("Can't rollback %s, nothing uninstalled." %
+                         self.project_name)
 
     def commit_uninstall(self):
         if self.uninstalled:
             self.uninstalled.commit()
         else:
-            logger.error("Can't commit %s, nothing uninstalled."
-                         % (self.project_name,))
+            logger.error("Can't commit %s, nothing uninstalled." %
+                         self.project_name)
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -524,7 +549,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
                     zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
-                    zipdir.external_attr = 0x1ED << 16 # 0o755
+                    zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
@@ -537,9 +562,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             logger.notify('Saved %s' % display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+os.path.sep), (
+        assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
-        name = name[len(prefix)+1:]
+        name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
 
@@ -597,7 +622,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-            f.write('\n'.join(new_lines)+'\n')
+            f.write('\n'.join(new_lines) + '\n')
             f.close()
         finally:
             if os.path.exists(record_filename):
@@ -651,11 +676,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(self.req)
-        except pkg_resources.DistributionNotFound:
+            self.satisfied_by = get_distribution(self.req)
+        except DistributionNotFound:
             return False
-        except pkg_resources.VersionConflict:
-            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
+        except VersionConflict:
+            self.conflicts_with = get_distribution(self.req.project_name)
         return True
 
     @property
@@ -780,6 +805,8 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
+        if download_cache is not None:
+            download_cache = os.path.expanduser(download_cache)
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -894,141 +921,169 @@ class RequirementSet(object):
                                        % (req_to_install, req_to_install.source_dir))
 
     def prepare_files(self, finder, force_root_egg_info=False, bundle=False):
-        """Prepare process. Create temp directories, download and/or unpack files."""
+        """
+        Prepare process. Create temp directories, download
+        and/or unpack files.
+        """
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
         while reqs or unnamed:
             if unnamed:
-                req_to_install = unnamed.pop(0)
+                requirement = unnamed.pop(0)
             else:
-                req_to_install = reqs.pop(0)
+                requirement = reqs.pop(0)
             install = True
-            if not self.ignore_installed and not req_to_install.editable:
-                req_to_install.check_if_exists()
-                if req_to_install.satisfied_by:
+            if not self.ignore_installed and not requirement.editable:
+                requirement.check_if_exists()
+                if requirement.satisfied_by:
                     if self.upgrade:
-                        req_to_install.conflicts_with = req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
+                        requirement.conflicts_with = requirement.satisfied_by
+                        requirement.satisfied_by = None
                     else:
                         install = False
-                if req_to_install.satisfied_by:
+                if requirement.satisfied_by:
                     logger.notify('Requirement already satisfied '
                                   '(use --upgrade to upgrade): %s'
-                                  % req_to_install)
-            if req_to_install.editable:
-                logger.notify('Obtaining %s' % req_to_install)
+                                  % requirement)
+            if requirement.editable:
+                logger.notify('Obtaining %s' % requirement)
             elif install:
-                if req_to_install.url and req_to_install.url.lower().startswith('file:'):
-                    logger.notify('Unpacking %s' % display_path(url_to_path(req_to_install.url)))
+                if requirement.url and requirement.url.lower().startswith('file:'):
+                    logger.notify('Unpacking %s' %
+                                  display_path(url_to_path(requirement.url)))
                 else:
-                    logger.notify('Downloading/unpacking %s' % req_to_install)
+                    logger.notify('Downloading/unpacking %s' % requirement)
             logger.indent += 2
             try:
                 is_bundle = False
-                if req_to_install.editable:
-                    if req_to_install.source_dir is None:
-                        location = req_to_install.build_location(self.src_dir)
-                        req_to_install.source_dir = location
+                if requirement.editable:
+                    if requirement.source_dir is None:
+                        location = requirement.build_location(self.src_dir)
+                        requirement.source_dir = location
                     else:
-                        location = req_to_install.source_dir
+                        location = requirement.source_dir
                     if not os.path.exists(self.build_dir):
                         _make_build_dir(self.build_dir)
-                    req_to_install.update_editable(not self.is_download)
+                    requirement.update_editable(not self.is_download)
                     if self.is_download:
-                        req_to_install.run_egg_info()
-                        req_to_install.archive(self.download_dir)
+                        requirement.run_egg_info()
+                        requirement.archive(self.download_dir)
                     else:
-                        req_to_install.run_egg_info()
+                        requirement.run_egg_info()
                 elif install:
                     ##@@ if filesystem packages are not marked
                     ##editable in a req, a non deterministic error
                     ##occurs when the script attempts to unpack the
                     ##build directory
 
-                    location = req_to_install.build_location(self.build_dir, not self.is_download)
+                    location = requirement.build_location(
+                        self.build_dir, not self.is_download)
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
-                        if req_to_install.url is None:
-                            url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
+                        if requirement.url is None:
+                            urls = finder.find_requirement(requirement, upgrade=self.upgrade)
                         else:
-                            ## FIXME: should req_to_install.url already be a link?
-                            url = Link(req_to_install.url)
-                            assert url
-                        if url:
-                            try:
-                                self.unpack_url(url, location, self.is_download)
-                            except HTTPError:
-                                e = sys.exc_info()[1]
-                                logger.fatal('Could not install requirement %s because of error %s'
-                                             % (req_to_install, e))
-                                raise InstallationError(
-                                    'Could not install requirement %s because of HTTP error %s for URL %s'
-                                    % (req_to_install, e, url))
+                            ## FIXME: should requirement.url already be a link?
+                            urls = [Link(requirement.url)]
+                        if urls:
+                            # Trying each of the returned URLs one by one
+                            for url in urls:
+                                if url.is_mirror:
+                                    if finder.verify(requirement, url):
+                                        logger.info('Successfully verified '
+                                            'mirror URL %s for requirement '
+                                            '%s.' % (url, requirement))
+                                    else:
+                                        logger.warn('Could not verify mirror '
+                                            'URL %s for requirement %s. '
+                                            'Skipping.' % (url, requirement))
+                                        continue
+                                try:
+                                    self.unpack_url(url, location, self.is_download)
+                                except HTTPError:
+                                    e = sys.exc_info()[1]
+                                    logger.fatal('Could not install '
+                                        'requirement %s because of error %s' %
+                                        (requirement, e))
+                                    raise InstallationError('Could not '
+                                        'install requirement %s because of '
+                                        'HTTP error %s for URL %s' %
+                                        (requirement, e, url))
+                                else:
+                                    # stop trying after successful retrieval
+                                    break
+                            else:
+                                raise InstallationError('Could not install '
+                                    'requirement %s because no valid URLs '
+                                    'were found.' % requirement)
                         else:
                             unpack = False
                     if unpack:
-                        is_bundle = req_to_install.is_bundle
+                        is_bundle = requirement.is_bundle
                         url = None
                         if is_bundle:
-                            req_to_install.move_bundle_files(self.build_dir, self.src_dir)
-                            for subreq in req_to_install.bundle_requirements():
+                            requirement.move_bundle_files(self.build_dir, self.src_dir)
+                            for subreq in requirement.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
                         elif self.is_download:
-                            req_to_install.source_dir = location
+                            requirement.source_dir = location
                             if url and url.scheme in vcs.all_schemes:
-                                req_to_install.run_egg_info()
-                                req_to_install.archive(self.download_dir)
+                                requirement.run_egg_info()
+                                requirement.archive(self.download_dir)
                         else:
-                            req_to_install.source_dir = location
-                            req_to_install.run_egg_info()
+                            requirement.source_dir = location
+                            requirement.run_egg_info()
                             if force_root_egg_info:
                                 # We need to run this to make sure that the .egg-info/
                                 # directory is created for packing in the bundle
-                                req_to_install.run_egg_info(force_root_egg_info=True)
-                            req_to_install.assert_source_matches_version()
+                                requirement.run_egg_info(force_root_egg_info=True)
+                            requirement.assert_source_matches_version()
                             #@@ sketchy way of identifying packages not grabbed from an index
-                            if bundle and req_to_install.url:
-                                self.copy_to_build_dir(req_to_install)
+                            if bundle and requirement.url:
+                                self.copy_to_build_dir(requirement)
                                 install = False
-                        # req_to_install.req is only avail after unpack for URL pkgs
+                        # requirement.req is only avail after unpack for URL pkgs
                         # repeat check_if_exists to uninstall-on-upgrade (#14)
-                        req_to_install.check_if_exists()
-                        if req_to_install.satisfied_by:
+                        requirement.check_if_exists()
+                        if requirement.satisfied_by:
                             if self.upgrade or self.ignore_installed:
-                                req_to_install.conflicts_with = req_to_install.satisfied_by
-                                req_to_install.satisfied_by = None
+                                requirement.conflicts_with = requirement.satisfied_by
+                                requirement.satisfied_by = None
                             else:
                                 install = False
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(req_to_install.dependency_links)
+                    finder.add_dependency_links(requirement.dependency_links)
                     ## FIXME: add extras in here:
                     if not self.ignore_dependencies:
-                        for req in req_to_install.requirements():
+                        for req in requirement.requirements():
                             try:
-                                name = pkg_resources.Requirement.parse(req).project_name
+                                name = Requirement.parse(req).project_name
                             except ValueError:
                                 e = sys.exc_info()[1]
                                 ## FIXME: proper warning
-                                logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
+                                logger.error('Invalid requirement: %r (%s) '
+                                             'in requirement %s' %
+                                             (req, e, requirement))
                                 continue
                             if self.has_requirement(name):
                                 ## FIXME: check for conflict
                                 continue
-                            subreq = InstallRequirement(req, req_to_install)
+                            subreq = InstallRequirement(req, requirement)
                             reqs.append(subreq)
                             self.add_requirement(subreq)
-                    if req_to_install.name not in self.requirements:
-                        self.requirements[req_to_install.name] = req_to_install
+                    if requirement.name not in self.requirements:
+                        self.requirements[requirement.name] = requirement
                 else:
-                    self.reqs_to_cleanup.append(req_to_install)
+                    self.reqs_to_cleanup.append(requirement)
                 if install:
-                    self.successfully_downloaded.append(req_to_install)
-                    if bundle and (req_to_install.url and req_to_install.url.startswith('file:///')):
-                        self.copy_to_build_dir(req_to_install)
+                    self.successfully_downloaded.append(requirement)
+                    if bundle and (requirement.url and
+                            requirement.url.startswith('file:///')):
+                        self.copy_to_build_dir(requirement)
             finally:
                 logger.indent -= 2
 
@@ -1074,23 +1129,26 @@ class RequirementSet(object):
         elif is_file_url(link):
             return unpack_file_url(link, location)
         else:
-            if self.download_cache:
-                self.download_cache = os.path.expanduser(self.download_cache)
-            return unpack_http_url(link, location, self.download_cache, only_download)
+            return unpack_http_url(link, location,
+                                   self.download_cache, only_download)
 
     def install(self, install_options, global_options=()):
-        """Install everything in this set (after having downloaded and unpacked the packages)"""
+        """
+        Install everything in this set
+        (after having downloaded and unpacked the packages)
+        """
         to_install = [r for r in self.requirements.values()
                       if self.upgrade or not r.satisfied_by]
 
         if to_install:
-            logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
+            logger.notify('Installing collected packages: %s' %
+                          ', '.join([req.name for req in to_install]))
         logger.indent += 2
         try:
             for requirement in to_install:
                 if requirement.conflicts_with:
-                    logger.notify('Found existing installation: %s'
-                                  % requirement.conflicts_with)
+                    logger.notify('Found existing installation: %s' %
+                                  requirement.conflicts_with)
                     logger.indent += 2
                     try:
                         requirement.uninstall(auto_confirm=True)
@@ -1181,9 +1239,9 @@ class RequirementSet(object):
         return ''.join(parts)
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+os.path.sep), (
+        assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
-        name = name[len(prefix)+1:]
+        name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
 
