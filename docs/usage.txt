@@ -97,8 +97,8 @@ build a bundle file, do::
 
     $ pip bundle MyApp.pybundle MyApp
 
-(Using a `requirements file`_ would be wise.)  Then someone else can get the
-file ``MyApp.pybundle`` and run::
+(Using a :ref:`requirements file <requirements-files>` would be wise.)  Then
+someone else can get the file ``MyApp.pybundle`` and run::
 
     $ pip install MyApp.pybundle
 

@@ -1,4 +1,4 @@
-.. _`requirements file`:
+.. _`requirements-files`:
 
 ==================
 Requirements files
