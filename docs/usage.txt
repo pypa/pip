@@ -5,24 +5,22 @@ Usage
 Install packages
 ----------------
 
-Once you have pip, you can use it like this::
+The simplest way to install a package is by specifying its name::
 
     $ pip install SomePackage
 
-`SomePackage` is some package you'll find on `PyPI
-<http://pypi.python.org/pypi/>`_.  This installs the package and all
-its dependencies.
+`SomePackage` is downloaded from :term:`PyPI`, along with its
+dependencies, and installed.
 
-You can also install from a URL (that points to a tar or zip file),
-install from some version control system (use URLs like
-``hg+http://domain/repo`` -- or prefix ``git+``, ``svn+`` etc).  pip
-knows a bunch of stuff about revisions and stuff, so if you need to do
-things like install a very specific revision from a repository pip can
-do that too.
+If `SomePackage` is already installed, and you need a newer version, use
+``pip install --upgrade SomePackage``. You can also request a specific
+version: ``pip install SomePackage==1.0.4``.
 
-You can use ``pip install --upgrade SomePackage`` to upgrade to a
-newer version, or ``pip install SomePackage==1.0.4`` to install a very
-specific version.
+You can also install from a particular source distribution file, either
+local or remote::
+
+    $ pip install ./downloads/SomePackage-1.0.4.tar.gz
+    $ pip install http://my.package.repo/SomePackage-1.0.4.zip
 
 Edit mode
 *********
@@ -40,9 +38,9 @@ package::
 Version control systems
 ***********************
 
-Pip knows how to check out a package from version control. The
-repository will be checked out in a temporary folder, installed, and
-cleaned up::
+Pip knows how to check out a package from version control. `Subversion`,
+`Git`, `Mercurial` and `Bazaar` are supported. The repository will be
+checked out in a temporary folder, installed, and cleaned up::
 
     $ pip install git+https://github.com/simplejson/simplejson.git
     $ pip install svn+svn://svn.zope.org/repos/main/zope.interface/trunk/
@@ -52,6 +50,23 @@ checkout in ``./src/``. You need to supply a name for the checkout
 folder by appending a hash to the repository URL::
 
     $ pip install -e git+https://github.com/lakshmivyas/hyde.git#egg=hyde
+
+Alternate package repositories
+******************************
+
+pip searches in :term:`PyPI` by default, but this can be overridden,
+using the ``--index-url`` option::
+
+    $ pip install --index-url http://d.pypi.python.org/simple/ SomePackage
+
+If some package is not in PyPI, but in a private repository, it makes
+sense to specify additional search URLs (see `Your own python egg
+baskets / package repositories`_ for a guide on creating simple
+repositories)::
+
+    $ pip install --extra-index-url http://my.package.repo/ SomePackage
+
+.. _`Your own python egg baskets / package repositories`: http://labs.creativecommons.org/2011/02/14/your-own-python-egg-baskets-package-repositories/
 
 
 Uninstall packages
@@ -74,16 +89,14 @@ fails to download or install.
 Searching for packages
 ----------------------
 
-pip can search the `Python Package Index <http://pypi.python.org/pypi>`_ (PyPI)
-for packages using the ``pip search`` command. To search, run::
+pip can search :term:`PyPI` for packages using the ``pip search``
+command::
 
     $ pip search "query"
 
-The query will be used to search the names and summaries of all packages
-indexed.
-
-pip searches http://pypi.python.org/pypi by default but alternative indexes
-can be searched by using the ``--index`` flag.
+The query will be used to search the names and summaries of all
+packages. With the ``--index`` option you can search in a different
+repository.
 
 Bundles
 -------
@@ -97,8 +110,8 @@ build a bundle file, do::
 
     $ pip bundle MyApp.pybundle MyApp
 
-(Using a `requirements file`_ would be wise.)  Then someone else can get the
-file ``MyApp.pybundle`` and run::
+(Using a :ref:`requirements file <requirements-files>` would be wise.)  Then
+someone else can get the file ``MyApp.pybundle`` and run::
 
     $ pip install MyApp.pybundle
 

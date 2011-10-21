@@ -1,21 +1,32 @@
 pip
 ===
 
-pip is a tool for installing and managing Python packages, such as those
-found in the `Python Package Index <http://pypi.python.org/pypi>`_.
+`pip` is a tool for installing and managing Python packages, such as
+those found in the `Python Package Index`_. It's a replacement for
+easy_install_.
+::
 
-pip is a replacement for `easy_install
-<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It mostly
-uses the same techniques for finding packages, so packages that are
-easy_installable should be pip-installable as well.  This means that
-you can use ``pip install SomePackage`` instead of ``easy_install
-SomePackage``.
+    $ pip install simplejson
+    [... progress report ...]
+    Successfully installed simplejson
 
-In order to use pip, you must first install `setuptools
-<http://pypi.python.org/pypi/setuptools>`_ or `distribute
-<http://pypi.python.org/pypi/distribute>`_.  If you use `virtualenv
-<http://www.virtualenv.org>`_, a copy of pip will be automatically be
-installed in each virtual environment you create.
+.. _`Python Package Index`: http://pypi.python.org/pypi
+.. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
+
+Upgrading a package::
+
+    $ pip install --upgrade simplejson
+    [... progress report ...]
+    Successfully installed simplejson
+
+Removing a package::
+
+    $ pip uninstall simplejson
+    Uninstalling simplejson:
+      /home/me/env/lib/python2.7/site-packages/simplejson
+      /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+    Proceed (y/n)? y
+      Successfully uninstalled simplejson
 
 .. comment: split here
 
@@ -29,6 +40,7 @@ installed in each virtual environment you create.
    other-tools
    contributing
    news
+   glossary
 
 .. comment: split here
 
