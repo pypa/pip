@@ -13,6 +13,9 @@ Beta release November 2011, final release December.
 develop (unreleased)
 --------------------
 
+* Fixed issue #49 - pip install -U no longer reinstalls the same versions of
+  packages. Thanks iguananaut for the pull request.
+
 * Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
   restart-in-venv mechanism that's broken, and neither one is useful since
   every virtualenv now has pip inside it.
