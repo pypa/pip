@@ -6,7 +6,8 @@ import zipfile
 import pkg_resources
 import tempfile
 from pip.locations import bin_py, running_under_virtualenv
-from pip.exceptions import InstallationError, UninstallationError
+from pip.exceptions import (InstallationError, UninstallationError,
+                            BestVersionAlreadyInstalled)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
@@ -776,13 +777,14 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False):
+                 ignore_dependencies=False, force_reinstall=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
+        self.force_reinstall = force_reinstall
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -903,18 +905,35 @@ class RequirementSet(object):
             else:
                 req_to_install = reqs.pop(0)
             install = True
+            best_installed = False
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        req_to_install.conflicts_with = req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
+                        if not self.force_reinstall:
+                            try:
+                                url = finder.find_requirement(
+                                    req_to_install, self.upgrade)
+                            except BestVersionAlreadyInstalled:
+                                best_installed = True
+                                install = False
+                            else:
+                                # Avoid the need to call find_requirement again
+                                req_to_install.url = url.url
+
+                        if not best_installed:
+                            req_to_install.conflicts_with = req_to_install.satisfied_by
+                            req_to_install.satisfied_by = None
                     else:
                         install = False
                 if req_to_install.satisfied_by:
-                    logger.notify('Requirement already satisfied '
-                                  '(use --upgrade to upgrade): %s'
-                                  % req_to_install)
+                    if best_installed:
+                        logger.notify('Requirement already up-to-date: %s'
+                                      % req_to_install)
+                    else:
+                        logger.notify('Requirement already satisfied '
+                                      '(use --upgrade to upgrade): %s'
+                                      % req_to_install)
             if req_to_install.editable:
                 logger.notify('Obtaining %s' % req_to_install)
             elif install:
@@ -1081,7 +1100,7 @@ class RequirementSet(object):
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = [r for r in self.requirements.values()
-                      if self.upgrade or not r.satisfied_by]
+                      if not r.satisfied_by]
 
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))

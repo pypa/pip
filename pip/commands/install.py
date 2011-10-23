@@ -107,6 +107,12 @@ class InstallCommand(Command):
             action='store_true',
             help='Upgrade all packages to the newest available version')
         self.parser.add_option(
+            '--force-reinstall',
+            dest='force_reinstall',
+            action='store_true',
+            help='When upgrading, reinstall all packages even if they are '
+                 'already up-to-date.')
+        self.parser.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
@@ -190,7 +196,8 @@ class InstallCommand(Command):
             download_cache=options.download_cache,
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
-            ignore_dependencies=options.ignore_dependencies)
+            ignore_dependencies=options.ignore_dependencies,
+            force_reinstall=options.force_reinstall)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
