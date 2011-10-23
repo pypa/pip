@@ -80,8 +80,8 @@ class InstallCommand(Command):
             '-b', '--build', '--build-dir', '--build-directory',
             dest='build_dir',
             metavar='DIR',
-            default=None,
-            help='Unpack packages into DIR (default %s) and build from there' % build_prefix)
+            default=build_prefix,
+            help='Unpack packages into DIR (default %default) and build from there')
         self.parser.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
@@ -98,8 +98,8 @@ class InstallCommand(Command):
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
-            default=None,
-            help='Check out --editable packages into DIR (default %s)' % src_prefix)
+            default=src_prefix,
+            help='Check out --editable packages into DIR (default %default)')
 
         self.parser.add_option(
             '-U', '--upgrade',
@@ -169,10 +169,6 @@ class InstallCommand(Command):
                              mirrors=options.mirrors)
 
     def run(self, options, args):
-        if not options.build_dir:
-            options.build_dir = build_prefix
-        if not options.src_dir:
-            options.src_dir = src_prefix
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
