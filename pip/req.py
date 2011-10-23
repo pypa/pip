@@ -34,8 +34,10 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, update=True):
+        self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
+            self.extras = req.extras
         self.req = req
         self.comes_from = comes_from
         self.source_dir = source_dir
@@ -327,11 +329,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def requirements(self, extras=()):
         in_extra = None
         for line in self.egg_info_lines('requires.txt'):
-            match = self._requirements_section_re.match(line)
+            match = self._requirements_section_re.match(line.lower())
             if match:
                 in_extra = match.group(1)
                 continue
             if in_extra and in_extra not in extras:
+                logger.debug('skipping extra %s' % in_extra)
                 # Skip requirement for an extra we aren't requiring
                 continue
             yield line
@@ -441,6 +444,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
+            if dist.has_metadata('requires.txt'):
+                for name in self.requirements(self.extras):
+                    # special-case 'distribute' and 'setuptools' -- if a user wants to remove one of these, they can do so separately using pip uninstall
+                    if name != 'distribute' and name != 'setuptools':
+                        logger.notify("Also uninstalling extra requirement %s" % name)
+                        InstallRequirement.from_line(name).uninstall()
 
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
@@ -1005,9 +1014,10 @@ class RequirementSet(object):
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
-                    ## FIXME: add extras in here:
+                    if (req_to_install.extras):
+                        logger.notify("Installing extra requirements: %r" % ','.join(req_to_install.extras))
                     if not self.ignore_dependencies:
-                        for req in req_to_install.requirements():
+                        for req in req_to_install.requirements(req_to_install.extras):
                             try:
                                 name = pkg_resources.Requirement.parse(req).project_name
                             except ValueError:
