@@ -912,16 +912,16 @@ class RequirementSet(object):
                     if self.upgrade:
                         if not self.force_reinstall:
                             try:
-                                finder.find_requirement(req_to_install,
-                                                        self.uninstall)
+                                url = finder.find_requirement(
+                                    req_to_install, self.upgrade)
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
-                            except:
-                                # Ignore DistributionNotFound for now
-                                pass
+                            else:
+                                # Avoid the need to call find_requirement again
+                                req_to_install.url = url.url
 
-                        if self.force_reinstall or not best_installed:
+                        if not best_installed:
                             req_to_install.conflicts_with = req_to_install.satisfied_by
                             req_to_install.satisfied_by = None
                     else:
