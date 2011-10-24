@@ -1063,6 +1063,7 @@ class RequirementSet(object):
             remove_dir.append(self.build_dir)
 
         # The source dir of a bundle can always be removed.
+        # FIXME: not if it pre-existed the bundle!
         if bundle:
             remove_dir.append(self.src_dir)
 
