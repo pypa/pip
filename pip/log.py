@@ -71,7 +71,8 @@ class Logger(object):
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
-                    consumer.write(rendered+'\n')
+                    rendered += '\n'
+                    consumer.buffer.write(rendered.encode('UTF-8'))
                 else:
                     consumer(rendered)
 
