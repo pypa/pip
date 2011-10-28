@@ -35,6 +35,12 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
+        self.parser.add_option(
+            '-c', '--changed',
+            dest='changed',
+            action='store_true',
+            default=False,
+            help='Only report packages that are new or have changed relative to a provided requirements file (-r). If you havn\'t specified a requirements file this option has no effect.')
 
     def setup_logging(self):
         logger.move_stdout_to_stderr()
@@ -43,6 +49,7 @@ class FreezeCommand(Command):
         requirement = options.requirement
         find_links = options.find_links or []
         local_only = options.local
+        changed_only = options.changed
         ## FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
@@ -101,7 +108,8 @@ class FreezeCommand(Command):
                     logger.warn("Requirement file contains %s, but that package is not installed"
                                 % line.strip())
                     continue
-                f.write(str(installations[line_req.name]))
+                if not changed_only:
+                    f.write(str(installations[line_req.name]))
                 del installations[line_req.name]
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
