@@ -311,6 +311,46 @@ INITools==0.2
     _check_output(result, expected)
 
 
+def test_freeze_with_changed_option(script):
+    """
+    Test that pip only reports new/changed packages with the --changed option.
+
+    """
+    # First install something
+    script.scratch_path.join('initools-req.txt').write(textwrap.dedent("""\
+        INITools==0.2
+        """))
+    result = script.pip_install_local('-r', 'initools-req.txt')
+
+    # Now install something else and check that only that is reported
+    result = script.pip_install_local('pip-test-package')
+    result = script.pip('freeze', '--changed',
+                        '-r', 'initools-req.txt', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze --changed...
+        -- stdout: --------------------
+        ## The following requirements were added by pip freeze...
+        pip-test-package==0.1.1...
+        <BLANKLINE>""")
+    _check_output(result, expected)
+
+    # Check that upgraded packages are shown as changed
+    script.scratch_path.join('initools-req.txt').write(textwrap.dedent("""\
+        INITools==0.2
+        wsgiref==0.1.1
+        """))
+    result = script.pip_install_local('pip-test-package')
+    result = script.pip('freeze', '--changed',
+                        '-r', 'initools-req.txt', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze --changed...
+        -- stdout: --------------------
+        ## The following requirements were added by pip freeze...
+        pip-test-package==0.1.1...
+        <BLANKLINE>""")
+    _check_output(result, expected)
+
+
 def test_freeze_user(script, virtualenv):
     """
     Testing freeze with --user, first we have to install some stuff.

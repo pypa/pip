@@ -50,6 +50,13 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
+        self.parser.add_option(
+            '-c', '--changed',
+            dest='changed_only',
+            action='store_true',
+            default=False,
+            help='Only list packages that are new or have changed relative '
+                  'to a provided requirements file (-r).')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -59,6 +66,7 @@ class FreezeCommand(Command):
             find_links=options.find_links,
             local_only=options.local,
             user_only=options.user,
+            changed_only=options.changed_only,
             skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode)
 

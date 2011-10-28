@@ -19,6 +19,7 @@ freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 def freeze(
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
+        changed_only=False,
         find_tags=False,
         default_vcs=None,
         isolated=False):
@@ -63,7 +64,8 @@ def freeze(
                             '-f', '--find-links',
                             '-i', '--index-url',
                             '--extra-index-url'))):
-                    yield line.rstrip()
+                    if not changed_only:
+                        yield line.rstrip()
                     continue
 
                 if line.startswith('-e') or line.startswith('--editable'):
@@ -99,13 +101,15 @@ def freeze(
                         line.strip(),
                     )
                 else:
-                    yield str(installations[line_req.name]).rstrip()
+                    if not changed_only:
+                        yield str(installations[line_req.name]).rstrip()
                     del installations[line_req.name]
 
-        yield(
-            '## The following requirements were added by '
-            'pip freeze:'
-        )
+        if installations:
+            yield(
+                '## The following requirements were added by '
+                'pip freeze:'
+            )
     for installation in sorted(
             installations.values(), key=lambda x: x.name.lower()):
         yield str(installation).rstrip()
