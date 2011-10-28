@@ -1,3 +1,4 @@
+from datetime import date
 import re
 import sys
 import pkg_resources
@@ -111,7 +112,8 @@ class FreezeCommand(Command):
                 if not changed_only:
                     f.write(str(installations[line_req.name]))
                 del installations[line_req.name]
-            f.write('## The following requirements were added by pip --freeze:\n')
+            if installations:
+                f.write('## The following requirements were added by pip --freeze on %s:\n' % (date.today().strftime("%Y-%m-%d"),))
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
 
