@@ -238,4 +238,27 @@ def test_freeze_with_requirement_option():
         -- stdout: --------------------
         INITools==0.2
         """) + ignores + "## The following requirements were added by pip --freeze:..."
+
+
+def test_freeze_with_changed_option():
+    """
+    Test that pip only reports new/changed packages with the --changed option.
+
+    """
+    env = reset_env()
+    # First install something
+    write_file('initools-req.txt', textwrap.dedent("""\
+        INITools==0.2
+        """))
+    result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
+
+    # Now install something else and check that only that is reported
+    result = run_pip('install', 'MarkupSafe<=0.12')
+    result = run_pip('freeze', '--local', '--changed', '-r', env.scratch_path/'initools-req.txt', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze --local --changed...
+        -- stdout: --------------------
+        ## The following requirements were added by pip --freeze on...
+        MarkupSafe==0.12...
+        <BLANKLINE>""")
     _check_output(result, expected)
