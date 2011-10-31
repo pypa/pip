@@ -112,9 +112,12 @@ class Git(VersionControl):
                     call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
-        url = call_subprocess(
-            [self.cmd, 'config', 'remote.origin.url'],
-            show_stdout=False, cwd=location)
+        try:
+            url = call_subprocess(
+                [self.cmd, 'config', 'remote.origin.url'],
+                show_stdout=False, cwd=location)
+        except :
+            url = ''
         return url.strip()
 
     def get_revision(self, location):
