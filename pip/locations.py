@@ -13,18 +13,18 @@ def running_under_virtualenv():
     return hasattr(sys, 'real_prefix')
 
 
-try:
-    if running_under_virtualenv():
-        ## FIXME: is build/ a good name?
-        build_prefix = os.path.join(sys.prefix, 'build')
-        src_prefix = os.path.join(sys.prefix, 'src')
-    else:
+if running_under_virtualenv():
+    ## FIXME: is build/ a good name?
+    build_prefix = os.path.join(sys.prefix, 'build')
+    src_prefix = os.path.join(sys.prefix, 'src')
+else:
+    try:
         ## FIXME: this isn't a very good default
         build_prefix = os.path.join(os.getcwd(), 'build')
         src_prefix = os.path.join(os.getcwd(), 'src')
-except OSError:
-    # In case the current working directory has been renamed or deleted
-    sys.exit("The folder you are executing pip from can no longer be found.")
+    except OSError:
+        # In case the current working directory has been renamed or deleted
+        sys.exit("The folder you are executing pip from can no longer be found.")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
