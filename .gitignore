@@ -21,3 +21,4 @@ build/*
 pip-log.txt
 pip.log
 *.~
+/.coverage
