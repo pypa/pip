@@ -2,7 +2,10 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from tests.test_pip import reset_env, run_pip, write_file, get_env, pyversion
+from tests.test_pip import get_env
+from tests.test_pip import reset_env
+from tests.test_pip import run_pip
+from tests.test_pip import write_file
 from tests.local_repos import local_checkout, local_repo
 
 
@@ -196,6 +199,18 @@ def test_freeze_with_local_option():
 
     # _check_output(result, expected)
 
+    result = run_pip('freeze', '--local', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze --local
+        -- stdout: --------------------
+        INITools==0.2
+        <BLANKLINE>""")
+    _check_output(result, expected)
+
+
+def test_freeze_json_output():
+    reset_env()
+    result = run_pip('install', 'initools==0.2')
     result = run_pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze --local
