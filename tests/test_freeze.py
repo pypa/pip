@@ -1,5 +1,6 @@
-import sys
+import json
 import re
+import sys
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 from tests.test_pip import get_env
@@ -209,12 +210,12 @@ def test_freeze_with_local_option():
 
 
 def test_freeze_json_output():
+    """
+    Test the output of the basic json formatter 
+    """
     reset_env()
     result = run_pip('install', 'initools==0.2')
-    result = run_pip('freeze', '--local', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        Script result: ...pip freeze --local
-        -- stdout: --------------------
-        INITools==0.2
-        <BLANKLINE>""")
-    _check_output(result, expected)
+    result = run_pip('freeze', '--output-format=json', expect_stderr=True)
+    data = json.loads(result.stdout)
+    assert len(data) == 4, data.keys()
+    assert set(data['requirements'].keys()) == set((u'wsgiref', u'INITools'))
