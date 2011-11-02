@@ -2,7 +2,7 @@ import tempfile
 import re
 from pip import call_subprocess
 from pip.backwardcompat import url2pathname, urlparse
-from pip.exception import InstallationError
+from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
