@@ -160,6 +160,7 @@ class FrozenRequirement(object):
             date_match = cls._date_re.search(version)
             if ver_match or date_match:
                 svn_backend = vcs.get_backend('svn')
+                svn_location = None
                 if svn_backend:
                     svn_location = svn_backend(
                         ).get_location(dist, dependency_links)
