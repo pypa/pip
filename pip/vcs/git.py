@@ -179,10 +179,10 @@ class Git(VersionControl):
             assert not 'file:' in self.url
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
-            url = url.replace('ssh://', '')
         else:
             url, rev = super(Git, self).get_url_rev()
 
+        url = url.replace('ssh://', '')
         return url, rev
 
     def _get_all_tag_names(self, location):
