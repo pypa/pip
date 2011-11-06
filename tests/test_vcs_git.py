@@ -75,3 +75,13 @@ def test_check_rev_options_should_handle_ambiguous_commit(branches_revs_mock,
 
     result = git.check_rev_options('0.1', '.', [])
     assert result == ['123456'], result
+
+def test_get_url_rev_ssh():
+    git = Git()
+    git.url = 'git+ssh://user@foo.com:test.git'
+
+    url, rev = git.get_url_rev()
+
+    expected = 'user@foo.com:test.git'
+
+    assert expected == url, '{expected} != {actual}'.format(expected=expected, actual=url)
