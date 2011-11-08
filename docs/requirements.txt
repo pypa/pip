@@ -20,22 +20,23 @@ haven't had this problem then you will eventually, so pip requirements are
 for you too -- requirements make explicit, repeatable installation of packages.
 
 So what are requirements files?  They are very simple: lists of packages to
-install.  Instead of running something like ``pip MyApp`` and getting
-whatever libraries come along, you can create a requirements file something like::
+install.  Instead of running something like ``pip install MyApp`` and
+getting whatever libraries come along, you can create a requirements file
+something like::
 
     MyApp
     Framework==0.9.4
     Library>=0.2
 
-Then, regardless of what MyApp lists in ``setup.py``, you'll get a
-specific version of Framework (0.9.4) and at least the 0.2 version of
-Library.  (You might think you could list these specific versions in
-MyApp's ``setup.py`` -- but if you do that you'll have to edit MyApp
-if you want to try a new version of Framework, or release a new
-version of MyApp if you determine that Library 0.3 doesn't work with
-your application.)  You can also add optional libraries and support
-tools that MyApp doesn't strictly require, giving people a set of
-recommended libraries.
+If you save this in ``requirements.txt``, then you can ``pip install -r
+requirements.txt``.  Regardless of what MyApp lists in ``setup.py``, you'll
+get a specific version of Framework (0.9.4) and at least the 0.2 version of
+Library.  (You might think you could list these specific versions in MyApp's
+``setup.py`` -- but if you do that you'll have to edit MyApp if you want to
+try a new version of Framework, or release a new version of MyApp if you
+determine that Library 0.3 doesn't work with your application.) You can also
+add optional libraries and support tools that MyApp doesn't strictly
+require, giving people a set of recommended libraries.
 
 You can also include "editable" packages -- packages that are checked out from
 Subversion, Git, Mercurial and Bazaar.  These are just like using the ``-e``
