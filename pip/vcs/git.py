@@ -183,6 +183,12 @@ class Git(VersionControl):
         else:
             url, rev = super(Git, self).get_url_rev()
 
+        reg="^((.+):[^/][^/](.+))@(.+)$"
+        match = re.match(reg, url)
+        if match:
+            url = match.group(1)
+            rev = match.group(4)
+
         return url, rev
 
     def _get_all_tag_names(self, location):
