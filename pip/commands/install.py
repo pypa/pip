@@ -63,6 +63,13 @@ class InstallCommand(Command):
             default=False,
             help='Ignore package index (only looking at --find-links URLs instead)')
         self.parser.add_option(
+            '--fallback-index-url',
+            dest='fallback_index_urls',
+            metavar='URL',
+            action='append',
+            default=[],
+            help="URLs of package indexes to use only if no distribution found")
+        self.parser.add_option(
             '-M', '--use-mirrors',
             dest='use_mirrors',
             action='store_true',
@@ -163,7 +170,8 @@ class InstallCommand(Command):
             action='store_true',
             help='Install to user-site')
 
-    def _build_package_finder(self, options, index_urls):
+    def _build_package_finder(self, options, index_urls,
+                              fallback_index_urls=[]):
         """
         Create a package finder appropriate to this install command.
         This method is meant to be overridden by subclasses, not
@@ -171,6 +179,7 @@ class InstallCommand(Command):
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
+                             fallback_index_urls=fallback_index_urls,
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors)
 
@@ -189,7 +198,8 @@ class InstallCommand(Command):
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
 
-        finder = self._build_package_finder(options, index_urls)
+        finder = self._build_package_finder(options, index_urls,
+                                            fallback_index_urls=options.fallback_index_urls)
 
         requirement_set = RequirementSet(
             build_dir=options.build_dir,

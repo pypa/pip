@@ -37,9 +37,11 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None,
+            fallback_index_urls=[]):
         self.find_links = find_links
         self.index_urls = index_urls
+        self.fallback_index_urls = fallback_index_urls
         self.dependency_links = []
         self.cache = PageCache()
         # These are boring links that have already been logged somehow:
@@ -89,20 +91,31 @@ class PackageFinder(object):
         return files, urls
 
     def find_requirement(self, req, upgrade):
+        try:
+            return self._find_requirement(req, upgrade, self.index_urls)
+        except DistributionNotFound:
+            if self.fallback_index_urls:
+                logger.info("Try fallback index urls")
+                return self._find_requirement(req, upgrade,
+                                         self.fallback_index_urls)
+            else:
+                raise
+
+    def _find_requirement(self, req, upgrade, index_urls):
         url_name = req.url_name
         # Only check main index if index URL is given:
         main_index_url = None
-        if self.index_urls:
+        if index_urls:
             # Check that we have the url_name correctly spelled:
-            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
+            main_index_url = Link(posixpath.join(index_urls[0], url_name))
             # This will also cache the page, so it's okay that we get it again later:
             page = self._get_page(main_index_url, req)
             if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+                url_name = self._find_url_name(Link(index_urls[0]), url_name, req) or req.url_name
 
         # Combine index URLs with mirror URLs here to allow
         # adding more index URLs from requirements files
-        all_index_urls = self.index_urls + self.mirror_urls
+        all_index_urls = index_urls + self.mirror_urls
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -150,7 +163,7 @@ class PackageFinder(object):
         file_versions = list(self._package_versions(
                 [Link(url) for url in file_locations], req.name.lower()))
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
-            logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+            logger.error('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
             found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
