@@ -160,6 +160,7 @@ class FrozenRequirement(object):
             date_match = cls._date_re.search(version)
             if ver_match or date_match:
                 svn_backend = vcs.get_backend('svn')
+                svn_location = None
                 if svn_backend:
                     svn_location = svn_backend(
                         ).get_location(dist, dependency_links)
@@ -251,9 +252,10 @@ def call_subprocess(cmd, show_stdout=True,
             if all_output:
                 logger.notify('Complete output from command %s:' % command_desc)
                 logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+            cwd = cwd or os.path.abspath(os.curdir)
             raise InstallationError(
-                "Command %s failed with error code %s"
-                % (command_desc, proc.returncode))
+                "Command %s in %s failed with error code %s "
+                % (command_desc, cwd, proc.returncode))
         else:
             logger.warn(
                 "Command %s had error code %s"

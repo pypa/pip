@@ -1,10 +1,11 @@
 import tempfile
 import re
 from pip import call_subprocess
+from pip.backwardcompat import url2pathname, urlparse
+from pip.exceptions import InstallationError
+from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
-from pip.log import logger
-from pip.backwardcompat import url2pathname, urlparse
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
 
@@ -112,9 +113,13 @@ class Git(VersionControl):
                     call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
     def get_url(self, location):
-        url = call_subprocess(
-            [self.cmd, 'config', 'remote.origin.url'],
-            show_stdout=False, cwd=location)
+        try:
+            url = call_subprocess(
+                [self.cmd, 'config', 'remote.origin.url'],
+                show_stdout=False, cwd=location)
+        except InstallationError, e:
+            logger.warn("%s" %e)
+            url = ''
         return url.strip()
 
     def get_revision(self, location):

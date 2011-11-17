@@ -122,6 +122,7 @@ parser.add_option(
     dest='help',
     action='store_true',
     help='Show help')
+
 parser.add_option(
     # Run only if inside a virtualenv, bail if not.
     '--require-virtualenv', '--require-venv',

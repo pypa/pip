@@ -1,20 +1,20 @@
-import re
+import json
 import sys
-import pkg_resources
-import pip
-from pip.req import InstallRequirement
-from pip.log import logger
 from pip.basecommand import Command
-from pip.util import get_installed_distributions
+from pip.data import FreezeData
+from pip.log import logger
 
 
 class FreezeCommand(Command):
     name = 'freeze'
     usage = '%prog [OPTIONS]'
     summary = 'Output all currently installed packages (exact versions) to stdout'
-
+    data_class = FreezeData
+    default_format = 'reqfile'
+    
     def __init__(self):
         super(FreezeCommand, self).__init__()
+        
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirement',
@@ -22,6 +22,7 @@ class FreezeCommand(Command):
             default=None,
             metavar='FILENAME',
             help='Use the given requirements file as a hint about how to generate the new frozen requirements')
+
         self.parser.add_option(
             '-f', '--find-links',
             dest='find_links',
@@ -29,6 +30,7 @@ class FreezeCommand(Command):
             default=[],
             metavar='URL',
             help='URL for finding packages, which will be added to the frozen requirements file')
+
         self.parser.add_option(
             '-l', '--local',
             dest='local',
@@ -36,74 +38,73 @@ class FreezeCommand(Command):
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
 
+        self.parser.add_option(
+            '-s', '--skip-regex',
+            dest='skip_requirements_regex',
+            action='store',
+            default=None,
+            metavar='REGEX',
+            help='Requirements matching regex will be filtered from output when using a requirement file')
+
+        self.parser.add_option(
+            '-t', '--find-tags',
+            dest='find_tags',
+            action='store_true',
+            default=False,
+            help='Find tags')
+        
+        self.parser.add_option(
+            '', '--output-format',
+            dest='output_format',
+            action='store',
+            default='reqfile',
+            metavar='FORMAT',
+            help='Format for output (reqfile, json)')
+        
+        self.parser.add_option(
+            '-d', '--default_vcs',
+            dest='default_vcs',
+            action='store',
+            default=None,
+            metavar='VCS',            
+            help='Default vcs to use: [svn, git, bzr, hg]')
+
     def setup_logging(self):
         logger.move_stdout_to_stderr()
+
+    def write_json(self, data, handle, indent=2):
+        """
+        writes a json formatter, ignores most extra reqfile options or
+        positional information
+
+        Sorted output only supported for 2.7 or better.
+        """
+        json.dump(data.as_dict, handle, indent=indent)
+        handle.write('\n')
+
+    def write_reqfile(self, data, handle):
+        for line in data:  
+            handle.write(line)
+
+    def write_output(self, data, handle, format=None):
+        writer = getattr(self, 'write_%s' %format, None)
+        if writer:
+            return writer(data, handle)
 
     def run(self, options, args):
         requirement = options.requirement
         find_links = options.find_links or []
         local_only = options.local
-        ## FIXME: Obviously this should be settable:
-        find_tags = False
-        skip_match = None
-
-        skip_regex = options.skip_requirements_regex
-        if skip_regex:
-            skip_match = re.compile(skip_regex)
-
-        dependency_links = []
-
-        f = sys.stdout
-
-        for dist in pkg_resources.working_set:
-            if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
-        for link in find_links:
-            if '#egg=' in link:
-                dependency_links.append(link)
-        for link in find_links:
-            f.write('-f %s\n' % link)
-        installations = {}
-        for dist in get_installed_distributions(local_only=local_only):
-            req = pip.FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
-            installations[req.name] = req
-        if requirement:
-            req_f = open(requirement)
-            for line in req_f:
-                if not line.strip() or line.strip().startswith('#'):
-                    f.write(line)
-                    continue
-                if skip_match and skip_match.search(line):
-                    f.write(line)
-                    continue
-                elif line.startswith('-e') or line.startswith('--editable'):
-                    if line.startswith('-e'):
-                        line = line[2:].strip()
-                    else:
-                        line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
-                elif (line.startswith('-r') or line.startswith('--requirement')
-                      or line.startswith('-Z') or line.startswith('--always-unzip')
-                      or line.startswith('-f') or line.startswith('-i')
-                      or line.startswith('--extra-index-url')):
-                    f.write(line)
-                    continue
-                else:
-                    line_req = InstallRequirement.from_line(line)
-                if not line_req.name:
-                    logger.notify("Skipping line because it's not clear what it would install: %s"
-                                  % line.strip())
-                    logger.notify("  (add #egg=PackageName to the URL to avoid this warning)")
-                    continue
-                if line_req.name not in installations:
-                    logger.warn("Requirement file contains %s, but that package is not installed"
-                                % line.strip())
-                    continue
-                f.write(str(installations[line_req.name]))
-                del installations[line_req.name]
-            f.write('## The following requirements were added by pip --freeze:\n')
-        for installation in sorted(installations.values(), key=lambda x: x.name):
-            f.write(str(installation))
-
+        find_tags = options.find_tags
+        skip_requirements_regex = options.skip_requirements_regex
+        default_vcs = options.default_vcs
+        output_format = options.output_format
+        write_on_load = output_format == 'reqfile'
+        handle = sys.stdout
+        data = self.data_class.load_all(local_only, find_links, requirement, find_tags,
+                                        skip_requirements_regex,
+                                        default_vcs, write_on_load, handle=handle, logger=logger)
+        if output_format != 'reqfile':
+            return self.write_output(data, handle, format=output_format)
 
 FreezeCommand()

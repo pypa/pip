@@ -1,8 +1,12 @@
-import sys
+import json
 import re
+import sys
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from tests.test_pip import reset_env, run_pip, write_file, get_env, pyversion
+from tests.test_pip import get_env
+from tests.test_pip import reset_env
+from tests.test_pip import run_pip
+from tests.test_pip import write_file
 from tests.local_repos import local_checkout, local_repo
 
 
@@ -35,11 +39,12 @@ def _check_output(result, expected):
 
 def test_freeze_basic():
     """
-    Some tests of freeze, first we have to install some stuff.  Note that
-    the test is a little crude at the end because Python 2.5+ adds egg
-    info to the standard library, so stuff like wsgiref will show up in
-    the freezing.  (Probably that should be accounted for in pip, but
-    currently it is not).
+    Some tests of freeze, first we have to install some stuff.
+
+    Note that the test is a little crude at the end because Python
+    2.5+ adds egg info to the standard library, so stuff like wsgiref
+    will show up in the freezing.  (Probably that should be accounted
+    for in pip, but currently it is not).
 
     """
     env = reset_env()
@@ -203,3 +208,18 @@ def test_freeze_with_local_option():
         INITools==0.2
         <BLANKLINE>""")
     _check_output(result, expected)
+
+
+def test_freeze_json_output():
+    """
+    Test the output of the basic json formatter 
+    """
+    reset_env()
+    result = run_pip('install', 'initools==0.2')
+    result = run_pip('freeze', '--output-format=json', expect_stderr=True)
+    data = json.loads(result.stdout)
+    assert len(data) == 4, data.keys()
+    assert set(data['requirements'].keys()) == set((u'wsgiref', u'INITools'))
+
+
+
