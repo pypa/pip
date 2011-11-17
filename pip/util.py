@@ -286,7 +286,7 @@ def dist_is_local(dist):
     return is_local(dist_location(dist))
 
 
-def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
+def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python'), working_set=pkg_resources.working_set):
     """
     Return a list of installed Distribution objects.
 
@@ -302,7 +302,7 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+    return [d for d in working_set if local_test(d) and d.key not in skip]
 
 
 def egg_link_path(dist):

@@ -10,7 +10,8 @@ class FreezeCommand(Command):
     usage = '%prog [OPTIONS]'
     summary = 'Output all currently installed packages (exact versions) to stdout'
     data_class = FreezeData
-
+    default_format = 'reqfile'
+    
     def __init__(self):
         super(FreezeCommand, self).__init__()
         
@@ -82,7 +83,7 @@ class FreezeCommand(Command):
         handle.write('\n')
 
     def write_reqfile(self, data, handle):
-        for line in data:
+        for line in data:  
             handle.write(line)
 
     def write_output(self, data, handle, format=None):
@@ -98,12 +99,12 @@ class FreezeCommand(Command):
         skip_requirements_regex = options.skip_requirements_regex
         default_vcs = options.default_vcs
         output_format = options.output_format
-        write_on_load = output_format and False or True
+        write_on_load = output_format == 'reqfile'
         handle = sys.stdout
-        
-        data = self.data_class.load_all(local_only, find_links, find_tags, requirement,
-                                        write_on_load, handle, logger, skip_requirements_regex, default_vcs)
-        if output_format:
-            return self.write_output(data, format=options.output_format)
+        data = self.data_class.load_all(local_only, find_links, requirement, find_tags,
+                                        skip_requirements_regex,
+                                        default_vcs, write_on_load, handle=handle, logger=logger)
+        if output_format != 'reqfile':
+            return self.write_output(data, handle, format=output_format)
 
 FreezeCommand()

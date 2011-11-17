@@ -12,7 +12,10 @@ class FreezeData(list):
     An listish collection for holding and handling data for building a
     requirement file or similar data structure.
     """
-    def __init__(self, local_only=False, find_links=[], find_tags=False, write_on_load=True, handle=sys.stderr, logger=logger):
+    get_installed_distributions = staticmethod(get_installed_distributions)
+    install_req_class = InstallRequirement
+    
+    def __init__(self, local_only=False, find_links=[], find_tags=False, write_on_load=True, handle=sys.stderr, working_set_entries=sys.path, logger=logger):
         self.installations = {}
         self.logger = logger
         self.local_only = local_only
@@ -20,17 +23,18 @@ class FreezeData(list):
         self.write_on_load = write_on_load
         self.handle = handle
         self.find_links = find_links
+        self.working_set = pkg_resources.WorkingSet(working_set_entries)
 
     @classmethod
     def load_all(cls, local_only=False, find_links=[], requirement=None, find_tags=False,
                  skip_requirements_regex=None, default_vcs=None,
-                 write_on_load=True, handle=sys.stderr, logger=logger):
+                 write_on_load=True, handle=sys.stderr, working_set_entries=sys.path, logger=logger):
         """
         A factory that loads all requirment information for the
         current environment.
         """
-        data = cls(local_only, find_links, find_tags, write_on_load, handle, logger)
-        data.load("-f %s\n" %link for link in data.dependency_links)
+        data = cls(local_only, find_links, find_tags, write_on_load, handle, working_set_entries=working_set_entries, logger=logger)
+        data.load("-f %s" %link for link in data.dependency_links)
         data.load_installed(requirement, skip_requirements_regex, default_vcs)
         return data
 
@@ -39,25 +43,29 @@ class FreezeData(list):
         Load data for all installed packages using a requirements file
         to provide hints.
         """
-        installations = self._installed_distributions()
+        self.installations.update(self._installed_distributions)
         if requirement:
             self.load(self.requirement_lines(requirement, skip_requirements_regex, default_vcs))\
-                .load('## The following requirements were added by pip --freeze:\n')
+                .load('## The following requirements were added by pip --freeze:')
 
-        for installation in sorted(installations.values(), key=lambda x: x.name):
-            self.load(str(installation))
+        for installation in sorted(self.installations.values(), key=lambda x: x.name):
+            self.load(str(installation).strip())
 
         return self
 
     def load(self, data):
+        """
+        Add an entry to the FreezeData list. Supports strings and
+        iterables but not nested iterables.
+        """
         write = self.write_on_load and self.handle
         if isinstance(data, basestring):
-            self.append(data)
-            if write: self.handle.write(data) 
+            data = data.strip()
+            if data:
+                self.append(data)
+                if write: self.handle.write(data + "\n") 
         else:
-            data = list(data)
-            self.extend(data)
-            if write: [self.handle.write(datum) for datum in data] 
+            [self.load(str(datum)) for datum in data]
         return self
 
     flag_keys = {'-f':'find_links',
@@ -68,10 +76,9 @@ class FreezeData(list):
 
     @property
     def as_dict(self):
+        dict_class = dict
         if sys.version_info.major >= 2 and sys.version_info.minor >= 7:
             from collections import OrderedDict as dict_class
-        else:
-            dict_class = dict
 
         outdata = dict_class(find_links=[],
                              editable=[],
@@ -81,8 +88,8 @@ class FreezeData(list):
         for line in sorted(self):
             if line.startswith('#'):
                 continue
-            
-            elif line.startswith('-'):
+
+            if line.startswith('-'):
                 match = self.FLAG.match(line)
                 data = match.groupdict()
                 if match:
@@ -95,13 +102,13 @@ class FreezeData(list):
 
         return outdata
 
-    @property
-    def text(self):
-        return [self.handle.write(line) for line in self]
+    def write_output(self):
+        [self.handle.write(line + '\n') for line in self]
+        return 0
 
     @property
     def dependency_link_generator(self):
-        for dist in pkg_resources.working_set:
+        for dist in self.working_set:
             if dist.has_metadata('dependency_links.txt'):
                 for link in dist.get_metadata_lines('dependency_links.txt'):
                     yield link
@@ -117,50 +124,53 @@ class FreezeData(list):
             memo = self._dependency_link_memo = list(self.dependency_link_generator)
         return memo
 
+    @property
     def _installed_distributions(self):
         installations = {}
-        for dist in get_installed_distributions(local_only=self.local_only):
-            try:
-                req = pip.FrozenRequirement.from_dist(dist, self.dependency_links, find_tags=self.find_tags)
-            except :
-                import pdb, sys; pdb.post_mortem(sys.exc_info()[2])
-                raise
+        for dist in self.get_installed_distributions(local_only=self.local_only, working_set=self.working_set):
+            req = pip.FrozenRequirement.from_dist(dist, self.dependency_links, find_tags=self.find_tags)
             installations[req.name] = req
         return installations
-                
-    def write_requirement(self, requirement, skip_regex=None, default_vcs='git'):
+      
+    def requirement_lines(self, requirement, skip_regex=None, default_vcs='git'):
+        skip_match = None
         if skip_regex:
             skip_match = re.compile(skip_regex)
         req_f = open(requirement)
         for line in req_f:
             if not line.strip() or line.strip().startswith('#'):
-                yield line
                 continue
-            if skip_match and skip_match.search(line):
-                yield line
+            elif skip_match and skip_match.search(line):
                 continue
-            elif line.startswith('-e') or line.startswith('--editable'):
-                if line.startswith('-e'):
-                    line = line[2:].strip()
-                else:
-                    line = line[len('--editable'):].strip().lstrip('=')
-                line_req = InstallRequirement.from_editable(line, default_vcs=default_vcs)
             elif (line.startswith('-r') or line.startswith('--requirement')
                   or line.startswith('-Z') or line.startswith('--always-unzip')
                   or line.startswith('-f') or line.startswith('-i')
                   or line.startswith('--extra-index-url')):
-                yield line
-                continue
+                yield line; continue
+            
+            if line.startswith('-e') or line.startswith('--editable'):
+                if line.startswith('-e'):
+                    line = line[2:].strip()
+                else:
+                    line = line[len('--editable'):].strip().lstrip('=')
+                line_req = self.installed_req_class.from_editable(line, default_vcs=default_vcs)
             else:
-                line_req = InstallRequirement.from_line(line)
+                line_req = self.install_req_class.from_line(line)
+                
             if not line_req.name:
                 self.logger.notify("Skipping line because it's not clear what it would install: %s"
-                              % line.strip())
+                                   % line.strip())
                 self.logger.notify("  (add #egg=PackageName to the URL to avoid this warning)")
                 continue
+
             if line_req.name not in self.installations:
                 self.logger.warn("Requirement file contains %s, but that package is not installed"
-                            % line.strip())
+                                 % line.strip())
                 continue
-            yield str(self.installations[line_req.name])
+            
+            yield self.installations[line_req.name]
             del self.installations[line_req.name]
+
+
+
+        
