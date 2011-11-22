@@ -24,7 +24,7 @@ class Bazaar(VersionControl):
         urlparse.uses_fragment.extend(['lp'])
 
     def __init__(self, url=None, *args, **kwargs):
-        if "#egg=" in url:
+        if url is not None and "#egg=" in url:
             url = url[:url.index("#egg")]
         super(Bazaar, self).__init__(url, *args, **kwargs)
 
