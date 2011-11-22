@@ -82,28 +82,28 @@ def test_freeze_git_clone():
 
     """
     env = reset_env()
-    result = env.run('git', 'clone', local_repo('git+http://github.com/jezdez/django-pagination.git'), 'django-pagination')
-    result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
-            cwd=env.scratch_path / 'django-pagination', expect_stderr=True)
+    result = env.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
+    result = env.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
+            cwd=env.scratch_path / 'pip-test-package', expect_stderr=True)
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path / 'django-pagination')
+            cwd=env.scratch_path / 'pip-test-package')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@...#egg=django_pagination-...
-        ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
+        -e %s@...#egg=pip_test_package-...
+        ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s#egg=django_pagination' % local_checkout('git+http://github.com/jezdez/django-pagination.git'),
+                     '%s#egg=pip_test_package' % local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze -f %(repo)s#egg=django_pagination
+        Script result: pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
-        -f %(repo)s#egg=django_pagination
-        -e %(repo)s@...#egg=django_pagination-dev
-        ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
+        -f %(repo)s#egg=pip_test_package
+        -e %(repo)s@...#egg=pip_test_package-dev
+        ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git')})
     _check_output(result, expected)
 
 
