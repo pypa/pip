@@ -1,17 +1,29 @@
-News / Changelog
-================
+====
+News
+====
+
+Changelog
+=========
 
 Next release (1.1) schedule
 ---------------------------
 
-Beta release mid-July 2011, final release early August.
+Beta release November 2011, final release December.
 
 develop (unreleased)
 --------------------
 
+* Fixed issue #288 - handle symlinks properly. Thanks lebedov for the patch.
+
+* Fixed issue #49 - pip install -U no longer reinstalls the same versions of
+  packages. Thanks iguananaut for the pull request.
+
 * Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
   restart-in-venv mechanism that's broken, and neither one is useful since
   every virtualenv now has pip inside it.
+
+* Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
+
 
 1.0.2 (2011-07-16)
 ------------------

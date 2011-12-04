@@ -25,6 +25,7 @@ def test_version_compare():
     assert compare_versions('1.0', '1.1') == -1
     assert compare_versions('1.1', '1.0') == 1
     assert compare_versions('1.1a1', '1.1') == -1
+    assert compare_versions('1.1.1', '1.1a') == -1
     assert highest_version(['1.0', '2.0', '0.1']) == '2.0'
     assert highest_version(['1.0a1', '1.0']) == '1.0'
 
@@ -80,6 +81,7 @@ def test_searching_through_Search_class():
         fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=VERBOSE_FALSE)
     finally:
         pip.download.xmlrpclib_transport = original_xmlrpclib_transport
+
 
 def test_search_missing_argument():
     """

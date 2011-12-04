@@ -15,7 +15,7 @@ import zlib
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
-from pip.exceptions import DistributionNotFound
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
                                 URLError, HTTPError, u,
@@ -172,6 +172,7 @@ class PackageFinder(object):
             if applicable_versions[0][1] is Inf:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
+                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
                             % (req.satisfied_by.version, applicable_versions[0][1]))
@@ -184,7 +185,7 @@ class PackageFinder(object):
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
                         % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
-            return None
+            raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][1], ', '.join([version for link, version in applicable_versions])))
@@ -549,7 +550,7 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = match.group(1) or match.group(2) or match.group(3)
+            url = href_match.group(1) or href_match.group(2) or href_match.group(3)
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))

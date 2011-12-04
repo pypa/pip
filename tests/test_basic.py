@@ -224,10 +224,10 @@ def test_install_editable_from_git():
     reset_env()
     args = ['install']
     args.extend(['-e',
-                 '%s#egg=django-feedutil' %
-                 local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+                 '%s#egg=pip-test-package' %
+                 local_checkout('git+http://github.com/pypa/pip-test-package.git')])
     result = run_pip(*args, **{"expect_error": True})
-    result.assert_installed('django-feedutil', with_files=['.git'])
+    result.assert_installed('pip-test-package', with_files=['.git'])
 
 
 def test_install_editable_from_hg():
@@ -348,6 +348,7 @@ def test_install_curdir_usersite():
     assert fspkg_folder in result.files_created, str(result.stdout)
 
     assert egg_info_folder in result.files_created, str(result)
+
 
 def test_install_subversion_usersite_editable_with_distribute():
     """
