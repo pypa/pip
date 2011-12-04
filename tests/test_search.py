@@ -2,9 +2,8 @@ import pip.download
 from pip.commands.search import (compare_versions,
                                  highest_version,
                                  transform_hits,
-                                 SearchCommand,
-                                 NO_MATCHES_FOUND,
-                                 SUCCESS,)
+                                 SearchCommand)
+from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
 from mock import Mock
 from tests.test_pip import run_pip, reset_env, pyversion
