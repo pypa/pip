@@ -203,3 +203,38 @@ def test_freeze_with_local_option():
         INITools==0.2
         <BLANKLINE>""")
     _check_output(result, expected)
+
+def test_freeze_with_requirement_option():
+    """
+    Test that new requirements are created correctly with --requirement hints
+
+    """
+    reset_env()
+    ignores = textwrap.dedent("""\
+        # Unchanged requirements below this line
+        -r ignore.txt
+        --requirement ignore.txt
+        -Z ignore
+        --always-unzip ignore
+        -f http://ignore
+        -i http://ignore
+        --extra-index-url http://ignore
+        --find-links http://ignore
+        --index-url http://ignore
+        """)
+    write_file('hint.txt', textwrap.dedent("""\
+        INITools==0.1
+        NoExist==4.2
+        """) + ignores)
+    result = run_pip('install', 'initools==0.2')
+    result = run_pip('install', 'MarkupSafe')
+    result = run_pip('freeze', '--requirement', 'hint.txt', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze --requirement hint.txt
+        -- stderr: --------------------
+        Requirement file contains NoExist==4.2, but that package is not installed
+
+        -- stdout: --------------------
+        INITools==0.2
+        """) + ignores + "## The following requirements were added by pip --freeze:..."
+    _check_output(result, expected)
