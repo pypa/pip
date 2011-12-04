@@ -85,7 +85,9 @@ class FreezeCommand(Command):
                 elif (line.startswith('-r') or line.startswith('--requirement')
                       or line.startswith('-Z') or line.startswith('--always-unzip')
                       or line.startswith('-f') or line.startswith('-i')
-                      or line.startswith('--extra-index-url')):
+                      or line.startswith('--extra-index-url')
+                      or line.startswith('--find-links')
+                      or line.startswith('--index-url')):
                     f.write(line)
                     continue
                 else:
