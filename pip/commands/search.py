@@ -7,10 +7,8 @@ from pip.util import get_terminal_size
 from pip.log import logger
 from pip.backwardcompat import xmlrpclib, reduce, cmp
 from pip.exceptions import CommandError
+from pip.status_codes import NO_MATCHES_FOUND
 from distutils.version import StrictVersion, LooseVersion
-
-
-NO_MATCHES_FOUND = 23
 
 
 class SearchCommand(Command):

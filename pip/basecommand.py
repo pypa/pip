@@ -13,6 +13,8 @@ from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO, walk_packages
+from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
@@ -21,11 +23,6 @@ command_dict = {}
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
-
-SUCCESS = 0
-ERROR = 1
-UNKNOWN_ERROR = 2
-VIRTUALENV_NOT_FOUND = 3
 
 class Command(object):
     name = None
