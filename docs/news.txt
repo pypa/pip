@@ -13,6 +13,9 @@ Beta release November 2011, final release December.
 develop (unreleased)
 --------------------
 
+* Fixed issue #391 - freeze no longer borks on requirements files with
+  --index-url or --find-links. Thanks Herbert Pfennig.
+
 * Fixed issue #288 - handle symlinks properly. Thanks lebedov for the patch.
 
 * Fixed issue #49 - pip install -U no longer reinstalls the same versions of
