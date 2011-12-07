@@ -887,6 +887,8 @@ class RequirementSet(object):
                     req_to_install.source_dir = req_to_install.build_location(self.src_dir)
             elif install_needed:
                 req_to_install.source_dir = req_to_install.build_location(self.build_dir, not self.is_download)
+                
+            self.process_req_dependencies(req_to_install, reqs)
 
             if req_to_install.source_dir is not None and not os.path.isdir(req_to_install.source_dir):
                 raise InstallationError('Could not install requirement %s '
@@ -1022,24 +1024,7 @@ class RequirementSet(object):
                             else:
                                 install = False
                 if not is_bundle and not self.is_download:
-                    ## FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(req_to_install.dependency_links)
-                    ## FIXME: add extras in here:
-                    if not self.ignore_dependencies:
-                        for req in req_to_install.requirements():
-                            try:
-                                name = pkg_resources.Requirement.parse(req).project_name
-                            except ValueError:
-                                e = sys.exc_info()[1]
-                                ## FIXME: proper warning
-                                logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
-                                continue
-                            if self.has_requirement(name):
-                                ## FIXME: check for conflict
-                                continue
-                            subreq = InstallRequirement(req, req_to_install)
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
+                    self.process_req_dependencies(req_to_install, reqs, finder)
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
                 else:
@@ -1050,6 +1035,27 @@ class RequirementSet(object):
                         self.copy_to_build_dir(req_to_install)
             finally:
                 logger.indent -= 2
+                
+    def process_req_dependencies(self, req_to_install, reqs, finder=None):
+        ## FIXME: shouldn't be globally added:
+        if finder:
+            finder.add_dependency_links(req_to_install.dependency_links)
+        ## FIXME: add extras in here:
+        if not self.ignore_dependencies:
+            for req in req_to_install.requirements():
+                try:
+                    name = pkg_resources.Requirement.parse(req).project_name
+                except ValueError:
+                    e = sys.exc_info()[1]
+                    ## FIXME: proper warning
+                    logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
+                    continue
+                if self.has_requirement(name):
+                    ## FIXME: check for conflict
+                    continue
+                subreq = InstallRequirement(req, req_to_install)
+                reqs.append(subreq)
+                self.add_requirement(subreq)
 
     def cleanup_files(self, bundle=False):
         """Clean up files, remove builds."""
