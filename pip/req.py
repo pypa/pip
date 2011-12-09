@@ -445,13 +445,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
-            if dist.has_metadata('requires.txt'):
-                for name in self.requirements(self.extras):
-                    # special-case 'distribute' and 'setuptools' -- if a user wants to remove one of these, they can do so separately using pip uninstall
-                    if name != 'distribute' and name != 'setuptools':
-                        logger.notify("Also uninstalling extra requirement %s" % name)
-                        InstallRequirement.from_line(name).uninstall()
-
+                    
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
             paths_to_remove.add(dist.location)
