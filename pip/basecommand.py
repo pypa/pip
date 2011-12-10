@@ -49,7 +49,7 @@ class Command(object):
                      'log_explicit_levels', 'log_file',
                      'timeout', 'default_vcs', 'skip_requirements_regex',
                      'no_input']:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+            setattr(options, attr, getattr(options, attr) or getattr(initial_options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
 
