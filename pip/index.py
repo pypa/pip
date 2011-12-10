@@ -248,7 +248,7 @@ class PackageFinder(object):
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
-    _py_version_re = re.compile(r'-py([123]\.[0-9])$')
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
