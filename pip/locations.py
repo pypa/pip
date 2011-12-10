@@ -46,5 +46,7 @@ else:
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
+    # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
+        default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
