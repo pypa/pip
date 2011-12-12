@@ -71,7 +71,7 @@ class ConfigOptionParser(optparse.OptionParser):
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
-    
+
     def normalize_keys(self, items):
         """Return a config dictionary with normalized keys regardless of
         whether the keys were specified in environment variables or in config

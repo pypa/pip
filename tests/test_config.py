@@ -36,7 +36,7 @@ def test_command_line_options_override_env_vars():
 def test_env_vars_override_config_file():
     """
     Test that environmental variables override settings in config files.
-    
+
     """
     fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
     try:
