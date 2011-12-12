@@ -56,7 +56,7 @@ class Command(object):
     def setup_logging(self):
         pass
 
-    def main(self, complete_args, args, initial_options):
+    def main(self, args, initial_options):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
