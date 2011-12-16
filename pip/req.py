@@ -1246,7 +1246,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req_url = line[len('--requirement'):].strip().strip('=')
             if _scheme_re.search(filename):
                 # Relative to a URL
-                req_url = urlparse.urljoin(req_url, filename)
+                req_url = urlparse.urljoin(filename, req_url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
             for item in parse_requirements(req_url, finder, comes_from=filename, options=options):
