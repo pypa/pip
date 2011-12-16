@@ -31,6 +31,7 @@ Olivier Girardot
 Patrick Jenkins
 Paul Nasrat
 Peter Waller
+Rene Dudfield
 Ronny Pfannschmidt
 Simon Cross
 Thomas Johansson
