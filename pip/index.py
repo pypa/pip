@@ -294,7 +294,7 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
                 return []
-            if "macosx10" in link.path and ext in ('.zip'):
+            if "macosx10" in link.path and ext == '.zip':
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
