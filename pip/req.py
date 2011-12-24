@@ -1100,7 +1100,9 @@ class RequirementSet(object):
         else:
             if self.download_cache:
                 self.download_cache = os.path.expanduser(self.download_cache)
-            return unpack_http_url(link, location, self.download_cache, only_download)
+            return unpack_http_url(link, location, self.download_cache,
+                                   only_download,
+                                   save_download=self.save_download)
 
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
