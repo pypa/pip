@@ -46,14 +46,11 @@ class ConfigOptionParser(optparse.OptionParser):
         config = {}
         # 1. config files
         for section in ('global', self.name):
-            config.update(dict(self.get_config_section(section)))
+            config.update(self.normalize_keys(self.get_config_section(section)))
         # 2. environmental variables
-        config.update(dict(self.get_environ_vars()))
+        config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
         for key, val in config.items():
-            key = key.replace('_', '-')
-            if not key.startswith('--'):
-                key = '--%s' % key # only prefer long opts
             option = self.get_option(key)
             if option is not None:
                 # ignore empty values
@@ -74,6 +71,18 @@ class ConfigOptionParser(optparse.OptionParser):
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
+
+    def normalize_keys(self, items):
+        """Return a config dictionary with normalized keys regardless of
+        whether the keys were specified in environment variables or in config
+        files"""
+        normalized = {}
+        for key, val in items:
+            key = key.replace('_', '-')
+            if not key.startswith('--'):
+                key = '--%s' % key # only prefer long opts
+            normalized[key] = val
+        return normalized
 
     def get_config_section(self, name):
         """Get a section of a configuration"""

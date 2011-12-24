@@ -7,7 +7,7 @@ from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
 from nose.tools import assert_raises
-from mock import Mock, patch
+from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand

@@ -15,8 +15,9 @@ import string
 import zlib
 from pip.locations import serverkey_file
 from pip.log import logger
+
 from pip.util import Inf, normalize_name, splitext
-from pip.exceptions import DistributionNotFound, InstallationError
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, b, u,
@@ -143,7 +144,8 @@ class PackageFinder(object):
         main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
-            main_index_url = self.make_package_url(self.index_urls[0], url_name)
+            main_index_url = self.make_package_url(self.index_urls[0],
+                                                   url_name)
             # This will also cache the page,
             # so it's okay that we get it again later:
             page = self._get_page(main_index_url, req)
@@ -251,6 +253,7 @@ class PackageFinder(object):
                 logger.info('Existing installed version (%s) is most '
                             'up-to-date and satisfies requirement' %
                             req.satisfied_by.version)
+                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies '
                             'requirement (most up-to-date version is %s)' %
@@ -274,7 +277,7 @@ class PackageFinder(object):
                         '(past versions: %s)' %
                         (req.satisfied_by.version,
                          ', '.join(show_versions) or 'none'))
-            return None
+            raise BestVersionAlreadyInstalled
 
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
@@ -343,7 +346,7 @@ class PackageFinder(object):
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
-    _py_version_re = re.compile(r'-py([123]\.[0-9])$')
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
         """
@@ -391,6 +394,11 @@ class PackageFinder(object):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive '
                                  'format: %s' % (link, ext))
+                    self.logged_links.add(link)
+                return []
+            if "macosx10" in link.path and ext == '.zip':
+                if link not in self.logged_links:
+                    logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
         version = self._egg_info_matches(egg_info, search_name, link)
@@ -666,7 +674,9 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = match.group(1) or match.group(2) or match.group(3)
+            url = (href_match.group(1) or
+                   href_match.group(2) or
+                   href_match.group(3))
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))

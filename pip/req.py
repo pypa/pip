@@ -4,6 +4,7 @@ import shutil
 import socket
 import sys
 import tempfile
+
 import zipfile
 from pkg_resources import (get_distribution, Requirement, PY_MAJOR,
                            VersionConflict, DistributionNotFound)
@@ -12,7 +13,8 @@ from pip import call_subprocess
 from pip.index import Link
 from pip.log import logger
 from pip.locations import bin_py, running_under_virtualenv, build_prefix
-from pip.exceptions import InstallationError, UninstallationError
+from pip.exceptions import (InstallationError, UninstallationError,
+                            BestVersionAlreadyInstalled)
 from pip.vcs import vcs
 from pip.backwardcompat import (any, copytree, urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
@@ -36,8 +38,10 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, update=True):
+        self.extras = ()
         if isinstance(req, string_types):
             req = Requirement.parse(req)
+            self.extras = req.extras
         self.req = req
         self.comes_from = comes_from
         self.source_dir = source_dir
@@ -352,11 +356,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def requirements(self, extras=()):
         in_extra = None
         for line in self.egg_info_lines('requires.txt'):
-            match = self._requirements_section_re.match(line)
+            match = self._requirements_section_re.match(line.lower())
             if match:
                 in_extra = match.group(1)
                 continue
             if in_extra and in_extra not in extras:
+                logger.debug('skipping extra %s' % in_extra)
                 # Skip requirement for an extra we aren't requiring
                 continue
             yield line
@@ -801,7 +806,7 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False):
+                 ignore_dependencies=False, force_reinstall=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -810,6 +815,7 @@ class RequirementSet(object):
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
+        self.force_reinstall = force_reinstall
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -933,18 +939,35 @@ class RequirementSet(object):
             else:
                 requirement = reqs.pop(0)
             install = True
+            best_installed = False
             if not self.ignore_installed and not requirement.editable:
                 requirement.check_if_exists()
                 if requirement.satisfied_by:
                     if self.upgrade:
-                        requirement.conflicts_with = requirement.satisfied_by
-                        requirement.satisfied_by = None
+                        if not self.force_reinstall:
+                            try:
+                                url = finder.find_requirement(
+                                    requirement, self.upgrade)
+                            except BestVersionAlreadyInstalled:
+                                best_installed = True
+                                install = False
+                            else:
+                                # Avoid the need to call find_requirement again
+                                requirement.url = url.url
+
+                        if not best_installed:
+                            requirement.conflicts_with = requirement.satisfied_by
+                            requirement.satisfied_by = None
                     else:
                         install = False
                 if requirement.satisfied_by:
-                    logger.notify('Requirement already satisfied '
-                                  '(use --upgrade to upgrade): %s'
-                                  % requirement)
+                    if best_installed:
+                        logger.notify('Requirement already up-to-date: %s' %
+                                      requirement)
+                    else:
+                        logger.notify('Requirement already satisfied '
+                                      '(use --upgrade to upgrade): %s' %
+                                      requirement)
             if requirement.editable:
                 logger.notify('Obtaining %s' % requirement)
             elif install:
@@ -1057,9 +1080,10 @@ class RequirementSet(object):
                 if not is_bundle and not self.is_download:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(requirement.dependency_links)
-                    ## FIXME: add extras in here:
+                    if (requirement.extras):
+                        logger.notify("Installing extra requirements: %r" % ','.join(requirement.extras))
                     if not self.ignore_dependencies:
-                        for req in requirement.requirements():
+                        for req in requirement.requirements(requirement.extras):
                             try:
                                 name = Requirement.parse(req).project_name
                             except ValueError:
@@ -1099,6 +1123,7 @@ class RequirementSet(object):
             remove_dir.append(self.build_dir)
 
         # The source dir of a bundle can always be removed.
+        # FIXME: not if it pre-existed the bundle!
         if bundle:
             remove_dir.append(self.src_dir)
 
@@ -1138,7 +1163,7 @@ class RequirementSet(object):
         (after having downloaded and unpacked the packages)
         """
         to_install = [r for r in self.requirements.values()
-                      if self.upgrade or not r.satisfied_by]
+                      if not r.satisfied_by]
 
         if to_install:
             logger.notify('Installing collected packages: %s' %
@@ -1280,7 +1305,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req_url = line[len('--requirement'):].strip().strip('=')
             if _scheme_re.search(filename):
                 # Relative to a URL
-                req_url = urlparse.urljoin(req_url, filename)
+                req_url = urlparse.urljoin(filename, req_url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
             for item in parse_requirements(req_url, finder, comes_from=filename, options=options):

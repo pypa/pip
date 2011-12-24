@@ -113,7 +113,7 @@ def main(initial_args=None):
         parser.error('No command by the name %(script)s %(arg)s\n  '
                      '(maybe you meant "%(script)s %(guess)s")' % error_dict)
     command = command_dict[command]
-    return command.main(initial_args, args[1:], options)
+    return command.main(args[1:], options)
 
 
 def bootstrap():

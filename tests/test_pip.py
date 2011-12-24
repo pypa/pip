@@ -55,7 +55,7 @@ def create_virtualenv(where, distribute=False):
     try:
         import virtualenv
         distribute_opt = distribute and ['--distribute'] or []
-        sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--no-site-packages', '--unzip-setuptools', where]
+        sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--unzip-setuptools', where]
         virtualenv.main()
     finally:
         sys.argv = save_argv

@@ -81,7 +81,7 @@ def test_git_branch_should_not_be_changed():
                 expect_error=True)
     source_dir = env.venv_path/'src'/'pip-test-package'
     result = env.run('git', 'branch', cwd=source_dir)
-    assert '* master' in result.stdout
+    assert '* master' in result.stdout, result.stdout
 
 
 def test_git_with_non_editable_unpacking():
