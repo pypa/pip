@@ -95,6 +95,12 @@ class InstallCommand(Command):
             default=None,
             help='Cache downloaded packages in DIR')
         self.parser.add_option(
+            '--save-download',
+            dest='save_download',
+            metavar='DIR',
+            default=None,
+            help="Save downloaded packages into DIR")
+        self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
@@ -190,6 +196,7 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
+            save_download=options.save_download,
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,

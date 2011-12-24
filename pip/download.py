@@ -406,7 +406,8 @@ def _copy_file(filename, location, content_type, link):
         logger.notify('Saved %s' % display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, only_download):
+def unpack_http_url(link, location, download_cache, only_download,
+                    save_download=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     target_url = link.url.split('#', 1)[0]
     target_file = None
@@ -453,6 +454,10 @@ def unpack_http_url(link, location, download_cache, only_download):
     if only_download:
         _copy_file(temp_location, location, content_type, link)
     else:
+        if save_download:
+            if not os.path.exists(save_download):
+                os.makedirs(save_download)
+            _copy_file(temp_location, save_download, content_type, link)
         unpack_file(temp_location, location, content_type, link)
     if target_file and target_file != temp_location:
         cache_download(target_file, temp_location, content_type)
