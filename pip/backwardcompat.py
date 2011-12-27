@@ -66,6 +66,9 @@ if sys.version_info >= (3,):
         except UnicodeDecodeError:
             return s.decode('utf_8')
 
+    def fwrite(f, s):
+        f.buffer.write(b(s))
+
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -90,6 +93,10 @@ else:
 
     def console_to_str(s):
         return s
+
+    def fwrite(f, s):
+        f.write(s)
+
     bytes = str
     string_types = (basestring,)
     reduce = reduce
