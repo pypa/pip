@@ -59,8 +59,7 @@ break MyApp.  If that happens you can update the requirements file to
 force an earlier version of Library, and you can do that without
 having to re-release MyApp at all.
 
-Read the `requirements file format <http://pip.openplans.org/requirement-format.html>`_ to
-learn about other features.
+Read the `requirements file format`_ to learn about other features.
 
 Freezing Requirements
 =====================
@@ -86,8 +85,8 @@ sort of template for the new file.  So if you do::
 it will keep the packages listed in ``devel-req.txt`` in order and preserve
 comments.
 
-The requirements file format
-============================
+The _`requirements file format`
+===============================
 
 The requirements file is a way to get pip to install specific packages
 to make up an *environment*.  This document describes that format.  To
