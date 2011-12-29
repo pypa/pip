@@ -13,6 +13,8 @@ from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO, walk_packages
+from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
@@ -21,7 +23,6 @@ command_dict = {}
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
-
 
 class Command(object):
     name = None
@@ -77,7 +78,7 @@ class Command(object):
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
                 logger.fatal('Could not find an activated virtualenv (required).')
-                sys.exit(3)
+                sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.log:
             log_fp = open_logfile(options.log, 'a')
@@ -89,37 +90,40 @@ class Command(object):
 
         urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
-        exit = 0
+        exit = SUCCESS
         store_log = False
         try:
-            self.run(options, args)
+            status = self.run(options, args)
+            # FIXME: all commands should return an exit status
+            # and when it is done, isinstance is not needed anymore
+            if isinstance(status, int):
+                exit = status
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except BadCommand:
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except CommandError:
             e = sys.exc_info()[1]
             logger.fatal('ERROR: %s' % e)
             logger.info('Exception information:\n%s' % format_exc())
-            exit = 1
+            exit = ERROR
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = 1
+            exit = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
-            exit = 2
-
+            exit = UNKNOWN_ERROR
         if log_fp is not None:
             log_fp.close()
         if store_log:
