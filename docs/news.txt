@@ -41,6 +41,8 @@ develop (unreleased)
 
 * Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
 
+* Fixed issue #22 - pip search should set and return a userful shell status code
+
 
 1.0.2 (2011-07-16)
 ------------------
