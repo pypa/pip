@@ -561,7 +561,7 @@ class HTMLPage(object):
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
-    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-~]', re.I)
 
     def clean_link(self, url):
         """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
