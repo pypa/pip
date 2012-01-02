@@ -780,7 +780,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False, force_reinstall=False):
+                 ignore_dependencies=False, force_reinstall=False,
+                 save_download=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -788,6 +789,7 @@ class RequirementSet(object):
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
+        self.save_download = save_download
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -1100,7 +1102,9 @@ class RequirementSet(object):
         else:
             if self.download_cache:
                 self.download_cache = os.path.expanduser(self.download_cache)
-            return unpack_http_url(link, location, self.download_cache, only_download)
+            return unpack_http_url(link, location, self.download_cache,
+                                   only_download,
+                                   save_download=self.save_download)
 
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
