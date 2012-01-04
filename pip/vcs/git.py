@@ -85,6 +85,11 @@ class Git(VersionControl):
             [self.cmd, 'config', 'remote.origin.url', url], cwd=dest)
         call_subprocess(
             [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+        self.update_submodules(dest)
+
+    def update_submodules(self, dest):
+        call_subprocess([self.cmd, 'submodule', 'init', '-q'], cwd=dest)
+        call_subprocess([self.cmd, 'submodule', 'update', '-q'], cwd=dest)
 
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
@@ -93,6 +98,7 @@ class Git(VersionControl):
         if rev_options:
             rev_options = self.check_rev_options(rev_options[0], dest, rev_options)
         call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
+        self.update_submodules(dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -104,7 +110,7 @@ class Git(VersionControl):
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
-            call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            call_subprocess([self.cmd, 'clone', '--recursive', '-q', url, dest])
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
