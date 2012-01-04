@@ -98,9 +98,20 @@ installed.  For example::
 
     MyPackage==3.0
 
-tells pip to install the 3.0 version of MyPackage.  
+tells pip to install the 3.0 version of MyPackage. 
 
-You can also install a package in an "editable" form.  This puts the
+Some packages my specify optionally installable components. For example,
+a python library may provide additional functionality that requires you 
+to you have Reportlab installed but may not want to have it installed by 
+default for everyone. These options are specifed by a ``extras_require`` setting
+in the project's ``setup.py`` file. You may select for it by specifying::
+
+    MyPackage==3.0 [PDF]
+
+This will install any additional requirements specified by the package as
+needed to support PDF generation.
+
+Packages may also be installed in an "editable" form.  This puts the
 source code into ``src/distname`` (making the name lower case) and
 runs ``python setup.py develop`` on the package.  To indicate
 editable, use ``-e``, like::
