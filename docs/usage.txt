@@ -12,15 +12,18 @@ The simplest way to install a package is by specifying its name::
 `SomePackage` is downloaded from :term:`PyPI`, along with its
 dependencies, and installed.
 
-If `SomePackage` is already installed, and you need a newer version, use
-``pip install --upgrade SomePackage``. You can also request a specific
-version: ``pip install SomePackage==1.0.4``.
+If `SomePackage` is already installed, and you need a newer version, use ``pip
+install --upgrade SomePackage``. You can also request a specific version (``pip
+install SomePackage==1.0.4``) and specify `setuptools extras`_ (``pip install
+SomePackage[PDF]``).
 
 You can also install from a particular source distribution file, either
 local or remote::
 
     $ pip install ./downloads/SomePackage-1.0.4.tar.gz
     $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+.. _setuptools extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
 
 Edit mode
 *********
