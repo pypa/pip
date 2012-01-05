@@ -183,7 +183,8 @@ def main(initial_args=None):
         print parser.version
         sys.exit()
 
-    if options.help and not args:
+    # pip || pip help || pip --help -> print_help()
+    if (not initial_args) or (options.help and not args):
         args = ['help']
 
     if not args:
