@@ -10,7 +10,48 @@ from pip.locations import default_config_file, default_log_file
 from pip.version import version_verbose, version_dist_verbose
 
 
-class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
+    ''' A prettier/less verbose help formatter for optparse '''
+
+    def __init__(self, *args, **kw):
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+
+        self.max_help_position = 20
+        self.indent_increment  = 1
+
+    def format_option_strings(self, option):
+        #return self._format_option_strings(option, ' %s', ' ')
+        return self._format_option_strings(option, ' <%s>', ', ')
+
+    def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
+        ''' ('-f', '--format') -> -f%(optsep)s--format mvarfmt % metavar'''
+
+        opts = []
+
+        if option._short_opts: opts.append(option._short_opts[0])
+        if option._long_opts:  opts.append(option._long_opts[0])
+        if len(opts) > 1: opts.insert(1, optsep)
+
+        if option.takes_value():
+            metavar = option.metavar or option.dest.lower()
+            opts.append(mvarfmt % metavar)
+
+        return ''.join(opts)
+
+    def format_heading(self, heading):
+        if heading == 'Options': return ''
+        return heading + ':\n'
+
+    # leave full control over description to us
+    def format_description(self, description):
+        return description if description else ''
+
+    # leave full control over epilog to us
+    def format_epilog(self, epilog):
+        return epilog if epilog else ''
+
+
+class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly
     in the help listing"""
