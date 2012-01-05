@@ -172,15 +172,26 @@ def bootstrap():
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
+
     autocomplete()
     version_control()
+
     options, args = parser.parse_args(initial_args)
+
+    if options.version:
+        # TODO: pip install -V does not work yet
+        print parser.version
+        sys.exit()
+
     if options.help and not args:
         args = ['help']
+
     if not args:
         parser.error('You must give a command (use "pip help" to see a list of commands)')
+
     command = args[0].lower()
     load_command(command)
+
     if command not in command_dict:
         close_commands = difflib.get_close_matches(command, command_names())
         if close_commands:
@@ -193,7 +204,9 @@ def main(initial_args=None):
                       'script': os.path.basename(sys.argv[0])}
         parser.error('No command by the name %(script)s %(arg)s\n  '
                      '(maybe you meant "%(script)s %(guess)s")' % error_dict)
+
     command = command_dict[command]
+
     return command.main(args[1:], options)
 
 

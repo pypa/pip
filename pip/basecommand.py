@@ -1,10 +1,12 @@
 """Base Command class, and related routines"""
 
 import os
-import socket
 import sys
-import traceback
 import time
+import copy
+import socket
+import optparse
+import traceback
 
 from pip import commands
 from pip.log import logger
@@ -16,8 +18,8 @@ from pip.backwardcompat import StringIO, walk_packages
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
 
-__all__ = ['command_dict', 'Command', 'load_all_commands',
-           'load_command', 'command_names']
+__all__ = ('command_dict', 'Command', 'load_all_commands',
+           'load_command', 'command_names')
 
 command_dict = {}
 
@@ -31,26 +33,50 @@ class Command(object):
 
     def __init__(self):
         assert self.name
-        self.parser = ConfigOptionParser(
-            usage=self.usage,
-            prog='%s %s' % (sys.argv[0], self.name),
-            version=parser.version,
-            formatter=UpdatingDefaultsHelpFormatter(),
-            name=self.name)
-        for option in parser.option_list:
-            if not option.dest or option.dest == 'help':
-                # -h, --version, etc
-                continue
-            self.parser.add_option(option)
+
+        prog = os.path.basename(sys.argv[0])
+
+        parser_kw = {
+            'usage'             : self.usage,
+            'prog'              : '%s %s' % (prog, self.name),
+            'add_help_option'   : False,
+            'formatter'         : UpdatingDefaultsHelpFormatter(),
+            'name'              : self.name,
+        }
+
+        self.parser = ConfigOptionParser(**parser_kw)
+
+        # Re-add all options and option groups (quite lame :\ )
+        for group in parser.option_groups:
+            #self._copy_options(self.parser, group.option_list)
+            self._copy_option_group(self.parser, group)
+
+        self._copy_options(self.parser, parser.option_list)
+
         command_dict[self.name] = self
+
+    def _copy_options(self, parser, options):
+        for option in options:
+            if not option.dest or option.dest == 'help':
+                continue
+            parser.add_option(option)
+
+    def _copy_option_group(self, parser, group):
+        new_group = optparse.OptionGroup(parser, group.title)
+        self._copy_options(new_group, group.option_list)
+
+        parser.add_option_group(new_group)
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
-        for attr in ['log', 'proxy', 'require_venv',
+        for attr in ('log', 'proxy', 'require_venv',
                      'log_explicit_levels', 'log_file',
                      'timeout', 'default_vcs', 'skip_requirements_regex',
-                     'no_input']:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+                     'no_input'):
+
+            val = getattr(initial_options, attr) or getattr(options, attr)
+            setattr(options, attr, val)
+
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
 
