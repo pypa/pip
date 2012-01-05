@@ -5,8 +5,8 @@ from pip.exceptions import InstallationError
 
 class UninstallCommand(Command):
     name = 'uninstall'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
-    summary = 'Uninstall packages'
+    usage = '%prog [options] <package> [<package> ...]'
+    summary = 'uninstall packages'
 
     def __init__(self):
         super(UninstallCommand, self).__init__()

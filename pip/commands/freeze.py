@@ -10,8 +10,8 @@ from pip.util import get_installed_distributions
 
 class FreezeCommand(Command):
     name = 'freeze'
-    usage = '%prog [OPTIONS]'
-    summary = 'Output all currently installed packages (exact versions) to stdout'
+    usage = '%prog [options]'
+    summary = 'list installed packages'
 
     def __init__(self):
         super(FreezeCommand, self).__init__()

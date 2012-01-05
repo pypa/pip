@@ -8,7 +8,7 @@ from pip.baseparser import parser
 class HelpCommand(Command):
     name = 'help'
     usage = '%prog'
-    summary = 'Show available commands'
+    summary = 'show available command options'
 
     def run(self, options, args):
         load_all_commands()

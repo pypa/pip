@@ -178,51 +178,54 @@ general_opts.add_option(
     '-h', '--help',
     dest='help',
     action='store_true',
-    help='Show help')
+    help='show this help message and exit')
 
 general_opts.add_option(
     '-V', '--version',
     dest='version',
     action='store_true',
-    help='Show version')
+    help='show version and exit')
 
 general_opts.add_option(
     '-v', '--verbose',
     dest='verbose',
     action='count',
     default=0,
-    help='Give more output')
+    help='increase verbosity')
 
 general_opts.add_option(
     '-q', '--quiet',
     dest='quiet',
     action='count',
     default=0,
-    help='Give less output')
+    help='decrease verbosity')
 
 general_opts.add_option(
     '--log',
     dest='log',
-    metavar='FILENAME',
-    help='Log file where a complete (maximum verbosity) record will be kept')
+    metavar='path',
+    help='log file (maximum verbosity)')
 
 general_opts.add_option(
     '--proxy',
     dest='proxy',
+    metavar='proxy',
     type='str',
     default='',
-    help="Specify a proxy in the form user:passwd@proxy.server:port. "
-    "Note that the user:password@ is optional and required only if you "
-    "are behind an authenticated proxy.  If you provide "
-    "user@proxy.server:port then you will be prompted for a password.")
+    help="specify proxy as user:pswd@server:port. ")
+
+#help="Specify a proxy in the form user:passwd@proxy.server:port. "
+#"Note that the user:password@ is optional and required only if you "
+#"are behind an authenticated proxy.  If you provide "
+#"user@proxy.server:port then you will be prompted for a password."
 
 general_opts.add_option(
     '--timeout', '--default-timeout',
-    metavar='SECONDS',
+    metavar='sec',
     dest='timeout',
     type='float',
     default=15,
-    help='Set the socket timeout (default %default seconds)')
+    help='set socket timeout (default %default seconds)')
 
 parser.add_option_group(general_opts)
 

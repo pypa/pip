@@ -12,8 +12,8 @@ from pip.basecommand import Command
 
 class ZipCommand(Command):
     name = 'zip'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Zip individual packages'
+    usage = '%prog [options] <package> [<package> ...]'
+    summary = 'zip individual packages'
 
     def __init__(self):
         super(ZipCommand, self).__init__()

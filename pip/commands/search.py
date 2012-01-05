@@ -13,8 +13,8 @@ from distutils.version import StrictVersion, LooseVersion
 
 class SearchCommand(Command):
     name = 'search'
-    usage = '%prog QUERY'
-    summary = 'Search PyPI'
+    usage = '%prog <query>'
+    summary = 'search pypi'
 
     def __init__(self):
         super(SearchCommand, self).__init__()
