@@ -14,10 +14,16 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
     ''' A prettier/less verbose help formatter for optparse '''
 
     def __init__(self, *args, **kw):
-        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+        kw['max_help_position'] = 23
+        kw['indent_increment']  = 1
 
-        self.max_help_position = 20
-        self.indent_increment  = 1
+        # do as argparse does
+        try:
+            kw['width'] = int(os.environ['COLUMNS']) - 2
+        except (KeyError, ValueError):
+            kw['width'] = 78
+
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
 
     def format_option_strings(self, option):
         #return self._format_option_strings(option, ' %s', ' ')
