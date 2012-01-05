@@ -1,10 +1,12 @@
+
 import tempfile
 import re
-from pip import call_subprocess
-from pip.util import display_path, rmtree
+
+from pip.util import display_path, rmtree, call_subprocess
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
 from pip.backwardcompat import url2pathname, urlparse
+
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
 

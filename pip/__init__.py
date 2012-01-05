@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 import optparse
 
@@ -7,7 +8,7 @@ import sys
 import re
 import difflib
 
-from pip.backwardcompat import walk_packages, console_to_str
+from pip.backwardcompat import walk_packages
 from pip.basecommand import command_dict, load_command, load_all_commands, command_names
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
@@ -79,48 +80,6 @@ def autocomplete():
         print(' '.join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
 
-
-def version_control():
-    # Import all the version control support modules:
-    from pip import vcs
-    for importer, modname, ispkg in \
-            walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
-        __import__(modname)
-
-
-def main(initial_args=None):
-    if initial_args is None:
-        initial_args = sys.argv[1:]
-    autocomplete()
-    version_control()
-    options, args = parser.parse_args(initial_args)
-    if options.help and not args:
-        args = ['help']
-    if not args:
-        parser.error('You must give a command (use "pip help" to see a list of commands)')
-    command = args[0].lower()
-    load_command(command)
-    if command not in command_dict:
-        close_commands = difflib.get_close_matches(command, command_names())
-        if close_commands:
-            guess = close_commands[0]
-            if args[1:]:
-                guess = "%s %s" % (guess, " ".join(args[1:]))
-        else:
-            guess = 'install %s' % command
-        error_dict = {'arg': command, 'guess': guess,
-                      'script': os.path.basename(sys.argv[0])}
-        parser.error('No command by the name %(script)s %(arg)s\n  '
-                     '(maybe you meant "%(script)s %(guess)s")' % error_dict)
-    command = command_dict[command]
-    return command.main(args[1:], options)
-
-
-def bootstrap():
-    """
-    Bootstrapping function to be called from install-pip.py script.
-    """
-    return main(['install', '--upgrade', 'pip'])
 
 ############################################################
 ## Writing freeze files
@@ -195,71 +154,47 @@ class FrozenRequirement(object):
 ## Requirement files
 
 
-def call_subprocess(cmd, show_stdout=True,
-                    filter_stdout=None, cwd=None,
-                    raise_on_returncode=True,
-                    command_level=logger.DEBUG, command_desc=None,
-                    extra_environ=None):
-    if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
-    if show_stdout:
-        stdout = None
-    else:
-        stdout = subprocess.PIPE
-    logger.log(command_level, "Running command %s" % command_desc)
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-    try:
-        proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
-    except Exception:
-        e = sys.exc_info()[1]
-        logger.fatal(
-            "Error %s while executing command %s" % (e, command_desc))
-        raise
-    all_output = []
-    if stdout is not None:
-        stdout = proc.stdout
-        while 1:
-            line = console_to_str(stdout.readline())
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if filter_stdout:
-                level = filter_stdout(line)
-                if isinstance(level, tuple):
-                    level, line = level
-                logger.log(level, line)
-                if not logger.stdout_level_matches(level):
-                    logger.show_progress()
-            else:
-                logger.info(line)
-    else:
-        returned_stdout, returned_stderr = proc.communicate()
-        all_output = [returned_stdout or '']
-    proc.wait()
-    if proc.returncode:
-        if raise_on_returncode:
-            if all_output:
-                logger.notify('Complete output from command %s:' % command_desc)
-                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
-            raise InstallationError(
-                "Command %s failed with error code %s"
-                % (command_desc, proc.returncode))
+def version_control():
+    # Import all the version control support modules:
+    from pip import vcs
+    for importer, modname, ispkg in \
+            walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
+        __import__(modname)
+
+
+def bootstrap():
+    """
+    Bootstrapping function to be called from install-pip.py script.
+    """
+    return main(['install', '--upgrade', 'pip'])
+
+
+def main(initial_args=None):
+    if initial_args is None:
+        initial_args = sys.argv[1:]
+    autocomplete()
+    version_control()
+    options, args = parser.parse_args(initial_args)
+    if options.help and not args:
+        args = ['help']
+    if not args:
+        parser.error('You must give a command (use "pip help" to see a list of commands)')
+    command = args[0].lower()
+    load_command(command)
+    if command not in command_dict:
+        close_commands = difflib.get_close_matches(command, command_names())
+        if close_commands:
+            guess = close_commands[0]
+            if args[1:]:
+                guess = "%s %s" % (guess, " ".join(args[1:]))
         else:
-            logger.warn(
-                "Command %s had error code %s"
-                % (command_desc, proc.returncode))
-    if stdout is not None:
-        return ''.join(all_output)
+            guess = 'install %s' % command
+        error_dict = {'arg': command, 'guess': guess,
+                      'script': os.path.basename(sys.argv[0])}
+        parser.error('No command by the name %(script)s %(arg)s\n  '
+                     '(maybe you meant "%(script)s %(guess)s")' % error_dict)
+    command = command_dict[command]
+    return command.main(args[1:], options)
 
 
 if __name__ == '__main__':
