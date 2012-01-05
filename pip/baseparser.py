@@ -1,4 +1,5 @@
-"""Base option parser setup"""
+
+""" Base option parser setup """
 
 import os
 import sys
@@ -12,7 +13,7 @@ from pip.version import version_verbose, version_dist_verbose
 
 
 class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
-    ''' A prettier/less verbose help formatter for optparse '''
+    """ A prettier/less verbose help formatter for optparse """
 
     def __init__(self, *args, **kw):
         kw['max_help_position'] = 23

@@ -1,5 +1,5 @@
 
-''' Base Command class, and related routines '''
+""" Base Command class, and related routines """
 
 import os
 import sys
@@ -18,7 +18,7 @@ from pip.backwardcompat import StringIO, walk_packages
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
 
-__all__ = ('Command', 'load_all_commands')
+__all__ = 'Command'
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy

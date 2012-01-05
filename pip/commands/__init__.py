@@ -10,6 +10,9 @@ from pip.commands.unzip      import UnzipCommand
 from pip.commands.zip        import ZipCommand
 
 
+__all__ = ('commands', 'get_summaries', 'get_similar_commands')
+
+
 commands = {
     BundleCommand.name      : BundleCommand,
     CompletionCommand.name  : CompletionCommand,
@@ -24,6 +27,8 @@ commands = {
 
 
 def get_summaries(ignore_hidden=True):
+    """ returns: [(command name, command summary) ...] """
+
     items = []
 
     for name, command_class in commands.iteritems():
@@ -36,6 +41,7 @@ def get_summaries(ignore_hidden=True):
 
 
 def get_similar_commands(name):
+    """ inst -> install """
     from difflib import get_close_matches
 
     close_commands = get_close_matches(name, commands.keys())

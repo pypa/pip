@@ -1,29 +1,34 @@
-"""Routines related to PyPI, indexes"""
 
-import sys
+""" Routines related to PyPI, indexes """
+
 import os
 import re
+import sys
+import zlib
 import gzip
+import random
+import socket
+import string
 import mimetypes
 import threading
 import posixpath
 import pkg_resources
-import random
-import socket
-import string
-import zlib
+
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+
+from pip.backwardcompat import Empty as QueueEmpty
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
-from pip.backwardcompat import Empty as QueueEmpty
-from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 
-__all__ = ['PackageFinder']
+from pip.download import (urlopen, path_to_url2, url_to_path,
+                          geturl, Urllib2HeadRequest)
+
+__all__ = ('PackageFinder',)
 
 
 DEFAULT_MIRROR_URL = "last.pypi.python.org"

@@ -1,25 +1,31 @@
-import cgi
-import getpass
-import mimetypes
+
+""" Write me! """
+
 import os
 import re
-import shutil
 import sys
+import cgi
+import shutil
+import getpass
 import tempfile
-from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
-                                urlparse, string_types, HTTPError)
-from pip.exceptions import InstallationError
-from pip.util import (splitext, rmtree,
-                      format_size, display_path, backup_dir, ask,
-                      unpack_file, create_download_cache_folder, cache_download)
+import mimetypes
+
 from pip.vcs import vcs
 from pip.log import logger
+from pip.exceptions import InstallationError
+
+from pip.util import (splitext, rmtree, format_size, display_path,
+                      backup_dir, ask, unpack_file, cache_download,
+                      create_download_cache_folder )
+
+from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
+                                urlparse, string_types, HTTPError)
 
 
-__all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
+__all__ = ('xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
+           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url')
 
 
 xmlrpclib_transport = xmlrpclib.Transport()

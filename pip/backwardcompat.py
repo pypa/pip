@@ -1,10 +1,11 @@
-"""Stuff that differs in different Python versions"""
+
+""" Stuff that differs in different Python versions """
 
 import sys
 import os
 import shutil
 
-__all__ = ['any', 'WindowsError', 'md5', 'copytree']
+__all__ = ('any', 'WindowsError', 'md5', 'copytree')
 
 try:
     WindowsError = WindowsError

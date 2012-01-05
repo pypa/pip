@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-'''
-Version information constants and auxiliary functions.
-'''
+""" Version information constants and auxiliary functions """
 
 
 # If you change this version, change it also in docs/conf.py

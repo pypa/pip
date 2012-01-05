@@ -1,4 +1,5 @@
-"""Utilities to support packages."""
+
+""" Utilities to support packages """
 
 # NOTE: This module must remain compatible with Python 2.3, as it is shared
 # by setuptools for distribution with Python 2.3 and up.
@@ -9,11 +10,11 @@ import imp
 import os.path
 from types import ModuleType
 
-__all__ = [
+__all__ = ()
     'get_importer', 'iter_importers', 'get_loader', 'find_loader',
     'walk_packages', 'iter_modules',
     'ImpImporter', 'ImpLoader', 'read_code', 'extend_path',
-]
+)
 
 
 def read_code(stream):
