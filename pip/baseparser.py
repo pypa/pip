@@ -1,12 +1,13 @@
 """Base option parser setup"""
 
+import os
 import sys
 import optparse
-import pkg_resources
-import os
+
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
+from pip.version import version_verbose, version_dist_verbose
 
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
@@ -111,20 +112,16 @@ class ConfigOptionParser(optparse.OptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
-try:
-    pip_dist = pkg_resources.get_distribution('pip')
-    version = '%s from %s (python %s)' % (
-        pip_dist, pip_dist.location, sys.version[:3])
-except pkg_resources.DistributionNotFound:
-    # when running pip.py without installing
-    version=None
+parser_kw = {
+    'usage'           : '%prog COMMAND [OPTIONS]',
+    'version'         : version_dist_verbose(), # -> pip 1.0.2.post1 from /source/pip (python 2.7)
+    #'version'         : version_verbose(),     # -> pip 1.0.2.post1 (refactor:8f755ea1)
+    'add_help_option' : False,
+    'formatter'       : UpdatingDefaultsHelpFormatter(),
+    'name'            : 'global'
+}
 
-parser = ConfigOptionParser(
-    usage='%prog COMMAND [OPTIONS]',
-    version=version,
-    add_help_option=False,
-    formatter=UpdatingDefaultsHelpFormatter(),
-    name='global')
+parser = ConfigOptionParser(**parser_kw)
 
 parser.add_option(
     '-h', '--help',
