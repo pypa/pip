@@ -1,4 +1,5 @@
-"""Base Command class, and related routines"""
+
+''' Base Command class, and related routines '''
 
 import os
 import sys
@@ -8,20 +9,16 @@ import socket
 import optparse
 import traceback
 
-from pip import commands
 from pip.log import logger
-from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO, walk_packages
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
 
-__all__ = ('command_dict', 'Command', 'load_all_commands',
-           'load_command', 'command_names')
-
-command_dict = {}
+__all__ = ('Command', 'load_all_commands')
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
@@ -31,7 +28,7 @@ class Command(object):
     usage = None
     hidden = False
 
-    def __init__(self):
+    def __init__(self, main_parser):
         assert self.name
 
         prog = os.path.basename(sys.argv[0])
@@ -44,16 +41,17 @@ class Command(object):
             'name'              : self.name,
         }
 
+        self.main_parser = main_parser
+
         self.parser = ConfigOptionParser(**parser_kw)
+        self.command_group = optparse.OptionGroup(self.parser, 'Command options')
 
         # Re-add all options and option groups (quite lame :\ )
-        for group in parser.option_groups:
+        for group in main_parser.option_groups:
             #self._copy_options(self.parser, group.option_list)
             self._copy_option_group(self.parser, group)
 
-        self._copy_options(self.parser, parser.option_list)
-
-        command_dict[self.name] = self
+        self._copy_options(self.parser, main_parser.option_list)
 
     def _copy_options(self, parser, options):
         for option in options:
@@ -188,24 +186,3 @@ def open_logfile(filename, mode='a'):
         log_fp.write('%s\n' % ('-'*60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
-
-
-def load_command(name):
-    full_name = 'pip.commands.%s' % name
-    if full_name in sys.modules:
-        return
-    try:
-        __import__(full_name)
-    except ImportError:
-        pass
-
-
-def load_all_commands():
-    for name in command_names():
-        load_command(name)
-
-
-def command_names():
-    names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
-    return list(names)
-
