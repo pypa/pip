@@ -1,6 +1,7 @@
 
 import os
 import sys
+import optparse
 
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
@@ -22,18 +23,57 @@ class InstallCommand(Command):
 
         cmdadd = self.command_group.add_option
 
-        cmdadd(
-			'-e', '--editable',
-            dest='editables',
-            action='append',
-            default=[],
-            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
-            help='install a package directly from a checkout. Source will be checked '
-            'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop). You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout). This option may be provided multiple times. '
-            'Possible values for VCS are: svn, git, hg and bzr.')
+        index_options_group = optparse.OptionGroup(self.parser, 'Package Index options')
+        install_options_group = optparse.OptionGroup(self.parser, 'Install options')
 
+        # ... close your eyes
+        self.parser.formatter.max_help_position = 30
+
+        inxadd = index_options_group.add_option
+
+        # Package Index options
+        inxadd( '--no-index',
+                dest='no_index',
+                action='store_true',
+                default=False,
+                help='ignore package index')
+                #help='ignore package index (only looking at --find-links URLs instead)')
+
+        inxadd( '-M', '--use-mirrors',
+                dest='use_mirrors',
+                action='store_true',
+                default=False,
+                help='use pypi mirrors as a fallback')
+
+        inxadd( '--mirrors',
+                dest='mirrors',
+                metavar='url',
+                action='append',
+                default=[],
+                help='mirror urls to query when --use-mirrors')
+
+        inxadd( '-f', '--find-links',
+                dest='find_links',
+                action='append',
+                default=[],
+                metavar='url',
+                help='url to look for packages at')
+
+        inxadd( '-i', '--index-url', '--pypi-url',
+                dest='index_url',
+                metavar='url',
+                default='http://pypi.python.org/simple/',
+                help='base url of python package index')
+
+        inxadd( '--extra-index-url',
+                dest='extra_index_urls',
+                metavar='url',
+                action='append',
+                default=[],
+                help='extra package index urls')
+
+
+        # General options
         cmdadd( '-r', '--requirement',
                 dest='requirements',
                 action='append',
@@ -41,52 +81,12 @@ class InstallCommand(Command):
                 metavar='path',
                 help='install packages in requirements file')
 
-        cmdadd( '-f', '--find-links',
-                dest='find_links',
-                action='append',
-                default=[],
-                metavar='url',
-                help='url to look for packages at')
-
-        cmdadd( '-i', '--index-url', '--pypi-url',
-                dest='index_url',
-                metavar='url',
-                default='http://pypi.python.org/simple/',
-                help='base url of python package index')
-
-        cmdadd( '--extra-index-url',
-                dest='extra_index_urls',
-                metavar='url',
-                action='append',
-                default=[],
-                help='extra url of package indexes to use in addition to --index-url')
-
-        cmdadd( '--no-index',
-                dest='no_index',
-                action='store_true',
-                default=False,
-                help='ignore package index')
-                #help='ignore package index (only looking at --find-links URLs instead)')
-
-        cmdadd( '-M', '--use-mirrors',
-				dest='use_mirrors',
-				action='store_true',
-				default=False,
-				help='use pypi mirrors as a fallback')
-
-        cmdadd( '--mirrors',
-                dest='mirrors',
-                metavar='url',
-                action='append',
-                default=[],
-                help='mirror urls to query when --use-mirrors')
-
-		# TODO: print just two, suppress the rest
-        cmdadd('-b', '--build', '--build-dir', '--build-directory',
-            dest='build_dir',
-            metavar='dir',
-            default=build_prefix,
-            help='unpack packages into <dir> and build from there')
+        # TODO: print just two, suppress the rest
+        cmdadd( '-b', '--build', '--build-dir', '--build-directory',
+                dest='build_dir',
+                metavar='dir',
+                default=build_prefix,
+                help='unpack packages into <dir> and build from there')
 
         cmdadd( '-d', '--download', '--download-dir', '--download-directory',
                 dest='download_dir',
@@ -98,7 +98,7 @@ class InstallCommand(Command):
                 dest='download_cache',
                 metavar='dir',
                 default=None,
-                help='cache downloaded packages in DIR')
+                help='cache downloaded packages in <dir>')
 
         cmdadd( '--src', '--source', '--source-dir', '--source-directory',
                 dest='src_dir',
@@ -109,12 +109,12 @@ class InstallCommand(Command):
         cmdadd( '-U', '--upgrade',
                 dest='upgrade',
                 action='store_true',
-                help='upgrade all packages to the newest available version')
+                help='upgrade packages to the newest available version')
 
         cmdadd( '--force-reinstall',
                 dest='force_reinstall',
                 action='store_true',
-                help='reinstall all packages even if they are already up-to-date.')
+                help='reinstall packages even if they are already up-to-date.')
 
         cmdadd( '-I', '--ignore-installed',
                 dest='ignore_installed',
@@ -140,15 +140,27 @@ class InstallCommand(Command):
         cmdadd( '--install-option',
                 dest='install_options',
                 action='append',
-				metavar='options',
+                metavar='options',
                 help="extra arguments to be supplied to the setup.py install "
                 "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
                 "Use multiple --install-option options to pass multiple options to setup.py install.  "
                 "If you are using an option with a directory path, be sure to use absolute path.")
 
+        cmdadd(
+            '-e', '--editable',
+            dest='editables',
+            action='append',
+            default=[],
+            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
+            help='install a package directly from a checkout. Source will be checked '
+            'out into src/PACKAGE (lower-case) and installed in-place (using '
+            'setup.py develop). You can run this on an existing directory/checkout (like '
+            'pip install -e src/mycheckout). This option may be provided multiple times. '
+            'Possible values for VCS are: svn, git, hg and bzr.')
+
         cmdadd( '--global-option',
                 dest='global_options',
-				metavar='options',
+                metavar='options',
                 action='append',
                 help="extra global options to be supplied to the setup.py"
                 "call before the install command")
@@ -159,6 +171,8 @@ class InstallCommand(Command):
                 help='install to user-site')
 
         # TODO: lame!
+
+        self.parser.add_option_group(index_options_group)
         self.parser.add_option_group(self.command_group)
 
     def _build_package_finder(self, options, index_urls):
