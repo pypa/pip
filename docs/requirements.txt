@@ -59,8 +59,7 @@ break MyApp.  If that happens you can update the requirements file to
 force an earlier version of Library, and you can do that without
 having to re-release MyApp at all.
 
-Read the `requirements file format <http://pip.openplans.org/requirement-format.html>`_ to
-learn about other features.
+Read the `requirements file format`_ to learn about other features.
 
 Freezing Requirements
 =====================
@@ -86,8 +85,8 @@ sort of template for the new file.  So if you do::
 it will keep the packages listed in ``devel-req.txt`` in order and preserve
 comments.
 
-The requirements file format
-============================
+The _`requirements file format`
+===============================
 
 The requirements file is a way to get pip to install specific packages
 to make up an *environment*.  This document describes that format.  To
@@ -99,9 +98,15 @@ installed.  For example::
 
     MyPackage==3.0
 
-tells pip to install the 3.0 version of MyPackage.  
+tells pip to install the 3.0 version of MyPackage.
 
-You can also install a package in an "editable" form.  This puts the
+You can also request `extras`_ in the requirements file::
+
+    MyPackage==3.0 [PDF]
+
+.. _extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
+
+Packages may also be installed in an "editable" form.  This puts the
 source code into ``src/distname`` (making the name lower case) and
 runs ``python setup.py develop`` on the package.  To indicate
 editable, use ``-e``, like::
@@ -164,7 +169,7 @@ Pip currently supports cloning over ``git``, ``git+http`` and ``git+ssh``::
     -e git+http://git.myproject.org/MyProject/#egg=MyProject
     -e git+ssh://git@myproject.org/MyProject/#egg=MyProject
 
-Passing branch names, a commit hash or a tag name is also possible:: 
+Passing branch names, a commit hash or a tag name is also possible::
 
     -e git://git.myproject.org/MyProject.git@master#egg=MyProject
     -e git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
