@@ -8,7 +8,7 @@ Changelog
 Next release (1.1) schedule
 ---------------------------
 
-Beta release November 2011, final release December.
+Beta and final releases planned for the first half of 2012.
 
 develop (unreleased)
 --------------------
