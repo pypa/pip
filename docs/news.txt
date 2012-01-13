@@ -51,8 +51,8 @@ develop (unreleased)
 * Fixed issue #295 - Reinstall a package when using the ``install -I`` option
 * Fixed issue #283 - Finds a Git tag pointing to same commit as origin/master
 * Fixed issue #279 - Use absolute path for path to docs in setup.py
-* Fixed issue #320 - Correctly handle exceptions on Python3.
-* Fixed issue #314 - Correctly parse ``--editable`` lines in requirements files
+* Fixed issue #314 - Correctly handle exceptions on Python3.
+* Fixed issue #320 - Correctly parse ``--editable`` lines in requirements files
 
 1.0.1 (2011-04-30)
 ------------------
