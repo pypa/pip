@@ -1,15 +1,15 @@
-"""Locations where we look for configs, install stuff, etc"""
 
-import sys
+""" Locations where we look for configs, install stuff, etc """
+
 import os
+import sys
+
 from pip.backwardcompat import get_python_lib
 
 
 def running_under_virtualenv():
-    """
-    Return True if we're running inside a virtualenv, False otherwise.
+    """ Return True if we're running inside a virtualenv, False otherwise.  """
 
-    """
     return hasattr(sys, 'real_prefix')
 
 

@@ -1,15 +1,75 @@
-"""Base option parser setup"""
 
+""" Base option parser setup """
+
+import os
 import sys
 import optparse
-import pkg_resources
-import os
+
 from distutils.util import strtobool
+
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
+from pip.version import version_verbose, version_dist_verbose
 
 
-class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
+    """ A prettier/less verbose help formatter for optparse """
+
+    def __init__(self, *args, **kw):
+        kw['max_help_position'] = 23
+        kw['indent_increment']  = 1
+
+        # do as argparse does
+        try:
+            kw['width'] = int(os.environ['COLUMNS']) - 2
+        except (KeyError, ValueError):
+            kw['width'] = 78
+
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+
+    def format_option_strings(self, option):
+        #return self._format_option_strings(option, ' %s', ' ')
+        return self._format_option_strings(option, ' <%s>', ', ')
+
+    def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
+        ''' ('-f', '--format') -> -f%(optsep)s--format mvarfmt % metavar'''
+
+        opts = []
+
+        if option._short_opts: opts.append(option._short_opts[0])
+        if option._long_opts:  opts.append(option._long_opts[0])
+        if len(opts) > 1: opts.insert(1, optsep)
+
+        if option.takes_value():
+            metavar = option.metavar or option.dest.lower()
+            opts.append(mvarfmt % metavar)
+
+        return ''.join(opts)
+
+    def format_heading(self, heading):
+        if heading == 'Options': return ''
+        return heading + ':\n'
+
+    def format_usage(self, usage):
+        # ensure there is only one newline between usage and the first heading
+        # if there is no description
+
+        msg =  'Usage: %s' % usage
+        if self.parser.description:
+            msg += '\n'
+
+        return msg
+
+    # leave full control over description to us
+    def format_description(self, description):
+        return description if description else ''
+
+    # leave full control over epilog to us
+    def format_epilog(self, epilog):
+        return epilog if epilog else ''
+
+
+class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly
     in the help listing"""
@@ -111,102 +171,123 @@ class ConfigOptionParser(optparse.OptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
-try:
-    pip_dist = pkg_resources.get_distribution('pip')
-    version = '%s from %s (python %s)' % (
-        pip_dist, pip_dist.location, sys.version[:3])
-except pkg_resources.DistributionNotFound:
-    # when running pip.py without installing
-    version=None
 
-parser = ConfigOptionParser(
-    usage='%prog COMMAND [OPTIONS]',
-    version=version,
-    add_help_option=False,
-    formatter=UpdatingDefaultsHelpFormatter(),
-    name='global')
+def create_main_parser():
+    from textwrap import dedent
 
-parser.add_option(
-    '-h', '--help',
-    dest='help',
-    action='store_true',
-    help='Show help')
-parser.add_option(
+    epilog = '''
+    Further help:
+      - man 5 pip
+      - http://www.pip-installer.org/en/latest/index.html
+    '''
+
+    parser_kw = {
+        'usage'           : '%prog <command> [options]',
+        'add_help_option' : False,
+        'formatter'       : UpdatingDefaultsHelpFormatter(),
+        'name'            : 'global',
+        'epilog'          : dedent(epilog),
+    }
+
+    parser = ConfigOptionParser(**parser_kw)
+
+    # having a default version action just causes trouble
+    parser.version = version_dist_verbose()   # -> pip 1.0.2.post1 from /source/pip (python 2.7)
+    #parser.version = version_verbose()       # -> pip 1.0.2.post1 (refactor:8f755ea1)
+
+    general_opts = optparse.OptionGroup(parser, 'General options')
+    padd = parser.add_option
+    gadd = general_opts.add_option
+
+    gadd( '-h', '--help',
+          dest='help',
+          action='store_true',
+          help='show this help message and exit')
+
+    gadd( '-V', '--version',
+          dest='version',
+          action='store_true',
+          help='show version and exit')
+
+    gadd( '-v', '--verbose',
+          dest='verbose',
+          action='count',
+          default=0,
+          help='increase verbosity')
+
+    gadd( '-q', '--quiet',
+          dest='quiet',
+          action='count',
+          default=0,
+          help='decrease verbosity')
+
+    gadd( '--log',
+          dest='log',
+          metavar='path',
+          help='log file (maximum verbosity)')
+
+    gadd( '--proxy',
+          dest='proxy',
+          metavar='proxy',
+          type='str',
+          default='',
+          help='specify proxy as user:pswd@server:port')
+
+    #help="Specify a proxy in the form user:passwd@proxy.server:port. "
+    #"Note that the user:password@ is optional and required only if you "
+    #"are behind an authenticated proxy.  If you provide "
+    #"user@proxy.server:port then you will be prompted for a password."
+
+    gadd( '--timeout', '--default-timeout',
+          metavar='sec',
+          dest='timeout',
+          type='float',
+          default=15,
+          help='set socket timeout (default %default seconds)')
+
+    parser.add_option_group(general_opts)
+
+    # Suppressed options ...
+    # Writes the log levels explicitly to the log'
+    padd( '--log-explicit-levels', dest='log_explicit_levels', action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
+
     # Run only if inside a virtualenv, bail if not.
-    '--require-virtualenv', '--require-venv',
-    dest='require_venv',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
+    padd( '--require-virtualenv', '--require-venv',
+          dest='require_venv',
+          action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
 
-parser.add_option(
-    '-v', '--verbose',
-    dest='verbose',
-    action='count',
-    default=0,
-    help='Give more output')
-parser.add_option(
-    '-q', '--quiet',
-    dest='quiet',
-    action='count',
-    default=0,
-    help='Give less output')
-parser.add_option(
-    '--log',
-    dest='log',
-    metavar='FILENAME',
-    help='Log file where a complete (maximum verbosity) record will be kept')
-parser.add_option(
-    # Writes the log levels explicitely to the log'
-    '--log-explicit-levels',
-    dest='log_explicit_levels',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
     # The default log file
-    '--local-log', '--log-file',
-    dest='log_file',
-    metavar='FILENAME',
-    default=default_log_file,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
+    padd( '--local-log', '--log-file',
+          dest='log_file',
+          metavar='FILENAME',
+          default=default_log_file,
+          help=optparse.SUPPRESS_HELP)
+
     # Don't ask for input
-    '--no-input',
-    dest='no_input',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
+    padd( '--no-input',
+          dest='no_input',
+          action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
 
-parser.add_option(
-    '--proxy',
-    dest='proxy',
-    type='str',
-    default='',
-    help="Specify a proxy in the form user:passwd@proxy.server:port. "
-    "Note that the user:password@ is optional and required only if you "
-    "are behind an authenticated proxy.  If you provide "
-    "user@proxy.server:port then you will be prompted for a password.")
-parser.add_option(
-    '--timeout', '--default-timeout',
-    metavar='SECONDS',
-    dest='timeout',
-    type='float',
-    default=15,
-    help='Set the socket timeout (default %default seconds)')
-parser.add_option(
     # The default version control system for editables, e.g. 'svn'
-    '--default-vcs',
-    dest='default_vcs',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
-    # A regex to be used to skip requirements
-    '--skip-requirements-regex',
-    dest='skip_requirements_regex',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
+    padd( '--default-vcs',
+          dest='default_vcs',
+          type='str',
+          default='',
+          help=optparse.SUPPRESS_HELP)
 
-parser.disable_interspersed_args()
+    # A regex to be used to skip requirements
+    padd( '--skip-requirements-regex',
+          dest='skip_requirements_regex',
+          type='str',
+          default='',
+          help=optparse.SUPPRESS_HELP)
+
+    parser.disable_interspersed_args()
+
+    return parser

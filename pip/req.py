@@ -1,3 +1,6 @@
+
+""" Installation requirement """
+
 import sys
 import os
 import shutil
@@ -5,6 +8,7 @@ import re
 import zipfile
 import pkg_resources
 import tempfile
+
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled)
@@ -15,7 +19,7 @@ from pip.util import ask, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
-from pip import call_subprocess
+from pip.util import call_subprocess
 from pip.backwardcompat import (any, copytree, urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
                                 FeedParser, get_python_version,
@@ -445,7 +449,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
-                    
+
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
             paths_to_remove.add(dist.location)

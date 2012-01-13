@@ -1,26 +1,25 @@
-"""Exceptions used throughout package"""
+
+""" Exceptions used throughout pip """
 
 
-class InstallationError(Exception):
-    """General exception during installation"""
+class PipError(Exception):
+	""" Base pip exception """
 
+class InstallationError(PipError):
+    """ General exception during installation"""
 
-class UninstallationError(Exception):
-    """General exception during uninstallation"""
-
+class UninstallationError(PipError):
+    """ General exception during uninstallation"""
 
 class DistributionNotFound(InstallationError):
-    """Raised when a distribution cannot be found to satisfy a requirement"""
+	""" Raised when a distribution cannot be found to satisfy a requirement"""
 
+class BestVersionAlreadyInstalled(PipError):
+    """ Raised when the most up-to-date version of a package is already
+		installed.  """
 
-class BestVersionAlreadyInstalled(Exception):
-    """Raised when the most up-to-date version of a package is already
-    installed.
-    """
+class BadCommand(PipError):
+    """ Raised when virtualenv or a command is not found """
 
-class BadCommand(Exception):
-    """Raised when virtualenv or a command is not found"""
-
-
-class CommandError(Exception):
-    """Raised when there is an error in command-line arguments"""
+class CommandError(PipError):
+    """ Raised when there is an error in command-line arguments """

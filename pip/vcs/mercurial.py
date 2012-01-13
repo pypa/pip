@@ -1,9 +1,10 @@
+
 import os
 import tempfile
 import re
 import sys
-from pip import call_subprocess
-from pip.util import display_path, rmtree
+
+from pip.util import display_path, rmtree, call_subprocess
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url2
