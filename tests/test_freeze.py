@@ -66,12 +66,12 @@ def test_freeze_svn():
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/ 'initools-trunk')
+            cwd=env.scratch_path/ 'initools-trunk', expect_stderr=True)
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@10#egg=INITools-0.3.1dev_r10-py...-dev_r10
+        -e %s@10#egg=INITools-0.3.1dev...-dev_r10
         ...""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
