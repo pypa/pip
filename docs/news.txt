@@ -13,6 +13,11 @@ Beta and final releases planned for the first half of 2012.
 develop (unreleased)
 --------------------
 
+* Fixed issue #369 - compatibility with Subversion 1.7. Thanks Qiangning
+  Hong. Note that setuptools remains incompatible with Subversion 1.7; to
+  get the benefits of pip's support you must use Distribute rather than
+  setuptools.
+
 * Fixed issue #57 - ignore py2app-generated OS X mpkg zip files in finder.
   Thanks Rene Dudfield.
 

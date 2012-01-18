@@ -32,6 +32,7 @@ Patrick Jenkins
 Paul Nasrat
 Paul Oswald
 Peter Waller
+Qiangning Hong
 Rene Dudfield
 Ronny Pfannschmidt
 Simon Cross
