@@ -49,15 +49,9 @@ sys.path = [src_folder] + sys.path
 
 
 def create_virtualenv(where, distribute=False):
-    save_argv = sys.argv
-
-    try:
-        import virtualenv
-        distribute_opt = distribute and ['--distribute'] or []
-        sys.argv = ['virtualenv', '--quiet'] + distribute_opt + ['--unzip-setuptools', where]
-        virtualenv.main()
-    finally:
-        sys.argv = save_argv
+    import virtualenv
+    virtualenv.create_environment(
+        where, use_distribute=distribute, unzip_setuptools=True)
 
     return virtualenv.path_locations(where)
 
@@ -293,9 +287,10 @@ class TestPipEnvironment(TestFileEnvironment):
 
         if use_distribute is None:
             use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+        self.use_distribute = use_distribute
 
         # Create a virtualenv and remember where it's putting things.
-        virtualenv_paths = create_virtualenv(self.venv_path, distribute=use_distribute)
+        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute)
 
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
@@ -329,7 +324,7 @@ class TestPipEnvironment(TestFileEnvironment):
                 " rather than expected %r" % (pythonbin, self.bin_path/'python'))
 
         # make sure we have current setuptools to avoid svn incompatibilities
-        if not use_distribute:
+        if not self.use_distribute:
             install_setuptools(self)
 
         # Uninstall whatever version of pip came with the virtualenv.
@@ -421,6 +416,8 @@ class FastTestPipEnvironment(TestPipEnvironment):
         # put the test-scratch virtualenv's bin dir first on the PATH
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
+        self.use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
+
         if self.root_path.exists:
             rmtree(self.root_path)
         if self.backup_path.exists:
@@ -429,10 +426,9 @@ class FastTestPipEnvironment(TestPipEnvironment):
             demand_dirs(self.venv_path)
             demand_dirs(self.scratch_path)
 
-            use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
 
             # Create a virtualenv and remember where it's putting things.
-            create_virtualenv(self.venv_path, distribute=use_distribute)
+            create_virtualenv(self.venv_path, distribute=self.use_distribute)
 
             demand_dirs(self.user_site_path)
 
@@ -449,7 +445,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
                     " rather than expected %r" % (pythonbin, self.bin_path/'python'))
 
             # make sure we have current setuptools to avoid svn incompatibilities
-            if not use_distribute:
+            if not self.use_distribute:
                 install_setuptools(self)
 
             # Uninstall whatever version of pip came with the virtualenv.

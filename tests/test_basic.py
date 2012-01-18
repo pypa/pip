@@ -378,11 +378,7 @@ def test_install_subversion_usersite_editable_with_setuptools_fails():
     # We don't try to use setuptools for 3.X.
     elif sys.version_info >= (3,):
         raise SkipTest()
-    # our test environment contains distribute
-    import setuptools
-    if getattr(setuptools, '_distribute', False):
-        raise SkipTest()
-    env = reset_env()
+    env = reset_env(use_distribute=False)
     no_site_packages = env.lib_path/'no-global-site-packages.txt'
     if os.path.isfile(no_site_packages):
         no_site_packages.rm() # this re-enables user_site
