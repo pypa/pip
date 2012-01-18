@@ -1,6 +1,6 @@
 import os
 import re
-from pip import call_subprocess
+from pip import call_subprocess, InstallationError
 from pip.index import Link
 from pip.util import rmtree, display_path
 from pip.log import logger
@@ -10,7 +10,8 @@ _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile('committed-rev="(\d+)"')
 _svn_url_re = re.compile(r'URL: (.+)')
 _svn_revision_re = re.compile(r'Revision: (.+)')
-
+_svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
+_svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 class Subversion(VersionControl):
     name = 'svn'
@@ -119,33 +120,12 @@ class Subversion(VersionControl):
             if not os.path.exists(entries_fn):
                 ## FIXME: should we warn?
                 continue
-            f = open(entries_fn)
-            data = f.read()
-            f.close()
 
-            if data.startswith('8') or data.startswith('9') or data.startswith('10'):
-                data = list(map(str.splitlines, data.split('\n\x0c\n')))
-                del data[0][0]  # get rid of the '8'
-                dirurl = data[0][3]
-                revs = [int(d[9]) for d in data if len(d)>9 and d[9]]+[0]
-                if revs:
-                    localrev = max(revs)
-                else:
-                    localrev = 0
-            elif data.startswith('<?xml'):
-                dirurl = _svn_xml_url_re.search(data).group(1)    # get repository URL
-                revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)]+[0]
-                if revs:
-                    localrev = max(revs)
-                else:
-                    localrev = 0
-            else:
-                logger.warn("Unrecognized .svn/entries format; skipping %s", base)
-                dirs[:] = []
-                continue
+            dirurl, localrev = self._get_svn_url_rev(base)
+
             if base == location:
                 base_url = dirurl+'/'   # save the root url
-            elif not dirurl.startswith(base_url):
+            elif not dirurl or not dirurl.startswith(base_url):
                 dirs[:] = []
                 continue    # not part of the same svn tree, skip it
             revision = max(revision, localrev)
@@ -170,22 +150,39 @@ class Subversion(VersionControl):
                 logger.warn("Could not find setup.py for directory %s (tried all parent directories)"
                             % orig_location)
                 return None
+
+        return self._get_svn_url_rev(location)[0]
+
+    def _get_svn_url_rev(self, location):
         f = open(os.path.join(location, self.dirname, 'entries'))
         data = f.read()
         f.close()
         if data.startswith('8') or data.startswith('9') or data.startswith('10'):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
-            return data[0][3]
+            url = data[0][3]
+            revs = [int(d[9]) for d in data if len(d)>9 and d[9]]+[0]
         elif data.startswith('<?xml'):
             match = _svn_xml_url_re.search(data)
             if not match:
                 raise ValueError('Badly formatted data: %r' % data)
-            return match.group(1)    # get repository URL
+            url = match.group(1)    # get repository URL
+            revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)]+[0]
         else:
-            logger.warn("Unrecognized .svn/entries format in %s" % location)
-            # Or raise exception?
-            return None
+            try:
+                # subversion >= 1.7
+                xml = call_subprocess([self.cmd, 'info', '--xml', location], show_stdout=False)
+                url = _svn_info_xml_url_re.search(xml).group(1)
+                revs = [int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)]
+            except InstallationError:
+                url, revs = None, []
+
+        if revs:
+            rev = max(revs)
+        else:
+            rev = 0
+
+        return url, rev
 
     def get_tag_revs(self, svn_tag_url):
         stdout = call_subprocess(
