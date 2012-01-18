@@ -73,6 +73,12 @@ class Command(object):
             logger.explicit_levels = True
 
         self.setup_logging()
+        
+        if options.no_input:
+            os.environ['PIP_NO_INPUT'] = '1'
+            
+        if options.exists_action:
+            os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
 
         if options.require_venv:
             # If a venv is required check if it can really be found

@@ -5,7 +5,7 @@ import shutil
 
 from pip.backwardcompat import urlparse, urllib
 from pip.log import logger
-from pip.util import display_path, backup_dir, find_command, ask, rmtree
+from pip.util import display_path, backup_dir, find_command, ask, rmtree, path_exists
 
 
 __all__ = ['vcs', 'get_src_requirement']
@@ -198,7 +198,7 @@ class VersionControl(object):
         if prompt:
             logger.warn('The plan is to install the %s repository %s'
                         % (self.name, url))
-            response = ask('What to do?  %s' % prompt[0], prompt[1])
+            response = path_exists('What to do?  %s' % prompt[0], prompt[1])
 
             if response == 's':
                 logger.notify('Switching %s %s to %s%s'
