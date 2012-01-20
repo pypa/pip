@@ -209,4 +209,20 @@ parser.add_option(
     default='',
     help=optparse.SUPPRESS_HELP)
 
+parser.add_option(
+    # Option when path already exist
+    '--exists-action',
+    dest='exists_action',
+    type='choice',
+    choices=('s', 'i', 'w', 'b'),
+    default=[],
+    action='append',
+    help="Default action when a path already exists."
+    "Use this option more then one time to specify another action when a certain option is not available, choices: "
+    "(s)witch,"
+    "(i)gnore,"
+    "(w)ipe,"
+    "(b)ackup"
+)
+
 parser.disable_interspersed_args()
