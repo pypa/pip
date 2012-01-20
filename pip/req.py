@@ -11,7 +11,7 @@ from pip.exceptions import (InstallationError, UninstallationError,
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
-from pip.util import ask, path_exists, backup_dir
+from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
@@ -506,8 +506,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         archive_name = '%s-%s.zip' % (self.name, self.installed_version)
         archive_path = os.path.join(build_dir, archive_name)
         if os.path.exists(archive_path):
-            response = path_exists('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
-                           % display_path(archive_path), ('i', 'w', 'b'))
+            response = ask_path_exists(
+                'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
+                display_path(archive_path), ('i', 'w', 'b'))
             if response == 'i':
                 create_archive = False
             elif response == 'w':

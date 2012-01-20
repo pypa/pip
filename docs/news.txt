@@ -48,6 +48,10 @@ develop (unreleased)
 
 * Fixed issue #22 - pip search should set and return a userful shell status code
 
+* Fixed issue #351 and #365 - added global ``--exists-action`` command line
+  option to easier script file exists conflicts, e.g. from editable
+  requirements from VCS that have a changed repo URL.
+
 
 1.0.2 (2011-07-16)
 ------------------
