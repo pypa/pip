@@ -50,6 +50,8 @@ sys.path = [src_folder] + sys.path
 
 def create_virtualenv(where, distribute=False):
     import virtualenv
+    if sys.version_info[0] > 2:
+        distribute = True
     virtualenv.create_environment(
         where, use_distribute=distribute, unzip_setuptools=True)
 
