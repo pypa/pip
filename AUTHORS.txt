@@ -24,6 +24,7 @@ Kenneth Belitzky
 Kumar McMillan
 Luke Macken
 Masklinn
+Marcus Smith
 Matt Maker
 Nowell Strite
 Oliver Tonnhofer
@@ -33,6 +34,7 @@ Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Peter Waller
+Piet Delport
 Qiangning Hong
 Rene Dudfield
 Ronny Pfannschmidt
