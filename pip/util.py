@@ -109,6 +109,7 @@ def ask_path_exists(message, options):
             return action
     return ask(message, options)
 
+
 def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
     while 1:

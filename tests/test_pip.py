@@ -428,7 +428,6 @@ class FastTestPipEnvironment(TestPipEnvironment):
             demand_dirs(self.venv_path)
             demand_dirs(self.scratch_path)
 
-
             # Create a virtualenv and remember where it's putting things.
             create_virtualenv(self.venv_path, distribute=self.use_distribute)
 

@@ -18,6 +18,7 @@ class BestVersionAlreadyInstalled(Exception):
     installed.
     """
 
+
 class BadCommand(Exception):
     """Raised when virtualenv or a command is not found"""
 
