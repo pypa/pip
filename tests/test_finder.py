@@ -9,7 +9,6 @@ from tests.test_pip import here
 find_links = 'file://' + urllib.quote(str(Path(here).abspath/'packages').replace('\\', '/'))
 
 
-
 def test_no_mpkg():
     """Finder skips zipfiles with "macosx10" in the name."""
     finder = PackageFinder([find_links], [])

@@ -90,6 +90,7 @@ def test_search_missing_argument():
     result = run_pip('search', expect_error=True)
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
+
 def test_run_method_should_return_sucess_when_find_packages():
     """
     Test SearchCommand.run for found package
@@ -99,6 +100,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('pip',))
     assert status == SUCCESS
+
 
 def test_run_method_should_return_no_matches_found_when_does_not_find_packages():
     """
@@ -110,6 +112,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     status = search_cmd.run(options_mock, ('non-existant-package',))
     assert status == NO_MATCHES_FOUND, status
 
+
 def test_search_should_exit_status_code_zero_when_find_packages():
     """
     Test search exit status code for package found
@@ -117,6 +120,7 @@ def test_search_should_exit_status_code_zero_when_find_packages():
     env = reset_env(use_distribute=True)
     result = run_pip('search', 'pip')
     assert result.returncode == SUCCESS
+
 
 def test_search_exit_status_code_when_finds_no_package():
     """
