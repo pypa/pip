@@ -2,6 +2,7 @@ from os.path import join
 
 from tests.test_pip import reset_env, run_pip
 
+
 def test_simple_extras_install_from_pypi():
     """
     Test installing a package from PyPI using extras dependency Paste[openid].

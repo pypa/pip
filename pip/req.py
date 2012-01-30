@@ -445,7 +445,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
-                    
+
         elif dist.location.endswith(easy_install_egg):
             # package installed by easy_install
             paths_to_remove.add(dist.location)

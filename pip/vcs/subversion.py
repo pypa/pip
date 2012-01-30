@@ -13,6 +13,7 @@ _svn_revision_re = re.compile(r'Revision: (.+)')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
+
 class Subversion(VersionControl):
     name = 'svn'
     dirname = '.svn'
