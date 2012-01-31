@@ -57,6 +57,7 @@ class Subversion(VersionControl):
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
+        rev_options = get_rev_options(url, rev)
         logger.notify('Exporting svn repository %s to %s' % (url, location))
         logger.indent += 2
         try:
@@ -65,7 +66,7 @@ class Subversion(VersionControl):
                 # --force fixes this, but was only added in svn 1.5
                 rmtree(location)
             call_subprocess(
-                [self.cmd, 'export', url, location],
+                [self.cmd, 'export'] + rev_options + [url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -80,17 +81,11 @@ class Subversion(VersionControl):
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
+        rev_options = get_rev_options(url, rev)
         if rev:
-            rev_options = ['-r', rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = []
             rev_display = ''
-        r = urlsplit(url)
-        if r.username:
-            rev_options += ['--username', r.username]
-        if r.password:
-            rev_options += ['--password', r.password]
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Checking out %s%s to %s'
                           % (url, rev_display, display_path(dest)))
@@ -244,5 +239,19 @@ class Subversion(VersionControl):
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
             full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
         return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
+
+
+def get_rev_options(url, rev):
+    if rev:
+        rev_options = ['-r', rev]
+    else:
+        rev_options = []
+    r = urlsplit(url)
+    if r.username:
+        rev_options += ['--username', r.username]
+    if r.password:
+        rev_options += ['--password', r.password]
+    return rev_options
+
 
 vcs.register(Subversion)
