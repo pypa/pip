@@ -246,7 +246,7 @@ class InstallCommand(Command):
             requirement_set.create_bundle(self.bundle_filename)
             logger.notify('Created bundle in %s' % self.bundle_filename)
         # Clean up
-        if not options.no_install:
+        if not options.no_install or options.download_dir:
             requirement_set.cleanup_files(bundle=self.bundle)
         return requirement_set
 

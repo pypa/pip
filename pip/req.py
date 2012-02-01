@@ -1047,6 +1047,8 @@ class RequirementSet(object):
                             self.add_requirement(subreq)
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
+                    if self.is_download:
+                        self.reqs_to_cleanup.append(req_to_install)
                 else:
                     self.reqs_to_cleanup.append(req_to_install)
 
@@ -1104,7 +1106,10 @@ class RequirementSet(object):
         else:
             if self.download_cache:
                 self.download_cache = os.path.expanduser(self.download_cache)
-            return unpack_http_url(link, location, self.download_cache, self.download_dir)
+            retval = unpack_http_url(link, location, self.download_cache, self.download_dir)
+            if only_download:
+                _write_delete_marker_message(os.path.join(location, PIP_DELETE_MARKER_FILENAME))
+            return retval
 
     def install(self, install_options, global_options=()):
         """Install everything in this set (after having downloaded and unpacked the packages)"""

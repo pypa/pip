@@ -36,6 +36,6 @@ def test_download_should_download_dependencies():
     env = reset_env()
     result = run_pip('install', 'Paste[openid]==1.7.5.1', '-d', '.', expect_error=True)
     assert Path('scratch')/ 'Paste-1.7.5.1.tar.gz' in result.files_created
-    openid_tarball_prefix = str(Path('scratch')/ 'openid-')
+    openid_tarball_prefix = str(Path('scratch')/ 'python-openid-')
     assert any(path.startswith(openid_tarball_prefix) for path in result.files_created)
     assert env.site_packages/ 'openid' not in result.files_created
