@@ -407,7 +407,7 @@ def _copy_file(filename, location, content_type, link):
         logger.notify('Saved %s' % display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, only_download):
+def unpack_http_url(link, location, download_cache, download_dir=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     target_url = link.url.split('#', 1)[0]
     target_file = None
@@ -451,10 +451,9 @@ def unpack_http_url(link, location, download_cache, only_download):
         download_hash = _download_url(resp, link, temp_location)
     if link.md5_hash:
         _check_md5(download_hash, link)
-    if only_download:
-        _copy_file(temp_location, location, content_type, link)
-    else:
-        unpack_file(temp_location, location, content_type, link)
+    if download_dir:
+        _copy_file(temp_location, download_dir, content_type, link)
+    unpack_file(temp_location, location, content_type, link)
     if target_file and target_file != temp_location:
         cache_download(target_file, temp_location, content_type)
     if target_file is None:
