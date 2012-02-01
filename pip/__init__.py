@@ -252,12 +252,12 @@ def call_subprocess(cmd, show_stdout=True,
                 logger.notify('Complete output from command %s:' % command_desc)
                 logger.notify('\n'.join(all_output) + '\n----------------------------------------')
             raise InstallationError(
-                "Command %s failed with error code %s"
-                % (command_desc, proc.returncode))
+                "Command %s failed with error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
         else:
             logger.warn(
-                "Command %s had error code %s"
-                % (command_desc, proc.returncode))
+                "Command %s had error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
 
