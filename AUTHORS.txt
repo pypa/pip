@@ -1,6 +1,7 @@
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
+Antti Kaihola
 Armin Ronacher
 Brian Rosner
 Carl Meyer
