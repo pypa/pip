@@ -1,5 +1,6 @@
 import os
 import re
+from pip.backwardcompat import urlparse
 from pip import call_subprocess, InstallationError
 from pip.index import Link
 from pip.util import rmtree, display_path
@@ -56,6 +57,7 @@ class Subversion(VersionControl):
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
+        rev_options = get_rev_options(url, rev)
         logger.notify('Exporting svn repository %s to %s' % (url, location))
         logger.indent += 2
         try:
@@ -64,7 +66,7 @@ class Subversion(VersionControl):
                 # --force fixes this, but was only added in svn 1.5
                 rmtree(location)
             call_subprocess(
-                [self.cmd, 'export', url, location],
+                [self.cmd, 'export'] + rev_options + [url, location],
                 filter_stdout=self._filter, show_stdout=False)
         finally:
             logger.indent -= 2
@@ -79,11 +81,10 @@ class Subversion(VersionControl):
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
+        rev_options = get_rev_options(url, rev)
         if rev:
-            rev_options = ['-r', rev]
             rev_display = ' (to revision %s)' % rev
         else:
-            rev_options = []
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Checking out %s%s to %s'
@@ -238,5 +239,34 @@ class Subversion(VersionControl):
             logger.warn('svn URL does not fit normal structure (tags/branches/trunk): %s' % repo)
             full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
         return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
+
+
+def get_rev_options(url, rev):
+    if rev:
+        rev_options = ['-r', rev]
+    else:
+        rev_options = []
+
+    r = urlparse.urlsplit(url)
+    if hasattr(r, 'username'):
+        # >= Python-2.5
+        username, password = r.username, r.password
+    else:
+        netloc = r[1]
+        if '@' in netloc:
+            auth = netloc.split('@')[0]
+            if ':' in auth:
+                username, password = auth.split(':', 1)
+            else:
+                username, password = auth, None
+        else:
+            username, password = None, None
+
+    if username:
+        rev_options += ['--username', username]
+    if password:
+        rev_options += ['--password', password]
+    return rev_options
+
 
 vcs.register(Subversion)
