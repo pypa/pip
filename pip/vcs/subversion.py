@@ -1,6 +1,6 @@
 import os
 import re
-from urlparse import urlsplit
+from pip.backwardcompat import urlparse
 from pip import call_subprocess, InstallationError
 from pip.index import Link
 from pip.util import rmtree, display_path
@@ -247,7 +247,7 @@ def get_rev_options(url, rev):
     else:
         rev_options = []
 
-    r = urlsplit(url)
+    r = urlparse.urlsplit(url)
     if hasattr(r, 'username'):
         # >= Python-2.5
         username, password = r.username, r.password
