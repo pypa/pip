@@ -246,11 +246,26 @@ def get_rev_options(url, rev):
         rev_options = ['-r', rev]
     else:
         rev_options = []
+
     r = urlsplit(url)
-    if r.username:
-        rev_options += ['--username', r.username]
-    if r.password:
-        rev_options += ['--password', r.password]
+    if hasattr(r, 'username'):
+        # >= Python-2.5
+        username, password = r.username, r.password
+    else:
+        netloc = r[1]
+        if '@' in netloc:
+            auth = netloc.split('@')[0]
+            if ':' in auth:
+                username, password = auth.split(':', 1)
+            else:
+                username, password = auth, None
+        else:
+            username, password = None, None
+
+    if username:
+        rev_options += ['--username', username]
+    if password:
+        rev_options += ['--password', password]
     return rev_options
 
 
