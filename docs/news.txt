@@ -13,6 +13,9 @@ Beta and final releases planned for the first half of 2012.
 develop (unreleased)
 --------------------
 
+* Added support for authentication with Subversion repositories. Thanks
+  Qiangning Hong.
+
 * Fixed issue #315 - ``--download`` now downloads dependencies as well.
   Thanks Qiangning Hong.
 
