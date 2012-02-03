@@ -85,7 +85,7 @@ class InstallCommand(Command):
             default=build_prefix,
             help='Unpack packages into DIR (default %default) and build from there')
         self.parser.add_option(
-            '-t', '--target', '--target-dir', '--target-directory',
+            '-t', '--target',
             dest='target_dir',
             metavar='DIR',
             default=None,
@@ -268,6 +268,7 @@ class InstallCommand(Command):
             lib_dir = os.path.join(temp_target_dir, "lib/python/")
             for item in os.listdir(lib_dir):
                 shutil.move(os.path.join(lib_dir, item), options.target_dir)
+            shutil.rmtree(temp_target_dir)
         return requirement_set
 
 
