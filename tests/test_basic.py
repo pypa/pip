@@ -518,6 +518,19 @@ def test_install_package_which_contains_dev_in_name():
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_package_with_target():
+    """
+    Test installing a package using pip install --target
+    """
+    env = reset_env()
+    1/0
+    target_dir = env.scratch_path/'target'
+    package = 'shortuuid'
+    result = run_pip('install', '-t', target_dir, package)
+    contents = os.path.listdir(target_dir)
+    assert package in contents, str(result)
+
+
 def test_find_command_folder_in_path():
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
