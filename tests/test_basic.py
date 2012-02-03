@@ -524,9 +524,8 @@ def test_install_package_with_target():
     """
     env = reset_env()
     target_dir = env.scratch_path/'target'
-    package = 'shortuuid'
-    result = run_pip('install', '-t', target_dir, package)
-    assert Path('scratch')/'target'/package in result.files_created, str(result)
+    result = run_pip('install', '-t', target_dir, "initools==0.1")
+    assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():
