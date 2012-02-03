@@ -523,7 +523,6 @@ def test_install_package_with_target():
     Test installing a package using pip install --target
     """
     env = reset_env()
-    1/0
     target_dir = env.scratch_path/'target'
     package = 'shortuuid'
     result = run_pip('install', '-t', target_dir, package)
