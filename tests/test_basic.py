@@ -526,8 +526,7 @@ def test_install_package_with_target():
     target_dir = env.scratch_path/'target'
     package = 'shortuuid'
     result = run_pip('install', '-t', target_dir, package)
-    contents = os.path.listdir(target_dir)
-    assert package in contents, str(result)
+    assert Path('scratch')/'target'/package in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():
