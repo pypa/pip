@@ -13,6 +13,9 @@ Beta and final releases planned for the first half of 2012.
 develop (unreleased)
 --------------------
 
+* Added ``--target`` option for installing directly to arbitrary directory.
+  Thanks Stavros Korokithakis.
+
 * Added support for authentication with Subversion repositories. Thanks
   Qiangning Hong.
 
