@@ -13,6 +13,9 @@ Beta and final releases planned for the first half of 2012.
 develop (unreleased)
 --------------------
 
+* Fixed issue #326 - don't crash when a package's setup.py emits UTF-8 and
+  then fails. Thanks Marc Abramowitz.
+
 * Added ``--target`` option for installing directly to arbitrary directory.
   Thanks Stavros Korokithakis.
 
