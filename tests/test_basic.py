@@ -7,7 +7,7 @@ from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
 from nose.tools import assert_raises
-from mock import Mock, patch
+from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
@@ -378,11 +378,7 @@ def test_install_subversion_usersite_editable_with_setuptools_fails():
     # We don't try to use setuptools for 3.X.
     elif sys.version_info >= (3,):
         raise SkipTest()
-    # our test environment contains distribute
-    import setuptools
-    if getattr(setuptools, '_distribute', False):
-        raise SkipTest()
-    env = reset_env()
+    env = reset_env(use_distribute=False)
     no_site_packages = env.lib_path/'no-global-site-packages.txt'
     if os.path.isfile(no_site_packages):
         no_site_packages.rm() # this re-enables user_site
@@ -520,6 +516,16 @@ def test_install_package_which_contains_dev_in_name():
     egg_info_folder = env.site_packages/'django_devserver-0.0.4-py%s.egg-info' % pyversion
     assert devserver_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+
+def test_install_package_with_target():
+    """
+    Test installing a package using pip install --target
+    """
+    env = reset_env()
+    target_dir = env.scratch_path/'target'
+    result = run_pip('install', '-t', target_dir, "initools==0.1")
+    assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():

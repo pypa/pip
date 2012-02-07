@@ -12,15 +12,19 @@ The simplest way to install a package is by specifying its name::
 `SomePackage` is downloaded from :term:`PyPI`, along with its
 dependencies, and installed.
 
-If `SomePackage` is already installed, and you need a newer version, use
-``pip install --upgrade SomePackage``. You can also request a specific
-version: ``pip install SomePackage==1.0.4``.
+If `SomePackage` is already installed, and you need a newer version, use ``pip
+install --upgrade SomePackage``. You can also request a specific version (``pip
+install SomePackage==1.0.4``) and specify `setuptools extras`_ (``pip install
+SomePackage[PDF]``).
 
 You can also install from a particular source distribution file, either
 local or remote::
 
     $ pip install ./downloads/SomePackage-1.0.4.tar.gz
     $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+.. _setuptools extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
+
 
 Edit mode
 *********
@@ -34,6 +38,7 @@ package::
     $ pip install -e path/to/SomePackage
 
 .. _normally: http://docs.python.org/install/index.html#how-installation-works
+
 
 Version control systems
 ***********************
@@ -51,22 +56,54 @@ folder by appending a hash to the repository URL::
 
     $ pip install -e git+https://github.com/lakshmivyas/hyde.git#egg=hyde
 
+Note that only basic checking-out of a repo is supported; pip will not
+handle advanced VCS-specific features such as submodules or subrepos.
+
+
 Alternate package repositories
 ******************************
 
-pip searches in :term:`PyPI` by default, but this can be overridden,
-using the ``--index-url`` option::
+pip searches in :term:`PyPI` by default, but this can be overridden using the
+``--index-url`` option::
 
     $ pip install --index-url http://d.pypi.python.org/simple/ SomePackage
 
-If some package is not in PyPI, but in a private repository, it makes
-sense to specify additional search URLs (see `Your own python egg
-baskets / package repositories`_ for a guide on creating simple
-repositories)::
+If you have your own package index with a few additional packages, you may want
+to to specify additional index URLs while still also using :term:`PyPI`::
 
     $ pip install --extra-index-url http://my.package.repo/ SomePackage
 
-.. _`Your own python egg baskets / package repositories`: http://labs.creativecommons.org/2011/02/14/your-own-python-egg-baskets-package-repositories/
+A "package index" used with ``--index-url`` or ``--extra-index-url`` can be as
+simple as a static-web-served directory, with automatic indexes on, with a
+subdirectory per package and sdists (tarballs created with ``python setup.py
+sdist``) in that directory::
+
+    mypackage/
+        mypackage-0.7.8.tar.gz
+        mypackage-1.0.1.tar.gz
+    otherpackage/
+        otherpackage-2.3.5.tar.gz
+
+If the number of packages in the index is small, it's even simpler to skip the
+subdirectories: put all of the sdists in a single directory and use pip's
+``--find-links`` option with a URL to that directory::
+
+    mypackage-0.7.8.tar.gz
+    mypackage-1.0.1.tar.gz
+    otherpackage-2.3.5.tar.gz
+
+``--find-links`` also supports local paths, so installation need not require a
+network connection.
+
+Like ``--extra-index-url``, ``--find-links`` is additive by default, it does
+not replace or supersede the index. All package sources are checked, and the
+latest qualifying version for every requested package is used. If you want only
+your ``-find-links`` URL used as package source, you need to pair it with
+``--no-index``.
+
+``--index-url``, ``--extra-index-url`` and ``--find-links`` can all be used
+within a :ref:`requirements file <requirements-files>` in addition to on the
+command line directly.
 
 
 Uninstall packages
@@ -86,6 +123,7 @@ from conflicting versions aren't left hanging around to cause trouble. The
 old version of the package is automatically restored if the new version
 fails to download or install.
 
+
 Searching for packages
 ----------------------
 
@@ -97,6 +135,7 @@ command::
 The query will be used to search the names and summaries of all
 packages. With the ``--index`` option you can search in a different
 repository.
+
 
 Bundles
 -------

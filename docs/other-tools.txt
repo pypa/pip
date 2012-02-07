@@ -88,6 +88,26 @@ If you are using `zc.buildout
 `gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
 option to use pip and virtualenv in your buildouts.
 
+Using pip with the "user scheme"
+--------------------------------
+
+With Python 2.6 came the `"user scheme" for installation
+<http://docs.python.org/install/index.html#alternate-installation-the-user-scheme>`_, which means that all
+Python distributions support an alternative install location that is specific to a user.
+The default location for each OS is explained in the python documentation
+for the `site.USER_BASE <http://docs.python.org/library/site.html#site.USER_BASE>`_ variable.
+This mode of installation can be turned on by
+specifying the ``--user`` option to ``pip install``.
+
+Moreover, the "user scheme" can be customized by setting the
+``PYTHONUSERBASE`` environment variable, which updates the value of ``site.USER_BASE``.
+
+To install "somepackage" into an environment with site.USER_BASE customized to '/myappenv', do the following::
+
+    export PYTHONUSERBASE=/myappenv
+    pip install --user somepackage
+
+
 Command line completion
 -----------------------
 

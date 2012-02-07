@@ -113,7 +113,7 @@ def main(initial_args=None):
         parser.error('No command by the name %(script)s %(arg)s\n  '
                      '(maybe you meant "%(script)s %(guess)s")' % error_dict)
     command = command_dict[command]
-    return command.main(initial_args, args[1:], options)
+    return command.main(args[1:], options)
 
 
 def bootstrap():
@@ -252,12 +252,12 @@ def call_subprocess(cmd, show_stdout=True,
                 logger.notify('Complete output from command %s:' % command_desc)
                 logger.notify('\n'.join(all_output) + '\n----------------------------------------')
             raise InstallationError(
-                "Command %s failed with error code %s"
-                % (command_desc, proc.returncode))
+                "Command %s failed with error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
         else:
             logger.warn(
-                "Command %s had error code %s"
-                % (command_desc, proc.returncode))
+                "Command %s had error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
 

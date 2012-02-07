@@ -66,12 +66,12 @@ def test_freeze_svn():
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/ 'initools-trunk')
+            cwd=env.scratch_path/ 'initools-trunk', expect_stderr=True)
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@10#egg=INITools-0.3.1dev_r10-py...-dev_r10
+        -e %s@10#egg=INITools-0.3.1dev...-dev_r10
         ...""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     _check_output(result, expected)
 
@@ -82,28 +82,28 @@ def test_freeze_git_clone():
 
     """
     env = reset_env()
-    result = env.run('git', 'clone', local_repo('git+http://github.com/jezdez/django-pagination.git'), 'django-pagination')
-    result = env.run('git', 'checkout', '1df6507872d73ee387eb375428eafbfc253dfcd8',
-            cwd=env.scratch_path / 'django-pagination', expect_stderr=True)
+    result = env.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
+    result = env.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
+            cwd=env.scratch_path / 'pip-test-package', expect_stderr=True)
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path / 'django-pagination')
+            cwd=env.scratch_path / 'pip-test-package')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        -e %s@...#egg=django_pagination-...
-        ...""" % local_checkout('git+http://github.com/jezdez/django-pagination.git'))
+        -e %s@...#egg=pip_test_package-...
+        ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s#egg=django_pagination' % local_checkout('git+http://github.com/jezdez/django-pagination.git'),
+                     '%s#egg=pip_test_package' % local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze -f %(repo)s#egg=django_pagination
+        Script result: pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
-        -f %(repo)s#egg=django_pagination
-        -e %(repo)s@...#egg=django_pagination-dev
-        ...""" % {'repo': local_checkout('git+http://github.com/jezdez/django-pagination.git')})
+        -f %(repo)s#egg=pip_test_package
+        -e %(repo)s@...#egg=pip_test_package-dev
+        ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git')})
     _check_output(result, expected)
 
 
@@ -202,4 +202,40 @@ def test_freeze_with_local_option():
         -- stdout: --------------------
         INITools==0.2
         <BLANKLINE>""")
+    _check_output(result, expected)
+
+
+def test_freeze_with_requirement_option():
+    """
+    Test that new requirements are created correctly with --requirement hints
+
+    """
+    reset_env()
+    ignores = textwrap.dedent("""\
+        # Unchanged requirements below this line
+        -r ignore.txt
+        --requirement ignore.txt
+        -Z ignore
+        --always-unzip ignore
+        -f http://ignore
+        -i http://ignore
+        --extra-index-url http://ignore
+        --find-links http://ignore
+        --index-url http://ignore
+        """)
+    write_file('hint.txt', textwrap.dedent("""\
+        INITools==0.1
+        NoExist==4.2
+        """) + ignores)
+    result = run_pip('install', 'initools==0.2')
+    result = run_pip('install', 'MarkupSafe')
+    result = run_pip('freeze', '--requirement', 'hint.txt', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze --requirement hint.txt
+        -- stderr: --------------------
+        Requirement file contains NoExist==4.2, but that package is not installed
+
+        -- stdout: --------------------
+        INITools==0.2
+        """) + ignores + "## The following requirements were added by pip --freeze:..."
     _check_output(result, expected)

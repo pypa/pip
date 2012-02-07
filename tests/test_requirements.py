@@ -68,7 +68,7 @@ def test_respect_order_in_requirements_file():
     write_file('frameworks-req.txt', textwrap.dedent("""\
         bidict
         ordereddict
-        mock
+        initools
         """))
     result = run_pip('install', '-r', env.scratch_path / 'frameworks-req.txt')
     downloaded = [line for line in result.stdout.split('\n')
@@ -78,8 +78,8 @@ def test_respect_order_in_requirements_file():
             'be "bidict" but was "%s"' % downloaded[0]
     assert 'ordereddict' in downloaded[1], 'Second download should ' \
             'be "ordereddict" but was "%s"' % downloaded[1]
-    assert 'mock' in downloaded[2], 'Third download should ' \
-            'be "mock" but was "%s"' % downloaded[2]
+    assert 'initools' in downloaded[2], 'Third download should ' \
+            'be "initools" but was "%s"' % downloaded[2]
 
 
 def test_requirements_data_structure_keeps_order():

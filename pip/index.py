@@ -248,7 +248,7 @@ class PackageFinder(object):
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
-    _py_version_re = re.compile(r'-py([123]\.[0-9])$')
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -292,6 +292,11 @@ class PackageFinder(object):
             if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
+                    self.logged_links.add(link)
+                return []
+            if "macosx10" in link.path and ext == '.zip':
+                if link not in self.logged_links:
+                    logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
         version = self._egg_info_matches(egg_info, search_name, link)
