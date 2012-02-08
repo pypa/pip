@@ -34,7 +34,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True):
+                 url=None, update=True, requirement_line=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -44,6 +44,7 @@ class InstallRequirement(object):
         self.source_dir = source_dir
         self.editable = editable
         self.url = url
+        self.requirement_line = requirement_line
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -62,12 +63,13 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
+        requirement_line = "--editable=%s" % editable_req
         name, url = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
             source_dir = None
-        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url, requirement_line=requirement_line)
 
     @classmethod
     def from_line(cls, name, comes_from=None):
@@ -104,7 +106,7 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url)
+        return cls(req, comes_from, url=url, requirement_line=name)
 
     def __str__(self):
         if self.req:
@@ -606,7 +608,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             info = ConfigParser.RawConfigParser()
             info.add_section('download')
             info.set('download', 'url', self.url.url)
-            info.set('download', 'requirement', str(self.req))
+            if self.requirement_line:
+                info.set('download', 'requirement_line', self.requirement_line)
 
             f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
             info.write(f)
@@ -649,6 +652,23 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         finally:
             logger.indent -= 2
         self.install_succeeded = True
+
+        # FIXME: Is there a better way to get the egg-info dir?
+        egg_info_dir = None
+        for fname in os.listdir(self.source_dir):
+            if fname.endswith(".egg-info"):
+                egg_info_dir = os.path.join(self.source_dir, fname)
+
+        if egg_info_dir:
+            info = ConfigParser.RawConfigParser()
+            info.add_section('download')
+            info.set('download', 'url', self.url)
+            if self.requirement_line:
+                info.set('download', 'requirement_line', self.requirement_line)
+
+            f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
+            info.write(f)
+            f.close()
 
     def _filter_install(self, line):
         level = logger.NOTIFY
