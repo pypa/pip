@@ -550,6 +550,19 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         name = name.replace(os.path.sep, '/')
         return name
 
+    def _write_info_ini(self, egg_info_dir, options):
+        info = ConfigParser.RawConfigParser()
+
+        for section, values in options.iteritems():
+            info.add_section(section)
+
+            for key, value in values.iteritems():
+                info.set(section, key, value)
+
+        f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
+        info.write(f)
+        f.close()
+
     def install(self, install_options, global_options=()):
         if self.editable:
             self.install_editable(install_options, global_options)
@@ -604,18 +617,20 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
 
-            # FIXME: Should The Generation Of This File Go Higher?
-            info = ConfigParser.RawConfigParser()
-            info.add_section('download')
-            info.set('download', 'url', self.url.url)
+            info_data = {
+                'download': {
+                    'url': self.url.url,
+                }
+            }
+
             if self.requirement_line:
-                info.set('download', 'requirement_line', self.requirement_line)
+                info_data['download']['requirement'] = self.requirement_line
+            else:
+                logger.warn("No requirement line recorded for %s" % self.name)
+            self._write_info_ini(egg_info_dir, info_data)
 
-            f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
-            info.write(f)
-            f.close()
-
-            new_lines.append("info.ini")
+            # Add the info.ini to the installed-files.txt
+            new_lines.append('info.ini')
 
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
             f.write('\n'.join(new_lines) + '\n')
@@ -660,15 +675,17 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 egg_info_dir = os.path.join(self.source_dir, fname)
 
         if egg_info_dir:
-            info = ConfigParser.RawConfigParser()
-            info.add_section('download')
-            info.set('download', 'url', self.url)
-            if self.requirement_line:
-                info.set('download', 'requirement_line', self.requirement_line)
+            info_data = {
+                'download': {
+                    'url': self.url,
+                }
+            }
 
-            f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
-            info.write(f)
-            f.close()
+            if self.requirement_line:
+                info_data['download']['requirement'] = self.requirement_line
+            else:
+                logger.warn("No requirement line recorded for %s" % self.name)
+            self._write_info_ini(egg_info_dir, info_data)
 
     def _filter_install(self, line):
         level = logger.NOTIFY
