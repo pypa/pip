@@ -606,6 +606,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             info = ConfigParser.RawConfigParser()
             info.add_section('download')
             info.set('download', 'url', self.url.url)
+            info.set('download', 'requirement', str(self.req))
 
             f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
             info.write(f)
