@@ -601,8 +601,20 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     filename += os.path.sep
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
+
+            # FIXME: Should The Generation Of This File Go Higher?
+            info = ConfigParser.RawConfigParser()
+            info.add_section('download')
+            info.set('download', 'url', self.url.url)
+
+            f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
+            info.write(f)
+            f.close()
+
+            new_lines.append("info.ini")
+
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-            f.write('\n'.join(new_lines)+'\n')
+            f.write('\n'.join(new_lines) + '\n')
             f.close()
         finally:
             if os.path.exists(record_filename):
@@ -981,6 +993,7 @@ class RequirementSet(object):
                             url = Link(req_to_install.url)
                             assert url
                         if url:
+                            req_to_install.url = url
                             try:
                                 self.unpack_url(url, location, self.is_download)
                             except HTTPError:
