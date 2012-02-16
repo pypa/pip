@@ -10,9 +10,11 @@ from pip import commands
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
-from pip.exceptions import BadCommand, InstallationError, UninstallationError
-from pip.venv import restart_in_venv
-from pip.backwardcompat import StringIO, urllib, urllib2, walk_packages
+from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
+                            CommandError)
+from pip.backwardcompat import StringIO, walk_packages
+from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
            'load_command', 'command_names']
@@ -45,10 +47,11 @@ class Command(object):
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
-        for attr in ['log', 'venv', 'proxy', 'venv_base', 'require_venv',
-                     'respect_venv', 'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs', 'skip_requirements_regex',
-                     'no_input']:
+        for attr in ['log', 'proxy', 'require_venv',
+                     'log_explicit_levels', 'log_file',
+                     'timeout', 'default_vcs',
+                     'skip_requirements_regex',
+                     'no_input', 'exists_action']:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -56,7 +59,7 @@ class Command(object):
     def setup_logging(self):
         pass
 
-    def main(self, complete_args, args, initial_options):
+    def main(self, args, initial_options):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
@@ -73,44 +76,18 @@ class Command(object):
 
         self.setup_logging()
 
-        if options.require_venv and not options.venv:
+        if options.no_input:
+            os.environ['PIP_NO_INPUT'] = '1'
+
+        if options.exists_action:
+            os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
+
+        if options.require_venv:
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
                 logger.fatal('Could not find an activated virtualenv (required).')
-                sys.exit(3)
-            # Automatically install in currently activated venv if required
-            options.respect_venv = True
+                sys.exit(VIRTUALENV_NOT_FOUND)
 
-        if args and args[-1] == '___VENV_RESTART___':
-            ## FIXME: We don't do anything this this value yet:
-            args = args[:-2]
-            options.venv = None
-        else:
-            # If given the option to respect the activated environment
-            # check if no venv is given as a command line parameter
-            if options.respect_venv and os.environ.get('VIRTUAL_ENV'):
-                if options.venv and os.path.exists(options.venv):
-                    # Make sure command line venv and environmental are the same
-                    if (os.path.realpath(os.path.expanduser(options.venv)) !=
-                            os.path.realpath(os.environ.get('VIRTUAL_ENV'))):
-                        logger.fatal("Given virtualenv (%s) doesn't match "
-                                     "currently activated virtualenv (%s)."
-                                     % (options.venv, os.environ.get('VIRTUAL_ENV')))
-                        sys.exit(3)
-                else:
-                    options.venv = os.environ.get('VIRTUAL_ENV')
-                    logger.info('Using already activated environment %s' % options.venv)
-        if options.venv:
-            logger.info('Running in environment %s' % options.venv)
-            site_packages=False
-            if options.site_packages:
-                site_packages=True
-            restart_in_venv(options.venv, options.venv_base, site_packages,
-                            complete_args)
-            # restart_in_venv should actually never return, but for clarity...
-            return
-
-        ## FIXME: not sure if this sure come before or after venv restart
         if options.log:
             log_fp = open_logfile(options.log, 'a')
             logger.consumers.append((logger.DEBUG, log_fp))
@@ -121,30 +98,43 @@ class Command(object):
 
         urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
-        exit = 0
+        exit = SUCCESS
+        store_log = False
         try:
-            self.run(options, args)
+            status = self.run(options, args)
+            # FIXME: all commands should return an exit status
+            # and when it is done, isinstance is not needed anymore
+            if isinstance(status, int):
+                exit = status
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
-            exit = 1
+            store_log = True
+            exit = ERROR
         except BadCommand:
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
-            exit = 1
+            store_log = True
+            exit = ERROR
+        except CommandError:
+            e = sys.exc_info()[1]
+            logger.fatal('ERROR: %s' % e)
+            logger.info('Exception information:\n%s' % format_exc())
+            exit = ERROR
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
-            exit = 1
+            store_log = True
+            exit = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
-            exit = 2
-
+            store_log = True
+            exit = UNKNOWN_ERROR
         if log_fp is not None:
             log_fp.close()
-        if exit:
+        if store_log:
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
@@ -152,8 +142,6 @@ class Command(object):
             log_fp.write(text)
             log_fp.close()
         return exit
-
-
 
 
 def format_exc(exc_info=None):

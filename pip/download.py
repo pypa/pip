@@ -9,9 +9,9 @@ import tempfile
 from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
                                 urlparse, string_types, HTTPError)
 from pip.exceptions import InstallationError
-from pip.util import (splitext, rmtree,
-                      format_size, display_path, backup_dir, ask,
-                      unpack_file, create_download_cache_folder, cache_download)
+from pip.util import (splitext, rmtree, format_size, display_path,
+                      backup_dir, ask, ask_path_exists, unpack_file,
+                      create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
 
@@ -63,6 +63,7 @@ def get_file_content(url, comes_from=None):
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+
 
 class URLOpener(object):
     """
@@ -131,7 +132,7 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
+            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
 
@@ -387,8 +388,9 @@ def _copy_file(filename, location, content_type, link):
     copy = True
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
-        response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
-                       % display_path(download_location), ('i', 'w', 'b'))
+        response = ask_path_exists(
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
+            display_path(download_location), ('i', 'w', 'b'))
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -405,7 +407,7 @@ def _copy_file(filename, location, content_type, link):
         logger.notify('Saved %s' % display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, only_download):
+def unpack_http_url(link, location, download_cache, download_dir=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     target_url = link.url.split('#', 1)[0]
     target_file = None
@@ -449,10 +451,9 @@ def unpack_http_url(link, location, download_cache, only_download):
         download_hash = _download_url(resp, link, temp_location)
     if link.md5_hash:
         _check_md5(download_hash, link)
-    if only_download:
-        _copy_file(temp_location, location, content_type, link)
-    else:
-        unpack_file(temp_location, location, content_type, link)
+    if download_dir:
+        _copy_file(temp_location, download_dir, content_type, link)
+    unpack_file(temp_location, location, content_type, link)
     if target_file and target_file != temp_location:
         cache_download(target_file, temp_location, content_type)
     if target_file is None:

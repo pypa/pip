@@ -23,8 +23,7 @@ Prior to installing pip make sure you have either `setuptools
 <http://pypi.python.org/pypi/distribute>`_ installed.  Please consult your
 operating system's package manager or install it manually::
 
-    $ curl -O http://python-distribute.org/distribute_setup.py
-    $ python distribute_setup.py
+    $ curl http://python-distribute.org/distribute_setup.py | python
 
 .. warning::
 
@@ -37,8 +36,7 @@ Using the installer
 Download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
 and execute it, using the Python interpreter of your choice::
 
-    $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
-    $ python get-pip.py
+    $ curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python
 
 This may have to be run as root.
 

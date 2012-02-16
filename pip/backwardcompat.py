@@ -37,7 +37,7 @@ except NameError:
 console_encoding = sys.__stdout__.encoding
 
 if sys.version_info >= (3,):
-    from io import StringIO
+    from io import StringIO, BytesIO
     from functools import reduce
     from urllib.error import URLError, HTTPError
     from queue import Queue, Empty
@@ -50,14 +50,25 @@ if sys.version_info >= (3,):
     import xmlrpc.client as xmlrpclib
     import urllib.parse as urlparse
     import http.client as httplib
+
     def cmp(a, b):
         return (a > b) - (a < b)
+
     def b(s):
         return s.encode('utf-8')
+
     def u(s):
         return s.decode('utf-8')
+
     def console_to_str(s):
-        return s.decode(console_encoding)
+        try:
+            return s.decode(console_encoding)
+        except UnicodeDecodeError:
+            return s.decode('utf_8')
+
+    def fwrite(f, s):
+        f.buffer.write(b(s))
+
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -73,17 +84,25 @@ else:
     import ConfigParser
     import xmlrpclib
     import httplib
+
     def b(s):
         return s
+
     def u(s):
         return s
+
     def console_to_str(s):
         return s
+
+    def fwrite(f, s):
+        f.write(s)
+
     bytes = str
     string_types = (basestring,)
     reduce = reduce
     cmp = cmp
     raw_input = raw_input
+    BytesIO = StringIO
 
 try:
     from email.parser import FeedParser
@@ -92,6 +111,7 @@ except ImportError:
     from email.FeedParser import FeedParser
 
 from distutils.sysconfig import get_python_lib, get_python_version
+
 
 def copytree(src, dst):
     if sys.version_info < (2, 5):

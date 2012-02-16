@@ -2,6 +2,7 @@ import os
 import tempfile
 import re
 from pip import call_subprocess
+from pip.backwardcompat import urlparse
 from pip.log import logger
 from pip.util import rmtree, display_path
 from pip.vcs import vcs, VersionControl
@@ -13,9 +14,14 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     bundle_file = 'bzr-branch.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp')
+    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp', 'bzr+lp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
+
+    def __init__(self, url=None, *args, **kwargs):
+        super(Bazaar, self).__init__(url, *args, **kwargs)
+        urlparse.non_hierarchical.extend(['lp'])
+        urlparse.uses_fragment.extend(['lp'])
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None

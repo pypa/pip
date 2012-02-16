@@ -1,0 +1,131 @@
+=============================
+Relationship with other tools
+=============================
+
+Pip Compared To easy_install
+----------------------------
+
+pip is meant to improve on easy_install.  Some of the improvements:
+
+* All packages are downloaded before installation.  Partially-completed
+  installation doesn't occur as a result.
+
+* Care is taken to present useful output on the console.
+
+* The reasons for actions are kept track of.  For instance, if a package is
+  being installed, pip keeps track of why that package was required.
+
+* Error messages should be useful.
+
+* The code is relatively concise and cohesive, making it easier to use
+  programmatically.
+
+* Packages don't have to be installed as egg archives, they can be installed
+  flat (while keeping the egg metadata).
+
+* Native support for other version control systems (Git, Mercurial and Bazaar)
+
+* Uninstallation of packages.
+
+* Simple to define fixed sets of requirements and reliably reproduce a
+  set of packages.
+
+pip doesn't do everything that easy_install does. Specifically:
+
+* It cannot install from eggs.  It only installs from source.  (In the
+  future it would be good if it could install binaries from Windows ``.exe``
+  or ``.msi`` -- binary install on other platforms is not a priority.)
+
+* It doesn't understand Setuptools extras (like ``package[test]``).  This should
+  be added eventually.
+
+* It is incompatible with some packages that extensively customize distutils
+  or setuptools in their ``setup.py`` files.
+
+pip is complementary with `virtualenv
+<http://pypi.python.org/pypi/virtualenv>`__, and it is encouraged that you use
+virtualenv to isolate your installation.
+
+Using pip with virtualenv
+-------------------------
+
+pip is most nutritious when used with `virtualenv
+<http://pypi.python.org/pypi/virtualenv>`__.  One of the reasons pip
+doesn't install "multi-version" eggs is that virtualenv removes much of the need
+for it.  Because pip is installed by virtualenv, just use
+``path/to/my/environment/bin/pip`` to install things into that
+specific environment.
+
+To tell pip to only run if there is a virtualenv currently activated,
+and to bail if not, use::
+
+    export PIP_REQUIRE_VIRTUALENV=true
+
+
+Using pip with virtualenvwrapper
+---------------------------------
+
+If you are using `virtualenvwrapper
+<http://www.doughellmann.com/projects/virtualenvwrapper/>`_, you might
+want pip to automatically create its virtualenvs in your
+``$WORKON_HOME``.
+
+You can tell pip to do so by defining ``PIP_VIRTUALENV_BASE`` in your
+environment and setting it to the same value as that of
+``$WORKON_HOME``.
+
+Do so by adding the line::
+
+    export PIP_VIRTUALENV_BASE=$WORKON_HOME
+
+in your .bashrc under the line starting with ``export WORKON_HOME``.
+
+Using pip with buildout
+-----------------------
+
+If you are using `zc.buildout
+<http://pypi.python.org/pypi/zc.buildout>`_ you should look at
+`gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
+option to use pip and virtualenv in your buildouts.
+
+Using pip with the "user scheme"
+--------------------------------
+
+With Python 2.6 came the `"user scheme" for installation
+<http://docs.python.org/install/index.html#alternate-installation-the-user-scheme>`_, which means that all
+Python distributions support an alternative install location that is specific to a user.
+The default location for each OS is explained in the python documentation
+for the `site.USER_BASE <http://docs.python.org/library/site.html#site.USER_BASE>`_ variable.
+This mode of installation can be turned on by
+specifying the ``--user`` option to ``pip install``.
+
+Moreover, the "user scheme" can be customized by setting the
+``PYTHONUSERBASE`` environment variable, which updates the value of ``site.USER_BASE``.
+
+To install "somepackage" into an environment with site.USER_BASE customized to '/myappenv', do the following::
+
+    export PYTHONUSERBASE=/myappenv
+    pip install --user somepackage
+
+
+Command line completion
+-----------------------
+
+pip comes with support for command line completion in bash and zsh and
+allows you tab complete commands and options. To enable it you simply
+need copy the required shell script to the your shell startup file
+(e.g. ``.profile`` or ``.zprofile``) by running the special ``completion``
+command, e.g. for bash::
+
+    $ pip completion --bash >> ~/.profile
+
+And for zsh::
+
+    $ pip completion --zsh >> ~/.zprofile
+
+Alternatively, you can use the result of the ``completion`` command
+directly with the eval function of you shell, e.g. by adding::
+
+    eval "`pip completion --bash`"
+
+to your startup file.

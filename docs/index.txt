@@ -1,109 +1,48 @@
 pip
 ===
 
-pip is a tool for installing and managing Python packages, such as those
-found in the `Python Package Index <http://pypi.python.org/pypi>`_.
+`pip` is a tool for installing and managing Python packages, such as
+those found in the `Python Package Index`_. It's a replacement for
+easy_install_.
+::
 
-pip is a replacement for `easy_install
-<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It mostly
-uses the same techniques for finding packages, so packages that are
-easy_installable should be pip-installable as well.  This means that
-you can use ``pip install SomePackage`` instead of ``easy_install
-SomePackage``.
+    $ pip install simplejson
+    [... progress report ...]
+    Successfully installed simplejson
 
-In order to use pip, you must first install `setuptools
-<http://pypi.python.org/pypi/setuptools>`_ or `distribute
-<http://pypi.python.org/pypi/distribute>`_.  If you use `virtualenv
-<http://www.virtualenv.org>`_, a copy of pip will be automatically be
-installed in each virtual environment you create.
+.. _`Python Package Index`: http://pypi.python.org/pypi
+.. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
+
+Upgrading a package::
+
+    $ pip install --upgrade simplejson
+    [... progress report ...]
+    Successfully installed simplejson
+
+Removing a package::
+
+    $ pip uninstall simplejson
+    Uninstalling simplejson:
+      /home/me/env/lib/python2.7/site-packages/simplejson
+      /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+    Proceed (y/n)? y
+      Successfully uninstalled simplejson
 
 .. comment: split here
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   news
    installing
-   requirement-format
+   usage
+   requirements
    configuration
-   how-to-contribute
-   running-tests
+   other-tools
+   contributing
+   news
+   glossary
 
 .. comment: split here
-
-Usage
------
-
-Once you have pip, you can use it like this::
-
-    $ pip install SomePackage
-
-SomePackage is some package you'll find on `PyPI
-<http://pypi.python.org/pypi/>`_.  This installs the package and all
-its dependencies.
-
-pip does other stuff too, with packages, but install is the biggest
-one.  You can ``pip uninstall`` too.
-
-You can also install from a URL (that points to a tar or zip file),
-install from some version control system (use URLs like
-``hg+http://domain/repo`` -- or prefix ``git+``, ``svn+`` etc).  pip
-knows a bunch of stuff about revisions and stuff, so if you need to do
-things like install a very specific revision from a repository pip can
-do that too.
-
-If you've ever used ``python setup.py develop``, you can do something
-like that with ``pip install -e ./`` -- this works with packages that
-use ``distutils`` too (usually this only works with Setuptools
-projects).
-
-You can use ``pip install --upgrade SomePackage`` to upgrade to a
-newer version, or ``pip install SomePackage==1.0.4`` to install a very
-specific version.
-
-Pip Compared To easy_install
-----------------------------
-
-pip is meant to improve on easy_install.  Some of the improvements:
-
-* All packages are downloaded before installation.  Partially-completed
-  installation doesn't occur as a result.
-
-* Care is taken to present useful output on the console.
-
-* The reasons for actions are kept track of.  For instance, if a package is
-  being installed, pip keeps track of why that package was required.
-
-* Error messages should be useful.
-
-* The code is relatively concise and cohesive, making it easier to use
-  programmatically.
-
-* Packages don't have to be installed as egg archives, they can be installed
-  flat (while keeping the egg metadata).
-
-* Native support for other version control systems (Git, Mercurial and Bazaar)
-
-* Uninstallation of packages.
-
-* Simple to define fixed sets of requirements and reliably reproduce a
-  set of packages.
-
-pip doesn't do everything that easy_install does. Specifically:
-
-* It cannot install from eggs.  It only installs from source.  (In the
-  future it would be good if it could install binaries from Windows ``.exe``
-  or ``.msi`` -- binary install on other platforms is not a priority.)
-
-* It doesn't understand Setuptools extras (like ``package[test]``).  This should
-  be added eventually.
-
-* It is incompatible with some packages that extensively customize distutils
-  or setuptools in their ``setup.py`` files.
-
-pip is complementary with `virtualenv
-<http://pypi.python.org/pypi/virtualenv>`__, and it is encouraged that you use
-virtualenv to isolate your installation.
 
 Community
 ---------
@@ -113,232 +52,3 @@ Bugs can be filed in the `pip issue tracker
 <https://github.com/pypa/pip/issues/>`_.  Discussion happens on the
 `virtualenv email group
 <http://groups.google.com/group/python-virtualenv?hl=en>`_.
-
-Uninstall
----------
-
-pip is able to uninstall most installed packages with ``pip uninstall
-package-name``.
-
-Known exceptions include pure-distutils packages installed with
-``python setup.py install`` (such packages leave behind no metadata allowing
-determination of what files were installed), and script wrappers installed
-by develop-installs (``python setup.py develop``).
-
-pip also performs an automatic uninstall of an old version of a package
-before upgrading to a newer version, so outdated files (and egg-info data)
-from conflicting versions aren't left hanging around to cause trouble. The
-old version of the package is automatically restored if the new version
-fails to download or install.
-
-.. _`requirements file`:
-
-Requirements Files
-------------------
-
-When installing software, and Python packages in particular, it's common that
-you get a lot of libraries installed.  You just did ``easy_install MyPackage``
-and you get a dozen packages.  Each of these packages has its own version.
-
-Maybe you ran that installation and it works.  Great!  Will it keep working?
-Did you have to provide special options to get it to find everything?  Did you
-have to install a bunch of other optional pieces?  Most of all, will you be able
-to do it again?  Requirements files give you a way to create an *environment*:
-a *set* of packages that work together.
-
-If you've ever tried to setup an application on a new system, or with slightly
-updated pieces, and had it fail, pip requirements are for you.  If you
-haven't had this problem then you will eventually, so pip requirements are
-for you too -- requirements make explicit, repeatable installation of packages.
-
-So what are requirements files?  They are very simple: lists of packages to
-install.  Instead of running something like ``pip MyApp`` and getting
-whatever libraries come along, you can create a requirements file something like::
-
-    MyApp
-    Framework==0.9.4
-    Library>=0.2
-
-Then, regardless of what MyApp lists in ``setup.py``, you'll get a
-specific version of Framework (0.9.4) and at least the 0.2 version of
-Library.  (You might think you could list these specific versions in
-MyApp's ``setup.py`` -- but if you do that you'll have to edit MyApp
-if you want to try a new version of Framework, or release a new
-version of MyApp if you determine that Library 0.3 doesn't work with
-your application.)  You can also add optional libraries and support
-tools that MyApp doesn't strictly require, giving people a set of
-recommended libraries.
-
-You can also include "editable" packages -- packages that are checked out from
-Subversion, Git, Mercurial and Bazaar.  These are just like using the ``-e``
-option to pip.  They look like::
-
-    -e svn+http://myrepo/svn/MyApp#egg=MyApp
-
-You have to start the URL with ``svn+`` (``git+``, ``hg+`` or ``bzr+``), and
-you have to include ``#egg=Package`` so pip knows what to expect at that URL.
-You can also include ``@rev`` in the URL, e.g., ``@275`` to check out
-revision 275.
-
-Requirement files are mostly *flat*.  Maybe ``MyApp`` requires
-``Framework``, and ``Framework`` requires ``Library``.  I encourage
-you to still list all these in a single requirement file; it is the
-nature of Python programs that there are implicit bindings *directly*
-between MyApp and Library.  For instance, Framework might expose one
-of Library's objects, and so if Library is updated it might directly
-break MyApp.  If that happens you can update the requirements file to
-force an earlier version of Library, and you can do that without
-having to re-release MyApp at all.
-
-Read the `requirements file format <http://pip.openplans.org/requirement-format.html>`_ to
-learn about other features.
-
-Freezing Requirements
----------------------
-
-So you have a working set of packages, and you want to be able to install them
-elsewhere.  `Requirements files`_ let you install exact versions, but it won't
-tell you what all the exact versions are.
-
-To create a new requirements file from a known working environment, use::
-
-    $ pip freeze > stable-req.txt
-
-This will write a listing of *all* installed libraries to ``stable-req.txt``
-with exact versions for every library.  You may want to edit the file down after
-generating (e.g., to eliminate unnecessary libraries), but it'll give you a
-stable starting point for constructing your requirements file.
-
-You can also give it an existing requirements file, and it will use that as a
-sort of template for the new file.  So if you do::
-
-    $ pip freeze -r devel-req.txt > stable-req.txt
-
-it will keep the packages listed in ``devel-req.txt`` in order and preserve
-comments.
-
-Bundles
--------
-
-Another way to distribute a set of libraries is a bundle format (specific to
-pip).  This format is not stable at this time (there simply hasn't been
-any feedback, nor a great deal of thought).  A bundle file contains all the
-source for your package, and you can have pip install them all together.
-Once you have the bundle file further network access won't be necessary.  To
-build a bundle file, do::
-
-    $ pip bundle MyApp.pybundle MyApp
-
-(Using a `requirements file`_ would be wise.)  Then someone else can get the
-file ``MyApp.pybundle`` and run::
-
-    $ pip install MyApp.pybundle
-
-This is *not* a binary format.  This only packages source.  If you have binary
-packages, then the person who installs the files will have to have a compiler,
-any necessary headers installed, etc.  Binary packages are hard, this is
-relatively easy.
-
-Using pip with virtualenv
--------------------------
-
-pip is most nutritious when used with `virtualenv
-<http://pypi.python.org/pypi/virtualenv>`__.  One of the reasons pip
-doesn't install "multi-version" eggs is that virtualenv removes much of the need
-for it.  Because pip is installed by virtualenv, just use
-``path/to/my/environment/bin/pip`` to install things into that
-specific environment.
-
-To tell pip to only run if there is a virtualenv currently activated,
-and to bail if not, use::
-
-    export PIP_REQUIRE_VIRTUALENV=true
-
-To tell pip to automatically use the currently active virtualenv::
-
-    export PIP_RESPECT_VIRTUALENV=true
-
-Providing an environment with ``-E`` will be ignored.
-
-Using pip with virtualenvwrapper
----------------------------------
-
-If you are using `virtualenvwrapper
-<http://www.doughellmann.com/projects/virtualenvwrapper/>`_, you might
-want pip to automatically create its virtualenvs in your
-``$WORKON_HOME``.
-
-You can tell pip to do so by defining ``PIP_VIRTUALENV_BASE`` in your
-environment and setting it to the same value as that of
-``$WORKON_HOME``.
-
-Do so by adding the line::
-
-    export PIP_VIRTUALENV_BASE=$WORKON_HOME
-
-in your .bashrc under the line starting with ``export WORKON_HOME``.
-
-Using pip with buildout
------------------------
-
-If you are using `zc.buildout
-<http://pypi.python.org/pypi/zc.buildout>`_ you should look at
-`gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an
-option to use pip and virtualenv in your buildouts.
-
-Command line completion
------------------------
-
-pip comes with support for command line completion in bash and zsh and
-allows you tab complete commands and options. To enable it you simply
-need copy the required shell script to the your shell startup file
-(e.g. ``.profile`` or ``.zprofile``) by running the special ``completion``
-command, e.g. for bash::
-
-    $ pip completion --bash >> ~/.profile
-
-And for zsh::
-
-    $ pip completion --zsh >> ~/.zprofile
-
-Alternatively, you can use the result of the ``completion`` command
-directly with the eval function of you shell, e.g. by adding::
-
-    eval "`pip completion --bash`"
-
-to your startup file.
-
-Searching for packages
-----------------------
-
-pip can search the `Python Package Index <http://pypi.python.org/pypi>`_ (PyPI)
-for packages using the ``pip search`` command. To search, run::
-
-    $ pip search "query"
-
-The query will be used to search the names and summaries of all packages
-indexed.
-
-pip searches http://pypi.python.org/pypi by default but alternative indexes
-can be searched by using the ``--index`` flag.
-
-Mirror support
---------------
-
-The `PyPI mirroring infrastructure <http://pypi.python.org/mirrors>`_ as
-described in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_ can be
-used by passing the ``--use-mirrors`` option to the install command.
-Alternatively, you can use the other ways to configure pip, e.g.::
-
-    $ export PIP_USE_MIRRORS=true
-
-If enabled, pip will automatically query the DNS entry of the mirror index URL
-to find the list of mirrors to use. In case you want to override this list,
-please use the ``--mirrors`` option of the install command, or add to your pip
-configuration file::
-
-    [install]
-    use-mirrors = true
-    mirrors =
-        http://d.pypi.python.org
-        http://b.pypi.python.org

@@ -1,10 +1,72 @@
-News / Changelog
-================
+====
+News
+====
 
-Next release (1.1) schedule
+Changelog
+=========
+
+Next release (1.2) schedule
 ---------------------------
 
-Beta release mid-July 2011, final release early August.
+Beta and final releases planned for the second half of 2012.
+
+1.1 (2012-02-16)
+----------------
+
+* Fixed issue #326 - don't crash when a package's setup.py emits UTF-8 and
+  then fails. Thanks Marc Abramowitz.
+
+* Added ``--target`` option for installing directly to arbitrary directory.
+  Thanks Stavros Korokithakis.
+
+* Added support for authentication with Subversion repositories. Thanks
+  Qiangning Hong.
+
+* Fixed issue #315 - ``--download`` now downloads dependencies as well.
+  Thanks Qiangning Hong.
+
+* Errors from subprocesses will display the current working directory.
+  Thanks Antti Kaihola.
+
+* Fixed issue #369 - compatibility with Subversion 1.7. Thanks Qiangning
+  Hong. Note that setuptools remains incompatible with Subversion 1.7; to
+  get the benefits of pip's support you must use Distribute rather than
+  setuptools.
+
+* Fixed issue #57 - ignore py2app-generated OS X mpkg zip files in finder.
+  Thanks Rene Dudfield.
+
+* Fixed issue #182 - log to ~/Library/Logs/ by default on OS X framework
+  installs. Thanks Dan Callahan for report and patch.
+
+* Fixed issue #310 - understand version tags without minor version ("py3")
+  in sdist filenames. Thanks Stuart Andrews for report and Olivier Girardot for
+  patch.
+
+* Fixed issue #7 - Pip now supports optionally installing setuptools
+  "extras" dependencies; e.g. "pip install Paste[openid]". Thanks Matt Maker
+  and Olivier Girardot.
+
+* Fixed issue #391 - freeze no longer borks on requirements files with
+  --index-url or --find-links. Thanks Herbert Pfennig.
+
+* Fixed issue #288 - handle symlinks properly. Thanks lebedov for the patch.
+
+* Fixed issue #49 - pip install -U no longer reinstalls the same versions of
+  packages. Thanks iguananaut for the pull request.
+
+* Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
+  restart-in-venv mechanism that's broken, and neither one is useful since
+  every virtualenv now has pip inside it.
+
+* Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
+
+* Fixed issue #22 - pip search should set and return a userful shell status code
+
+* Fixed issue #351 and #365 - added global ``--exists-action`` command line
+  option to easier script file exists conflicts, e.g. from editable
+  requirements from VCS that have a changed repo URL.
+
 
 1.0.2 (2011-07-16)
 ------------------
@@ -13,8 +75,8 @@ Beta release mid-July 2011, final release early August.
 * Fixed issue #295 - Reinstall a package when using the ``install -I`` option
 * Fixed issue #283 - Finds a Git tag pointing to same commit as origin/master
 * Fixed issue #279 - Use absolute path for path to docs in setup.py
-* Fixed issue #320 - Correctly handle exceptions on Python3.
-* Fixed issue #314 - Correctly parse ``--editable`` lines in requirements files
+* Fixed issue #314 - Correctly handle exceptions on Python3.
+* Fixed issue #320 - Correctly parse ``--editable`` lines in requirements files
 
 1.0.1 (2011-04-30)
 ------------------

@@ -1,6 +1,7 @@
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
+Antti Kaihola
 Armin Ronacher
 Brian Rosner
 Carl Meyer
@@ -24,13 +25,23 @@ Kenneth Belitzky
 Kumar McMillan
 Luke Macken
 Masklinn
+Marc Abramowitz
+Marcus Smith
+Matt Maker
 Nowell Strite
 Oliver Tonnhofer
+Olivier Girardot
 Patrick Jenkins
 Paul Nasrat
+Paul Oswald
+Paul van der Linden
 Peter Waller
+Piet Delport
+Qiangning Hong
+Rene Dudfield
 Ronny Pfannschmidt
 Simon Cross
+Stavros Korokithakis
 Thomas Johansson
 Vinay Sajip
 Vitaly Babiy

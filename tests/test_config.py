@@ -33,6 +33,41 @@ def test_command_line_options_override_env_vars():
     assert "Getting page http://download.zope.org/ppix" in result.stdout
 
 
+def test_env_vars_override_config_file():
+    """
+    Test that environmental variables override settings in config files.
+
+    """
+    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
+    try:
+        _test_env_vars_override_config_file(config_file)
+    finally:
+        # `os.close` is a workaround for a bug in subprocess
+        # http://bugs.python.org/issue3210
+        os.close(fd)
+        os.remove(config_file)
+
+
+def _test_env_vars_override_config_file(config_file):
+    environ = clear_environ(os.environ.copy())
+    environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
+    reset_env(environ)
+    # It's important that we test this particular config value ('no-index')
+    # because their is/was a bug which only shows up in cases in which
+    # 'config-item' and 'config_item' hash to the same value modulo the size
+    # of the config dictionary.
+    write_file(config_file, textwrap.dedent("""\
+        [global]
+        no-index = 1
+        """))
+    result = run_pip('install', '-vvv', 'INITools', expect_error=True)
+    assert "DistributionNotFound: No distributions at all found for INITools" in result.stdout
+    environ['PIP_NO_INDEX'] = '0'
+    reset_env(environ)
+    result = run_pip('install', '-vvv', 'INITools', expect_error=True)
+    assert "Successfully installed INITools" in result.stdout
+
+
 def test_command_line_append_flags():
     """
     Test command line flags that append to defaults set by environmental variables.

@@ -3,18 +3,23 @@
 import sys
 import os
 import re
+import gzip
 import mimetypes
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
 import socket
 import string
+import zlib
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
-from pip.exceptions import DistributionNotFound
-from pip.backwardcompat import (WindowsError,
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
@@ -170,6 +175,7 @@ class PackageFinder(object):
             if applicable_versions[0][1] is Inf:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
+                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
                             % (req.satisfied_by.version, applicable_versions[0][1]))
@@ -182,7 +188,7 @@ class PackageFinder(object):
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
                         % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
-            return None
+            raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][1], ', '.join([version for link, version in applicable_versions])))
@@ -245,7 +251,7 @@ class PackageFinder(object):
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
-    _py_version_re = re.compile(r'-py([123]\.[0-9])$')
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -289,6 +295,11 @@ class PackageFinder(object):
             if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
+                    self.logged_links.add(link)
+                return []
+            if "macosx10" in link.path and ext == '.zip':
+                if link not in self.logged_links:
+                    logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
         version = self._egg_info_matches(egg_info, search_name, link)
@@ -442,7 +453,15 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
-            inst = cls(u(resp.read()), real_url, headers)
+            contents = resp.read()
+            encoding = headers.get('Content-Encoding', None)
+            #XXX need to handle exceptions and add testing for this
+            if encoding is not None:
+                if encoding == 'gzip':
+                    contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
+                if encoding == 'deflate':
+                    contents = zlib.decompress(contents)
+            inst = cls(u(contents), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -539,7 +558,7 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = match.group(1) or match.group(2) or match.group(3)
+            url = href_match.group(1) or href_match.group(2) or href_match.group(3)
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))

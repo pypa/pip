@@ -3,7 +3,7 @@ import os
 from setuptools import setup
 
 # If you change this version, change it also in docs/conf.py
-version = "1.0.2"
+version = "1.1"
 
 doc_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "docs")
 index_filename = os.path.join(doc_dir, "index.txt")
@@ -51,5 +51,5 @@ setup(name="pip",
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv>=1.6', 'scripttest>=1.1.1', 'mock'],
+      tests_require=['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock'],
       zip_safe=False)
