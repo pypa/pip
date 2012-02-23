@@ -55,9 +55,9 @@ Beta and final releases planned for the second half of 2012.
 * Fixed issue #49 - pip install -U no longer reinstalls the same versions of
   packages. Thanks iguananaut for the pull request.
 
-* Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
-  restart-in-venv mechanism that's broken, and neither one is useful since
-  every virtualenv now has pip inside it.
+* Removed ``-E``/``--environment`` option and ``PIP_RESPECT_VIRTUALENV``;
+  both use a restart-in-venv mechanism that's broken, and neither one is
+  useful since every virtualenv now has pip inside it.
 
 * Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
 
