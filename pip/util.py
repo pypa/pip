@@ -7,8 +7,9 @@ import posixpath
 import pkg_resources
 import zipfile
 import tarfile
+import subprocess
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input
+from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str
 from pip.locations import site_packages, running_under_virtualenv
 from pip.log import logger
 
@@ -21,7 +22,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file']
+           'cache_download', 'unpack_file', 'call_subprocess']
 
 
 def rmtree(dir, ignore_errors=False):
@@ -505,4 +506,68 @@ def unpack_file(filename, location, content_type, link):
         raise InstallationError('Cannot determine archive format of %s' % location)
 
 
-
+def call_subprocess(cmd, show_stdout=True,
+                    filter_stdout=None, cwd=None,
+                    raise_on_returncode=True,
+                    command_level=logger.DEBUG, command_desc=None,
+                    extra_environ=None):
+    if command_desc is None:
+        cmd_parts = []
+        for part in cmd:
+            if ' ' in part or '\n' in part or '"' in part or "'" in part:
+                part = '"%s"' % part.replace('"', '\\"')
+            cmd_parts.append(part)
+        command_desc = ' '.join(cmd_parts)
+    if show_stdout:
+        stdout = None
+    else:
+        stdout = subprocess.PIPE
+    logger.log(command_level, "Running command %s" % command_desc)
+    env = os.environ.copy()
+    if extra_environ:
+        env.update(extra_environ)
+    try:
+        proc = subprocess.Popen(
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
+            cwd=cwd, env=env)
+    except Exception:
+        e = sys.exc_info()[1]
+        logger.fatal(
+            "Error %s while executing command %s" % (e, command_desc))
+        raise
+    all_output = []
+    if stdout is not None:
+        stdout = proc.stdout
+        while 1:
+            line = console_to_str(stdout.readline())
+            if not line:
+                break
+            line = line.rstrip()
+            all_output.append(line + '\n')
+            if filter_stdout:
+                level = filter_stdout(line)
+                if isinstance(level, tuple):
+                    level, line = level
+                logger.log(level, line)
+                if not logger.stdout_level_matches(level):
+                    logger.show_progress()
+            else:
+                logger.info(line)
+    else:
+        returned_stdout, returned_stderr = proc.communicate()
+        all_output = [returned_stdout or '']
+    proc.wait()
+    if proc.returncode:
+        if raise_on_returncode:
+            if all_output:
+                logger.notify('Complete output from command %s:' % command_desc)
+                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+            raise InstallationError(
+                "Command %s failed with error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
+        else:
+            logger.warn(
+                "Command %s had error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
+    if stdout is not None:
+        return ''.join(all_output)

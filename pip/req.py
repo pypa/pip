@@ -15,7 +15,7 @@ from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
-from pip import call_subprocess
+from pip.util import call_subprocess
 from pip.backwardcompat import (any, copytree, urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
                                 FeedParser, get_python_version,
