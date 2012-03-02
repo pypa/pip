@@ -324,7 +324,7 @@ def is_file_url(link):
 
 def _check_hash(download_hash, link):
     if download_hash.name != link.hash_name:
-        logger.fatal("Hash name of the package %s (%s) doesn't match the expect hash name %s!"
+        logger.fatal("Hash name of the package %s (%s) doesn't match the expected hash name %s!"
                     % (download_hash.name, link, link.hash_name))
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
