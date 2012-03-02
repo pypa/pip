@@ -5,21 +5,18 @@ import socket
 import sys
 import traceback
 import time
+import optparse
 
-from pip import commands
 from pip.log import logger
-from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO, walk_packages
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
+__all__ = ['Command']
 
-__all__ = ['command_dict', 'Command', 'load_all_commands',
-           'load_command', 'command_names']
-
-command_dict = {}
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
@@ -30,29 +27,59 @@ class Command(object):
     usage = None
     hidden = False
 
-    def __init__(self):
+    def __init__(self, main_parser):
         assert self.name
-        self.parser = ConfigOptionParser(
-            usage=self.usage,
-            prog='%s %s' % (sys.argv[0], self.name),
-            version=parser.version,
-            formatter=UpdatingDefaultsHelpFormatter(),
-            name=self.name)
-        for option in parser.option_list:
+
+        prog = os.path.basename(sys.argv[0])
+
+        parser_kw = {
+            'usage' : self.usage,
+            'prog' : '%s %s' % (prog, self.name),
+            'add_help_option' : False,
+            'formatter' : UpdatingDefaultsHelpFormatter(),
+            'name' : self.name, }
+
+        self.main_parser = main_parser
+        self.parser = ConfigOptionParser(**parser_kw)
+
+        # Each command should populate this option group with the options
+        # that are specific to it.
+        self.command_group = optparse.OptionGroup(self.parser, 'Command options')
+
+        # Re-add all options and option groups. This is quite lame :\
+        # Copies all general options from the main parser.
+        for group in main_parser.option_groups:
+            self._copy_option_group(self.parser, group)
+
+        self._copy_options(self.parser, main_parser.option_list)
+
+    def _copy_options(self, parser, options):
+        """Populate an option parser or group with options."""
+        for option in options:
             if not option.dest or option.dest == 'help':
-                # -h, --version, etc
                 continue
-            self.parser.add_option(option)
-        command_dict[self.name] = self
+            parser.add_option(option)
+
+    def _copy_option_group(self, parser, group):
+        """Copy option group (including options) to another parser."""
+        new_group = optparse.OptionGroup(parser, group.title)
+        self._copy_options(new_group, group.option_list)
+
+        parser.add_option_group(new_group)
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
-        for attr in ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs',
-                     'skip_requirements_regex',
-                     'no_input', 'exists_action']:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+
+        opts = ('log', 'proxy', 'require_venv',
+                'log_explicit_levels', 'log_file',
+                'timeout', 'default_vcs',
+                'skip_requirements_regex',
+                'no_input', 'exists_action')
+
+        for attr in opts:
+            val = getattr(initial_options, attr) or getattr(options, attr)
+            setattr(options, attr, val)
+
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
 
@@ -170,24 +197,3 @@ def open_logfile(filename, mode='a'):
         log_fp.write('%s\n' % ('-'*60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
-
-
-def load_command(name):
-    full_name = 'pip.commands.%s' % name
-    if full_name in sys.modules:
-        return
-    try:
-        __import__(full_name)
-    except ImportError:
-        pass
-
-
-def load_all_commands():
-    for name in command_names():
-        load_command(name)
-
-
-def command_names():
-    names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
-    return list(names)
-
