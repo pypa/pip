@@ -1,12 +1,13 @@
 import cgi
 import getpass
+import hashlib
 import mimetypes
 import os
 import re
 import shutil
 import sys
 import tempfile
-from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
+from pip.backwardcompat import (copytree, xmlrpclib, urllib, urllib2,
                                 urlparse, string_types, HTTPError)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
@@ -321,16 +322,22 @@ def is_file_url(link):
     return link.url.lower().startswith('file:')
 
 
-def _check_md5(download_hash, link):
-    download_hash = download_hash.hexdigest()
-    if download_hash != link.md5_hash:
-        logger.fatal("MD5 hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (link, download_hash, link.md5_hash))
-        raise InstallationError('Bad MD5 hash for package %s' % link)
+def _check_hash(download_hash, link):
+    if download_hash.name != link.hash_name:
+        logger.fatal("Hash name of the package %s (%s) doesn't match the expect hash name %s!"
+                    % (download_hash.name, link, link.hash_name))
+        raise InstallationError('Hash name mismatch for package %s' % link)
+    if download_hash.hexdigest() != link.hash:
+        logger.fatal("%s hash of the package %s (%s) doesn't match the expected hash %s!"
+                     % (download_hash.name, link, download_hash, link.hash))
+        raise InstallationError('Bad %s hash for package %s' % (download_hash.name, link))
 
 
-def _get_md5_from_file(target_file, link):
-    download_hash = md5()
+def _get_hash_from_file(target_file, link):
+    try:
+        download_hash = hashlib.new(link.hash_name)
+    except ValueError:
+        logger.fatal("Unsupported hash name %s for package %s" % (link.hash_name, link))
     fp = open(target_file, 'rb')
     while True:
         chunk = fp.read(4096)
@@ -344,8 +351,11 @@ def _get_md5_from_file(target_file, link):
 def _download_url(resp, link, temp_location):
     fp = open(temp_location, 'wb')
     download_hash = None
-    if link.md5_hash:
-        download_hash = md5()
+    if link.hash and link.hash_name:
+        try:
+            download_hash = hashlib.new(link.hash_name)
+        except ValueError:
+            logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
     try:
         total_length = int(resp.info()['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -374,7 +384,7 @@ def _download_url(resp, link, temp_location):
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
                     logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
-            if link.md5_hash:
+            if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
         fp.close()
@@ -423,8 +433,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         fp = open(target_file+'.content-type')
         content_type = fp.read().strip()
         fp.close()
-        if link.md5_hash:
-            download_hash = _get_md5_from_file(target_file, link)
+        if link.hash and link.hash_name:
+            download_hash = _get_hash_from_file(target_file, link)
         temp_location = target_file
         logger.notify('Using download cache from %s' % target_file)
     else:
@@ -449,8 +459,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
                 filename += ext
         temp_location = os.path.join(temp_dir, filename)
         download_hash = _download_url(resp, link, temp_location)
-    if link.md5_hash:
-        _check_md5(download_hash, link)
+    if link.hash and link.hash_name:
+        _check_hash(download_hash, link)
     if download_dir:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
