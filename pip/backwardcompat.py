@@ -4,7 +4,7 @@ import sys
 import os
 import shutil
 
-__all__ = ['any', 'WindowsError', 'md5', 'copytree']
+__all__ = ['any', 'WindowsError', 'copytree']
 
 try:
     WindowsError = WindowsError
@@ -12,11 +12,6 @@ except NameError:
     class NeverUsedException(Exception):
         """this exception should never be raised"""
     WindowsError = NeverUsedException
-try:
-    from hashlib import md5
-except ImportError:
-    import md5 as md5_module
-    md5 = md5_module.new
 
 try:
     from pkgutil import walk_packages
