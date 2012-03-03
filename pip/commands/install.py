@@ -180,15 +180,15 @@ class InstallCommand(Command):
     def _guess_install_scheme():
         from distutils.command.install import INSTALL_SCHEMES
         def guess_install_scheme():
-          if hasattr(sys, 'pypy_version_info'):
-              return 'pypy'
-          if os.name == 'posix':
-              return 'unix_home'
-          else:
-              return os.name
+            if hasattr(sys, 'pypy_version_info'):
+                return 'pypy'
+            if os.name == 'posix':
+                return 'unix_home'
+            else:
+                return os.name
         install_scheme = INSTALL_SCHEMES.get(guess_install_scheme())
         if not install_scheme or 'purelib' not in install_scheme:
-          raise InstallationError('Do not know how to install on %s platforms' % os.name)
+            raise InstallationError('Do not know how to install on %s platforms' % os.name)
         return install_scheme['purelib']
 
     @staticmethod
