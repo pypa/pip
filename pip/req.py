@@ -1,5 +1,6 @@
 import sys
 import os
+import site
 import shutil
 import re
 import zipfile
@@ -34,7 +35,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True):
+                 url=None, update=True, user_site=False):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -59,18 +60,21 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        self.user_site = user_site
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
+    def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
+            user_site=False):
         name, url = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
             source_dir = None
-        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url,
+                user_site=user_site)
 
     @classmethod
-    def from_line(cls, name, comes_from=None):
+    def from_line(cls, name, comes_from=None, user_site=False):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -104,7 +108,7 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url)
+        return cls(req, comes_from, url=url, user_site=user_site)
 
     def __str__(self):
         if self.req:
@@ -660,7 +664,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
+            dist = pkg_resources.get_distribution(self.req.project_name)
+            if self.user_site:
+                if dist.location != site.USER_SITE:
+                    return False
+            self.conflicts_with = dist
         return True
 
     @property

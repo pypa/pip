@@ -211,10 +211,10 @@ class InstallCommand(Command):
             force_reinstall=options.force_reinstall)
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
+                InstallRequirement.from_line(name, None, user_site=options.use_user_site))
         for name in options.editables:
             requirement_set.add_requirement(
-                InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
+                InstallRequirement.from_editable(name, default_vcs=options.default_vcs,user_site=options.use_user_site))
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
