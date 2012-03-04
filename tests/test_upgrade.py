@@ -1,5 +1,9 @@
+import sys
 import textwrap
 from os.path import join
+
+from nose import SkipTest
+
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
                             _change_test_package_version)
@@ -190,3 +194,15 @@ def test_install_with_ignoreinstalled_requested():
     assert result.files_created, 'pip install -I did not install'
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
+def test_install_usersite_with_version_installed_in_site():
+    """
+    It installs package into usersite when system package exists.
+
+    """
+    if sys.version_info < (2, 6):
+        raise SkipTest()
+    env = reset_env()
+    run_pip('install', 'INITools==0.1', expect_error=True)
+    result = run_pip('install', '--user', 'INITools==0.2', expect_error=True)
+    assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_deleted
+    assert env.user_site/'INITools-0.2-py%s.egg-info' % pyversion in result.files_created
