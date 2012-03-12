@@ -559,7 +559,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             for key, value in values.iteritems():
                 info.set(section, key, value)
 
-        f = open(os.path.join(egg_info_dir, 'info.ini'), 'w')
+        f = open(os.path.join(egg_info_dir, 'pip.ini'), 'w')
         info.write(f)
         f.close()
 
@@ -629,8 +629,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 logger.warn("No requirement line recorded for %s" % self.name)
             self._write_info_ini(egg_info_dir, info_data)
 
-            # Add the info.ini to the installed-files.txt
-            new_lines.append('info.ini')
+            # Add the pip.ini to the installed-files.txt
+            new_lines.append('pip.ini')
 
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
             f.write('\n'.join(new_lines) + '\n')
