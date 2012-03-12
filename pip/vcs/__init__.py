@@ -115,6 +115,7 @@ class VersionControl(object):
         Returns the correct repository URL and revision by parsing the given
         repository URL
         """
+        assert '+' in self.url, "Sorry, '{}' is a malformed url".format(self.url)
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
         rev = None
