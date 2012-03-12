@@ -668,11 +668,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             logger.indent -= 2
         self.install_succeeded = True
 
-        # FIXME: Is there a better way to get the egg-info dir?
-        egg_info_dir = None
-        for fname in os.listdir(self.source_dir):
-            if fname.endswith(".egg-info"):
-                egg_info_dir = os.path.join(self.source_dir, fname)
+        egg_info_dir = os.path.dirname(self.egg_info_path("pip.ini"))
 
         if egg_info_dir:
             info_data = {
