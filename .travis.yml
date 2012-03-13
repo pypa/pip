@@ -11,10 +11,8 @@ before_install:
 install: pip install nose virtualenv scripttest mock
 script: nosetests
 notifications:
-    email: false
 branches:
   only:
     - develop
-    - multiple-hashers
 env:
   - PIP_USE_MIRRORS=true
