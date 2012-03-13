@@ -57,7 +57,9 @@ Beta and final releases planned for the second half of 2012.
 
 * Removed ``-E``/``--environment`` option and ``PIP_RESPECT_VIRTUALENV``;
   both use a restart-in-venv mechanism that's broken, and neither one is
-  useful since every virtualenv now has pip inside it.
+  useful since every virtualenv now has pip inside it.  Replace ``pip -E
+  path/to/venv install Foo`` with ``virtualenv path/to/venv &&
+  path/to/venv/pip install Foo``.
 
 * Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
 
