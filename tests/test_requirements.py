@@ -5,6 +5,7 @@ from pip.req import Requirements
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
 from tests.path import Path
+from nose.tools import assert_raises
 
 
 def test_requirements_file():
@@ -41,6 +42,17 @@ def test_relative_requirements_file():
     assert (env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion) in result.files_created, str(result)
     assert (env.site_packages/'fspkg') in result.files_created, str(result.stdout)
 
+
+def test_schema_check_in_requirements_file():
+    """
+    Test installing from a requirements file with an invalid vcs schema..
+
+    """
+    env = reset_env()
+    write_file('file-egg-req.txt', textwrap.dedent("""\
+        git://github.com/alex/django-fixture-generator.git#egg=fixture_generator
+        """))
+    assert_raises(AssertionError, run_pip, 'install', '-vvv', '-r', env.scratch_path / 'file-egg-req.txt')
 
 def test_multiple_requirements_files():
     """
