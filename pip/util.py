@@ -147,11 +147,11 @@ def normalize_name(name):
 
 def format_size(bytes):
     if bytes > 1000*1000:
-        return '%.1fMb' % (bytes/1000.0/1000)
+        return '%.1fMB' % (bytes/1000.0/1000)
     elif bytes > 10*1000:
-        return '%iKb' % (bytes/1000)
+        return '%iKB' % (bytes/1000)
     elif bytes > 1000:
-        return '%.1fKb' % (bytes/1000.0)
+        return '%.1fKB' % (bytes/1000.0)
     else:
         return '%ibytes' % bytes
 
