@@ -10,6 +10,13 @@ Next release (1.2) schedule
 
 Beta and final releases planned for the second half of 2012.
 
+master (unreleased)
+-------------------
+
+* Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
+  Thomas Fenzl.
+
+
 1.1 (2012-02-16)
 ----------------
 
