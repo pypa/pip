@@ -262,33 +262,51 @@ class PackageFinder(object):
             pending_queue.put(location)
         done = []
         seen = set()
-        threads = []
+        self._page_getting_threads = []
         for i in range(min(10, len(locations))):
-            t = threading.Thread(target=self._get_queued_page, args=(req, pending_queue, done, seen))
+            t = threading.Thread(target=self._get_queued_page, args=(
+                req, pending_queue, done, seen))
             t.setDaemon(True)
-            threads.append(t)
+            self._page_getting_threads.append(t)
             t.start()
-        for t in threads:
-            t.join()
+        pending_queue.join()
         return done
 
     _log_lock = threading.Lock()
 
     def _get_queued_page(self, req, pending_queue, done, seen):
         while 1:
+            pages_pending = pending_queue.qsize()
             try:
                 location = pending_queue.get(False)
             except QueueEmpty:
+                logger.debug('no pending requests, getter %s exiting' %
+                        threading.current_thread().name)
                 return
             if location in seen:
+                pending_queue.task_done()
                 continue
             seen.add(location)
             page = self._get_page(location, req)
             if page is None:
+                pending_queue.task_done()
                 continue
             done.append(page)
+
             for link in page.rel_links():
                 pending_queue.put(link)
+                # since we are adding more links to fetch - add more workers
+                # up to the max in case we started with only 1 initial location
+                thread_count = len(self._page_getting_threads)
+                for i in range(min(10, pending_queue.qsize())-thread_count):
+                    logger.debug('adding additional thread')
+                    t = threading.Thread(target=self._get_queued_page, args=(req,
+                        pending_queue, done, seen))
+                    self._page_getting_threads.append(t)
+                    t.setDaemon(True)
+                    t.start()
+            pending_queue.task_done()
+
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
