@@ -2,10 +2,11 @@ import sys
 import os
 import shutil
 import re
+import site
 import zipfile
 import pkg_resources
 import tempfile
-from pip.locations import bin_py, running_under_virtualenv
+from pip.locations import bin_py, running_under_virtualenv, get_user_site_packages
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound)
@@ -13,7 +14,7 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local
+from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip import call_subprocess
@@ -41,6 +42,7 @@ class InstallRequirement(object):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
+        self.set = None
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
@@ -656,12 +658,20 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self.conflicts_with appropriately."""
         if self.req is None:
             return False
-        try:
+        try:            
+            if get_user_site_packages() and running_under_virtualenv():
+                #handles 'bug' in pkg_resources
+                pkg_resources.working_set.add_entry(get_user_site_packages())
             self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
+            existing_dist = pkg_resources.get_distribution(self.req.project_name)
+            if self.set.use_user_site: 
+                if dist_in_usersite(existing_dist):
+                    self.conflicts_with = existing_dist                    
+            else:
+                self.conflicts_with = existing_dist
         return True
 
     @property
@@ -781,8 +791,8 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False, force_reinstall=False):
+                upgrade=False, ignore_installed=False,ignore_dependencies=False, 
+                force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -798,6 +808,7 @@ class RequirementSet(object):
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
+        self.use_user_site = use_user_site
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -809,12 +820,14 @@ class RequirementSet(object):
         name = install_req.name
         if not name:
             self.unnamed_requirements.append(install_req)
+            install_req.set = self
         else:
             if self.has_requirement(name):
                 raise InstallationError(
                     'Double requirement given: %s (aready in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
             self.requirements[name] = install_req
+            install_req.set = self
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
                 self.requirement_aliases[name.lower()] = name

@@ -48,12 +48,12 @@ def demand_dirs(path):
 sys.path = [src_folder] + sys.path
 
 
-def create_virtualenv(where, distribute=False):
+def create_virtualenv(where, distribute=False, system_site_packages=False):
     import virtualenv
     if sys.version_info[0] > 2:
         distribute = True
     virtualenv.create_environment(
-        where, use_distribute=distribute, unzip_setuptools=True)
+        where, use_distribute=distribute, unzip_setuptools=True, site_packages=system_site_packages)
 
     return virtualenv.path_locations(where)
 
@@ -102,13 +102,13 @@ def install_setuptools(env):
 env = None
 
 
-def reset_env(environ=None, use_distribute=None):
+def reset_env(environ=None, use_distribute=None, system_site_packages=False):
     global env
     # FastTestPipEnv reuses env, not safe if use_distribute specified
-    if use_distribute is None:
+    if use_distribute is None and not system_site_packages:
         env = FastTestPipEnvironment(environ)
     else:
-        env = TestPipEnvironment(environ, use_distribute=use_distribute)
+        env = TestPipEnvironment(environ, use_distribute=use_distribute, system_site_packages=system_site_packages)
     return env
 
 
@@ -262,7 +262,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     verbose = False
 
-    def __init__(self, environ=None, use_distribute=None):
+    def __init__(self, environ=None, use_distribute=None, system_site_packages=False):
 
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
@@ -292,7 +292,7 @@ class TestPipEnvironment(TestFileEnvironment):
         self.use_distribute = use_distribute
 
         # Create a virtualenv and remember where it's putting things.
-        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute)
+        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute, system_site_packages=system_site_packages)
 
         assert self.venv_path == virtualenv_paths[0] # sanity check
 

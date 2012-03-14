@@ -3,6 +3,7 @@
 import sys
 import os
 import shutil
+import site
 
 __all__ = ['any', 'WindowsError', 'md5', 'copytree']
 
@@ -112,6 +113,9 @@ except ImportError:
 
 from distutils.sysconfig import get_python_lib, get_python_version
 
+def get_user_site():
+    "return site.USER_SITE or None if not implemented in earlier version of python"
+    return getattr(site,'USER_SITE',None)
 
 def copytree(src, dst):
     if sys.version_info < (2, 5):

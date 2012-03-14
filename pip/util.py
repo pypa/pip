@@ -1,6 +1,7 @@
 import sys
 import shutil
 import os
+import site
 import stat
 import re
 import posixpath
@@ -9,7 +10,7 @@ import zipfile
 import tarfile
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
-from pip.locations import site_packages, running_under_virtualenv
+from pip.locations import site_packages, get_user_site_packages, orig_site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -293,6 +294,14 @@ def dist_is_local(dist):
     return is_local(dist_location(dist))
 
 
+def dist_in_usersite(dist):
+    """
+    Return True if given Distribution is installed in user site
+
+    """
+    return normalize_path(dist.location).startswith(normalize_path(get_user_site_packages()))
+
+
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
     Return a list of installed Distribution objects.
@@ -314,17 +323,41 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
 
 def egg_link_path(dist):
     """
-    Return the path where we'd expect to find a .egg-link file for
-    this distribution. (There doesn't seem to be any metadata in the
-    Distribution object for a develop egg that points back to its
-    .egg-link and easy-install.pth files).
+    Return the path for the .egg-link file if it exists, otherwise, None.
 
-    This won't find a globally-installed develop egg if we're in a
-    virtualenv.
+    There's 3 scenarios:
+    1) not in a virtualenv
+       try to find in site.USER_SITE, then site_packages
+    2) in a no-global virtualenv
+       try to find in site_packages
+    3) in a yes-global virtualenv
+       try to find in site_packages, then site.USER_SITE, then original site_packages
 
+    For #1 and #3, there could be odd cases, where there's an egg-link in multiple locations. 
+    This method will just return the first one found.
     """
-    return os.path.join(site_packages, dist.project_name) + '.egg-link'
 
+    user_site_packages = get_user_site_packages()
+
+    sites=[]
+    if running_under_virtualenv():
+        if virtualenv_no_global():
+            sites.append(site_packages)
+        else:
+            sites.append(site_packages)
+            if user_site_packages:
+                sites.append(user_site_packages)
+            sites.append(orig_site_packages)
+    else:
+        if user_site_packages:
+            sites.append(user_site_packages)
+        sites.append(site_packages)
+
+    for site in sites:
+        egglink = os.path.join(site, dist.project_name) + '.egg-link'
+        if os.path.isfile(egglink):
+            return egglink                            
+    
 
 def dist_location(dist):
     """
@@ -335,7 +368,7 @@ def dist_location(dist):
 
     """
     egg_link = egg_link_path(dist)
-    if os.path.exists(egg_link):
+    if egg_link:
         return egg_link
     return dist.location
 
@@ -503,6 +536,3 @@ def unpack_file(filename, location, content_type, link):
         logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
                      % (filename, location, content_type))
         raise InstallationError('Cannot determine archive format of %s' % location)
-
-
-
