@@ -42,6 +42,7 @@ Rene Dudfield
 Ronny Pfannschmidt
 Simon Cross
 Stavros Korokithakis
+Thomas Fenzl
 Thomas Johansson
 Vinay Sajip
 Vitaly Babiy
