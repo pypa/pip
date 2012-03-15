@@ -1,6 +1,4 @@
 import pip.download
-from pip.version_handling import (compare_versions,
-                                 highest_version)
 from pip.commands.search import (transform_hits,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
@@ -15,18 +13,6 @@ if pyversion >= '3':
 else:
     VERBOSE_FALSE = 0
 
-
-def test_version_compare():
-    """
-    Test version comparison.
-
-    """
-    assert compare_versions('1.0', '1.1') == -1
-    assert compare_versions('1.1', '1.0') == 1
-    assert compare_versions('1.1a1', '1.1') == -1
-    assert compare_versions('1.1.1', '1.1a') == -1
-    assert highest_version(['1.0', '2.0', '0.1']) == '2.0'
-    assert highest_version(['1.0a1', '1.0']) == '1.0'
 
 
 def test_pypi_xml_transformation():

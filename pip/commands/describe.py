@@ -5,11 +5,15 @@ from pip.util import get_terminal_size
 from pip.log import logger
 from pip.version_handling import highest_version
 import pip.download
-from pip.backwardcompat import xmlrpclib, reduce, cmp
+from pip.backwardcompat import xmlrpclib
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 
 class DescribeCommand(Command):
+    """ 
+    Get package information from PyPi
+    Only uses latest version on PyPi, no spidering
+    """
     name = 'describe'
     usage = '%prog PACKAGE'
     summary = 'Get package description from PyPI'
@@ -27,14 +31,18 @@ class DescribeCommand(Command):
             '--extended-info',
             dest='extended_info',
             action='store_true',
-            help='show extended package information (author, homepage, version, long description')
+            help='show extended package information\
+ (author, homepage, version, long description')
+        self._pypi = None
 
 
     def run(self, options, args):
         if not args:
             raise CommandError('Missing required argument (search query).')
         index_url = options.index
-        self._pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)
+        self._pypi = xmlrpclib.ServerProxy(
+                          index_url, 
+                          pip.download.xmlrpclib_transport)
 
         packages_of_interest = []
         for arg in args:
@@ -60,8 +68,11 @@ class DescribeCommand(Command):
         return package, version
 
     def update_package_info(self, packages):
+        """
+        get package data from PyPiXMLRPC and reorganize in a dict
+        """ 
         info = []
-        for package,version in packages:
+        for package, version in packages:
             d = self._pypi.release_data(package, version)
             data = {
                     'name': package,
@@ -76,6 +87,9 @@ class DescribeCommand(Command):
         return info
             
     def print_description(self, packages, terminal_width, options):
+        """
+        print the package information formatted according to the terminal width
+        """
         for package in packages:
             self.reformat(package, indent=10, width=terminal_width)
             print """
@@ -90,8 +104,15 @@ homepage: {homepage}
                 print "details : "+package['description']
 
     def reformat(self, package, indent, width):
+        """
+        reformat a package description so that no line is longer that width
+        indent is taken into account after the first line, as that one is prepended
+        with the name of the data
+        """    
         for key, value in package.items():
             reformatted = textwrap.wrap(value.strip(), width-indent)
-            package[key] = (reformatted[0]+"\n"+ "\n".join([" "*indent+x for x in reformatted[1:]])).strip()
+            package[key] = (reformatted[0] + "\n" + 
+                           "\n".join([" "*indent+x for x in reformatted[1:]])
+                           ).strip()
 
 DescribeCommand()
