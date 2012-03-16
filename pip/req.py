@@ -7,7 +7,8 @@ import pkg_resources
 import tempfile
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
-                            BestVersionAlreadyInstalled)
+                            BestVersionAlreadyInstalled,
+                            DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
@@ -910,6 +911,7 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             best_installed = False
+            not_found = None
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
@@ -921,6 +923,8 @@ class RequirementSet(object):
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
+                            except DistributionNotFound:
+                                not_found = sys.exc_info()[1]
                             else:
                                 # Avoid the need to call find_requirement again
                                 req_to_install.url = url.url
@@ -975,6 +979,8 @@ class RequirementSet(object):
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:
+                            if not_found:
+                                raise not_found
                             url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
                         else:
                             ## FIXME: should req_to_install.url already be a link?

@@ -3,6 +3,7 @@ from os.path import join
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
                             _change_test_package_version)
+from tests.local_repos import local_checkout
 
 
 def test_no_upgrade_unless_requested():
@@ -190,3 +191,12 @@ def test_install_with_ignoreinstalled_requested():
     assert result.files_created, 'pip install -I did not install'
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
+
+def test_upgrade_vcs_req_with_no_dists_found():
+    """It can upgrade a VCS requirement that has no distributions otherwise."""
+    reset_env()
+    req = "%s#egg=pip-test-package" % local_checkout(
+        "git+http://github.com/pypa/pip-test-package.git")
+    run_pip("install", req)
+    result = run_pip("install", "-U", req)
+    assert not result.returncode
