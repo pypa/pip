@@ -1,6 +1,6 @@
 """Handles all VCS (version control) support"""
 
-import os
+import os, sys
 import shutil
 
 from pip.backwardcompat import urlparse, urllib
