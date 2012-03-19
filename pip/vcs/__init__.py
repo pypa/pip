@@ -247,7 +247,8 @@ def get_src_requirement(dist, location, find_tags):
     if version_control:
         try:
             return version_control().get_src_requirement(dist, location, find_tags)
-        except InstallationError as ex:
+        except InstallationError:
+            ex = sys.exc_info()[1]
             logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)
             return None
     logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
