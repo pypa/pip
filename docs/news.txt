@@ -13,6 +13,9 @@ Beta and final releases planned for the second half of 2012.
 master (unreleased)
 -------------------
 
+* Added a `__main__.py` file to enable `python -m pip` on Python versions
+  that support it. Thanks Alexey Luchko.
+
 * Fixed issue #487 - upgrade from VCS url of project that does exist on
   index. Thanks Andrew Knapp for the report.
 
