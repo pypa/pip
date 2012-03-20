@@ -916,7 +916,7 @@ class RequirementSet(object):
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        if not self.force_reinstall:
+                        if not self.force_reinstall and not req_to_install.url:
                             try:
                                 url = finder.find_requirement(
                                     req_to_install, self.upgrade)

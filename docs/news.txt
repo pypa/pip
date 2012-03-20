@@ -13,8 +13,11 @@ Beta and final releases planned for the second half of 2012.
 master (unreleased)
 -------------------
 
-* Fixed issue #486 - fix upgrade from VCS url of otherwise nonexistent egg.
-  Thanks aknapp for the report.
+* Fixed issue #487 - upgrade from VCS url of project that does exist on
+  index. Thanks Andrew Knapp for the report.
+
+* Fixed issue #486 - fix upgrade from VCS url of project with no distribution
+  on index.  Thanks Andrew Knapp for the report.
 
 * Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
   Thomas Fenzl.

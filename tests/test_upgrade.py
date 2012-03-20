@@ -200,3 +200,13 @@ def test_upgrade_vcs_req_with_no_dists_found():
     run_pip("install", req)
     result = run_pip("install", "-U", req)
     assert not result.returncode
+
+
+def test_upgrade_vcs_req_with_dist_found():
+    """It can upgrade a VCS requirement that has distributions on the index."""
+    reset_env()
+    req = "%s#egg=virtualenv" % local_checkout(
+        "git+git://github.com/pypa/virtualenv@c21fef2c2d53cf19f49bcc37f9c058a33fb50499")
+    run_pip("install", req)
+    result = run_pip("install", "-U", req)
+    assert not "pypi.python.org" in result.stdout, result.stdout
