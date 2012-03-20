@@ -607,6 +607,7 @@ def _change_test_package_version(env, version_pkg_path):
     write_file('version_pkg.py', textwrap.dedent('''\
         def main():
             print("some different version")'''), version_pkg_path)
+    env.run('git', 'clean', '-qfdx', cwd=version_pkg_path, expect_stderr=True)
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'messed version',
