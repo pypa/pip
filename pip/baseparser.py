@@ -102,7 +102,7 @@ class ConfigOptionParser(optparse.OptionParser):
                 # handle multiline configs
                 if option.action == 'append':
                     if '\n' in val:
-                        val = val.splitlines()
+                        val = [v.strip() for v in val.splitlines() if v.strip()]
                     else:
                         val = val.split()
                 else:
