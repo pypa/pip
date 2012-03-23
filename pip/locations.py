@@ -12,6 +12,10 @@ def running_under_virtualenv():
     """
     return hasattr(sys, 'real_prefix')
 
+explicit_paths = []
+
+def add_explicit_path(path):
+    explicit_paths.append(path)
 
 if running_under_virtualenv():
     ## FIXME: is build/ a good name?

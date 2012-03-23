@@ -142,3 +142,18 @@ configuration file::
     mirrors =
         http://d.pypi.python.org
         http://b.pypi.python.org
+
+Path management
+***************
+
+You can have entries added to ``sys.path`` in your config file,
+generally to support cases when you are installing libraries somewhere
+not normally on the path, but you want to be able to uninstall these
+libraries, or have pip detect them when upgrading/etc.  To do this
+use::
+
+    [global]
+    sys.path = %(here)s/vendor/
+
+You can include multiple paths, each on their own line.  These are
+added using ``site.addsitedir()`` so ``.pth`` files are respected.

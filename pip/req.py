@@ -393,7 +393,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -483,7 +483,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                         paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
                         paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
-        paths_to_remove.remove(auto_confirm)
+        paths_to_remove.remove(auto_confirm, force)
         self.uninstalled = paths_to_remove
 
     def rollback_uninstall(self):
@@ -857,9 +857,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         for req in self.requirements.values():
-            req.uninstall(auto_confirm=auto_confirm)
+            req.uninstall(auto_confirm=auto_confirm, force=force)
             req.commit_uninstall()
 
     def locate_files(self):
@@ -1402,10 +1402,10 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def remove(self, auto_confirm=False):
+    def remove(self, auto_confirm=False, force=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self._can_uninstall():
+        if not force and not self._can_uninstall():
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2

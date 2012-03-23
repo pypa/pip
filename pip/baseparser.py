@@ -6,7 +6,7 @@ import pkg_resources
 import os
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
-from pip.locations import default_config_file, default_log_file, default_config_file_name
+from pip.locations import default_config_file, default_log_file, default_config_file_name, add_explicit_path
 
 
 class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
@@ -156,6 +156,21 @@ class ConfigOptionParser(optparse.OptionParser):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
+
+    def update_sys_path(self):
+        import pkg_resources
+        prev_sys_path = list(sys.path)
+        if self.config.has_option('global', 'sys.path'):
+            value = self.config.get('global', 'sys.path')
+            value = [v.strip() for v in value.splitlines() if v.strip()]
+            for path in value:
+                import site
+                site.addsitedir(path)
+        for path in sys.path:
+            if path not in prev_sys_path:
+                add_explicit_path(path)
+                pkg_resources.working_set.add_entry(path)
+
 
 try:
     pip_dist = pkg_resources.get_distribution('pip')
