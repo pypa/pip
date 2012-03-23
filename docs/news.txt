@@ -10,6 +10,13 @@ Next release (1.2) schedule
 
 Beta and final releases planned for the second half of 2012.
 
+* Search for config files (``pip.ini`` on Windows, ``pip.conf`` or
+  ``.pip.conf`` on other platforms) in the current and parent
+  directories.
+
+* Substitute ``%(here)s``, ``%(cwd)s`` and ``%(file)s`` in config file
+  values.
+
 1.1 (2012-02-16)
 ----------------
 
