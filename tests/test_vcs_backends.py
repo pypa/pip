@@ -138,4 +138,4 @@ def test_git_works_with_editable_non_origin_repo():
 
 
     # 'freeze'ing this should not fall over, but should result in stderr output warning
-    run_pip('freeze')
+    run_pip('freeze', expect_stderr=True)
