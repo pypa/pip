@@ -129,3 +129,13 @@ def test_git_with_ambiguous_revs():
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
     result.assert_installed('version-pkg', with_files=['.git'])
+
+def test_git_works_with_editable_non_origin_repo():
+    # set up, create a git repo and install it as editable from a local directory path
+    env = reset_env()
+    version_pkg_path = _create_test_package(env)
+    run_pip('install', '-e', version_pkg_path.abspath)
+
+
+    # 'freeze'ing this should not fall over, but should result in stderr output warning
+    run_pip('freeze')
