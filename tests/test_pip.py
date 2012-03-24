@@ -366,6 +366,13 @@ class TestPipEnvironment(TestFileEnvironment):
         pth.write('import sys; ')
         pth.write('sys.path.insert(0, %r); ' % str(here))
         pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
+
+        # this is necessary due to pypi_intercept.pth, which forces pkg_resources to be 
+        # imported *before* the sys.path is fully initalized, causing pkg_resources.working_set
+        # to be improperly initialized
+        # this at least puts back the user site so it can be tested properly
+        pth.write("import pkg_resources; pkg_resources.working_set.add_entry('%s'); " %self.user_site_path)
+
         pth.write('sys.path.remove(%r); ' % str(here))
         pth.close()
 

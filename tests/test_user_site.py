@@ -42,11 +42,10 @@ summary of test coverage:
 """
 import sys
 from os.path import abspath, join, curdir, isdir, isfile
-
 from nose import SkipTest
-
 from tests.local_repos import local_checkout
 from tests.test_pip import here, reset_env, run_pip, pyversion
+
 
 
 def Test1_install_user_in_old_python_fails():
@@ -59,7 +58,7 @@ def Test1_install_user_in_old_python_fails():
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
     assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
+    
 
 class Tests_UserSite:
 
@@ -172,7 +171,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
 
-    def Test8_1_uninstall_editable_from_usp_in_vsp(self):
+    def Test8_uninstall_editable_from_usp_in_vsp(self):
         """
         uninstall editable local dir user install (in vsp)
         """

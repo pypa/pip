@@ -659,9 +659,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.req is None:
             return False
         try:            
-            if get_user_site_packages() and running_under_virtualenv():
-                #handles 'bug' in pkg_resources
-                pkg_resources.working_set.add_entry(get_user_site_packages())
             self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
