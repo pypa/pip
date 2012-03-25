@@ -10,7 +10,7 @@ import zipfile
 import tarfile
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
-from pip.locations import site_packages, get_user_site_packages, orig_site_packages, running_under_virtualenv, virtualenv_no_global
+from pip.locations import site_packages, user_site, user_base, orig_site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -273,12 +273,11 @@ def renames(old, new):
 
 def is_local(path):
     """
-    Return True if path is within sys.prefix, if we're running in a virtualenv.
-
-    If we're not in a virtualenv, all paths are considered "local."
+    If we're not in a virtualenv, or path is in site.USER_BASE, then considered "local."
+    Else, return True if path is within sys.prefix
 
     """
-    if not running_under_virtualenv():
+    if not running_under_virtualenv() or path_in_userbase(path):
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 
@@ -289,6 +288,7 @@ def dist_is_local(dist):
     (i.e. within current virtualenv).
 
     Always True if we're not in a virtualenv.
+    Also True if installed in user site.
 
     """
     return is_local(dist_location(dist))
@@ -299,8 +299,16 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site
 
     """
-    return normalize_path(dist.location).startswith(normalize_path(get_user_site_packages()))
+    return normalize_path(dist_location(dist)).startswith(normalize_path(user_site()))
 
+
+def path_in_userbase(path):
+    """
+    Return True if path in site.USER_BASE
+
+    """
+    return normalize_path(path).startswith(normalize_path(user_base()))
+  
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
@@ -337,7 +345,7 @@ def egg_link_path(dist):
     This method will just return the first one found.
     """
 
-    user_site_packages = get_user_site_packages()
+    user_site_packages = user_site()
 
     sites=[]
     if running_under_virtualenv():

@@ -6,7 +6,7 @@ import site
 import zipfile
 import pkg_resources
 import tempfile
-from pip.locations import bin_py, running_under_virtualenv, get_user_site_packages
+from pip.locations import bin_py, running_under_virtualenv, user_site
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound)

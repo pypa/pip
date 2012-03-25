@@ -117,6 +117,11 @@ def get_user_site():
     "return site.USER_SITE or None if not implemented in earlier version of python"
     return getattr(site,'USER_SITE',None)
 
+def get_user_base():
+    "return site.USER_BASE or None if not implemented in earlier version of python"
+    return getattr(site,'USER_BASE',None)
+
+
 def copytree(src, dst):
     if sys.version_info < (2, 5):
         before_last_dir = os.path.dirname(dst)

@@ -2,7 +2,7 @@
 
 import sys
 import os
-from pip.backwardcompat import get_python_lib, get_user_site
+from pip.backwardcompat import get_python_lib, get_user_site, get_user_base
 
 
 def running_under_virtualenv():
@@ -40,11 +40,17 @@ src_prefix = os.path.abspath(src_prefix)
 
 site_packages = get_python_lib()
 
-#this can't be replaced with a property that's set at compile time.  site.py hasn't done it's work yet
-def get_user_site_packages():
-    "return user site pkgs as long as not in venv/no-global"
+#can't be replaced with property set at import.  site.py hasn't done it's work yet
+def user_site():
+    "return user site as long as not in venv/no-global"
     if not (running_under_virtualenv() and virtualenv_no_global()):
         return get_user_site()
+
+#can't be replaced with property set at import.  site.py hasn't done it's work yet
+def user_base():
+    "return user base as long as not in venv/no-global"
+    if not (running_under_virtualenv() and virtualenv_no_global()):
+        return get_user_base()
 
 orig_site_packages = None
 if running_under_virtualenv():
