@@ -307,7 +307,8 @@ def path_in_userbase(path):
     Return True if path in site.USER_BASE
 
     """
-    return normalize_path(path).startswith(normalize_path(user_base()))
+    if path.strip() and user_base():
+        return normalize_path(path).startswith(normalize_path(user_base()))
   
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
