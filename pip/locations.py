@@ -37,6 +37,9 @@ if sys.platform == 'win32':
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
     user_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
+    home_dir = os.environ.get('HOME', '')
+    if home_dir:
+        user_dir = home_dir
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
