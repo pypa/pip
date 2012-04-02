@@ -48,12 +48,12 @@ def demand_dirs(path):
 sys.path = [src_folder] + sys.path
 
 
-def create_virtualenv(where, distribute=False, system_site_packages=False):
+def create_virtualenv(where, distribute=False):
     import virtualenv
     if sys.version_info[0] > 2:
         distribute = True
     virtualenv.create_environment(
-        where, use_distribute=distribute, unzip_setuptools=True, site_packages=system_site_packages)
+        where, use_distribute=distribute, unzip_setuptools=True)
 
     return virtualenv.path_locations(where)
 
@@ -108,7 +108,14 @@ def reset_env(environ=None, use_distribute=None, system_site_packages=False):
     if use_distribute is None and not system_site_packages:
         env = FastTestPipEnvironment(environ)
     else:
-        env = TestPipEnvironment(environ, use_distribute=use_distribute, system_site_packages=system_site_packages)
+        env = TestPipEnvironment(environ, use_distribute=use_distribute)
+    
+    if system_site_packages: 
+        #testing often occurs starting from a virtualenv (e.g. with tox)
+        #you can't create a yes-global virtualenv from a no-global virtualenv
+        #hence, this hack, instead of using virtualenv interface to create a yes-global virtualenv
+        (env.lib_path/'no-global-site-packages.txt').rm() 
+
     return env
 
 
@@ -262,7 +269,7 @@ class TestPipEnvironment(TestFileEnvironment):
 
     verbose = False
 
-    def __init__(self, environ=None, use_distribute=None, system_site_packages=False):
+    def __init__(self, environ=None, use_distribute=None):
 
         self.root_path = Path(tempfile.mkdtemp('-piptest'))
 
@@ -292,7 +299,7 @@ class TestPipEnvironment(TestFileEnvironment):
         self.use_distribute = use_distribute
 
         # Create a virtualenv and remember where it's putting things.
-        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute, system_site_packages=system_site_packages)
+        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute)
 
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
