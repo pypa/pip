@@ -15,7 +15,7 @@ def Test_install_user_in_old_python_fails():
     """
     if sys.version_info >= (2, 6):
         raise SkipTest()
-    reset_env()
+    reset_env(system_site_packages=True)
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
     assert '--user is only supported in Python version 2.6 and newer' in result.stdout
