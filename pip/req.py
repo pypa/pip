@@ -1063,7 +1063,6 @@ class RequirementSet(object):
                             try:
                                 self.unpack_url(url, location, self.is_download)
                             except HTTPError:
-                                logger.debug("HTTPError when unpacking %s" % url)
                                 e = sys.exc_info()[1]
                                 logger.fatal('Could not install requirement %s because of error %s'
                                              % (req_to_install, e))
