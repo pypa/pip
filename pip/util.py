@@ -10,7 +10,7 @@ import zipfile
 import tarfile
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
-from pip.locations import site_packages, user_site, user_base, orig_site_packages, running_under_virtualenv, virtualenv_no_global
+from pip.locations import site_packages, user_site, user_base, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -340,9 +340,9 @@ def egg_link_path(dist):
     2) in a no-global virtualenv
        try to find in site_packages
     3) in a yes-global virtualenv
-       try to find in site_packages, then site.USER_SITE, then original site_packages
+       try to find in site.USER_SITE, then site_packages  (don't look in global location)
 
-    For #1 and #3, there could be odd cases, where there's an egg-link in multiple locations. 
+    For #1 and #3, there could be odd cases, where there's an egg-link in 2 locations. 
     This method will just return the first one found.
     """
 
@@ -353,10 +353,9 @@ def egg_link_path(dist):
         if virtualenv_no_global():
             sites.append(site_packages)
         else:
-            sites.append(site_packages)
             if user_site_packages:
                 sites.append(user_site_packages)
-            sites.append(orig_site_packages)
+            sites.append(site_packages)
     else:
         if user_site_packages:
             sites.append(user_site_packages)

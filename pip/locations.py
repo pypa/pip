@@ -52,14 +52,6 @@ def user_base():
     if not (running_under_virtualenv() and virtualenv_no_global()):
         return get_user_base()
 
-orig_site_packages = None
-if running_under_virtualenv():
-    lib_python_dir = os.path.dirname(site_packages)
-    f = open(os.path.join(lib_python_dir, 'orig-prefix.txt'))
-    orig_prefix = f.read().strip()
-    f.close()        
-    orig_site_packages = get_python_lib(prefix=orig_prefix)
-
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
