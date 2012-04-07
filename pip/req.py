@@ -757,10 +757,7 @@ class Requirements(object):
         return self._keys
 
     def values(self):
-        values_list = []
-        for key in self._keys:
-            values_list.append(self._dict[key])
-        return values_list
+        return [self._dict[key] for key in self._keys]
 
     def __contains__(self, item):
         return item in self._keys
