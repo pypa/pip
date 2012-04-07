@@ -456,7 +456,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
-        elif os.path.isfile(develop_egg_link):
+        elif develop_egg_link and os.path.isfile(develop_egg_link):
             # develop egg
             fh = open(develop_egg_link, 'r')
             link_pointer = os.path.normcase(fh.readline().strip())
