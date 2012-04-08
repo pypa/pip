@@ -1,6 +1,7 @@
 import sys
 import pkg_resources
 from pip.basecommand import Command
+from pip.exceptions import ShowError
 
 
 class ShowCommand(Command):
@@ -12,10 +13,13 @@ class ShowCommand(Command):
         super(ShowCommand, self).__init__()
 
     def run(self, options, args):
+        arg = args[0]
         for dist in pkg_resources.working_set:
-            if args[0] == dist.project_name:
+            if arg == dist.project_name:
                 package = dist
                 break
+        else:
+            raise ShowError('%s is not installed' % arg)
 
         dependencies = package.get_metadata('requires.txt')
 

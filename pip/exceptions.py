@@ -25,3 +25,7 @@ class BadCommand(Exception):
 
 class CommandError(Exception):
     """Raised when there is an error in command-line arguments"""
+
+
+class ShowError(Exception):
+    """General exception during show"""
