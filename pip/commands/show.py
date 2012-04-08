@@ -17,10 +17,13 @@ class ShowCommand(Command):
                 package = dist
                 break
 
+        dependencies = package.get_metadata('requires.txt')
+
         f = sys.stdout
 
         f.write('Package: %s\n' % package.project_name)
-        f.write('  Version: %s\n' % package.version)
+        f.write('Version: %s\n' % package.version)
+        f.write('Requires:\n%s\n' % dependencies)
 
 
 ShowCommand()
