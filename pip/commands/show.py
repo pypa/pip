@@ -21,13 +21,18 @@ class ShowCommand(Command):
         else:
             raise ShowError('%s is not installed' % arg)
 
-        dependencies = package.get_metadata('requires.txt')
+        if dist.requires():
+            dependencies_names = [dep.project_name for dep in dist.requires()]
 
         f = sys.stdout
 
         f.write('Package: %s\n' % package.project_name)
         f.write('Version: %s\n' % package.version)
-        f.write('Requires:\n%s\n' % dependencies)
+
+        if dist.requires():
+            f.write('Requires:\n')
+            for dist in dependencies_names:
+                f.write(dist + '\n')
 
 
 ShowCommand()
