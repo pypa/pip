@@ -5,7 +5,10 @@ import os
 import re
 import gzip
 import mimetypes
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
