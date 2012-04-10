@@ -554,10 +554,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def _write_info_ini(self, egg_info_dir, options):
         info = ConfigParser.RawConfigParser()
 
-        for section, values in options.iteritems():
+        for section, values in options.items():
             info.add_section(section)
 
-            for key, value in values.iteritems():
+            for key, value in values.items():
                 info.set(section, key, value)
 
         f = open(os.path.join(egg_info_dir, 'pip.ini'), 'w')
