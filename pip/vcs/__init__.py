@@ -1,9 +1,10 @@
 """Handles all VCS (version control) support"""
 
-import os
+import os, sys
 import shutil
 
 from pip.backwardcompat import urlparse, urllib
+from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import (display_path, backup_dir, find_command,
                       ask, rmtree, ask_path_exists)
