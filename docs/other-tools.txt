@@ -61,25 +61,6 @@ and to bail if not, use::
 
     export PIP_REQUIRE_VIRTUALENV=true
 
-
-Using pip with virtualenvwrapper
----------------------------------
-
-If you are using `virtualenvwrapper
-<http://www.doughellmann.com/projects/virtualenvwrapper/>`_, you might
-want pip to automatically create its virtualenvs in your
-``$WORKON_HOME``.
-
-You can tell pip to do so by defining ``PIP_VIRTUALENV_BASE`` in your
-environment and setting it to the same value as that of
-``$WORKON_HOME``.
-
-Do so by adding the line::
-
-    export PIP_VIRTUALENV_BASE=$WORKON_HOME
-
-in your .bashrc under the line starting with ``export WORKON_HOME``.
-
 Using pip with buildout
 -----------------------
 
