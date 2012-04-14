@@ -40,6 +40,7 @@ Piet Delport
 Qiangning Hong
 Rene Dudfield
 Ronny Pfannschmidt
+Rory McCann
 Simon Cross
 Stavros Korokithakis
 Thomas Fenzl

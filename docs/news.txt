@@ -13,6 +13,10 @@ Beta and final releases planned for the second half of 2012.
 master (unreleased)
 -------------------
 
+* Fixed isse #58 - pip freeze now falls back to non-editable format rather
+  than blowing up if it can't determine the origin repository of an editable.
+  Thanks Rory McCann.
+
 * Added a `__main__.py` file to enable `python -m pip` on Python versions
   that support it. Thanks Alexey Luchko.
 
