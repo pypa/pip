@@ -144,7 +144,12 @@ class FrozenRequirement(object):
         from pip.vcs import vcs, get_src_requirement
         if vcs.get_backend_name(location):
             editable = True
-            req = get_src_requirement(dist, location, find_tags)
+            try:
+                req = get_src_requirement(dist, location, find_tags)
+            except InstallationError:
+                ex = sys.exc_info()[1]
+                logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)
+                req = None
             if req is None:
                 logger.warn('Could not determine repository location of %s' % location)
                 comments.append('## !! Could not determine repository location')
