@@ -277,12 +277,7 @@ class PackageFinder(object):
     def _get_queued_page(self, req, pending_queue, done, seen):
         while 1:
             pages_pending = pending_queue.qsize()
-            try:
-                location = pending_queue.get(False)
-            except QueueEmpty:
-                logger.debug('no pending requests, getter %s exiting' %
-                        threading.current_thread().name)
-                return
+            location = pending_queue.get()
             if location in seen:
                 pending_queue.task_done()
                 continue
@@ -295,16 +290,6 @@ class PackageFinder(object):
 
             for link in page.rel_links():
                 pending_queue.put(link)
-                # since we are adding more links to fetch - add more workers
-                # up to the max in case we started with only 1 initial location
-                thread_count = len(self._page_getting_threads)
-                for i in range(min(10, pending_queue.qsize())-thread_count):
-                    logger.debug('adding additional thread')
-                    t = threading.Thread(target=self._get_queued_page, args=(req,
-                        pending_queue, done, seen))
-                    self._page_getting_threads.append(t)
-                    t.setDaemon(True)
-                    t.start()
             pending_queue.task_done()
 
 
