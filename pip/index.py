@@ -621,6 +621,11 @@ class Link(object):
         url = url.rstrip('/')
         return url
 
+    @property
+    def url_without_fragment(self):
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, query, None))
+
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 
     @property
