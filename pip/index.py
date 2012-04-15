@@ -263,7 +263,7 @@ class PackageFinder(object):
         done = []
         seen = set()
         self._page_getting_threads = []
-        for i in range(min(10, len(locations))):
+        for i in range(10):
             t = threading.Thread(target=self._get_queued_page, args=(
                 req, pending_queue, done, seen))
             t.setDaemon(True)
