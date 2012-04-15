@@ -265,7 +265,7 @@ class PackageFinder(object):
         # set up worker threads if they haven't already been
         while len(self._page_getting_threads) < 10:
             t = threading.Thread(target=self._get_queued_page, args=(
-                req, self._pending_queue, done, seen))
+                req, done, seen))
             t.setDaemon(True)
             self._page_getting_threads.append(t)
             t.start()
@@ -278,7 +278,6 @@ class PackageFinder(object):
 
     def _get_queued_page(self, req, done, seen):
         while 1:
-            pages_pending = self._pending_queue.qsize()
             location = self._pending_queue.get()
             if location in seen:
                 self._pending_queue.task_done()
