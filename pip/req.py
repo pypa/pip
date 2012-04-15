@@ -948,7 +948,7 @@ class RequirementSet(object):
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
                     logger.notify('Unpacking %s' % display_path(url_to_path(req_to_install.url)))
                 else:
-                    logger.notify('Downloading/unpacking %s' % req_to_install)
+                    logger.notify('Searching for %s' % req_to_install)
             logger.indent += 2
             try:
                 is_bundle = False

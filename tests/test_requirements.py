@@ -83,7 +83,7 @@ def test_respect_order_in_requirements_file():
         """))
     result = run_pip('install', '-r', env.scratch_path / 'frameworks-req.txt')
     downloaded = [line for line in result.stdout.split('\n')
-                  if 'Downloading/unpacking' in line]
+                  if 'Searching for' in line]
 
     assert 'bidict' in downloaded[0], 'First download should ' \
             'be "bidict" but was "%s"' % downloaded[0]
