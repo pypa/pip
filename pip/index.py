@@ -255,7 +255,7 @@ class PackageFinder(object):
         return None
 
     def _get_pages(self, locations, req):
-        """Yields (page, page_url) from the given locations, skipping
+        """Returns a list of HTMLPage objects from the given locations, skipping
         locations that have errors, and adding download/homepage links"""
         pending_queue = Queue()
         for location in locations:
