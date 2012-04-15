@@ -14,11 +14,11 @@ def running_under_virtualenv():
 
 def virtualenv_no_global():
     """
-    assuming we know we're in a venv, is it isolated from global?
+    in a venv and isolated from global?
     """
     lib_python_dir = os.path.dirname(site_packages)
     no_global_file = os.path.join(lib_python_dir,'no-global-site-packages.txt')
-    if os.path.isfile(no_global_file):
+    if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
 
 
