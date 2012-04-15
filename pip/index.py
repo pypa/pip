@@ -272,8 +272,6 @@ class PackageFinder(object):
         pending_queue.join()
         return done
 
-    _log_lock = threading.Lock()
-
     def _get_queued_page(self, req, pending_queue, done, seen):
         while 1:
             pages_pending = pending_queue.qsize()
