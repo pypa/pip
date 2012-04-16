@@ -58,6 +58,19 @@ class Tests_UserSite:
         result.assert_installed('INITools', use_user_site=True)
 
 
+    def test_install_user_curdir(self):
+        """
+        user install current directory ('.') 
+        """
+        env = reset_env(use_distribute=True, system_site_packages=True)
+        run_from = abspath(join(here, 'packages', 'FSPkg'))
+        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+        fspkg_folder = env.user_site/'fspkg'
+        egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        assert fspkg_folder in result.files_created, str(result.stdout)
+
+        assert egg_info_folder in result.files_created, str(result)
+
 
     def test_install_user_venv_nositepkgs_fails(self):
         """

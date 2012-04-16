@@ -112,8 +112,8 @@ def reset_env(environ=None, use_distribute=None, system_site_packages=False):
     
     if system_site_packages: 
         #testing often occurs starting from a virtualenv (e.g. with tox)
-        #you can't create a yes-global virtualenv from a no-global virtualenv
-        #hence, this hack, instead of using virtualenv interface to create a yes-global virtualenv
+        #you can't create a global-aware virtualenv from a global-unaware virtualenv
+        #hence, this hack, instead of using virtualenv interface to create a global-aware virtualenv
         (env.lib_path/'no-global-site-packages.txt').rm() 
 
     return env
