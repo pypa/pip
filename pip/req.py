@@ -658,7 +658,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self.conflicts_with appropriately."""
         if self.req is None:
             return False
-        try:            
+        try:
             self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False

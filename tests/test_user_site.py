@@ -19,7 +19,7 @@ def Test_install_user_in_old_python_fails():
     run_from = abspath(join(here, 'packages', 'FSPkg'))
     result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
     assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-    
+
 
 class Tests_UserSite:
 
@@ -32,7 +32,7 @@ class Tests_UserSite:
             raise SkipTest()
 
 
-    def Test_install_user_editable_with_setuptools_fails(self):
+    def test_install_user_editable_with_setuptools_fails(self):
         """
         "--user" and "-e" with setuptools fails with message
         """
@@ -47,7 +47,7 @@ class Tests_UserSite:
         assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 
-    def Test_install_user_editable_with_distribute(self):
+    def test_install_user_editable_with_distribute(self):
         """
         "--user" and "-e" with distribute works
         """
@@ -59,7 +59,7 @@ class Tests_UserSite:
 
 
 
-    def Test_install_user_venv_nositepkgs_fails(self):
+    def test_install_user_venv_nositepkgs_fails(self):
         """
         user install in virtualenv (with no system packages) fails with message
         """
@@ -69,7 +69,7 @@ class Tests_UserSite:
         assert 'You are in virtualenv where the user site is not visible, will not continue.' in result.stdout
 
 
-    def Test_install_user_conflict_in_venv(self):
+    def test_install_user_conflict_in_venv(self):
         """
         user install with conflict in venv site-pkgs; ignores venv site-pkgs and installs
         """
@@ -91,7 +91,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
 
-    def Test_install_user_conflict_in_usersite(self):
+    def test_install_user_conflict_in_usersite(self):
         """
         user install with conflict in user site-pkgs; updates user site-pkgs
         """
@@ -104,11 +104,10 @@ class Tests_UserSite:
         egg_info_folder = env.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
         initools_folder = env.user_site / 'initools' / '__init__.py'
         assert egg_info_folder in result2.files_created, str(result2)
-        #files_updated due to uninstall not currently supporting removal from user_site in virtualenvs
         assert initools_folder in result2.files_updated, str(result2)
 
 
-    def Test_install_user_conflict_in_venv_usersite(self):
+    def test_install_user_conflict_in_venv_usersite(self):
         """
         user install with conflict in venv site-pkgs and user site-pkgs; ignores venv site-pkgs and updates user site-pkgs
         """
@@ -122,7 +121,6 @@ class Tests_UserSite:
         egg_info_folder = env.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
         initools_folder = env.user_site / 'initools' / '__init__.py'
         assert egg_info_folder in result3.files_created, str(result3)
-        #files_updated due to uninstall not currently supporting removal from user_site in virtualenvs
         assert initools_folder in result3.files_updated, str(result3) 
 
         #venv still has 0.2 (can't just look in result1; have to check)
@@ -132,7 +130,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
 
-    def Test_uninstall_from_usersite(self):
+    def test_uninstall_from_usersite(self):
         """
         uninstall from usersite
         """
@@ -143,19 +141,45 @@ class Tests_UserSite:
         assert 'Cannot uninstall requirement INITools, not installed' in result3.stdout
 
 
-    def Test_uninstall_editable_from_usersite(self):
+    def test_uninstall_editable_from_usersite(self):
         """
         uninstall editable local dir user install
         """
         env = reset_env(use_distribute=True, system_site_packages=True)
+
+        #install
         to_install = abspath(join(here, 'packages', 'FSPkg'))
         result1 = run_pip('install', '--user', '-e', to_install, expect_error=False)
-        egg_link = env.user_site/'FSPkg.egg-link'
-        assert egg_link in result1.files_created, str(result1.stdout)
+        egg_link_relative = env.user_site/'FSPkg.egg-link'
+        egg_link = env.root_path / egg_link_relative
+        assert egg_link_relative in result1.files_created, str(result1.stdout)
 
+        #uninstall
         result2 = run_pip('uninstall', '-y', 'FSPkg')
         assert not isfile(egg_link)
 
+        #try to uninstall again
+        result3 = run_pip('uninstall', '-y', 'FSPkg', expect_error=True)
+        assert 'Cannot uninstall requirement FSPkg, not installed' in result3.stdout
+
+    def test_uninstall_editable_from_venv_usersite_visible(self):
+        """
+        uninstall editable local dir from venv site-packages with user site on sys.path
+        """
+        env = reset_env(system_site_packages=True)
+
+        #install
+        to_install = abspath(join(here, 'packages', 'FSPkg'))
+        result1 = run_pip('install', '-e', to_install, expect_error=False)        
+        egg_link_relative = env.site_packages/'FSPkg.egg-link'
+        egg_link = env.root_path / egg_link_relative
+        assert egg_link_relative in result1.files_created, str(result1.stdout)
+
+        #uninstall
+        result2 = run_pip('uninstall', '-y', 'FSPkg')
+        assert not isfile(egg_link)
+
+        #try to uninstall again
         result3 = run_pip('uninstall', '-y', 'FSPkg', expect_error=True)
         assert 'Cannot uninstall requirement FSPkg, not installed' in result3.stdout
 
