@@ -326,8 +326,10 @@ class PackageFinder(object):
         name = match.group(0).lower()
         # To match the "safe" name that pkg_resources creates:
         name = name.replace('_', '-')
-        if name.startswith(search_name.lower()):
-            return match.group(0)[len(search_name):].lstrip('-')
+        # project name and version must be separated by a dash
+        look_for = search_name.lower() + "-"
+        if name.startswith(look_for):
+            return match.group(0)[len(look_for):]
         else:
             return None
 
