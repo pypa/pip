@@ -273,11 +273,14 @@ def renames(old, new):
 
 def is_local(path):
     """
-    If we're not in a virtualenv, or path is in site.USER_BASE, then considered "local."
-    Else, return True if path is within sys.prefix
-
+    If we're not in a virtualenv, then True
+    If we're in a yes-global virtualenv, and path in user base, then True
+    Else, True if path is within sys.prefix
+    
     """
-    if not running_under_virtualenv() or path_in_userbase(path):
+    if not running_under_virtualenv():
+        return True
+    if not virtualenv_no_global and path_in_userbase(path):
         return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 
