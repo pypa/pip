@@ -185,8 +185,8 @@ class InstallCommand(Command):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
-            if running_under_virtualenv() and virtualenv_no_global():
-                raise InstallationError("You are in virtualenv where the user site is not visible, will not continue.")
+            if virtualenv_no_global():
+                raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
         if options.target_dir:
             options.ignore_installed = True
