@@ -42,7 +42,6 @@ class InstallRequirement(object):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
-        self.set = None
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
@@ -62,6 +61,7 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        self.use_user_site = False
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -456,7 +456,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
-        elif develop_egg_link and os.path.isfile(develop_egg_link):
+        elif develop_egg_link:
             # develop egg
             fh = open(develop_egg_link, 'r')
             link_pointer = os.path.normcase(fh.readline().strip())
@@ -664,7 +664,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             return False
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(self.req.project_name)
-            if self.set.use_user_site: 
+            if self.use_user_site: 
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist                    
             else:
@@ -815,16 +815,15 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         name = install_req.name
+        install_req.use_user_site = self.use_user_site
         if not name:
             self.unnamed_requirements.append(install_req)
-            install_req.set = self
         else:
             if self.has_requirement(name):
                 raise InstallationError(
                     'Double requirement given: %s (aready in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
             self.requirements[name] = install_req
-            install_req.set = self
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
                 self.requirement_aliases[name.lower()] = name
