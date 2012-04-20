@@ -79,7 +79,7 @@ class Tests_UserSite:
         env = reset_env()
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-        assert 'You are in virtualenv where the user site is not visible, will not continue.' in result.stdout
+        assert "Can not perform a '--user' install. User site-packages are not visible in this virtualenv." in result.stdout
 
 
     def test_install_user_conflict_in_venv(self):
