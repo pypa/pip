@@ -20,8 +20,12 @@ if running_under_virtualenv():
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
     #Use tempfile to create a temporary folder
-    build_prefix =  tempfile.mkdtemp('-build', 'pip-')
+    build_prefix = tempfile.mkdtemp('-build', 'pip-')
     src_prefix = tempfile.mkdtemp('-src', 'pip-')
+    #This is a terrible hack- since pip relies on this directory not being created yet
+    #We will delete it now, and have pip recreate it later
+    os.rmdir(build_prefix)
+    os.rmdir(src_prefix)
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
