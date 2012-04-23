@@ -36,8 +36,6 @@ def test_show():
     env = reset_env()
     write_file('requires.txt', textwrap.dedent("""\
         INITools==0.2
-        # and something else to test out:
-        MarkupSafe<=0.12
         """))
     result = run_pip('install', '-r', env.scratch_path/'requires.txt')
     result = run_pip('show', 'INITools', expect_stderr=True)
