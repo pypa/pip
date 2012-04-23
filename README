@@ -1,0 +1,15 @@
+This is my development fork of pip, the Python package installer- see the
+official site ( http://www.pip-installer.org/en/latest/contributing.html)
+for more on it.
+
+I haven't done much yet, but the reason I decided to get involved and start
+writing code for pip was so that I could fix a few annoying problems related 
+to the "build" temp folders created by pip.
+
+Namely, if pip fails for whatever reason, the temp folder (which is created
+in the current working directory) will not be deleted. I decided I could fix
+this by first moving build to a temporary directory (using tempfile), and
+second ensuring it was always deleted.
+
+I'm looking at making a handful of other tweaks as well, such as moving the
+pip configuration from ~/.pip to ~/.config/pip.
