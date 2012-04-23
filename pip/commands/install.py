@@ -103,6 +103,12 @@ class InstallCommand(Command):
             default=None,
             help='Cache downloaded packages in DIR')
         self.parser.add_option(
+            '--index-cache',
+            dest='index_cache',
+            metavar='DIR',
+            default=None,
+            help='Cache index pages in DIR')
+        self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
@@ -174,7 +180,8 @@ class InstallCommand(Command):
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors)
+                             mirrors=options.mirrors,
+                             index_cache=options.index_cache)
 
     def run(self, options, args):
         if options.download_dir:
