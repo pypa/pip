@@ -440,9 +440,14 @@ class PageCache(object):
     
     def save_obj(self, obj, name):
         path = os.path.join(self.index_cache, name)
-        with open(path, 'w') as f:
-            if obj:
+        if obj:
+            with open(path, 'w') as f:
                 pickle.dump(obj, f)
+        else:
+            try:
+                os.remove(path)
+            except:
+                pass
         
 class HTMLPage(object):
     """Represents one page, along with its URL"""
