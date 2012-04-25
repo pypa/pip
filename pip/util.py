@@ -280,9 +280,9 @@ def is_local(path):
     """
     if not running_under_virtualenv():
         return True
-    if not virtualenv_no_global and path_in_userbase(path):
+    if not virtualenv_no_global and path_inuserbase(path):
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    return path_in_path(path, sys.prefix)
 
 
 def dist_is_local(dist):
@@ -302,7 +302,7 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site
 
     """
-    return normalize_path(dist_location(dist)).startswith(normalize_path(user_site()))
+    return path_in_path(dist_location(dist), user_site())
 
 
 def path_in_userbase(path):
@@ -311,8 +311,24 @@ def path_in_userbase(path):
 
     """
     if path.strip() and user_base():
-        return normalize_path(path).startswith(normalize_path(user_base()))
+        return path_in_path(path, user_base())
   
+
+def path_in_path(path1, path2):
+    """
+    Is path1 within path2?
+    path_in_path('/fu/bar','/fu') will return True
+    when paths are equal, will also return True
+    """    
+    if os.path.isfile(path2):
+        return False
+    paths = [path1,path2]
+    for i in range(2):
+        path = normalize_path(paths[i]) 
+        if path[-1] != os.path.sep: #only true for root ('/' or 'c:\')
+            paths[i] = path + os.path.sep
+    return paths[0].startswith(paths[1])
+
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
