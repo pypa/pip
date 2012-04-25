@@ -280,7 +280,7 @@ def is_local(path):
     """
     if not running_under_virtualenv():
         return True
-    elif not virtualenv_no_global and path_inuserbase(path):
+    elif not virtualenv_no_global and path_in_userbase(path):
         return True
     else:
         return path_in_path(path, sys.prefix)
