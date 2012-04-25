@@ -145,9 +145,9 @@ class Tests_EgglinkPath:
         eq_(egg_link_path(self.dist), self.user_site_egglink)
 
 
-    ##############################
-    ## egglink in venv sitepkgs ##
-    ##############################
+    ################
+    ## no egglink ##
+    ################
     @patch('pip.util.site_packages', Path('SITE_PACKAGES'))
     @patch('os.path.isfile')
     @patch('pip.util.running_under_virtualenv')
