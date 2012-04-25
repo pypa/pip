@@ -191,7 +191,7 @@ class InstallCommand(Command):
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors,
                              index_cache=options.index_cache,
-                             failure_limt=options.failure_limit)
+                             failure_limit=options.failure_limit)
 
     def run(self, options, args):
         if options.download_dir:
