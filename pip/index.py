@@ -44,7 +44,6 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None, 
             index_cache=None, failure_limit=3):
-        logger.info('This is yajogo pip')
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
