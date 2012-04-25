@@ -42,12 +42,13 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None, index_cache=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None, 
+            index_cache=None, failure_limit=3):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
         self.index_cache = index_cache
-        self.cache = PageCache(index_cache=index_cache)
+        self.cache = PageCache(index_cache=index_cache, failure_limit=failure_limit)
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
         if use_mirrors:
@@ -366,9 +367,8 @@ class PackageFinder(object):
 class PageCache(object):
     """Cache of HTML pages"""
 
-    failure_limit = 3
-
-    def __init__(self, index_cache=None):
+    def __init__(self, failure_limit=3, index_cache=None):
+        self.failure_limit = failure_limit
         self._failures = {}
         self._pages = {}
         self._archives = {}
@@ -531,7 +531,7 @@ class HTMLPage(object):
             desc = str(e)
             if isinstance(e, socket.timeout):
                 log_meth = logger.info
-                level =1
+                level = 1
                 desc = 'timed out'
             elif isinstance(e, URLError):
                 log_meth = logger.info

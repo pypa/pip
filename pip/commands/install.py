@@ -102,12 +102,21 @@ class InstallCommand(Command):
             metavar='DIR',
             default=None,
             help='Cache downloaded packages in DIR')
+        
         self.parser.add_option(
             '--index-cache',
             dest='index_cache',
             metavar='DIR',
             default=None,
             help='Cache index pages in DIR')
+        self.parser.add_option(
+            '--failure-limit',
+            dest='failure_limit',
+            metavar='FAILURE_LIMIT',
+            default=3,
+            type='int',
+            help='Number of time to try a URL before giving up FAILURE_LIMIT')
+            
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
@@ -181,7 +190,8 @@ class InstallCommand(Command):
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors,
-                             index_cache=options.index_cache)
+                             index_cache=options.index_cache,
+                             failure_limt=options.failure_limit)
 
     def run(self, options, args):
         if options.download_dir:
