@@ -115,7 +115,7 @@ class InstallCommand(Command):
             metavar='FAILURE_LIMIT',
             default=3,
             type='int',
-            help='Number of time to try a URL before giving up FAILURE_LIMIT')
+            help='Number of time to try a URL before giving up. Default: %default')
             
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
