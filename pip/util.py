@@ -274,15 +274,16 @@ def renames(old, new):
 def is_local(path):
     """
     If we're not in a virtualenv, then True
-    If we're in a yes-global virtualenv, and path in user base, then True
+    Else If we're in a yes-global virtualenv, and path in user base, then True
     Else, True if path is within sys.prefix
     
     """
     if not running_under_virtualenv():
         return True
-    if not virtualenv_no_global and path_inuserbase(path):
+    elif not virtualenv_no_global and path_inuserbase(path):
         return True
-    return path_in_path(path, sys.prefix)
+    else:
+        return path_in_path(path, sys.prefix)
 
 
 def dist_is_local(dist):
