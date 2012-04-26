@@ -89,7 +89,7 @@ class InstallCommand(Command):
             dest='target_dir',
             metavar='DIR',
             default=None,
-            help='Install packages into DIR.')
+            help='Install packages into DIR (any scripts are thrown away!)')
         self.parser.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
