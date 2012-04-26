@@ -52,7 +52,7 @@ global setting with the same name will be overridden; e.g. decreasing the
 
     [global]
     timeout = 60
-    
+
     [freeze]
     timeout = 10
 
@@ -87,6 +87,9 @@ platforms.
 On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 
 And on Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
+
+Also pip will search in the current and parent directories for a file
+called ``pip.conf`` or ``.pip.conf``, or just ``pip.ini`` on Windows.
 
 Environment variables
 -----------------------
@@ -139,3 +142,18 @@ configuration file::
     mirrors =
         http://d.pypi.python.org
         http://b.pypi.python.org
+
+Path management
+***************
+
+You can have entries added to ``sys.path`` in your config file,
+generally to support cases when you are installing libraries somewhere
+not normally on the path, but you want to be able to uninstall these
+libraries, or have pip detect them when upgrading/etc.  To do this
+use::
+
+    [global]
+    sys.path = %(here)s/vendor/
+
+You can include multiple paths, each on their own line.  These are
+added using ``site.addsitedir()`` so ``.pth`` files are respected.

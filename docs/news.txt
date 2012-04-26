@@ -39,6 +39,15 @@ develop (unreleased)
 * Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
   Thomas Fenzl.
 
+* Search for config files (``pip.ini`` on Windows, ``pip.conf`` or
+  ``.pip.conf`` on other platforms) in the current and parent
+  directories.
+ 
+* Substitute ``%(here)s``, ``%(cwd)s`` and ``%(file)s`` in config file
+  values.
+
+* Add ``-f/--force`` option to ``pip uninstall``, which allows
+  uninstallation of files that aren't inside the virtualenv.
 
 1.1 (2012-02-16)
 ----------------

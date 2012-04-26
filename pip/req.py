@@ -7,8 +7,7 @@ import pkg_resources
 import tempfile
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
-                            BestVersionAlreadyInstalled,
-                            DistributionNotFound)
+                            BestVersionAlreadyInstalled)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
@@ -95,7 +94,7 @@ class InstallRequirement(object):
         # If the line has an egg= definition, but isn't editable, pull the requirement out.
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
-            url = link.url_without_fragment
+            url = link.url_fragment
             req = link.egg_fragment
 
             # Handle relative file URLs
@@ -394,7 +393,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -484,7 +483,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                         paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
                         paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
-        paths_to_remove.remove(auto_confirm)
+        paths_to_remove.remove(auto_confirm, force)
         self.uninstalled = paths_to_remove
 
     def rollback_uninstall(self):
@@ -858,9 +857,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         for req in self.requirements.values():
-            req.uninstall(auto_confirm=auto_confirm)
+            req.uninstall(auto_confirm=auto_confirm, force=force)
             req.commit_uninstall()
 
     def locate_files(self):
@@ -911,20 +910,17 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             best_installed = False
-            not_found = None
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        if not self.force_reinstall and not req_to_install.url:
+                        if not self.force_reinstall:
                             try:
                                 url = finder.find_requirement(
                                     req_to_install, self.upgrade)
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
-                            except DistributionNotFound:
-                                not_found = sys.exc_info()[1]
                             else:
                                 # Avoid the need to call find_requirement again
                                 req_to_install.url = url.url
@@ -979,8 +975,6 @@ class RequirementSet(object):
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:
-                            if not_found:
-                                raise not_found
                             url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
                         else:
                             ## FIXME: should req_to_install.url already be a link?
@@ -1408,10 +1402,10 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def remove(self, auto_confirm=False):
+    def remove(self, auto_confirm=False, force=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self._can_uninstall():
+        if not force and not self._can_uninstall():
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2

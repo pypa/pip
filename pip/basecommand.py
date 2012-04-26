@@ -62,6 +62,7 @@ class Command(object):
     def main(self, args, initial_options):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
+        self.parser.update_sys_path()
 
         level = 1 # Notify
         level += options.verbose
@@ -190,4 +191,3 @@ def load_all_commands():
 def command_names():
     names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
     return list(names)
-

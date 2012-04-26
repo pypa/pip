@@ -23,6 +23,12 @@ class UninstallCommand(Command):
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
+        self.parser.add_option(
+            '-f', '--force',
+            dest='force',
+            action='store_true',
+            help="Uninstall (or try to uninstall) a package even when it does not "
+            "appear to be in the current virtual environment")
 
     def run(self, options, args):
         requirement_set = RequirementSet(
@@ -38,6 +44,6 @@ class UninstallCommand(Command):
         if not requirement_set.has_requirements:
             raise InstallationError('You must give at least one requirement '
                 'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
-        requirement_set.uninstall(auto_confirm=options.yes)
+        requirement_set.uninstall(auto_confirm=options.yes, force=options.force)
 
 UninstallCommand()
