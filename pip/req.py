@@ -59,6 +59,8 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        # A tracker that will be called with any filenames of files created by this
+        self.file_tracker = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -599,6 +601,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filename = line.strip()
                 if os.path.isdir(filename):
                     filename += os.path.sep
+                if self.file_tracker:
+                    self.file_tracker(filename)
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
@@ -781,7 +785,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False, force_reinstall=False):
+                 ignore_dependencies=False, force_reinstall=False,
+                 script_fixup=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -789,6 +794,7 @@ class RequirementSet(object):
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
+        self.script_fixup = script_fixup
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -1119,8 +1125,13 @@ class RequirementSet(object):
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
         logger.indent += 2
+        if self.script_fixup:
+            files = []
         try:
             for requirement in to_install:
+                if self.script_fixup:
+                    files.append((requirement, []))
+                    requirement.file_tracker = files[-1][1].append
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
                                   % requirement.conflicts_with)
@@ -1142,6 +1153,8 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+        if self.script_fixup:
+            self.run_script_fixup(files)
         self.successfully_installed = to_install
 
     def create_bundle(self, bundle_filename):
@@ -1219,6 +1232,22 @@ class RequirementSet(object):
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
         return name
+
+    def run_script_fixup(self, req_files):
+        args = []
+        for req, files in req_files:
+            for file in files:
+                if not os.path.isfile(file):
+                    continue
+                fp = open(file)
+                try:
+                    first = fp.readline()
+                    if first.startswith('#!'):
+                        logger.debug('Found #! script: %s' % file)
+                        args.append((req, file))
+                finally:
+                    fp.close()
+        self.script_fixup(args)
 
 
 def _make_build_dir(build_dir):

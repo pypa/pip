@@ -49,6 +49,11 @@ develop (unreleased)
 * Add ``-f/--force`` option to ``pip uninstall``, which allows
   uninstallation of files that aren't inside the virtualenv.
 
+* Add ``--script-fixup``, a hook on installation that allows you to rewrite
+  any scripts that were installed.  This can be helpful if you want to make
+  sure the environment is initialized before any scripts run (this is
+  implicitly what virtualenv does, with just the ``#!`` line).
+
 1.1 (2012-02-16)
 ----------------
 
