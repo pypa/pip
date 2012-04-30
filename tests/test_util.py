@@ -247,13 +247,6 @@ class Tests_PathInPath:
 
     @patch('os.path.isfile')
     @patch('os.path.isdir')    
-    def test_dir_in_root(self,mock_isdir, mock_isfile):
-        "dir2 (absolute form) is in root"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir1,os.path.sep, True)
-
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
     def test_dir_notin_file(self,mock_isdir, mock_isfile):
         "dir2 is not in file1"
         self.mockPrep(mock_isdir, mock_isfile)
