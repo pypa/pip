@@ -368,20 +368,13 @@ class TestPipEnvironment(TestFileEnvironment):
         rmtree(str(self.root_path), ignore_errors=True)
 
     def _use_cached_pypi_server(self):
-        site_packages = self.root_path / self.site_packages
-        pth = open(os.path.join(site_packages, 'pypi_intercept.pth'), 'w')
-        pth.write('import sys; ')
-        pth.write('sys.path.insert(0, %r); ' % str(here))
-        pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
-
-        # this is necessary due to pypi_intercept.pth, which forces pkg_resources to be 
-        # imported *before* the sys.path is fully initalized, causing pkg_resources.working_set
-        # to be improperly initialized
-        # this at least puts back the user site so it can be tested properly
-        pth.write("import pkg_resources; pkg_resources.working_set.add_entry('%s'); " %self.user_site_path)
-
-        pth.write('sys.path.remove(%r); ' % str(here))
-        pth.close()
+        sitecustomize_path = self.lib_path / 'sitecustomize.py'
+        sitecustomize = open(sitecustomize_path, 'w')
+        sitecustomize.write('import sys; ')
+        sitecustomize.write('sys.path.insert(0, %r); ' % str(here))
+        sitecustomize.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
+        sitecustomize.write('sys.path.remove(%r); ' % str(here))
+        sitecustomize.close()
 
 
 fast_test_env_root = here / 'tests_cache' / 'test_ws'
