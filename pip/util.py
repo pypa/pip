@@ -283,7 +283,7 @@ def is_local(path):
     elif not virtualenv_no_global() and path_in_userbase(path):
         return True
     else:
-        return path_in_path(path, sys.prefix)
+        return path_in_dir(path, sys.prefix)
 
 
 def dist_is_local(dist):
@@ -303,7 +303,8 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site
 
     """
-    return path_in_path(dist_location(dist), user_site())
+    if user_site():
+        return path_in_dir(dist_location(dist), user_site())
 
 
 def path_in_userbase(path):
@@ -312,22 +313,21 @@ def path_in_userbase(path):
 
     """
     if path.strip() and user_base():
-        return path_in_path(path, user_base())
+        return path_in_dir(path, user_base())
   
 
-def path_in_path(path1, path2):
+def path_in_dir(path, dir_):
     """
-    Is path1 within path2?
-    path_in_path('/fu/bar','/fu') will return True
+    Is path within dir?
+    path_in_dir('/fu/bar','/fu') will return True
     when paths are equal, will also return True
+    this method does not test for path/dir existence
     """    
-    if os.path.isfile(path2):
-        return False
-    paths = [path1,path2]
+    paths = [path,dir_]
     for i in range(2):
-        path = normalize_path(paths[i]) 
-        if path[-1] != os.path.sep: #only true for root ('/' or 'c:\')
-            paths[i] = path + os.path.sep
+        p = normalize_path(paths[i]) 
+        if p[-1] != os.path.sep: #only true for root ('/' or 'c:\')
+            paths[i] = p + os.path.sep
     return paths[0].startswith(paths[1])
 
 

@@ -7,7 +7,7 @@ import pkg_resources
 from mock import patch, sentinel
 from nose.tools import eq_
 from tests.path import Path
-from pip.util import path_in_path, egg_link_path
+from pip.util import path_in_dir, egg_link_path
 
 
 class Tests_EgglinkPath:
@@ -185,72 +185,37 @@ class Tests_EgglinkPath:
         eq_(egg_link_path(self.dist), None)
 
 
-class Tests_PathInPath:
-    "util.path_in_path() tests"
+class Tests_PathInDir:
+    "util.path_in_dir() tests"
 
     dir1 = Path('dir1')
     dir2 = Path('dir2')
     dir2_sep = dir2 + os.path.sep
     dir1_cat_dir2 = dir1 + dir2
     dir2_in_dir1 = dir1 / dir2    
-    file1 = Path('file1')    
 
-    def isFile(self,path):
-        if path==self.file1:
-            return True
+    def path_in_dir(self,p1, p2, v):
+        eq_(path_in_dir(p1,p2), v, "%s in %s is not %s" %(p1, p2, v))
 
-    def isDir(self,path):
-        if path != file1:
-            return True   
-
-    def path_in_path(self,p1, p2, v):
-        eq_(path_in_path(p1,p2), v, "%s in %s is not %s" %(p1, p2, v))
-
-    def mockPrep(self, mock_isdir, mock_isfile):
-        mock_isdir.side_effect = self.isDir
-        mock_isfile.side_effect = self.isFile        
-
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dir_in_dir(self,mock_isdir, mock_isfile):
+    def test_dir_in_dir(self):
         "dir1/dir2 is in dir1"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir2_in_dir1, self.dir1, True)
+        self.path_in_dir(self.dir2_in_dir1, self.dir1, True)
 
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dir_notin_dir(self,mock_isdir, mock_isfile):
+    def test_dir_notin_dir(self):
         "dir2 is not in dir1"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir2, self.dir1, False)
+        self.path_in_dir(self.dir2, self.dir1, False)
 
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dircat_notin_dir(self,mock_isdir, mock_isfile):
+    def test_dircat_notin_dir(self):
         "dir1dir2 is not in dir1"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir1_cat_dir2, self.dir1, False)
+        self.path_in_dir(self.dir1_cat_dir2, self.dir1, False)
 
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dir_eq_dir(self,mock_isdir, mock_isfile):
+    def test_dir_eq_dir(self):
         "dir1 is 'in' dir1"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir1, self.dir1, True)
+        self.path_in_dir(self.dir1, self.dir1, True)
 
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dir_eq_dirsep(self,mock_isdir, mock_isfile):
+    def test_dir_eq_dirsep(self):
         "dir2 is 'in' dir2/"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir2, self.dir2_sep, True)
-
-    @patch('os.path.isfile')
-    @patch('os.path.isdir')    
-    def test_dir_notin_file(self,mock_isdir, mock_isfile):
-        "dir2 is not in file1"
-        self.mockPrep(mock_isdir, mock_isfile)
-        self.path_in_path(self.dir2, self.file1, False)
+        self.path_in_dir(self.dir2, self.dir2_sep, True)
 
 
 
