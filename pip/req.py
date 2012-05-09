@@ -363,18 +363,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def installed_version(self):
         return self.pkg_info()['version']
 
-    def get_namespaces(self, dist=None):
-        """
-            Get the distribution declared namespace
-        """
-	if not dist:
-            dist = self.dist
-
-        namespaces = None
-        if dist.has_metadata('namespace_packages.txt'):
-            namespaces = dist.get_metadata('namespace_packages.txt')
-        return namespaces
-
     def assert_source_matches_version(self):
         assert self.source_dir
         if self.comes_from is None:
@@ -459,10 +447,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
             if dist.has_metadata('top_level.txt'):
-                namespaces = self.get_namespaces(dist)
-                if not namespaces:
+                if dist.has_metadata('namespace_packages.txt'):
+                    namespaces = dist.get_metadata('namespace_packages.txt')
+                else:
                     namespaces = []
-
                 for top_level_pkg in [p for p
                                       in dist.get_metadata('top_level.txt').splitlines()
                                       if p and p not in namespaces]:
@@ -586,11 +574,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
                 list(global_options) + [
                 'install',
+                '--single-version-externally-managed',
                 '--record', record_filename]
-
-            namespaces = self.get_namespaces()
-            if not namespaces:
-                install_args.extend('--single-version-externally-managed')
 
             if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -652,7 +637,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def install_editable(self, install_options, global_options=()):
         logger.notify('Running setup.py develop for %s' % self.name)
         logger.indent += 2
-        import pdb; pdb.set_trace()
         try:
             ## FIXME: should we do --install-headers here too?
             call_subprocess(
