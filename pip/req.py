@@ -35,12 +35,13 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True):
+                 url=None, update=True, subdirectory=False):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
+        self.subdirectory = subdirectory
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
@@ -68,7 +69,9 @@ class InstallRequirement(object):
             source_dir = url_to_path(url)
         else:
             source_dir = None
-        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+
+        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url,\
+                                    subdirectory=has_subdirectory(editable_req))
 
     @classmethod
     def from_line(cls, name, comes_from=None):
@@ -208,10 +211,19 @@ class InstallRequirement(object):
         logger.indent += 2
         try:
             script = self._run_setup_py
-            script = script.replace('__SETUP_PY__', repr(self.setup_py))
+
+            if self.subdirectory:
+                setup_py_path = os.path.join(os.path.dirname(self.setup_py), self.subdirectory, \
+                                                                        os.path.basename(self.setup_py))
+            else:
+                setup_py_path = self.setup_py
+
+            script = script.replace('__SETUP_PY__', repr(setup_py_path))
             script = script.replace('__PKG_NAME__', repr(self.name))
+
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
             # for an installed egg, causing problems
+
             if self.editable or force_root_egg_info:
                 egg_base_option = []
             else:
@@ -1303,6 +1315,15 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
 
+def has_subdirectory(editable_req):
+    """
+        Search for subdirectory parameter on editable URL
+        Returns False if not found or the subdirectory name if success
+    """
+    match = re.search(r'.*(?:#|#.*?&)subdirectory=([^&]*)', editable_req)
+    if not match:
+        return False
+    return match.group(1)
 
 def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
@@ -1316,6 +1337,7 @@ def parse_editable(editable_req, default_vcs=None):
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
             url = '%s+%s' % (version_control, url)
+            break
     if '+' not in url:
         if default_vcs:
             url = default_vcs + '+' + url
@@ -1326,8 +1348,9 @@ def parse_editable(editable_req, default_vcs=None):
     if not vcs.get_backend(vc_type):
         raise InstallationError(
             'For --editable=%s only svn (svn+URL), Git (git+URL), Mercurial (hg+URL) and Bazaar (bzr+URL) is currently supported' % editable_req)
+
     match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if (not match or not match.group(1)) and vcs.get_backend(vc_type):
+    if (not match or not match.group(1)):
         parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
         if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
             req = parts[-3]
