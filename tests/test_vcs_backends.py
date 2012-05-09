@@ -15,6 +15,16 @@ def test_install_editable_from_git_with_https():
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
+def test_install_editable_with_subdirectory():
+    """
+    Test installing a package from a repo subdirectory
+    """
+    reset_env()
+    result = run_pip('install', '-e',
+                     '%s#egg=pip-test-package#subdirectory=piptestsubpackage' %
+                     local_checkout('git+https://github.com/niedbalski/pip-test-package.git'),
+                     expect_error=True)
+
 def test_git_with_sha1_revisions():
     """
     Git backend should be able to install from SHA1 revisions
