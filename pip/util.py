@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input
-from pip.locations import site_packages, running_under_virtualenv
+from pip.locations import site_packages, running_under_virtualenv, explicit_paths
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -279,6 +279,9 @@ def is_local(path):
     """
     if not running_under_virtualenv():
         return True
+    for p in explicit_paths:
+        if normalize_path(path).startswith(normalize_path(p)):
+            return True
     return normalize_path(path).startswith(normalize_path(sys.prefix))
 
 
@@ -483,6 +486,7 @@ def cache_download(target_file, temp_location, content_type):
 
 
 def unpack_file(filename, location, content_type, link):
+    filename = os.path.realpath(filename)
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
@@ -503,6 +507,3 @@ def unpack_file(filename, location, content_type, link):
         logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
                      % (filename, location, content_type))
         raise InstallationError('Cannot determine archive format of %s' % location)
-
-
-

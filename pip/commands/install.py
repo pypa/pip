@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import shutil
+import re
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
@@ -89,7 +90,7 @@ class InstallCommand(Command):
             dest='target_dir',
             metavar='DIR',
             default=None,
-            help='Install packages into DIR.')
+            help='Install packages into DIR (any scripts are thrown away!)')
         self.parser.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
@@ -165,6 +166,13 @@ class InstallCommand(Command):
             action='store_true',
             help='Install to user-site')
 
+        self.parser.add_option(
+            '--script-fixup',
+            metavar="file.py:function or module.name:function",
+            dest='script_fixup',
+            help="Calls the given function with a list of all scripts created during installation, like "
+            "function([(req1, script1), (req2, script2)]).  You can use this to rewrite scripts.")
+
     def _build_package_finder(self, options, index_urls):
         """
         Create a package finder appropriate to this install command.
@@ -200,6 +208,11 @@ class InstallCommand(Command):
 
         finder = self._build_package_finder(options, index_urls)
 
+        if options.script_fixup:
+            script_fixup = ScriptFixup(options.script_fixup)
+        else:
+            script_fixup = None
+
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=options.src_dir,
@@ -208,7 +221,8 @@ class InstallCommand(Command):
             upgrade=options.upgrade,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
-            force_reinstall=options.force_reinstall)
+            force_reinstall=options.force_reinstall,
+            script_fixup=script_fixup)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -275,5 +289,58 @@ class InstallCommand(Command):
             shutil.rmtree(temp_target_dir)
         return requirement_set
 
-
 InstallCommand()
+
+
+class ScriptFixup(object):
+
+    valid_function_re = re.compile(r'^[a-zA-Z_][a-zA-Z_0-9]*$')
+    valid_module_re = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_.]*$')
+
+    def __init__(self, script):
+        self.script = script
+        if ':' not in script:
+            raise CommandError("--script-fixup=%s must be in the form FILE:FUNCTION or MODULE:FUNCTION")
+        path, function = script.rsplit(':', 1)
+        if not self.valid_function_re.search(function):
+            raise CommandError("Function %s in --script-fixup=%s is not a valid function name" % (function, script))
+        if os.path.exists(path):
+            ns = {
+                '__file__': path,
+                '__name__': '__script_fixup__',
+                }
+            logger.debug('Execing %s' % path)
+            try:
+                execfile(path, ns)
+            except:
+                logger.error('Exception while running script %s from --script-fixup=%s' % (path, script))
+                raise
+            if function not in ns:
+                raise CommandError('File %s from --script-fixup=%s does not define a function %s'
+                                   % (path, script, function))
+            self.function = ns[function]
+        else:
+            if not self.valid_module_re.search(path):
+                raise CommandError("--script-fixup=%s refers to a file that does not exist, or an invalid module name: %s"
+                                   % (script, path))
+            logger.debug('Importing %s' % path)
+            try:
+                __import__(path)
+            except:
+                logger.error('Exception importing module %s from --script-fixup=%s' % (path, script))
+                raise
+            mod = sys.modules[path]
+            try:
+                self.function = getattr(mod, function)
+            except NameError:
+                raise CommandError(
+                    "Module %s (in %s) from --script-fixup=%s does not define a function or object named %s"
+                    % (path, mod.__file__, script, function))
+
+    def __call__(self, args):
+        try:
+            self.function(args)
+        except:
+            logger.error(
+                "Exception when calling --script-fixup=%s" % self.script)
+            raise

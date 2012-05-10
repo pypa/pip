@@ -7,8 +7,7 @@ import pkg_resources
 import tempfile
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
-                            BestVersionAlreadyInstalled,
-                            DistributionNotFound)
+                            BestVersionAlreadyInstalled)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
@@ -60,6 +59,8 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        # A tracker that will be called with any filenames of files created by this
+        self.file_tracker = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -95,7 +96,7 @@ class InstallRequirement(object):
         # If the line has an egg= definition, but isn't editable, pull the requirement out.
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
-            url = link.url_without_fragment
+            url = link.url_fragment
             req = link.egg_fragment
 
             # Handle relative file URLs
@@ -394,7 +395,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -484,7 +485,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                         paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
                         paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
 
-        paths_to_remove.remove(auto_confirm)
+        paths_to_remove.remove(auto_confirm, force)
         self.uninstalled = paths_to_remove
 
     def rollback_uninstall(self):
@@ -600,6 +601,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filename = line.strip()
                 if os.path.isdir(filename):
                     filename += os.path.sep
+                if self.file_tracker:
+                    self.file_tracker(filename)
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
@@ -782,7 +785,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False, force_reinstall=False):
+                 ignore_dependencies=False, force_reinstall=False,
+                 script_fixup=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -790,6 +794,7 @@ class RequirementSet(object):
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
+        self.script_fixup = script_fixup
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -858,9 +863,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, force=False):
         for req in self.requirements.values():
-            req.uninstall(auto_confirm=auto_confirm)
+            req.uninstall(auto_confirm=auto_confirm, force=force)
             req.commit_uninstall()
 
     def locate_files(self):
@@ -911,20 +916,17 @@ class RequirementSet(object):
                 req_to_install = reqs.pop(0)
             install = True
             best_installed = False
-            not_found = None
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        if not self.force_reinstall and not req_to_install.url:
+                        if not self.force_reinstall:
                             try:
                                 url = finder.find_requirement(
                                     req_to_install, self.upgrade)
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
-                            except DistributionNotFound:
-                                not_found = sys.exc_info()[1]
                             else:
                                 # Avoid the need to call find_requirement again
                                 req_to_install.url = url.url
@@ -979,8 +981,6 @@ class RequirementSet(object):
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:
-                            if not_found:
-                                raise not_found
                             url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
                         else:
                             ## FIXME: should req_to_install.url already be a link?
@@ -1125,8 +1125,13 @@ class RequirementSet(object):
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
         logger.indent += 2
+        if self.script_fixup:
+            files = []
         try:
             for requirement in to_install:
+                if self.script_fixup:
+                    files.append((requirement, []))
+                    requirement.file_tracker = files[-1][1].append
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
                                   % requirement.conflicts_with)
@@ -1148,6 +1153,8 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
         finally:
             logger.indent -= 2
+        if self.script_fixup:
+            self.run_script_fixup(files)
         self.successfully_installed = to_install
 
     def create_bundle(self, bundle_filename):
@@ -1225,6 +1232,22 @@ class RequirementSet(object):
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
         return name
+
+    def run_script_fixup(self, req_files):
+        args = []
+        for req, files in req_files:
+            for file in files:
+                if not os.path.isfile(file):
+                    continue
+                fp = open(file)
+                try:
+                    first = fp.readline()
+                    if first.startswith('#!'):
+                        logger.debug('Found #! script: %s' % file)
+                        args.append((req, file))
+                finally:
+                    fp.close()
+        self.script_fixup(args)
 
 
 def _make_build_dir(build_dir):
@@ -1408,10 +1431,10 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def remove(self, auto_confirm=False):
+    def remove(self, auto_confirm=False, force=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self._can_uninstall():
+        if not force and not self._can_uninstall():
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
