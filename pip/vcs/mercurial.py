@@ -2,7 +2,7 @@ import os
 import tempfile
 import re
 import sys
-from pip import call_subprocess
+from pip.util import call_subprocess
 from pip.util import display_path, rmtree
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
