@@ -14,5 +14,6 @@ notifications:
 branches:
   only:
     - develop
+    - feature/record-download-info
 env:
   - PIP_USE_MIRRORS=true
