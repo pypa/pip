@@ -828,11 +828,7 @@ class RequirementSet(object):
 
     @property
     def has_editables(self):
-        if any(req.editable for req in self.requirements.values()):
-            return True
-        if any(req.editable for req in self.unnamed_requirements):
-            return True
-        return False
+        return any(req.editable for req in self.requirements.values()) or any(req.editable for req in self.unnamed_requirements)
 
     @property
     def is_download(self):
