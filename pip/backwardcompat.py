@@ -114,11 +114,11 @@ except ImportError:
 from distutils.sysconfig import get_python_lib, get_python_version
 
 def get_user_site():
-    "return site.USER_SITE or None if not implemented in earlier version of python"
+    "Return site.USER_SITE or None if not implemented in earlier version of python."
     return getattr(site,'USER_SITE',None)
 
 def get_user_base():
-    "return site.USER_BASE or None if not implemented in earlier version of python"
+    "Return site.USER_BASE or None if not implemented in earlier version of python."
     return getattr(site,'USER_BASE',None)
 
 
