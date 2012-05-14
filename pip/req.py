@@ -276,7 +276,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     for dir in vcs.dirnames:
                         if dir in dirs:
                             dirs.remove(dir)
-                    for dir in dirs:
+                    # Iterate over a copy of ``dirs``, since mutating
+                    # a list while iterating over it can cause trouble.
+                    # (See https://github.com/pypa/pip/pull/462.)
+                    for dir in list(dirs):
                         # Don't search in anything that looks like a virtualenv environment
                         if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
                             or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
