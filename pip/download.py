@@ -10,7 +10,7 @@ from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
                                 urlparse, string_types, HTTPError)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
-                      backup_dir, ask, ask_path_exists, unpack_file,
+                      backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger

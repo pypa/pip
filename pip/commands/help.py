@@ -1,6 +1,5 @@
 from pip.basecommand import (Command, command_dict,
-                             load_all_commands, SUCCESS,
-                             ERROR)
+                             load_all_commands, SUCCESS)
 from pip.exceptions import CommandError
 from pip.baseparser import parser
 
