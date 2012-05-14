@@ -10,7 +10,7 @@ from pip.locations import default_config_file, default_log_file
 
 
 class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
-    """ A prettier/less verbose help formatter for optparse """
+    """A prettier/less verbose help formatter for optparse."""
 
     def __init__(self, *args, **kw):
         kw['max_help_position'] = 23
@@ -19,23 +19,27 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # do as argparse does
         try:
             kw['width'] = int(os.environ['COLUMNS']) - 2
-        #except (KeyError, ValueError):
         except:
             kw['width'] = 78
 
         optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
 
     def format_option_strings(self, option):
-        #return self._format_option_strings(option, ' %s', ' ')
         return self._format_option_strings(option, ' <%s>', ', ')
 
     def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
-        """ ('-f', '--format') -> -f%(optsep)s--format mvarfmt % metavar"""
+        """
+        Return a comma-separated list of option strings and metavars.
+
+        :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
+        :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
+        :param optsep:  separator
+        """
 
         opts = []
 
         if option._short_opts: opts.append(option._short_opts[0])
-        if option._long_opts: opts.append(option._long_opts[0])
+        if option._long_opts:  opts.append(option._long_opts[0])
         if len(opts) > 1: opts.insert(1, optsep)
 
         if option.takes_value():
@@ -58,15 +62,15 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         return msg
 
-    # leave full control over description to us
     def format_description(self, description):
+        # leave full control over description to us
         if description:
             return description
         else:
             return ''
 
-    # leave full control over epilog to us
     def format_epilog(self, epilog):
+        # leave full control over epilog to us
         if epilog:
             return epilog
         else:
