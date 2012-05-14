@@ -137,7 +137,6 @@ def test_git_works_with_editable_non_origin_repo():
     version_pkg_path = _create_test_package(env)
     run_pip('install', '-e', version_pkg_path.abspath)
 
-
     # 'freeze'ing this should not fall over, but should result in stderr output warning
     result = run_pip('freeze', expect_stderr=True)
     assert "Error when trying to get requirement" in result.stderr

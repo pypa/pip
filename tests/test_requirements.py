@@ -27,6 +27,7 @@ def test_requirements_file():
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[env.site_packages/fn].dir
 
+
 def test_schema_check_in_requirements_file():
     """
     Test installing from a requirements file with an invalid vcs schema..
@@ -37,6 +38,7 @@ def test_schema_check_in_requirements_file():
         git://github.com/alex/django-fixture-generator.git#egg=fixture_generator
         """))
     assert_raises(AssertionError, run_pip, 'install', '-vvv', '-r', env.scratch_path / 'file-egg-req.txt')
+
 
 def test_relative_requirements_file():
     """
