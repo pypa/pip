@@ -14,16 +14,15 @@ def test_install_editable_from_git_with_https():
                      expect_error=True)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
-
 def test_install_editable_with_subdirectory():
     """
     Test installing a package from a repo subdirectory
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=pip-test-package#subdirectory=piptestsubpackage' %
-                     local_checkout('git+https://github.com/niedbalski/pip-test-package.git'),
-                     expect_error=True)
+                     '%s#egg=pip-test-subdir-package#subdirectory=piptestsubpackage' %
+                     local_checkout('git+https://github.com/niedbalski/pip-test-subdir-package.git'), expect_error=True)
+    result.assert_installed('pip-test-subdir-package', with_files=['.git'])
 
 def test_git_with_sha1_revisions():
     """
