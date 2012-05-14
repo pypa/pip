@@ -20,7 +20,7 @@ from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
-                                Queue, httplib, urlparse,
+                                Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty

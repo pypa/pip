@@ -2,7 +2,6 @@
 import os
 import optparse
 
-import subprocess
 import sys
 import re
 import difflib

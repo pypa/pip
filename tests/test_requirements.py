@@ -1,11 +1,9 @@
 import os.path
 import textwrap
 from nose.tools import assert_raises
-from pip.backwardcompat import urllib
 from pip.req import Requirements
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
-from tests.path import Path
 
 
 def test_requirements_file():

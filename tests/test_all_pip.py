@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import subprocess
-import shutil
 from os.path import dirname, abspath
 
 from pip.backwardcompat import urllib

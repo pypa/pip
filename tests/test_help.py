@@ -1,7 +1,6 @@
 from pip.exceptions import CommandError
-from pip.commands.help import (HelpCommand,
-                               SUCCESS,
-                               ERROR,)
+from pip.status_codes import (SUCCESS, ERROR)
+from pip.commands.help import HelpCommand
 from mock import Mock
 from nose.tools import assert_raises
 from tests.test_pip import run_pip, reset_env

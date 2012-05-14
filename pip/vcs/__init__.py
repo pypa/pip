@@ -6,7 +6,7 @@ import shutil
 from pip.backwardcompat import urlparse, urllib
 from pip.log import logger
 from pip.util import (display_path, backup_dir, find_command,
-                      ask, rmtree, ask_path_exists)
+                      rmtree, ask_path_exists)
 
 
 __all__ = ['vcs', 'get_src_requirement']

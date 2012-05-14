@@ -1,7 +1,6 @@
 from mock import patch
 from pip.vcs.git import Git
-from tests.test_pip import (reset_env, run_pip,
-                            _create_test_package)
+from tests.test_pip import (reset_env, _create_test_package)
 
 
 def test_get_tag_revs_should_return_tag_name_and_commit_pair():
