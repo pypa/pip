@@ -27,9 +27,13 @@ if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
-    ## FIXME: this isn't a very good default
-    build_prefix = os.path.join(os.getcwd(), 'build')
-    src_prefix = os.path.join(os.getcwd(), 'src')
+    try:
+        ## FIXME: this isn't a very good default
+        build_prefix = os.path.join(os.getcwd(), 'build')
+        src_prefix = os.path.join(os.getcwd(), 'src')
+    except OSError:
+        # In case the current working directory has been renamed or deleted
+        sys.exit("The folder you are executing pip from can no longer be found.")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
@@ -58,7 +62,6 @@ if sys.platform == 'win32':
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    user_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')

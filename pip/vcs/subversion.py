@@ -1,9 +1,9 @@
 import os
 import re
 from pip.backwardcompat import urlparse
-from pip import call_subprocess, InstallationError
+from pip import InstallationError
 from pip.index import Link
-from pip.util import rmtree, display_path
+from pip.util import rmtree, display_path, call_subprocess
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 

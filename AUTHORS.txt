@@ -47,4 +47,5 @@ Thomas Fenzl
 Thomas Johansson
 Vinay Sajip
 Vitaly Babiy
+W Trevor King
 Wil Tan
