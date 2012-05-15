@@ -1,8 +1,5 @@
-from pip.basecommand import (Command, command_dict,
-                             load_all_commands, SUCCESS,
-                             ERROR)
+from pip.basecommand import Command, SUCCESS, ERROR
 from pip.exceptions import CommandError
-from pip.baseparser import parser
 
 
 class HelpCommand(Command):
@@ -11,23 +8,19 @@ class HelpCommand(Command):
     summary = 'Show available commands'
 
     def run(self, options, args):
-        load_all_commands()
-        if args:
-            ## FIXME: handle errors better here
-            command = args[0]
-            if command not in command_dict:
-                raise CommandError('No command with the name: %s' % command)
-            command = command_dict[command]
-            command.parser.print_help()
-            return SUCCESS
-        parser.print_help()
-        print('\nCommands available:')
-        commands = list(set(command_dict.values()))
-        commands.sort(key=lambda x: x.name)
-        for command in commands:
-            if command.hidden:
-                continue
-            print('  %s: %s' % (command.name, command.summary))
-        return SUCCESS
+        from pip.commands import commands
 
-HelpCommand()
+        try:
+            # 'pip help' with no args is handled by pip.__init__.parseopt()
+            cmd_name = args[0] # the command we need help for
+        except:
+            return SUCCESS
+
+        if cmd_name not in commands:
+            raise CommandError('unknown command "%s"' % cmd_name)
+
+        # uhm, passing self.main_parser is a no no ; fix later
+        command = commands[cmd_name](self.main_parser) # instantiate
+        command.parser.print_help()
+
+        return SUCCESS

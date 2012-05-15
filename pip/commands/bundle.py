@@ -11,13 +11,15 @@ class BundleCommand(InstallCommand):
     summary = 'Create pybundles (archives containing multiple packages)'
     bundle = True
 
-    def __init__(self):
-        super(BundleCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(BundleCommand, self).__init__(*args, **kw)
+
         # bundle uses different default source and build dirs
         build_opt = self.parser.get_option("--build")
         build_opt.default = backup_dir(build_prefix, '-bundle')
         src_opt = self.parser.get_option("--src")
         src_opt.default = backup_dir(src_prefix, '-bundle')
+
         self.parser.set_defaults(**{
                 src_opt.dest: src_opt.default,
                 build_opt.dest: build_opt.default,
@@ -33,6 +35,3 @@ class BundleCommand(InstallCommand):
         self.bundle_filename = args.pop(0)
         requirement_set = super(BundleCommand, self).run(options, args)
         return requirement_set
-
-
-BundleCommand()

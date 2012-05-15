@@ -32,20 +32,23 @@ class CompletionCommand(Command):
     summary = 'A helper command to be used for command completion'
     hidden = True
 
-    def __init__(self):
-        super(CompletionCommand, self).__init__()
-        self.parser.add_option(
-            '--bash', '-b',
-            action='store_const',
-            const='bash',
-            dest='shell',
-            help='Emit completion code for bash')
-        self.parser.add_option(
-            '--zsh', '-z',
-            action='store_const',
-            const='zsh',
-            dest='shell',
-            help='Emit completion code for zsh')
+    def __init__(self, *args, **kw):
+        super(CompletionCommand, self).__init__(*args, **kw)
+        gadd = self.command_group.add_option
+
+        gadd( '--bash', '-b',
+              action='store_const',
+              const='bash',
+              dest='shell',
+              help='Emit completion code for bash')
+
+        gadd( '--zsh', '-z',
+              action='store_const',
+              const='zsh',
+              dest='shell',
+              help='Emit completion code for zsh')
+
+        self.parser.add_option_group(self.command_group)
 
     def run(self, options, args):
         """Prints the completion code of the given shell"""
@@ -56,5 +59,3 @@ class CompletionCommand(Command):
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
             sys.stderr.write('ERROR: You must pass %s\n' % ' or '.join(shell_options))
-
-CompletionCommand()
