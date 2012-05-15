@@ -1,6 +1,7 @@
 import sys
 import shutil
 import os
+import site
 import stat
 import re
 import posixpath
@@ -10,7 +11,7 @@ import tarfile
 import subprocess
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str
-from pip.locations import site_packages, running_under_virtualenv
+from pip.locations import site_packages, user_site, user_base, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -273,14 +274,17 @@ def renames(old, new):
 
 def is_local(path):
     """
-    Return True if path is within sys.prefix, if we're running in a virtualenv.
-
-    If we're not in a virtualenv, all paths are considered "local."
-
+    If we're not in a virtualenv, then True
+    Else If we're in a yes-global virtualenv, and path in user base, then True
+    Else, True if path is within sys.prefix
+    
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    elif not virtualenv_no_global() and path_in_userbase(path):
+        return True
+    else:
+        return path_in_dir(path, sys.prefix)
 
 
 def dist_is_local(dist):
@@ -289,9 +293,43 @@ def dist_is_local(dist):
     (i.e. within current virtualenv).
 
     Always True if we're not in a virtualenv.
+    Also True if installed in user site.
 
     """
     return is_local(dist_location(dist))
+
+
+def dist_in_usersite(dist):
+    """
+    Return True if given Distribution is installed in user site
+
+    """
+    if user_site():
+        return path_in_dir(dist_location(dist), user_site())
+
+
+def path_in_userbase(path):
+    """
+    Return True if path in site.USER_BASE
+
+    """
+    if path.strip() and user_base():
+        return path_in_dir(path, user_base())
+  
+
+def path_in_dir(path, dir_):
+    """
+    Is path within dir?
+    path_in_dir('/fu/bar','/fu') will return True
+    when paths are equal, will also return True
+    this method does not test for path/dir existence
+    """    
+    paths = [path,dir_]
+    for i in range(2):
+        p = normalize_path(paths[i]) 
+        if p[-1] != os.path.sep: #only true for root ('/' or 'c:\')
+            paths[i] = p + os.path.sep
+    return paths[0].startswith(paths[1])
 
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
@@ -315,17 +353,40 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
 
 def egg_link_path(dist):
     """
-    Return the path where we'd expect to find a .egg-link file for
-    this distribution. (There doesn't seem to be any metadata in the
-    Distribution object for a develop egg that points back to its
-    .egg-link and easy-install.pth files).
+    Return the path for the .egg-link file if it exists, otherwise, None.
 
-    This won't find a globally-installed develop egg if we're in a
-    virtualenv.
+    There's 3 scenarios:
+    1) not in a virtualenv
+       try to find in site.USER_SITE, then site_packages
+    2) in a no-global virtualenv
+       try to find in site_packages
+    3) in a yes-global virtualenv
+       try to find in site.USER_SITE, then site_packages  (don't look in global location)
 
+    For #1 and #3, there could be odd cases, where there's an egg-link in 2 locations. 
+    This method will just return the first one found.
     """
-    return os.path.join(site_packages, dist.project_name) + '.egg-link'
 
+    user_site_packages = user_site()
+
+    sites=[]
+    if running_under_virtualenv():
+        if virtualenv_no_global():
+            sites.append(site_packages)
+        else:
+            if user_site_packages:
+                sites.append(user_site_packages)
+            sites.append(site_packages)
+    else:
+        if user_site_packages:
+            sites.append(user_site_packages)
+        sites.append(site_packages)
+
+    for site in sites:
+        egglink = os.path.join(site, dist.project_name) + '.egg-link'
+        if os.path.isfile(egglink):
+            return egglink                            
+    
 
 def dist_location(dist):
     """
@@ -336,7 +397,7 @@ def dist_location(dist):
 
     """
     egg_link = egg_link_path(dist)
-    if os.path.exists(egg_link):
+    if egg_link:
         return egg_link
     return dist.location
 

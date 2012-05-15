@@ -2,7 +2,7 @@
 
 import sys
 import os
-from pip.backwardcompat import get_python_lib
+from pip.backwardcompat import get_python_lib, get_user_site, get_user_base
 
 
 def running_under_virtualenv():
@@ -11,6 +11,15 @@ def running_under_virtualenv():
 
     """
     return hasattr(sys, 'real_prefix')
+
+def virtualenv_no_global():
+    """
+    in a venv and isolated from global?
+    """
+    lib_python_dir = os.path.dirname(site_packages)
+    no_global_file = os.path.join(lib_python_dir,'no-global-site-packages.txt')
+    if running_under_virtualenv() and os.path.isfile(no_global_file):
+        return True
 
 
 if running_under_virtualenv():
@@ -34,6 +43,19 @@ src_prefix = os.path.abspath(src_prefix)
 # FIXME doesn't account for venv linked to global site-packages
 
 site_packages = get_python_lib()
+
+#can't be replaced with property set at import.  site.py hasn't done it's work yet
+def user_site():
+    "Return user site as long as not in venv/no-global."
+    if not virtualenv_no_global():
+        return get_user_site()
+
+#can't be replaced with property set at import.  site.py hasn't done it's work yet
+def user_base():
+    "Return user base as long as not in venv/no-global."
+    if not virtualenv_no_global():
+        return get_user_base()
+
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')

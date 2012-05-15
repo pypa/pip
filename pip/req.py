@@ -2,10 +2,11 @@ import sys
 import os
 import shutil
 import re
+import site
 import zipfile
 import pkg_resources
 import tempfile
-from pip.locations import bin_py, running_under_virtualenv
+from pip.locations import bin_py, running_under_virtualenv, user_site
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound)
@@ -13,7 +14,7 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local
+from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip.util import call_subprocess
@@ -60,6 +61,7 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
+        self.use_user_site = False
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -457,7 +459,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
-        elif os.path.isfile(develop_egg_link):
+        elif develop_egg_link:
             # develop egg
             fh = open(develop_egg_link, 'r')
             link_pointer = os.path.normcase(fh.readline().strip())
@@ -664,7 +666,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            self.conflicts_with = pkg_resources.get_distribution(self.req.project_name)
+            existing_dist = pkg_resources.get_distribution(self.req.project_name)
+            if self.use_user_site: 
+                if dist_in_usersite(existing_dist):
+                    self.conflicts_with = existing_dist                    
+            else:
+                self.conflicts_with = existing_dist
         return True
 
     @property
@@ -781,8 +788,8 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False,
-                 ignore_dependencies=False, force_reinstall=False):
+                upgrade=False, ignore_installed=False,ignore_dependencies=False, 
+                force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -798,6 +805,7 @@ class RequirementSet(object):
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
+        self.use_user_site = use_user_site
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -807,6 +815,7 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         name = install_req.name
+        install_req.use_user_site = self.use_user_site
         if not name:
             self.unnamed_requirements.append(install_req)
         else:

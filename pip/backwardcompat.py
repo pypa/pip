@@ -3,6 +3,7 @@
 import sys
 import os
 import shutil
+import site
 
 __all__ = ['any', 'WindowsError', 'md5', 'copytree']
 
@@ -111,6 +112,14 @@ except ImportError:
     from email.FeedParser import FeedParser
 
 from distutils.sysconfig import get_python_lib, get_python_version
+
+def get_user_site():
+    "Return site.USER_SITE or None if not implemented in earlier version of python."
+    return getattr(site,'USER_SITE',None)
+
+def get_user_base():
+    "Return site.USER_BASE or None if not implemented in earlier version of python."
+    return getattr(site,'USER_BASE',None)
 
 
 def copytree(src, dst):
