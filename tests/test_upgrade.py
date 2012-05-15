@@ -164,7 +164,7 @@ def test_editable_git_upgrade():
     _change_test_package_version(env, version_pkg_path)
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
-    assert 'some different version' in version2.stdout
+    assert 'some different version' in version2.stdout, "Output: %s" % (version2.stdout)
 
 
 def test_should_not_install_always_from_cache():
