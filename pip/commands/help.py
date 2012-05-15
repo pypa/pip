@@ -5,7 +5,7 @@ from pip.exceptions import CommandError
 class HelpCommand(Command):
     name = 'help'
     usage = '%prog'
-    summary = 'Show available commands'
+    summary = 'show available commands'
 
     def run(self, options, args):
         from pip.commands import commands

@@ -13,8 +13,8 @@ from distutils.version import StrictVersion, LooseVersion
 
 class SearchCommand(Command):
     name = 'search'
-    usage = '%prog QUERY'
-    summary = 'Search PyPI'
+    usage = '%prog <query>'
+    summary = 'search pypi'
 
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
@@ -22,9 +22,9 @@ class SearchCommand(Command):
 
         gadd( '--index',
               dest='index',
-              metavar='URL',
+              metavar='url',
               default='http://pypi.python.org/pypi',
-              help='Base URL of Python Package Index (default %default)')
+              help='base <url> of Python Package Index (default %default)')
 
         self.parser.add_option_group(self.command_group)
 

@@ -102,7 +102,7 @@ def parseopts(args):
     command_summaries = get_summaries()
 
     description = ['Commands:']
-    description.extend(['  %-20s %s' % (i, j) for i,j in command_summaries])
+    description.extend(['  %-17s %s' % (i, j) for i,j in command_summaries])
 
     parser.description = '\n'.join(description)
 
@@ -115,6 +115,9 @@ def parseopts(args):
 
     # pip || pip help || pip --help -> print_help()
     if options.help or not args or (args[0] == 'help' and len(args) == 1):
+        # align option help with command help
+        # `pip help` looks too 'wide' with the default max_help_position
+        parser.formatter.max_help_position = 20
         parser.print_help()
         sys.exit()
 

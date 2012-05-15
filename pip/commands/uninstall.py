@@ -5,8 +5,8 @@ from pip.exceptions import InstallationError
 
 class UninstallCommand(Command):
     name = 'uninstall'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
-    summary = 'Uninstall packages'
+    usage = '%prog [options] <package name> ...'
+    summary = 'uninstall packages'
 
     def __init__(self, *args, **kw):
         super(UninstallCommand, self).__init__(*args, **kw)
@@ -16,14 +16,13 @@ class UninstallCommand(Command):
               dest='requirements',
               action='append',
               default=[],
-              metavar='FILENAME',
-              help='Uninstall all the packages listed in the given requirements file.  '
-              'This option can be used multiple times.')
+              metavar='fn',
+              help='uninstall all the packages listed in the given requirements file')
 
         gadd( '-y', '--yes',
               dest='yes',
               action='store_true',
-              help="Don't ask for confirmation of uninstall deletions.")
+              help="assume 'yes' on all confirmation prompts")
 
         self.parser.add_option_group(self.command_group)
 

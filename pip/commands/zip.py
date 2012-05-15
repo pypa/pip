@@ -12,8 +12,8 @@ from pip.basecommand import Command
 
 class ZipCommand(Command):
     name = 'zip'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Zip individual packages'
+    usage = '%prog [options] <package name> ...'
+    summary = 'zip individual packages'
 
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)
@@ -23,37 +23,37 @@ class ZipCommand(Command):
             gadd( '--unzip',
                   action='store_true',
                   dest='unzip',
-                  help='Unzip (rather than zip) a package')
+                  help='unzip (rather than zip) a package')
         else:
             gadd( '--zip',
                   action='store_false',
                   dest='unzip',
                   default=True,
-                  help='Zip (rather than unzip) a package')
+                  help='zip (rather than unzip) a package')
 
         gadd( '--no-pyc',
               action='store_true',
               dest='no_pyc',
-              help='Do not include .pyc files in zip files (useful on Google App Engine)')
+              help='do not include .pyc files in zip files (useful on Google App Engine)')
 
         gadd( '-l', '--list',
               action='store_true',
               dest='list',
-              help='List the packages available, and their zip status')
+              help='list the packages available, and their zip status')
 
         gadd( '--sort-files',
               action='store_true',
               dest='sort_files',
-              help='With --list, sort packages according to how many files they contain')
+              help='with --list, sort packages according to how many files they contain')
 
         gadd( '--path',
               action='append',
               dest='paths',
-              help='Restrict operations to the given paths (may include wildcards)')
+              help='restrict operations to the given paths (may include wildcards)')
 
         gadd( '-n', '--simulate',
               action='store_true',
-              help='Do not actually perform the zip/unzip operation')
+              help='do not actually perform the zip/unzip operation')
 
         self.parser.add_option_group(self.command_group)
 
