@@ -165,6 +165,12 @@ class InstallCommand(Command):
             action='store_true',
             help='Install to user-site')
 
+        self.parser.add_option(
+            '--egg',
+            dest='as_egg',
+            action='store_true',
+            help="Install as self contained egg file, like easy_install does.")
+
     def _build_package_finder(self, options, index_urls):
         """
         Create a package finder appropriate to this install command.
@@ -206,6 +212,7 @@ class InstallCommand(Command):
             download_dir=options.download_dir,
             download_cache=options.download_cache,
             upgrade=options.upgrade,
+            as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall)
