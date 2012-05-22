@@ -36,9 +36,6 @@ pip doesn't do everything that easy_install does. Specifically:
   future it would be good if it could install binaries from Windows ``.exe``
   or ``.msi`` -- binary install on other platforms is not a priority.)
 
-* It doesn't understand Setuptools extras (like ``package[test]``).  This should
-  be added eventually.
-
 * It is incompatible with some packages that extensively customize distutils
   or setuptools in their ``setup.py`` files.
 

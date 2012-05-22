@@ -22,10 +22,15 @@ else:
     #Use tempfile to create a temporary folder
     build_prefix = tempfile.mkdtemp('-build', 'pip-')
     src_prefix = tempfile.mkdtemp('-src', 'pip-')
-    #This is a terrible hack- since pip relies on this directory not being created yet
-    #We will delete it now, and have pip recreate it later
-    os.rmdir(build_prefix)
-    os.rmdir(src_prefix)
+    ## FIXME: this is a terrible hack; change req.py (or other locations?)
+    ## to flag a directory for deletion based on whether or not it matches
+    ## build_prefix and src_prefix, NOT if pip has had to create it
+    try:
+        os.rmdir(build_prefix)
+        os.rmdir(src_prefix)
+    except OSError:
+        # I'm not sure why this wouldn't work, but just in case!
+        sys.exit("An error has occurred in attempting to set up the temporary directories")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
@@ -41,7 +46,6 @@ if sys.platform == 'win32':
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    user_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
