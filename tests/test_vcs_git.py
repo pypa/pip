@@ -75,3 +75,9 @@ def test_check_rev_options_should_handle_ambiguous_commit(branches_revs_mock,
 
     result = git.check_rev_options('0.1', '.', [])
     assert result == ['123456'], result
+
+def test_parse_branch_url():
+    assert Git('git+git://example.com:repo.git@branch').get_url_rev() == ('git://example.com:repo.git', 'branch')
+    assert Git('git+git://example.com/repo.git@branch').get_url_rev() == ('git://example.com/repo.git', 'branch')
+    assert Git('git+user@example.com:repo@branch').get_url_rev() == ('user@example.com:repo', 'branch')
+    assert Git('git+ssh://user@example.com/repo.git@branch').get_url_rev() == ('ssh://user@example.com/repo.git', 'branch')
