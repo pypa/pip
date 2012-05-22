@@ -13,7 +13,6 @@ def running_under_virtualenv():
     """
     return hasattr(sys, 'real_prefix')
 
-
 if running_under_virtualenv():
     ## FIXME: is build/ a good name?
     build_prefix = os.path.join(sys.prefix, 'build')
@@ -22,8 +21,8 @@ else:
     #Use tempfile to create a temporary folder
     build_prefix = tempfile.mkdtemp('-build', 'pip-')
     src_prefix = tempfile.mkdtemp('-src', 'pip-')
-    #This is a terrible hack- since pip relies on this directory not being created yet
-    #We will delete it now, and have pip recreate it later
+    # This is a terrible hack- since pip relies on this directory not being created yet
+    # We will delete it now, and have pip recreate it later
     os.rmdir(build_prefix)
     os.rmdir(src_prefix)
 
@@ -47,12 +46,14 @@ if sys.platform == 'win32':
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    
-    #Use ~/.config/pip instead of ~/.pip- cleaner home folder
-    #On some systems, we may have to create this, on others it probably exists
-    if not os.path.exists(os.path.join(user_dir, '.config')):
-        os.mkdir(os.path.join(user_dir, '.config'))
-    default_storage_dir = os.path.join(user_dir, '.config', 'pip')
+
+    # Use XDG_CONFIG_DIR instead of the ~/.pip
+    # On some systems, we may have to create this, on others it probably exists
+    xdg_dir = os.path.join(user_dir, '.config')
+    xdg_dir = os.environ.get('XDG_CONFIG_DIR', xdg_dir)
+    if not os.path.exists(xdg_dir):
+        os.mkdir(xdg_dir)
+    default_storage_dir = os.path.join(xdg_dir, 'pip')
     
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
