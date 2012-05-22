@@ -47,6 +47,12 @@ if sys.platform == 'win32':
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
+    
+    #Use ~/.config/pip instead of ~/.pip- cleaner home folder
+    #On some systems, we may have to create this, on others it probably exists
+    if not os.path.exists(os.path.join(user_dir, '.config')):
+        os.mkdir(os.path.join(user_dir, '.config'))
+    
     default_storage_dir = os.path.join(user_dir, '.pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
