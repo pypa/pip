@@ -64,7 +64,11 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
-        name, url, options = parse_editable(editable_req, default_vcs)
+        try:
+            name, url, options = parse_editable(editable_req, default_vcs)
+        except:
+            name, url = parse_editable(editable_req, default_vcs)
+
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
@@ -1350,8 +1354,8 @@ def _build_editable_options(req):
     regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
     matched = regexp.findall(req)
 
-    ret = dict()
     if matched:
+        ret = dict()
         for option in matched:
             (name, value) = option
             if name in ret:
@@ -1361,7 +1365,8 @@ def _build_editable_options(req):
             except KeyError:
                 pass
             ret[name] = value
-    return ret
+        return ret
+    return None
 
 def parse_editable(editable_req, default_vcs=None):
     """
@@ -1397,11 +1402,11 @@ def parse_editable(editable_req, default_vcs=None):
 
     try:
         options = _build_editable_options(editable_req)
-    except Exception as ex:
+    except Exception , ex:
         raise InstallationError(
                 '--editable=%s error in editable options: %s' % (editable_req, ex))
 
-    if 'egg' not in options:
+    if not options or 'egg' not in options:
         req = _build_req_from_url(editable_req)
         if not req:
             raise InstallationError(
