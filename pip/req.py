@@ -1321,7 +1321,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
 
-def process_egg_basename(req):
+def process_egg(req):
     """
         Strip egg postfix ( -dev, 0.2, etc )
     """
