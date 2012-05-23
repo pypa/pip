@@ -1347,8 +1347,6 @@ def _build_editable_options(req):
     """
         This method generates a dictionary of the query string
         parameters contained in a given editable URL.
-        if the process_attribute function exists then is called
-        and the returned value is used.
     """
     regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
     matched = regexp.findall(req)
@@ -1359,10 +1357,6 @@ def _build_editable_options(req):
             (name, value) = option
             if name in ret:
                 raise Exception("%s option already defined" % name)
-            try:
-                value = globals()['process_%s' % name](value)
-            except KeyError:
-                pass
             ret[name] = value
         return ret
     return None
