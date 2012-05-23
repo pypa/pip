@@ -1321,7 +1321,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
 
-def process_egg(req):
+def process_egg_basename(req):
     """
         Strip egg postfix ( -dev, 0.2, etc )
     """
@@ -1345,6 +1345,12 @@ def _build_req_from_url(url):
 
 def _build_editable_options(req):
 
+    """
+        This method generates a dictionary of the query string
+        parameters contained in a given editable URL.
+        if the process_attribute function exists then is called
+        and the returned value is used.
+    """
     regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
     matched = regexp.findall(req)
 
