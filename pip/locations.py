@@ -2,6 +2,7 @@
 
 import sys
 import os
+import shutil
 import tempfile
 from pip.backwardcompat import get_python_lib
 
@@ -47,16 +48,27 @@ if sys.platform == 'win32':
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
 
-    # Use XDG_CONFIG_DIR instead of the ~/.pip
+    # Use XDG_CONFIG_HOME instead of the ~/.pip
     # On some systems, we may have to create this, on others it probably exists
     xdg_dir = os.path.join(user_dir, '.config')
-    xdg_dir = os.environ.get('XDG_CONFIG_DIR', xdg_dir)
+    xdg_dir = os.environ.get('XDG_CONFIG_HOME', xdg_dir)
     if not os.path.exists(xdg_dir):
         os.mkdir(xdg_dir)
     default_storage_dir = os.path.join(xdg_dir, 'pip')
-    
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
+    
+    # Migration path for users- move things from the old dir if it exists
+    # If the new dir exists and has no pip.conf and the old dir does, move it
+    # When these checks are finished, delete the old directory
+    old_storage_dir = os.path.join(user_dir, '.pip')
+    if os.path.exists(old_storage_dir):
+        if not os.path.exists(default_storage_dir):
+            shutil.copytree(old_storage_dir, default_storage_dir)
+        elif os.path.exists(os.path.join(old_storage_dir, 'pip.conf')) and not os.path.exists(default_config_file):
+            shutil.copy2(os.path.join(old_storage_dir, 'pip.conf'), default_config_file)
+        shutil.rmtree(old_storage_dir)
+    
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
