@@ -1399,9 +1399,10 @@ def parse_editable(editable_req, default_vcs=None):
 
     try:
         options = _build_editable_options(editable_req)
-    except Exception , ex:
+    except Exception:
+        message = sys.exc_info()[1]
         raise InstallationError(
-                '--editable=%s error in editable options: %s' % (editable_req, ex))
+                '--editable=%s error in editable options: %s' % (editable_req, message))
 
     if not options or 'egg' not in options:
         req = _build_req_from_url(editable_req)
