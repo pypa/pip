@@ -1338,11 +1338,11 @@ def _build_req_from_url(url):
 
     parts = [p for p in url.split('#', 1)[0].split('/') if p]
 
+    req = None
     if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
         req = parts[-3]
     elif parts[-1] == 'trunk':
         req = parts[-2]
-
     return req
 
 def _build_editable_options(req):
