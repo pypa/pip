@@ -35,13 +35,13 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True, subdirectory=False):
+                 url=None, update=True, editable_options=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
-        self.subdirectory = subdirectory
+        self.editable_options = editable_options
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
@@ -64,14 +64,14 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
-        name, url = parse_editable(editable_req, default_vcs)
+        name, url, options = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
             source_dir = None
 
-        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url,\
-                                    subdirectory=has_subdirectory(editable_req))
+        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url, \
+                                                            editable_options=options)
 
     @classmethod
     def from_line(cls, name, comes_from=None):
@@ -212,9 +212,10 @@ class InstallRequirement(object):
         try:
             script = self._run_setup_py
 
-            if self.subdirectory:
-                setup_py_path = os.path.join(os.path.dirname(self.setup_py), self.subdirectory, \
-                                                                        os.path.basename(self.setup_py))
+            if 'subdirectory' in self.editable_options:
+                setup_py_path = os.path.join(os.path.dirname(self.setup_py),
+                                                            self.editable_options['subdirectory'], \
+                                                            os.path.basename(self.setup_py))
             else:
                 setup_py_path = self.setup_py
 
@@ -1315,59 +1316,101 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
 
-def has_subdirectory(editable_req):
+def process_subdirectory(value):
     """
         Search for subdirectory parameter on editable URL
         Returns False if not found or the subdirectory name if success
     """
-    match = re.search(r'.*(?:#|#.*?&)subdirectory=([^&]*)', editable_req)
-    if not match:
-        return False
-    return match.group(1)
+    return value
+
+def process_egg(req):
+    """
+        Strip egg postfix ( -dev, 0.2, etc )
+    """
+    ## FIXME: use package_to_requirement?
+    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
+    if match:
+        # Strip off -dev, -0.2, etc.
+        req = match.group(1)
+    return req
+
+def _build_req_from_url(url):
+
+    parts = [p for p in url.split('#', 1)[0].split('/') if p]
+
+    if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
+        req = parts[-3]
+    elif parts[-1] == 'trunk':
+        req = parts[-2]
+
+    return req
+
+def _build_editable_options(req):
+
+    regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
+    matched = regexp.findall(req)
+
+    if matched:
+        ret = dict()
+        for qstring in matched:
+            try:
+                (name, value) = qstring
+                if name in ret:
+                    raise Exception("%s already defined" % name)
+                try:
+                    value = globals()['process_%s' % name](value)
+                except KeyError:
+                    pass
+                ret[name] = value
+            except:
+                raise Exception("Invalid parameter: %s" % name)
+        return ret
+    return None
 
 def parse_editable(editable_req, default_vcs=None):
-    """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
-    (Foobar) and a URL"""
+    """
+        Parses svn+http://blahblah@rev#egg=Foobar into a requirement
+        (Foobar) and a URL
+    """
     url = editable_req
+
     if os.path.isdir(url) and os.path.exists(os.path.join(url, 'setup.py')):
         # Treating it as code that has already been checked out
         url = path_to_url(url)
+
     if url.lower().startswith('file:'):
         return None, url
+
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
             url = '%s+%s' % (version_control, url)
             break
+
     if '+' not in url:
         if default_vcs:
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
                 '--editable=%s should be formatted with svn+URL, git+URL, hg+URL or bzr+URL' % editable_req)
+
     vc_type = url.split('+', 1)[0].lower()
+
     if not vcs.get_backend(vc_type):
         raise InstallationError(
             'For --editable=%s only svn (svn+URL), Git (git+URL), Mercurial (hg+URL) and Bazaar (bzr+URL) is currently supported' % editable_req)
 
-    match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if (not match or not match.group(1)):
-        parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
-        if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
-            req = parts[-3]
-        elif parts[-1] == 'trunk':
-            req = parts[-2]
-        else:
+    options = _build_editable_options(editable_req)
+
+    if 'egg' not in options:
+        req = _build_req_from_url(editable_req)
+        if not req:
             raise InstallationError(
-                '--editable=%s is not the right format; it must have #egg=Package'
-                % editable_req)
+                    '--editable=%s is not the right format; it must have #egg=Package'
+                    % editable_req)
     else:
-        req = match.group(1)
-    ## FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        req = match.group(1)
-    return req, url
+        req = options['egg']
+
+    return req, url, options
 
 
 class UninstallPathSet(object):
