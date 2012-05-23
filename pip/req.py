@@ -1350,22 +1350,18 @@ def _build_editable_options(req):
     regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
     matched = regexp.findall(req)
 
+    ret = dict()
     if matched:
-        ret = dict()
-        for qstring in matched:
+        for option in matched:
+            (name, value) = option
+            if name in ret:
+                raise Exception("%s option already defined" % name)
             try:
-                (name, value) = qstring
-                if name in ret:
-                    raise Exception("%s already defined" % name)
-                try:
-                    value = globals()['process_%s' % name](value)
-                except KeyError:
-                    pass
-                ret[name] = value
-            except:
-                raise Exception("Invalid parameter: %s" % name)
-        return ret
-    return None
+                value = globals()['process_%s' % name](value)
+            except KeyError:
+                pass
+            ret[name] = value
+    return ret
 
 def parse_editable(editable_req, default_vcs=None):
     """
@@ -1399,7 +1395,11 @@ def parse_editable(editable_req, default_vcs=None):
         raise InstallationError(
             'For --editable=%s only svn (svn+URL), Git (git+URL), Mercurial (hg+URL) and Bazaar (bzr+URL) is currently supported' % editable_req)
 
-    options = _build_editable_options(editable_req)
+    try:
+        options = _build_editable_options(editable_req)
+    except Exception as ex:
+        raise InstallationError(
+                '--editable=%s error in editable options: %s' % (editable_req, ex))
 
     if 'egg' not in options:
         req = _build_req_from_url(editable_req)
