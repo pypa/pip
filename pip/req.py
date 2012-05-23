@@ -64,10 +64,7 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
-        try:
-            name, url, options = parse_editable(editable_req, default_vcs)
-        except:
-            name, url = parse_editable(editable_req, default_vcs)
+        name, url, options = parse_editable(editable_req, default_vcs)
 
         if url.startswith('file:'):
             source_dir = url_to_path(url)
@@ -1380,7 +1377,7 @@ def parse_editable(editable_req, default_vcs=None):
         url = path_to_url(url)
 
     if url.lower().startswith('file:'):
-        return None, url
+        return None, url, None
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
