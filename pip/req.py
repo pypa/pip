@@ -589,6 +589,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 logger.notify('Record file %s not found' % record_filename)
                 return
             self.install_succeeded = True
+            if self.as_egg:
+                # there's no --always-unzip option we can pass to install command
+                # so we unable to save the installed-files.txt
+                return
+
             f = open(record_filename)
             for line in f:
                 line = line.strip()
