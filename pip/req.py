@@ -203,7 +203,16 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-        return os.path.join(self.source_dir, 'setup.py')
+
+        setup_file = "setup.py"
+
+        if 'subdirectory' in self.editable_options:
+            setup_py = os.path.join(self.source_dir, self.editable_options['subdirectory'],\
+                                                                                setup_file)
+        else:
+            setup_py = os.path.join(self.source_dir, setup_file)
+
+        return setup_py
 
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
@@ -215,14 +224,7 @@ class InstallRequirement(object):
         try:
             script = self._run_setup_py
 
-            if 'subdirectory' in self.editable_options:
-                setup_py_path = os.path.join(os.path.dirname(self.setup_py),
-                                                            self.editable_options['subdirectory'], \
-                                                            os.path.basename(self.setup_py))
-            else:
-                setup_py_path = self.setup_py
-
-            script = script.replace('__SETUP_PY__', repr(setup_py_path))
+            script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
 
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
@@ -1318,13 +1320,6 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             else:
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
-
-def process_subdirectory(value):
-    """
-        Search for subdirectory parameter on editable URL
-        Returns False if not found or the subdirectory name if success
-    """
-    return value
 
 def process_egg(req):
     """
