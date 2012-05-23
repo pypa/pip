@@ -16,7 +16,7 @@ from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
-from pip import call_subprocess
+from pip.util import call_subprocess
 from pip.backwardcompat import (any, copytree, urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
                                 FeedParser, get_python_version,
@@ -289,7 +289,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     for dir in vcs.dirnames:
                         if dir in dirs:
                             dirs.remove(dir)
-                    for dir in dirs:
+                    # Iterate over a copy of ``dirs``, since mutating
+                    # a list while iterating over it can cause trouble.
+                    # (See https://github.com/pypa/pip/pull/462.)
+                    for dir in list(dirs):
                         # Don't search in anything that looks like a virtualenv environment
                         if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
                             or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
@@ -770,10 +773,7 @@ class Requirements(object):
         return self._keys
 
     def values(self):
-        values_list = []
-        for key in self._keys:
-            values_list.append(self._dict[key])
-        return values_list
+        return [self._dict[key] for key in self._keys]
 
     def __contains__(self, item):
         return item in self._keys
