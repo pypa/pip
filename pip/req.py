@@ -203,7 +203,6 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-
         setup_file = "setup.py"
 
         if 'subdirectory' in self.editable_options:
@@ -1321,9 +1320,9 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from)
             yield req
 
-def process_egg(req):
+def _strip_postfix(req):
     """
-        Strip egg postfix ( -dev, 0.2, etc )
+        Strip req postfix ( -dev, 0.2, etc )
     """
     ## FIXME: use package_to_requirement?
     match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
@@ -1416,7 +1415,7 @@ def parse_editable(editable_req, default_vcs=None):
     else:
         req = options['egg']
 
-    return req, url, options
+    return _strip_postfix(req), url, options
 
 
 class UninstallPathSet(object):
