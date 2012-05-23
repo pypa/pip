@@ -35,12 +35,14 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True, editable_options=[]):
+                 url=None, update=True, editable_options=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
+        if not editable_options:
+            editable_options = dict()
         self.editable_options = editable_options
         self.comes_from = comes_from
         self.source_dir = source_dir
