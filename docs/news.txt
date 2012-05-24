@@ -13,6 +13,9 @@ Beta and final releases planned for the second half of 2012.
 develop (unreleased)
 -------------------
 
+* Added ``--egg`` flag to request egg-style rather than flat installation. Refs
+  issue #3. Thanks Kamal Bin Mustafa.
+
 * Fixed issue #510 - prevent e.g. ``gmpy2-2.0.tar.gz`` from matching a request
   to ``pip install gmpy``; sdist filename must begin with full project name
   followed by a dash. Thanks casevh for the report.
