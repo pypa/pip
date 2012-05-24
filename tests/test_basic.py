@@ -302,6 +302,20 @@ def test_install_from_local_directory_with_no_setup_py():
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
+def test_install_as_egg():
+    """
+    Test installing as egg, instead of flat install.
+    """
+    env = reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', to_install, '--egg', expect_error=False)
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    assert fspkg_folder not in result.files_created, str(result.stdout)
+    assert egg_folder in result.files_created, str(result)
+    assert join(egg_folder, 'fspkg') in result.files_created, str(result)
+
+
 def test_install_curdir():
     """
     Test installing current directory ('.').

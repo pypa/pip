@@ -35,7 +35,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, update=True):
+                 url=None, as_egg=False, update=True):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -45,6 +45,7 @@ class InstallRequirement(object):
         self.source_dir = source_dir
         self.editable = editable
         self.url = url
+        self.as_egg = as_egg
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -556,6 +557,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.editable:
             self.install_editable(install_options, global_options)
             return
+        
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
@@ -565,8 +567,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
                 list(global_options) + [
                 'install',
-                '--single-version-externally-managed',
                 '--record', record_filename]
+
+            if not self.as_egg:
+                install_args += ['--single-version-externally-managed']
 
             if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -585,6 +589,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 logger.notify('Record file %s not found' % record_filename)
                 return
             self.install_succeeded = True
+            if self.as_egg:
+                # there's no --always-unzip option we can pass to install command
+                # so we unable to save the installed-files.txt
+                return
+
             f = open(record_filename)
             for line in f:
                 line = line.strip()
@@ -781,7 +790,7 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False,
+                 upgrade=False, ignore_installed=False, as_egg=False,
                  ignore_dependencies=False, force_reinstall=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
@@ -798,6 +807,7 @@ class RequirementSet(object):
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
+        self.as_egg = as_egg
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -807,6 +817,7 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         name = install_req.name
+        install_req.as_egg = self.as_egg
         if not name:
             self.unnamed_requirements.append(install_req)
         else:
