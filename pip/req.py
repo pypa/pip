@@ -64,12 +64,18 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
-        name, url = parse_editable(editable_req, default_vcs)
+        name, url, extras_override = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
             source_dir = None
-        return cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+
+        res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+
+        if extras_override is not None:
+            res.extras = extras_override
+
+        return res
 
     @classmethod
     def from_line(cls, name, comes_from=None):
@@ -1318,12 +1324,28 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
 def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
     (Foobar) and a URL"""
+
     url = editable_req
-    if os.path.isdir(url) and os.path.exists(os.path.join(url, 'setup.py')):
+    extras = None
+
+    # If a file path is specified with extras, strip off the extras.
+    m = re.match(r'^(.+)(\[[^\]]+\])$', url)
+    if m:
+        url_no_extras = m.group(1)
+        extras = m.group(2)
+    else:
+        url_no_extras = url
+
+    if os.path.isdir(url_no_extras) and os.path.exists(os.path.join(url_no_extras, 'setup.py')):
         # Treating it as code that has already been checked out
-        url = path_to_url(url)
-    if url.lower().startswith('file:'):
-        return None, url
+        url_no_extras = path_to_url(url_no_extras)
+
+    if url_no_extras.lower().startswith('file:'):
+        if extras:
+            return None, url_no_extras, pkg_resources.Requirement.parse('__placeholder__' + extras).extras
+        else:
+            return None, url_no_extras, None
+
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
             url = '%s+%s' % (version_control, url)
@@ -1355,7 +1377,7 @@ def parse_editable(editable_req, default_vcs=None):
     if match:
         # Strip off -dev, -0.2, etc.
         req = match.group(1)
-    return req, url
+    return req, url, None
 
 
 class UninstallPathSet(object):

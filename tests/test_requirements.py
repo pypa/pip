@@ -1,8 +1,9 @@
 import os.path
 import textwrap
-from nose.tools import assert_raises
+from nose.tools import assert_equal, assert_raises
+from mock import patch
 from pip.backwardcompat import urllib
-from pip.req import Requirements
+from pip.req import Requirements, parse_editable
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -119,3 +120,55 @@ def test_requirements_data_structure_implements__contains__():
 
     assert 'pip' in requirements
     assert 'nose' not in requirements
+
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local(isdir_mock, exists_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    assert_equal(
+        parse_editable('.', 'git'),
+        (None, 'file://' + os.getcwd(), None)
+    )
+    assert_equal(
+        parse_editable('foo', 'git'),
+        (None, 'file://' + os.path.join(os.getcwd(), 'foo'), None)
+    )
+
+def test_parse_editable_default_vcs():
+    assert_equal(
+        parse_editable('https://foo#egg=foo', 'git'),
+        ('foo', 'git+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_explicit_vcs():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo', 'git'),
+        ('foo', 'svn+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_vcs_extras():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
+        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
+    )
+
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local_extras(isdir_mock, exists_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    assert_equal(
+        parse_editable('.[extras]', 'git'),
+        (None, 'file://' + os.getcwd(), ('extras',))
+    )
+    assert_equal(
+        parse_editable('foo[bar,baz]', 'git'),
+        (None, 'file://' + os.path.join(os.getcwd(), 'foo'), ('bar', 'baz'))
+    )
+
+def test_install_local_editable_with_extras():
+    env = reset_env()
+    to_install = os.path.abspath(os.path.join(here, 'packages', 'LocalExtras'))
+    res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
+    assert env.site_packages/'easy-install.pth' in res.files_updated
+    assert env.site_packages/'LocalExtras.egg-link' in res.files_created
+    assert env.site_packages/'fspkg' in res.files_created
