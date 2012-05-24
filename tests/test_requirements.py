@@ -162,3 +162,11 @@ def test_parse_editable_local_extras(isdir_mock, exists_mock):
         parse_editable('foo[bar,baz]', 'git'),
         (None, 'file://' + os.path.join(os.getcwd(), 'foo'), ('bar', 'baz'))
     )
+
+def test_install_local_editable_with_extras():
+    env = reset_env()
+    to_install = os.path.abspath(os.path.join(here, 'packages', 'LocalExtras'))
+    res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
+    assert env.site_packages/'easy-install.pth' in res.files_updated
+    assert env.site_packages/'LocalExtras.egg-link' in res.files_created
+    assert env.site_packages/'fspkg' in res.files_created
