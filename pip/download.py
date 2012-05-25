@@ -6,6 +6,8 @@ import re
 import shutil
 import sys
 import tempfile
+import httplib
+
 from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
                                 urlparse, string_types, HTTPError)
 from pip.exceptions import InstallationError
@@ -22,7 +24,22 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
 
-xmlrpclib_transport = xmlrpclib.Transport()
+class ProxiedTransport(xmlrpclib.Transport):
+  
+    def __init__(self, proxy):
+        xmlrpclib.Transport.__init__(self)
+        self.proxy = proxy
+        
+    def make_connection(self, host):
+        self.realhost = host
+        h = httplib.HTTPConnection(self.proxy)
+        return h
+        
+    def send_request(self, connection, handler, request_body):
+        connection.putrequest("POST", 'http://%s%s' % (self.realhost, handler))
+        
+    def send_host(self, connection, host):
+        connection.putheader('Host', self.realhost)
 
 
 def get_file_content(url, comes_from=None):
@@ -135,6 +152,11 @@ class URLOpener(object):
             proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
+            
+        if proxy:
+            self.xmlrpclib_transport = ProxiedTransport(proxy)
+        else:
+            self.xmlrpclib_transport = xmlrpclib.Transport()
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
