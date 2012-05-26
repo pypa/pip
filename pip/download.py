@@ -336,8 +336,10 @@ def _check_hash(download_hash, link):
 def _get_hash_from_file(target_file, link):
     try:
         download_hash = hashlib.new(link.hash_name)
-    except ValueError:
-        logger.fatal("Unsupported hash name %s for package %s" % (link.hash_name, link))
+    except (ValueError, TypeError):
+        logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+        return None
+
     fp = open(target_file, 'rb')
     while True:
         chunk = fp.read(4096)
