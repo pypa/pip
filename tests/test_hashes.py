@@ -182,3 +182,13 @@ def test_check_hash_sha512_invalid():
     download_hash = _get_hash_from_file(file_path, file_link)
 
     assert_raises(InstallationError, _check_hash, download_hash, file_link)
+
+
+def test_check_hasher_mismsatch():
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "packages", "gmpy-1.15.tar.gz")
+    file_link = Link("http://testserver/gmpy-1.15.tar.gz#md5=d41d8cd98f00b204e9800998ecf8427e")
+    other_link = Link("http://testserver/gmpy-1.15.tar.gz#sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+
+    download_hash = _get_hash_from_file(file_path, file_link)
+
+    assert_raises(InstallationError, _check_hash, download_hash, other_link)
