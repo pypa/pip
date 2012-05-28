@@ -51,3 +51,4 @@ Vinay Sajip
 Vitaly Babiy
 W Trevor King
 Wil Tan
+Hsiaoming Yang
