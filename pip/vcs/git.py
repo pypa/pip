@@ -28,8 +28,8 @@ class Git(VersionControl):
                 initial_slashes = path[:-len(path.lstrip('/'))]
                 newpath = initial_slashes + url2pathname(path).replace('\\', '/').lstrip('/')
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
-                after_plus = scheme.find('+')+1
-                url = scheme[:after_plus]+ urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
+                after_plus = scheme.find('+') + 1
+                url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
 
         super(Git, self).__init__(url, *args, **kwargs)
 
@@ -105,6 +105,9 @@ class Git(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            #: repo may contain submodules
+            call_subprocess([self.cmd, 'submodule', 'init'], cwd=dest)
+            call_subprocess([self.cmd, 'submodule', 'update'], cwd=dest)
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
@@ -161,8 +164,10 @@ class Git(VersionControl):
         elif (current_rev in branch_revs and
               branch_revs[current_rev] != 'origin/master'):
             # It's the head of a branch
-            full_egg_name = '%s-%s' % (egg_project_name,
-                                       branch_revs[current_rev].replace('origin/', ''))
+            full_egg_name = '%s-%s' % (
+                egg_project_name,
+                branch_revs[current_rev].replace('origin/', '')
+            )
         else:
             full_egg_name = '%s-dev' % egg_project_name
 
