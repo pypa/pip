@@ -41,6 +41,7 @@ class ProxiedTransport(xmlrpclib.Transport):
     def send_host(self, connection, host):
         connection.putheader('Host', self.realhost)
 
+xmlrpclib_transport = xmlrpclib.Transport()
 
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
@@ -152,11 +153,10 @@ class URLOpener(object):
             proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
-            
+
         if proxy:
-            self.xmlrpclib_transport = ProxiedTransport(proxy)
-        else:
-            self.xmlrpclib_transport = xmlrpclib.Transport()
+            global xmlrpclib_transport
+            xmlrpclib_transport = ProxiedTransport(proxy)
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
