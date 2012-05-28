@@ -216,9 +216,11 @@ class InstallRequirement(object):
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
         if self.name:
-            logger.notify('Running setup.py egg_info for package %s' % self.name)
+            logger.notify('Running setup.py (path: %s) egg_info for package %s' % \
+								(self.setup_py, self.name))
         else:
-            logger.notify('Running setup.py egg_info for package from %s' % self.url)
+            logger.notify('Running setup.py (path: %s) egg_info for package from %s' % \
+								(self.setup_py, self.url))
         logger.indent += 2
         try:
             script = self._run_setup_py

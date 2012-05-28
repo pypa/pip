@@ -1,7 +1,7 @@
-from tests.test_pip import (reset_env, run_pip,
+from tests.test_pip import (here, reset_env, run_pip,
                       _create_test_package, _change_test_package_version)
 from tests.local_repos import local_checkout
-
+import os
 
 def test_install_editable_from_git_with_https():
     """
@@ -20,9 +20,10 @@ def test_install_editable_with_subdirectory():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=pip-test-subdir-package#subdirectory=piptestsubpackage' %
-                     local_checkout('git+https://github.com/niedbalski/pip-test-subdir-package.git'), expect_error=True)
-    result.assert_installed('pip-test-subdir-package', with_files=['.git'])
+                     '%s#egg=pip-test-sub-package&subdirectory=piptestsubpackage' %
+                     ('git+file://' + os.path.join(here, 'packages/pip-test-sub-package')))
+
+    result.assert_installed('pip-test-sub-package')
 
 def test_git_with_sha1_revisions():
     """
