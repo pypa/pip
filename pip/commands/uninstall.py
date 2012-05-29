@@ -5,24 +5,26 @@ from pip.exceptions import InstallationError
 
 class UninstallCommand(Command):
     name = 'uninstall'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
-    summary = 'Uninstall packages'
+    usage = '%prog [options] <package name> ...'
+    summary = 'uninstall packages'
 
-    def __init__(self):
-        super(UninstallCommand, self).__init__()
-        self.parser.add_option(
-            '-r', '--requirement',
-            dest='requirements',
-            action='append',
-            default=[],
-            metavar='FILENAME',
-            help='Uninstall all the packages listed in the given requirements file.  '
-            'This option can be used multiple times.')
-        self.parser.add_option(
-            '-y', '--yes',
-            dest='yes',
-            action='store_true',
-            help="Don't ask for confirmation of uninstall deletions.")
+    def __init__(self, *args, **kw):
+        super(UninstallCommand, self).__init__(*args, **kw)
+        gadd = self.command_group.add_option
+
+        gadd( '-r', '--requirement',
+              dest='requirements',
+              action='append',
+              default=[],
+              metavar='fn',
+              help='uninstall all the packages listed in the given requirements file')
+
+        gadd( '-y', '--yes',
+              dest='yes',
+              action='store_true',
+              help="assume 'yes' on all confirmation prompts")
+
+        self.parser.add_option_group(self.command_group)
 
     def run(self, options, args):
         requirement_set = RequirementSet(
@@ -39,5 +41,3 @@ class UninstallCommand(Command):
             raise InstallationError('You must give at least one requirement '
                 'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
         requirement_set.uninstall(auto_confirm=options.yes)
-
-UninstallCommand()

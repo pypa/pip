@@ -13,7 +13,7 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
     def __init__(self, *args, **kw):
-        kw['max_help_position'] = 23
+        kw['max_help_position'] = 26
         kw['indent_increment'] = 1
 
         # do as argparse does
@@ -76,6 +76,29 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
         else:
             return ''
 
+    def expand_default(self, option):
+        """
+        A help string formatter that differentiates between short (suitable for
+        the command line) and long (suitable for man pages) help messages. If
+        options.help is a tuple, its first argument is used as the help messages.
+
+        :todo: add option for showing the long help messages
+        """
+
+        if isinstance(option.help, (tuple, list)):
+            help = option.help[0]
+        else:
+            help = option.help
+
+        if self.parser is None or not self.default_tag:
+            return help
+
+        default_value = self.parser.defaults.get(option.dest)
+        if default_value is optparse.NO_DEFAULT or default_value is None:
+            default_value = self.NO_DEFAULT_VALUE
+
+        return help.replace(self.default_tag, str(default_value))
+
 
 class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
@@ -85,7 +108,8 @@ class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     def expand_default(self, option):
         if self.parser is not None:
             self.parser.update_defaults(self.parser.defaults)
-        return optparse.IndentedHelpFormatter.expand_default(self, option)
+
+        return PipPrettyHelpFormatter.expand_default(self, option)
 
 
 class ConfigOptionParser(optparse.OptionParser):
@@ -179,6 +203,7 @@ class ConfigOptionParser(optparse.OptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -187,108 +212,140 @@ except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version=None
 
-parser = ConfigOptionParser(
-    usage='%prog COMMAND [OPTIONS]',
-    version=version,
-    add_help_option=False,
-    formatter=UpdatingDefaultsHelpFormatter(),
-    name='global')
 
-parser.add_option(
-    '-h', '--help',
-    dest='help',
-    action='store_true',
-    help='Show help')
-parser.add_option(
+def create_main_parser():
+    from textwrap import dedent
+
+    epilog = '''
+    Further help:
+     - http://www.pip-installer.org/en/latest/index.html
+    '''
+
+    parser_kw = {
+        'usage' : '%prog <command> [options]',
+        'add_help_option' : False,
+        'formatter' : UpdatingDefaultsHelpFormatter(),
+        'name' : 'global',
+        'epilog' : dedent(epilog),
+    }
+
+    parser = ConfigOptionParser(**parser_kw)
+    parser.disable_interspersed_args()
+
+    # having a default version action just causes trouble
+    parser.version = version
+
+    general_opts = optparse.OptionGroup(parser, 'General options')
+    padd = parser.add_option
+    gadd = general_opts.add_option
+
+    # populate the main parser and the 'general options' group
+    gadd( '-h', '--help',
+          dest='help',
+          action='store_true',
+          help='show this help message and exit' )
+
     # Run only if inside a virtualenv, bail if not.
-    '--require-virtualenv', '--require-venv',
-    dest='require_venv',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
+    padd( '--require-virtualenv', '--require-venv',
+          dest='require_venv',
+          action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
 
-parser.add_option(
-    '-v', '--verbose',
-    dest='verbose',
-    action='count',
-    default=0,
-    help='Give more output')
-parser.add_option(
-    '-q', '--quiet',
-    dest='quiet',
-    action='count',
-    default=0,
-    help='Give less output')
-parser.add_option(
-    '--log',
-    dest='log',
-    metavar='FILENAME',
-    help='Log file where a complete (maximum verbosity) record will be kept')
-parser.add_option(
+    gadd( '-V', '--version',
+          dest='version',
+          action='store_true',
+          help='show version and exit')
+
+    gadd( '-v', '--verbose',
+          dest='verbose',
+          action='count',
+          default=0,
+          help='increase verbosity')
+
+    gadd( '-q', '--quiet',
+          dest='quiet',
+          action='count',
+          default=0,
+          help='decrease verbosity')
+
+    gadd( '--log',
+          dest='log',
+          metavar='fn',
+          help='log file (implies maximum verbosity)')
+
     # Writes the log levels explicitely to the log'
-    '--log-explicit-levels',
-    dest='log_explicit_levels',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
+    padd( '--log-explicit-levels',
+          dest='log_explicit_levels',
+          action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
+
     # The default log file
-    '--local-log', '--log-file',
-    dest='log_file',
-    metavar='FILENAME',
-    default=default_log_file,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
+    padd( '--local-log', '--log-file',
+          dest='log_file',
+          metavar='fn',
+          default=default_log_file,
+          help=optparse.SUPPRESS_HELP)
+
     # Don't ask for input
-    '--no-input',
-    dest='no_input',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
+    padd( '--no-input',
+          dest='no_input',
+          action='store_true',
+          default=False,
+          help=optparse.SUPPRESS_HELP)
 
-parser.add_option(
-    '--proxy',
-    dest='proxy',
-    type='str',
-    default='',
-    help="Specify a proxy in the form user:passwd@proxy.server:port. "
-    "Note that the user:password@ is optional and required only if you "
-    "are behind an authenticated proxy.  If you provide "
-    "user@proxy.server:port then you will be prompted for a password.")
-parser.add_option(
-    '--timeout', '--default-timeout',
-    metavar='SECONDS',
-    dest='timeout',
-    type='float',
-    default=15,
-    help='Set the socket timeout (default %default seconds)')
-parser.add_option(
+    gadd( '--proxy',
+          dest='proxy',
+          type='str',
+          default='',
+          help=(
+             "specify proxy as user:pswd@proxy.server:port",
+             "Specify a proxy in the form user:passwd@proxy.server:port. "
+             "Note that the user:password@ is optional and required only if you "
+             "are behind an authenticated proxy.  If you provide "
+             "user@proxy.server:port then you will be prompted for a password.")
+          )
+
+    gadd( '--timeout', '--default-timeout',
+          metavar='sec',
+          dest='timeout',
+          type='float',
+          default=15,
+          help='socket timeout (default %default seconds)')
+
     # The default version control system for editables, e.g. 'svn'
-    '--default-vcs',
-    dest='default_vcs',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
+    padd( '--default-vcs',
+          dest='default_vcs',
+          type='str',
+          default='',
+          help=optparse.SUPPRESS_HELP)
+
     # A regex to be used to skip requirements
-    '--skip-requirements-regex',
-    dest='skip_requirements_regex',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
+    padd( '--skip-requirements-regex',
+          dest='skip_requirements_regex',
+          type='str',
+          default='',
+          help=optparse.SUPPRESS_HELP)
 
-parser.add_option(
     # Option when path already exist
-    '--exists-action',
-    dest='exists_action',
-    type='choice',
-    choices=['s', 'i', 'w', 'b'],
-    default=[],
-    action='append',
-    help="Default action when a path already exists."
-         "Use this option more then one time to specify "
-         "another action if a certain option is not "
-         "available, choices: "
-         "(s)witch, (i)gnore, (w)ipe, (b)ackup")
+    gadd( '--exists-action',
+          dest='exists_action',
+          type='choice',
+          choices=['s', 'i', 'w', 'b'],
+          default=[],
+          metavar='(s)witch,(i)gnore,(w)ipe,(b)ackup',
+          action='append',
+          help=(
+            "default action for already existing paths",
+            "Default action when a path already exists. "
+            "Use this option more then one time to specify "
+            "another action if a certain option is not "
+            "available, choices: "
+            "(s)witch, (i)gnore, (w)ipe, (b)ackup")
+          )
 
-parser.disable_interspersed_args()
+
+    parser.add_option_group(general_opts)
+    return parser
+

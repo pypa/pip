@@ -10,31 +10,34 @@ from pip.util import get_installed_distributions
 
 class FreezeCommand(Command):
     name = 'freeze'
-    usage = '%prog [OPTIONS]'
-    summary = 'Output all currently installed packages (exact versions) to stdout'
+    usage = '%prog [options]'
+    summary = 'list installed packages'
 
-    def __init__(self):
-        super(FreezeCommand, self).__init__()
-        self.parser.add_option(
-            '-r', '--requirement',
-            dest='requirement',
-            action='store',
-            default=None,
-            metavar='FILENAME',
-            help='Use the given requirements file as a hint about how to generate the new frozen requirements')
-        self.parser.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL for finding packages, which will be added to the frozen requirements file')
-        self.parser.add_option(
-            '-l', '--local',
-            dest='local',
-            action='store_true',
-            default=False,
-            help='If in a virtualenv, do not report globally-installed packages')
+    def __init__(self, *args, **kw):
+        super(FreezeCommand, self).__init__(*args, **kw)
+        gadd = self.command_group.add_option
+
+        gadd( '-l', '--local',
+              dest='local',
+              action='store_true',
+              default=False,
+              help='do not report globally-installed packages if in a virtualenv')
+
+        gadd( '-r', '--requirement',
+              dest='requirement',
+              action='store',
+              default=None,
+              metavar='fn',
+              help='use requirements file <fn> as a hint for the new frozen requirements')
+
+        gadd( '-f', '--find-links',
+              dest='find_links',
+              action='append',
+              default=[],
+              metavar='url',
+              help='<url> for finding packages, which will be added to the frozen requirements file')
+
+        self.parser.add_option_group(self.command_group)
 
     def setup_logging(self):
         logger.move_stdout_to_stderr()
@@ -106,6 +109,3 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
-
-
-FreezeCommand()

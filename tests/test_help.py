@@ -2,6 +2,7 @@ from pip.exceptions import CommandError
 from pip.commands.help import (HelpCommand,
                                SUCCESS,
                                ERROR,)
+from pip.baseparser import create_main_parser
 from mock import Mock
 from nose.tools import assert_raises
 from tests.test_pip import run_pip, reset_env
@@ -13,7 +14,7 @@ def test_run_method_should_return_sucess_when_finds_command_name():
     """
     options_mock = Mock()
     args = ('freeze',)
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -22,9 +23,11 @@ def test_run_method_should_return_sucess_when_command_name_not_specified():
     """
     Test HelpCommand.run when there are no args
     """
+
+    # 'pip help' with no args is handled by pip.__init__.parseopt()
     options_mock = Mock()
     args = ()
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -35,7 +38,7 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     """
     options_mock = Mock()
     args = ('mycommand',)
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     assert_raises(CommandError, help_cmd.run, options_mock, args)
 
 
@@ -55,6 +58,22 @@ def test_help_command_should_exit_status_ok_when_no_command_is_specified():
     reset_env()
     result = run_pip('help')
     assert result.returncode == SUCCESS
+
+
+def test_help_commands_equally_functional():
+    """
+    Test for `pip help`, `pip` and `pip --help` being the same
+    """
+    reset_env()
+
+    results = list(map(run_pip, ('help', '--help')))
+    results.append(run_pip())
+
+    out = map(lambda x: x.stdout, results)
+    ret = map(lambda x: x.returncode, results)
+
+    assert len(set(out)) == 1
+    assert sum(ret) == 0
 
 
 def test_help_command_should_exit_status_error_when_command_does_not_exist():
