@@ -19,13 +19,13 @@ if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
-    #Use tempfile to create a temporary folder
-    build_prefix = tempfile.mkdtemp('-build', 'pip-')
-    src_prefix = tempfile.mkdtemp('-src', 'pip-')
-    # This is a terrible hack- since pip relies on this directory not being created yet
-    # We will delete it now, and have pip recreate it later
-    os.rmdir(build_prefix)
-    os.rmdir(src_prefix)
+    try:
+        ## FIXME: this isn't a very good default
+        build_prefix = os.path.join(os.getcwd(), 'build')
+        src_prefix = os.path.join(os.getcwd(), 'src')
+    except OSError:
+        # In case the current working directory has been renamed or deleted
+        sys.exit("The folder you are executing pip from can no longer be found.")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
@@ -62,11 +62,12 @@ else:
     # If the new dir exists and has no pip.conf and the old dir does, move it
     # When these checks are finished, delete the old directory
     old_storage_dir = os.path.join(user_dir, '.pip')
+    old_config_file = os.path.join(old_storage_dir, 'pip.conf')
     if os.path.exists(old_storage_dir):
         if not os.path.exists(default_storage_dir):
             shutil.copytree(old_storage_dir, default_storage_dir)
-        elif os.path.exists(os.path.join(old_storage_dir, 'pip.conf')) and not os.path.exists(default_config_file):
-            shutil.copy2(os.path.join(old_storage_dir, 'pip.conf'), default_config_file)
+        elif os.path.exists(old_config_file) and not os.path.exists(default_config_file):
+            shutil.copy2(old_config_file, default_config_file)
         shutil.rmtree(old_storage_dir)
     
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
