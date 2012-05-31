@@ -302,6 +302,17 @@ def test_install_from_local_directory_with_no_setup_py():
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
+def test_editable_install_from_local_directory_with_no_setup_py():
+    """
+    Test installing from a local directory with no 'setup.py'.
+    """
+    reset_env()
+    result = run_pip('install', '-e', here, expect_error=True)
+    assert len(result.files_created) == 1, result.files_created
+    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert "is not installable. File 'setup.py' not found." in result.stdout
+
+
 def test_install_as_egg():
     """
     Test installing as egg, instead of flat install.
