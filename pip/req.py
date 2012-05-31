@@ -1336,7 +1336,9 @@ def parse_editable(editable_req, default_vcs=None):
     else:
         url_no_extras = url
 
-    if os.path.isdir(url_no_extras) and os.path.exists(os.path.join(url_no_extras, 'setup.py')):
+    if os.path.isdir(url_no_extras):
+        if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
+            raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", url_no_extras)
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
