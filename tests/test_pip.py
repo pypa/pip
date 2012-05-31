@@ -102,13 +102,21 @@ def install_setuptools(env):
 env = None
 
 
-def reset_env(environ=None, use_distribute=None):
+def reset_env(environ=None, use_distribute=None, system_site_packages=False):
     global env
     # FastTestPipEnv reuses env, not safe if use_distribute specified
-    if use_distribute is None:
+    if use_distribute is None and not system_site_packages:
         env = FastTestPipEnvironment(environ)
     else:
         env = TestPipEnvironment(environ, use_distribute=use_distribute)
+
+    if system_site_packages:
+        #testing often occurs starting from a private virtualenv (e.g. with tox)
+        #from that context, you can't successfully use virtualenv.create_environment
+        #to create a 'system-site-packages' virtualenv
+        #hence, this workaround
+        (env.lib_path/'no-global-site-packages.txt').rm()
+
     return env
 
 
@@ -361,13 +369,18 @@ class TestPipEnvironment(TestFileEnvironment):
         rmtree(str(self.root_path), ignore_errors=True)
 
     def _use_cached_pypi_server(self):
-        site_packages = self.root_path / self.site_packages
-        pth = open(os.path.join(site_packages, 'pypi_intercept.pth'), 'w')
-        pth.write('import sys; ')
-        pth.write('sys.path.insert(0, %r); ' % str(here))
-        pth.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
-        pth.write('sys.path.remove(%r); ' % str(here))
-        pth.close()
+        # previously, this was handled in a pth file, and not in sitecustomize.py
+        # pth processing happens during the construction of sys.path.
+        # 'import pypi_server' ultimately imports pkg_resources (which intializes pkg_resources.working_set based on the current state of sys.path)
+        # pkg_resources.get_distribution (used in pip.req) requires an accurate pkg_resources.working_set
+        # therefore, 'import pypi_server' shouldn't occur in a pth file.
+        sitecustomize_path = self.lib_path / 'sitecustomize.py'
+        sitecustomize = open(sitecustomize_path, 'w')
+        sitecustomize.write('import sys; ')
+        sitecustomize.write('sys.path.insert(0, %r); ' % str(here))
+        sitecustomize.write('import pypi_server; pypi_server.PyPIProxy.setup(); ')
+        sitecustomize.write('sys.path.remove(%r); ' % str(here))
+        sitecustomize.close()
 
 
 fast_test_env_root = here / 'tests_cache' / 'test_ws'

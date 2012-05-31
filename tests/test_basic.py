@@ -615,3 +615,17 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
+
+
+def test_reset_env_system_site_packages_user_site():
+    """
+    reset_env(system_site_packages=True) produces env where a --user install can be found using pkg_resources
+    """
+    if sys.version_info < (2, 6):
+        raise SkipTest() #no PYTHONUSERBASE
+    env = reset_env(system_site_packages=True)
+    run_pip('install', '--user', 'INITools==0.2')
+    result = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').project_name)")
+    project_name = result.stdout.strip()
+    assert 'INITools'== project_name, "'%s' should be 'INITools'" %project_name
+
