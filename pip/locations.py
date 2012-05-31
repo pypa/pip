@@ -2,6 +2,7 @@
 
 import sys
 import os
+import tempfile
 from pip.backwardcompat import get_python_lib
 
 
@@ -18,13 +19,18 @@ if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
+    #Use tempfile to create a temporary folder
+    build_prefix = tempfile.mkdtemp('-build', 'pip-')
+    src_prefix = tempfile.mkdtemp('-src', 'pip-')
+    ## FIXME: this is a terrible hack; change req.py (or other locations?)
+    ## to flag a directory for deletion based on whether or not it matches
+    ## build_prefix and src_prefix, NOT if pip has had to create it
     try:
-        ## FIXME: this isn't a very good default
-        build_prefix = os.path.join(os.getcwd(), 'build')
-        src_prefix = os.path.join(os.getcwd(), 'src')
+        os.rmdir(build_prefix)
+        os.rmdir(src_prefix)
     except OSError:
-        # In case the current working directory has been renamed or deleted
-        sys.exit("The folder you are executing pip from can no longer be found.")
+        # I'm not sure why this wouldn't work, but just in case!
+        sys.exit("An error has occurred in attempting to set up the temporary directories")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
