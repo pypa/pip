@@ -28,3 +28,7 @@ class BadCommand(PipError):
 
 class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
+
+
+class ShowError(Exception):
+    """General exception during show"""

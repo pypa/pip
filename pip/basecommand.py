@@ -11,7 +11,7 @@ from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError)
+                            ShowError, CommandError)
 from pip.backwardcompat import StringIO, walk_packages
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
@@ -106,7 +106,7 @@ class Command(object):
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 exit = status
-        except (InstallationError, UninstallationError):
+        except (InstallationError, UninstallationError, ShowError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
