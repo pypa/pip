@@ -344,77 +344,6 @@ def test_install_curdir():
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_curdir_usersite_fails_in_old_python():
-    """
-    Test --user option on older Python versions (pre 2.6) fails intelligibly
-    """
-    if sys.version_info >= (2, 6):
-        raise SkipTest()
-    reset_env()
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-
-def test_install_curdir_usersite():
-    """
-    Test installing current directory ('.') into usersite
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = env.user_site/'fspkg'
-    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-    assert fspkg_folder in result.files_created, str(result.stdout)
-
-    assert egg_info_folder in result.files_created, str(result)
-
-
-def test_install_subversion_usersite_editable_with_distribute():
-    """
-    Test installing current directory ('.') into usersite after installing distribute
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    result.assert_installed('INITools', use_user_site=True)
-
-
-def test_install_subversion_usersite_editable_with_setuptools_fails():
-    """
-    Test installing current directory ('.') into usersite using setuptools fails
-    """
-    # --user only works on 2.6 or higher
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # We don't try to use setuptools for 3.X.
-    elif sys.version_info >= (3,):
-        raise SkipTest()
-    env = reset_env(use_distribute=False)
-    no_site_packages = env.lib_path/'no-global-site-packages.txt'
-    if os.path.isfile(no_site_packages):
-        no_site_packages.rm() # this re-enables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_error=True)
-    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
-
-
 def test_install_pardir():
     """
     Test installing parent directory ('..').
@@ -626,17 +555,4 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
-
-
-def test_reset_env_system_site_packages_user_site():
-    """
-    reset_env(system_site_packages=True) produces env where a --user install can be found using pkg_resources
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest() #no PYTHONUSERBASE
-    env = reset_env(system_site_packages=True)
-    run_pip('install', '--user', 'INITools==0.2')
-    result = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').project_name)")
-    project_name = result.stdout.strip()
-    assert 'INITools'== project_name, "'%s' should be 'INITools'" %project_name
 
