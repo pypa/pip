@@ -1359,8 +1359,10 @@ def parse_editable(editable_req, default_vcs=None):
                 '--editable=%s should be formatted with svn+URL, git+URL, hg+URL or bzr+URL' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
     if not vcs.get_backend(vc_type):
-        raise InstallationError(
-            'For --editable=%s only svn (svn+URL), Git (git+URL), Mercurial (hg+URL) and Bazaar (bzr+URL) is currently supported' % editable_req)
+        error_message = 'For --editable=%s only ' % editable_req + \
+            ', '.join([backend.name + '+URL' for backend in vcs.backends]) + \
+            ' is currently supported'
+        raise InstallationError(error_message)
     match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
     if (not match or not match.group(1)) and vcs.get_backend(vc_type):
         parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
