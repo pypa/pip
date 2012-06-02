@@ -83,9 +83,12 @@ def autocomplete():
 def version_control():
     # Import all the version control support modules:
     from pip import vcs
-    for importer, modname, ispkg in \
-            walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
-        __import__(modname)
+    modules = walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.')
+    if list(modules):
+        for importer, modname, ispkg in modules:
+            __import__(modname)
+    else:
+        from pip.vcs import git, mercurial, subversion, bazaar
 
 
 def main(initial_args=None):
