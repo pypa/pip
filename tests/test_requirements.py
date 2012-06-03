@@ -2,7 +2,7 @@ import os.path
 import textwrap
 from nose.tools import assert_equal, assert_raises
 from mock import patch
-from pip.backwardcompat import urllib, pathname2url
+from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
@@ -127,13 +127,11 @@ def test_parse_editable_local(isdir_mock, exists_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     assert_equal(
         parse_editable('.', 'git'),
-        (None, 'file://' + pathname2url(os.getcwd()), None)
+        (None, 'file://' + os.getcwd(), None)
     )
     assert_equal(
         parse_editable('foo', 'git'),
-        (None,
-         'file://' + pathname2url(os.path.join(os.getcwd(), 'foo')),
-         None)
+        (None, 'file://' + os.path.join(os.getcwd(), 'foo'), None)
     )
 
 def test_parse_editable_default_vcs():
@@ -160,14 +158,11 @@ def test_parse_editable_local_extras(isdir_mock, exists_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     assert_equal(
         parse_editable('.[extras]', 'git'),
-        (None, 'file://' + pathname2url(os.getcwd()), ('extras',))
+        (None, 'file://' + os.getcwd(), ('extras',))
     )
     assert_equal(
         parse_editable('foo[bar,baz]', 'git'),
-        (None,
-         'file://' + pathname2url(os.path.join(os.getcwd(), 'foo')),
-         ('bar', 'baz')
-        )
+        (None, 'file://' + os.path.join(os.getcwd(), 'foo'), ('bar', 'baz'))
     )
 
 def test_install_local_editable_with_extras():
