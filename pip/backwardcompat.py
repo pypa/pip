@@ -41,6 +41,7 @@ if sys.version_info >= (3,):
     from functools import reduce
     from urllib.error import URLError, HTTPError
     from queue import Queue, Empty
+    from urllib.request import pathname2url
     from urllib.request import url2pathname
     from urllib.request import urlretrieve
     from email import message as emailmessage
@@ -76,7 +77,7 @@ else:
     from cStringIO import StringIO
     from urllib2 import URLError, HTTPError
     from Queue import Queue, Empty
-    from urllib import url2pathname, urlretrieve
+    from urllib import pathname2url, url2pathname, urlretrieve
     from email import Message as emailmessage
     import urllib
     import urllib2
