@@ -13,6 +13,7 @@ from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions
+from pip.vcs import git, mercurial, subversion, bazaar
 
 
 def autocomplete():
@@ -80,19 +81,10 @@ def autocomplete():
     sys.exit(1)
 
 
-def version_control():
-    # Import all the version control support modules:
-    from pip import vcs
-    for importer, modname, ispkg in \
-            walk_packages(path=vcs.__path__, prefix=vcs.__name__+'.'):
-        __import__(modname)
-
-
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
     autocomplete()
-    version_control()
     options, args = parser.parse_args(initial_args)
     if options.help and not args:
         args = ['help']
