@@ -1,6 +1,7 @@
 """Locations where we look for configs, install stuff, etc"""
 
 import sys
+import site
 import os
 import tempfile
 from pip.backwardcompat import get_python_lib
@@ -12,6 +13,16 @@ def running_under_virtualenv():
 
     """
     return hasattr(sys, 'real_prefix')
+
+def virtualenv_no_global():
+    """
+    Return True if in a venv and no system site packages.
+    """
+    #this mirrors the logic in virtualenv.py for locating the no-global-site-packages.txt file
+    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
+    no_global_file = os.path.join(site_mod_dir,'no-global-site-packages.txt')
+    if running_under_virtualenv() and os.path.isfile(no_global_file):
+        return True
 
 
 if running_under_virtualenv():
