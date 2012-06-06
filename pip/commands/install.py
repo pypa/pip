@@ -5,7 +5,7 @@ import shutil
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
-from pip.locations import build_prefix, src_prefix
+from pip.locations import build_prefix, src_prefix, virtualenv_no_global
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
@@ -190,6 +190,8 @@ class InstallCommand(Command):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            if virtualenv_no_global():
+                raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
         if options.target_dir:
             options.ignore_installed = True

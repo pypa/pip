@@ -83,3 +83,14 @@ class Tests_UserSite:
         assert fspkg_folder in result.files_created, str(result.stdout)
 
         assert egg_info_folder in result.files_created, str(result)
+
+
+    def test_install_user_venv_nositepkgs_fails(self):
+        """
+        user install in virtualenv (with no system packages) fails with message
+        """
+        env = reset_env()
+        run_from = abspath(join(here, 'packages', 'FSPkg'))
+        result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
+        assert "Can not perform a '--user' install. User site-packages are not visible in this virtualenv." in result.stdout
+
