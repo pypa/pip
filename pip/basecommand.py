@@ -1,6 +1,7 @@
 """Base Command class, and related routines"""
 
 import os
+from pkgutil import walk_packages
 import socket
 import sys
 import traceback
@@ -12,7 +13,7 @@ from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpForma
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
-from pip.backwardcompat import StringIO, walk_packages
+from pip.backwardcompat import StringIO
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 
 

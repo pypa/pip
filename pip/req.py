@@ -1,10 +1,12 @@
-import sys
+from email.parser import FeedParser
 import os
-import shutil
-import re
-import zipfile
 import pkg_resources
+import re
+import sys
+import shutil
 import tempfile
+import zipfile
+
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
@@ -17,10 +19,9 @@ from pip.util import is_installable_dir, is_local, dist_is_local
 from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip.util import call_subprocess
-from pip.backwardcompat import (any, copytree, urlparse, urllib,
+from pip.backwardcompat import (urlparse, urllib,
                                 ConfigParser, string_types, HTTPError,
-                                FeedParser, get_python_version,
-                                b)
+                                get_python_version, b)
 from pip.index import Link
 from pip.locations import build_prefix
 from pip.download import (get_file_content, is_url, url_to_path,
@@ -1113,7 +1114,7 @@ class RequirementSet(object):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
         logger.info("Copying %s to %s" % (req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
-        copytree(req_to_install.source_dir, dest)
+        shutil.copytree(req_to_install.source_dir, dest)
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
                         command_desc='python setup.py clean')
 

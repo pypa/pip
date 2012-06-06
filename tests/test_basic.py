@@ -41,7 +41,7 @@ def test_correct_pip_version():
     # primary resources other than .py files, this code will need
     # maintenance
     mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
-    assert not mismatch_py, 'mismatched source files in %r and %r'% (pip_folder, pip_folder_outputed)
+    assert not mismatch_py, 'mismatched source files in %r and %r: %r'% (pip_folder, pip_folder_outputed, mismatch_py)
 
 
 def test_pip_second_command_line_interface_works():
