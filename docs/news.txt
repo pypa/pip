@@ -13,6 +13,9 @@ Beta and final releases planned for the second half of 2012.
 develop (unreleased)
 -------------------
 
+* Use a temporary directory as the default build location outside of a
+  virtualenv. Fixes issues #339 and #381. Thanks TC01.
+
 * Added support for specifying extras with local editables. Thanks Nick
   Stenning.
 
