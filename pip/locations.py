@@ -30,18 +30,16 @@ if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
-    #Use tempfile to create a temporary folder
-    build_prefix = tempfile.mkdtemp('-build', 'pip-')
-    src_prefix = tempfile.mkdtemp('-src', 'pip-')
-    ## FIXME: this is a terrible hack; change req.py (or other locations?)
-    ## to flag a directory for deletion based on whether or not it matches
-    ## build_prefix and src_prefix, NOT if pip has had to create it
+    # Use tempfile to create a temporary folder for build
+    # Note: we are NOT using mkdtemp so we can have a consistent build dir
+    build_prefix = os.path.join(tempfile.gettempdir(), 'pip-build')
+    
+    ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
-        os.rmdir(build_prefix)
-        os.rmdir(src_prefix)
+        src_prefix = os.path.join(os.getcwd(), 'src')
     except OSError:
-        # I'm not sure why this wouldn't work, but just in case!
-        sys.exit("An error has occurred in attempting to set up the temporary directories")
+        # In case the current working directory has been renamed or deleted
+        sys.exit("The folder you are executing pip from can no longer be found.")
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
