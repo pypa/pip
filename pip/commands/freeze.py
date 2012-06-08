@@ -79,7 +79,8 @@ class FreezeCommand(Command):
             req_f = open(requirement)
             for line in req_f:
                 if not line.strip() or line.strip().startswith('#'):
-                    f.write(line)
+                    if not changed_only:
+                        f.write(line)
                     continue
                 if skip_match and skip_match.search(line):
                     f.write(line)
