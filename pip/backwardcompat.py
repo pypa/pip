@@ -1,6 +1,7 @@
 """Stuff that differs in different Python versions"""
 
 import sys
+import site
 
 __all__ = ['WindowsError']
 
@@ -84,6 +85,8 @@ else:
 
 from distutils.sysconfig import get_python_lib, get_python_version
 
+#site.USER_SITE was created in py2.6
+user_site = getattr(site,'USER_SITE',None)
 
 def product(*args, **kwds):
     # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
