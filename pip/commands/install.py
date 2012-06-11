@@ -217,7 +217,8 @@ class InstallCommand(Command):
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
-            force_reinstall=options.force_reinstall)
+            force_reinstall=options.force_reinstall,
+            use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
