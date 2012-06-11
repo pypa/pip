@@ -300,6 +300,8 @@ def dist_in_usersite(dist):
     """
     if user_site:
         return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+    else:
+        return False
 
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
