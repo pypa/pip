@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 import subprocess
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str
+from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
 from pip.locations import site_packages, running_under_virtualenv
 from pip.log import logger
 
@@ -292,6 +292,16 @@ def dist_is_local(dist):
 
     """
     return is_local(dist_location(dist))
+
+
+def dist_in_usersite(dist):
+    """
+    Return True if given Distribution is installed in user site.
+    """
+    if user_site:
+        return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+    else:
+        return False
 
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
