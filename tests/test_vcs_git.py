@@ -95,7 +95,7 @@ def test_check_submodule_addition():
     _change_test_package_submodule(env, submodule_path)
     _pull_in_submodule_changes_to_module(env, module_path)
 
-    update_result = run_pip('install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade')
+    update_result = run_pip('install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade', expect_error=True) # expect error because git writes to stdout in some weird cases
 
     assert env.venv/'src/version-pkg/testpkg/static/testfile2' in update_result.files_created
 
