@@ -1,6 +1,7 @@
 """Test the test support."""
 
 import sys
+import os
 from os.path import abspath, join, curdir, isdir, isfile
 from nose import SkipTest
 from tests.local_repos import local_checkout
@@ -49,4 +50,19 @@ def test_add_patch_to_sitecustomize_fast():
     result = env.run('python', '-c', "import pip; print(pip.backwardcompat.urllib2.urlopen.__module__)")
     assert "sitecustomize"== result.stdout.strip(), result.stdout
 
+
+def test_sitecustomize_not_growing_in_fast_environment():
+    """
+    Test that the sitecustomize is not growing with redundant patches in the cached fast environment
+    """
+
+    patch = "fu = 'bar'"
+
+    env1 = reset_env(sitecustomize=patch)
+    sc1 = env1.lib_path / 'sitecustomize.py'
+    size1 = os.stat(sc1).st_size
+    env2 = reset_env(sitecustomize=patch)
+    sc2 = env2.lib_path / 'sitecustomize.py'
+    size2 = os.stat(sc2).st_size
+    assert size1==size2, "size before, %d != size after, %d" %(size1, size2)
 
