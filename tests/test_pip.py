@@ -355,6 +355,9 @@ class TestPipEnvironment(TestFileEnvironment):
 
         # Install this version instead
         self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
+
+        #create sitecustomize.py and add patches
+        self._create_empty_sitecustomize()
         self._use_cached_pypi_server()
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
@@ -393,6 +396,12 @@ class TestPipEnvironment(TestFileEnvironment):
             pypi_server.PyPIProxy.setup()
             sys.path.remove(%r)""" % (str(here), str(here))
         self._add_to_sitecustomize(patch)
+
+    def _create_empty_sitecustomize(self):
+        "Create empty sitecustomize.py."
+        sitecustomize_path = self.lib_path / 'sitecustomize.py'
+        sitecustomize = open(sitecustomize_path, 'w')
+        sitecustomize.close()
 
     def _add_to_sitecustomize(self, snippet):
         "Adds a python code snippet to sitecustomize.py."
@@ -492,9 +501,13 @@ class FastTestPipEnvironment(TestPipEnvironment):
             # Install this version instead
             self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
             shutil.copytree(self.root_path, self.backup_path, True)
+
+        #create sitecustomize.py and add patches
+        self._create_empty_sitecustomize()
         self._use_cached_pypi_server()
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
+
         assert self.root_path.exists
 
     def __del__(self):
