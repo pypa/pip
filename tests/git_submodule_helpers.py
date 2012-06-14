@@ -21,7 +21,7 @@ def _change_test_package_submodule(env, submodule_path):
             '-am', 'submodule change', cwd=submodule_path)
 
 def _pull_in_submodule_changes_to_module(env, module_path):
-    env.run(*('git submodule foreach git pull -q origin master'.split(' ')), cwd=module_path) # this only exists in git > 1.7.3
+    env.run(cwd=module_path, *('git submodule foreach git pull -q origin master'.split(' '))) # this only exists in git > 1.7.3
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'submodule change', cwd=module_path)
