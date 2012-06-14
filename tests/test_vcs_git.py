@@ -2,7 +2,11 @@ from mock import patch
 from pip.vcs.git import Git
 from tests.test_pip import (reset_env, run_pip,
                             _create_test_package,)
-from tests.git_submodule_helpers import _create_test_package_submodule, _change_test_package_submodule, _pull_in_submodule_changes_to_module, _create_test_package_with_submodule
+from tests.git_submodule_helpers import (
+    _change_test_package_submodule,
+    _pull_in_submodule_changes_to_module,
+    _create_test_package_with_submodule,
+    )
 
 
 def test_get_tag_revs_should_return_tag_name_and_commit_pair():
@@ -78,13 +82,10 @@ def test_check_rev_options_should_handle_ambiguous_commit(branches_revs_mock,
     assert result == ['123456'], result
 
 
-
-
-
-
 def test_check_submodule_addition():
     """
-        Test if submodules will be pulled in on install, and updated on upgrade
+    Submodules are pulled in on install and updated on upgrade.
+
     """
     env = reset_env()
     module_path, submodule_path = _create_test_package_with_submodule(env)
@@ -95,7 +96,8 @@ def test_check_submodule_addition():
     _change_test_package_submodule(env, submodule_path)
     _pull_in_submodule_changes_to_module(env, module_path)
 
-    update_result = run_pip('install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade', expect_error=True) # expect error because git writes to stdout in some weird cases
+    # expect error because git may write to stderr
+    update_result = run_pip('install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade', expect_error=True)
 
     assert env.venv/'src/version-pkg/testpkg/static/testfile2' in update_result.files_created
 
