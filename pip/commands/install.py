@@ -229,7 +229,7 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-        if not requirement_set.has_requirements:
+        if not requirement_set.has_requirements and not options.requirements:
             opts = {'name': self.name}
             if options.find_links:
                 msg = ('You must give at least one requirement to %(name)s '
