@@ -99,7 +99,8 @@ class URLOpener(object):
         interpretation of the RFC: http://bugs.python.org/issue8732
         """
         if isinstance(url, string_types):
-            url = urllib2.Request(url, headers={'Accept-encoding': 'identity'})
+            url = urllib2.Request(url, headers={'Accept-encoding': 'identity',
+                                                'User-Agent': 'python-pip'})
         return url
 
     def get_response(self, url, username=None, password=None):
