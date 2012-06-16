@@ -183,6 +183,7 @@ class InstallCommand(Command):
                              mirrors=options.mirrors)
 
     def run(self, options, args):
+        fix_git_urls(args)
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
@@ -287,3 +288,12 @@ class InstallCommand(Command):
 
 
 InstallCommand()
+
+# prepend git+ to invalid git urls
+def fix_git_urls(urls):
+    for i in range(len(urls)):
+        url = urls[i]
+        if url.startswith('git+'):
+            continue
+        if url.endswith('.git'):
+            urls[i] = 'git+' + urls[i]
