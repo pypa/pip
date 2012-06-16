@@ -129,6 +129,11 @@ class Command(object):
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = ERROR
+        except socket.error:
+            e_info = sys.exc_info()[1]
+            logger.fatal('ERROR: Some connectivity problem: %s' % e_info)
+            store_log = True
+            exit = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
