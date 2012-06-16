@@ -220,9 +220,10 @@ parser.add_option(
     default=0,
     help='Give less output')
 parser.add_option(
-    '--log',
+    '--log', '--log-file', '--local-log',
     dest='log',
     metavar='FILENAME',
+    default=default_log_file,
     help='Log file where a complete (maximum verbosity) record will be kept')
 parser.add_option(
     # Writes the log levels explicitely to the log'
@@ -230,13 +231,6 @@ parser.add_option(
     dest='log_explicit_levels',
     action='store_true',
     default=False,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
-    # The default log file
-    '--local-log', '--log-file',
-    dest='log_file',
-    metavar='FILENAME',
-    default=default_log_file,
     help=optparse.SUPPRESS_HELP)
 parser.add_option(
     # Don't ask for input

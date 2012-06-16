@@ -49,7 +49,7 @@ class Command(object):
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
         for attr in ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
+                     'log_explicit_levels',
                      'timeout', 'default_vcs',
                      'skip_requirements_regex',
                      'no_input', 'exists_action']:
@@ -136,7 +136,7 @@ class Command(object):
         if log_fp is not None:
             log_fp.close()
         if store_log:
-            log_fn = options.log_file
+            log_fn = options.log
             text = '\n'.join(complete_log)
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp = open_logfile(log_fn, 'w')
