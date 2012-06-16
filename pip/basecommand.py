@@ -138,6 +138,14 @@ class Command(object):
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
             exit = UNKNOWN_ERROR
+        finally:
+            # try to clean eventual files that got caught up
+            if not self.done_cleaning:
+                try:
+                    self.req_set.cleanup_files(bundle=self.bundle)
+                except:
+                    pass # go unnoticed if there is nothing to clean
+
         if log_fp is not None:
             log_fp.close()
         if store_log:

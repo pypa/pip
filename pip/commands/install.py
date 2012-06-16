@@ -184,6 +184,7 @@ class InstallCommand(Command):
 
     def run(self, options, args):
         fix_git_urls(args)
+        self.done_cleaning = False
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
@@ -229,6 +230,8 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
+        # save the requirement set for cleaning in case of error
+        self.req_set = requirement_set
         if not requirement_set.has_requirements and not options.requirements:
             opts = {'name': self.name}
             if options.find_links:
@@ -274,6 +277,7 @@ class InstallCommand(Command):
         # Clean up
         if not options.no_install or options.download_dir:
             requirement_set.cleanup_files(bundle=self.bundle)
+        self.done_cleaning = True
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
