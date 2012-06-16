@@ -138,8 +138,13 @@ class Command(object):
         if store_log:
             log_fn = options.log_file
             text = '\n'.join(complete_log)
-            logger.fatal('Storing complete log in %s' % log_fn)
-            log_fp = open_logfile(log_fn, 'w')
+            try:
+               log_fp = open_logfile(log_fn, 'w')
+            except IOError:
+               temp = tempfile.NamedTemporaryFile(delete=False)
+               log_fn = temp.name
+               log_fp = open_logfile(log_fn, 'w')
+            logger.fatal('Storing complete log in %s' % log_fn)			
             log_fp.write(text)
             log_fp.close()
         return exit
