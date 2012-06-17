@@ -49,7 +49,7 @@ class Command(object):
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
         for attr in ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
+                     'log_explicit_levels',
                      'timeout', 'default_vcs',
                      'skip_requirements_regex',
                      'no_input', 'exists_action']:
@@ -129,14 +129,27 @@ class Command(object):
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = ERROR
+        except socket.error:
+            e_info = sys.exc_info()[1]
+            logger.fatal('ERROR: Some connectivity problem: %s' % e_info)
+            store_log = True
+            exit = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
             exit = UNKNOWN_ERROR
+        finally:
+            # try to clean eventual files that got caught up
+            if not self.done_cleaning:
+                try:
+                    self.req_set.cleanup_files(bundle=self.bundle)
+                except:
+                    pass # go unnoticed if there is nothing to clean
+
         if log_fp is not None:
             log_fp.close()
         if store_log:
-            log_fn = options.log_file
+            log_fn = options.log
             text = '\n'.join(complete_log)
             try:
                log_fp = open_logfile(log_fn, 'w')

@@ -183,6 +183,8 @@ class InstallCommand(Command):
                              mirrors=options.mirrors)
 
     def run(self, options, args):
+        fix_git_urls(args)
+        self.done_cleaning = False
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
@@ -228,7 +230,9 @@ class InstallCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
-        if not requirement_set.has_requirements:
+        # save the requirement set for cleaning in case of error
+        self.req_set = requirement_set
+        if not requirement_set.has_requirements and not options.requirements:
             opts = {'name': self.name}
             if options.find_links:
                 msg = ('You must give at least one requirement to %(name)s '
@@ -273,6 +277,7 @@ class InstallCommand(Command):
         # Clean up
         if not options.no_install or options.download_dir:
             requirement_set.cleanup_files(bundle=self.bundle)
+        self.done_cleaning = True
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
@@ -287,3 +292,12 @@ class InstallCommand(Command):
 
 
 InstallCommand()
+
+# prepend git+ to invalid git urls
+def fix_git_urls(urls):
+    for i in range(len(urls)):
+        url = urls[i]
+        if url.startswith('git+'):
+            continue
+        if url.endswith('.git'):
+            urls[i] = 'git+' + urls[i]
