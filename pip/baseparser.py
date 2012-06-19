@@ -9,7 +9,75 @@ from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
 
 
-class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
+    """A prettier/less verbose help formatter for optparse."""
+
+    def __init__(self, *args, **kw):
+        kw['max_help_position'] = 23
+        kw['indent_increment'] = 1
+
+        # do as argparse does
+        try:
+            kw['width'] = int(os.environ['COLUMNS']) - 2
+        except:
+            kw['width'] = 78
+
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+
+    def format_option_strings(self, option):
+        return self._format_option_strings(option, ' <%s>', ', ')
+
+    def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
+        """
+        Return a comma-separated list of option strings and metavars.
+
+        :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
+        :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
+        :param optsep:  separator
+        """
+
+        opts = []
+
+        if option._short_opts: opts.append(option._short_opts[0])
+        if option._long_opts:  opts.append(option._long_opts[0])
+        if len(opts) > 1: opts.insert(1, optsep)
+
+        if option.takes_value():
+            metavar = option.metavar or option.dest.lower()
+            opts.append(mvarfmt % metavar)
+
+        return ''.join(opts)
+
+    def format_heading(self, heading):
+        if heading == 'Options': return ''
+        return heading + ':\n'
+
+    def format_usage(self, usage):
+        # ensure there is only one newline between usage and the first heading
+        # if there is no description
+
+        msg = 'Usage: %s' % usage
+        if self.parser.description:
+            msg += '\n'
+
+        return msg
+
+    def format_description(self, description):
+        # leave full control over description to us
+        if description:
+            return description
+        else:
+            return ''
+
+    def format_epilog(self, epilog):
+        # leave full control over epilog to us
+        if epilog:
+            return epilog
+        else:
+            return ''
+
+
+class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly
     in the help listing"""

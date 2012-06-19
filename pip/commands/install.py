@@ -5,7 +5,7 @@ import shutil
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
-from pip.locations import build_prefix, src_prefix
+from pip.locations import build_prefix, src_prefix, virtualenv_no_global
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
@@ -165,6 +165,12 @@ class InstallCommand(Command):
             action='store_true',
             help='Install to user-site')
 
+        self.parser.add_option(
+            '--egg',
+            dest='as_egg',
+            action='store_true',
+            help="Install as self contained egg file, like easy_install does.")
+
     def _build_package_finder(self, options, index_urls):
         """
         Create a package finder appropriate to this install command.
@@ -184,6 +190,8 @@ class InstallCommand(Command):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            if virtualenv_no_global():
+                raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
         if options.target_dir:
             options.ignore_installed = True
@@ -206,9 +214,11 @@ class InstallCommand(Command):
             download_dir=options.download_dir,
             download_cache=options.download_cache,
             upgrade=options.upgrade,
+            as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
-            force_reinstall=options.force_reinstall)
+            force_reinstall=options.force_reinstall,
+            use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))

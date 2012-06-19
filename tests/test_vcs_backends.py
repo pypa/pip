@@ -67,7 +67,7 @@ def test_git_with_tag_name_and_update():
                      '%s@0.1.2#egg=pip-test-package' %
                      local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_error=True)
-    assert '0.1.2\n' in result.stdout
+    assert '0.1.2' in result.stdout
 
 
 def test_git_branch_should_not_be_changed():
@@ -92,7 +92,7 @@ def test_git_with_non_editable_unpacking():
     result = run_pip('install', '--global-option=--version', local_checkout(
                      'git+http://github.com/pypa/pip-test-package.git@0.1.2#egg=pip-test-package'
                      ), expect_error=True)
-    assert '0.1.2\n' in result.stdout
+    assert '0.1.2' in result.stdout
 
 
 def test_git_with_editable_where_egg_contains_dev_string():
@@ -136,7 +136,6 @@ def test_git_works_with_editable_non_origin_repo():
     env = reset_env()
     version_pkg_path = _create_test_package(env)
     run_pip('install', '-e', version_pkg_path.abspath)
-
 
     # 'freeze'ing this should not fall over, but should result in stderr output warning
     result = run_pip('freeze', expect_stderr=True)

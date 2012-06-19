@@ -1,8 +1,8 @@
 """Locations where we look for configs, install stuff, etc"""
 
 import sys
+import site
 import os
-import shutil
 import tempfile
 from pip.backwardcompat import get_python_lib
 
@@ -14,14 +14,28 @@ def running_under_virtualenv():
     """
     return hasattr(sys, 'real_prefix')
 
+def virtualenv_no_global():
+    """
+    Return True if in a venv and no system site packages.
+    """
+    #this mirrors the logic in virtualenv.py for locating the no-global-site-packages.txt file
+    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
+    no_global_file = os.path.join(site_mod_dir,'no-global-site-packages.txt')
+    if running_under_virtualenv() and os.path.isfile(no_global_file):
+        return True
+
+
 if running_under_virtualenv():
     ## FIXME: is build/ a good name?
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
+    # Use tempfile to create a temporary folder for build
+    # Note: we are NOT using mkdtemp so we can have a consistent build dir
+    build_prefix = os.path.join(tempfile.gettempdir(), 'pip-build')
+    
+    ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
-        ## FIXME: this isn't a very good default
-        build_prefix = os.path.join(os.getcwd(), 'build')
         src_prefix = os.path.join(os.getcwd(), 'src')
     except OSError:
         # In case the current working directory has been renamed or deleted
@@ -41,7 +55,6 @@ if sys.platform == 'win32':
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-    user_dir = os.environ.get('APPDATA', user_dir) # Use %APPDATA% for roaming
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
