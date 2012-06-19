@@ -3,6 +3,7 @@
 import sys
 import site
 import os
+import shutil
 import tempfile
 from pip.backwardcompat import get_python_lib
 
