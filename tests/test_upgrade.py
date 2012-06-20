@@ -1,5 +1,6 @@
 import textwrap
 from os.path import join
+from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
                             _change_test_package_version)
@@ -150,7 +151,8 @@ def test_uninstall_rollback():
     assert env.run('python', '-c', "import broken; print(broken.VERSION)").stdout == '0.1\n'
     assert_all_changes(result.files_after, result2, [env.venv/'build', 'pip-log.txt'])
 
-
+# Issue #530 - temporarily disable flaky test
+@nottest
 def test_editable_git_upgrade():
     """
     Test installing an editable git package from a repository, upgrading the repository,
@@ -164,7 +166,7 @@ def test_editable_git_upgrade():
     _change_test_package_version(env, version_pkg_path)
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
-    assert 'some different version' in version2.stdout
+    assert 'some different version' in version2.stdout, "Output: %s" % (version2.stdout)
 
 
 def test_should_not_install_always_from_cache():

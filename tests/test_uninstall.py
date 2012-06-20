@@ -1,8 +1,8 @@
 import textwrap
 import sys
-from os.path import join
+from os.path import join, abspath
 from tempfile import mkdtemp
-from tests.test_pip import reset_env, run_pip, assert_all_changes, write_file
+from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
@@ -14,9 +14,9 @@ def test_simple_uninstall():
 
     """
     env = reset_env()
-    result = run_pip('install', 'INITools==0.2', expect_error=True)
+    result = run_pip('install', 'INITools==0.2')
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'INITools', '-y', expect_error=True)
+    result2 = run_pip('uninstall', 'INITools', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
 
@@ -137,3 +137,21 @@ def test_uninstall_from_reqs_file():
     result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
         result, result2, [env.venv/'build', env.venv/'src', env.scratch/'test-req.txt'])
+
+
+def test_uninstall_as_egg():
+    """
+    Test uninstall package installed as egg.
+
+    """
+    env = reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', to_install, '--egg', expect_error=False)
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    assert fspkg_folder not in result.files_created, str(result.stdout)
+    assert egg_folder in result.files_created, str(result)
+
+    result2 = run_pip('uninstall', 'FSPkg', '-y', expect_error=True)
+    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+

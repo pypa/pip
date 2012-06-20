@@ -36,9 +36,6 @@ pip doesn't do everything that easy_install does. Specifically:
   future it would be good if it could install binaries from Windows ``.exe``
   or ``.msi`` -- binary install on other platforms is not a priority.)
 
-* It doesn't understand Setuptools extras (like ``package[test]``).  This should
-  be added eventually.
-
 * It is incompatible with some packages that extensively customize distutils
   or setuptools in their ``setup.py`` files.
 
@@ -60,25 +57,6 @@ To tell pip to only run if there is a virtualenv currently activated,
 and to bail if not, use::
 
     export PIP_REQUIRE_VIRTUALENV=true
-
-
-Using pip with virtualenvwrapper
----------------------------------
-
-If you are using `virtualenvwrapper
-<http://www.doughellmann.com/projects/virtualenvwrapper/>`_, you might
-want pip to automatically create its virtualenvs in your
-``$WORKON_HOME``.
-
-You can tell pip to do so by defining ``PIP_VIRTUALENV_BASE`` in your
-environment and setting it to the same value as that of
-``$WORKON_HOME``.
-
-Do so by adding the line::
-
-    export PIP_VIRTUALENV_BASE=$WORKON_HOME
-
-in your .bashrc under the line starting with ``export WORKON_HOME``.
 
 Using pip with buildout
 -----------------------

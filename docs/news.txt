@@ -10,8 +10,40 @@ Next release (1.2) schedule
 
 Beta and final releases planned for the second half of 2012.
 
-master (unreleased)
+develop (unreleased)
 -------------------
+
+* Write failure log to temp file if default location is not writable. Thanks
+  andreigc.
+
+* Pull in submodules for git editable checkouts. Fixes #289 and #421. Thanks
+  Hsiaoming Yang and Markus Hametner.
+
+* Use a temporary directory as the default build location outside of a
+  virtualenv. Fixes issues #339 and #381. Thanks TC01.
+
+* Added support for specifying extras with local editables. Thanks Nick
+  Stenning.
+
+* Added ``--egg`` flag to request egg-style rather than flat installation. Refs
+  issue #3. Thanks Kamal Bin Mustafa.
+
+* Fixed issue #510 - prevent e.g. ``gmpy2-2.0.tar.gz`` from matching a request
+  to ``pip install gmpy``; sdist filename must begin with full project name
+  followed by a dash. Thanks casevh for the report.
+
+* Fixed issue #504 - allow package URLS to have querystrings. Thanks W.
+  Trevor King.
+
+* Dropped support for Python 2.4. The minimum supported Python version is
+  now Python 2.5.
+
+* Fixed issue #58 - pip freeze now falls back to non-editable format rather
+  than blowing up if it can't determine the origin repository of an editable.
+  Thanks Rory McCann.
+
+* Added a `__main__.py` file to enable `python -m pip` on Python versions
+  that support it. Thanks Alexey Luchko.
 
 * Fixed issue #487 - upgrade from VCS url of project that does exist on
   index. Thanks Andrew Knapp for the report.

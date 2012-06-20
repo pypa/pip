@@ -2,6 +2,7 @@ from mock import patch
 from pip.vcs.subversion import Subversion
 from tests.test_pip import reset_env
 
+
 @patch('pip.vcs.subversion.call_subprocess')
 def test_obtain_should_recognize_auth_info_in_url(call_subprocess_mock):
     env = reset_env()
@@ -10,6 +11,7 @@ def test_obtain_should_recognize_auth_info_in_url(call_subprocess_mock):
     call_subprocess_mock.assert_called_with([
         svn.cmd, 'checkout', '-q', '--username', 'username', '--password', 'password',
         'http://username:password@svn.example.com/', env.scratch_path/'test'])
+
 
 @patch('pip.vcs.subversion.call_subprocess')
 def test_export_should_recognize_auth_info_in_url(call_subprocess_mock):
