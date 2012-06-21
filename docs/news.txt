@@ -54,6 +54,9 @@ develop (unreleased)
 * Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
   Thomas Fenzl.
 
+* Added support for using any of the built in guaranteed algorithms in ``hashlib``
+  as a checksum hash.
+
 
 1.1 (2012-02-16)
 ----------------
