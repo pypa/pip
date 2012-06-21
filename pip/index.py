@@ -390,11 +390,6 @@ class PackageFinder(object):
 
         return list(mirror_urls)
 
-class PageGetter(object):
-    """Handles the threaded page discovery and fetching
-
-        Returns a list of HTMLPage objects from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
 
 class PageGetter(object):
     """Handles the threaded page discovery and fetching
