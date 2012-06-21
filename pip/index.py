@@ -176,7 +176,8 @@ class PackageFinder(object):
             self._package_versions(
                 [Link(url, '-f') for url in self.find_links], req.name.lower()))
         page_versions = []
-        for page in self._get_pages(locations, req):
+        page_getter = PageGetter(self.cache)
+        for page in page_getter.get_pages(locations, req):
             logger.debug('Analyzing links from page %s' % page.url)
             logger.indent += 2
             try:
@@ -254,44 +255,6 @@ class PackageFinder(object):
                 logger.notify('Real name of requirement %s is %s' % (url_name, base))
                 return base
         return None
-
-    def _get_pages(self, locations, req):
-        """Returns a list of HTMLPage objects from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
-
-        self._current_req = req
-        self._pages_done = []
-        self._seen_locations = set()
-        # set up worker threads if they haven't already been
-        while len(self._page_getting_threads) < 10:
-            t = threading.Thread(target=self._get_queued_page)
-            t.setDaemon(True)
-            self._page_getting_threads.append(t)
-            t.start()
-
-        for location in locations:
-            self._pending_queue.put(location)
-        self._pending_queue.join()
-
-        return self._pages_done
-
-    def _get_queued_page(self):
-        while 1:
-            location = self._pending_queue.get()
-            if location in self._seen_locations:
-                self._pending_queue.task_done()
-                continue
-            self._seen_locations.add(location)
-            page = self._get_page(location, self._current_req)
-            if page is None:
-                self._pending_queue.task_done()
-                continue
-            self._pages_done.append(page)
-
-            for link in page.rel_links():
-                self._pending_queue.put(link)
-            self._pending_queue.task_done()
-
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
@@ -433,6 +396,66 @@ class PageGetter(object):
         Returns a list of HTMLPage objects from the given locations, skipping
         locations that have errors, and adding download/homepage links"""
 
+class PageGetter(object):
+    """Handles the threaded page discovery and fetching
+
+        Returns a list of HTMLPage objects from the given locations, skipping
+        locations that have errors, and adding download/homepage links"""
+
+    def __init__(self, cache):
+        # the cache object shared with PackageFinder instance
+        self.cache = cache
+        # These attributes handle worker thread management
+        self._current_req = None
+        self._pages_done = []
+        self._seen_locations = set()
+        self._pending_queue = Queue()
+        self._page_getting_threads = []
+
+    def get_pages(self, locations, req):
+        """Returns a list of HTMLPage objects from the given locations, skipping
+        locations that have errors, and adding download/homepage links"""
+
+        self._current_req = req
+        self._pages_done = []
+        self._seen_locations = set()
+
+        # set up worker threads if they haven't already been
+        while len(self._page_getting_threads) < 10:
+            t = threading.Thread(target=self._get_queued_page)
+            t.setDaemon(True)
+            self._page_getting_threads.append(t)
+            t.start()
+
+        for location in locations:
+            self._pending_queue.put(location)
+
+        self._pending_queue.join()
+        return self._pages_done
+
+    def _get_queued_page(self):
+        while 1:
+            location = self._pending_queue.get()
+            if location in self._seen_locations:
+                self._pending_queue.task_done()
+                continue
+
+            self._seen_locations.add(location)
+            page = self._get_page(location, self._current_req)
+
+            if page is None:
+                self._pending_queue.task_done()
+                continue
+
+            self._pages_done.append(page)
+            for link in page.rel_links():
+                self._pending_queue.put(link)
+
+            self._pending_queue.task_done()
+
+    def _get_page(self, link, req):
+        return HTMLPage.get_page(link, req, cache=self.cache)
+
 class PageCache(object):
     """Cache of HTML pages"""
 
@@ -442,25 +465,32 @@ class PageCache(object):
         self._failures = {}
         self._pages = {}
         self._archives = {}
+        self.lock = threading.Lock()
 
     def too_many_failures(self, url):
-        return self._failures.get(url, 0) >= self.failure_limit
+        with self.lock:
+            return self._failures.get(url, 0) >= self.failure_limit
 
     def get_page(self, url):
-        return self._pages.get(url)
+        with self.lock:
+            return self._pages.get(url)
 
     def is_archive(self, url):
-        return self._archives.get(url, False)
+        with self.lock:
+            return self._archives.get(url, False)
 
     def set_is_archive(self, url, value=True):
-        self._archives[url] = value
+        with self.lock:
+            self._archives[url] = value
 
     def add_page_failure(self, url, level):
-        self._failures[url] = self._failures.get(url, 0)+level
+        with self.lock:
+            self._failures[url] = self._failures.get(url, 0)+level
 
     def add_page(self, urls, page):
-        for url in urls:
-            self._pages[url] = page
+        with self.lock:
+            for url in urls:
+                self._pages[url] = page
 
 
 class HTMLPage(object):
