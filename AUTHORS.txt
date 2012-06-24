@@ -3,6 +3,7 @@ Alex Morega
 Alexandre Conrad
 Antti Kaihola
 Armin Ronacher
+Ben Rosser
 Brian Rosner
 Carl Meyer
 Christian Oudard
