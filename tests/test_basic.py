@@ -376,6 +376,16 @@ def test_install_with_pax_header():
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
 
 
+def test_install_with_hacked_egg_info():
+    """
+    test installing a package which defines its own egg_info class
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'HackedEggInfo'))
+    result = run_pip('install', '.', cwd=run_from)
+    assert 'Successfully installed hackedegginfo\n' in result.stdout
+
+
 def test_install_using_install_option_and_editable():
     """
     Test installing a tool using -e and --install-option
