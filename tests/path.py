@@ -15,6 +15,7 @@ _base = os.path.supports_unicode_filenames and unicode or str
 
 from pip.util import rmtree
 
+
 class Path(_base):
     """ Models a path in an object oriented way. """
 
@@ -32,7 +33,7 @@ class Path(_base):
         """ path_obj / 'bc.d' """
         """ path_obj / path_obj2 """
         return Path(self, path)
-    
+
     __truediv__ = __div__
 
     def __rdiv__(self, path):

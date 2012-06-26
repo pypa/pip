@@ -4,6 +4,8 @@
 import sys
 import logging
 
+import pip.backwardcompat
+
 
 class Logger(object):
 
@@ -71,7 +73,8 @@ class Logger(object):
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
-                    consumer.write(rendered+'\n')
+                    rendered += '\n'
+                    pip.backwardcompat.fwrite(consumer, rendered)
                 else:
                     consumer(rendered)
 

@@ -9,7 +9,75 @@ from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
 
 
-class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
+class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
+    """A prettier/less verbose help formatter for optparse."""
+
+    def __init__(self, *args, **kw):
+        kw['max_help_position'] = 23
+        kw['indent_increment'] = 1
+
+        # do as argparse does
+        try:
+            kw['width'] = int(os.environ['COLUMNS']) - 2
+        except:
+            kw['width'] = 78
+
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+
+    def format_option_strings(self, option):
+        return self._format_option_strings(option, ' <%s>', ', ')
+
+    def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
+        """
+        Return a comma-separated list of option strings and metavars.
+
+        :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
+        :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
+        :param optsep:  separator
+        """
+
+        opts = []
+
+        if option._short_opts: opts.append(option._short_opts[0])
+        if option._long_opts:  opts.append(option._long_opts[0])
+        if len(opts) > 1: opts.insert(1, optsep)
+
+        if option.takes_value():
+            metavar = option.metavar or option.dest.lower()
+            opts.append(mvarfmt % metavar)
+
+        return ''.join(opts)
+
+    def format_heading(self, heading):
+        if heading == 'Options': return ''
+        return heading + ':\n'
+
+    def format_usage(self, usage):
+        # ensure there is only one newline between usage and the first heading
+        # if there is no description
+
+        msg = 'Usage: %s' % usage
+        if self.parser.description:
+            msg += '\n'
+
+        return msg
+
+    def format_description(self, description):
+        # leave full control over description to us
+        if description:
+            return description
+        else:
+            return ''
+
+    def format_epilog(self, epilog):
+        # leave full control over epilog to us
+        if epilog:
+            return epilog
+        else:
+            return ''
+
+
+class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly
     in the help listing"""
@@ -46,14 +114,11 @@ class ConfigOptionParser(optparse.OptionParser):
         config = {}
         # 1. config files
         for section in ('global', self.name):
-            config.update(dict(self.get_config_section(section)))
+            config.update(self.normalize_keys(self.get_config_section(section)))
         # 2. environmental variables
-        config.update(dict(self.get_environ_vars()))
+        config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
         for key, val in config.items():
-            key = key.replace('_', '-')
-            if not key.startswith('--'):
-                key = '--%s' % key # only prefer long opts
             option = self.get_option(key)
             if option is not None:
                 # ignore empty values
@@ -74,6 +139,18 @@ class ConfigOptionParser(optparse.OptionParser):
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
+
+    def normalize_keys(self, items):
+        """Return a config dictionary with normalized keys regardless of
+        whether the keys were specified in environment variables or in config
+        files"""
+        normalized = {}
+        for key, val in items:
+            key = key.replace('_', '-')
+            if not key.startswith('--'):
+                key = '--%s' % key # only prefer long opts
+            normalized[key] = val
+        return normalized
 
     def get_config_section(self, name):
         """Get a section of a configuration"""
@@ -123,38 +200,9 @@ parser.add_option(
     action='store_true',
     help='Show help')
 parser.add_option(
-    '-E', '--environment',
-    dest='venv',
-    metavar='DIR',
-    help='virtualenv environment to run pip in (either give the '
-    'interpreter or the environment base directory)')
-parser.add_option(
-    '-s', '--enable-site-packages',
-    dest='site_packages',
-    action='store_true',
-    help='Include site-packages in virtualenv if one is to be '
-    'created. Ignored if --environment is not used or '
-    'the virtualenv already exists.')
-parser.add_option(
-    # Defines a default root directory for virtualenvs, relative
-    # virtualenvs names/paths are considered relative to it.
-    '--virtualenv-base',
-    dest='venv_base',
-    type='str',
-    default='',
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
     # Run only if inside a virtualenv, bail if not.
     '--require-virtualenv', '--require-venv',
     dest='require_venv',
-    action='store_true',
-    default=False,
-    help=optparse.SUPPRESS_HELP)
-parser.add_option(
-    # Use automatically an activated virtualenv instead of installing
-    # globally. -E will be ignored if used.
-    '--respect-virtualenv', '--respect-venv',
-    dest='respect_venv',
     action='store_true',
     default=False,
     help=optparse.SUPPRESS_HELP)
@@ -228,5 +276,19 @@ parser.add_option(
     type='str',
     default='',
     help=optparse.SUPPRESS_HELP)
+
+parser.add_option(
+    # Option when path already exist
+    '--exists-action',
+    dest='exists_action',
+    type='choice',
+    choices=['s', 'i', 'w', 'b'],
+    default=[],
+    action='append',
+    help="Default action when a path already exists."
+         "Use this option more then one time to specify "
+         "another action if a certain option is not "
+         "available, choices: "
+         "(s)witch, (i)gnore, (w)ipe, (b)ackup")
 
 parser.disable_interspersed_args()

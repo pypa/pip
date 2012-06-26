@@ -2,10 +2,12 @@ import sys
 import textwrap
 import pkg_resources
 import pip.download
-from pip.basecommand import Command
+from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size
 from pip.log import logger
 from pip.backwardcompat import xmlrpclib, reduce, cmp
+from pip.exceptions import CommandError
+from pip.status_codes import NO_MATCHES_FOUND
 from distutils.version import StrictVersion, LooseVersion
 
 
@@ -25,8 +27,7 @@ class SearchCommand(Command):
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Missing required argument (search query).')
-            return
+            raise CommandError('Missing required argument (search query).')
         query = args
         index_url = options.index
 
@@ -38,6 +39,9 @@ class SearchCommand(Command):
             terminal_width = get_terminal_size()[0]
 
         print_results(hits, terminal_width=terminal_width)
+        if pypi_hits:
+            return SUCCESS
+        return NO_MATCHES_FOUND
 
     def search(self, query, index_url):
         pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)
@@ -57,6 +61,8 @@ def transform_hits(hits):
         summary = hit['summary']
         version = hit['version']
         score = hit['_pypi_ordering']
+        if score is None:
+            score = 0
 
         if name not in packages.keys():
             packages[name] = {'name': name, 'summary': summary, 'versions': [version], 'score': score}
@@ -106,7 +112,14 @@ def compare_versions(version1, version2):
         return cmp(StrictVersion(version1), StrictVersion(version2))
     # in case of abnormal version number, fall back to LooseVersion
     except ValueError:
+        pass
+    try:
         return cmp(LooseVersion(version1), LooseVersion(version2))
+    except TypeError:
+    # certain LooseVersion comparions raise due to unorderable types,
+    # fallback to string comparison
+        return cmp([str(v) for v in LooseVersion(version1).version],
+                   [str(v) for v in LooseVersion(version2).version])
 
 
 def highest_version(versions):

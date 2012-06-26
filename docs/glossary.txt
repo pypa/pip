@@ -1,0 +1,12 @@
+========
+Glossary
+========
+
+.. glossary::
+
+    PyPI
+        The `Python Package Index`_, formerly known as the Cheese Shop,
+        is a central catalog of Python packages. By default, when
+        installing packages,`pip` searches for them in PyPI.
+
+        .. _`Python Package Index`: http://pypi.python.org/pypi

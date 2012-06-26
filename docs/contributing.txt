@@ -1,0 +1,167 @@
+=================
+How to contribute
+=================
+
+
+All kinds of contributions are welcome - code, tests, documentation,
+bug reports, ideas, etc.
+
+
+Release Schedule
+================
+
+Minor releases of pip (e.g. 1.1, 1.2, 1.3...) occur every four months
+(beginning with the release of pip 1.0 on April 4, 2011). Two weeks before a
+scheduled release, a new branch ``release/X.Y`` is created for release testing
+and preparation. This branch is only open to bugfixes.
+
+.. _contributing-with-code:
+
+Contributing with Code
+======================
+
+Forking through Github
+----------------------
+
+First of all, you need to fork the the official repository, which is
+https://github.com/pypa/pip.
+
+Log in to Github, go to the `pip repository page
+<https://github.com/pypa/pip>`_, follow the **fork** link, wait for Github
+to copy the repository and then clone your fork, like::
+
+    $ git clone https://github.com/YOU_USER_NAME/pip
+
+Now you can change whatever you want, commit, push to your fork and when your
+contribution is done, follow the **pull request** link and send us a request
+explaining what you did and why.
+
+Branches
+--------
+
+Pip uses the `git-flow`_ branching model. The default branch on GitHub is
+``develop``, and all development work (new features and bugfixes) should happen
+in that branch. The ``master`` branch is stable, and reflects the last released
+state.
+
+.. _git-flow: http://nvie.com/posts/a-successful-git-branching-model/
+
+All tests should pass
+---------------------
+
+Almost all changes to pip should be accompanied by automated tests -
+especially ones adding new behavior.
+
+`Nose`_ is used to find and run all tests. Take a look at :doc:`running-tests`
+to see what you need and how you should run the tests.
+
+Before sending us a pull request, please, be sure all tests pass.
+
+Supported Python versions
+-------------------------
+
+Pip supports Python versions 2.4, 2.5, 2.6, 2.7, 3.1, and 3.2, from a single
+codebase (without use of 2to3 translation). Untested contributions frequently
+break Python 2.4 or 3.x compatibility. Please run the tests on at least 2.4 and
+3.2 and report your results when sending a pull request.
+
+Continuous Integration server
+-----------------------------
+
+We have a continuous integration server running all pip related tests at
+http://ci.cloudsilverlining.org/view/pip. But if you want to have your own,
+you can learn how to set up a Hudson CI server like that in the
+:doc:`ci-server-step-by-step` page.
+
+
+
+Running the Tests
+=================
+
+Pip uses some system tools - VCS related tools - in its tests, so you need to
+intall them (Linux)::
+
+    sudo apt-get install subversion bzr git-core mercurial
+
+Or downloading and installing `Subversion
+<http://subversion.apache.org/packages.html>`_, `Bazaar
+<http://wiki.bazaar.canonical.com/Download>`_, `Git
+<http://git-scm.com/download>`_ and `Mercurial
+<http://mercurial.selenic.com/downloads/>`_ manually.
+
+
+After all requirements (system and python) are installed,
+just run the following command::
+
+    $ python setup.py test
+
+Running tests directly with Nose
+--------------------------------
+
+If you want to run only a selection of the tests, you'll need to run them
+directly with nose instead. Create a virtualenv, and install required
+packages::
+
+    pip install nose virtualenv scripttest mock
+
+Run nosetests::
+
+    nosetests
+
+Or select just a single test to run::
+
+    cd tests; nosetests test_upgrade.py:test_uninstall_rollback
+
+
+Troubleshooting
+---------------
+
+Locale Warnings
+    There was a problem with locales configuration when running tests in a Hudson
+    CI Server that broke some tests. The problem was not with pip, but with
+    `locales` configuration. Hudson was not setting LANG environment variable
+    correctly, so the solution to fix it was changing default language to
+    en_US.UTF-8.
+    The following has been done in a Ubuntu Server 9.10 machine::
+
+        $ sudo locale-gen en_US en_US.UTF-8
+        $ sudo dpkg-reconfigure locales
+        $ sudo update-locale LANG=en_US.UTF-8
+
+
+
+Contributing with Tests
+=======================
+
+Pip's test coverage is not as good as we would like, so contributions of
+additional tests are welcome. You can contribute these the same way you would
+contribute any other kind of code: see the :ref:`contributing-with-code`
+section.
+
+
+Contributing with Bug Reports
+=============================
+
+Pip project is hosted at `Github`_ and uses its issue tracker system.
+
+If you have found a bug and want to report it, go to `pip issue tracker page`_,
+click **Create new**, add a descriptive
+title (so we can easily identify what the bug is) and fill the description box
+explaining how you got the bug, what pip version you were using and what is
+your operating system, so we can reproduce the bug to try fixing it.
+
+
+
+Contributing with Ideas
+=======================
+
+We are always open to new ideas, and we will enjoy yours. You can send
+enhancement ideas and proposals via `pip issue tracker page`_,
+`virtualenv mailing list`_, or #pip channel at freenode.
+
+
+
+.. _nose:  http://somethingaboutorange.com/mrl/projects/nose/0.11.3/
+.. _Github: http://github.com/
+.. _pip issue tracker page: https://github.com/pypa/pip/issues
+.. _virtualenv mailing list: http://groups.google.com/group/python-virtualenv/

@@ -13,14 +13,19 @@ class BundleCommand(InstallCommand):
 
     def __init__(self):
         super(BundleCommand, self).__init__()
+        # bundle uses different default source and build dirs
+        build_opt = self.parser.get_option("--build")
+        build_opt.default = backup_dir(build_prefix, '-bundle')
+        src_opt = self.parser.get_option("--src")
+        src_opt.default = backup_dir(src_prefix, '-bundle')
+        self.parser.set_defaults(**{
+                src_opt.dest: src_opt.default,
+                build_opt.dest: build_opt.default,
+                })
 
     def run(self, options, args):
         if not args:
             raise InstallationError('You must give a bundle filename')
-        if not options.build_dir:
-            options.build_dir = backup_dir(build_prefix, '-bundle')
-        if not options.src_dir:
-            options.src_dir = backup_dir(src_prefix, '-bundle')
         # We have to get everything when creating a bundle:
         options.ignore_installed = True
         logger.notify('Putting temporary build files in %s and source/develop files in %s'

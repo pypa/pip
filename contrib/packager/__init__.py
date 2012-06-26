@@ -8,6 +8,7 @@ import base64
 import os
 import fnmatch
 
+
 def find_toplevel(name):
     for syspath in sys.path:
         lib = os.path.join(syspath, name)
@@ -18,9 +19,11 @@ def find_toplevel(name):
             return mod
     raise LookupError(name)
 
+
 def pkgname(toplevel, rootpath, path):
     parts = path.split(os.sep)[len(rootpath.split(os.sep)):]
     return '.'.join([toplevel] + [os.path.splitext(x)[0] for x in parts])
+
 
 def pkg_to_mapping(name):
     toplevel = find_toplevel(name)

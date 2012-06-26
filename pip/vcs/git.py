@@ -1,12 +1,14 @@
 import tempfile
 import re
-from pip import call_subprocess
+import os.path
+from pip.util import call_subprocess
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
 from pip.backwardcompat import url2pathname, urlparse
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
+
 
 class Git(VersionControl):
     name = 'git'
@@ -27,8 +29,8 @@ class Git(VersionControl):
                 initial_slashes = path[:-len(path.lstrip('/'))]
                 newpath = initial_slashes + url2pathname(path).replace('\\', '/').lstrip('/')
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
-                after_plus = scheme.find('+')+1
-                url = scheme[:after_plus]+ urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
+                after_plus = scheme.find('+') + 1
+                url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
 
         super(Git, self).__init__(url, *args, **kwargs)
 
@@ -67,15 +69,14 @@ class Git(VersionControl):
         """
         revisions = self.get_tag_revs(dest)
         revisions.update(self.get_branch_revs(dest))
-        inverse_revisions = dict((v, k) for k, v in revisions.items())
-        # Check if rev is a branch name
+
         origin_rev = 'origin/%s' % rev
-        if origin_rev in inverse_revisions:
-            # a remote tag or branch name
-            return [inverse_revisions[origin_rev]]
-        elif rev in inverse_revisions:
+        if origin_rev in revisions:
+            # remote branch
+            return [revisions[origin_rev]]
+        elif rev in revisions:
             # a local tag or branch name
-            return [inverse_revisions[rev]]
+            return [revisions[rev]]
         else:
             logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
             return rev_options
@@ -86,6 +87,8 @@ class Git(VersionControl):
         call_subprocess(
             [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
 
+        self.update_submodules(dest)
+
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
@@ -93,6 +96,8 @@ class Git(VersionControl):
         if rev_options:
             rev_options = self.check_rev_options(rev_options[0], dest, rev_options)
         call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
+        #: update submodules
+        self.update_submodules(dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -105,6 +110,8 @@ class Git(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            #: repo may contain submodules
+            self.update_submodules(dest)
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
@@ -123,29 +130,25 @@ class Git(VersionControl):
         return current_rev.strip()
 
     def get_tag_revs(self, location):
-        tags = call_subprocess(
-            [self.cmd, 'tag', '-l'],
-            show_stdout=False, raise_on_returncode=False, cwd=location)
-        tag_revs = []
+        tags = self._get_all_tag_names(location)
+        tag_revs = {}
         for line in tags.splitlines():
             tag = line.strip()
-            rev = call_subprocess(
-                [self.cmd, 'rev-parse', tag], show_stdout=False, cwd=location)
-            tag_revs.append((rev.strip(), tag))
-        tag_revs = dict(tag_revs)
+            rev = self._get_revision_from_rev_parse(tag, location)
+            tag_revs[tag] = rev.strip()
         return tag_revs
 
     def get_branch_revs(self, location):
-        branches = call_subprocess(
-            [self.cmd, 'branch', '-r'], show_stdout=False, cwd=location)
-        branch_revs = []
+        branches = self._get_all_branch_names(location)
+        branch_revs = {}
         for line in branches.splitlines():
+            if '(no branch)' in line:
+                continue
             line = line.split('->')[0].strip()
-            branch = "".join([b for b in line.split() if b != '*'])
-            rev = call_subprocess(
-                [self.cmd, 'rev-parse', branch], show_stdout=False, cwd=location)
-            branch_revs.append((rev.strip(), branch))
-        branch_revs = dict(branch_revs)
+            # actual branch case
+            branch = "".join(b for b in line.split() if b != '*')
+            rev = self._get_revision_from_rev_parse(branch, location)
+            branch_revs[branch] = rev.strip()
         return branch_revs
 
     def get_src_requirement(self, dist, location, find_tags):
@@ -165,8 +168,10 @@ class Git(VersionControl):
         elif (current_rev in branch_revs and
               branch_revs[current_rev] != 'origin/master'):
             # It's the head of a branch
-            full_egg_name = '%s-%s' % (egg_project_name,
-                                       branch_revs[current_rev].replace('origin/', ''))
+            full_egg_name = '%s-%s' % (
+                egg_project_name,
+                branch_revs[current_rev].replace('origin/', '')
+            )
         else:
             full_egg_name = '%s-dev' % egg_project_name
 
@@ -189,5 +194,28 @@ class Git(VersionControl):
 
         return url, rev
 
+    def _get_all_tag_names(self, location):
+        return call_subprocess([self.cmd, 'tag', '-l'],
+                               show_stdout=False,
+                               raise_on_returncode=False,
+                               cwd=location)
+
+    def _get_all_branch_names(self, location):
+        remote_branches = call_subprocess([self.cmd, 'branch', '-r'],
+                                          show_stdout=False, cwd=location)
+        local_branches = call_subprocess([self.cmd, 'branch', '-l'],
+                                         show_stdout=False, cwd=location)
+        return remote_branches + local_branches
+
+    def _get_revision_from_rev_parse(self, name, location):
+        return call_subprocess([self.cmd, 'rev-parse', name],
+                               show_stdout=False, cwd=location)
+
+    def update_submodules(self, location):
+        if not os.path.exists(os.path.join(location, '.gitmodules')):
+            return
+        call_subprocess([self.cmd, 'submodule', 'init', '-q'], cwd=location)
+        call_subprocess([self.cmd, 'submodule', 'update', '--recursive', '-q'],
+                        cwd=location)
 
 vcs.register(Git)

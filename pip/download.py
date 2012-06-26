@@ -1,16 +1,18 @@
-import re
+import cgi
 import getpass
-import sys
-import os
+from hashlib import md5
 import mimetypes
+import os
+import re
 import shutil
+import sys
 import tempfile
-from pip.backwardcompat import (md5, copytree, xmlrpclib, urllib, urllib2,
-                                urlparse, string_types, HTTPError)
+from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
+                                urlparse, string_types)
 from pip.exceptions import InstallationError
-from pip.util import (splitext, rmtree,
-                      format_size, display_path, backup_dir, ask,
-                      unpack_file, create_download_cache_folder, cache_download)
+from pip.util import (splitext, rmtree, format_size, display_path,
+                      backup_dir, ask_path_exists, unpack_file,
+                      create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
 
@@ -62,6 +64,7 @@ def get_file_content(url, comes_from=None):
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+
 
 class URLOpener(object):
     """
@@ -130,7 +133,7 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy})
+            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
 
@@ -299,7 +302,7 @@ def unpack_file_url(link, location):
         # delete the location since shutil will create it again :(
         if os.path.isdir(location):
             rmtree(location)
-        copytree(source, location)
+        shutil.copytree(source, location)
     else:
         unpack_file(source, location, content_type, link)
 
@@ -330,7 +333,7 @@ def _check_md5(download_hash, link):
 def _get_md5_from_file(target_file, link):
     download_hash = md5()
     fp = open(target_file, 'rb')
-    while 1:
+    while True:
         chunk = fp.read(4096)
         if not chunk:
             break
@@ -346,13 +349,14 @@ def _download_url(resp, link, temp_location):
         download_hash = md5()
     try:
         total_length = int(resp.info()['content-length'])
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
     show_progress = total_length > 40*1000 or not total_length
-    show_url = link.url
+    show_url = link.show_url
     try:
         if show_progress:
+            ## FIXME: the URL can get really long in this message:
             if total_length:
                 logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
             else:
@@ -361,7 +365,7 @@ def _download_url(resp, link, temp_location):
             logger.notify('Downloading %s' % show_url)
         logger.debug('Downloading from URL %s' % link)
 
-        while 1:
+        while True:
             chunk = resp.read(4096)
             if not chunk:
                 break
@@ -385,8 +389,9 @@ def _copy_file(filename, location, content_type, link):
     copy = True
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
-        response = ask('The file %s exists. (i)gnore, (w)ipe, (b)ackup '
-                       % display_path(download_location), ('i', 'w', 'b'))
+        response = ask_path_exists(
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
+            display_path(download_location), ('i', 'w', 'b'))
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -403,7 +408,7 @@ def _copy_file(filename, location, content_type, link):
         logger.notify('Saved %s' % display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, only_download):
+def unpack_http_url(link, location, download_cache, download_dir=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     target_url = link.url.split('#', 1)[0]
     target_file = None
@@ -415,7 +420,7 @@ def unpack_http_url(link, location, download_cache, only_download):
             create_download_cache_folder(download_cache)
     if (target_file
         and os.path.exists(target_file)
-        and os.path.exists(target_file+'.content-type')):
+        and os.path.exists(target_file + '.content-type')):
         fp = open(target_file+'.content-type')
         content_type = fp.read().strip()
         fp.close()
@@ -426,7 +431,14 @@ def unpack_http_url(link, location, download_cache, only_download):
     else:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info()['content-type']
-        filename = link.filename
+        filename = link.filename  # fallback
+        # Have a look at the Content-Disposition header for a better guess
+        content_disposition = resp.info().get('content-disposition')
+        if content_disposition:
+            type, params = cgi.parse_header(content_disposition)
+            # We use ``or`` here because we don't want to use an "empty" value
+            # from the filename param.
+            filename = params.get('filename') or filename
         ext = splitext(filename)[1]
         if not ext:
             ext = mimetypes.guess_extension(content_type)
@@ -440,10 +452,9 @@ def unpack_http_url(link, location, download_cache, only_download):
         download_hash = _download_url(resp, link, temp_location)
     if link.md5_hash:
         _check_md5(download_hash, link)
-    if only_download:
-        _copy_file(temp_location, location, content_type, link)
-    else:
-        unpack_file(temp_location, location, content_type, link)
+    if download_dir:
+        _copy_file(temp_location, download_dir, content_type, link)
+    unpack_file(temp_location, location, content_type, link)
     if target_file and target_file != temp_location:
         cache_download(target_file, temp_location, content_type)
     if target_file is None:
@@ -464,6 +475,7 @@ def _get_response_from_url(target_url, link):
         logger.fatal("Error %s while getting %s" % (e, link))
         raise
     return resp
+
 
 class Urllib2HeadRequest(urllib2.Request):
     def get_method(self):

@@ -3,19 +3,24 @@
 import sys
 import os
 import re
+import gzip
 import mimetypes
 import operator
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
 import socket
 import string
+import zlib
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
-from pip.exceptions import DistributionNotFound
-from pip.backwardcompat import (WindowsError,
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
@@ -48,10 +53,6 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
-
-        all_origins = self.index_urls + self.mirror_urls + self.find_links
-        self.origin_preferences = dict([(e[1], e[0]) for e in enumerate(all_origins)])
-        logger.debug('Origin preferences: %s' % self.origin_preferences)
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -131,6 +132,10 @@ class PackageFinder(object):
         file_locations, url_locations = self._sort_locations(locations)
 
         locations = [Link(url) for url in url_locations]
+
+        origin_preferences = dict([(e[1].url, e[0]) for e in enumerate(locations)])
+        logger.debug('Origin preferences: %s' % origin_preferences)
+
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
@@ -169,11 +174,12 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             preference = None
-            for origin in self.origin_preferences.keys():
-                link_url = link.comes_from and link.comes_from.url or link.url
-                if link_url.startswith(origin):
-                    preference = self.origin_preferences[origin]
-                    break
+            if isinstance(link, Link):
+                for origin in origin_preferences.keys():
+                    link_url = link.comes_from and link.comes_from.url or link.url
+                    if link_url.startswith(origin):
+                        preference = origin_preferences[origin]
+                        break
             applicable_versions.append((link, version, parsed_version, preference))
         # sort applicable_versions by origin preference
         applicable_versions = sorted(applicable_versions, key=operator.itemgetter(3))
@@ -184,6 +190,7 @@ class PackageFinder(object):
             if applicable_versions[0][1] is Inf:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
+                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
                             % (req.satisfied_by.version, applicable_versions[0][1]))
@@ -195,8 +202,8 @@ class PackageFinder(object):
         if applicable_versions[0][0] is Inf:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
-                        % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
-            return None
+                        % (req.satisfied_by.version, ', '.join([version for link, version, parsed_version, preference in applicable_versions[1:]]) or 'none'))
+            raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.info('Using version %s from %s (newest of versions:\n    %s\n  )' %
                         (applicable_versions[0][1], applicable_versions[0][0].url, '\n    '.join([str(version) for version in applicable_versions])))
@@ -259,7 +266,7 @@ class PackageFinder(object):
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
-    _py_version_re = re.compile(r'-py([123]\.[0-9])$')
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -305,6 +312,11 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
                 return []
+            if "macosx10" in link.path and ext == '.zip':
+                if link not in self.logged_links:
+                    logger.debug('Skipping link %s; macosx10 one' % (link))
+                    self.logged_links.add(link)
+                return []
         version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
@@ -329,8 +341,10 @@ class PackageFinder(object):
         name = match.group(0).lower()
         # To match the "safe" name that pkg_resources creates:
         name = name.replace('_', '-')
-        if name.startswith(search_name.lower()):
-            return match.group(0)[len(search_name):].lstrip('-')
+        # project name and version must be separated by a dash
+        look_for = search_name.lower() + "-"
+        if name.startswith(look_for):
+            return match.group(0)[len(look_for):]
         else:
             return None
 
@@ -456,7 +470,15 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
-            inst = cls(u(resp.read()), real_url, headers)
+            contents = resp.read()
+            encoding = headers.get('Content-Encoding', None)
+            #XXX need to handle exceptions and add testing for this
+            if encoding is not None:
+                if encoding == 'gzip':
+                    contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
+                if encoding == 'deflate':
+                    contents = zlib.decompress(contents)
+            inst = cls(u(contents), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -553,7 +575,7 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = match.group(1) or match.group(2) or match.group(3)
+            url = href_match.group(1) or href_match.group(2) or href_match.group(3)
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
@@ -592,13 +614,9 @@ class Link(object):
 
     @property
     def filename(self):
-        url = self.url
-        url = url.split('#', 1)[0]
-        url = url.split('?', 1)[0]
-        url = url.rstrip('/')
-        name = posixpath.basename(url)
-        assert name, (
-            'URL %r produced no filename' % url)
+        _, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        name = posixpath.basename(path.rstrip('/')) or netloc
+        assert name, ('URL %r produced no filename' % self.url)
         return name
 
     @property
@@ -611,6 +629,11 @@ class Link(object):
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))
+
+    @property
+    def url_without_fragment(self):
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 

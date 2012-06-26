@@ -2,6 +2,7 @@ from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
 
+
 class UninstallCommand(Command):
     name = 'uninstall'
     usage = '%prog [OPTIONS] PACKAGE_NAMES ...'

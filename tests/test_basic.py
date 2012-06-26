@@ -6,13 +6,17 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
+from nose.tools import assert_raises
+from mock import patch
 
-from pip.util import rmtree
+from pip.util import rmtree, find_command
+from pip.exceptions import BadCommand
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file)
 from tests.local_repos import local_checkout
 from tests.path import Path
+
 
 def test_correct_pip_version():
     """
@@ -37,7 +41,7 @@ def test_correct_pip_version():
     # primary resources other than .py files, this code will need
     # maintenance
     mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
-    assert not mismatch_py, 'mismatched source files in %r and %r'% (pip_folder, pip_folder_outputed)
+    assert not mismatch_py, 'mismatched source files in %r and %r: %r'% (pip_folder, pip_folder_outputed, mismatch_py)
 
 
 def test_pip_second_command_line_interface_works():
@@ -220,10 +224,10 @@ def test_install_editable_from_git():
     reset_env()
     args = ['install']
     args.extend(['-e',
-                 '%s#egg=django-feedutil' %
-                 local_checkout('git+http://github.com/jezdez/django-feedutil.git')])
+                 '%s#egg=pip-test-package' %
+                 local_checkout('git+http://github.com/pypa/pip-test-package.git')])
     result = run_pip(*args, **{"expect_error": True})
-    result.assert_installed('django-feedutil', with_files=['.git'])
+    result.assert_installed('pip-test-package', with_files=['.git'])
 
 
 def test_install_editable_from_hg():
@@ -298,6 +302,31 @@ def test_install_from_local_directory_with_no_setup_py():
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
+def test_editable_install_from_local_directory_with_no_setup_py():
+    """
+    Test installing from a local directory with no 'setup.py'.
+    """
+    reset_env()
+    result = run_pip('install', '-e', here, expect_error=True)
+    assert len(result.files_created) == 1, result.files_created
+    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert "is not installable. File 'setup.py' not found." in result.stdout
+
+
+def test_install_as_egg():
+    """
+    Test installing as egg, instead of flat install.
+    """
+    env = reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', to_install, '--egg', expect_error=False)
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    assert fspkg_folder not in result.files_created, str(result.stdout)
+    assert egg_folder in result.files_created, str(result)
+    assert join(egg_folder, 'fspkg') in result.files_created, str(result)
+
+
 def test_install_curdir():
     """
     Test installing current directory ('.').
@@ -314,76 +343,6 @@ def test_install_curdir():
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
-
-def test_install_curdir_usersite_fails_in_old_python():
-    """
-    Test --user option on older Python versions (pre 2.6) fails intelligibly
-    """
-    if sys.version_info >= (2, 6):
-        raise SkipTest()
-    reset_env()
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-
-def test_install_curdir_usersite():
-    """
-    Test installing current directory ('.') into usersite
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = env.user_site/'fspkg'
-    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-    assert fspkg_folder in result.files_created, str(result.stdout)
-
-    assert egg_info_folder in result.files_created, str(result)
-
-
-def test_install_subversion_usersite_editable_with_distribute():
-    """
-    Test installing current directory ('.') into usersite after installing distribute
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    result.assert_installed('INITools', use_user_site=True)
-
-
-def test_install_subversion_usersite_editable_with_setuptools_fails():
-    """
-    Test installing current directory ('.') into usersite using setuptools fails
-    """
-    # --user only works on 2.6 or higher
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # We don't try to use setuptools for 3.X.
-    elif sys.version_info >= (3,):
-        raise SkipTest()
-    env = reset_env()
-    no_site_packages = env.lib_path/'no-global-site-packages.txt'
-    if os.path.isfile(no_site_packages):
-        no_site_packages.rm() # this re-enables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_error=True)
-    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 def test_install_pardir():
     """
@@ -415,6 +374,7 @@ def test_install_with_pax_header():
     reset_env()
     run_from = abspath(join(here, 'packages'))
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+
 
 def test_install_using_install_option_and_editable():
     """
@@ -499,6 +459,7 @@ def test_install_folder_using_relative_path():
     egg_folder = env.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
 
+
 def test_install_package_which_contains_dev_in_name():
     """
     Test installing package from pypi which contains 'dev' in name
@@ -510,6 +471,17 @@ def test_install_package_which_contains_dev_in_name():
     assert devserver_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
+
+def test_install_package_with_target():
+    """
+    Test installing a package using pip install --target
+    """
+    env = reset_env()
+    target_dir = env.scratch_path/'target'
+    result = run_pip('install', '-t', target_dir, "initools==0.1")
+    assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
+
+
 def test_find_command_folder_in_path():
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
@@ -517,10 +489,70 @@ def test_find_command_folder_in_path():
     looking.
     """
     env = reset_env()
-    mkdir('path_one'); path_one = env.scratch_path/'path_one'
+    mkdir('path_one')
+    path_one = env.scratch_path/'path_one'
     mkdir(path_one/'foo')
-    mkdir('path_two'); path_two = env.scratch_path/'path_two'
+    mkdir('path_two')
+    path_two = env.scratch_path/'path_two'
     write_file(path_two/'foo', '# nothing')
-    from pip.util import find_command
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
+
+
+def test_does_not_find_command_because_there_is_no_path():
+    """
+    Test calling `pip.utils.find_command` when there is no PATH env variable
+    """
+    environ_before = os.environ
+    os.environ = {}
+    try:
+        try:
+            find_command('anycommand')
+        except BadCommand:
+            e = sys.exc_info()[1]
+            assert e.args == ("Cannot find command 'anycommand'",)
+        else:
+            raise AssertionError("`find_command` should raise `BadCommand`")
+    finally:
+        os.environ = environ_before
+
+
+@patch('os.pathsep', ':')
+@patch('pip.util.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
+    """
+    If no pathext should check default list of extensions, if file does not
+    exist.
+    """
+    mock_isfile.return_value = False
+
+    getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
+
+    paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
+    expected = [((p,),) for p in paths]
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one')
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert getpath_mock.called, "Should call get_pathext"
+
+
+@patch('os.pathsep', ':')
+@patch('pip.util.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
+    """
+    If pathext supplied find_command should use all of its list of extensions to find file.
+    """
+    mock_isfile.return_value = False
+    getpath_mock.return_value = ".FOO"
+
+    pathext = os.pathsep.join([".RUN", ".CMD"])
+
+    paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
+    expected = [((p,),) for p in paths]
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert not getpath_mock.called, "Should not call get_pathext"
+

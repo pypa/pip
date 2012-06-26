@@ -1,0 +1,160 @@
+=====
+Usage
+=====
+
+Install packages
+----------------
+
+The simplest way to install a package is by specifying its name::
+
+    $ pip install SomePackage
+
+`SomePackage` is downloaded from :term:`PyPI`, along with its
+dependencies, and installed.
+
+If `SomePackage` is already installed, and you need a newer version, use ``pip
+install --upgrade SomePackage``. You can also request a specific version (``pip
+install SomePackage==1.0.4``) and specify `setuptools extras`_ (``pip install
+SomePackage[PDF]``).
+
+You can also install from a particular source distribution file, either
+local or remote::
+
+    $ pip install ./downloads/SomePackage-1.0.4.tar.gz
+    $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+.. _setuptools extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
+
+
+Edit mode
+*********
+
+Packages normally_ install under ``site-packages``, but when you're
+making changes, it makes more sense to run the package straight from the
+checked-out source tree. "Editable" installs create a ``.pth`` file in
+``site-packages`` that extends Python's import path to find the
+package::
+
+    $ pip install -e path/to/SomePackage
+
+.. _normally: http://docs.python.org/install/index.html#how-installation-works
+
+
+Version control systems
+***********************
+
+Pip knows how to check out a package from version control. `Subversion`,
+`Git`, `Mercurial` and `Bazaar` are supported. The repository will be
+checked out in a temporary folder, installed, and cleaned up::
+
+    $ pip install git+https://github.com/simplejson/simplejson.git
+    $ pip install svn+svn://svn.zope.org/repos/main/zope.interface/trunk/
+
+This can be combined with the `-e` flag, and Pip will perform the
+checkout in ``./src/``. You need to supply a name for the checkout
+folder by appending a hash to the repository URL::
+
+    $ pip install -e git+https://github.com/lakshmivyas/hyde.git#egg=hyde
+
+Note that only basic checking-out of a repo is supported; pip will not
+handle advanced VCS-specific features such as submodules or subrepos.
+
+
+Alternate package repositories
+******************************
+
+pip searches in :term:`PyPI` by default, but this can be overridden using the
+``--index-url`` option::
+
+    $ pip install --index-url http://d.pypi.python.org/simple/ SomePackage
+
+If you have your own package index with a few additional packages, you may want
+to to specify additional index URLs while still also using :term:`PyPI`::
+
+    $ pip install --extra-index-url http://my.package.repo/ SomePackage
+
+A "package index" used with ``--index-url`` or ``--extra-index-url`` can be as
+simple as a static-web-served directory, with automatic indexes on, with a
+subdirectory per package and sdists (tarballs created with ``python setup.py
+sdist``) in that directory::
+
+    mypackage/
+        mypackage-0.7.8.tar.gz
+        mypackage-1.0.1.tar.gz
+    otherpackage/
+        otherpackage-2.3.5.tar.gz
+
+If the number of packages in the index is small, it's even simpler to skip the
+subdirectories: put all of the sdists in a single directory and use pip's
+``--find-links`` option with a URL to that directory::
+
+    mypackage-0.7.8.tar.gz
+    mypackage-1.0.1.tar.gz
+    otherpackage-2.3.5.tar.gz
+
+``--find-links`` also supports local paths, so installation need not require a
+network connection.
+
+Like ``--extra-index-url``, ``--find-links`` is additive by default, it does
+not replace or supersede the index. All package sources are checked, and the
+latest qualifying version for every requested package is used. If you want only
+your ``-find-links`` URL used as package source, you need to pair it with
+``--no-index``.
+
+``--index-url``, ``--extra-index-url`` and ``--find-links`` can all be used
+within a :ref:`requirements file <requirements-files>` in addition to on the
+command line directly.
+
+
+Uninstall packages
+------------------
+
+pip is able to uninstall most installed packages with ``pip uninstall
+package-name``.
+
+Known exceptions include pure-distutils packages installed with
+``python setup.py install`` (such packages leave behind no metadata allowing
+determination of what files were installed), and script wrappers installed
+by develop-installs (``python setup.py develop``).
+
+pip also performs an automatic uninstall of an old version of a package
+before upgrading to a newer version, so outdated files (and egg-info data)
+from conflicting versions aren't left hanging around to cause trouble. The
+old version of the package is automatically restored if the new version
+fails to download or install.
+
+
+Searching for packages
+----------------------
+
+pip can search :term:`PyPI` for packages using the ``pip search``
+command::
+
+    $ pip search "query"
+
+The query will be used to search the names and summaries of all
+packages. With the ``--index`` option you can search in a different
+repository.
+
+
+Bundles
+-------
+
+Another way to distribute a set of libraries is a bundle format (specific to
+pip).  This format is not stable at this time (there simply hasn't been
+any feedback, nor a great deal of thought).  A bundle file contains all the
+source for your package, and you can have pip install them all together.
+Once you have the bundle file further network access won't be necessary.  To
+build a bundle file, do::
+
+    $ pip bundle MyApp.pybundle MyApp
+
+(Using a :ref:`requirements file <requirements-files>` would be wise.)  Then
+someone else can get the file ``MyApp.pybundle`` and run::
+
+    $ pip install MyApp.pybundle
+
+This is *not* a binary format.  This only packages source.  If you have binary
+packages, then the person who installs the files will have to have a compiler,
+any necessary headers installed, etc.  Binary packages are hard, this is
+relatively easy.
