@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 
-from test_pip import here, reset_env, run_pip
+from tests.test_pip import here, reset_env, run_pip
 
 
 def test_index_preference():

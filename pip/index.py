@@ -110,9 +110,8 @@ class PackageFinder(object):
 
         # Assign a preference value to all index, mirror, or find_links
         # package sources. The lower the number, the higher the preference.
-        # Start at 1; if the desired version of a package is installed, it
-        # should win, so it's assigned a preference of zero.
-        origin_preferences = dict([(str(e[1]), e[0] + 1) for e in enumerate(all_index_urls + self.find_links)])
+        all_origins = reversed(all_index_urls + self.find_links)
+        origin_preferences = dict([(str(e[1]), e[0]) for e in enumerate(all_origins)])
         logger.debug('Origin preferences: %s' % origin_preferences)
 
         def mkurl_pypi_url(url):
@@ -172,15 +171,18 @@ class PackageFinder(object):
             found_versions = file_versions + found_versions
         all_versions = found_versions + page_versions + dependency_versions
         applicable_versions = []
+
+        highest_preference = float('inf')
+        lowest_preference = float('-inf')
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            preference = Inf
+            preference = lowest_preference
             if link is Inf:
                 # this version is currently installed; it wins.
-                preference = 0
+                preference = highest_preference
             else:
                 for origin in origin_preferences.keys():
                     link_url = link.comes_from and link.comes_from.url or link.url
@@ -189,7 +191,7 @@ class PackageFinder(object):
                         break
             applicable_versions.append((link, version, parsed_version, preference))
         # sort applicable_versions by origin preference
-        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(3))
+        applicable_versions = sorted(applicable_versions, key=operator.itemgetter(3), reverse=True)
         # and then by version
         applicable_versions = sorted(applicable_versions, key=operator.itemgetter(2), reverse=True)
         existing_applicable = bool([link for link, version, parsed_version, preference in applicable_versions if link is Inf])
@@ -610,6 +612,18 @@ class Link(object):
             return '%s (from %s)' % (self.url, self.comes_from)
         else:
             return self.url
+
+    def __ge__(self, other):
+        return self.url >= other.url
+
+    def __gt__(self, other):
+        return self.url > other.url
+
+    def __le__(self, other):
+        return self.url <= other.url
+
+    def __lt__(self, other):
+        return self.url < other.url
 
     def __repr__(self):
         return '<Link %s>' % self

@@ -132,6 +132,18 @@ class _Inf(object):
             return 0
         return 1
 
+    def __ge__(self, a):
+        return True
+
+    def __gt__(self, a):
+        return True
+
+    def __le__(self, a):
+        return False
+
+    def __lt__(self, a):
+        return False
+
     def __repr__(self):
         return 'Inf'
 
