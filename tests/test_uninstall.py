@@ -2,6 +2,7 @@ import textwrap
 import sys
 from os.path import join, abspath
 from tempfile import mkdtemp
+from mock import Mock
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
 
@@ -155,3 +156,19 @@ def test_uninstall_as_egg():
     result2 = run_pip('uninstall', 'FSPkg', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
+
+def test_uninstallpathset_no_paths():
+    """
+    Test UninstallPathSet raises installation error when there are no paths (uses mocking)
+
+    """
+    from pip.req import UninstallPathSet
+    from pip.exceptions import InstallationError
+    mock_dist = Mock(project_name='pkg')
+    uninstall_set = UninstallPathSet(mock_dist)
+    try:
+        uninstall_set.remove()
+        assert False, "Uninstalling with no paths should have thrown InstallationError"
+    except InstallationError:
+        e = sys.exc_info()[1]
+        assert str(e) == "Can't uninstall 'pkg'. No files were found to uninstall.", str(e)
