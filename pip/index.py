@@ -108,6 +108,13 @@ class PackageFinder(object):
         # adding more index URLs from requirements files
         all_index_urls = self.index_urls + self.mirror_urls
 
+        # Assign a preference value to all index, mirror, or find_links
+        # package sources. The lower the number, the higher the preference.
+        # Start at 1; if the desired version of a package is installed, it
+        # should win, so it's assigned a preference of zero.
+        origin_preferences = dict([(str(e[1]), e[0] + 1) for e in enumerate(all_index_urls + self.find_links)])
+        logger.debug('Origin preferences: %s' % origin_preferences)
+
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
@@ -132,9 +139,6 @@ class PackageFinder(object):
         file_locations, url_locations = self._sort_locations(locations)
 
         locations = [Link(url) for url in url_locations]
-
-        origin_preferences = dict([(e[1].url, e[0]) for e in enumerate(locations)])
-        logger.debug('Origin preferences: %s' % origin_preferences)
 
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -173,8 +177,11 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            preference = None
-            if isinstance(link, Link):
+            preference = Inf
+            if link is Inf:
+                # this version is currently installed; it wins.
+                preference = 0
+            else:
                 for origin in origin_preferences.keys():
                     link_url = link.comes_from and link.comes_from.url or link.url
                     if link_url.startswith(origin):
@@ -204,9 +211,10 @@ class PackageFinder(object):
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
                         % (req.satisfied_by.version, ', '.join([version for link, version, parsed_version, preference in applicable_versions[1:]]) or 'none'))
             raise BestVersionAlreadyInstalled
+        version_choices = ''
         if len(applicable_versions) > 1:
-            logger.info('Using version %s from %s (newest of versions:\n    %s\n  )' %
-                        (applicable_versions[0][1], applicable_versions[0][0].url, '\n    '.join([str(version) for version in applicable_versions])))
+            version_choices = '(best of:\n    %s\n  )' % '\n    '.join([str(v) for v in applicable_versions])
+        logger.info('Using version %s from %s%s\n' % (applicable_versions[0][1], applicable_versions[0][0], version_choices))
         return applicable_versions[0][0]
 
     def _find_url_name(self, index_url, url_name, req):
