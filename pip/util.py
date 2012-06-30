@@ -303,6 +303,12 @@ def dist_in_usersite(dist):
     else:
         return False
 
+def dist_in_site_packages(dist):
+    """
+    Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
+    """
+    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
+
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
