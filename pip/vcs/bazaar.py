@@ -19,8 +19,10 @@ class Bazaar(VersionControl):
 
     def __init__(self, url=None, *args, **kwargs):
         super(Bazaar, self).__init__(url, *args, **kwargs)
-        urlparse.non_hierarchical.extend(['lp'])
-        urlparse.uses_fragment.extend(['lp'])
+        # Python >= 2.7.4, 3.3 doesn't have uses_fragment or non_hierarchical
+        if getattr(urlparse, 'uses_fragment', None):
+            urlparse.uses_fragment.extend(self.schemes)
+            urlparse.non_hierarchical.extend(['lp'])
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None
