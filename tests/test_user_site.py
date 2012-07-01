@@ -189,6 +189,8 @@ class Tests_UserSite:
         env = reset_env(system_site_packages=True)
         result1 = run_pip('install', 'INITools==0.2')
         result2 = run_pip('install', '--user', 'INITools==0.1', expect_error=True)
+        resultp = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').location)")
+        dist_location = resultp.stdout.strip()
         assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
-                                        %('INITools',env.root_path / env.site_packages)), result2.stdout
+                                        %('INITools', dist_location)), result2.stdout
 
