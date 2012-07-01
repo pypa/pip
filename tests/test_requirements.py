@@ -121,19 +121,22 @@ def test_requirements_data_structure_implements__contains__():
     assert 'pip' in requirements
     assert 'nose' not in requirements
 
+@patch('os.path.normcase')
 @patch('pip.req.os.getcwd')
 @patch('pip.req.os.path.exists')
 @patch('pip.req.os.path.isdir')
-def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock):
+def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
-    getcwd_mock.return_value = "/some/path"
+    # mocks needed to support path operations on windows tests
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
     assert_equal(
         parse_editable('.', 'git'),
         (None, 'file:///some/path', None)
     )
+    normcase_mock.return_value = "/some/path/foo"
     assert_equal(
         parse_editable('foo', 'git'),
-        (None, 'file://' + os.path.join("/some/path", 'foo'), None)
+        (None, 'file:///some/path/foo', None)
     )
 
 def test_parse_editable_default_vcs():
@@ -154,16 +157,18 @@ def test_parse_editable_vcs_extras():
         ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
     )
 
+@patch('os.path.normcase')
 @patch('pip.req.os.getcwd')
 @patch('pip.req.os.path.exists')
 @patch('pip.req.os.path.isdir')
-def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock):
+def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
-    getcwd_mock.return_value = "/some/path"
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
     assert_equal(
         parse_editable('.[extras]', 'git'),
         (None, 'file://' + "/some/path", ('extras',))
     )
+    normcase_mock.return_value = "/some/path/foo"
     assert_equal(
         parse_editable('foo[bar,baz]', 'git'),
         (None, 'file://' + os.path.join("/some/path", 'foo'), ('bar', 'baz'))
