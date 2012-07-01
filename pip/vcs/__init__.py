@@ -19,7 +19,7 @@ class VcsSupport(object):
     def __init__(self):
         # Register more schemes with urlparse for various version control systems
         urlparse.uses_netloc.extend(self.schemes)
-        # Python 3.3 doesn't have uses_fragment
+        # Python >= 2.7.4, 3.3 doesn't have uses_fragment
         if getattr(urlparse, 'uses_fragment', None):
             urlparse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
