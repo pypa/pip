@@ -91,13 +91,23 @@ class PackageFinder(object):
                 urls.append(url)
         return files, urls
 
+    def make_pypi_url(self, url, url_name):
+        loc = posixpath.join(url, url_name)
+        # For maximum compatibility with easy_install, ensure the path
+        # ends in a trailing slash.  Although this isn't in the spec
+        # (and PyPI can handle it without the slash) some other index
+        # implementations might break if they relied on easy_install's behavior.
+        if not loc.endswith('/'):
+            loc = loc + '/'
+        return loc
+
     def find_requirement(self, req, upgrade):
         url_name = req.url_name
         # Only check main index if index URL is given:
         main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
-            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
+            main_index_url = Link(self.make_pypi_url(self.index_urls[0], url_name))
             # This will also cache the page, so it's okay that we get it again later:
             page = self._get_page(main_index_url, req)
             if page is None:
@@ -107,18 +117,9 @@ class PackageFinder(object):
         # adding more index URLs from requirements files
         all_index_urls = self.index_urls + self.mirror_urls
 
-        def mkurl_pypi_url(url):
-            loc = posixpath.join(url, url_name)
-            # For maximum compatibility with easy_install, ensure the path
-            # ends in a trailing slash.  Although this isn't in the spec
-            # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's behavior.
-            if not loc.endswith('/'):
-                loc = loc + '/'
-            return loc
         if url_name is not None:
             locations = [
-                mkurl_pypi_url(url)
+                self.make_pypi_url(url, url_name)
                 for url in all_index_urls] + self.find_links
         else:
             locations = list(self.find_links)
@@ -126,7 +127,7 @@ class PackageFinder(object):
         for version in req.absolute_versions:
             if url_name is not None and main_index_url is not None:
                 locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
+                    posixpath.join(main_index_url.url, version, '/')] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
 

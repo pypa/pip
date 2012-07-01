@@ -13,6 +13,9 @@ Beta and final releases planned for the second half of 2012.
 develop (unreleased)
 -------------------
 
+* Avoid extra HTTP request when querying for package on PyPi. Thanks Domen
+  Kožar.
+
 * Write failure log to temp file if default location is not writable. Thanks
   andreigc.
 
