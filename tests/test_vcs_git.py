@@ -1,3 +1,4 @@
+import sys
 from mock import patch
 from nose import SkipTest
 from pip.vcs.git import Git
