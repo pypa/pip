@@ -44,19 +44,22 @@ def _create_test_package_with_submodule(env):
                               packages=find_packages(),
                              )
                         '''), version_pkg_path)
-    env.run('git', 'init', cwd=version_pkg_path)
-    env.run('git', 'add', '.', cwd=version_pkg_path)
+    env.run('git', 'init', cwd=version_pkg_path, expect_error=True)
+    env.run('git', 'add', '.', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path)
+            '-am', 'initial version', cwd=version_pkg_path,
+            expect_error=True)
 
 
     submodule_path = _create_test_package_submodule(env)
 
-    env.run('git', 'submodule', 'add', submodule_path, 'testpkg/static', cwd=version_pkg_path)
+    env.run('git', 'submodule', 'add', submodule_path, 'testpkg/static', cwd=version_pkg_path,
+            expect_error=True)
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'initial version w submodule', cwd=version_pkg_path)
+            '-am', 'initial version w submodule', cwd=version_pkg_path,
+            expect_error=True)
 
 
     return version_pkg_path, submodule_path
