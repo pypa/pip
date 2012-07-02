@@ -245,14 +245,16 @@ class InstallRequirement(object):
     _run_setup_py = """
 __file__ = __SETUP_PY__
 from setuptools.command import egg_info
+import pkg_resources
+import os
 def replacement_run(self):
     self.mkpath(self.egg_info)
     installer = self.distribution.fetch_build_egg
-    for ep in egg_info.iter_entry_points('egg_info.writers'):
+    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
         # require=False is the change we're making:
         writer = ep.load(require=False)
         if writer:
-            writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
+            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
 exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
