@@ -389,6 +389,12 @@ class TestPipEnvironment(TestFileEnvironment):
         assert not isinstance(cwd, Path)
         return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
+    def get_pkg_version(self, pkg_name):
+        result = self.run('python', '-c',
+                          "from pkg_resources import get_distribution; "
+                          "print(get_distribution('%s').version)" % pkg_name)
+        return result.stdout.strip()
+
     def __del__(self):
         rmtree(str(self.root_path), ignore_errors=True)
 
