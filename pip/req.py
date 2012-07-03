@@ -42,8 +42,10 @@ class InstallRequirement(object):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
+
         if not editable_options:
-            editable_options = dict()
+            self.editable_options = {}
+
         self.editable_options = editable_options
         self.comes_from = comes_from
         self.source_dir = source_dir
@@ -77,7 +79,7 @@ class InstallRequirement(object):
             source_dir = None
 
         res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url, \
-                                                            editable_options=extras_override)
+                                                    editable_options=extras_override)
         if extras_override is not None:
             res.extras = extras_override
         return res
@@ -211,9 +213,11 @@ class InstallRequirement(object):
     def setup_py(self):
         setup_file = "setup.py"
 
-        if 'subdirectory' in self.editable_options:
-            setup_py = os.path.join(self.source_dir, self.editable_options['subdirectory'],\
-                                                                                setup_file)
+        if self.editable_options and \
+                'subdirectory' in self.editable_options:
+            setup_py = os.path.join(self.source_dir, \
+                                    self.editable_options['subdirectory'],\
+                                                               setup_file)
         else:
             setup_py = os.path.join(self.source_dir, setup_file)
 
@@ -1392,9 +1396,10 @@ def _build_editable_options(req):
     return None
 
 def parse_editable(editable_req, default_vcs=None):
-    """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
-    (Foobar) and a URL"""
-
+    """
+        Parses svn+http://blahblah@rev#egg=Foobar into a requirement
+        returns package, url, options
+    """
     url = editable_req
     extras = None
 
@@ -1454,7 +1459,9 @@ def parse_editable(editable_req, default_vcs=None):
     else:
         req = options['egg']
 
-    return _strip_postfix(req), url, options
+    package = _strip_postfix(req)
+
+    return package, url, options
 
 
 class UninstallPathSet(object):
