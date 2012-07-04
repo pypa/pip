@@ -9,6 +9,14 @@ from tests.local_repos import local_checkout
 from tests.test_pip import here, reset_env, run_pip, pyversion
 
 
+patch_dist_in_site_packages = """
+       def dist_in_site_packages(dist):
+           return False
+       import pip
+       pip.util.dist_in_site_packages=dist_in_site_packages
+"""
+
+
 def test_install_curdir_usersite_fails_in_old_python():
     """
     Test --user option on older Python versions (pre 2.6) fails intelligibly
@@ -111,15 +119,21 @@ class Tests_UserSite:
         assert not isfile(initools_v3_file), initools_v3_file
 
 
-    def test_install_user_conflict_in_site(self):
+    def test_install_user_conflict_in_globalsite(self):
         """
-        Test user install with conflict in site ignores site and installs to usersite
+        Test user install with conflict in global site ignores site and installs to usersite
         """
 
-        #the test framework only supports testing using virtualenvs
-        #this test will use a --system_site_packages virtualenv to achieve the conflict scenario.
+        # the test framework only supports testing using virtualenvs
+        # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site
+        # this test will use 2 modifications to simulate the user-site/global-site relationship
+        # 1) a monkey patch which will make it appear INITools==0.2 is not in in the virtualenv site
+        #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
+        # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
 
-        env = reset_env(system_site_packages=True)
+        env = reset_env(system_site_packages=True, sitecustomize=patch_dist_in_site_packages)
+        env.environ["PYTHONPATH"] = env.root_path / env.user_site
+
         result1 = run_pip('install', 'INITools==0.2')
         result2 = run_pip('install', '--user', 'INITools==0.1')
 
@@ -141,14 +155,14 @@ class Tests_UserSite:
         Test user install with conflict in globalsite and usersite ignores global site and updates usersite.
         """
 
-        #the test framework only supports testing using virtualenvs
-        #this test will use a --system_site_packages virtualenv to achieve the conflict scenario.
+        # the test framework only supports testing using virtualenvs.
+        # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site.
+        # this test will use 2 modifications to simulate the user-site/global-site relationship
+        # 1) a monkey patch which will make it appear INITools==0.2 is not in in the virtualenv site
+        #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
+        # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
 
-        env = reset_env(system_site_packages=True)
-
-        # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv site, usersite, global site
-        # given this ordering you *can't* use it to simulate the scenario for this test.
-        # this test will add the usersite to PYTHONPATH to simulate the desired ordering
+        env = reset_env(system_site_packages=True, sitecustomize=patch_dist_in_site_packages)
         env.environ["PYTHONPATH"] = env.root_path / env.user_site
 
         result1 = run_pip('install', 'INITools==0.2')
@@ -166,3 +180,17 @@ class Tests_UserSite:
         initools_folder = env.root_path / env.site_packages / 'initools'
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
+
+
+    def test_install_user_in_global_virtualenv_with_conflict_fails(self):
+        """
+        Test user install in --system-site-packages virtualenv with conflict in site fails.
+        """
+        env = reset_env(system_site_packages=True)
+        result1 = run_pip('install', 'INITools==0.2')
+        result2 = run_pip('install', '--user', 'INITools==0.1', expect_error=True)
+        resultp = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').location)")
+        dist_location = resultp.stdout.strip()
+        assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
+                                        %('INITools', dist_location)), result2.stdout
+
