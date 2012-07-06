@@ -106,6 +106,16 @@ within a :ref:`requirements file <requirements-files>` in addition to on the
 command line directly.
 
 
+Package Checksum Hashes
+'''''''''''''''''''''''
+
+:term:`PyPI` provides a md5 hash of a package by having the link to the
+package include a #md5=<hash>. pip supports this, as well as any of the
+guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
+
+The hash fragment is case sensitive (i.e. sha1 not SHA1).
+
+
 Uninstall packages
 ------------------
 

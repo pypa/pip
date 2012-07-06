@@ -9,6 +9,7 @@ Christian Oudard
 Cody Soyland
 Daniel Holth
 Dave Abrahams
+Donald Stufft
 Francesco
 Hugo Lopes Tavares
 Ian Bicking
