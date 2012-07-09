@@ -1,8 +1,9 @@
 import textwrap
 import sys
-from os.path import join
+from os.path import abspath, join
 from tempfile import mkdtemp
-from tests.test_pip import reset_env, run_pip, assert_all_changes, write_file
+from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
+                            write_file)
 from tests.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
@@ -46,6 +47,31 @@ def test_uninstall_namespace_package():
     result2 = run_pip('uninstall', 'pd.find', '-y', expect_error=True)
     assert join(env.site_packages, 'pd') not in result2.files_deleted, sorted(result2.files_deleted.keys())
     assert join(env.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
+
+
+def test_uninstall_overlapping_package():
+    """
+    Uninstalling a distribution that adds modules to a pre-existing package
+    should only remove those added modules, not the rest of the existing
+    package.
+
+    See: GitHub issue #355 (pip uninstall removes things it didn't install)
+    """
+    parent_pkg = abspath(join(here, 'packages', 'parent-0.1.tar.gz'))
+    child_pkg = abspath(join(here, 'packages', 'child-0.1.tar.gz'))
+    env = reset_env()
+    result1 = run_pip('install', parent_pkg, expect_error=False)
+    assert join(env.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
+    result2 = run_pip('install', child_pkg, expect_error=False)
+    assert join(env.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
+    assert join(env.site_packages, 'parent/plugins/child_plugin.py') in result2.files_created, sorted(result2.files_created.keys())
+    result3 = run_pip('uninstall', '-y', 'child', expect_error=False)
+    assert join(env.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
+    assert join(env.site_packages, 'parent/plugins/child_plugin.py') in result3.files_deleted, sorted(result3.files_deleted.keys())
+    assert join(env.site_packages, 'parent') not in result3.files_deleted, sorted(result3.files_deleted.keys())
+    # Additional check: uninstalling 'child' should return things to the
+    # previous state, without unintended side effects.
+    assert_all_changes(result2, result3, [])
 
 
 def test_uninstall_console_scripts():
