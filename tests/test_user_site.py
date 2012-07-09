@@ -6,7 +6,7 @@ import sys
 from os.path import abspath, join, curdir, isdir, isfile
 from nose import SkipTest
 from tests.local_repos import local_checkout
-from tests.test_pip import here, reset_env, run_pip, pyversion
+from tests.test_pip import here, reset_env, run_pip, pyversion, assert_all_changes
 
 
 patch_dist_in_site_packages = """
@@ -193,4 +193,35 @@ class Tests_UserSite:
         dist_location = resultp.stdout.strip()
         assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
                                         %('INITools', dist_location)), result2.stdout
+
+
+    def test_uninstall_from_usersite(self):
+        """
+        Test uninstall from usersite
+        """
+        env = reset_env(system_site_packages=True)
+        result1 = run_pip('install', '--user', 'INITools==0.3')
+        result2 = run_pip('uninstall', '-y', 'INITools')
+        assert_all_changes(result1, result2, [env.venv/'build', 'cache'])
+
+
+    def test_uninstall_editable_from_usersite(self):
+        """
+        Test uninstall editable local user install
+        """
+        env = reset_env(use_distribute=True, system_site_packages=True)
+
+        #install
+        to_install = abspath(join(here, 'packages', 'FSPkg'))
+        result1 = run_pip('install', '--user', '-e', to_install, expect_error=False)
+        egg_link = env.user_site/'FSPkg.egg-link'
+        assert egg_link in result1.files_created, str(result1.stdout)
+
+        #uninstall
+        result2 = run_pip('uninstall', '-y', 'FSPkg')
+        assert not isfile(env.root_path / egg_link)
+
+        assert_all_changes(result1, result2,
+                           [env.venv/'build', 'cache', env.user_site/'easy-install.pth'])
+
 
