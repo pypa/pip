@@ -19,7 +19,9 @@ class VcsSupport(object):
     def __init__(self):
         # Register more schemes with urlparse for various version control systems
         urlparse.uses_netloc.extend(self.schemes)
-        urlparse.uses_fragment.extend(self.schemes)
+        # Python >= 2.7.4, 3.3 doesn't have uses_fragment
+        if getattr(urlparse, 'uses_fragment', None):
+            urlparse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
@@ -115,6 +117,11 @@ class VersionControl(object):
         Returns the correct repository URL and revision by parsing the given
         repository URL
         """
+        error_message= (
+           "Sorry, '%s' is a malformed VCS url. "
+           "Ihe format is <vcs>+<protocol>://<url>, "
+           "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
+        assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
         rev = None

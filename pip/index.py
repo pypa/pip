@@ -5,7 +5,10 @@ import os
 import re
 import gzip
 import mimetypes
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
@@ -323,8 +326,10 @@ class PackageFinder(object):
         name = match.group(0).lower()
         # To match the "safe" name that pkg_resources creates:
         name = name.replace('_', '-')
-        if name.startswith(search_name.lower()):
-            return match.group(0)[len(search_name):].lstrip('-')
+        # project name and version must be separated by a dash
+        look_for = search_name.lower() + "-"
+        if name.startswith(look_for):
+            return match.group(0)[len(look_for):]
         else:
             return None
 
@@ -594,9 +599,9 @@ class Link(object):
 
     @property
     def filename(self):
-        url = self.url_fragment
-        name = posixpath.basename(url)
-        assert name, ('URL %r produced no filename' % url)
+        _, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        name = posixpath.basename(path.rstrip('/')) or netloc
+        assert name, ('URL %r produced no filename' % self.url)
         return name
 
     @property
@@ -611,12 +616,9 @@ class Link(object):
         return splitext(posixpath.basename(self.path.rstrip('/')))
 
     @property
-    def url_fragment(self):
-        url = self.url
-        url = url.split('#', 1)[0]
-        url = url.split('?', 1)[0]
-        url = url.rstrip('/')
-        return url
+    def url_without_fragment(self):
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 
@@ -627,11 +629,18 @@ class Link(object):
             return None
         return match.group(1)
 
-    _md5_re = re.compile(r'md5=([a-f0-9]+)')
+    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
-    def md5_hash(self):
-        match = self._md5_re.search(self.url)
+    def hash(self):
+        match = self._hash_re.search(self.url)
+        if match:
+            return match.group(2)
+        return None
+
+    @property
+    def hash_name(self):
+        match = self._hash_re.search(self.url)
         if match:
             return match.group(1)
         return None

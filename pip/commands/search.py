@@ -61,6 +61,8 @@ def transform_hits(hits):
         summary = hit['summary']
         version = hit['version']
         score = hit['_pypi_ordering']
+        if score is None:
+            score = 0
 
         if name not in packages.keys():
             packages[name] = {'name': name, 'summary': summary, 'versions': [version], 'score': score}

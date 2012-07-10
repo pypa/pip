@@ -39,7 +39,19 @@ def test_pypi_xml_transformation():
             {'_pypi_ordering': 50, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'}]
     expected = [{'score': 200, 'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'},
             {'score': 50, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
-    assert_equal(expected, transform_hits(pypi_hits))
+    assert_equal(transform_hits(pypi_hits), expected)
+
+
+def test_invalid_pypi_transformation():
+    """
+    Test transformation of pypi when ordering None
+    """
+    pypi_hits = [{'_pypi_ordering': None, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'},
+        {'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
+
+    expected = [{'score': 100, 'versions': ['1.0'], 'name': 'foo', 'summary': 'foo summary'},
+            {'score': 0, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
+    assert_equal(transform_hits(pypi_hits), expected)
 
 
 def test_search():
@@ -90,6 +102,7 @@ def test_search_missing_argument():
     result = run_pip('search', expect_error=True)
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
+
 def test_run_method_should_return_sucess_when_find_packages():
     """
     Test SearchCommand.run for found package
@@ -99,6 +112,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('pip',))
     assert status == SUCCESS
+
 
 def test_run_method_should_return_no_matches_found_when_does_not_find_packages():
     """
@@ -110,6 +124,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     status = search_cmd.run(options_mock, ('non-existant-package',))
     assert status == NO_MATCHES_FOUND, status
 
+
 def test_search_should_exit_status_code_zero_when_find_packages():
     """
     Test search exit status code for package found
@@ -117,6 +132,7 @@ def test_search_should_exit_status_code_zero_when_find_packages():
     env = reset_env(use_distribute=True)
     result = run_pip('search', 'pip')
     assert result.returncode == SUCCESS
+
 
 def test_search_exit_status_code_when_finds_no_package():
     """

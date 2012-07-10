@@ -47,6 +47,7 @@ def test_env_vars_override_config_file():
         os.close(fd)
         os.remove(config_file)
 
+
 def _test_env_vars_override_config_file(config_file):
     environ = clear_environ(os.environ.copy())
     environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
@@ -65,6 +66,7 @@ def _test_env_vars_override_config_file(config_file):
     reset_env(environ)
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Successfully installed INITools" in result.stdout
+
 
 def test_command_line_append_flags():
     """

@@ -1,8 +1,10 @@
 import textwrap
 from os.path import join
+from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
                             _change_test_package_version)
+from tests.local_repos import local_checkout
 
 
 def test_no_upgrade_unless_requested():
@@ -149,7 +151,8 @@ def test_uninstall_rollback():
     assert env.run('python', '-c', "import broken; print(broken.VERSION)").stdout == '0.1\n'
     assert_all_changes(result.files_after, result2, [env.venv/'build', 'pip-log.txt'])
 
-
+# Issue #530 - temporarily disable flaky test
+@nottest
 def test_editable_git_upgrade():
     """
     Test installing an editable git package from a repository, upgrading the repository,
@@ -163,7 +166,7 @@ def test_editable_git_upgrade():
     _change_test_package_version(env, version_pkg_path)
     run_pip('install', '-e', '%s#egg=version_pkg' % ('git+file://' + version_pkg_path))
     version2 = env.run('version_pkg')
-    assert 'some different version' in version2.stdout
+    assert 'some different version' in version2.stdout, "Output: %s" % (version2.stdout)
 
 
 def test_should_not_install_always_from_cache():
@@ -190,3 +193,22 @@ def test_install_with_ignoreinstalled_requested():
     assert result.files_created, 'pip install -I did not install'
     assert env.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
+
+def test_upgrade_vcs_req_with_no_dists_found():
+    """It can upgrade a VCS requirement that has no distributions otherwise."""
+    reset_env()
+    req = "%s#egg=pip-test-package" % local_checkout(
+        "git+http://github.com/pypa/pip-test-package.git")
+    run_pip("install", req)
+    result = run_pip("install", "-U", req)
+    assert not result.returncode
+
+
+def test_upgrade_vcs_req_with_dist_found():
+    """It can upgrade a VCS requirement that has distributions on the index."""
+    reset_env()
+    # TODO(pnasrat) Using local_checkout fails on windows - oddness with the test path urls/git.
+    req = "%s#egg=virtualenv" % "git+git://github.com/pypa/virtualenv@c21fef2c2d53cf19f49bcc37f9c058a33fb50499"
+    run_pip("install", req)
+    result = run_pip("install", "-U", req)
+    assert not "pypi.python.org" in result.stdout, result.stdout

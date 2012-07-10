@@ -17,6 +17,7 @@ def test_run_method_should_return_sucess_when_finds_command_name():
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
+
 def test_run_method_should_return_sucess_when_command_name_not_specified():
     """
     Test HelpCommand.run when there are no args
@@ -27,6 +28,7 @@ def test_run_method_should_return_sucess_when_command_name_not_specified():
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
+
 def test_run_method_should_raise_command_error_when_command_does_not_exist():
     """
     Test HelpCommand.run for non-existing command
@@ -36,6 +38,7 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     help_cmd = HelpCommand()
     assert_raises(CommandError, help_cmd.run, options_mock, args)
 
+
 def test_help_command_should_exit_status_ok_when_command_exists():
     """
     Test `help` command for existing command
@@ -43,6 +46,7 @@ def test_help_command_should_exit_status_ok_when_command_exists():
     reset_env()
     result = run_pip('help', 'freeze')
     assert result.returncode == SUCCESS
+
 
 def test_help_command_should_exit_status_ok_when_no_command_is_specified():
     """
@@ -52,6 +56,7 @@ def test_help_command_should_exit_status_ok_when_no_command_is_specified():
     result = run_pip('help')
     assert result.returncode == SUCCESS
 
+
 def test_help_command_should_exit_status_error_when_command_does_not_exist():
     """
     Test `help` command for non-existing command
@@ -59,4 +64,3 @@ def test_help_command_should_exit_status_error_when_command_does_not_exist():
     reset_env()
     result = run_pip('help', 'mycommand', expect_error=True)
     assert result.returncode == ERROR
-

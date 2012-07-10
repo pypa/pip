@@ -204,6 +204,7 @@ def test_freeze_with_local_option():
         <BLANKLINE>""")
     _check_output(result, expected)
 
+
 def test_freeze_with_requirement_option():
     """
     Test that new requirements are created correctly with --requirement hints
