@@ -25,12 +25,28 @@ class Tests_EgglinkPath:
 
         #patches
         from pip import util
+        self.old_site_packages = util.site_packages
         self.mock_site_packages = util.site_packages = 'SITE_PACKAGES'
+        self.old_running_under_virtualenv = util.running_under_virtualenv
         self.mock_running_under_virtualenv = util.running_under_virtualenv = Mock()
+        self.old_virtualenv_no_global = util.virtualenv_no_global
         self.mock_virtualenv_no_global = util.virtualenv_no_global = Mock()
+        self.old_user_site = util.user_site
         self.mock_user_site = util.user_site = self.user_site
         from os import path
+        self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
+
+
+    def teardown(self):
+        from pip import util
+        util.site_packages = self.old_site_packages
+        util.running_under_virtualenv = self.old_running_under_virtualenv
+        util.virtualenv_no_global = self.old_virtualenv_no_global
+        util.user_site = self.old_user_site
+        from os import path
+        path.isfile = self.old_isfile
+
 
     def eggLinkInUserSite(self,egglink):
         return egglink==self.user_site_egglink
