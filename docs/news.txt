@@ -13,6 +13,9 @@ Beta and final releases planned for the second half of 2012.
 develop (unreleased)
 -------------------
 
+* Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
+  pjdelport.
+
 * Fixed issues #493, #494, #440, and #573 related to improving support for the
   user installation scheme. Thanks Marcus Smith.
 
