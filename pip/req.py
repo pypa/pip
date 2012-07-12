@@ -1003,7 +1003,9 @@ class RequirementSet(object):
                     ##occurs when the script attempts to unpack the
                     ##build directory
 
+                    # NB: This call can result in the creation of a temporary build directory
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
+
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     url = None
@@ -1084,7 +1086,7 @@ class RequirementSet(object):
                             self.add_requirement(subreq)
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
-                    if self.is_download:
+                    if self.is_download or req_to_install._temp_build_dir is not None:
                         self.reqs_to_cleanup.append(req_to_install)
                 else:
                     self.reqs_to_cleanup.append(req_to_install)
