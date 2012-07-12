@@ -663,5 +663,5 @@ def _change_test_package_version(env, version_pkg_path):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
+    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
     sys.exit(1)
