@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from email.parser import FeedParser
 import os
 import pkg_resources
