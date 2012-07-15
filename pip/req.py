@@ -429,6 +429,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
+        dist_info_path = os.path.join(dist.location,
+                                      '-'.join(dist.egg_name().split('-')[:2])
+                                      ) + '.dist-info'
         # workaround for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
         debian_egg_info_path = pip_egg_info_path.replace(
             '-py%s' % pkg_resources.PY_MAJOR, '')
@@ -437,6 +440,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_exists = os.path.exists(pip_egg_info_path)
         debian_egg_info_exists = os.path.exists(debian_egg_info_path)
+        dist_info_exists = os.path.exists(dist_info_path)
         if pip_egg_info_exists or debian_egg_info_exists:
             # package installed by pip
             if pip_egg_info_exists:
@@ -476,7 +480,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+                                           'easy-install.pth')
+     
+        elif dist_info_exists:
+            if dist.has_metadata('RECORD'):
+                import csv
+                r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
+                for row in r:
+                    paths_to_remove.add(os.path.join(dist.location, row[0]))
+
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         # find distutils scripts= scripts
