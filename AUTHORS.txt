@@ -6,6 +6,7 @@ Armin Ronacher
 Brian Rosner
 Carl Meyer
 Christian Oudard
+Clay McClure
 Cody Soyland
 Daniel Holth
 Dave Abrahams
