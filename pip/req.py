@@ -793,7 +793,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             def get_path(path):
                 return {'purelib':site_packages,
                  'platlib':site_packages,
-                 'scripts':bin_py}[path]
+                 'scripts':bin_py,
+                 'data':sys.prefix}[path]
 
         if get_path('purelib') != get_path('platlib'):
             # XXX check *.dist-info/WHEEL to deal with this obscurity
@@ -812,7 +813,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                     
         def clobber(source, dest, is_base):
             for dir, subdirs, files in os.walk(source):
-                basedir = dir[len(source):]
+                basedir = dir[len(source):].lstrip(os.path.sep)
                 if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
                     continue
                 for s in subdirs:
