@@ -629,11 +629,18 @@ class Link(object):
             return None
         return match.group(1)
 
-    _md5_re = re.compile(r'md5=([a-f0-9]+)')
+    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
-    def md5_hash(self):
-        match = self._md5_re.search(self.url)
+    def hash(self):
+        match = self._hash_re.search(self.url)
+        if match:
+            return match.group(2)
+        return None
+
+    @property
+    def hash_name(self):
+        match = self._hash_re.search(self.url)
         if match:
             return match.group(1)
         return None

@@ -12,6 +12,7 @@ except NameError:
         """this exception should never be raised"""
     WindowsError = NeverUsedException
 
+
 console_encoding = sys.__stdout__.encoding
 
 if sys.version_info >= (3,):
