@@ -34,6 +34,14 @@ from pip.download import (get_file_content, is_url, url_to_path,
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 
+def open_for_csv(name, mode):
+    if sys.version_info[0] < 3:
+        nl = {}
+        bin = 'b'
+    else:
+        nl = { 'newline': '' }
+        bin = ''
+    return open(name, mode + bin, **nl)
 
 class InstallRequirement(object):
     def __init__(self, req, comes_from, source_dir=None, editable=False,
@@ -847,8 +855,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         record = os.path.join(info_dir[0], 'RECORD')
         temp_record = os.path.join(info_dir[0], 'RECORD.pip')
-        with open(record, 'r') as record_in:
-            with open(temp_record, 'w+') as record_out:
+        with open_for_csv(record, 'r') as record_in:
+            with open_for_csv(temp_record, 'w+') as record_out:
                 reader = csv.reader(record_in)
                 writer = csv.writer(record_out)
                 for row in reader:
