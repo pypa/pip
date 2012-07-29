@@ -182,6 +182,26 @@ class InstallCommand(Command):
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors)
 
+    @staticmethod
+    def _guess_install_scheme():
+        from distutils.command.install import INSTALL_SCHEMES
+        def guess_install_scheme():
+            if hasattr(sys, 'pypy_version_info'):
+                return 'pypy'
+            if os.name == 'posix':
+                return 'unix_home'
+            else:
+                return os.name
+        install_scheme = INSTALL_SCHEMES.get(guess_install_scheme())
+        if not install_scheme or 'purelib' not in install_scheme:
+            raise InstallationError('Do not know how to install on %s platforms' % os.name)
+        return install_scheme['purelib']
+
+    @staticmethod
+    def _guess_install_dir(target_dir):
+        from distutils.util import subst_vars
+        return subst_vars(InstallCommand._guess_install_scheme(), {'base': target_dir})
+
     def run(self, options, args):
         if options.download_dir:
             options.no_install = True
@@ -276,7 +296,7 @@ class InstallCommand(Command):
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
-            lib_dir = os.path.join(temp_target_dir, "lib/python/")
+            lib_dir = self._guess_install_dir(temp_target_dir)
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),
