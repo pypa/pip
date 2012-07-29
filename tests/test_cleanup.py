@@ -96,6 +96,26 @@ def test_no_install_and_download_should_not_leave_build_dir():
     assert not os.path.exists(env.venv_path/'/build'), "build/ dir should be deleted"
 
 
+def test_temp_build_dir_removed():
+    """
+    It should remove the temp build dir created by pip.
+
+    TestFileEnvironment provides a mechanism to ensure that
+    no temporary files are left after a test script executes,
+    so we can take advantage of that here by simply running
+    `run_pip` twice (which uses TestFileEnvironment).
+    """
+    env = reset_env()
+
+    # Install a requirement into a fresh environment. The temporary build
+    # directory should be removed.
+    result = run_pip('install', 'https://bitbucket.org/ianb/initools/get/tip.zip')
+
+    # Now install the requirement again, exercising a different code path,
+    # and ensure that the temporary build directory is still removed.
+    result = run_pip('install', 'https://bitbucket.org/ianb/initools/get/tip.zip')
+
+
 def test_download_should_not_delete_existing_build_dir():
     """
     It should not delete build/ if existing before run the command

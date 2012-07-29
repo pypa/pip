@@ -362,6 +362,10 @@ class TestPipEnvironment(TestFileEnvironment):
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
 
+        # Ensure that $TMPDIR exists
+        if self.temp_path and not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
+
     def _ignore_file(self, fn):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
@@ -509,6 +513,10 @@ class FastTestPipEnvironment(TestPipEnvironment):
             self._add_to_sitecustomize(sitecustomize)
 
         assert self.root_path.exists
+
+        # Ensure that $TMPDIR exists
+        if self.temp_path and not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
 
     def __del__(self):
         pass # shutil.rmtree(str(self.root_path), ignore_errors=True)
@@ -663,5 +671,5 @@ def _change_test_package_version(env, version_pkg_path):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
+    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
     sys.exit(1)
