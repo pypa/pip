@@ -171,7 +171,7 @@ def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normc
     normcase_mock.return_value = "/some/path/foo"
     assert_equal(
         parse_editable('foo[bar,baz]', 'git'),
-        (None, 'file://' + os.path.join("/some/path", 'foo'), ('bar', 'baz'))
+        (None, 'file:///some/path/foo', ('bar', 'baz'))
     )
 
 def test_install_local_editable_with_extras():
