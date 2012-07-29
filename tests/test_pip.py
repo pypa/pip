@@ -362,7 +362,7 @@ class TestPipEnvironment(TestFileEnvironment):
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
 
-        # Ensure that $TMPDIR exists
+        # Ensure that $TMPDIR exists  (because we use start_clear=False, it's not created for us)
         if self.temp_path and not os.path.exists(self.temp_path):
             os.makedirs(self.temp_path)
 
@@ -514,7 +514,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
         assert self.root_path.exists
 
-        # Ensure that $TMPDIR exists
+        # Ensure that $TMPDIR exists (because we use start_clear=False, it's not created for us)
         if self.temp_path and not os.path.exists(self.temp_path):
             os.makedirs(self.temp_path)
 
