@@ -1,6 +1,6 @@
 import textwrap
 import sys
-from os.path import join, abspath
+from os.path import join, abspath, normpath
 from tempfile import mkdtemp
 from mock import Mock
 from nose.tools import assert_raises
@@ -65,10 +65,10 @@ def test_uninstall_overlapping_package():
     assert join(env.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
     result2 = run_pip('install', child_pkg, expect_error=False)
     assert join(env.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
-    assert join(env.site_packages, 'parent/plugins/child_plugin.py') in result2.files_created, sorted(result2.files_created.keys())
+    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result2.files_created, sorted(result2.files_created.keys())
     result3 = run_pip('uninstall', '-y', 'child', expect_error=False)
     assert join(env.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
-    assert join(env.site_packages, 'parent/plugins/child_plugin.py') in result3.files_deleted, sorted(result3.files_deleted.keys())
+    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result3.files_deleted, sorted(result3.files_deleted.keys())
     assert join(env.site_packages, 'parent') not in result3.files_deleted, sorted(result3.files_deleted.keys())
     # Additional check: uninstalling 'child' should return things to the
     # previous state, without unintended side effects.
