@@ -455,7 +455,10 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
         assert self.venv == TestPipEnvironment.venv # sanity check
 
-        self.site_packages = self.lib/'site-packages'
+        if hasattr(sys, "pypy_version_info"):
+            self.site_packages = self.venv/'site-packages'
+        else:
+            self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
         self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
 
