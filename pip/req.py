@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from email.parser import FeedParser
 import os
 import pkg_resources
@@ -7,7 +9,7 @@ import shutil
 import tempfile
 import zipfile
 
-from pip.locations import bin_py, running_under_virtualenv
+from pip.locations import bin_py, running_under_virtualenv, site_packages
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound)
@@ -32,9 +34,16 @@ from pip.download import (get_file_content, is_url, url_to_path,
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 
+def open_for_csv(name, mode):
+    if sys.version_info[0] < 3:
+        nl = {}
+        bin = 'b'
+    else:
+        nl = { 'newline': '' }
+        bin = ''
+    return open(name, mode + bin, **nl)
 
 class InstallRequirement(object):
-
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True):
         self.extras = ()
@@ -429,6 +438,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
+        dist_info_path = os.path.join(dist.location,
+                                      '-'.join(dist.egg_name().split('-')[:2])
+                                      ) + '.dist-info'
         # workaround for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
         debian_egg_info_path = pip_egg_info_path.replace(
             '-py%s' % pkg_resources.PY_MAJOR, '')
@@ -437,6 +449,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_exists = os.path.exists(pip_egg_info_path)
         debian_egg_info_exists = os.path.exists(debian_egg_info_path)
+        dist_info_exists = os.path.exists(dist_info_path)
         if pip_egg_info_exists or debian_egg_info_exists:
             # package installed by pip
             if pip_egg_info_exists:
@@ -476,8 +489,14 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+                                           'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+        elif dist_info_exists:
+            if dist.has_metadata('RECORD'):
+                import csv
+                r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
+                for row in r:
+                    paths_to_remove.add(os.path.join(dist.location, row[0]))
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -567,7 +586,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.editable:
             self.install_editable(install_options, global_options)
             return
-
+        if self.is_wheel:
+            self.move_wheel_files(self.source_dir)
+            return
+        
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
@@ -693,6 +715,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             else:
                 self.conflicts_with = existing_dist
         return True
+    
+    @property
+    def is_wheel(self):
+        return self.url and '.whl' in self.url
 
     @property
     def is_bundle(self):
@@ -761,12 +787,88 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self._temp_build_dir = None
         self._bundle_build_dirs = bundle_build_dirs
         self._bundle_editable_dirs = bundle_editable_dirs
+        
+    def move_wheel_files(self, wheeldir):
+        import csv
+        try:
+            import sysconfig
+        except:
+            from distutils import sysconfig
+            
+        try:
+            get_path = sysconfig.get_path
+        except AttributeError: # Python < 2.7
+            def get_path(path):
+                return {'purelib':site_packages,
+                 'platlib':site_packages,
+                 'scripts':bin_py,
+                 'data':sys.prefix}[path]
 
+        if get_path('purelib') != get_path('platlib'):
+            # XXX check *.dist-info/WHEEL to deal with this obscurity
+            raise NotImplemented("purelib != platlib")
+
+        info_dir = []
+        data_dirs = []                
+        source = wheeldir.rstrip(os.path.sep) + os.path.sep
+        location = dest = get_path('platlib')        
+        installed = {}
+        def record_installed(srcfile, destfile):
+            """Map archive RECORD paths to installation RECORD paths."""
+            oldpath = os.path.relpath(srcfile, wheeldir).replace(os.path.sep, '/')
+            newpath = os.path.relpath(destfile, location).replace(os.path.sep, '/')
+            installed[oldpath] = newpath
+                                    
+        def clobber(source, dest, is_base):
+            for dir, subdirs, files in os.walk(source):
+                basedir = dir[len(source):].lstrip(os.path.sep)
+                if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
+                    continue
+                for s in subdirs:
+                    destsubdir = os.path.join(dest, basedir, s)
+                    if is_base and basedir == '' and destsubdir.endswith('.data'):
+                        data_dirs.append(s)
+                        continue
+                    elif (is_base
+                        and s.endswith('.dist-info')
+                        # is self.req.project_name case preserving?
+                        and s.lower().startswith(self.req.project_name.replace('-', '_').lower())):
+                        assert not info_dir, 'Multiple .dist-info directories'
+                        info_dir.append(destsubdir)
+                    if not os.path.exists(destsubdir):
+                        os.makedirs(destsubdir)
+                for f in files:
+                    srcfile = os.path.join(dir, f)
+                    destfile = os.path.join(dest, basedir, f)
+                    shutil.move(srcfile, destfile)
+                    record_installed(srcfile, destfile)
+
+        clobber(source, dest, True)
+                
+        assert info_dir, "%s .dist-info directory not found" % self.req
+        
+        for datadir in data_dirs:
+            for subdir in os.listdir(os.path.join(wheeldir, datadir)):
+                source = os.path.join(wheeldir, datadir, subdir)
+                dest = get_path(subdir)
+                clobber(source, dest, False)
+
+        record = os.path.join(info_dir[0], 'RECORD')
+        temp_record = os.path.join(info_dir[0], 'RECORD.pip')
+        with open_for_csv(record, 'r') as record_in:
+            with open_for_csv(temp_record, 'w+') as record_out:
+                reader = csv.reader(record_in)
+                writer = csv.writer(record_out)
+                for row in reader:
+                    row[0] = installed.get(row[0], row[0])
+                    writer.writerow(row)
+        shutil.move(temp_record, record)
+                    
     @property
     def delete_marker_filename(self):
         assert self.source_dir
         return os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)
-
+    
 
 DELETE_MARKER_MESSAGE = '''\
 This file is placed here by pip to indicate the source was put
@@ -983,6 +1085,7 @@ class RequirementSet(object):
             logger.indent += 2
             try:
                 is_bundle = False
+                is_wheel = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
                         location = req_to_install.build_location(self.src_dir)
@@ -1033,9 +1136,21 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_bundle = req_to_install.is_bundle
+                        is_wheel = url and url.filename.endswith('.whl')
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
+                                reqs.append(subreq)
+                                self.add_requirement(subreq)
+                        elif is_wheel:
+                            req_to_install.source_dir = location
+                            req_to_install.url = url.url
+                            dist = list(pkg_resources.find_distributions(location))[0]
+                            for subreq in dist.requires():
+                                if self.has_requirement(subreq.project_name):
+                                    continue
+                                subreq = InstallRequirement(str(subreq), 
+                                                            req_to_install)
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
                         elif self.is_download:
@@ -1064,7 +1179,7 @@ class RequirementSet(object):
                                 req_to_install.satisfied_by = None
                             else:
                                 install = False
-                if not is_bundle:
+                if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     if (req_to_install.extras):

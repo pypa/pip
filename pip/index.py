@@ -249,9 +249,14 @@ class PackageFinder(object):
             for link in page.rel_links():
                 pending_queue.put(link)
 
-    _egg_fragment_re = re.compile(r'#egg=([^&]*)')
+    _egg_fragment_re = re.compile(r'#egg=([^&]*)')    
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _wheel_info_re = re.compile(
+                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+                \.whl|\.dist-info)$""",
+                re.VERBOSE)
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -279,6 +284,7 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
         else:
@@ -291,8 +297,8 @@ class PackageFinder(object):
             if egg_info.endswith('.tar'):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
-                ext = '.tar' + ext
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
+                ext = '.tar' + ext        
+            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip', '.whl'):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
@@ -302,7 +308,17 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-        version = self._egg_info_matches(egg_info, search_name, link)
+            if ext == '.whl':
+                wheel_info = self._wheel_info_re.match(link.filename)
+                # XXX _ to - rule? wheel can parse hyphenated names.
+                if wheel_info.group('name').lower() == search_name.lower():
+                    version = wheel_info.group('ver')
+                    nodot = sys.version[:3].replace('.', '')
+                    if not nodot in wheel_info.group('pyver'):
+                        logger.debug('Skipping %s because Python version is incorrect' % link)
+                        return []    
+        if not version:
+            version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
