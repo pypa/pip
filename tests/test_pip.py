@@ -314,6 +314,9 @@ class TestPipEnvironment(TestFileEnvironment):
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
         for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            #fix for virtualenv issue #306
+            if hasattr(sys, "pypy_version_info") and id == 'lib':
+                path = os.path.join(self.venv_path, 'lib-python', pyversion)
             setattr(self, id+'_path', Path(path))
             setattr(self, id, relpath(self.root_path, path))
 
@@ -444,6 +447,9 @@ class FastTestPipEnvironment(TestPipEnvironment):
         virtualenv_paths = virtualenv.path_locations(self.venv_path)
 
         for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            #fix for virtualenv issue #306
+            if hasattr(sys, "pypy_version_info") and id == 'lib':
+                path = os.path.join(self.venv_path, 'lib-python', pyversion)
             setattr(self, id+'_path', Path(path))
             setattr(self, id, relpath(self.root_path, path))
 
