@@ -299,7 +299,8 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site.
     """
     if user_site:
-        return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+        return normalize_path(dist_location(dist)).startswith(
+            normalize_path(user_site))
     else:
         return False
 
@@ -308,7 +309,8 @@ def dist_in_site_packages(dist):
     """
     Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
     """
-    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
+    return normalize_path(dist_location(dist)).startswith(
+        normalize_path(site_packages))
 
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
@@ -327,7 +329,8 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+    return [d for d in pkg_resources.working_set
+            if local_test(d) and d.key not in skip]
 
 
 def egg_link_path(dist):
