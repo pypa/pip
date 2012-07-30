@@ -314,12 +314,18 @@ class TestPipEnvironment(TestFileEnvironment):
         assert self.venv_path == virtualenv_paths[0] # sanity check
 
         for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            #fix for virtualenv issue #306
+            if hasattr(sys, "pypy_version_info") and id == 'lib':
+                path = os.path.join(self.venv_path, 'lib-python', pyversion)
             setattr(self, id+'_path', Path(path))
             setattr(self, id, relpath(self.root_path, path))
 
         assert self.venv == TestPipEnvironment.venv # sanity check
 
-        self.site_packages = self.lib/'site-packages'
+        if hasattr(sys, "pypy_version_info"):
+            self.site_packages = self.venv/'site-packages'
+        else:
+            self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
         self.user_site_path = self.venv_path/'user'/site_packages_suffix
 
@@ -361,6 +367,10 @@ class TestPipEnvironment(TestFileEnvironment):
         self._use_cached_pypi_server()
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
+
+        # Ensure that $TMPDIR exists  (because we use start_clear=False, it's not created for us)
+        if self.temp_path and not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
 
     def _ignore_file(self, fn):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
@@ -444,12 +454,18 @@ class FastTestPipEnvironment(TestPipEnvironment):
         virtualenv_paths = virtualenv.path_locations(self.venv_path)
 
         for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
+            #fix for virtualenv issue #306
+            if hasattr(sys, "pypy_version_info") and id == 'lib':
+                path = os.path.join(self.venv_path, 'lib-python', pyversion)
             setattr(self, id+'_path', Path(path))
             setattr(self, id, relpath(self.root_path, path))
 
         assert self.venv == TestPipEnvironment.venv # sanity check
 
-        self.site_packages = self.lib/'site-packages'
+        if hasattr(sys, "pypy_version_info"):
+            self.site_packages = self.venv/'site-packages'
+        else:
+            self.site_packages = self.lib/'site-packages'
         self.user_base_path = self.venv_path/'user'
         self.user_site_path = self.venv_path/'user'/'lib'/self.lib.name/'site-packages'
 
@@ -509,6 +525,10 @@ class FastTestPipEnvironment(TestPipEnvironment):
             self._add_to_sitecustomize(sitecustomize)
 
         assert self.root_path.exists
+
+        # Ensure that $TMPDIR exists (because we use start_clear=False, it's not created for us)
+        if self.temp_path and not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
 
     def __del__(self):
         pass # shutil.rmtree(str(self.root_path), ignore_errors=True)
@@ -663,5 +683,5 @@ def _change_test_package_version(env, version_pkg_path):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, and nose.\n")
+    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
     sys.exit(1)
