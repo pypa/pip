@@ -57,7 +57,8 @@ class FreezeCommand(Command):
 
         for dist in pkg_resources.working_set:
             if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
+                dependency_links.extend(
+                    dist.get_metadata_lines('dependency_links.txt'))
         for link in find_links:
             if '#egg=' in link:
                 dependency_links.append(link)
@@ -65,7 +66,8 @@ class FreezeCommand(Command):
             f.write('-f %s\n' % link)
         installations = {}
         for dist in get_installed_distributions(local_only=local_only):
-            req = pip.FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
+            req = pip.FrozenRequirement.from_dist(
+                dist, dependency_links, find_tags=find_tags)
             installations[req.name] = req
         if requirement:
             req_f = open(requirement)
@@ -81,7 +83,8 @@ class FreezeCommand(Command):
                         line = line[2:].strip()
                     else:
                         line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = InstallRequirement.from_editable(line, default_vcs=options.default_vcs)
+                    line_req = InstallRequirement.from_editable(
+                        line, default_vcs=options.default_vcs)
                 elif (line.startswith('-r') or line.startswith('--requirement')
                       or line.startswith('-Z') or line.startswith('--always-unzip')
                       or line.startswith('-f') or line.startswith('-i')
@@ -103,7 +106,8 @@ class FreezeCommand(Command):
                     continue
                 f.write(str(installations[line_req.name]))
                 del installations[line_req.name]
-            f.write('## The following requirements were added by pip --freeze:\n')
+            f.write(
+                '## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
 

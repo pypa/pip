@@ -50,11 +50,12 @@ class CompletionCommand(Command):
     def run(self, options, args):
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
-        shell_options = ['--'+shell for shell in sorted(shells)]
+        shell_options = ['--' + shell for shell in sorted(shells)]
         if options.shell in shells:
             script = COMPLETION_SCRIPTS.get(options.shell, '')
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
-            sys.stderr.write('ERROR: You must pass %s\n' % ' or '.join(shell_options))
+            sys.stderr.write(
+                'ERROR: You must pass %s\n' % ' or '.join(shell_options))
 
 CompletionCommand()

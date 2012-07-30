@@ -241,18 +241,20 @@ class InstallCommand(Command):
             return
 
         if (options.use_user_site and
-            sys.version_info < (2, 6)):
-            raise InstallationError('--user is only supported in Python version 2.6 and newer')
+                sys.version_info < (2, 6)):
+            raise InstallationError(
+                '--user is only supported in Python version 2.6 and newer')
 
         import setuptools
         if (options.use_user_site and
             requirement_set.has_editables and
-            not getattr(setuptools, '_distribute', False)):
+                not getattr(setuptools, '_distribute', False)):
 
             raise InstallationError('--user --editable not supported with setuptools, use distribute')
 
         if not options.no_download:
-            requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+            requirement_set.prepare_files(
+                finder, force_root_egg_info=self.bundle, bundle=self.bundle)
         else:
             requirement_set.locate_files()
 
@@ -281,7 +283,7 @@ class InstallCommand(Command):
                 shutil.move(
                     os.path.join(lib_dir, item),
                     os.path.join(options.target_dir, item)
-                    )
+                )
             shutil.rmtree(temp_target_dir)
         return requirement_set
 

@@ -40,7 +40,7 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+                 use_mirrors=False, mirrors=None, main_mirror_url=None):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -101,7 +101,8 @@ class PackageFinder(object):
             # This will also cache the page, so it's okay that we get it again later:
             page = self._get_page(main_index_url, req)
             if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+                url_name = self._find_url_name(
+                    Link(self.index_urls[0]), url_name, req) or req.url_name
 
         # Combine index URLs with mirror URLs here to allow
         # adding more index URLs from requirements files
@@ -143,23 +144,28 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s' % page.url)
             logger.indent += 2
             try:
-                page_versions.extend(self._package_versions(page.links, req.name.lower()))
+                page_versions.extend(
+                    self._package_versions(page.links, req.name.lower()))
             finally:
                 logger.indent -= 2
         dependency_versions = list(self._package_versions(
             [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
-            logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
+            logger.info('dependency_links found: %s' % ', '.join(
+                [link.url for parsed, link, version in dependency_versions]))
         file_versions = list(self._package_versions(
-                [Link(url) for url in file_locations], req.name.lower()))
+                             [Link(url) for url in file_locations], req.name.lower()))
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
-            raise DistributionNotFound('No distributions at all found for %s' % req)
+            raise DistributionNotFound(
+                'No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
-            found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
+            found_versions.append((req.satisfied_by.parsed_version,
+                                  Inf, req.satisfied_by.version))
         if file_versions:
             file_versions.sort(reverse=True)
-            logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
+            logger.info('Local files found: %s' % ', '.join([url_to_path(
+                link.url) for parsed, link, version in file_versions]))
             found_versions = file_versions + found_versions
         all_versions = found_versions + page_versions + dependency_versions
         applicable_versions = []
@@ -170,7 +176,8 @@ class PackageFinder(object):
                 continue
             applicable_versions.append((link, version))
         applicable_versions = sorted(applicable_versions, key=lambda v: pkg_resources.parse_version(v[1]), reverse=True)
-        existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
+        existing_applicable = bool(
+            [link for link, version in applicable_versions if link is Inf])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is Inf:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
@@ -183,7 +190,8 @@ class PackageFinder(object):
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in found_versions])))
-            raise DistributionNotFound('No distributions matching the version for %s' % req)
+            raise DistributionNotFound(
+                'No distributions matching the version for %s' % req)
         if applicable_versions[0][0] is Inf:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
@@ -209,7 +217,8 @@ class PackageFinder(object):
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
-                logger.notify('Real name of requirement %s is %s' % (url_name, base))
+                logger.notify(
+                    'Real name of requirement %s is %s' % (url_name, base))
                 return base
         return None
 
@@ -223,7 +232,8 @@ class PackageFinder(object):
         seen = set()
         threads = []
         for i in range(min(10, len(locations))):
-            t = threading.Thread(target=self._get_queued_page, args=(req, pending_queue, done, seen))
+            t = threading.Thread(target=self._get_queued_page,
+                                 args=(req, pending_queue, done, seen))
             t.setDaemon(True)
             threads.append(t)
             t.start()
@@ -304,19 +314,21 @@ class PackageFinder(object):
                 return []
         version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
-            logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
+            logger.debug('Skipping link %s; wrong project name (not %s)' %
+                         (link, search_name))
             return []
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                logger.debug('Skipping %s because Python version is incorrect' % link)
+                logger.debug(
+                    'Skipping %s because Python version is incorrect' % link)
                 return []
         logger.debug('Found link %s, version: %s' % (link, version))
         return [(pkg_resources.parse_version(version),
-               link,
-               version)]
+                 link,
+                 version)]
 
     def _egg_info_matches(self, egg_info, search_name, link):
         match = self._egg_info_re.search(egg_info)
@@ -380,7 +392,7 @@ class PageCache(object):
         self._archives[url] = value
 
     def add_page_failure(self, url, level):
-        self._failures[url] = self._failures.get(url, 0)+level
+        self._failures[url] = self._failures.get(url, 0) + level
 
     def add_page(self, urls, page):
         for url in urls:
@@ -395,7 +407,8 @@ class HTMLPage(object):
     _download_re = re.compile(r'<th>\s*download\s+url', re.I)
     ## These aren't so aweful:
     _rel_re = re.compile("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>""", re.I)
-    _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
+    _href_re = re.compile(
+        'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I | re.S)
     _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
     def __init__(self, content, url, headers=None):
@@ -417,7 +430,8 @@ class HTMLPage(object):
         from pip.vcs import VcsSupport
         for scheme in VcsSupport.schemes:
             if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-                logger.debug('Cannot look at %(scheme)s URL %(link)s' % locals())
+                logger.debug(
+                    'Cannot look at %(scheme)s URL %(link)s' % locals())
                 return None
 
         if cache is not None:
@@ -443,7 +457,8 @@ class HTMLPage(object):
             logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
+            (scheme, netloc, path, params, query,
+             fragment) = urlparse.urlparse(url)
             if scheme == 'file' and os.path.isdir(url2pathname(path)):
                 # add trailing slash if not present so urljoin doesn't trim final segment
                 if not url.endswith('/'):
@@ -469,7 +484,7 @@ class HTMLPage(object):
             desc = str(e)
             if isinstance(e, socket.timeout):
                 log_meth = logger.info
-                level =1
+                level = 1
                 desc = 'timed out'
             elif isinstance(e, URLError):
                 log_meth = logger.info
@@ -560,7 +575,8 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = href_match.group(1) or href_match.group(2) or href_match.group(3)
+            url = href_match.group(
+                1) or href_match.group(2) or href_match.group(3)
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
@@ -629,7 +645,8 @@ class Link(object):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
+    _hash_re = re.compile(
+        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
     def hash(self):
@@ -709,9 +726,8 @@ def string_range(last):
     This works for simple "a to z" lists, but also for "a to zz" lists.
     """
     for k in range(len(last)):
-        for x in product(string.ascii_lowercase, repeat=k+1):
+        for x in product(string.ascii_lowercase, repeat=k + 1):
             result = ''.join(x)
             yield result
             if result == last:
                 return
-

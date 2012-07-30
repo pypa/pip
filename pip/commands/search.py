@@ -44,7 +44,8 @@ class SearchCommand(Command):
         return NO_MATCHES_FOUND
 
     def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)
+        pypi = xmlrpclib.ServerProxy(
+            index_url, pip.download.xmlrpclib_transport)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
@@ -65,7 +66,8 @@ def transform_hits(hits):
             score = 0
 
         if name not in packages.keys():
-            packages[name] = {'name': name, 'summary': summary, 'versions': [version], 'score': score}
+            packages[name] = {'name': name, 'summary': summary,
+                              'versions': [version], 'score': score}
         else:
             packages[name]['versions'].append(version)
 
@@ -75,7 +77,8 @@ def transform_hits(hits):
                 packages[name]['score'] = score
 
     # each record has a unique name now, so we will convert the dict into a list sorted by score
-    package_list = sorted(packages.values(), key=lambda x: x['score'], reverse=True)
+    package_list = sorted(
+        packages.values(), key=lambda x: x['score'], reverse=True)
     return package_list
 
 
@@ -86,7 +89,8 @@ def print_results(hits, name_column_width=25, terminal_width=None):
         summary = hit['summary'] or ''
         if terminal_width is not None:
             # wrap and indent summary to fit terminal
-            summary = textwrap.wrap(summary, terminal_width - name_column_width - 5)
+            summary = textwrap.wrap(
+                summary, terminal_width - name_column_width - 5)
             summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
         line = '%s - %s' % (name.ljust(name_column_width), summary)
         try:

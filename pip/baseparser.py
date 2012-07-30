@@ -38,9 +38,12 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         opts = []
 
-        if option._short_opts: opts.append(option._short_opts[0])
-        if option._long_opts:  opts.append(option._long_opts[0])
-        if len(opts) > 1: opts.insert(1, optsep)
+        if option._short_opts:
+            opts.append(option._short_opts[0])
+        if option._long_opts:
+            opts.append(option._long_opts[0])
+        if len(opts) > 1:
+            opts.insert(1, optsep)
 
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
@@ -49,7 +52,8 @@ class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
         return ''.join(opts)
 
     def format_heading(self, heading):
-        if heading == 'Options': return ''
+        if heading == 'Options':
+            return ''
         return heading + ':\n'
 
     def format_usage(self, usage):
@@ -114,7 +118,8 @@ class ConfigOptionParser(optparse.OptionParser):
         config = {}
         # 1. config files
         for section in ('global', self.name):
-            config.update(self.normalize_keys(self.get_config_section(section)))
+            config.update(
+                self.normalize_keys(self.get_config_section(section)))
         # 2. environmental variables
         config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
@@ -148,7 +153,7 @@ class ConfigOptionParser(optparse.OptionParser):
         for key, val in items:
             key = key.replace('_', '-')
             if not key.startswith('--'):
-                key = '--%s' % key # only prefer long opts
+                key = '--%s' % key  # only prefer long opts
             normalized[key] = val
         return normalized
 
@@ -171,7 +176,7 @@ class ConfigOptionParser(optparse.OptionParser):
             # Old, pre-Optik 1.5 behaviour.
             return optparse.Values(self.defaults)
 
-        defaults = self.update_defaults(self.defaults.copy()) # ours
+        defaults = self.update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
             if isinstance(default, string_types):
@@ -185,7 +190,7 @@ try:
         pip_dist, pip_dist.location, sys.version[:3])
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
-    version=None
+    version = None
 
 parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
