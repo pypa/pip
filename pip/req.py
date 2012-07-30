@@ -72,7 +72,8 @@ class InstallRequirement(object):
         else:
             source_dir = None
 
-        res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+        res = cls(
+            name, comes_from, source_dir=source_dir, editable=True, url=url)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -211,9 +212,11 @@ class InstallRequirement(object):
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
         if self.name:
-            logger.notify('Running setup.py egg_info for package %s' % self.name)
+            logger.notify(
+                'Running setup.py egg_info for package %s' % self.name)
         else:
-            logger.notify('Running setup.py egg_info for package from %s' % self.url)
+            logger.notify(
+                'Running setup.py egg_info for package from %s' % self.url)
         logger.indent += 2
         try:
             script = self._run_setup_py
@@ -293,7 +296,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     for dir in list(dirs):
                         # Don't search in anything that looks like a virtualenv environment
                         if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
-                            or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
+                                or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
                             dirs.remove(dir)
                         # Also don't search through tests
                         if dir == 'test' or dir == 'tests':
@@ -303,16 +306,18 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
-                raise InstallationError('No files/directores in %s (from %s)' % (base, filename))
-            assert filenames, "No files/directories in %s (from %s)" % (base, filename)
+                raise InstallationError(
+                    'No files/directores in %s (from %s)' % (base, filename))
+            assert filenames, "No files/directories in %s (from %s)" % (
+                base, filename)
 
             # if we have more than one match, we pick the toplevel one.  This can
             # easily be the case if there is a dist folder which contains an
             # extracted tarball for testing purposes.
             if len(filenames) > 1:
                 filenames.sort(key=lambda x: x.count(os.path.sep) +
-                                             (os.path.altsep and
-                                              x.count(os.path.altsep) or 0))
+                               (os.path.altsep and
+                                x.count(os.path.altsep) or 0))
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
 
@@ -332,7 +337,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         p = FeedParser()
         data = self.egg_info_data('PKG-INFO')
         if not data:
-            logger.warn('No PKG-INFO file found in %s' % display_path(self.egg_info_path('PKG-INFO')))
+            logger.warn('No PKG-INFO file found in %s' %
+                        display_path(self.egg_info_path('PKG-INFO')))
         p.feed(data or '')
         return p.close()
 
@@ -446,7 +452,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             paths_to_remove.add(egg_info_path)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
-                    path = os.path.normpath(os.path.join(egg_info_path, installed_file))
+                    path = os.path.normpath(
+                        os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
@@ -489,14 +496,18 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         # find console_scripts
         if dist.has_metadata('entry_points.txt'):
             config = ConfigParser.SafeConfigParser()
-            config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
+            config.readfp(
+                FakeFile(dist.get_metadata_lines('entry_points.txt')))
             if config.has_section('console_scripts'):
                 for name, value in config.items('console_scripts'):
                     paths_to_remove.add(os.path.join(bin_py, name))
                     if sys.platform == 'win32':
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
+                        paths_to_remove.add(
+                            os.path.join(bin_py, name) + '.exe')
+                        paths_to_remove.add(
+                            os.path.join(bin_py, name) + '.exe.manifest')
+                        paths_to_remove.add(
+                            os.path.join(bin_py, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -544,7 +555,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     dirname = os.path.join(dirpath, dirname)
                     name = self._clean_zip_name(dirname, dir)
                     zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
-                    zipdir.external_attr = 0x1ED << 16 # 0o755
+                    zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
@@ -557,9 +568,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             logger.notify('Saved %s' % display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+os.path.sep), (
+        assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
-        name = name[len(prefix)+1:]
+        name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
 
@@ -573,11 +584,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         try:
             install_args = [
                 sys.executable, '-c',
-                "import setuptools;__file__=%r;"\
+                "import setuptools;__file__=%r;"
                 "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
                 list(global_options) + [
-                'install',
-                '--record', record_filename]
+                    'install',
+                    '--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -592,7 +603,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             logger.indent += 2
             try:
                 call_subprocess(install_args + install_options,
-                    cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
+                                cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
             finally:
                 logger.indent -= 2
             if not os.path.exists(record_filename):
@@ -625,7 +636,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 new_lines.append(make_path_relative(filename, egg_info_dir))
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-            f.write('\n'.join(new_lines)+'\n')
+            f.write('\n'.join(new_lines) + '\n')
             f.close()
         finally:
             if os.path.exists(record_filename):
@@ -652,7 +663,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             call_subprocess(
                 [sys.executable, '-c',
                  "import setuptools; __file__=%r; exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
-                + list(global_options) + ['develop', '--no-deps'] + list(install_options),
+                + list(global_options) + ['develop',
+                                          '--no-deps'] + list(install_options),
 
                 cwd=self.source_dir, filter_stdout=self._filter_install,
                 show_stdout=False)
@@ -683,13 +695,14 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(self.req.project_name)
+            existing_dist = pkg_resources.get_distribution(
+                self.req.project_name)
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
                 elif running_under_virtualenv() and dist_in_site_packages(existing_dist):
                     raise InstallationError("Will not install to the user site because it will lack sys.path precedence to %s in %s"
-                                            %(existing_dist.project_name, existing_dist.location))
+                                            % (existing_dist.project_name, existing_dist.location))
             else:
                 self.conflicts_with = existing_dist
         return True
@@ -743,7 +756,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         bundle_editable_dirs = []
         for source_dir, dest_dir, dir_collection in [
             (src_dir, dest_src_dir, bundle_editable_dirs),
-            (build_dir, dest_build_dir, bundle_build_dirs)]:
+                (build_dir, dest_build_dir, bundle_build_dirs)]:
             if os.path.exists(source_dir):
                 for dirname in os.listdir(source_dir):
                     dest = os.path.join(dest_dir, dirname)
@@ -920,16 +933,18 @@ class RequirementSet(object):
 
             if req_to_install.editable:
                 if req_to_install.source_dir is None:
-                    req_to_install.source_dir = req_to_install.build_location(self.src_dir)
+                    req_to_install.source_dir = req_to_install.build_location(
+                        self.src_dir)
             elif install_needed:
-                req_to_install.source_dir = req_to_install.build_location(self.build_dir, not self.is_download)
+                req_to_install.source_dir = req_to_install.build_location(
+                    self.build_dir, not self.is_download)
 
             if req_to_install.source_dir is not None and not os.path.isdir(req_to_install.source_dir):
                 raise InstallationError('Could not install requirement %s '
-                                       'because source folder %s does not exist '
-                                       '(perhaps --no-download was used without first running '
-                                       'an equivalent install with --no-install?)'
-                                       % (req_to_install, req_to_install.source_dir))
+                                        'because source folder %s does not exist '
+                                        '(perhaps --no-download was used without first running '
+                                        'an equivalent install with --no-install?)'
+                                        % (req_to_install, req_to_install.source_dir))
 
     def prepare_files(self, finder, force_root_egg_info=False, bundle=False):
         """Prepare process. Create temp directories, download and/or unpack files."""
@@ -977,7 +992,8 @@ class RequirementSet(object):
                 logger.notify('Obtaining %s' % req_to_install)
             elif install:
                 if req_to_install.url and req_to_install.url.lower().startswith('file:'):
-                    logger.notify('Unpacking %s' % display_path(url_to_path(req_to_install.url)))
+                    logger.notify('Unpacking %s' % display_path(
+                        url_to_path(req_to_install.url)))
                 else:
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
@@ -1004,7 +1020,8 @@ class RequirementSet(object):
                     ##build directory
 
                     # NB: This call can result in the creation of a temporary build directory
-                    location = req_to_install.build_location(self.build_dir, not self.is_download)
+                    location = req_to_install.build_location(
+                        self.build_dir, not self.is_download)
 
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
@@ -1014,14 +1031,16 @@ class RequirementSet(object):
                         if req_to_install.url is None:
                             if not_found:
                                 raise not_found
-                            url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
+                            url = finder.find_requirement(
+                                req_to_install, upgrade=self.upgrade)
                         else:
                             ## FIXME: should req_to_install.url already be a link?
                             url = Link(req_to_install.url)
                             assert url
                         if url:
                             try:
-                                self.unpack_url(url, location, self.is_download)
+                                self.unpack_url(
+                                    url, location, self.is_download)
                             except HTTPError:
                                 e = sys.exc_info()[1]
                                 logger.fatal('Could not install requirement %s because of error %s'
@@ -1034,7 +1053,8 @@ class RequirementSet(object):
                     if unpack:
                         is_bundle = req_to_install.is_bundle
                         if is_bundle:
-                            req_to_install.move_bundle_files(self.build_dir, self.src_dir)
+                            req_to_install.move_bundle_files(
+                                self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
@@ -1049,7 +1069,8 @@ class RequirementSet(object):
                             if force_root_egg_info:
                                 # We need to run this to make sure that the .egg-info/
                                 # directory is created for packing in the bundle
-                                req_to_install.run_egg_info(force_root_egg_info=True)
+                                req_to_install.run_egg_info(
+                                    force_root_egg_info=True)
                             req_to_install.assert_source_matches_version()
                             #@@ sketchy way of identifying packages not grabbed from an index
                             if bundle and req_to_install.url:
@@ -1066,13 +1087,16 @@ class RequirementSet(object):
                                 install = False
                 if not is_bundle:
                     ## FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(req_to_install.dependency_links)
+                    finder.add_dependency_links(
+                        req_to_install.dependency_links)
                     if (req_to_install.extras):
-                        logger.notify("Installing extra requirements: %r" % ','.join(req_to_install.extras))
+                        logger.notify("Installing extra requirements: %r" %
+                                      ','.join(req_to_install.extras))
                     if not self.ignore_dependencies:
                         for req in req_to_install.requirements(req_to_install.extras):
                             try:
-                                name = pkg_resources.Requirement.parse(req).project_name
+                                name = pkg_resources.Requirement.parse(
+                                    req).project_name
                             except ValueError:
                                 e = sys.exc_info()[1]
                                 ## FIXME: proper warning
@@ -1145,9 +1169,11 @@ class RequirementSet(object):
         else:
             if self.download_cache:
                 self.download_cache = os.path.expanduser(self.download_cache)
-            retval = unpack_http_url(link, location, self.download_cache, self.download_dir)
+            retval = unpack_http_url(
+                link, location, self.download_cache, self.download_dir)
             if only_download:
-                _write_delete_marker_message(os.path.join(location, PIP_DELETE_MARKER_FILENAME))
+                _write_delete_marker_message(
+                    os.path.join(location, PIP_DELETE_MARKER_FILENAME))
             return retval
 
     def install(self, install_options, global_options=()):
@@ -1156,7 +1182,8 @@ class RequirementSet(object):
                       if not r.satisfied_by]
 
         if to_install:
-            logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
+            logger.notify('Installing collected packages: %s' %
+                          ', '.join([req.name for req in to_install]))
         logger.indent += 2
         try:
             for requirement in to_install:
@@ -1253,16 +1280,17 @@ class RequirementSet(object):
         return ''.join(parts)
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+os.path.sep), (
+        assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix))
-        name = name[len(prefix)+1:]
+        name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
 
 
 def _make_build_dir(build_dir):
     os.makedirs(build_dir)
-    _write_delete_marker_message(os.path.join(build_dir, PIP_DELETE_MARKER_FILENAME))
+    _write_delete_marker_message(
+        os.path.join(build_dir, PIP_DELETE_MARKER_FILENAME))
 
 
 def _write_delete_marker_message(filepath):
@@ -1492,7 +1520,8 @@ class UninstallPathSet(object):
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.notify('Successfully uninstalled %s' % self.dist.project_name)
+                logger.notify(
+                    'Successfully uninstalled %s' % self.dist.project_name)
 
         finally:
             logger.indent -= 2
@@ -1500,7 +1529,8 @@ class UninstallPathSet(object):
     def rollback(self):
         """Rollback the changes previously made by remove()."""
         if self.save_dir is None:
-            logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
+            logger.error("Can't roll back %s; was not uninstalled" %
+                         self.dist.project_name)
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
         for path in self._moved_paths:
@@ -1521,7 +1551,8 @@ class UninstallPathSet(object):
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
         if not os.path.isfile(pth_file):
-            raise UninstallationError("Cannot remove entries from nonexistent file %s" % pth_file)
+            raise UninstallationError(
+                "Cannot remove entries from nonexistent file %s" % pth_file)
         self.file = pth_file
         self.entries = set()
         self._saved_lines = None
@@ -1559,7 +1590,8 @@ class UninstallPthEntries(object):
 
     def rollback(self):
         if self._saved_lines is None:
-            logger.error('Cannot roll back changes to %s, none were made' % self.file)
+            logger.error(
+                'Cannot roll back changes to %s, none were made' % self.file)
             return False
         logger.info('Rolling %s back to previous state' % self.file)
         fh = open(self.file, 'wb')
