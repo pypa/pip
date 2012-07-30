@@ -66,3 +66,24 @@ def test_sitecustomize_not_growing_in_fast_environment():
     size2 = os.stat(sc2).st_size
     assert size1==size2, "size before, %d != size after, %d" %(size1, size2)
 
+
+def test_tmp_dir_exists_in_env():
+    """
+    Test that $TMPDIR == env.temp_path and path exists, and env.assert_no_temp() passes
+    """
+    #need these tests to ensure the assert_no_temp feature of scripttest is working
+    env = reset_env(use_distribute=True)
+    env.assert_no_temp() #this fails if env.tmp_path doesn't exist
+    assert env.environ['TMPDIR'] == env.temp_path
+    assert isdir(env.temp_path)
+
+
+def test_tmp_dir_exists_in_fast_env():
+    """
+    Test that $TMPDIR == env.temp_path and path exists and env.assert_no_temp() passes (in fast env)
+    """
+    #need these tests to ensure the assert_no_temp feature of scripttest is working
+    env = reset_env()
+    env.assert_no_temp() #this fails if env.tmp_path doesn't exist
+    assert env.environ['TMPDIR'] == env.temp_path
+    assert isdir(env.temp_path)
