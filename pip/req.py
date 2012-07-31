@@ -448,7 +448,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 logger.notify("used installed files")
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
-                    logger.notify(path)
+                    logger.notify(str(os.path.exists(path)) + ' ' + path)
                     paths_to_remove.add(path)
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
