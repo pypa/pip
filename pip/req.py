@@ -445,8 +445,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 egg_info_path = debian_egg_info_path
             paths_to_remove.add(egg_info_path)
             if dist.has_metadata('installed-files.txt'):
+                logger.notify("used installed files")
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
+                    logger.notify(path)
                     paths_to_remove.add(path)
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
