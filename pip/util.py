@@ -271,7 +271,9 @@ def renames(old, new):
             logger.notify("succeeded removing: " +head)
         except OSError:
             logger.notify(str(os.listdir(head)))
-            logger.notify(str(os.listdir(os.path.join(head,'__pycache__'))))
+            pycache = os.path.join(head,'__pycache__')
+            if os.path.isdir(pycache):
+                logger.notify(str(os.listdir(pycache)))
             pass
 
 
