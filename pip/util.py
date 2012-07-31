@@ -266,8 +266,11 @@ def renames(old, new):
     head, tail = os.path.split(old)
     if head and tail:
         try:
+            logger.notify("trying to remove: " +head)
             os.removedirs(head)
+            logger.notify("succeeded removing: " +head)
         except OSError:
+            logger.notify(str(os.listdir(head)))
             pass
 
 
