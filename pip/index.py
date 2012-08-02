@@ -314,7 +314,14 @@ class PackageFinder(object):
                 if wheel_info.group('name').lower() == search_name.lower():
                     version = wheel_info.group('ver')
                     nodot = sys.version[:3].replace('.', '')
-                    if not nodot in wheel_info.group('pyver'):
+                    pyversions = wheel_info.group('pyver').split('.')
+                    ok = False
+                    for pv in pyversions:
+                        # TODO: Doesn't check Python implementation
+                        if nodot.startswith(pv[2:]):
+                            ok = True
+                            break
+                    if not ok:
                         logger.debug('Skipping %s because Python version is incorrect' % link)
                         return []    
         if not version:
