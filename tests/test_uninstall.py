@@ -15,7 +15,7 @@ def test_simple_uninstall():
     Test simple install and uninstall.
 
     """
-    env = reset_env()
+    env = reset_env(use_distribute=True)
     result = run_pip('install', 'INITools==0.2')
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
     result2 = run_pip('uninstall', 'INITools', '-y')

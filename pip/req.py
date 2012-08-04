@@ -13,7 +13,7 @@ from pip.exceptions import (InstallationError, UninstallationError,
                             DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree
+from pip.util import display_path, rmtree, is_pypy
 from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
 from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
@@ -445,8 +445,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 egg_info_path = debian_egg_info_path
             paths_to_remove.add(egg_info_path)
             if dist.has_metadata('installed-files.txt'):
+                logger.notify("used installed files")
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
+                    logger.notify(str(os.path.exists(path)) + ' ' + path)
                     paths_to_remove.add(path)
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
@@ -1434,6 +1436,15 @@ class UninstallPathSet(object):
             self.paths.add(path)
         else:
             self._refuse.add(path)
+
+        #workaround for pip issue #626 (debian pypy creates __pycache__ folders)
+        if is_pypy:
+            head, tail = os.path.split(path)
+            tail_root, tail_ext = os.path.splitext(tail)
+            if tail_ext == '.py':
+                pycache_path = os.path.join(head, '__pycache__', tail_root + '.pypy-%d%d.pyc' % sys.pypy_version_info[:2])
+                self.add(pycache_path)
+
 
     def add_pth(self, pth_file, entry):
         pth_file = normalize_path(pth_file)

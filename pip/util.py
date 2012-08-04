@@ -172,6 +172,7 @@ def is_svn_page(html):
     return (re.search(r'<title>[^<]*Revision \d+:', html)
             and re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
 
+is_pypy = hasattr(sys, 'pypy_version_info')
 
 def file_contents(filename):
     fp = open(filename, 'rb')
@@ -266,8 +267,14 @@ def renames(old, new):
     head, tail = os.path.split(old)
     if head and tail:
         try:
+            logger.notify("trying to remove: " +head)
             os.removedirs(head)
+            logger.notify("succeeded removing: " +head)
         except OSError:
+            logger.notify(str(os.listdir(head)))
+            pycache = os.path.join(head,'__pycache__')
+            if os.path.isdir(pycache):
+                logger.notify(str(os.listdir(pycache)))
             pass
 
 
