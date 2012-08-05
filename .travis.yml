@@ -18,6 +18,5 @@ branches:
     - develop
 matrix:
   allow_failures:
-    - python: pypy
 env:
   - PIP_USE_MIRRORS=true
