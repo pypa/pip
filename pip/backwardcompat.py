@@ -1,5 +1,6 @@
 """Stuff that differs in different Python versions"""
 
+import os
 import sys
 import site
 
@@ -98,3 +99,11 @@ def product(*args, **kwds):
         result = [x+[y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
+
+def home_lib(home):
+    """Return the lib dir under the 'home' installation scheme"""
+    if hasattr(sys, 'pypy_version_info'):
+        lib = 'site-packages'
+    else:
+        lib = os.path.join('lib', 'python')
+    return os.path.join(home, lib)
