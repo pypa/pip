@@ -231,7 +231,7 @@ class ZipCommand(Command):
 
     def add_filename_to_pth(self, filename):
         path = os.path.dirname(filename)
-        dest = os.path.join(path, filename + '.pth')
+        dest = filename + '.pth'
         if path not in self.paths():
             logger.warn('Adding .pth file %s, but it is not on sys.path' % display_path(dest))
         if not self.simulate:
