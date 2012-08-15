@@ -18,6 +18,7 @@ def test_simple_uninstall():
     env = reset_env()
     result = run_pip('install', 'INITools==0.2')
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
+    env.run('python', '-c', "import initools")
     result2 = run_pip('uninstall', 'INITools', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
