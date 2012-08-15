@@ -10,7 +10,7 @@ before_install:
     - sudo apt-get install subversion bzr mercurial
     - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
 install: pip install nose virtualenv scripttest mock
-script: nosetests
+script: nosetests -s -v tests.test_uninstall:test_simple_uninstall
 notifications:
   irc: "irc.freenode.org#pip"
 branches:
