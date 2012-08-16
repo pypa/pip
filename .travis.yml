@@ -1,0 +1,22 @@
+language: python
+python:
+  - 2.5
+  - 2.6
+  - 2.7
+  - 3.1
+  - 3.2
+  - pypy
+before_install:
+    - sudo apt-get install subversion bzr mercurial
+    - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
+install: pip install nose virtualenv scripttest mock
+script: nosetests
+notifications:
+  irc: "irc.freenode.org#pip"
+branches:
+  only:
+    - develop
+matrix:
+  allow_failures:
+env:
+  - PIP_USE_MIRRORS=true

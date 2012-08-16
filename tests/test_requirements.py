@@ -1,7 +1,9 @@
 import os.path
 import textwrap
+from nose.tools import assert_equal, assert_raises
+from mock import patch
 from pip.backwardcompat import urllib
-from pip.req import Requirements
+from pip.req import Requirements, parse_editable
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -25,6 +27,18 @@ def test_requirements_file():
     assert result.files_created[env.site_packages/other_lib_name].dir
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[env.site_packages/fn].dir
+
+
+def test_schema_check_in_requirements_file():
+    """
+    Test installing from a requirements file with an invalid vcs schema..
+
+    """
+    env = reset_env()
+    write_file('file-egg-req.txt', textwrap.dedent("""\
+        git://github.com/alex/django-fixture-generator.git#egg=fixture_generator
+        """))
+    assert_raises(AssertionError, run_pip, 'install', '-vvv', '-r', env.scratch_path / 'file-egg-req.txt')
 
 
 def test_relative_requirements_file():
@@ -106,3 +120,64 @@ def test_requirements_data_structure_implements__contains__():
 
     assert 'pip' in requirements
     assert 'nose' not in requirements
+
+@patch('os.path.normcase')
+@patch('pip.req.os.getcwd')
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    # mocks needed to support path operations on windows tests
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    assert_equal(
+        parse_editable('.', 'git'),
+        (None, 'file:///some/path', None)
+    )
+    normcase_mock.return_value = "/some/path/foo"
+    assert_equal(
+        parse_editable('foo', 'git'),
+        (None, 'file:///some/path/foo', None)
+    )
+
+def test_parse_editable_default_vcs():
+    assert_equal(
+        parse_editable('https://foo#egg=foo', 'git'),
+        ('foo', 'git+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_explicit_vcs():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo', 'git'),
+        ('foo', 'svn+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_vcs_extras():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
+        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
+    )
+
+@patch('os.path.normcase')
+@patch('pip.req.os.getcwd')
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    assert_equal(
+        parse_editable('.[extras]', 'git'),
+        (None, 'file://' + "/some/path", ('extras',))
+    )
+    normcase_mock.return_value = "/some/path/foo"
+    assert_equal(
+        parse_editable('foo[bar,baz]', 'git'),
+        (None, 'file:///some/path/foo', ('bar', 'baz'))
+    )
+
+def test_install_local_editable_with_extras():
+    env = reset_env()
+    to_install = os.path.abspath(os.path.join(here, 'packages', 'LocalExtras'))
+    res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
+    assert env.site_packages/'easy-install.pth' in res.files_updated
+    assert env.site_packages/'LocalExtras.egg-link' in res.files_created
+    assert env.site_packages/'fspkg' in res.files_created

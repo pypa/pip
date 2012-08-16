@@ -10,6 +10,63 @@ Next release (1.2) schedule
 
 Beta and final releases planned for the second half of 2012.
 
+develop (unreleased)
+-------------------
+
+* Fixed issue #605 - pypi mirror support broken on some DNS responses. Thanks
+  philwhin.
+
+* Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
+  pjdelport.
+
+* Fixed issues #493, #494, #440, and #573 related to improving support for the
+  user installation scheme. Thanks Marcus Smith.
+
+* Write failure log to temp file if default location is not writable. Thanks
+  andreigc.
+
+* Pull in submodules for git editable checkouts. Fixes #289 and #421. Thanks
+  Hsiaoming Yang and Markus Hametner.
+
+* Use a temporary directory as the default build location outside of a
+  virtualenv. Fixes issues #339 and #381. Thanks TC01.
+
+* Added support for specifying extras with local editables. Thanks Nick
+  Stenning.
+
+* Added ``--egg`` flag to request egg-style rather than flat installation. Refs
+  issue #3. Thanks Kamal Bin Mustafa.
+
+* Fixed issue #510 - prevent e.g. ``gmpy2-2.0.tar.gz`` from matching a request
+  to ``pip install gmpy``; sdist filename must begin with full project name
+  followed by a dash. Thanks casevh for the report.
+
+* Fixed issue #504 - allow package URLS to have querystrings. Thanks W.
+  Trevor King.
+
+* Dropped support for Python 2.4. The minimum supported Python version is
+  now Python 2.5.
+
+* Fixed issue #58 - pip freeze now falls back to non-editable format rather
+  than blowing up if it can't determine the origin repository of an editable.
+  Thanks Rory McCann.
+
+* Added a `__main__.py` file to enable `python -m pip` on Python versions
+  that support it. Thanks Alexey Luchko.
+
+* Fixed issue #487 - upgrade from VCS url of project that does exist on
+  index. Thanks Andrew Knapp for the report.
+
+* Fixed issue #486 - fix upgrade from VCS url of project with no distribution
+  on index.  Thanks Andrew Knapp for the report.
+
+* Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
+  Thomas Fenzl.
+
+* Added support for using any of the built in guaranteed algorithms in ``hashlib``
+  as a checksum hash.
+
+
 1.1 (2012-02-16)
 ----------------
 
@@ -55,9 +112,11 @@ Beta and final releases planned for the second half of 2012.
 * Fixed issue #49 - pip install -U no longer reinstalls the same versions of
   packages. Thanks iguananaut for the pull request.
 
-* Removed ``-E`` option and ``PIP_RESPECT_VIRTUALENV``; both use a
-  restart-in-venv mechanism that's broken, and neither one is useful since
-  every virtualenv now has pip inside it.
+* Removed ``-E``/``--environment`` option and ``PIP_RESPECT_VIRTUALENV``;
+  both use a restart-in-venv mechanism that's broken, and neither one is
+  useful since every virtualenv now has pip inside it.  Replace ``pip -E
+  path/to/venv install Foo`` with ``virtualenv path/to/venv &&
+  path/to/venv/pip install Foo``.
 
 * Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
 

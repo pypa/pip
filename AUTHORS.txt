@@ -6,9 +6,11 @@ Armin Ronacher
 Brian Rosner
 Carl Meyer
 Christian Oudard
+Clay McClure
 Cody Soyland
 Daniel Holth
 Dave Abrahams
+Donald Stufft
 Francesco
 Hugo Lopes Tavares
 Ian Bicking
@@ -20,6 +22,7 @@ Jay Graves
 John-Scott Atlakson
 Jon Parise
 Josh Bronson
+Kamal Bin Mustafa
 Kelsey Hightower
 Kenneth Belitzky
 Kumar McMillan
@@ -27,7 +30,9 @@ Luke Macken
 Masklinn
 Marc Abramowitz
 Marcus Smith
+Markus Hametner
 Matt Maker
+Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
 Olivier Girardot
@@ -36,13 +41,18 @@ Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Peter Waller
+Phil Whelan
 Piet Delport
 Qiangning Hong
 Rene Dudfield
 Ronny Pfannschmidt
+Rory McCann
 Simon Cross
 Stavros Korokithakis
+Thomas Fenzl
 Thomas Johansson
 Vinay Sajip
 Vitaly Babiy
+W Trevor King
 Wil Tan
+Hsiaoming Yang
