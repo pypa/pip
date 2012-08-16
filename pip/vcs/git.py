@@ -7,7 +7,7 @@ from pip.util import call_subprocess, setup_project_name
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
-from pip.backwardcompat import url2pathname, urlparse
+from pip.backwardcompat import url2pathname, urlparse, b, u
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
 
@@ -48,10 +48,10 @@ class Git(VersionControl):
         proc.wait()
         stderr = proc.stderr.read()
         stdout = proc.stdout.read()
-        if status_error in stderr:
+        if b(status_error) in stderr:
             return False
         root_path = stdout.strip()
-        setup_py = os.path.join(root_path, 'setup.py')
+        setup_py = os.path.join(u(root_path), 'setup.py')
         if not os.path.isfile(setup_py):
             return False
         if setup_project_name(setup_py) != dist.project_name:

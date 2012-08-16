@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 import subprocess
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site, u
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
@@ -612,11 +612,15 @@ def call_subprocess(cmd, show_stdout=True,
 
 def setup_project_name(setup_py):
     try:
+        old_cwd = os.getcwd()
+        os.chdir(os.path.abspath(os.path.dirname(setup_py)))
         cmd = [sys.executable, setup_py, '--name']
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.chdir(old_cwd)
     except Exception:
         e = sys.exc_info()[1]
         logger.warn(
             "Error %s while executing command %s" % (e, ' '.join(cmd)))
     proc.wait()
-    return pkg_resources.safe_name(proc.stdout.read().strip())
+    name = proc.stdout.read().strip()
+    return pkg_resources.safe_name(u(name))
