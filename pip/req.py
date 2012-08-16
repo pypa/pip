@@ -469,15 +469,25 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif develop_egg_link:
-            # develop egg
+            # read contents of egg link file
             fh = open(develop_egg_link, 'r')
-            link_pointer = os.path.normcase(fh.readline().strip())
+            path_in_egg_link = os.path.normcase(fh.readline().strip())
             fh.close()
+
+            develop_egg_link_dirname = os.path.dirname(develop_egg_link)
+            link_pointer = path_in_egg_link
+            if not link_pointer.startswith('/'):
+                # properly handle relative egg link paths
+                link_pointer = os.path.abspath(
+                    os.path.join(develop_egg_link_dirname, link_pointer)
+                )
             assert (link_pointer == dist.location), 'Egg-link %s does not match installed location of %s (at %s)' % (link_pointer, self.name, dist.location)
             paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+            easy_install_pth = os.path.join(develop_egg_link_dirname,
                                             'easy-install.pth')
-            paths_to_remove.add_pth(easy_install_pth, dist.location)
+            # If the egg link was relative, it will be relative in the
+            # easy_install file as well.
+            paths_to_remove.add_pth(easy_install_pth, path_in_egg_link)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
