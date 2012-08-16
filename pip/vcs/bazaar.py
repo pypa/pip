@@ -1,9 +1,11 @@
 import os
+import subprocess
 import tempfile
 import re
+import sys
 from pip.backwardcompat import urlparse
 from pip.log import logger
-from pip.util import rmtree, display_path, call_subprocess
+from pip.util import rmtree, display_path, call_subprocess, setup_project_name
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url2
 
@@ -24,6 +26,29 @@ class Bazaar(VersionControl):
         if getattr(urlparse, 'uses_fragment', None):
             urlparse.uses_fragment.extend(['lp'])
             urlparse.non_hierarchical.extend(['lp'])
+
+    def check_repository(self, dist):
+        status_error = 'bzr: ERROR: Not a branch:'
+        try:
+            cmd = [self.cmd, 'root']
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=dist.location)
+        except Exception:
+            e = sys.exc_info()[1]
+            logger.warn(
+                "Error %s while executing command %s" % (e, ' '.join(cmd)))
+        proc.wait()
+        stderr = proc.stderr.read()
+        stdout = proc.stdout.read()
+        if status_error in stderr:
+            return False
+        root_path = stdout.strip()
+        setup_py = os.path.join(root_path, 'setup.py')
+        if not os.path.isfile(setup_py):
+                return False
+        if setup_project_name(setup_py) != dist.project_name:
+            return False
+        return True
+
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None

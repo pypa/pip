@@ -609,3 +609,14 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+def setup_project_name(setup_py):
+    try:
+        cmd = [sys.executable, setup_py, '--name']
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception:
+        e = sys.exc_info()[1]
+        logger.warn(
+            "Error %s while executing command %s" % (e, ' '.join(cmd)))
+    proc.wait()
+    return pkg_resources.safe_name(proc.stdout.read().strip())

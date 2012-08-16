@@ -1,7 +1,9 @@
 import tempfile
 import re
 import os.path
-from pip.util import call_subprocess
+import sys
+import subprocess
+from pip.util import call_subprocess, setup_project_name
 from pip.util import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
@@ -33,6 +35,28 @@ class Git(VersionControl):
                 url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
 
         super(Git, self).__init__(url, *args, **kwargs)
+
+    def check_repository(self, dist):
+        status_error = 'fatal: Not a git repository (or any of the parent directories): .git'
+        try:
+            cmd = [self.cmd, 'rev-parse', '--show-toplevel']
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=dist.location)
+        except Exception:
+            e = sys.exc_info()[1]
+            logger.warn(
+                "Error %s while executing command %s" % (e, ' '.join(cmd)))
+        proc.wait()
+        stderr = proc.stderr.read()
+        stdout = proc.stdout.read()
+        if status_error in stderr:
+            return False
+        root_path = stdout.strip()
+        setup_py = os.path.join(root_path, 'setup.py')
+        if not os.path.isfile(setup_py):
+            return False
+        if setup_project_name(setup_py) != dist.project_name:
+            return False
+        return True
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None

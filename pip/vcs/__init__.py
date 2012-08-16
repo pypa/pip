@@ -60,12 +60,11 @@ class VcsSupport(object):
     def get_backend_name(self, dist):
         """
         Return the name of the version control backend if found at given
-        location, e.g. vcs.get_backend_name(dist)
+        pkg_resources.distribution, e.g. vcs.get_backend_name(dist)
         """
         for vc_type in self._registry.values():
-            location = os.path.join(dist.location.split(dist.key)[0], dist.key)
-            path = os.path.join(location, vc_type.dirname)
-            if os.path.exists(path):
+            vc = vc_type()
+            if vc.check_repository(dist):
                 return vc_type.name
         return None
 
@@ -112,6 +111,9 @@ class VersionControl(object):
         logger.info('Found command %r at %r' % (self.name, command))
         self._cmd = command
         return command
+
+    def check_repository(self, dist):
+        raise NotImplementedError
 
     def get_url_rev(self):
         """
