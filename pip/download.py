@@ -429,6 +429,13 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
                                    urllib.quote(target_url, ''))
         if not os.path.isdir(download_cache):
             create_download_cache_folder(download_cache)
+
+    already_downloaded = None
+    if download_dir:
+        already_downloaded = os.path.join(download_dir, link.filename)
+        if not os.path.exists(already_downloaded):
+            already_downloaded = None
+
     if (target_file
         and os.path.exists(target_file)
         and os.path.exists(target_file + '.content-type')):
@@ -439,6 +446,12 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
             download_hash = _get_hash_from_file(target_file, link)
         temp_location = target_file
         logger.notify('Using download cache from %s' % target_file)
+    elif already_downloaded:
+        temp_location = already_downloaded
+        content_type = mimetypes.guess_type(already_downloaded)
+        if link.md5_hash:
+            download_hash = _get_md5_from_file(target_file, link)
+        logger.notify('File was already downloaded %s' % already_downloaded)
     else:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info()['content-type']
@@ -463,12 +476,12 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         download_hash = _download_url(resp, link, temp_location)
     if link.hash and link.hash_name:
         _check_hash(download_hash, link)
-    if download_dir:
+    if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
     if target_file and target_file != temp_location:
         cache_download(target_file, temp_location, content_type)
-    if target_file is None:
+    if target_file is None and not already_downloaded:
         os.unlink(temp_location)
     os.rmdir(temp_dir)
 
