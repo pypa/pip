@@ -449,7 +449,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     elif already_downloaded:
         temp_location = already_downloaded
         content_type = mimetypes.guess_type(already_downloaded)
-        if link.md5_hash:
+        if link.hash:
             download_hash = _get_md5_from_file(target_file, link)
         logger.notify('File was already downloaded %s' % already_downloaded)
     else:
