@@ -285,10 +285,10 @@ parser.add_option(
     choices=['s', 'i', 'w', 'b'],
     default=[],
     action='append',
-    help="Default action when a path already exists."
-         "Use this option more then one time to specify "
+    help="Default action when a path already exists. "
+         "Use this option more than one time to specify "
          "another action if a certain option is not "
-         "available, choices: "
+         "available. Choices: "
          "(s)witch, (i)gnore, (w)ipe, (b)ackup")
 
 parser.disable_interspersed_args()
