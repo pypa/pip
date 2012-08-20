@@ -117,10 +117,10 @@ class VersionControl(object):
         Returns the correct repository URL and revision by parsing the given
         repository URL
         """
-        error_message= (
-           "Sorry, '%s' is a malformed VCS url. "
-           "Ihe format is <vcs>+<protocol>://<url>, "
-           "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
+        error_message = (
+            "Sorry, '%s' is a malformed VCS url. "
+            "Ihe format is <vcs>+<protocol>://<url>, "
+            "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
@@ -134,7 +134,8 @@ class VersionControl(object):
         """
         Returns (url, revision), where both are strings
         """
-        assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
+        assert not location.rstrip(
+            '/').endswith(self.dirname), 'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
     def normalize_url(self, url):

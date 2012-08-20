@@ -13,7 +13,8 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     bundle_file = 'bzr-branch.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp', 'bzr+lp')
+    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp',
+               'bzr+ftp', 'bzr+lp')
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
 

@@ -147,12 +147,12 @@ def normalize_name(name):
 
 
 def format_size(bytes):
-    if bytes > 1000*1000:
-        return '%.1fMB' % (bytes/1000.0/1000)
-    elif bytes > 10*1000:
-        return '%ikB' % (bytes/1000)
+    if bytes > 1000 * 1000:
+        return '%.1fMB' % (bytes / 1000.0 / 1000)
+    elif bytes > 10 * 1000:
+        return '%ikB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes/1000.0)
+        return '%.1fkB' % (bytes / 1000.0)
     else:
         return '%ibytes' % bytes
 
@@ -232,7 +232,7 @@ def make_path_relative(path, rel_to):
     while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
         path_parts.pop(0)
         rel_to_parts.pop(0)
-    full_parts = ['..']*len(rel_to_parts) + path_parts + [path_filename]
+    full_parts = ['..'] * len(rel_to_parts) + path_parts + [path_filename]
     if full_parts == ['']:
         return '.' + os.path.sep
     return os.path.sep.join(full_parts)
@@ -300,15 +300,18 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site.
     """
     if user_site:
-        return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+        return normalize_path(dist_location(dist)).startswith(
+            normalize_path(user_site))
     else:
         return False
+
 
 def dist_in_site_packages(dist):
     """
     Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
     """
-    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
+    return normalize_path(dist_location(dist)).startswith(
+        normalize_path(site_packages))
 
 
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
@@ -327,7 +330,8 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+    return [d for d in pkg_resources.working_set
+            if local_test(d) and d.key not in skip]
 
 
 def egg_link_path(dist):
@@ -346,7 +350,7 @@ def egg_link_path(dist):
     This method will just return the first one found.
     """
 
-    sites=[]
+    sites = []
     if running_under_virtualenv():
         if virtualenv_no_global():
             sites.append(site_packages)
@@ -388,7 +392,7 @@ def get_terminal_size():
             import termios
             import struct
             cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
-        '1234'))
+                                                 '1234'))
         except:
             return None
         if cr == (0, 0):
@@ -513,9 +517,10 @@ def create_download_cache_folder(folder):
 
 
 def cache_download(target_file, temp_location, content_type):
-    logger.notify('Storing download in cache at %s' % display_path(target_file))
+    logger.notify(
+        'Storing download in cache at %s' % display_path(target_file))
     shutil.copyfile(temp_location, target_file)
-    fp = open(target_file+'.content-type', 'w')
+    fp = open(target_file + '.content-type', 'w')
     fp.write(content_type)
     fp.close()
     os.unlink(temp_location)
@@ -525,8 +530,9 @@ def unpack_file(filename, location, content_type, link):
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
-        or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+            or zipfile.is_zipfile(filename)):
+        unzip_file(
+            filename, location, flatten=not filename.endswith('.pybundle'))
     elif (content_type == 'application/x-gzip'
           or tarfile.is_tarfile(filename)
           or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
@@ -541,7 +547,8 @@ def unpack_file(filename, location, content_type, link):
         ## FIXME: magic signatures?
         logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
                      % (filename, location, content_type))
-        raise InstallationError('Cannot determine archive format of %s' % location)
+        raise InstallationError(
+            'Cannot determine archive format of %s' % location)
 
 
 def call_subprocess(cmd, show_stdout=True,
@@ -598,8 +605,10 @@ def call_subprocess(cmd, show_stdout=True,
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
-                logger.notify('Complete output from command %s:' % command_desc)
-                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+                logger.notify(
+                    'Complete output from command %s:' % command_desc)
+                logger.notify('\n'.join(all_output) +
+                              '\n----------------------------------------')
             raise InstallationError(
                 "Command %s failed with error code %s in %s"
                 % (command_desc, proc.returncode, cwd))

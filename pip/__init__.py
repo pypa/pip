@@ -26,7 +26,7 @@ def autocomplete():
     cwords = os.environ['COMP_WORDS'].split()[1:]
     cword = int(os.environ['COMP_CWORD'])
     try:
-        current = cwords[cword-1]
+        current = cwords[cword - 1]
     except IndexError:
         current = ''
     load_all_commands()
@@ -59,7 +59,7 @@ def autocomplete():
                     for opt in subcommand.parser.option_list
                     if opt.help != optparse.SUPPRESS_HELP]
         # filter out previously specified options from available options
-        prev_opts = [x.split('=')[0] for x in cwords[1:cword-1]]
+        prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
         options = [(x, v) for (x, v) in options if x not in prev_opts]
         # filter options by current input
         options = [(k, v) for k, v in options if k.startswith(current)]
@@ -141,8 +141,10 @@ class FrozenRequirement(object):
                 logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)
                 req = None
             if req is None:
-                logger.warn('Could not determine repository location of %s' % location)
-                comments.append('## !! Could not determine repository location')
+                logger.warn('Could not determine repository location of %s' %
+                            location)
+                comments.append(
+                    '## !! Could not determine repository location')
                 req = dist.as_requirement()
                 editable = False
         else:
@@ -157,7 +159,7 @@ class FrozenRequirement(object):
                 svn_backend = vcs.get_backend('svn')
                 if svn_backend:
                     svn_location = svn_backend(
-                        ).get_location(dist, dependency_links)
+                    ).get_location(dist, dependency_links)
                 if not svn_location:
                     logger.warn(
                         'Warning: cannot find svn location for %s' % req)
@@ -169,7 +171,8 @@ class FrozenRequirement(object):
                     else:
                         rev = '{%s}' % date_match.group(1)
                     editable = True
-                    req = '%s@%s#egg=%s' % (svn_location, rev, cls.egg_name(dist))
+                    req = '%s@%s#egg=%s' % (
+                        svn_location, rev, cls.egg_name(dist))
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod
@@ -184,7 +187,7 @@ class FrozenRequirement(object):
         req = self.req
         if self.editable:
             req = '-e %s' % req
-        return '\n'.join(list(self.comments)+[str(req)])+'\n'
+        return '\n'.join(list(self.comments) + [str(req)]) + '\n'
 
 
 if __name__ == '__main__':

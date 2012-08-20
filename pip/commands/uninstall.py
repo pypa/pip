@@ -37,7 +37,7 @@ class UninstallCommand(Command):
                 requirement_set.add_requirement(req)
         if not requirement_set.has_requirements:
             raise InstallationError('You must give at least one requirement '
-                'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
+                                    'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
         requirement_set.uninstall(auto_confirm=options.yes)
 
 UninstallCommand()

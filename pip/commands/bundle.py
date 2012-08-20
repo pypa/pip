@@ -19,9 +19,9 @@ class BundleCommand(InstallCommand):
         src_opt = self.parser.get_option("--src")
         src_opt.default = backup_dir(src_prefix, '-bundle')
         self.parser.set_defaults(**{
-                src_opt.dest: src_opt.default,
-                build_opt.dest: build_opt.default,
-                })
+                                 src_opt.dest: src_opt.default,
+                                 build_opt.dest: build_opt.default,
+                                 })
 
     def run(self, options, args):
         if not args:

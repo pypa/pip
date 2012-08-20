@@ -33,7 +33,7 @@ def get_file_content(url, comes_from=None):
     if match:
         scheme = match.group(1).lower()
         if (scheme == 'file' and comes_from
-            and comes_from.startswith('http')):
+                and comes_from.startswith('http')):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
@@ -56,7 +56,8 @@ def get_file_content(url, comes_from=None):
         content = f.read()
     except IOError:
         e = sys.exc_info()[1]
-        raise InstallationError('Could not open requirements file: %s' % str(e))
+        raise InstallationError(
+            'Could not open requirements file: %s' % str(e))
     else:
         f.close()
     return url, content
@@ -110,7 +111,8 @@ class URLOpener(object):
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
         req = self.get_request(url)
 
-        stored_username, stored_password = self.passman.find_user_password(None, netloc)
+        stored_username, stored_password = self.passman.find_user_password(
+            None, netloc)
         # see if we have a password stored
         if stored_username is None:
             if username is None and self.prompting:
@@ -118,7 +120,8 @@ class URLOpener(object):
                 password = urllib.quote(getpass.getpass('Password: '))
             if username and password:
                 self.passman.add_password(None, netloc, username, password)
-            stored_username, stored_password = self.passman.find_user_password(None, netloc)
+            stored_username, stored_password = self.passman.find_user_password(
+                None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
         opener = urllib2.build_opener(authhandler)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
@@ -133,8 +136,10 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
-            opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
+            proxy_support = urllib2.ProxyHandler(
+                {"http": proxy, "ftp": proxy, "https": proxy})
+            opener = urllib2.build_opener(
+                proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
 
     def parse_credentials(self, netloc):
@@ -325,19 +330,21 @@ def is_file_url(link):
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
         logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.digest_size, link, link.hash_name))
+                     % (download_hash.digest_size, link, link.hash_name))
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
                      % (link, download_hash, link.hash))
-        raise InstallationError('Bad %s hash for package %s' % (link.hash_name, link))
+        raise InstallationError(
+            'Bad %s hash for package %s' % (link.hash_name, link))
 
 
 def _get_hash_from_file(target_file, link):
     try:
         download_hash = hashlib.new(link.hash_name)
     except (ValueError, TypeError):
-        logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+        logger.warn("Unsupported hash name %s for package %s" % (
+            link.hash_name, link))
         return None
 
     fp = open(target_file, 'rb')
@@ -357,21 +364,24 @@ def _download_url(resp, link, temp_location):
         try:
             download_hash = hashlib.new(link.hash_name)
         except ValueError:
-            logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+            logger.warn("Unsupported hash name %s for package %s" %
+                        (link.hash_name, link))
     try:
         total_length = int(resp.info()['content-length'])
     except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
-    show_progress = total_length > 40*1000 or not total_length
+    show_progress = total_length > 40 * 1000 or not total_length
     show_url = link.show_url
     try:
         if show_progress:
             ## FIXME: the URL can get really long in this message:
             if total_length:
-                logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
+                logger.start_progress('Downloading %s (%s): ' %
+                                      (show_url, format_size(total_length)))
             else:
-                logger.start_progress('Downloading %s (unknown size): ' % show_url)
+                logger.start_progress(
+                    'Downloading %s (unknown size): ' % show_url)
         else:
             logger.notify('Downloading %s' % show_url)
         logger.debug('Downloading from URL %s' % link)
@@ -385,7 +395,7 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
@@ -431,8 +441,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
             create_download_cache_folder(download_cache)
     if (target_file
         and os.path.exists(target_file)
-        and os.path.exists(target_file + '.content-type')):
-        fp = open(target_file+'.content-type')
+            and os.path.exists(target_file + '.content-type')):
+        fp = open(target_file + '.content-type')
         content_type = fp.read().strip()
         fp.close()
         if link.hash and link.hash_name:

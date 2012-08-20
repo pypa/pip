@@ -66,7 +66,7 @@ class ZipCommand(Command):
             for match in self.select_paths:
                 match = os.path.normcase(os.path.abspath(match))
                 if '*' in match:
-                    if re.search(fnmatch.translate(match+'*'), path):
+                    if re.search(fnmatch.translate(match + '*'), path):
                         result.append(path)
                         match_any.add(match)
                         break
@@ -110,7 +110,8 @@ class ZipCommand(Command):
             if options.unzip:
                 last_status = self.unzip_package(module_name, filename)
             else:
-                last_status = self.zip_package(module_name, filename, options.no_pyc)
+                last_status = self.zip_package(
+                    module_name, filename, options.no_pyc)
         return last_status
 
     def unzip_package(self, module_name, filename):
@@ -125,9 +126,11 @@ class ZipCommand(Command):
                 'Unpacking %s into %s, but %s is not on sys.path'
                 % (display_path(zip_filename), display_path(package_path),
                    display_path(package_path)))
-        logger.notify('Unzipping %s (in %s)' % (module_name, display_path(zip_filename)))
+        logger.notify('Unzipping %s (in %s)' % (module_name,
+                      display_path(zip_filename)))
         if self.simulate:
-            logger.notify('Skipping remaining operations because of --simulate')
+            logger.notify(
+                'Skipping remaining operations because of --simulate')
             return
         logger.indent += 2
         try:
@@ -151,11 +154,13 @@ class ZipCommand(Command):
                     to_save.append((name, zip.read(name)))
             zip.close()
             if not to_save:
-                logger.info('Removing now-empty zip file %s' % display_path(zip_filename))
+                logger.info('Removing now-empty zip file %s' %
+                            display_path(zip_filename))
                 os.unlink(zip_filename)
                 self.remove_filename_from_pth(zip_filename)
             else:
-                logger.info('Removing entries in %s/ from zip file %s' % (module_name, display_path(zip_filename)))
+                logger.info('Removing entries in %s/ from zip file %s' %
+                            (module_name, display_path(zip_filename)))
                 zip = zipfile.ZipFile(zip_filename, 'w')
                 for name, content in to_save:
                     zip.writestr(name, content)
@@ -175,11 +180,13 @@ class ZipCommand(Command):
             ## FIXME: I think this needs to be undoable:
             if filename == dest_filename:
                 filename = backup_dir(orig_filename)
-                logger.notify('Moving %s aside to %s' % (orig_filename, filename))
+                logger.notify(
+                    'Moving %s aside to %s' % (orig_filename, filename))
                 if not self.simulate:
                     shutil.move(orig_filename, filename)
             try:
-                logger.info('Creating zip file in %s' % display_path(dest_filename))
+                logger.info(
+                    'Creating zip file in %s' % display_path(dest_filename))
                 if not self.simulate:
                     zip = zipfile.ZipFile(dest_filename, 'w')
                     zip.writestr(module_name + '/', '')
@@ -190,13 +197,15 @@ class ZipCommand(Command):
                         for fns, is_dir in [(dirnames, True), (filenames, False)]:
                             for fn in fns:
                                 full = os.path.join(dirpath, fn)
-                                dest = os.path.join(module_name, dirpath[len(filename):].lstrip(os.path.sep), fn)
+                                dest = os.path.join(module_name, dirpath[len(
+                                    filename):].lstrip(os.path.sep), fn)
                                 if is_dir:
-                                    zip.writestr(dest+'/', '')
+                                    zip.writestr(dest + '/', '')
                                 else:
                                     zip.write(full, dest)
                     zip.close()
-                logger.info('Removing old directory %s' % display_path(filename))
+                logger.info(
+                    'Removing old directory %s' % display_path(filename))
                 if not self.simulate:
                     rmtree(filename)
             except:
@@ -218,7 +227,8 @@ class ZipCommand(Command):
                 logger.info('Removing reference to %s from .pth file %s'
                             % (display_path(filename), display_path(pth)))
                 if not [line for line in new_lines if line]:
-                    logger.info('%s file would be empty: deleting' % display_path(pth))
+                    logger.info('%s file would be empty: deleting' %
+                                display_path(pth))
                     if not self.simulate:
                         os.unlink(pth)
                 else:
@@ -227,13 +237,15 @@ class ZipCommand(Command):
                         f.writelines(new_lines)
                         f.close()
                 return
-        logger.warn('Cannot find a reference to %s in any .pth file' % display_path(filename))
+        logger.warn('Cannot find a reference to %s in any .pth file' %
+                    display_path(filename))
 
     def add_filename_to_pth(self, filename):
         path = os.path.dirname(filename)
         dest = filename + '.pth'
         if path not in self.paths():
-            logger.warn('Adding .pth file %s, but it is not on sys.path' % display_path(dest))
+            logger.warn('Adding .pth file %s, but it is not on sys.path' %
+                        display_path(dest))
         if not self.simulate:
             if os.path.exists(dest):
                 f = open(dest)
@@ -241,7 +253,7 @@ class ZipCommand(Command):
                 f.close()
                 if lines and not lines[-1].endswith('\n'):
                     lines[-1] += '\n'
-                lines.append(filename+'\n')
+                lines.append(filename + '\n')
             else:
                 lines = [filename + '\n']
             f = open(dest, 'wb')
@@ -288,7 +300,7 @@ class ZipCommand(Command):
                     logger.notify('Zipped egg: %s' % display_path(path))
                 continue
             if (basename != 'site-packages' and basename != 'dist-packages'
-                and not path.replace('\\', '/').endswith('lib/python')):
+                    and not path.replace('\\', '/').endswith('lib/python')):
                 continue
             logger.notify('In %s:' % display_path(path))
             logger.indent += 2
@@ -300,7 +312,8 @@ class ZipCommand(Command):
                     if ext in ('.pth', '.egg-info', '.egg-link'):
                         continue
                     if ext == '.py':
-                        logger.info('Not displaying %s: not a package' % display_path(filename))
+                        logger.info('Not displaying %s: not a package' %
+                                    display_path(filename))
                         continue
                     full = os.path.join(path, filename)
                     if os.path.isdir(full):
@@ -308,7 +321,8 @@ class ZipCommand(Command):
                     elif zipfile.is_zipfile(full):
                         zipped.append(filename)
                     else:
-                        logger.info('Unknown file: %s' % display_path(filename))
+                        logger.info(
+                            'Unknown file: %s' % display_path(filename))
                 if zipped:
                     logger.notify('Zipped packages:')
                     logger.indent += 2
