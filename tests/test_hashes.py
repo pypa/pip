@@ -13,7 +13,7 @@ def test_get_hash_from_file_md5():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "md5"
+    assert download_hash.digest_size == 16
     assert download_hash.hexdigest() == "d41d8cd98f00b204e9800998ecf8427e"
 
 
@@ -23,7 +23,7 @@ def test_get_hash_from_file_sha1():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "sha1"
+    assert download_hash.digest_size == 20
     assert download_hash.hexdigest() == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
@@ -33,7 +33,7 @@ def test_get_hash_from_file_sha224():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "sha224"
+    assert download_hash.digest_size == 28
     assert download_hash.hexdigest() == "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f"
 
 
@@ -43,7 +43,7 @@ def test_get_hash_from_file_sha384():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "sha384"
+    assert download_hash.digest_size == 48
     assert download_hash.hexdigest() == "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b"
 
 
@@ -53,7 +53,7 @@ def test_get_hash_from_file_sha256():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "sha256"
+    assert download_hash.digest_size == 32
     assert download_hash.hexdigest() == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 
@@ -63,7 +63,7 @@ def test_get_hash_from_file_sha512():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert download_hash.name == "sha512"
+    assert download_hash.digest_size == 64
     assert download_hash.hexdigest() == "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
 
 

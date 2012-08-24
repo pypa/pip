@@ -35,6 +35,10 @@ class Tests_UserSite:
         # --user only works on 2.6 or higher
         if sys.version_info < (2, 6):
             raise SkipTest()
+        # --user option is broken in pypy
+        if hasattr(sys, "pypy_version_info"):
+            raise SkipTest()
+
 
     def test_reset_env_system_site_packages_usersite(self):
         """
@@ -66,9 +70,6 @@ class Tests_UserSite:
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
-        # FIXME distutils --user option seems to be broken in pypy
-        if hasattr(sys, "pypy_version_info"):
-            raise SkipTest()
         env = reset_env(use_distribute=True, system_site_packages=True)
         result = run_pip('install', '--user', '-e',
                          '%s#egg=initools-dev' %
@@ -80,9 +81,6 @@ class Tests_UserSite:
         """
         Test installing current directory ('.') into usersite
         """
-        # FIXME distutils --user option seems to be broken in pypy
-        if hasattr(sys, "pypy_version_info"):
-            raise SkipTest()
         env = reset_env(use_distribute=True, system_site_packages=True)
         run_from = abspath(join(here, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
