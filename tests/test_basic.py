@@ -327,6 +327,20 @@ def test_install_as_egg():
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
+def test_install_from_wheel():
+    """
+    Test installing from a wheel file.
+    """
+    env = reset_env(use_distribute=True)
+    find_links = 'file://'+abspath(join(here, 'packages'))
+    # wheel (and all .dist-info style distributions) require distribute>=0.6.28
+    run_pip('install', 'distribute>=0.6.28', 'markerlib', expect_error=False)
+    # winds up empty...
+    result = run_pip('install', 'simple.dist', '--no-index', '--find-links='+find_links, expect_error=False)
+    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, str(result)
+
+
 def test_install_curdir():
     """
     Test installing current directory ('.').
