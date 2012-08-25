@@ -864,7 +864,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     writer.writerow(row)
         shutil.move(temp_record, record)
         
-        logger.debug(installed)
+        logger.debug("%r\n%r", installed, sysconfig.get_paths())
                     
     @property
     def delete_marker_filename(self):
