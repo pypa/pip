@@ -9,6 +9,7 @@ from pip.locations import build_prefix, src_prefix, virtualenv_no_global
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
+from pip.backwardcompat import home_lib
 
 
 class InstallCommand(Command):
@@ -276,7 +277,7 @@ class InstallCommand(Command):
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
-            lib_dir = os.path.join(temp_target_dir, "lib/python/")
+            lib_dir = home_lib(temp_target_dir)
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),

@@ -323,14 +323,14 @@ def is_file_url(link):
 
 
 def _check_hash(download_hash, link):
-    if download_hash.name != link.hash_name:
-        logger.fatal("Hash name of the package %s (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.name, link, link.hash_name))
+    if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
+        logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
+                    % (download_hash.digest_size, link, link.hash_name))
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
-        logger.fatal("%s hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (download_hash.name, link, download_hash, link.hash))
-        raise InstallationError('Bad %s hash for package %s' % (download_hash.name, link))
+        logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
+                     % (link, download_hash, link.hash))
+        raise InstallationError('Bad %s hash for package %s' % (link.hash_name, link))
 
 
 def _get_hash_from_file(target_file, link):
