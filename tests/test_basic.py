@@ -340,7 +340,7 @@ def test_install_from_wheel():
     # winds up empty...
     result = run_pip('install', 'simple.dist', '--no-index', '--find-links='+find_links, expect_error=False)
     # Could be dist-packages on Debian
-    dist_info_folder = Path(get_path('purelib'))/'simple.dist-0.1.dist-info'
+    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
