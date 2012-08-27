@@ -801,10 +801,14 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         source = wheeldir.rstrip(os.path.sep) + os.path.sep
         location = dest = get_path('platlib')
         installed = {}
+        
+        def normpath(src, p):
+            return os.path.relpath(src, p).replace(os.path.sep, '/')
+        
         def record_installed(srcfile, destfile):
             """Map archive RECORD paths to installation RECORD paths."""
-            oldpath = os.path.relpath(srcfile, wheeldir).replace(os.path.sep, '/')
-            newpath = os.path.relpath(destfile, location).replace(os.path.sep, '/')
+            oldpath = normpath(srcfile, wheeldir)
+            newpath = normpath(destfile, location)
             installed[oldpath] = newpath
                                     
         def clobber(source, dest, is_base):
