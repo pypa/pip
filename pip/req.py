@@ -792,7 +792,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         import csv
         try:
             import sysconfig
-        except:
+        except: # pragma nocover
             from distutils import sysconfig
             
         try:
