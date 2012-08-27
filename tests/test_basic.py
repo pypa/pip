@@ -331,6 +331,8 @@ def test_install_from_wheel():
     """
     Test installing from a wheel file.
     """
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     env = reset_env(use_distribute=True)
     find_links = 'file://'+abspath(join(here, 'packages'))
     # wheel (and all .dist-info style distributions) require distribute>=0.6.28
