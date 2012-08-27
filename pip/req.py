@@ -1,5 +1,6 @@
 from email.parser import FeedParser
 import os
+import imp
 import pkg_resources
 import re
 import sys
@@ -13,13 +14,13 @@ from pip.exceptions import (InstallationError, UninstallationError,
                             DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree, is_pypy
+from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
 from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
 from pip.util import make_path_relative
 from pip.util import call_subprocess
-from pip.backwardcompat import (urlparse, urllib,
+from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
 from pip.index import Link
@@ -448,6 +449,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
+            #FIXME: need a test for this elif block
+            #occurs with --single-version-externally-managed/--record outside of pip
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
                     namespaces = dist.get_metadata('namespace_packages.txt')
@@ -1435,13 +1438,9 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(path)
 
-        #workaround for pip issue #626 (debian pypy creates __pycache__ folders)
-        if is_pypy:
-            head, tail = os.path.split(path)
-            tail_root, tail_ext = os.path.splitext(tail)
-            if tail_ext == '.py':
-                pycache_path = os.path.join(head, '__pycache__', tail_root + '.pypy-%d%d.pyc' % sys.pypy_version_info[:2])
-                self.add(pycache_path)
+        # __pycache__ files can show up after 'installed-files.txt' is created, due to imports
+        if os.path.splitext(path)[1] == '.py' and uses_pycache:
+            self.add(imp.cache_from_source(path))
 
 
     def add_pth(self, pth_file, entry):

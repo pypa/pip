@@ -18,6 +18,8 @@ def test_simple_uninstall():
     env = reset_env()
     result = run_pip('install', 'INITools==0.2')
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import initools")
     result2 = run_pip('uninstall', 'INITools', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
@@ -33,6 +35,19 @@ def test_uninstall_with_scripts():
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
     result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
+    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+
+
+def test_uninstall_easy_install_after_import():
+    """
+    Uninstall an easy_installed package after it's been imported
+
+    """
+    env = reset_env()
+    result = env.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import initools")
+    result2 = run_pip('uninstall', 'INITools', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
 
@@ -66,6 +81,8 @@ def test_uninstall_overlapping_package():
     result2 = run_pip('install', child_pkg, expect_error=False)
     assert join(env.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
     assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result2.files_created, sorted(result2.files_created.keys())
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import parent.plugins.child_plugin, child")
     result3 = run_pip('uninstall', '-y', 'child', expect_error=False)
     assert join(env.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
     assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result3.files_deleted, sorted(result3.files_deleted.keys())
