@@ -107,3 +107,17 @@ def home_lib(home):
     else:
         lib = os.path.join('lib', 'python')
     return os.path.join(home, lib)
+
+try:
+    import sysconfig
+except: # pragma nocover
+    from distutils import sysconfig
+
+try:
+    get_path = sysconfig.get_path
+except AttributeError: # Python < 2.7
+    def get_path(path):
+        return {'purelib':site_packages,
+         'platlib':site_packages,
+         'scripts':bin_py,
+         'data':sys.prefix}[path]

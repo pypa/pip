@@ -790,19 +790,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         
     def move_wheel_files(self, wheeldir):
         import csv
-        try:
-            import sysconfig
-        except: # pragma nocover
-            from distutils import sysconfig
-            
-        try:
-            get_path = sysconfig.get_path
-        except AttributeError: # Python < 2.7
-            def get_path(path):
-                return {'purelib':site_packages,
-                 'platlib':site_packages,
-                 'scripts':bin_py,
-                 'data':sys.prefix}[path]
+        from pip.backwardcompat import get_path
 
         if get_path('purelib') != get_path('platlib'):
             # XXX check *.dist-info/WHEEL to deal with this obscurity
@@ -811,7 +799,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         info_dir = []
         data_dirs = []                
         source = wheeldir.rstrip(os.path.sep) + os.path.sep
-        location = dest = get_path('platlib')        
+        location = dest = get_path('platlib')
         installed = {}
         def record_installed(srcfile, destfile):
             """Map archive RECORD paths to installation RECORD paths."""
@@ -863,8 +851,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                     row[0] = installed.get(row[0], row[0])
                     writer.writerow(row)
         shutil.move(temp_record, record)
-        
-        logger.debug("%r\n%r", installed, sysconfig.get_paths())
                     
     @property
     def delete_marker_filename(self):
