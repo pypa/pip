@@ -848,8 +848,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 reader = csv.reader(record_in)
                 writer = csv.writer(record_out)
                 for row in reader:
-                    row[0] = installed.get(row[0], row[0])
+                    row[0] = installed.pop(row[0], row[0])
                     writer.writerow(row)
+                for f in installed:
+                    writer.writerow((installed[f], '', '')) 
         shutil.move(temp_record, record)
                     
     @property

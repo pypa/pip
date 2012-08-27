@@ -310,7 +310,6 @@ class PackageFinder(object):
                 return []
             if ext == '.whl':
                 wheel_info = self._wheel_info_re.match(link.filename)
-                # XXX _ to - rule? wheel can parse hyphenated names.
                 if wheel_info.group('name').lower() == search_name.lower():
                     version = wheel_info.group('ver')
                     nodot = sys.version[:3].replace('.', '')

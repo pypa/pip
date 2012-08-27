@@ -113,11 +113,19 @@ try:
 except: # pragma nocover
     from distutils import sysconfig
 
+import pip.locations
+get_path_locations = {'purelib':pip.locations.site_packages,
+                      'platlib':pip.locations.site_packages,
+                      'scripts':pip.locations.bin_py,
+                      'data':sys.prefix}
 try:
-    get_path = sysconfig.get_path
-except AttributeError: # Python < 2.7
+    sysconfig.get_path
     def get_path(path):
-        return {'purelib':site_packages,
-         'platlib':site_packages,
-         'scripts':bin_py,
-         'data':sys.prefix}[path]
+        try:
+            return get_path_locations[path]
+        except KeyError:
+            return sysconfig.get_path(path)
+except AttributeError: # Python < 2.7
+    from pip.locations import site_packages, bin_py
+    def get_path(path):
+        return get_path_locations[path]
