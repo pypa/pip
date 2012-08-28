@@ -336,7 +336,7 @@ def test_install_from_wheel():
     env = reset_env(use_distribute=True)
     find_links = 'file://'+abspath(join(here, 'packages'))
     # wheel (and all .dist-info style distributions) require distribute>=0.6.28
-    run_pip('install', 'distribute>=0.6.28', 'markerlib>=0.5.1', expect_error=False)
+    run_pip('install', 'distribute>=0.6.28', 'markerlib', expect_error=False)
     # winds up empty...
     result = run_pip('install', 'simple.dist', '--no-index', '--find-links='+find_links, expect_error=False)
     # Could be dist-packages on Debian
