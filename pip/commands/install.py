@@ -21,12 +21,6 @@ class InstallCommand(Command):
     def __init__(self):
         super(InstallCommand, self).__init__()
         self.parser.add_option(
-            '--only-wheels',
-            dest='only_wheels',
-            default=False,
-            action='store_true',
-            help='Do not install packages when using -w, --wheel-cache')
-        self.parser.add_option(
             '-w', '--wheel-cache',
             dest='wheel_cache',
             default=None,
@@ -202,6 +196,7 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        only_wheels = options.no_install and options.wheel_cache
         if options.use_user_site:
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
@@ -232,7 +227,7 @@ class InstallCommand(Command):
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
-            only_wheels=options.only_wheels,
+            only_wheels=only_wheels,
             use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
@@ -271,7 +266,7 @@ class InstallCommand(Command):
         else:
             requirement_set.locate_files()
 
-        if not options.no_install and not self.bundle:
+        if (not options.no_install and not self.bundle) or only_wheels:
             requirement_set.install(install_options, global_options)
             installed = ' '.join([req.name for req in
                                   requirement_set.successfully_installed])
