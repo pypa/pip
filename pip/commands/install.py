@@ -21,6 +21,12 @@ class InstallCommand(Command):
     def __init__(self):
         super(InstallCommand, self).__init__()
         self.parser.add_option(
+            '-w', '--wheel-cache',
+            dest='wheel_cache',
+            default=None,
+            metavar='DIR',
+            help='While installing, build wheels in the specified directory')
+        self.parser.add_option(
             '-e', '--editable',
             dest='editables',
             action='append',
@@ -190,6 +196,7 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        only_wheels = options.no_install and options.wheel_cache
         if options.use_user_site:
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
@@ -214,11 +221,13 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
+            wheel_cache=options.wheel_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
+            only_wheels=only_wheels,
             use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
@@ -257,7 +266,7 @@ class InstallCommand(Command):
         else:
             requirement_set.locate_files()
 
-        if not options.no_install and not self.bundle:
+        if (not options.no_install and not self.bundle) or only_wheels:
             requirement_set.install(install_options, global_options)
             installed = ' '.join([req.name for req in
                                   requirement_set.successfully_installed])
