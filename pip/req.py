@@ -582,7 +582,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         name = name.replace(os.path.sep, '/')
         return name
 
-    def install(self, install_options, global_options=()):
+    def install(self, install_options, global_options=(), wheel_cache=None,
+                only_wheels=False):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -593,13 +594,34 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [
+            base_args = [
                 sys.executable, '-c',
                 "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
-                list(global_options) + [
-                'install',
-                '--record', record_filename]
+                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] + \
+                list(global_options)
+            
+            if wheel_cache is not None:
+                try:
+                    import wheel
+                except ImportError:
+                    logger.warn('The wheel package is required in order to '
+                                'build wheels.')
+                else:
+                    logger.notify('Running setup.py bdist_wheel for %s' %
+                                  (self.name))
+                    # If somebody uses a relative path at the command line
+                    # then we need to transform it to an absolute one since
+                    # cwd=somepath in call_subprocess()
+                    wheel_cache = os.path.join(os.getcwd(), wheel_cache)
+                    logger.notify('Destination directory: %s' % wheel_cache)
+                    wheel_args = base_args + ['bdist_wheel', '-d', wheel_cache]
+                    call_subprocess(wheel_args, cwd=self.source_dir,
+                                    show_stdout=False)
+
+            if only_wheels:
+                return
+
+            install_args = base_args + ['install', '--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -912,12 +934,14 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False, as_egg=False,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
+                 wheel_cache=None, upgrade=False, ignore_installed=False,
+                 as_egg=False, ignore_dependencies=False, only_wheels=False,
+                 force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
         self.download_cache = download_cache
+        self.wheel_cache = wheel_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
@@ -931,6 +955,7 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
+        self.only_wheels = only_wheels
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1286,7 +1311,8 @@ class RequirementSet(object):
                     finally:
                         logger.indent -= 2
                 try:
-                    requirement.install(install_options, global_options)
+                    requirement.install(install_options, global_options,
+                                        self.wheel_cache, self.only_wheels)
                 except:
                     # if install did not succeed, rollback previous uninstall
                     if requirement.conflicts_with and not requirement.install_succeeded:

@@ -21,6 +21,18 @@ class InstallCommand(Command):
     def __init__(self):
         super(InstallCommand, self).__init__()
         self.parser.add_option(
+            '--only-wheels',
+            dest='only_wheels',
+            default=False,
+            action='store_true',
+            help='Do not install packages when using -w, --wheel-cache')
+        self.parser.add_option(
+            '-w', '--wheel-cache',
+            dest='wheel_cache',
+            default=None,
+            metavar='DIR',
+            help='While installing, build wheels in the specified directory')
+        self.parser.add_option(
             '-e', '--editable',
             dest='editables',
             action='append',
@@ -214,11 +226,13 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
+            wheel_cache=options.wheel_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
+            only_wheels=options.only_wheels,
             use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
