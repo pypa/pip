@@ -1168,6 +1168,9 @@ class RequirementSet(object):
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
                             dist = list(pkg_resources.find_distributions(location))[0]
+                            if not req_to_install.req:
+                                req_to_install.req = dist.as_requirement()
+                                self.add_requirement(req_to_install)
                             for subreq in dist.requires():
                                 if self.has_requirement(subreq.project_name):
                                     continue
