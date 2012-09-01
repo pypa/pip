@@ -20,9 +20,15 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
-           'renames', 'get_terminal_size',
+           'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
            'cache_download', 'unpack_file', 'call_subprocess']
+
+
+def get_prog():
+    if sys.argv and os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
+        return "%s -m pip" % sys.executable
+    return sys.argv[0]
 
 
 def rmtree(dir, ignore_errors=False):
@@ -344,8 +350,7 @@ def egg_link_path(dist):
     For #1 and #3, there could be odd cases, where there's an egg-link in 2 locations.
     This method will just return the first one found.
     """
-
-    sites=[]
+    sites = []
     if running_under_virtualenv():
         if virtualenv_no_global():
             sites.append(site_packages)

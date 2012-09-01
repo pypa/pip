@@ -10,7 +10,7 @@ from pip.basecommand import command_dict, load_command, load_all_commands, comma
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
-from pip.util import get_installed_distributions
+from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar
 
 
@@ -91,7 +91,8 @@ def main(initial_args=None):
     if options.help and not args:
         args = ['help']
     if not args:
-        parser.error('You must give a command (use "pip help" to see a list of commands)')
+        parser.error('You must give a command '
+            '(use "%s help" to see a list of commands)' % get_prog())
     command = args[0].lower()
     load_command(command)
     if command not in command_dict:

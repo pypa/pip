@@ -7,9 +7,10 @@ import os
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
+from pip.util import get_terminal_size, get_prog
 
 
-class PipPrettyHelpFormatter(optparse.IndentedHelpFormatter):
+class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
     def __init__(self, *args, **kw):
@@ -179,6 +180,11 @@ class ConfigOptionParser(optparse.OptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
+    def error(self, msg):
+        self.print_usage(sys.stderr)
+        self.exit(2, "%s\n" % msg)
+
+
 try:
     pip_dist = pkg_resources.get_distribution('pip')
     version = '%s from %s (python %s)' % (
@@ -192,7 +198,8 @@ parser = ConfigOptionParser(
     version=version,
     add_help_option=False,
     formatter=UpdatingDefaultsHelpFormatter(),
-    name='global')
+    name='global',
+    prog=get_prog())
 
 parser.add_option(
     '-h', '--help',

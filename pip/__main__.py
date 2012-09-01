@@ -1,7 +1,7 @@
-if __name__ == '__main__':
-    import sys
-    from . import main
+import sys
+from .runner import run
 
-    exit = main()
+if __name__ == '__main__':
+    exit = run()
     if exit:
         sys.exit(exit)
