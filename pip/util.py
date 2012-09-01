@@ -26,7 +26,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 
 
 def get_prog():
-    if sys.argv and os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
+    if hasattr(sys, 'argv') and sys.argv and os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
         return "%s -m pip" % sys.executable
     return sys.argv[0]
 
