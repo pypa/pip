@@ -1,13 +1,22 @@
-import sys
+import codecs
 import os
+import re
+import sys
 from setuptools import setup
 
-# If you change this version, change it also in docs/conf.py
-version = "1.2"
 
-doc_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "docs")
-index_filename = os.path.join(doc_dir, "index.txt")
-news_filename = os.path.join(doc_dir, "news.txt")
+def read(*parts):
+    return codecs.open(os.path.join(os.path.abspath(os.path.dirname(__file__)), *parts), 'r').read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
 long_description = """
 
 The main website for pip is `www.pip-installer.org
@@ -16,17 +25,13 @@ the `in-development version <https://github.com/pypa/pip/tarball/develop#egg=pip
 of pip with ``easy_install pip==dev``.
 
 """
-f = open(index_filename)
 # remove the toctree from sphinx index, as it breaks long_description
-parts = f.read().split("split here", 2)
-long_description = parts[0] + long_description + parts[2]
-f.close()
-f = open(news_filename)
-long_description += "\n\n" + f.read()
-f.close()
+parts = read("docs", "index.txt").split("split here", 2)
+long_description = (parts[0] + long_description + parts[2] +
+                    "\n\n" + read("docs", "news.txt"))
 
 setup(name="pip",
-      version=version,
+      version=find_version('pip', '__init__.py'),
       description="pip installs packages. Python packages. An easy_install replacement",
       long_description=long_description,
       classifiers=[
