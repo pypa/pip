@@ -20,7 +20,7 @@ def find_version(*file_paths):
 long_description = """
 
 The main website for pip is `www.pip-installer.org
-<http://www.pip-installer.org>`_.  You can also install
+<http://www.pip-installer.org>`_. You can also install
 the `in-development version <https://github.com/pypa/pip/tarball/develop#egg=pip-dev>`_
 of pip with ``easy_install pip==dev``.
 

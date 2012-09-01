@@ -13,17 +13,11 @@ from pip.util import get_terminal_size, get_prog
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    def __init__(self, *args, **kw):
-        kw['max_help_position'] = 23
-        kw['indent_increment'] = 1
-
-        # do as argparse does
-        try:
-            kw['width'] = int(os.environ['COLUMNS']) - 2
-        except:
-            kw['width'] = 78
-
-        optparse.IndentedHelpFormatter.__init__(self, *args, **kw)
+    def __init__(self, *args, **kwargs):
+        kwargs['max_help_position'] = 30
+        kwargs['indent_increment'] = 1
+        kwargs['width'] = get_terminal_size()[0] - 2
+        optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
     def format_option_strings(self, option):
         return self._format_option_strings(option, ' <%s>', ', ')
@@ -36,31 +30,34 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
         :param optsep:  separator
         """
-
         opts = []
 
-        if option._short_opts: opts.append(option._short_opts[0])
-        if option._long_opts:  opts.append(option._long_opts[0])
-        if len(opts) > 1: opts.insert(1, optsep)
+        if option._short_opts:
+            opts.append(option._short_opts[0])
+        if option._long_opts:
+            opts.append(option._long_opts[0])
+        if len(opts) > 1:
+            opts.insert(1, optsep)
 
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt % metavar)
+            opts.append(mvarfmt % metavar.upper())
 
         return ''.join(opts)
 
     def format_heading(self, heading):
-        if heading == 'Options': return ''
+        if heading == 'Options':
+            return ''
         return heading + ':\n'
 
     def format_usage(self, usage):
-        # ensure there is only one newline between usage and the first heading
-        # if there is no description
-
+        """
+        ensure there is only one newline between usage and the first heading
+        if there is no description
+        """
         msg = 'Usage: %s' % usage
         if self.parser.description:
             msg += '\n'
-
         return msg
 
     def format_description(self, description):
@@ -78,7 +75,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             return ''
 
 
-class UpdatingDefaultsHelpFormatter(PipPrettyHelpFormatter):
+class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
     """Custom help formatter for use in ConfigOptionParser that updates
     the defaults before expanding them, allowing them to show up correctly
     in the help listing"""
@@ -149,7 +146,7 @@ class ConfigOptionParser(optparse.OptionParser):
         for key, val in items:
             key = key.replace('_', '-')
             if not key.startswith('--'):
-                key = '--%s' % key # only prefer long opts
+                key = '--%s' % key  # only prefer long opts
             normalized[key] = val
         return normalized
 
@@ -172,7 +169,7 @@ class ConfigOptionParser(optparse.OptionParser):
             # Old, pre-Optik 1.5 behaviour.
             return optparse.Values(self.defaults)
 
-        defaults = self.update_defaults(self.defaults.copy()) # ours
+        defaults = self.update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
             if isinstance(default, string_types):
@@ -191,7 +188,8 @@ try:
         pip_dist, pip_dist.location, sys.version[:3])
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
-    version=None
+    version = None
+
 
 parser = ConfigOptionParser(
     usage='%prog COMMAND [OPTIONS]',
@@ -260,7 +258,7 @@ parser.add_option(
     default='',
     help="Specify a proxy in the form user:passwd@proxy.server:port. "
     "Note that the user:password@ is optional and required only if you "
-    "are behind an authenticated proxy.  If you provide "
+    "are behind an authenticated proxy. If you provide "
     "user@proxy.server:port then you will be prompted for a password.")
 parser.add_option(
     '--timeout', '--default-timeout',
