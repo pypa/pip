@@ -39,7 +39,19 @@ def test_pypi_xml_transformation():
             {'_pypi_ordering': 50, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'}]
     expected = [{'score': 200, 'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'},
             {'score': 50, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
-    assert_equal(expected, transform_hits(pypi_hits))
+    assert_equal(transform_hits(pypi_hits), expected)
+
+
+def test_invalid_pypi_transformation():
+    """
+    Test transformation of pypi when ordering None
+    """
+    pypi_hits = [{'_pypi_ordering': None, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'},
+        {'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
+
+    expected = [{'score': 100, 'versions': ['1.0'], 'name': 'foo', 'summary': 'foo summary'},
+            {'score': 0, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
+    assert_equal(transform_hits(pypi_hits), expected)
 
 
 def test_search():

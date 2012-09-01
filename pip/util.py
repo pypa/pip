@@ -7,9 +7,10 @@ import posixpath
 import pkg_resources
 import zipfile
 import tarfile
+import subprocess
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input
-from pip.locations import site_packages, running_under_virtualenv
+from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -19,9 +20,18 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
-           'renames', 'get_terminal_size',
+           'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file']
+           'cache_download', 'unpack_file', 'call_subprocess']
+
+
+def get_prog():
+    try:
+        if os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
+            return "%s -m pip" % sys.executable
+    except (AttributeError, TypeError, IndexError):
+        pass
+    return 'pip'
 
 
 def rmtree(dir, ignore_errors=False):
@@ -147,11 +157,11 @@ def normalize_name(name):
 
 def format_size(bytes):
     if bytes > 1000*1000:
-        return '%.1fMb' % (bytes/1000.0/1000)
+        return '%.1fMB' % (bytes/1000.0/1000)
     elif bytes > 10*1000:
-        return '%iKb' % (bytes/1000)
+        return '%ikB' % (bytes/1000)
     elif bytes > 1000:
-        return '%.1fKb' % (bytes/1000.0)
+        return '%.1fkB' % (bytes/1000.0)
     else:
         return '%ibytes' % bytes
 
@@ -293,6 +303,22 @@ def dist_is_local(dist):
     return is_local(dist_location(dist))
 
 
+def dist_in_usersite(dist):
+    """
+    Return True if given Distribution is installed in user site.
+    """
+    if user_site:
+        return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+    else:
+        return False
+
+def dist_in_site_packages(dist):
+    """
+    Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
+    """
+    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
+
+
 def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
     """
     Return a list of installed Distribution objects.
@@ -314,16 +340,36 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
 
 def egg_link_path(dist):
     """
-    Return the path where we'd expect to find a .egg-link file for
-    this distribution. (There doesn't seem to be any metadata in the
-    Distribution object for a develop egg that points back to its
-    .egg-link and easy-install.pth files).
+    Return the path for the .egg-link file if it exists, otherwise, None.
 
-    This won't find a globally-installed develop egg if we're in a
-    virtualenv.
+    There's 3 scenarios:
+    1) not in a virtualenv
+       try to find in site.USER_SITE, then site_packages
+    2) in a no-global virtualenv
+       try to find in site_packages
+    3) in a yes-global virtualenv
+       try to find in site_packages, then site.USER_SITE  (don't look in global location)
 
+    For #1 and #3, there could be odd cases, where there's an egg-link in 2 locations.
+    This method will just return the first one found.
     """
-    return os.path.join(site_packages, dist.project_name) + '.egg-link'
+    sites = []
+    if running_under_virtualenv():
+        if virtualenv_no_global():
+            sites.append(site_packages)
+        else:
+            sites.append(site_packages)
+            if user_site:
+                sites.append(user_site)
+    else:
+        if user_site:
+            sites.append(user_site)
+        sites.append(site_packages)
+
+    for site in sites:
+        egglink = os.path.join(site, dist.project_name) + '.egg-link'
+        if os.path.isfile(egglink):
+            return egglink
 
 
 def dist_location(dist):
@@ -335,7 +381,7 @@ def dist_location(dist):
 
     """
     egg_link = egg_link_path(dist)
-    if os.path.exists(egg_link):
+    if egg_link:
         return egg_link
     return dist.location
 
@@ -506,4 +552,68 @@ def unpack_file(filename, location, content_type, link):
         raise InstallationError('Cannot determine archive format of %s' % location)
 
 
-
+def call_subprocess(cmd, show_stdout=True,
+                    filter_stdout=None, cwd=None,
+                    raise_on_returncode=True,
+                    command_level=logger.DEBUG, command_desc=None,
+                    extra_environ=None):
+    if command_desc is None:
+        cmd_parts = []
+        for part in cmd:
+            if ' ' in part or '\n' in part or '"' in part or "'" in part:
+                part = '"%s"' % part.replace('"', '\\"')
+            cmd_parts.append(part)
+        command_desc = ' '.join(cmd_parts)
+    if show_stdout:
+        stdout = None
+    else:
+        stdout = subprocess.PIPE
+    logger.log(command_level, "Running command %s" % command_desc)
+    env = os.environ.copy()
+    if extra_environ:
+        env.update(extra_environ)
+    try:
+        proc = subprocess.Popen(
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
+            cwd=cwd, env=env)
+    except Exception:
+        e = sys.exc_info()[1]
+        logger.fatal(
+            "Error %s while executing command %s" % (e, command_desc))
+        raise
+    all_output = []
+    if stdout is not None:
+        stdout = proc.stdout
+        while 1:
+            line = console_to_str(stdout.readline())
+            if not line:
+                break
+            line = line.rstrip()
+            all_output.append(line + '\n')
+            if filter_stdout:
+                level = filter_stdout(line)
+                if isinstance(level, tuple):
+                    level, line = level
+                logger.log(level, line)
+                if not logger.stdout_level_matches(level):
+                    logger.show_progress()
+            else:
+                logger.info(line)
+    else:
+        returned_stdout, returned_stderr = proc.communicate()
+        all_output = [returned_stdout or '']
+    proc.wait()
+    if proc.returncode:
+        if raise_on_returncode:
+            if all_output:
+                logger.notify('Complete output from command %s:' % command_desc)
+                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+            raise InstallationError(
+                "Command %s failed with error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
+        else:
+            logger.warn(
+                "Command %s had error code %s in %s"
+                % (command_desc, proc.returncode, cwd))
+    if stdout is not None:
+        return ''.join(all_output)

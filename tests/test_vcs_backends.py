@@ -64,10 +64,10 @@ def test_git_with_tag_name_and_update():
                      expect_error=True)
     result.assert_installed('pip-test-package', with_files=['.git'])
     result = run_pip('install', '--global-option=--version', '-e',
-                     '%s@0.1.1#egg=pip-test-package' %
+                     '%s@0.1.2#egg=pip-test-package' %
                      local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_error=True)
-    assert '0.1.1\n' in result.stdout
+    assert '0.1.2' in result.stdout
 
 
 def test_git_branch_should_not_be_changed():
@@ -90,9 +90,9 @@ def test_git_with_non_editable_unpacking():
     """
     reset_env()
     result = run_pip('install', '--global-option=--version', local_checkout(
-                     'git+http://github.com/pypa/pip-test-package.git@0.1.1#egg=pip-test-package'
+                     'git+http://github.com/pypa/pip-test-package.git@0.1.2#egg=pip-test-package'
                      ), expect_error=True)
-    assert '0.1.1\n' in result.stdout
+    assert '0.1.2' in result.stdout
 
 
 def test_git_with_editable_where_egg_contains_dev_string():
@@ -129,3 +129,16 @@ def test_git_with_ambiguous_revs():
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
     result.assert_installed('version-pkg', with_files=['.git'])
+
+
+def test_git_works_with_editable_non_origin_repo():
+    # set up, create a git repo and install it as editable from a local directory path
+    env = reset_env()
+    version_pkg_path = _create_test_package(env)
+    run_pip('install', '-e', version_pkg_path.abspath)
+
+    # 'freeze'ing this should not fall over, but should result in stderr output warning
+    result = run_pip('freeze', expect_stderr=True)
+    assert "Error when trying to get requirement" in result.stderr
+    assert "Could not determine repository location" in result.stdout
+    assert "version-pkg==0.1" in result.stdout

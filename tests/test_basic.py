@@ -41,7 +41,7 @@ def test_correct_pip_version():
     # primary resources other than .py files, this code will need
     # maintenance
     mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
-    assert not mismatch_py, 'mismatched source files in %r and %r'% (pip_folder, pip_folder_outputed)
+    assert not mismatch_py, 'mismatched source files in %r and %r: %r'% (pip_folder, pip_folder_outputed, mismatch_py)
 
 
 def test_pip_second_command_line_interface_works():
@@ -302,6 +302,31 @@ def test_install_from_local_directory_with_no_setup_py():
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
+def test_editable_install_from_local_directory_with_no_setup_py():
+    """
+    Test installing from a local directory with no 'setup.py'.
+    """
+    reset_env()
+    result = run_pip('install', '-e', here, expect_error=True)
+    assert len(result.files_created) == 1, result.files_created
+    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert "is not installable. File 'setup.py' not found." in result.stdout
+
+
+def test_install_as_egg():
+    """
+    Test installing as egg, instead of flat install.
+    """
+    env = reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkg'))
+    result = run_pip('install', to_install, '--egg', expect_error=False)
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    assert fspkg_folder not in result.files_created, str(result.stdout)
+    assert egg_folder in result.files_created, str(result)
+    assert join(egg_folder, 'fspkg') in result.files_created, str(result)
+
+
 def test_install_curdir():
     """
     Test installing current directory ('.').
@@ -317,77 +342,6 @@ def test_install_curdir():
     egg_info_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
-
-
-def test_install_curdir_usersite_fails_in_old_python():
-    """
-    Test --user option on older Python versions (pre 2.6) fails intelligibly
-    """
-    if sys.version_info >= (2, 6):
-        raise SkipTest()
-    reset_env()
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-
-def test_install_curdir_usersite():
-    """
-    Test installing current directory ('.') into usersite
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = env.user_site/'fspkg'
-    egg_info_folder = env.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-    assert fspkg_folder in result.files_created, str(result.stdout)
-
-    assert egg_info_folder in result.files_created, str(result)
-
-
-def test_install_subversion_usersite_editable_with_distribute():
-    """
-    Test installing current directory ('.') into usersite after installing distribute
-    """
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # FIXME distutils --user option seems to be broken in pypy
-    if hasattr(sys, "pypy_version_info"):
-        raise SkipTest()
-    env = reset_env(use_distribute=True)
-    (env.lib_path/'no-global-site-packages.txt').rm() # this one reenables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
-    result.assert_installed('INITools', use_user_site=True)
-
-
-def test_install_subversion_usersite_editable_with_setuptools_fails():
-    """
-    Test installing current directory ('.') into usersite using setuptools fails
-    """
-    # --user only works on 2.6 or higher
-    if sys.version_info < (2, 6):
-        raise SkipTest()
-    # We don't try to use setuptools for 3.X.
-    elif sys.version_info >= (3,):
-        raise SkipTest()
-    env = reset_env(use_distribute=False)
-    no_site_packages = env.lib_path/'no-global-site-packages.txt'
-    if os.path.isfile(no_site_packages):
-        no_site_packages.rm() # this re-enables user_site
-
-    result = run_pip('install', '--user', '-e',
-                     '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                     expect_error=True)
-    assert '--user --editable not supported with setuptools, use distribute' in result.stdout
 
 
 def test_install_pardir():
@@ -420,6 +374,16 @@ def test_install_with_pax_header():
     reset_env()
     run_from = abspath(join(here, 'packages'))
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+
+
+def test_install_with_hacked_egg_info():
+    """
+    test installing a package which defines its own egg_info class
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'HackedEggInfo'))
+    result = run_pip('install', '.', cwd=run_from)
+    assert 'Successfully installed hackedegginfo\n' in result.stdout
 
 
 def test_install_using_install_option_and_editable():
@@ -601,3 +565,4 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
+

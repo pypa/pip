@@ -60,10 +60,10 @@ Before sending us a pull request, please, be sure all tests pass.
 Supported Python versions
 -------------------------
 
-Pip supports Python versions 2.4, 2.5, 2.6, 2.7, 3.1, and 3.2, from a single
+Pip supports Python versions 2.5, 2.6, 2.7, 3.1, and 3.2, from a single
 codebase (without use of 2to3 translation). Untested contributions frequently
-break Python 2.4 or 3.x compatibility. Please run the tests on at least 2.4 and
-3.2 and report your results when sending a pull request.
+break Python 3.x compatibility. Please run the tests on at least 3.2 and
+report your results when sending a pull request.
 
 Continuous Integration server
 -----------------------------

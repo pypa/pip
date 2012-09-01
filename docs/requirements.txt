@@ -100,6 +100,8 @@ installed.  For example::
 
 tells pip to install the 3.0 version of MyPackage.
 
+A line beginning with ``#`` is treated as a comment and ignored.
+
 You can also request `extras`_ in the requirements file::
 
     MyPackage==3.0 [PDF]

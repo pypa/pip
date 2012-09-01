@@ -45,7 +45,7 @@ def test_completion_for_unknown_shell():
     Test getting completion for an unknown shell
     """
     reset_env()
-    error_msg = 'error: no such option: --myfooshell'
+    error_msg = 'no such option: --myfooshell'
     result = run_pip('completion', '--myfooshell', expect_error=True)
     assert error_msg in result.stderr, 'tests for an unknown shell failed'
 
