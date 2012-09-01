@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2008-2011, The pip developers'
+copyright = '2008-2012, The pip developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
