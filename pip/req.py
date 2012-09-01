@@ -368,18 +368,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        if self.comes_from is None:
-            # We don't check the versions of things explicitly installed.
-            # This makes, e.g., "pip Package==dev" possible
-            return
         version = self.installed_version
         if version not in self.req:
-            logger.fatal(
-                'Source in %s has the version %s, which does not match the requirement %s'
-                % (display_path(self.source_dir), version, self))
-            raise InstallationError(
-                'Source in %s has version %s that conflicts with %s'
-                % (display_path(self.source_dir), version, self))
+            logger.warn('Requested %s, but installing version %s' % (self, self.installed_version))
         else:
             logger.debug('Source in %s has version %s, which satisfies requirement %s'
                          % (display_path(self.source_dir), version, self))
