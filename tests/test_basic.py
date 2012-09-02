@@ -333,9 +333,7 @@ def test_install_from_wheel():
     """
     env = reset_env(use_distribute=True)
     find_links = 'file://'+abspath(join(here, 'packages'))
-    # winds up empty...
     result = run_pip('install', 'simple.dist', '--no-index', '--find-links='+find_links, expect_error=False)
-    # Could be dist-packages on Debian
     dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
@@ -350,9 +348,7 @@ def test_install_from_wheel_file():
     package = abspath(join(here, 
                            'packages', 
                            'simple.dist-0.1-py2.py3-none-any.whl'))
-    # winds up empty...
     result = run_pip('install', package, '--no-index', expect_error=False)
-    # Could be dist-packages on Debian
     dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
