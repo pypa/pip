@@ -828,7 +828,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         installed = {}
         
         def normpath(src, p):
-            return os.path.relpath(src, p).replace(os.path.sep, '/')
+            return make_path_relative(src, p).replace(os.path.sep, '/')
         
         def record_installed(srcfile, destfile):
             """Map archive RECORD paths to installation RECORD paths."""
