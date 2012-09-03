@@ -15,6 +15,7 @@ from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+from pip.util import get_prog
 
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
@@ -35,7 +36,7 @@ class Command(object):
         assert self.name
         self.parser = ConfigOptionParser(
             usage=self.usage,
-            prog='%s %s' % (sys.argv[0], self.name),
+            prog='%s %s' % (get_prog(), self.name),
             version=parser.version,
             formatter=UpdatingDefaultsHelpFormatter(),
             name=self.name)
