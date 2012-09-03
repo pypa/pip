@@ -1171,13 +1171,14 @@ class RequirementSet(object):
                             if not req_to_install.req:
                                 req_to_install.req = dist.as_requirement()
                                 self.add_requirement(req_to_install)
-                            for subreq in dist.requires():
-                                if self.has_requirement(subreq.project_name):
-                                    continue
-                                subreq = InstallRequirement(str(subreq), 
-                                                            req_to_install)
-                                reqs.append(subreq)
-                                self.add_requirement(subreq)
+                            if not self.ignore_dependencies:
+                                for subreq in dist.requires(req_to_install.extras):
+                                    if self.has_requirement(subreq.project_name):
+                                        continue
+                                    subreq = InstallRequirement(str(subreq), 
+                                                                req_to_install)
+                                    reqs.append(subreq)
+                                    self.add_requirement(subreq)
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
