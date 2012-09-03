@@ -91,6 +91,7 @@ def test_freeze_git_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
+        ...
         -e %s@...#egg=pip_test_package-...
         ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git'))
     _check_output(result, expected)
@@ -102,6 +103,7 @@ def test_freeze_git_clone():
         Script result: pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
         -f %(repo)s#egg=pip_test_package
+        ...
         -e %(repo)s@...#egg=pip_test_package-dev
         ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git')})
     _check_output(result, expected)
@@ -124,6 +126,7 @@ def test_freeze_mercurial_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
+        ...
         -e %s@...#egg=django_authority-...
         ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'))
     _check_output(result, expected)
@@ -135,6 +138,7 @@ def test_freeze_mercurial_clone():
         Script result: ...pip freeze -f %(repo)s#egg=django_authority
         -- stdout: --------------------
         -f %(repo)s#egg=django_authority
+        ...
         -e %(repo)s@...#egg=django_authority-dev
         ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
     _check_output(result, expected)
@@ -156,6 +160,7 @@ def test_freeze_bazaar_clone():
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
+        ...
         -e %s@...#egg=django_wikiapp-...
         ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
     _check_output(result, expected)
@@ -168,6 +173,7 @@ def test_freeze_bazaar_clone():
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
+        ...
         -e %(repo)s@...#egg=django_wikiapp-...
         ...""" % {'repo':
                   local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
