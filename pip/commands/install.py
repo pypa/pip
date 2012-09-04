@@ -31,7 +31,7 @@ class InstallCommand(Command):
             metavar='DIR',
             help='Output wheel archives for any installed distributions to the '
             'specified directory. Combine with --no-install to only build. '
-            'The "wheel" distribution is required to build wheels.')
+            'The "wheel" package is required to build wheels.')
         self.parser.add_option(
             '-e', '--editable',
             dest='editables',
