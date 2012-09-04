@@ -203,7 +203,7 @@ def test_uninstall_as_egg():
 @patch('pip.req.logger')
 def test_uninstallpathset_no_paths(mock_logger):
     """
-    Test UninstallPathSet logs warning when there are no paths to uninstall
+    Test UninstallPathSet logs notification when there are no paths to uninstall
 
     """
     from pip.req import UninstallPathSet
@@ -213,4 +213,22 @@ def test_uninstallpathset_no_paths(mock_logger):
     uninstall_set = UninstallPathSet(test_dist)
     uninstall_set.remove() #with no files added to set
     mock_logger.notify.assert_any_call("Can't uninstall 'pip'. No files were found to uninstall.")
+
+
+@patch('pip.req.logger')
+def test_uninstallpathset_non_local(mock_logger):
+    """
+    Test UninstallPathSet logs notification and returns (with no exception) when dist is non-local
+
+    """
+    from pip.req import UninstallPathSet
+    from pip.exceptions import InstallationError
+    from pkg_resources import get_distribution
+    test_dist = get_distribution('pip')
+    test_dist.location = '/NON_LOCAL'
+    uninstall_set = UninstallPathSet(test_dist)
+    uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
+    mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
+
+
 
