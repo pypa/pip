@@ -1463,9 +1463,10 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self.paths:
-            raise InstallationError("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
         if not self._can_uninstall():
+            return
+        if not self.paths:
+            logger.notify("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
