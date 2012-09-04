@@ -40,7 +40,8 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None,
+            use_wheel=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -52,6 +53,7 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
+        self.use_wheel = use_wheel
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -275,6 +277,12 @@ class PackageFinder(object):
         for link in self._sort_links(links):
             for v in self._link_package_versions(link, search_name):
                 yield v
+        
+    def _known_extensions(self):
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip') 
+        if self.use_wheel:
+            return extensions + ('.whl',)
+        return extensions
 
     def _link_package_versions(self, link, search_name):
         """
@@ -297,8 +305,8 @@ class PackageFinder(object):
             if egg_info.endswith('.tar'):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
-                ext = '.tar' + ext        
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip', '.whl'):
+                ext = '.tar' + ext
+            if ext not in self._known_extensions():
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)

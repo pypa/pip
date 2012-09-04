@@ -20,12 +20,18 @@ class InstallCommand(Command):
 
     def __init__(self):
         super(InstallCommand, self).__init__()
+        self.parser.add_option('--use-wheel',
+            dest='use_wheel',
+            action='store_true',
+            help='Find wheel archives when searching index and find-links')
         self.parser.add_option(
             '-w', '--wheel-cache',
             dest='wheel_cache',
             default=None,
             metavar='DIR',
-            help='While installing, build wheels in the specified directory')
+            help='Output wheel archives for any installed distributions to the '
+            'specified directory. The "wheel" distribution is required to '
+            'build wheels.')
         self.parser.add_option(
             '-e', '--editable',
             dest='editables',
@@ -187,7 +193,8 @@ class InstallCommand(Command):
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors)
+                             mirrors=options.mirrors,
+                             use_wheel=options.use_wheel)
 
     def run(self, options, args):
         if options.download_dir:
@@ -221,6 +228,7 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
+            use_wheel=options.use_wheel,
             wheel_cache=options.wheel_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,

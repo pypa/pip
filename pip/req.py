@@ -922,12 +922,11 @@ class RequirementSet(object):
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  wheel_cache=None, upgrade=False, ignore_installed=False,
                  as_egg=False, ignore_dependencies=False, only_wheels=False,
-                 force_reinstall=False, use_user_site=False):
+                 force_reinstall=False, use_user_site=False, use_wheel=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
         self.download_cache = download_cache
-        self.wheel_cache = wheel_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
@@ -941,6 +940,9 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
+        # Wheel. Experimental.
+        self.use_wheel = use_wheel
+        self.wheel_cache = wheel_cache
         self.only_wheels = only_wheels
 
     def __str__(self):
