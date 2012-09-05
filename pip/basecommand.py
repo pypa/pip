@@ -4,6 +4,7 @@ import os
 from pkgutil import walk_packages
 import socket
 import sys
+import tempfile
 import traceback
 import time
 
