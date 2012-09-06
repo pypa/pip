@@ -10,6 +10,13 @@ Next release (1.3) schedule
 
 Beta and final releases planned for the end of 2012.
 
+1.2.1 (2012-09-06)
+------------------
+
+* Fixed a regression introduced in 1.2 about raising an exception when
+  not finding any files to uninstall in the current environment. Thanks for
+  the fix, Marcus Smith.
+
 1.2 (2012-09-01)
 ----------------
 
