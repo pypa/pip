@@ -28,11 +28,13 @@ def search_packages_info(query):
     pip generated 'installed-files.txt' in the distributions '.egg-info'
     directory.
     """
-    installed_packages = dict([(p.project_name.lower(), p.project_name) for p in pkg_resources.working_set])
+    installed_packages = dict([(p.project_name.lower(), p.project_name) \
+            for p in pkg_resources.working_set])
     for name in query:
         normalized_name = name.lower()
         if normalized_name in installed_packages:
-            dist = pkg_resources.get_distribution(installed_packages[normalized_name])
+            dist = pkg_resources.get_distribution( \
+                    installed_packages[normalized_name])
             package = {
                 'name': dist.project_name,
                 'version': dist.version,
@@ -59,8 +61,11 @@ def print_results(distributions):
         logger.notify("Files:")
         filelist = dist.get('files', None)
         if filelist:
-            for line in open(filelist):
+            for i, line in enumerate(open(filelist)):
                 logger.notify("  %s" % line.strip())
+                if i > 20:
+                    logger.notify("  and more.")
+                    break
         else:
             logger.notify("Cannot locate installed-files.txt")
 
