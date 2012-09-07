@@ -21,6 +21,7 @@ class StatusCommand(Command):
         results = search_packages_info(query)
         print_results(results)
 
+
 def search_packages_info(query):
     """
     Gather details from installed distributions. Print distribution name,
@@ -59,9 +60,8 @@ def print_results(distributions):
         logger.notify("Version: %s" % dist['version'])
         logger.notify("Location: %s" % dist['location'])
         logger.notify("Files:")
-        filelist = dist.get('files', None)
-        if filelist:
-            for i, line in enumerate(open(filelist)):
+        if 'files' in dist:
+            for i, line in enumerate(open(dist['files'])):
                 logger.notify("  %s" % line.strip())
                 if i > 20:
                     logger.notify("  and more.")
