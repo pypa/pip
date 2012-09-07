@@ -1,9 +1,10 @@
+from __future__ import with_statement
+
 import textwrap
 import sys
 from os.path import join, abspath, normpath
 from tempfile import mkdtemp
-from mock import Mock, patch
-from nose.tools import assert_raises
+from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
 
@@ -207,11 +208,13 @@ def test_uninstallpathset_no_paths(mock_logger):
 
     """
     from pip.req import UninstallPathSet
-    from pip.exceptions import InstallationError
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
-    uninstall_set = UninstallPathSet(test_dist)
-    uninstall_set.remove() #with no files added to set
+    # ensure that the distribution is "local"
+    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+        mock_dist_is_local.return_value = True
+        uninstall_set = UninstallPathSet(test_dist)
+        uninstall_set.remove() #with no files added to set
     mock_logger.notify.assert_any_call("Can't uninstall 'pip'. No files were found to uninstall.")
 
 
@@ -222,12 +225,16 @@ def test_uninstallpathset_non_local(mock_logger):
 
     """
     from pip.req import UninstallPathSet
-    from pip.exceptions import InstallationError
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
-    test_dist.location = '/NON_LOCAL'
-    uninstall_set = UninstallPathSet(test_dist)
-    uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
+    test_dist.location = "/NON_LOCAL"
+    # ensure that the distribution is "non-local"
+    # setting location isn't enough, due to egg-link file checking for
+    # develop-installs
+    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+        mock_dist_is_local.return_value = False
+        uninstall_set = UninstallPathSet(test_dist)
+        uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
     mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
 
 
