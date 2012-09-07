@@ -18,34 +18,51 @@ class StatusCommand(Command):
             return
         query = args
 
-        print_results(query)
+        results = search_packages_info(query)
+        print_results(results)
 
-
-def print_results(query):
+def search_packages_info(query):
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
     pip generated 'installed-files.txt' in the distributions '.egg-info'
     directory.
     """
-    installed_packages = [p.project_name for p in pkg_resources.working_set]
+    installed_packages = dict([(p.project_name.lower(), p.project_name) for p in pkg_resources.working_set])
     for name in query:
-        if name in installed_packages:
-            dist = pkg_resources.get_distribution(name)
-            logger.notify("---")
-            logger.notify("Name: %s" % name)
-            logger.notify("Version: %s" % dist.version)
-            logger.notify("Location: %s" % dist.location)
-            logger.notify("Files:")
+        normalized_name = name.lower()
+        if normalized_name in installed_packages:
+            dist = pkg_resources.get_distribution(installed_packages[normalized_name])
+            package = {
+                'name': dist.project_name,
+                'version': dist.version,
+                'location': dist.location
+            }
             filelist = os.path.join(
-                           dist.location,
-                           dist.egg_name() + '.egg-info',
-                           'installed-files.txt')
+                       dist.location,
+                       dist.egg_name() + '.egg-info',
+                       'installed-files.txt')
             if os.path.isfile(filelist):
-                for line in open(filelist):
-                    logger.notify("  %s" % line.strip())
-            else:
-                logger.notify("Cannot locate installed-files.txt")
+                package['files'] = filelist
+            yield package
+
+
+def print_results(distributions):
+    """
+    Print the informations from installed distributions found.
+    """
+    for dist in distributions:
+        logger.notify("---")
+        logger.notify("Name: %s" % dist['name'])
+        logger.notify("Version: %s" % dist['version'])
+        logger.notify("Location: %s" % dist['location'])
+        logger.notify("Files:")
+        filelist = dist.get('files', None)
+        if filelist:
+            for line in open(filelist):
+                logger.notify("  %s" % line.strip())
+        else:
+            logger.notify("Cannot locate installed-files.txt")
 
 
 StatusCommand()
