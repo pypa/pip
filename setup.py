@@ -30,6 +30,8 @@ parts = read("docs", "index.txt").split("split here", 2)
 long_description = (parts[0] + long_description + parts[2] +
                     "\n\n" + read("docs", "news.txt"))
 
+tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
+
 setup(name="pip",
       version=find_version('pip', '__init__.py'),
       description="pip installs packages. Python packages. An easy_install replacement",
@@ -55,5 +57,9 @@ setup(name="pip",
       packages=['pip', 'pip.commands', 'pip.vcs'],
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
-      tests_require=['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock'],
-      zip_safe=False)
+      tests_require=tests_require,
+      zip_safe=False,
+      extras_require = {
+          'testing':tests_require,
+          },
+      )
