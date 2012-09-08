@@ -10,6 +10,12 @@ Next release (1.3) schedule
 
 Beta and final releases planned for the end of 2012.
 
+
+develop (unreleased)
+--------------------
+
+* Added "pip status" command to get information about an installed package.
+
 1.2.1 (2012-09-06)
 ------------------
 
