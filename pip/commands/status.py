@@ -14,7 +14,7 @@ class StatusCommand(Command):
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Missing required argument (status query).')
+            logger.warn('ERROR: Please provide a project name or names.')
             return
         query = args
 

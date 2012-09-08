@@ -1,5 +1,3 @@
-import re
-import pkg_resources
 from pip import __version__
 from pip.commands.status import search_packages_info
 from tests.test_pip import reset_env, run_pip
@@ -10,17 +8,16 @@ def test_status():
     Test end to end test for status command.
 
     """
-    dist = pkg_resources.get_distribution('pip')
     reset_env()
     result = run_pip('status', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 7
-    assert '---', lines[0]
-    assert re.match('^Name\: pip$', lines[1])
-    assert re.match('^Version\: %s$' % __version__, lines[2])
-    assert 'Location: %s' % dist.location, lines[3]
-    assert 'Files:' == lines[4]
-    assert 'Cannot locate installed-files.txt' == lines[5]
+    assert lines[0] == '---', lines[0]
+    assert lines[1] == 'Name: pip', lines[1]
+    assert lines[2] == 'Version: %s' % __version__, lines[2]
+    assert lines[3].startswith('Location: '), lines[3]
+    assert lines[4] ==  'Files:', lines[4]
+    assert lines[5] == 'Cannot locate installed-files.txt', lines[5]
 
 
 def test_missing_argument():
@@ -28,15 +25,14 @@ def test_missing_argument():
     Test status command with no arguments.
 
     """
-    dist = pkg_resources.get_distribution('pip')
     reset_env()
     result = run_pip('status')
-    assert 'ERROR: Missing required argument (status query).' in result.stdout
+    assert 'ERROR: Please provide a project name or names.' in result.stdout
 
 
 def test_find_package_not_found():
     """
-    Test trying to get info about a inexistent package.
+    Test trying to get info about a nonexistent package.
 
     """
     result = search_packages_info(['abcd3'])
