@@ -245,7 +245,8 @@ def test_uninstall_distutilsonly():
     pkgdir = join(here, 'packages', 'distutilsonly')
     env.run('python', 'setup.py', 'install', cwd=pkgdir)
     result = run_pip('uninstall', 'distutilsonly', expect_error=True)
-    assert 'Cannot uninstall requirement distutilsonly' in result.stdout
+    assert 'Cannot uninstall requirement distutilsonly' in result.stdout, \
+           result.stdout
     
     
     
