@@ -79,8 +79,12 @@ class PackageFinder(object):
                 files.append(url)
 
         for url in locations:
+            is_path = os.path.exists(url)
             if url.startswith('file:'):
-                path = url_to_path(url)
+                if is_path:
+                    path = url
+                else:
+                    path = url_to_path(url)
                 if os.path.isdir(path):
                     path = os.path.realpath(path)
                     for item in os.listdir(path):
