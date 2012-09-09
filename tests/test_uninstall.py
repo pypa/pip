@@ -237,16 +237,13 @@ def test_uninstallpathset_non_local(mock_logger):
         uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
     mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
 
-@patch('pip.req.logger')
-def test_uninstall_distutilsonly(mock_logger):
+def test_uninstall_distutilsonly():
     # assert that we are unable to uninstall a distribution that was installed
     # by bare distutils
     env = reset_env()
     here = abspath(dirname(__file__))
     pkgdir = join(here, 'packages', 'distutilsonly')
     env.run('python', 'setup.py', 'install', cwd=pkgdir)
-    # assertionerror raised by scripttest because process returns nonzero
-    # exit code
     result = run_pip('uninstall', 'distutilsonly', expect_error=True)
     assert 'Cannot uninstall requirement distutilsonly' in result.stdout
     
