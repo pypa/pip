@@ -5,6 +5,7 @@ Antti Kaihola
 Armin Ronacher
 Brian Rosner
 Carl Meyer
+Chris McDonough
 Christian Oudard
 Clay McClure
 Cody Soyland
@@ -44,6 +45,7 @@ Peter Waller
 Phil Whelan
 Piet Delport
 Qiangning Hong
+Rafael Caricio
 Rene Dudfield
 Ronny Pfannschmidt
 Rory McCann
@@ -56,4 +58,3 @@ Vitaly Babiy
 W Trevor King
 Wil Tan
 Hsiaoming Yang
-Chris McDonough
