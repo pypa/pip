@@ -10,6 +10,11 @@ Next release (1.3) schedule
 
 Beta and final releases planned for the end of 2012.
 
+- Fixed issue 645: Don't allow distributions installed by bare distutils to
+  be uninstalled via ``pip uninstall``.  Instead, now, the process will exit
+  with an error if you attempt to uninstall a package installed via
+  distutils.
+
 1.2.1 (2012-09-06)
 ------------------
 

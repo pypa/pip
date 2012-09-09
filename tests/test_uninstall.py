@@ -2,11 +2,12 @@ from __future__ import with_statement
 
 import textwrap
 import sys
-from os.path import join, abspath, normpath
+from os.path import join, abspath, normpath, dirname
 from tempfile import mkdtemp
 from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
+from nose.tools import assert_raises
 
 from pip.util import rmtree
 
@@ -237,5 +238,16 @@ def test_uninstallpathset_non_local(mock_logger):
         uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
     mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
 
-
-
+@patch('pip.req.logger')
+def test_uninstall_distutilsonly(mock_logger):
+    # assert that we are unable to uninstall a distribution that was installed
+    # by bare distutils
+    env = reset_env()
+    here = abspath(dirname(__file__))
+    pkgdir = join(here, 'packages', 'distutilsonly')
+    env.run('python', 'setup.py', 'install', cwd=pkgdir)
+    # assertionerror raised by scripttest because process returns nonzero
+    # exit code
+    assert_raises(AssertionError, run_pip, 'uninstall', 'distutilsonly')
+    
+    
