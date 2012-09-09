@@ -7,7 +7,6 @@ from tempfile import mkdtemp
 from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
-from nose.tools import assert_raises
 
 from pip.util import rmtree
 
@@ -248,6 +247,8 @@ def test_uninstall_distutilsonly(mock_logger):
     env.run('python', 'setup.py', 'install', cwd=pkgdir)
     # assertionerror raised by scripttest because process returns nonzero
     # exit code
-    assert_raises(AssertionError, run_pip, 'uninstall', 'distutilsonly')
+    result = run_pip('uninstall', 'distutilsonly', expect_error=True)
+    assert 'Cannot uninstall requirement distutilsonly' in result.stdout
+    
     
     
