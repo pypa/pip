@@ -157,6 +157,13 @@ files, run ``pip status ProjectName``.
 Bundles
 -------
 
+.. note::
+
+   Pip bundles are poorly supported, poorly tested, not widely used, and
+   unnecessary (the same goals can be achieved by distributing a directory of
+   sdists and using `--find-links` to reference it). The feature will likely be
+   removed in a future version of pip.
+
 Another way to distribute a set of libraries is a bundle format (specific to
 pip).  This format is not stable at this time (there simply hasn't been
 any feedback, nor a great deal of thought).  A bundle file contains all the
