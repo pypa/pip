@@ -1,10 +1,13 @@
 """Stuff that differs in different Python versions"""
 
 import os
+import imp
 import sys
 import site
 
 __all__ = ['WindowsError']
+
+uses_pycache = hasattr(imp,'cache_from_source')
 
 try:
     WindowsError = WindowsError

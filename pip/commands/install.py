@@ -37,7 +37,7 @@ class InstallCommand(Command):
             action='append',
             default=[],
             metavar='FILENAME',
-            help='Install all the packages listed in the given requirements file.  '
+            help='Install all the packages listed in the given requirements file. '
             'This option can be used multiple times.')
         self.parser.add_option(
             '-f', '--find-links',
@@ -149,15 +149,15 @@ class InstallCommand(Command):
             dest='install_options',
             action='append',
             help="Extra arguments to be supplied to the setup.py install "
-            "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-            "Use multiple --install-option options to pass multiple options to setup.py install.  "
+            "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
+            "Use multiple --install-option options to pass multiple options to setup.py install. "
             "If you are using an option with a directory path, be sure to use absolute path.")
 
         self.parser.add_option(
             '--global-option',
             dest='global_options',
             action='append',
-            help="Extra global options to be supplied to the setup.py"
+            help="Extra global options to be supplied to the setup.py "
             "call before the install command")
 
         self.parser.add_option(

@@ -1,5 +1,6 @@
 from email.parser import FeedParser
 import os
+import imp
 import pkg_resources
 import re
 import sys
@@ -13,13 +14,13 @@ from pip.exceptions import (InstallationError, UninstallationError,
                             DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree, is_pypy
+from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
 from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
 from pip.util import make_path_relative
 from pip.util import call_subprocess
-from pip.backwardcompat import (urlparse, urllib,
+from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
 from pip.index import Link
@@ -367,18 +368,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        if self.comes_from is None:
-            # We don't check the versions of things explicitly installed.
-            # This makes, e.g., "pip Package==dev" possible
-            return
         version = self.installed_version
         if version not in self.req:
-            logger.fatal(
-                'Source in %s has the version %s, which does not match the requirement %s'
-                % (display_path(self.source_dir), version, self))
-            raise InstallationError(
-                'Source in %s has version %s that conflicts with %s'
-                % (display_path(self.source_dir), version, self))
+            logger.warn('Requested %s, but installing version %s' % (self, self.installed_version))
         else:
             logger.debug('Source in %s has version %s, which satisfies requirement %s'
                          % (display_path(self.source_dir), version, self))
@@ -448,6 +440,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
+            #FIXME: need a test for this elif block
+            #occurs with --single-version-externally-managed/--record outside of pip
             elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
                     namespaces = dist.get_metadata('namespace_packages.txt')
@@ -1276,7 +1270,7 @@ _scheme_re = re.compile(r'^(http|https|file):', re.I)
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_match = None
-    skip_regex = options.skip_requirements_regex
+    skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
         skip_match = re.compile(skip_regex)
     filename, content = get_file_content(filename, comes_from=comes_from)
@@ -1435,13 +1429,9 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(path)
 
-        #workaround for pip issue #626 (debian pypy creates __pycache__ folders)
-        if is_pypy:
-            head, tail = os.path.split(path)
-            tail_root, tail_ext = os.path.splitext(tail)
-            if tail_ext == '.py':
-                pycache_path = os.path.join(head, '__pycache__', tail_root + '.pypy-%d%d.pyc' % sys.pypy_version_info[:2])
-                self.add(pycache_path)
+        # __pycache__ files can show up after 'installed-files.txt' is created, due to imports
+        if os.path.splitext(path)[1] == '.py' and uses_pycache:
+            self.add(imp.cache_from_source(path))
 
 
     def add_pth(self, pth_file, entry):
@@ -1473,9 +1463,10 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self.paths:
-            raise InstallationError("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
         if not self._can_uninstall():
+            return
+        if not self.paths:
+            logger.notify("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2

@@ -147,6 +147,13 @@ packages. With the ``--index`` option you can search in a different
 repository.
 
 
+Checking installed package status
+---------------------------------
+
+To get info about an installed package, including its location and included
+files, run ``pip status ProjectName``.
+
+
 Bundles
 -------
 
