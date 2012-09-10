@@ -598,6 +598,21 @@ class Link(object):
     def __eq__(self, other):
         return self.url == other.url
 
+    def __ne__(self, other):
+        return self.url != other.url
+
+    def __lt__(self, other):
+        return self.url < other.url
+
+    def __le__(self, other):
+        return self.url <= other.url
+
+    def __gt__(self, other):
+        return self.url > other.url
+
+    def __ge__(self, other):
+        return self.url >= other.url
+
     def __hash__(self):
         return hash(self.url)
 

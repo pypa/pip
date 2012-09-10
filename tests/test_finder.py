@@ -7,6 +7,7 @@ from tests.path import Path
 from tests.test_pip import here
 
 find_links = 'file://' + urllib.quote(str(Path(here).abspath/'packages').replace('\\', '/'))
+find_links2 = 'file://' + urllib.quote(str(Path(here).abspath/'packages2').replace('\\', '/'))
 
 
 def test_no_mpkg():
@@ -25,3 +26,12 @@ def test_no_partial_name_match():
     found = finder.find_requirement(req, False)
 
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
+
+def test_duplicates_sort_ok():
+    """Finder successfully finds one of a set of duplicates in different
+    locations"""
+    finder = PackageFinder([find_links, find_links2], [])
+    req = InstallRequirement.from_line("duplicate")
+    found = finder.find_requirement(req, False)
+
+    assert found.url.endswith("duplicate-1.0.tar.gz"), found
