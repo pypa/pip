@@ -1273,6 +1273,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
         skip_match = re.compile(skip_regex)
+    reqs_file_dir = os.path.dirname(os.path.abspath(filename))
     filename, content = get_file_content(filename, comes_from=comes_from)
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
@@ -1304,6 +1305,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 line = line[len('--find-links'):].strip().lstrip('=')
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
+            # support a find-links local path relative to a requirements file
+            relative_to_reqs_file = os.path.join(reqs_file_dir, line)
+            if os.path.exists(relative_to_reqs_file):
+                line = relative_to_reqs_file
             if finder:
                 finder.find_links.append(line)
         elif line.startswith('-i') or line.startswith('--index-url'):
@@ -1317,6 +1322,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             line = line[len('--extra-index-url'):].strip().lstrip('=')
             if finder:
                 finder.index_urls.append(line)
+        elif line.startswith('--no-index'):
+            finder.index_urls = []
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):

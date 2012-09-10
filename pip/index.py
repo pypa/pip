@@ -20,7 +20,7 @@ from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
-                                Queue, httplib, urlparse,
+                                Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty
@@ -80,17 +80,17 @@ class PackageFinder(object):
 
         for url in locations:
             is_path = os.path.exists(url)
-            if url.startswith('file:'):
-                if is_path:
-                    path = url
-                else:
-                    path = url_to_path(url)
-                if os.path.isdir(path):
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif os.path.isfile(path):
-                    sort_path(path)
+            path = None
+            if is_path:
+                path = url
+            elif url.startswith('file:'):
+                path = url_to_path(url)
+            if path and os.path.isdir(path):
+                path = os.path.realpath(path)
+                for item in os.listdir(path):
+                    sort_path(os.path.join(path, item))
+            elif path and os.path.isfile(path):
+                sort_path(path)
             else:
                 urls.append(url)
         return files, urls
