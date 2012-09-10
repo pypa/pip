@@ -63,7 +63,8 @@ def test_download_should_skip_existing_files():
 
     # only the second package should be downloaded
     result = run_pip('install', '-r', env.scratch_path/ 'test-req.txt', '-d', '.', expect_error=True)
-    assert Path('scratch')/ 'python-openid-2.2.5.zip' in result.files_created
+    openid_tarball_prefix = str(Path('scratch')/ 'python-openid-')
+    assert any(path.startswith(openid_tarball_prefix) for path in result.files_created)
     assert Path('scratch')/ 'INITools-0.1.tar.gz' not in result.files_created
     assert env.site_packages/ 'initools' not in result.files_created
     assert env.site_packages/ 'openid' not in result.files_created
