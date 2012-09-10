@@ -14,6 +14,9 @@ Beta and final releases planned for the end of 2012.
 develop (unreleased)
 --------------------
 
+* Added check in ``install --download`` to prevent re-downloading if the target
+  file already exists. Thanks Andrey Bulgakov.
+
 * Added support for bare paths (including relative paths) as argument to
   `--find-links`. Thanks Paul Moore for draft patch.
 
