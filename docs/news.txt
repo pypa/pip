@@ -14,6 +14,11 @@ Beta and final releases planned for the end of 2012.
 develop (unreleased)
 --------------------
 
+* Added support for bare paths (including relative paths) as argument to
+  `--find-links`. Thanks Paul Moore for draft patch.
+
+* Added support for --no-index in requirements files.
+
 * Added "pip status" command to get information about an installed
   package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 

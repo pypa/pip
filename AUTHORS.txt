@@ -38,6 +38,7 @@ Nowell Strite
 Oliver Tonnhofer
 Olivier Girardot
 Patrick Jenkins
+Paul Moore
 Paul Nasrat
 Paul Oswald
 Paul van der Linden
