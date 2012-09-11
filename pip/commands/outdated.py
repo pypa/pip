@@ -22,7 +22,6 @@ class OutdatedCommand(Command):
             default=False,
             help='If in a virtualenv, do not report'
                 ' globally-installed packages')
-
         self.parser.add_option(
             '-f', '--find-links',
             dest='find_links',
@@ -112,6 +111,6 @@ class OutdatedCommand(Command):
 
             if remote_version > req.installed_version:
                 logger.notify('%s (CURRENT: %s LATEST: %s)' % (str(req), req.installed_version, remote_version))
-            
+
 
 OutdatedCommand()
