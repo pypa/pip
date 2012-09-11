@@ -5,7 +5,7 @@ from doctest import OutputChecker, ELLIPSIS
 from test_pip import reset_env, run_pip, write_file
 
 
-distribute_re = re.compile('^distribute==[0-9.]+ \(LATEST: [0-9.]+\)\n', re.MULTILINE)
+distribute_re = re.compile(r'^distribute==[0-9.]+ \(CURRENT: [0-9.]+ LATEST: [0-9.]+\)\n', re.MULTILINE)
 
 
 def _check_output(result, expected):
@@ -54,7 +54,7 @@ def test_outdated_default():
     expected = textwrap.dedent("""\
         Script result: pip outdated
         -- stdout: --------------------
-        simplejson==2.0.0 (LATEST: %s)
-        INITools==0.2 (LATEST: %s)
-        <BLANKLINE>""" % (simplejson_ver, initools_ver))
+        simplejson (CURRENT: 2.0.0 LATEST: %s)
+        initools (CURRENT: 0.2 LATEST: %s)
+        """ % (simplejson_ver, initools_ver))
     _check_output(result, expected)
