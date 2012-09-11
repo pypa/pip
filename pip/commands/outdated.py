@@ -1,7 +1,7 @@
 import pkg_resources
 
 from pip.basecommand import Command
-from pip.exceptions import DistributionNotFound
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import InstallRequirement
@@ -104,13 +104,15 @@ class OutdatedCommand(Command):
                     continue
             except DistributionNotFound:
                 continue
+            except BestVersionAlreadyInstalled:
+                continue
 
             # It might be a good idea that link or finder had a public method
             # that returned version
             remote_version = finder._link_package_versions(link, req.name)[0][2]
 
             if remote_version > req.installed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (str(req), req.installed_version, remote_version))
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, req.installed_version, remote_version))
 
 
 OutdatedCommand()
