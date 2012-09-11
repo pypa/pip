@@ -11,6 +11,12 @@ class StatusCommand(Command):
 
     def __init__(self):
         super(StatusCommand, self).__init__()
+        self.parser.add_option(
+            '-f', '--files',
+            dest='files',
+            action='store_true',
+            default=False,
+            help='If should show a full list of files for every installed package')
 
     def run(self, options, args):
         if not args:
@@ -19,7 +25,7 @@ class StatusCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        print_results(results)
+        print_results(results, options.files)
 
 
 def search_packages_info(query):
@@ -50,7 +56,7 @@ def search_packages_info(query):
             yield package
 
 
-def print_results(distributions):
+def print_results(distributions, list_all_files):
     """
     Print the informations from installed distributions found.
     """
@@ -59,15 +65,13 @@ def print_results(distributions):
         logger.notify("Name: %s" % dist['name'])
         logger.notify("Version: %s" % dist['version'])
         logger.notify("Location: %s" % dist['location'])
-        logger.notify("Files:")
-        if 'files' in dist:
-            for i, line in enumerate(open(dist['files'])):
-                logger.notify("  %s" % line.strip())
-                if i > 20:
-                    logger.notify("  and more.")
-                    break
-        else:
-            logger.notify("Cannot locate installed-files.txt")
+        if list_all_files:
+            logger.notify("Files:")
+            if 'files' in dist:
+                for line in open(dist['files']):
+                    logger.notify("  %s" % line.strip())
+            else:
+                logger.notify("Cannot locate installed-files.txt")
 
 
 StatusCommand()
