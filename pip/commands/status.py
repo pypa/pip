@@ -61,11 +61,8 @@ def print_results(distributions):
         logger.notify("Location: %s" % dist['location'])
         logger.notify("Files:")
         if 'files' in dist:
-            for i, line in enumerate(open(dist['files'])):
+            for line in open(dist['files']):
                 logger.notify("  %s" % line.strip())
-                if i > 20:
-                    logger.notify("  and more.")
-                    break
         else:
             logger.notify("Cannot locate installed-files.txt")
 
