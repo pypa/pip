@@ -4,19 +4,19 @@ from pip.basecommand import Command
 from pip.log import logger
 
 
-class StatusCommand(Command):
-    name = 'status'
+class ShowCommand(Command):
+    name = 'show'
     usage = '%prog QUERY'
     summary = 'Output installed distributions (exact versions, files) to stdout'
 
     def __init__(self):
-        super(StatusCommand, self).__init__()
+        super(ShowCommand, self).__init__()
         self.parser.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
             default=False,
-            help='If should show a full list of files for every installed package')
+            help='Show the full list of installed files for each package')
 
     def run(self, options, args):
         if not args:
@@ -74,4 +74,4 @@ def print_results(distributions, list_all_files):
                 logger.notify("Cannot locate installed-files.txt")
 
 
-StatusCommand()
+ShowCommand()

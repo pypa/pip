@@ -22,7 +22,7 @@ develop (unreleased)
 
 * Added support for --no-index in requirements files.
 
-* Added "pip status" command to get information about an installed
+* Added "pip show" command to get information about an installed
   package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 
 1.2.1 (2012-09-06)
