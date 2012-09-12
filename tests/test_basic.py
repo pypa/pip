@@ -5,7 +5,6 @@ import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
 
-from nose import SkipTest
 from nose.tools import assert_raises
 from mock import patch
 

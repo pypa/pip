@@ -20,7 +20,7 @@ from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
-                                Queue, httplib, urlparse,
+                                Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty
@@ -81,14 +81,18 @@ class PackageFinder(object):
                 files.append(url)
 
         for url in locations:
-            if url.startswith('file:'):
+            is_path = os.path.exists(url)
+            path = None
+            if is_path:
+                path = url
+            elif url.startswith('file:'):
                 path = url_to_path(url)
-                if os.path.isdir(path):
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif os.path.isfile(path):
-                    sort_path(path)
+            if path and os.path.isdir(path):
+                path = os.path.realpath(path)
+                for item in os.listdir(path):
+                    sort_path(os.path.join(path, item))
+            elif path and os.path.isfile(path):
+                sort_path(path)
             else:
                 urls.append(url)
         return files, urls
@@ -623,6 +627,21 @@ class Link(object):
 
     def __eq__(self, other):
         return self.url == other.url
+
+    def __ne__(self, other):
+        return self.url != other.url
+
+    def __lt__(self, other):
+        return self.url < other.url
+
+    def __le__(self, other):
+        return self.url <= other.url
+
+    def __gt__(self, other):
+        return self.url > other.url
+
+    def __ge__(self, other):
+        return self.url >= other.url
 
     def __hash__(self):
         return hash(self.url)

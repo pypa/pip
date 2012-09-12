@@ -4,6 +4,7 @@ import os
 from pkgutil import walk_packages
 import socket
 import sys
+import tempfile
 import traceback
 import time
 
@@ -145,7 +146,7 @@ class Command(object):
                temp = tempfile.NamedTemporaryFile(delete=False)
                log_fn = temp.name
                log_fp = open_logfile(log_fn, 'w')
-            logger.fatal('Storing complete log in %s' % log_fn)			
+            logger.fatal('Storing complete log in %s' % log_fn)
             log_fp.write(text)
             log_fp.close()
         return exit

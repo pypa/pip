@@ -11,11 +11,11 @@ from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
-from pip.vcs import git, mercurial, subversion, bazaar
+from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "1.2"
+__version__ = "1.2.1.post1"
 
 
 def autocomplete():

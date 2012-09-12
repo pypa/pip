@@ -10,6 +10,28 @@ Next release (1.3) schedule
 
 Beta and final releases planned for the end of 2012.
 
+
+develop (unreleased)
+--------------------
+
+* Added check in ``install --download`` to prevent re-downloading if the target
+  file already exists. Thanks Andrey Bulgakov.
+
+* Added support for bare paths (including relative paths) as argument to
+  `--find-links`. Thanks Paul Moore for draft patch.
+
+* Added support for --no-index in requirements files.
+
+* Added "pip status" command to get information about an installed
+  package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
+
+1.2.1 (2012-09-06)
+------------------
+
+* Fixed a regression introduced in 1.2 about raising an exception when
+  not finding any files to uninstall in the current environment. Thanks for
+  the fix, Marcus Smith.
+
 1.2 (2012-09-01)
 ----------------
 
