@@ -8,13 +8,13 @@ from pip.req import InstallRequirement
 from pip.util import get_installed_distributions
 
 
-class OutdatedCommand(Command):
-    name = 'outdated'
+class ListCommand(Command):
+    name = 'list'
     usage = '%prog [OPTIONS]'
-    summary = 'Output all currently installed outdated packages to stdout'
+    summary = 'List all currently installed packages.'
 
     def __init__(self):
-        super(OutdatedCommand, self).__init__()
+        super(ListCommand, self).__init__()
         self.parser.add_option(
             '-l', '--local',
             dest='local',
@@ -22,6 +22,12 @@ class OutdatedCommand(Command):
             default=False,
             help='If in a virtualenv, do not report'
                 ' globally-installed packages')
+        self.parser.add_option(
+            '-o', '--outdated',
+            dest='outdated',
+            action='store_true',
+            default=False,
+            help='Output all currently installed outdated packages to stdout')
         self.parser.add_option(
             '-f', '--find-links',
             dest='find_links',
@@ -72,6 +78,10 @@ class OutdatedCommand(Command):
                              mirrors=options.mirrors)
 
     def run(self, options, args):
+        if options.outdated:
+            self.run_outdated(options, args)
+
+    def run_outdated(self, options, args):
         local_only = options.local
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -115,4 +125,4 @@ class OutdatedCommand(Command):
                 logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, req.installed_version, remote_version))
 
 
-OutdatedCommand()
+ListCommand()

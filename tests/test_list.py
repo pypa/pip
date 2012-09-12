@@ -32,10 +32,9 @@ def _check_output(result, expected):
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
 
-
 def test_outdated_default():
     """
-    Test default behavor of oudated command
+    Test default behavor of --outdated option in the list command
     """
 
     env = reset_env()
@@ -50,9 +49,9 @@ def test_outdated_default():
     simplejson_ver = total_re.search(str(result)).group(1)
     result = run_pip('search', 'INITools')
     initools_ver = total_re.search(str(result)).group(1)
-    result = run_pip('outdated', expect_stderr=True)
+    result = run_pip('list', '--outdated', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip outdated
+        Script result: pip list --outdated
         -- stdout: --------------------
         simplejson (CURRENT: 2.0.0 LATEST: %s)
         initools (CURRENT: 0.2 LATEST: %s)
