@@ -1,15 +1,15 @@
 from pip import __version__
-from pip.commands.status import search_packages_info
+from pip.commands.show import search_packages_info
 from tests.test_pip import reset_env, run_pip
 
 
-def test_status():
+def test_show_command():
     """
-    Test end to end test for status command.
+    Test end to end test for show command.
 
     """
     reset_env()
-    result = run_pip('status', 'pip')
+    result = run_pip('show', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 7
     assert lines[0] == '---', lines[0]
@@ -22,11 +22,11 @@ def test_status():
 
 def test_missing_argument():
     """
-    Test status command with no arguments.
+    Test show command with no arguments.
 
     """
     reset_env()
-    result = run_pip('status')
+    result = run_pip('show')
     assert 'ERROR: Please provide a project name or names.' in result.stdout
 
 

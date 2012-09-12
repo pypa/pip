@@ -4,13 +4,13 @@ from pip.basecommand import Command
 from pip.log import logger
 
 
-class StatusCommand(Command):
-    name = 'status'
+class ShowCommand(Command):
+    name = 'show'
     usage = '%prog QUERY'
     summary = 'Output installed distributions (exact versions, files) to stdout'
 
     def __init__(self):
-        super(StatusCommand, self).__init__()
+        super(ShowCommand, self).__init__()
 
     def run(self, options, args):
         if not args:
@@ -70,4 +70,4 @@ def print_results(distributions):
             logger.notify("Cannot locate installed-files.txt")
 
 
-StatusCommand()
+ShowCommand()
