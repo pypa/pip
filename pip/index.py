@@ -322,7 +322,7 @@ class PackageFinder(object):
                 return []
             if ext == '.whl':
                 wheel_info = self._wheel_info_re.match(link.filename)
-                if wheel_info.group('name').lower() == search_name.lower():
+                if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
                     version = wheel_info.group('ver')
                     nodot = sys.version[:3].replace('.', '')
                     pyversions = wheel_info.group('pyver').split('.')
