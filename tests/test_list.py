@@ -58,12 +58,27 @@ def test_list_command():
     _check_output(result, textwrap.dedent(expected))
 
 
-def test_outdated_default():
+def test_local_flag():
     """
-    Test the behavior of --outdated option in the list command
+    Test the behavior of --local flag in the list command
 
     """
+    reset_env()
+    run_pip('install', 'simplejson==2.0.0')
+    result = run_pip('list', '--local')
+    expected = textwrap.dedent("""\
+        Script result: pip list --local
+        -- stdout: --------------------
+        simplejson (2.0.0)
+    """)
+    _check_output(result, expected)
 
+
+def test_outdated_flag():
+    """
+    Test the behavior of --outdated flag in the list command
+
+    """
     env = reset_env()
     total_re = re.compile('LATEST: +([0-9.]+)')
     write_file('initools-req.txt', textwrap.dedent("""\
