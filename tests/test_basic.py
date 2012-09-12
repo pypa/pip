@@ -346,6 +346,7 @@ def test_install_from_wheel_with_extras():
     """
     Test installing from a wheel.
     """
+    from nose import SkipTest
     try:
         import ast
     except ImportError:
