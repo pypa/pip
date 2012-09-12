@@ -2,7 +2,7 @@ import re
 import sys
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from test_pip import reset_env, run_pip, write_file
+from test_pip import pyversion, reset_env, run_pip, write_file
 
 
 distribute_re = re.compile(r'^distribute==[0-9.]+ \(CURRENT: [0-9.]+ LATEST: [0-9.]+\)\n', re.MULTILINE)
@@ -32,9 +32,36 @@ def _check_output(result, expected):
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
 
+def test_list_command():
+    """
+    Test default behavior of list command.
+
+    """
+    reset_env()
+    run_pip('install', 'INITools==0.2', 'simplejson==2.0.0')
+    result = run_pip('list')
+    expected = textwrap.dedent("""\
+        Script result: pip list
+        -- stdout: --------------------
+    """)
+    if pyversion < (3,):
+        expected += textwrap.dedent("""\
+        wsgiref (...)
+        initools (0.2)
+        simplejson (2.0.0)
+        """)
+    else:
+        expected += textwrap.dedent("""\
+        initools (0.2)
+        simplejson (2.0.0)
+        """)
+    _check_output(result, textwrap.dedent(expected))
+
+
 def test_outdated_default():
     """
-    Test default behavor of --outdated option in the list command
+    Test the behavior of --outdated option in the list command
+
     """
 
     env = reset_env()
@@ -53,7 +80,7 @@ def test_outdated_default():
     expected = textwrap.dedent("""\
         Script result: pip list --outdated
         -- stdout: --------------------
-        simplejson (CURRENT: 2.0.0 LATEST: %s)
         initools (CURRENT: 0.2 LATEST: %s)
-        """ % (simplejson_ver, initools_ver))
+        simplejson (CURRENT: 2.0.0 LATEST: %s)
+        """ % (initools_ver, simplejson_ver))
     _check_output(result, expected)

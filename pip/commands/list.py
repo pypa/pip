@@ -80,32 +80,26 @@ class ListCommand(Command):
     def run(self, options, args):
         if options.outdated:
             self.run_outdated(options, args)
+        else:
+            self.run_listing(options, args)
 
     def run_outdated(self, options, args):
-        local_only = options.local
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
 
-        installations = {}
         dependency_links = []
-
         for dist in pkg_resources.working_set:
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
                 )
 
-        for dist in get_installed_distributions(local_only=local_only):
-            req = InstallRequirement.from_line(dist.key, None)
-            req.check_if_exists()
-            installations[req.name] = req
-
         finder = self._build_package_finder(options, index_urls)
         finder.add_dependency_links(dependency_links)
 
-        for req in installations.values():
+        for req in self.find_installed_packages(options):
             try:
                 link = finder.find_requirement(req, True)
 
@@ -123,6 +117,18 @@ class ListCommand(Command):
 
             if remote_version > req.installed_version:
                 logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, req.installed_version, remote_version))
+
+    def find_installed_packages(self, options):
+        local_only = options.local
+        for dist in get_installed_distributions(local_only=local_only):
+            req = InstallRequirement.from_line(dist.key, None)
+            req.check_if_exists()
+            yield req
+
+    def run_listing(self, options, args):
+        installed_packages = self.find_installed_packages(options)
+        for req in installed_packages:
+            logger.notify('%s (%s)' % (req.name, req.installed_version))
 
 
 ListCommand()
