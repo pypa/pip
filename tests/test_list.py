@@ -74,6 +74,19 @@ def test_local_flag():
     _check_output(result, expected)
 
 
+def test_uptodate_flag():
+    """
+    Test the behavior of --uptodate flag in the list command
+
+    """
+    reset_env()
+    run_pip('install', 'simplejson', 'mock==0.8.0')
+    result = run_pip('list', '--uptodate')
+    output = str(result)
+    assert not 'mock' in output
+    assert 'simplejson' in output
+
+
 def test_outdated_flag():
     """
     Test the behavior of --outdated flag in the list command
