@@ -1,8 +1,6 @@
 import re
-import sys
 import textwrap
-from doctest import OutputChecker, ELLIPSIS
-from test_pip import pyversion, reset_env, run_pip, write_file
+from tests.test_pip import pyversion, reset_env, run_pip, write_file
 
 
 def test_list_command():
