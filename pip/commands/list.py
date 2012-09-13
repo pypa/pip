@@ -29,6 +29,12 @@ class ListCommand(Command):
             default=False,
             help='Output all currently installed outdated packages to stdout')
         self.parser.add_option(
+            '-u', '--uptodate',
+            dest='uptodate',
+            action='store_true',
+            default=False,
+            help='Output all currently installed uptodate packages to stdout')
+        self.parser.add_option(
             '-f', '--find-links',
             dest='find_links',
             action='append',
@@ -80,10 +86,25 @@ class ListCommand(Command):
     def run(self, options, args):
         if options.outdated:
             self.run_outdated(options, args)
+        elif options.uptodate:
+            self.run_uptodate(options, args)
         else:
             self.run_listing(options, args)
 
     def run_outdated(self, options, args):
+        for req, remote_version in self.find_packeages_latests_versions(options):
+            if remote_version > req.installed_version:
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, 
+                    req.installed_version, remote_version))
+
+    def find_installed_packages(self, options):
+        local_only = options.local
+        for dist in get_installed_distributions(local_only=local_only):
+            req = InstallRequirement.from_line(dist.key, None)
+            req.check_if_exists()
+            yield req
+
+    def find_packeages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
@@ -99,7 +120,8 @@ class ListCommand(Command):
         finder = self._build_package_finder(options, index_urls)
         finder.add_dependency_links(dependency_links)
 
-        for req in self.find_installed_packages(options):
+        installed_packages = self.find_installed_packages(options)
+        for req in installed_packages:
             try:
                 link = finder.find_requirement(req, True)
 
@@ -109,26 +131,27 @@ class ListCommand(Command):
             except DistributionNotFound:
                 continue
             except BestVersionAlreadyInstalled:
-                continue
-
-            # It might be a good idea that link or finder had a public method
-            # that returned version
-            remote_version = finder._link_package_versions(link, req.name)[0][2]
-
-            if remote_version > req.installed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, req.installed_version, remote_version))
-
-    def find_installed_packages(self, options):
-        local_only = options.local
-        for dist in get_installed_distributions(local_only=local_only):
-            req = InstallRequirement.from_line(dist.key, None)
-            req.check_if_exists()
-            yield req
+                remote_version = req.installed_version
+            else:
+                # It might be a good idea that link or finder had a public method
+                # that returned version
+                remote_version = finder._link_package_versions(link, req.name)[0][2]
+            yield req, remote_version
 
     def run_listing(self, options, args):
         installed_packages = self.find_installed_packages(options)
+        self.output_package_listing(installed_packages)
+
+    def output_package_listing(self, installed_packages):
         for req in installed_packages:
             logger.notify('%s (%s)' % (req.name, req.installed_version))
+
+    def run_uptodate(self, options, args):
+        uptodate = []
+        for req, remote_version in self.find_packeages_latests_versions(options):
+            if req.installed_version == remote_version:
+                uptodate.append(req)
+        self.output_package_listing(uptodate)
 
 
 ListCommand()
