@@ -32,11 +32,13 @@ def test_uptodate_flag():
 
     """
     reset_env()
+    total_re = re.compile('INSTALLED: +([0-9.\w]+)')
     run_pip('install', 'pytz', 'mock==0.8.0')
+    result = run_pip('search', 'pytz')
+    pytz_ver = total_re.search(str(result)).group(1)
     result = run_pip('list', '--uptodate')
-    output = str(result)
-    assert not 'mock' in output
-    assert 'pytz' in output
+    assert not 'mock (0.8.0)' in result.stdout
+    assert 'pytz (%s)' % pytz_ver in result.stdout
 
 
 def test_outdated_flag():
