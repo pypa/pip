@@ -7,6 +7,7 @@ from tempfile import mkdtemp
 from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
+import shutil
 
 from pip.util import rmtree
 
@@ -242,11 +243,14 @@ def test_uninstall_distutilsonly():
     # by bare distutils
     env = reset_env()
     here = abspath(dirname(__file__))
-    pkgdir = join(here, 'packages', 'distutilsonly')
-    env.run('python', 'setup.py', 'install', cwd=pkgdir)
-    result = run_pip('uninstall', 'distutilsonly', expect_error=True)
-    assert 'Cannot uninstall requirement distutilsonly' in result.stdout, \
-           result.stdout
-    
-    
-    
+    tmpdir = mkdtemp()
+    try:
+        pkgdir = join(here, 'packages', 'distutilsonly')
+        targetdir = join(tmpdir, 'distutilsonly')
+        shutil.copytree(pkgdir, targetdir)
+        env.run('python', 'setup.py', 'install', cwd=targetdir)
+        result = run_pip('uninstall', 'distutilsonly', expect_error=True)
+        assert 'Cannot uninstall requirement distutilsonly' in result.stdout, \
+               result.stdout
+    finally:
+        rmtree(tmpdir, ignore_errors=True)
