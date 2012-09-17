@@ -91,7 +91,7 @@ class PackageFinder(object):
                     path = os.path.realpath(path)
                     for item in os.listdir(path):
                         sort_path(os.path.join(path, item))
-                elif os.path.isdir(path): # index file:// url
+                elif is_file_url and os.path.isdir(path):
                     urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
