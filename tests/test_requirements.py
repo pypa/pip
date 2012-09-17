@@ -180,4 +180,4 @@ def test_install_local_editable_with_extras():
     res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
     assert env.site_packages/'easy-install.pth' in res.files_updated
     assert env.site_packages/'LocalExtras.egg-link' in res.files_created
-    assert env.site_packages/'fspkg' in res.files_created
+    assert env.site_packages/'simple' in res.files_created
