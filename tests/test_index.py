@@ -1,5 +1,5 @@
 import os
-import urllib
+from pip.backwardcompat import urllib
 from tests.path import Path
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from pip.index import PackageFinder
@@ -59,17 +59,6 @@ def test_get_mirrors_no_cname(mock_gethostbyname_ex):
         assert c + ".pypi.python.org" in mirrors
 
 
-def test_sort_locations_file_index_url():
-    """
-    Test that a file:// index url (that's also a dir) doesn't get a listdir run
-    """
-    index_url = 'file://' + os.path.join(here, 'indexes', 'empty_with_pkg')
-    indexes = [index_url]
-    finder = PackageFinder([], indexes)
-    files, urls = finder._sort_locations(indexes)
-    assert not files, "files should not have been found at index url: %s" % index_url
-
-
 def test_sort_locations_file_find_link():
     """
     Test that a file:// find-link dir gets listdir run
@@ -78,7 +67,17 @@ def test_sort_locations_file_find_link():
     find_links = [find_links_url]
     finder = PackageFinder(find_links, [])
     files, urls = finder._sort_locations(find_links)
-    assert files, "files should have been found at find-links url: %s" % find_links_url
+    assert files and not urls, "files and not urls should have been found at find-links url: %s" % find_links_url
+
+
+def test_sort_locations_file_not_find_link():
+    """
+    Test that a file:// url dir that's not a find-link, doesn't get a listdir run
+    """
+    index_url = 'file://' + os.path.join(here, 'indexes', 'empty_with_pkg')
+    finder = PackageFinder([], [])
+    files, urls = finder._sort_locations([index_url])
+    assert urls and not files, "urls, but not files should have been found"
 
 
 def test_install_from_file_index_hash_link():
