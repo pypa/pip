@@ -1134,7 +1134,8 @@ class RequirementSet(object):
             loc = location
         if is_vcs_url(link):
             return unpack_vcs_link(link, loc, only_download)
-        elif is_file_url(link):
+        # a local file:// index could have links with hashes
+        elif not link.hash and is_file_url(link):
             return unpack_file_url(link, loc)
         else:
             if self.download_cache:
