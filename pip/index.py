@@ -62,8 +62,7 @@ class PackageFinder(object):
         ## FIXME: also, we should track comes_from (i.e., use Link)
         self.dependency_links.extend(links)
 
-    @staticmethod
-    def _sort_locations(locations):
+    def _sort_locations(self, locations):
         """
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
@@ -71,8 +70,7 @@ class PackageFinder(object):
         files = []
         urls = []
 
-        # puts the url for the given file path into the appropriate
-        # list
+        # puts the url for the given file path into the appropriate list
         def sort_path(path):
             url = path_to_url2(path)
             if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
@@ -81,20 +79,27 @@ class PackageFinder(object):
                 files.append(url)
 
         for url in locations:
-            is_path = os.path.exists(url)
-            path = None
-            if is_path:
-                path = url
-            elif url.startswith('file:'):
-                path = url_to_path(url)
-            if path and os.path.isdir(path):
-                path = os.path.realpath(path)
-                for item in os.listdir(path):
-                    sort_path(os.path.join(path, item))
-            elif path and os.path.isfile(path):
-                sort_path(path)
+
+            is_local_path = os.path.exists(url)
+            is_file_url = url.startswith('file:')
+            is_find_link = url in self.find_links
+
+            if is_local_path or is_file_url:
+                if is_local_path:
+                    path = url
+                else:
+                    path = url_to_path(url)
+                if is_find_link and os.path.isdir(path):
+                    path = os.path.realpath(path)
+                    for item in os.listdir(path):
+                        sort_path(os.path.join(path, item))
+                elif is_file_url and os.path.isdir(path):
+                    urls.append(url)
+                elif os.path.isfile(path):
+                    sort_path(path)
             else:
                 urls.append(url)
+
         return files, urls
 
     def find_requirement(self, req, upgrade):
