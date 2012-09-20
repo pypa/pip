@@ -10,7 +10,7 @@ import shutil
 import tempfile
 import zipfile
 
-from pip.locations import bin_py, running_under_virtualenv, site_packages
+from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound)
@@ -31,18 +31,10 @@ from pip.download import (get_file_content, is_url, url_to_path,
                           path_to_url, is_archive_file,
                           unpack_vcs_link, is_vcs_url, is_file_url,
                           unpack_file_url, unpack_http_url)
+from pip.wheel import move_wheel_files
 
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
-
-def open_for_csv(name, mode):
-    if sys.version_info[0] < 3:
-        nl = {}
-        bin = 'b'
-    else:
-        nl = { 'newline': '' }
-        bin = ''
-    return open(name, mode + bin, **nl)
 
 class InstallRequirement(object):
     def __init__(self, req, comes_from, source_dir=None, editable=False,
@@ -805,75 +797,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self._bundle_editable_dirs = bundle_editable_dirs
         
     def move_wheel_files(self, wheeldir):
-        import csv
-        from pip.backwardcompat import get_path
+        move_wheel_files(self.req, wheeldir)
 
-        if get_path('purelib') != get_path('platlib'):
-            # XXX check *.dist-info/WHEEL to deal with this obscurity
-            raise NotImplemented("purelib != platlib")
-
-        info_dir = []
-        data_dirs = []                
-        source = wheeldir.rstrip(os.path.sep) + os.path.sep
-        location = dest = get_path('platlib')
-        installed = {}
-        
-        def normpath(src, p):
-            return make_path_relative(src, p).replace(os.path.sep, '/')
-        
-        def record_installed(srcfile, destfile):
-            """Map archive RECORD paths to installation RECORD paths."""
-            oldpath = normpath(srcfile, wheeldir)
-            newpath = normpath(destfile, location)
-            installed[oldpath] = newpath
-                                    
-        def clobber(source, dest, is_base):
-            for dir, subdirs, files in os.walk(source):
-                basedir = dir[len(source):].lstrip(os.path.sep)
-                if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
-                    continue
-                for s in subdirs:
-                    destsubdir = os.path.join(dest, basedir, s)
-                    if is_base and basedir == '' and destsubdir.endswith('.data'):
-                        data_dirs.append(s)
-                        continue
-                    elif (is_base
-                        and s.endswith('.dist-info')
-                        # is self.req.project_name case preserving?
-                        and s.lower().startswith(self.req.project_name.replace('-', '_').lower())):
-                        assert not info_dir, 'Multiple .dist-info directories'
-                        info_dir.append(destsubdir)
-                    if not os.path.exists(destsubdir):
-                        os.makedirs(destsubdir)
-                for f in files:
-                    srcfile = os.path.join(dir, f)
-                    destfile = os.path.join(dest, basedir, f)
-                    shutil.move(srcfile, destfile)
-                    record_installed(srcfile, destfile)
-
-        clobber(source, dest, True)
-                
-        assert info_dir, "%s .dist-info directory not found" % self.req
-        
-        for datadir in data_dirs:
-            for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-                source = os.path.join(wheeldir, datadir, subdir)
-                dest = get_path(subdir)
-                clobber(source, dest, False)
-
-        record = os.path.join(info_dir[0], 'RECORD')
-        temp_record = os.path.join(info_dir[0], 'RECORD.pip')
-        with open_for_csv(record, 'r') as record_in:
-            with open_for_csv(temp_record, 'w+') as record_out:
-                reader = csv.reader(record_in)
-                writer = csv.writer(record_out)
-                for row in reader:
-                    row[0] = installed.pop(row[0], row[0])
-                    writer.writerow(row)
-                for f in installed:
-                    writer.writerow((installed[f], '', '')) 
-        shutil.move(temp_record, record)
-                    
     @property
     def delete_marker_filename(self):
         assert self.source_dir
