@@ -1,6 +1,7 @@
 """
-Support installing the "wheel" binary package format.
+Support functions for installing the "wheel" binary package format.
 """
+from __future__ import with_statement
 
 import os
 import sys
