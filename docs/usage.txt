@@ -26,8 +26,8 @@ local or remote::
 .. _setuptools extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
 
 
-Edit mode
-*********
+Editable mode
+*************
 
 Packages normally_ install under ``site-packages``, but when you're
 making changes, it makes more sense to run the package straight from the
@@ -151,7 +151,7 @@ Checking installed package status
 ---------------------------------
 
 To get info about an installed package, including its location and included
-files, run ``pip status ProjectName``.
+files, run ``pip show ProjectName``.
 
 
 Bundles
