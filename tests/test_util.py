@@ -8,6 +8,7 @@ from mock import Mock
 from nose.tools import eq_
 from tests.path import Path
 from pip.util import egg_link_path
+from pip.util import Inf
 
 
 class Tests_EgglinkPath:
@@ -138,3 +139,10 @@ class Tests_EgglinkPath:
         self.mock_isfile.return_value = False
         eq_(egg_link_path(self.mock_dist), None)
 
+def test_Inf_greater():
+    """Test Inf compares greater."""
+    assert Inf > object()
+
+def test_Inf_equals_Inf():
+    """Test Inf compares greater."""
+    assert Inf == Inf
