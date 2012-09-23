@@ -165,7 +165,7 @@ class PackageFinder(object):
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
-            found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
+            found_versions.append((req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version))
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
@@ -177,31 +177,31 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            applicable_versions.append((link, version))
-        applicable_versions = sorted(applicable_versions, key=lambda v: pkg_resources.parse_version(v[1]), reverse=True)
-        existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
+            applicable_versions.append((parsed_version, link, version))
+        applicable_versions = sorted(applicable_versions, reverse=True)
+        existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is Inf:
+            if applicable_versions[0][1] is InfLink:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
-                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
-                            % (req.satisfied_by.version, applicable_versions[0][1]))
+                            % (req.satisfied_by.version, applicable_versions[0][2]))
             return None
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in found_versions])))
             raise DistributionNotFound('No distributions matching the version for %s' % req)
-        if applicable_versions[0][0] is Inf:
+        if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
-                        % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
+                        % (req.satisfied_by.version, ', '.join([version for parsed_version, link, version in applicable_versions[1:]]) or 'none'))
             raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
-                        (applicable_versions[0][1], ', '.join([version for link, version in applicable_versions])))
-        return applicable_versions[0][0]
+                        (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
+        return applicable_versions[0][1]
+
 
     def _find_url_name(self, index_url, url_name, req):
         """Finds the true URL name of a package, when the given name isn't quite correct.
@@ -595,7 +595,7 @@ class Link(object):
         if self.comes_from:
             return '%s (from %s)' % (self.url, self.comes_from)
         else:
-            return self.url
+            return str(self.url)
 
     def __repr__(self):
         return '<Link %s>' % self
@@ -672,6 +672,9 @@ class Link(object):
     @property
     def show_url(self):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
+
+#An "Infinite Link" that compares greater than other links
+InfLink = Link(Inf)
 
 
 def get_requirement_from_url(url):
