@@ -4,14 +4,29 @@ Support functions for installing the "wheel" binary package format.
 from __future__ import with_statement
 
 import csv
-import imp
 import os
 import sys
 import shutil
 import functools
+import hashlib
+
+from base64 import urlsafe_b64encode
 
 from pip.util import make_path_relative
 
+def rehash(path, algo='sha256', blocksize=1<<20):
+    """Return (hash, length) for path using hashlib.new(algo)"""
+    h = hashlib.new(algo)
+    length = 0
+    with open(path) as f:
+        block = f.read(blocksize)
+        while block:                
+            length += len(block)
+            h.update(block)
+            block = f.read(blocksize)            
+    digest = 'sha256='+urlsafe_b64encode(h.digest()).decode('latin1').rstrip('=')
+    return (digest, length)
+    
 def open_for_csv(name, mode):
     if sys.version_info[0] < 3:
         nl = {}
@@ -29,9 +44,9 @@ def fix_script(path):
         script = open(path, 'rb')
         try:
             firstline = script.readline()
-            if not firstline.startswith('#!python'):
+            if not firstline.decode('latin1').startswith('#!python'):
                 return False
-            firstline = '#!' + sys.executable + os.linesep
+            firstline = ('#!' + sys.executable + os.linesep).encode('utf-8')
             rest = script.read()
         finally:
             script.close()
@@ -55,15 +70,18 @@ def move_wheel_files(req, wheeldir):
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
     location = dest = get_path('platlib')
     installed = {}
+    changed = set()
     
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')
     
-    def record_installed(srcfile, destfile):
+    def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = normpath(srcfile, wheeldir)
         newpath = normpath(destfile, location)
         installed[oldpath] = newpath
+        if modified:
+            changed.add(destfile)
 
     def clobber(source, dest, is_base, fixer=None):
         for dir, subdirs, files in os.walk(source):
@@ -87,9 +105,10 @@ def move_wheel_files(req, wheeldir):
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
                 shutil.move(srcfile, destfile)
+                changed = False
                 if fixer:
-                    fixer(destfile)
-                record_installed(srcfile, destfile)
+                    changed = fixer(destfile)
+                record_installed(srcfile, destfile, changed)
 
     clobber(source, dest, True)
             
@@ -113,6 +132,8 @@ def move_wheel_files(req, wheeldir):
             writer = csv.writer(record_out)
             for row in reader:
                 row[0] = installed.pop(row[0], row[0])
+                if row[0] in changed:
+                    row[1], row[2] = rehash(row[0])
                 writer.writerow(row)
             for f in installed:
                 writer.writerow((installed[f], '', '')) 
