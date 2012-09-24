@@ -12,11 +12,12 @@ def test_show():
     reset_env()
     result = run_pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 5
+    assert len(lines) == 6
     assert lines[0] == '---', lines[0]
     assert lines[1] == 'Name: pip', lines[1]
     assert lines[2] == 'Version: %s' % __version__, lines[2]
     assert lines[3].startswith('Location: '), lines[3]
+    assert lines[4] == 'Requires: '
 
 
 def test_show_with_files_not_found():
@@ -28,13 +29,14 @@ def test_show_with_files_not_found():
     reset_env()
     result = run_pip('show', '-f', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 7
+    assert len(lines) == 8
     assert lines[0] == '---', lines[0]
     assert lines[1] == 'Name: pip', lines[1]
     assert lines[2] == 'Version: %s' % __version__, lines[2]
     assert lines[3].startswith('Location: '), lines[3]
-    assert lines[4] ==  'Files:', lines[4]
-    assert lines[5] == 'Cannot locate installed-files.txt', lines[5]
+    assert lines[4] == 'Requires: '
+    assert lines[5] == 'Files:', lines[4]
+    assert lines[6] == 'Cannot locate installed-files.txt', lines[5]
 
 
 def test_show_with_all_files():
