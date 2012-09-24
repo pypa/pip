@@ -29,6 +29,7 @@ from pip.download import (get_file_content, is_url, url_to_path,
                           path_to_url, is_archive_file,
                           unpack_vcs_link, is_vcs_url, is_file_url,
                           unpack_file_url, unpack_http_url)
+import pip.wheel
 from pip.wheel import move_wheel_files
 
 
@@ -476,11 +477,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                            'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
         elif dist_info_exists:
-            if dist.has_metadata('RECORD'):
-                import csv
-                r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
-                for row in r:
-                    paths_to_remove.add(os.path.join(dist.location, row[0]))
+            for path in pip.wheel.uninstallation_paths(dist):
+                paths_to_remove.add(path)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):

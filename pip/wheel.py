@@ -3,9 +3,12 @@ Support functions for installing the "wheel" binary package format.
 """
 from __future__ import with_statement
 
+import csv
+import imp
 import os
 import sys
 import shutil
+import functools
 
 from pip.util import make_path_relative
 
@@ -41,7 +44,6 @@ def fix_script(path):
         return True
             
 def move_wheel_files(req, wheeldir):
-    import csv
     from pip.backwardcompat import get_path
 
     if get_path('purelib') != get_path('platlib'):
@@ -62,7 +64,7 @@ def move_wheel_files(req, wheeldir):
         oldpath = normpath(srcfile, wheeldir)
         newpath = normpath(destfile, location)
         installed[oldpath] = newpath
-                                
+
     def clobber(source, dest, is_base, fixer=None):
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
@@ -115,4 +117,34 @@ def move_wheel_files(req, wheeldir):
             for f in installed:
                 writer.writerow((installed[f], '', '')) 
     shutil.move(temp_record, record)
-                
+
+def _unique(fn):
+    @functools.wraps(fn)
+    def unique(*args, **kw):
+        seen = set()
+        for item in fn(*args, **kw):
+            if item not in seen:
+                seen.add(item)
+                yield item
+    return unique
+
+@_unique
+def uninstallation_paths(dist):
+    """
+    Yield all the uninstallation paths for dist based on RECORD-without-.pyc
+    
+    Yield paths to all the files in RECORD. For each .py file in RECORD, add
+    the .pyc in the same directory.
+    
+    UninstallPathSet.add() takes care of the __pycache__ .pyc.
+    """
+    from pip.req import FakeFile # circular import
+    r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
+    for row in r:
+        path = os.path.join(dist.location, row[0])
+        yield path
+        if path.endswith('.py'):
+            dn, fn = os.path.split(path)
+            base = fn[:-3]
+            path = os.path.join(dn, base+'.pyc')
+            yield path
