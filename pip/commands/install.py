@@ -25,13 +25,13 @@ class InstallCommand(Command):
             action='store_true',
             help='Find wheel archives when searching index and find-links')
         self.parser.add_option(
-            '-w', '--wheel-cache',
+            '-w', '--build-wheel    ',
             dest='wheel_cache',
             default=None,
             metavar='DIR',
-            help='Output wheel archives for any installed distributions to the '
-            'specified directory. Combine with --no-install to only build. '
-            'The "wheel" package is required to build wheels.')
+            help="Run 'setup.py bdist_wheel -d DIR' prior to installing "
+            "distributions. The \"wheel\" package is required to build wheels. "
+            "Combine with --no-install to only build.")
         self.parser.add_option(
             '-e', '--editable',
             dest='editables',
