@@ -20,6 +20,18 @@ class InstallCommand(Command):
 
     def __init__(self):
         super(InstallCommand, self).__init__()
+        self.parser.add_option('--use-wheel',
+            dest='use_wheel',
+            action='store_true',
+            help='Find wheel archives when searching index and find-links')
+        self.parser.add_option(
+            '-w', '--wheel-cache',
+            dest='wheel_cache',
+            default=None,
+            metavar='DIR',
+            help='Output wheel archives for any installed distributions to the '
+            'specified directory. Combine with --no-install to only build. '
+            'The "wheel" package is required to build wheels.')
         self.parser.add_option(
             '-e', '--editable',
             dest='editables',
@@ -181,7 +193,8 @@ class InstallCommand(Command):
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors)
+                             mirrors=options.mirrors,
+                             use_wheel=options.use_wheel)
 
     def run(self, options, args):
         if options.download_dir:
@@ -190,6 +203,7 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        only_wheels = options.no_install and options.wheel_cache
         if options.use_user_site:
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
@@ -214,11 +228,14 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
+            use_wheel=options.use_wheel,
+            wheel_cache=options.wheel_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
+            only_wheels=only_wheels,
             use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
@@ -257,7 +274,7 @@ class InstallCommand(Command):
         else:
             requirement_set.locate_files()
 
-        if not options.no_install and not self.bundle:
+        if (not options.no_install and not self.bundle) or only_wheels:
             requirement_set.install(install_options, global_options)
             installed = ' '.join([req.name for req in
                                   requirement_set.successfully_installed])
