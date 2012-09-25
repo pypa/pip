@@ -154,6 +154,24 @@ To get info about an installed package, including its location and included
 files, run ``pip show ProjectName``.
 
 
+Wheel support
+-------------
+
+Pip has experimental support for building and installing "wheel" archives.
+
+To build wheel archives::
+
+    $ pip install --build-wheel=/tmp/wheel-cache --no-install SomePackage
+
+To install from wheel archives::
+
+    $ pip install --use-wheel --no-index --find-links=file:///tmp/wheel-cache SomePackage
+
+Pip currently only supports finding wheels based on the python version tag, not implementation, abi or platform tags.
+
+For more information, see the `wheel documentation <http://wheel.readthedocs.org/en/latest/index.html>`_
+
+
 Bundles
 -------
 
