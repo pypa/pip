@@ -1,7 +1,7 @@
 from pip.locations import build_prefix, src_prefix
 from pip.util import display_path, backup_dir
 from pip.log import logger
-from pip.exceptions import InstallationError
+from pip.exceptions import CommandError
 from pip.commands.install import InstallCommand
 
 
@@ -13,7 +13,14 @@ class BuildCommand(InstallCommand):
     def __init__(self):
         super(BuildCommand, self).__init__()
         self.parser.set_defaults(**{
-                'wheel_cache': True,
-                })
+            'use_wheel': False,
+            'no_install': True,
+            'upgrade': True,
+        })
+
+    def run(self, options, args):
+        if not options.wheel_cache:
+            raise CommandError('You must supply -w, --build-wheel option')
+        super(BuildCommand, self).run(options, args)
 
 BuildCommand()
