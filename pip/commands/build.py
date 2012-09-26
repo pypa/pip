@@ -15,10 +15,10 @@ class BuildCommand(InstallCommand):
         self.parser.set_defaults(**{
             'use_wheel': False,
             'no_install': True,
-            'upgrade': True,
         })
 
     def run(self, options, args):
+        print args
         if not options.wheel_cache:
             raise CommandError('You must supply -w, --build-wheel option')
         super(BuildCommand, self).run(options, args)
