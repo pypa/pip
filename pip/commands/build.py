@@ -18,7 +18,6 @@ class BuildCommand(InstallCommand):
         })
 
     def run(self, options, args):
-        print args
         if not options.wheel_cache:
             raise CommandError('You must supply -w, --build-wheel option')
         super(BuildCommand, self).run(options, args)
