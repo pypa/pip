@@ -2,7 +2,7 @@ import os
 from pip.backwardcompat import urllib
 from tests.path import Path
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
-from pip.index import PackageFinder
+from pip.index import PackageFinder, Link, InfLink
 from tests.test_pip import reset_env, run_pip, pyversion, here
 from string import ascii_lowercase
 from mock import patch
@@ -101,3 +101,7 @@ def test_file_index_url_quoting():
     assert (env.site_packages/'simple') in result.files_created, str(result.stdout)
     assert (env.site_packages/'simple-1.0-py%s.egg-info' % pyversion) in result.files_created, str(result)
 
+
+def test_inflink_greater():
+    """Test InfLink compares greater."""
+    assert InfLink > Link(object())

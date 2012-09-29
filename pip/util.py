@@ -136,10 +136,27 @@ def ask(message, options):
 
 class _Inf(object):
     """I am bigger than everything!"""
-    def __cmp__(self, a):
-        if self is a:
-            return 0
-        return 1
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        return False
+
+    def __le__(self, other):
+        return False
+
+    def __gt__(self, other):
+        return True
+
+    def __ge__(self, other):
+        return True
 
     def __repr__(self):
         return 'Inf'
