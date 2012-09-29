@@ -429,7 +429,20 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_exists = os.path.exists(pip_egg_info_path)
         debian_egg_info_exists = os.path.exists(debian_egg_info_path)
-        if pip_egg_info_exists or debian_egg_info_exists:
+
+        installed_via_distutils = os.path.isfile(pip_egg_info_path)
+        installed_via_pip_or_svem = (pip_egg_info_exists or
+                                     debian_egg_info_exists and
+                                     not installed_via_distutils)
+        
+
+        if installed_via_distutils:
+            raise UninstallationError(
+                "Cannot uninstall requirement %s, it was originally installed "
+                "by distutils" % (self.name,)
+                )
+
+        elif installed_via_pip_or_svem:
             # package installed by pip
             if pip_egg_info_exists:
                 egg_info_path = pip_egg_info_path

@@ -2,11 +2,12 @@ from __future__ import with_statement
 
 import textwrap
 import sys
-from os.path import join, abspath, normpath
+from os.path import join, abspath, normpath, dirname
 from tempfile import mkdtemp
 from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
+import shutil
 
 from pip.util import rmtree
 
@@ -237,5 +238,19 @@ def test_uninstallpathset_non_local(mock_logger):
         uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
     mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
 
-
-
+def test_uninstall_distutilsonly():
+    # assert that we are unable to uninstall a distribution that was installed
+    # by bare distutils
+    env = reset_env()
+    here = abspath(dirname(__file__))
+    tmpdir = mkdtemp()
+    try:
+        pkgdir = join(here, 'packages', 'distutilsonly')
+        targetdir = join(tmpdir, 'distutilsonly')
+        shutil.copytree(pkgdir, targetdir)
+        env.run('python', 'setup.py', 'install', cwd=targetdir)
+        result = run_pip('uninstall', 'distutilsonly', expect_error=True)
+        assert 'Cannot uninstall requirement distutilsonly' in result.stdout, \
+               result.stdout
+    finally:
+        rmtree(tmpdir, ignore_errors=True)
