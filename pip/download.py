@@ -280,7 +280,8 @@ def geturl(urllib2_resp):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
+    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle',
+               '.whl')
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True
@@ -374,7 +375,7 @@ def _download_url(resp, link, temp_location):
                 logger.start_progress('Downloading %s (unknown size): ' % show_url)
         else:
             logger.notify('Downloading %s' % show_url)
-        logger.debug('Downloading from URL %s' % link)
+        logger.info('Downloading from URL %s' % link)
 
         while True:
             chunk = resp.read(4096)
