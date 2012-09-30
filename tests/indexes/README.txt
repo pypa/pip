@@ -12,4 +12,4 @@ for testing url quoting with indexes
 
 simple
 ------
-contains index page for "simple" page
+contains index page for "simple" pkg
