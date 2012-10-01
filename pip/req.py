@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import zipfile
 
+from distutils.util import change_root
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
@@ -557,7 +558,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         name = name.replace(os.path.sep, '/')
         return name
 
-    def install(self, install_options, global_options=()):
+    def install(self, install_options, global_options=(), root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -575,6 +576,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
+
+            if root is not None:
+                install_args += ['--root', root]
 
             if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
@@ -598,11 +602,17 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 # so we unable to save the installed-files.txt
                 return
 
+            def prepend_root(path):
+                if root is None or not os.path.isabs(path):
+                    return path
+                else:
+                    return change_root(root, path)
+
             f = open(record_filename)
             for line in f:
                 line = line.strip()
                 if line.endswith('.egg-info'):
-                    egg_info_dir = line
+                    egg_info_dir = prepend_root(line)
                     break
             else:
                 logger.warn('Could not find .egg-info directory in install record for %s' % self)
@@ -616,7 +626,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filename = line.strip()
                 if os.path.isdir(filename):
                     filename += os.path.sep
-                new_lines.append(make_path_relative(filename, egg_info_dir))
+                new_lines.append(make_path_relative(prepend_root(filename), egg_info_dir))
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
             f.write('\n'.join(new_lines)+'\n')
@@ -1145,7 +1155,7 @@ class RequirementSet(object):
                 _write_delete_marker_message(os.path.join(location, PIP_DELETE_MARKER_FILENAME))
             return retval
 
-    def install(self, install_options, global_options=()):
+    def install(self, install_options, global_options=(), *args, **kwargs):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = [r for r in self.requirements.values()
                       if not r.satisfied_by]
@@ -1164,7 +1174,7 @@ class RequirementSet(object):
                     finally:
                         logger.indent -= 2
                 try:
-                    requirement.install(install_options, global_options)
+                    requirement.install(install_options, global_options, *args, **kwargs)
                 except:
                     # if install did not succeed, rollback previous uninstall
                     if requirement.conflicts_with and not requirement.install_succeeded:
