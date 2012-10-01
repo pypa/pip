@@ -27,6 +27,17 @@ def rehash(path, algo='sha256', blocksize=1<<20):
     digest = 'sha256='+urlsafe_b64encode(h.digest()).decode('latin1').rstrip('=')
     return (digest, length)
     
+try:
+    unicode
+    def binary(s):
+        if isinstance(s, unicode):
+            return s.encode('ascii')
+        return s
+except NameError:
+    def binary(s):
+        if isinstance(s, str):
+            return s.encode('ascii')
+
 def open_for_csv(name, mode):
     if sys.version_info[0] < 3:
         nl = {}
@@ -44,9 +55,10 @@ def fix_script(path):
         script = open(path, 'rb')
         try:
             firstline = script.readline()
-            if not firstline.decode('latin1').startswith('#!python'):
+            if not firstline.startswith(binary('#!python')):
                 return False
-            firstline = ('#!' + sys.executable + os.linesep).encode('utf-8')
+            exename = sys.executable.encode(sys.getfilesystemencoding())
+            firstline = binary('#!') + sys.executable + binary(os.linesep)
             rest = script.read()
         finally:
             script.close()
