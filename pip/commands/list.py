@@ -76,7 +76,7 @@ class ListCommand(Command):
 
     def _build_package_finder(self, options, index_urls):
         """
-        Create a package finder appropriate to this outdated command.
+        Create a package finder appropriate to this list command.
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
@@ -104,7 +104,7 @@ class ListCommand(Command):
             req.check_if_exists()
             yield req
 
-    def find_packeages_latests_versions(self, options):
+    def find_packages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
