@@ -157,15 +157,16 @@ files, run ``pip show ProjectName``.
 Wheel support
 -------------
 
-Pip has experimental support for installing "wheel" archives, which requires distribute (not setuptools) and markerlib.
+Pip has experimental support for installing "wheel" archives,
+which requires distribute>=0.6.28 (not setuptools) and the latest markerlib.
 
 To install directly from a wheel archive::
 
-    $ pip install /path/to/SomeWheel[...].whl
+    $ pip install /path/to/SomePackage[...].whl
 
-To have pip find wheels on pypi indexes or find-links::
+To have pip try to find wheels on pypi indexes or find-links::
 
-    $ pip install --use-wheel SomeWheel
+    $ pip install --use-wheel SomePackage
 
 Pip currently only supports finding wheels based on the python version tag, not implementation, abi or platform tags.
 
