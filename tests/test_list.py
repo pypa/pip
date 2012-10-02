@@ -52,7 +52,7 @@ def test_outdated_flag():
         INITools==0.2
         # and something else to test out:
         mock==0.7.0
-        """))
+    """))
     run_pip('install', '-r', env.scratch_path/'req.txt')
     result = run_pip('search', 'mock')
     mock_ver = total_re.search(str(result)).group(1)
