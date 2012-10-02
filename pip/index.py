@@ -219,7 +219,7 @@ class PackageFinder(object):
 
     def _get_pages(self, locations, req):
         """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
+        locations that have errors, and adding homepage links"""
         pending_queue = Queue()
         for location in locations:
             pending_queue.put(location)
