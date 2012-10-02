@@ -101,21 +101,6 @@ class PackageFinder(object):
         return files, urls
 
     def find_requirement(self, req, upgrade):
-        url_name = req.url_name
-        # Only check main index if index URL is given:
-        main_index_url = None
-        if self.index_urls:
-            # Check that we have the url_name correctly spelled:
-            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
-            # This will also cache the page, so it's okay that we get it again later:
-            page = self._get_page(main_index_url, req)
-            if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
-
-        # Combine index URLs with mirror URLs here to allow
-        # adding more index URLs from requirements files
-        all_index_urls = self.index_urls + self.mirror_urls
-
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
@@ -125,6 +110,22 @@ class PackageFinder(object):
             if not loc.endswith('/'):
                 loc = loc + '/'
             return loc
+
+        url_name = req.url_name
+        # Only check main index if index URL is given:
+        main_index_url = None
+        if self.index_urls:
+            # Check that we have the url_name correctly spelled:
+            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
+            # This will also cache the page, so it's okay that we get it again later:
+            page = self._get_page(main_index_url, req)
+            if page is None:
+                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+
+        # Combine index URLs with mirror URLs here to allow
+        # adding more index URLs from requirements files
+        all_index_urls = self.index_urls + self.mirror_urls
+
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url)
