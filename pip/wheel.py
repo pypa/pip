@@ -58,7 +58,7 @@ def fix_script(path):
             if not firstline.startswith(binary('#!python')):
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = binary('#!') + sys.executable + binary(os.linesep)
+            firstline = binary('#!') + exename + binary(os.linesep)
             rest = script.read()
         finally:
             script.close()
