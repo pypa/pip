@@ -105,3 +105,58 @@ def test_file_index_url_quoting():
 def test_inflink_greater():
     """Test InfLink compares greater."""
     assert InfLink > Link(object())
+
+
+def test_egg_info_matches_cached_file():
+    """
+    Test that a cached file is recognized by PackageFinder._egg_info_matches
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    finder = PackageFinder(find_links, [])
+    egg_info = (
+        'http%253A%252F%252Fpypi%253A8080%252F'
+        'packages%252Fzope.interface-1.1.2'
+        )
+    search_name = 'zope.interface'
+    link = "Link to zope.interface-1.1.2"
+
+    found_version = finder._egg_info_matches(egg_info, search_name, link)
+
+    assert found_version and found_version == '1.1.2', (
+        "failed to extract version from: %s" % egg_info)
+
+
+def test_egg_info_matches_normal_file():
+    """
+    Test that a normal file is recognized by PackageFinder._egg_info_matches
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    finder = PackageFinder(find_links, [])
+    egg_info = 'zope.interface-1.1.2'
+    search_name = 'zope.interface'
+    link = "Link to zope.interface-1.1.2"
+
+    found_version = finder._egg_info_matches(egg_info, search_name, link)
+
+    assert found_version and found_version == '1.1.2', (
+        "failed to extract version from: %s" % egg_info)
+
+
+def test_egg_info_matches_normal_file_bad_name():
+    """
+    Test that a file with bad name is not recognized by
+    PackageFinder._egg_info_matches
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    finder = PackageFinder(find_links, [])
+    egg_info = 'zope.interface-1.1.2'
+    search_name = 'zope.testrunner'
+    link = "Link to zope.test-1.1.2"
+
+    found_version = finder._egg_info_matches(egg_info, search_name, link)
+
+    assert found_version is None, (
+        "extracted wrong version from: %s" % egg_info)
