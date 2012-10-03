@@ -15,6 +15,8 @@ import random
 import socket
 import string
 import zlib
+import pickle
+import time
 from pip.log import logger
 from pip.util import Inf
 from pip.util import normalize_name, splitext
@@ -40,11 +42,13 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None, 
+            index_cache=None, failure_limit=3):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
-        self.cache = PageCache()
+        self.index_cache = index_cache
+        self.cache = PageCache(index_cache=index_cache, failure_limit=failure_limit)
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
         if use_mirrors:
@@ -52,7 +56,10 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
-
+        
+    def __del__(self):
+        self.cache.save_cache()
+    
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
         ## apply to requirements of the package that specifies the
@@ -370,13 +377,15 @@ class PackageFinder(object):
 class PageCache(object):
     """Cache of HTML pages"""
 
-    failure_limit = 3
-
-    def __init__(self):
+    def __init__(self, failure_limit=3, index_cache=None):
+        self.failure_limit = failure_limit
         self._failures = {}
         self._pages = {}
         self._archives = {}
-
+        self.index_cache = index_cache
+        if index_cache:
+            self.load_cache(index_cache)
+        
     def too_many_failures(self, url):
         return self._failures.get(url, 0) >= self.failure_limit
 
@@ -396,7 +405,60 @@ class PageCache(object):
         for url in urls:
             self._pages[url] = page
 
-
+    def load_cache(self, cache):
+        if not os.path.exists(cache):
+            return
+        if not os.path.isdir(self.index_cache):
+            logger.debug('Index cache is not a directory: %s' % self.index_cache)
+            return
+        self._failures = self.load_obj('failures')
+        self._pages    = self.load_obj('pages')
+        self._archives = self.load_obj('archives')
+    
+    def load_obj(self, name):
+        path = os.path.join(self.index_cache, name)
+        if not os.path.exists(path):
+            return {}
+        
+        mtime = os.path.getmtime(path)
+        delta = time.time() - mtime
+        if delta > (24 * 60 * 60):
+            os.remove(path)
+            return {}
+        
+        with open(os.path.join(path)) as f:
+            obj = pickle.load(f)
+        return obj
+    
+    def save_cache(self):
+        if not self.index_cache:
+            return
+        if not os.path.exists(self.index_cache):
+            try:
+                os.mkdir(self.index_cache)
+            except:
+                logger.debug('Can not make index cache dir: %s' % self.index_cache)
+                return
+        
+        if not os.path.isdir(self.index_cache):
+            logger.debug('Index cache is not a directory: %s' % self.index_cache)
+            return
+        
+        self.save_obj(self._failures, 'failures')
+        self.save_obj(self._pages,    'pages')
+        self.save_obj(self._archives, 'archives')
+    
+    def save_obj(self, obj, name):
+        path = os.path.join(self.index_cache, name)
+        if obj:
+            with open(path, 'w') as f:
+                pickle.dump(obj, f)
+        else:
+            try:
+                os.remove(path)
+            except:
+                pass
+        
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -479,7 +541,7 @@ class HTMLPage(object):
             desc = str(e)
             if isinstance(e, socket.timeout):
                 log_meth = logger.info
-                level =1
+                level = 1
                 desc = 'timed out'
             elif isinstance(e, URLError):
                 log_meth = logger.info
