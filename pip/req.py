@@ -29,6 +29,8 @@ from pip.download import (get_file_content, is_url, url_to_path,
                           path_to_url, is_archive_file,
                           unpack_vcs_link, is_vcs_url, is_file_url,
                           unpack_file_url, unpack_http_url)
+import pip.wheel
+from pip.wheel import move_wheel_files
 
 
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
@@ -421,6 +423,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
+        dist_info_path = os.path.join(dist.location,
+                                      '-'.join(dist.egg_name().split('-')[:2])
+                                      ) + '.dist-info'
         # workaround for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
         debian_egg_info_path = pip_egg_info_path.replace(
             '-py%s' % pkg_resources.PY_MAJOR, '')
@@ -429,6 +434,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         pip_egg_info_exists = os.path.exists(pip_egg_info_path)
         debian_egg_info_exists = os.path.exists(debian_egg_info_path)
+        dist_info_exists = os.path.exists(dist_info_path)
         if pip_egg_info_exists or debian_egg_info_exists:
             # package installed by pip
             if pip_egg_info_exists:
@@ -472,6 +478,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+        elif dist_info_exists:
+            for path in pip.wheel.uninstallation_paths(dist):
+                paths_to_remove.add(path)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -560,6 +569,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def install(self, install_options, global_options=()):
         if self.editable:
             self.install_editable(install_options, global_options)
+            return
+        if self.is_wheel:
+            self.move_wheel_files(self.source_dir)
             return
 
         temp_location = tempfile.mkdtemp('-record', 'pip-')
@@ -689,6 +701,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         return True
 
     @property
+    def is_wheel(self):
+        return self.url and '.whl' in self.url
+
+    @property
     def is_bundle(self):
         if self._is_bundle is not None:
             return self._is_bundle
@@ -756,6 +772,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self._bundle_build_dirs = bundle_build_dirs
         self._bundle_editable_dirs = bundle_editable_dirs
 
+    def move_wheel_files(self, wheeldir):
+        move_wheel_files(self.req, wheeldir)
+
     @property
     def delete_marker_filename(self):
         assert self.source_dir
@@ -803,7 +822,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
+                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
+                 use_wheel=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -821,6 +841,7 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
+        self.use_wheel = use_wheel
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -977,6 +998,7 @@ class RequirementSet(object):
             logger.indent += 2
             try:
                 is_bundle = False
+                is_wheel = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
                         location = req_to_install.build_location(self.src_dir)
@@ -1027,11 +1049,27 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_bundle = req_to_install.is_bundle
+                        is_wheel = url and url.filename.endswith('.whl')
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
+                        elif is_wheel:
+                            req_to_install.source_dir = location
+                            req_to_install.url = url.url
+                            dist = list(pkg_resources.find_distributions(location))[0]
+                            if not req_to_install.req:
+                                req_to_install.req = dist.as_requirement()
+                                self.add_requirement(req_to_install)
+                            if not self.ignore_dependencies:
+                                for subreq in dist.requires(req_to_install.extras):
+                                    if self.has_requirement(subreq.project_name):
+                                        continue
+                                    subreq = InstallRequirement(str(subreq),
+                                                                req_to_install)
+                                    reqs.append(subreq)
+                                    self.add_requirement(subreq)
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1058,7 +1096,7 @@ class RequirementSet(object):
                                 req_to_install.satisfied_by = None
                             else:
                                 install = False
-                if not is_bundle:
+                if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     if (req_to_install.extras):
