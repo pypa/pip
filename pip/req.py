@@ -95,7 +95,7 @@ class InstallRequirement(object):
             link = Link(name)
         elif os.path.isdir(path) and (os.path.sep in name or name.startswith('.')):
             if not is_installable_dir(path):
-                raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", name)
+                raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % name)
             link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
@@ -1356,7 +1356,7 @@ def parse_editable(editable_req, default_vcs=None):
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", url_no_extras)
+            raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % url_no_extras)
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
