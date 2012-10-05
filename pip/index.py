@@ -40,7 +40,8 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None,
+            use_wheel=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -52,6 +53,7 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
+        self.use_wheel = use_wheel
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -262,6 +264,11 @@ class PackageFinder(object):
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _wheel_info_re = re.compile(
+                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+                \.whl|\.dist-info)$""",
+                re.VERBOSE)
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -280,6 +287,12 @@ class PackageFinder(object):
         for link in self._sort_links(links):
             for v in self._link_package_versions(link, search_name):
                 yield v
+        
+    def _known_extensions(self):
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip') 
+        if self.use_wheel:
+            return extensions + ('.whl',)
+        return extensions
 
     def _link_package_versions(self, link, search_name):
         """
@@ -289,6 +302,7 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
         else:
@@ -302,7 +316,7 @@ class PackageFinder(object):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
+            if ext not in self._known_extensions():
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
@@ -312,7 +326,23 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-        version = self._egg_info_matches(egg_info, search_name, link)
+            if ext == '.whl':
+                wheel_info = self._wheel_info_re.match(link.filename)
+                if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
+                    version = wheel_info.group('ver')
+                    nodot = sys.version[:3].replace('.', '')
+                    pyversions = wheel_info.group('pyver').split('.')
+                    ok = False
+                    for pv in pyversions:
+                        # TODO: Doesn't check Python implementation
+                        if nodot.startswith(pv[2:]):
+                            ok = True
+                            break
+                    if not ok:
+                        logger.debug('Skipping %s because Python version is incorrect' % link)
+                        return []    
+        if not version:
+            version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
