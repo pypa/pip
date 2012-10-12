@@ -462,7 +462,11 @@ def unzip_file(filename, location, flatten=True):
                     fp.write(data)
                 finally:
                     fp.close()
-                    os.chmod(fn, info.external_attr >> 16)                
+                    unix_attributes = info.external_attr >> 16
+                    if unix_attributes:
+                        os.chmod(fn, unix_attributes)
+
+
     finally:
         zipfp.close()
 
