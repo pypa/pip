@@ -14,7 +14,8 @@ script: nosetests
 notifications:
 branches:
   only:
-    - develop
+    - wheel_install
+    - wheel_build
 matrix:
   allow_failures:
 env:
