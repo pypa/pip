@@ -2,11 +2,12 @@ from pkg_resources import parse_version
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder
-from pip.exceptions import BestVersionAlreadyInstalled
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from tests.path import Path
 from tests.test_pip import here
 from nose.tools import assert_raises
-from mock import Mock
+from mock import Mock, patch
+import os
 
 find_links = 'file://' + urllib.quote(str(Path(here).abspath/'packages').replace('\\', '/'))
 find_links2 = 'file://' + urllib.quote(str(Path(here).abspath/'packages2').replace('\\', '/'))
@@ -75,3 +76,22 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     req.satisfied_by = satisfied_by
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+@patch('pip.pep425tags.get_supported')
+def test_find_wheel(mock_get_supported):
+    """
+    Test finding wheels.
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    req = InstallRequirement.from_line("simple.dist")
+    finder = PackageFinder(find_links, [], use_wheel=True)
+    mock_get_supported.return_value = [('py1', 'none', 'any')]
+    assert_raises(DistributionNotFound, finder.find_requirement, req, True)
+    mock_get_supported.return_value = [('py2', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+    mock_get_supported.return_value = [('py3', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+

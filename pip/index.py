@@ -25,6 +25,7 @@ from pip.backwardcompat import (WindowsError, BytesIO,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
+import pip.pep425tags
 
 __all__ = ['PackageFinder']
 
@@ -329,17 +330,15 @@ class PackageFinder(object):
                 wheel_info = self._wheel_info_re.match(link.filename)
                 if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
                     version = wheel_info.group('ver')
-                    nodot = sys.version[:3].replace('.', '')
                     pyversions = wheel_info.group('pyver').split('.')
-                    ok = False
-                    for pv in pyversions:
-                        # TODO: Doesn't check Python implementation
-                        if nodot.startswith(pv[2:]):
-                            ok = True
-                            break
-                    if not ok:
-                        logger.debug('Skipping %s because Python version is incorrect' % link)
-                        return []    
+                    abis = wheel_info.group('abi').split('.')
+                    plats = wheel_info.group('plat').split('.')
+                    wheel_supports = set((x, y, z) for x in pyversions for y
+                            in abis for z in plats)
+                    supported = set(pip.pep425tags.get_supported())
+                    if not supported.intersection(wheel_supports):
+                        logger.debug('Skipping %s because it is not compatible with this Python' % link)
+                        return []
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
