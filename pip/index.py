@@ -166,14 +166,14 @@ class PackageFinder(object):
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
+        installed_version = []
         if req.satisfied_by is not None:
-            #make sure the installed dist has priority (over equivalent "found" versions)
-            found_versions.insert(0, (req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version))
+            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
         #this is an intentional priority ordering
-        all_versions = found_versions + file_versions + page_versions + dependency_versions
+        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
