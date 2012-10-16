@@ -10,6 +10,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
+from pip.commands.options import *
 
 
 class InstallCommand(Command):
@@ -35,60 +36,14 @@ class InstallCommand(Command):
             'setup.py develop). You can run this on an existing directory/checkout (like '
             'pip install -e src/mycheckout). This option may be provided multiple times. '
             'Possible values for VCS are: svn, git, hg and bzr.')
-        self.parser.add_option(
-            '-r', '--requirement',
-            dest='requirements',
-            action='append',
-            default=[],
-            metavar='FILENAME',
-            help='Install all the packages listed in the given requirements file. '
-            'This option can be used multiple times.')
-        self.parser.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL to look for packages at')
-        self.parser.add_option(
-            '-i', '--index-url', '--pypi-url',
-            dest='index_url',
-            metavar='URL',
-            default='http://pypi.python.org/simple/',
-            help='Base URL of Python Package Index (default %default)')
-        self.parser.add_option(
-            '--extra-index-url',
-            dest='extra_index_urls',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Extra URLs of package indexes to use in addition to --index-url')
-        self.parser.add_option(
-            '--no-index',
-            dest='no_index',
-            action='store_true',
-            default=False,
-            help='Ignore package index (only looking at --find-links URLs instead)')
-        self.parser.add_option(
-            '-M', '--use-mirrors',
-            dest='use_mirrors',
-            action='store_true',
-            default=False,
-            help='Use the PyPI mirrors as a fallback in case the main index is down.')
-        self.parser.add_option(
-            '--mirrors',
-            dest='mirrors',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Specific mirror URLs to query when --use-mirrors is used')
-
-        self.parser.add_option(
-            '-b', '--build', '--build-dir', '--build-directory',
-            dest='build_dir',
-            metavar='DIR',
-            default=build_prefix,
-            help='Unpack packages into DIR (default %default) and build from there')
+        self.parser.add_option(REQUIREMENTS)
+        self.parser.add_option(FIND_LINKS)
+        self.parser.add_option(INDEX_URL)
+        self.parser.add_option(EXTRA_INDEX_URLS)
+        self.parser.add_option(NO_INDEX)
+        self.parser.add_option(USE_MIRRORS)
+        self.parser.add_option(MIRRORS)
+        self.parser.add_option(BUILD_DIR)
         self.parser.add_option(
             '-t', '--target',
             dest='target_dir',
@@ -101,19 +56,13 @@ class InstallCommand(Command):
             metavar='DIR',
             default=None,
             help='Download packages into DIR instead of installing them')
-        self.parser.add_option(
-            '--download-cache',
-            dest='download_cache',
-            metavar='DIR',
-            default=None,
-            help='Cache downloaded packages in DIR')
+        self.parser.add_option(DOWNLOAD_CACHE)
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='DIR',
             default=src_prefix,
             help='Check out --editable packages into DIR (default %default)')
-
         self.parser.add_option(
             '-U', '--upgrade',
             dest='upgrade',
@@ -147,23 +96,8 @@ class InstallCommand(Command):
             action="store_true",
             help="Don't download any packages, just install the ones already downloaded "
             "(completes an install run with --no-install)")
-
-        self.parser.add_option(
-            '--install-option',
-            dest='install_options',
-            action='append',
-            help="Extra arguments to be supplied to the setup.py install "
-            "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
-            "Use multiple --install-option options to pass multiple options to setup.py install. "
-            "If you are using an option with a directory path, be sure to use absolute path.")
-
-        self.parser.add_option(
-            '--global-option',
-            dest='global_options',
-            action='append',
-            help="Extra global options to be supplied to the setup.py "
-            "call before the install command")
-
+        self.parser.add_option(INSTALL_OPTIONS)
+        self.parser.add_option(GLOBAL_OPTIONS)
         self.parser.add_option(
             '--user',
             dest='use_user_site',
@@ -219,7 +153,6 @@ class InstallCommand(Command):
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
-            use_wheel=options.use_wheel,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
