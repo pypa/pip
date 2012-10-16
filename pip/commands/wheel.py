@@ -4,6 +4,7 @@ from pip.basecommand import Command
 from pip.commands.options import *
 from pip.index import PackageFinder
 from pip.log import logger
+from pip.exceptions import CommandError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
 from pip.wheel import WheelBuilder
@@ -49,7 +50,7 @@ class WheelCommand(Command):
     def run(self, options, args):
 
         if sys.version_info < (2, 6):
-             raise InstallationError("'pip wheel' requires py2.6 or greater.")
+             raise CommandError("'pip wheel' requires py2.6 or greater.")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
