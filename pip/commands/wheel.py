@@ -1,18 +1,13 @@
 import os
 import sys
-import tempfile
-import shutil
-from pip.req import InstallRequirement, RequirementSet
-from pip.req import parse_requirements
-from pip.log import logger
-from pip.locations import build_prefix, src_prefix, virtualenv_no_global
 from pip.basecommand import Command
-from pip.index import PackageFinder
-from pip.exceptions import InstallationError, CommandError
-from pip.backwardcompat import home_lib
 from pip.commands.options import *
-from pip.wheel import WheelBuilder
+from pip.index import PackageFinder
+from pip.log import logger
+from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
+from pip.wheel import WheelBuilder
+
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
@@ -52,6 +47,9 @@ class WheelCommand(Command):
         self.parser.add_option(GLOBAL_OPTIONS)
 
     def run(self, options, args):
+
+        if sys.version_info < (2, 6):
+             raise InstallationError("'pip wheel' requires py2.6 or greater.")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
