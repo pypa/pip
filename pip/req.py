@@ -417,7 +417,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
 
-        paths_to_remove = UninstallPathSet(dist)
+        paths_to_remove = UninstallPathSet(dist, use_user_site=self.use_user_site)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -1411,13 +1411,14 @@ def parse_editable(editable_req, default_vcs=None):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist):
+    def __init__(self, dist, use_user_site=False):
         self.paths = set()
         self._refuse = set()
         self.pth = {}
         self.dist = dist
         self.save_dir = None
         self._moved_paths = []
+        self.use_user_site = use_user_site
 
     def _permitted(self, path):
         """
@@ -1432,6 +1433,11 @@ class UninstallPathSet(object):
             logger.notify("Not uninstalling %s at %s, outside environment %s"
                           % (self.dist.project_name, normalize_path(self.dist.location), sys.prefix))
             return False
+        if self.use_user_site and not dist_in_usersite(self.dist):
+            logger.notify("Not uninstalling %s at %s, not in user site-packages"
+                          % (self.dist.project_name, normalize_path(self.dist.location)))
+            return False
+
         return True
 
     def add(self, path):
