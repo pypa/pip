@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import os
 import sys
 from pip.basecommand import Command
@@ -50,7 +53,12 @@ class WheelCommand(Command):
     def run(self, options, args):
 
         if sys.version_info < (2, 6):
-             raise CommandError("'pip wheel' requires py2.6 or greater.")
+             raise CommandError("'pip wheel' requires Python 2.6 or greater.")
+        
+        try:
+            import wheel.bdist_wheel
+        except ImportError:
+            raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
