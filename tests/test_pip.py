@@ -13,6 +13,7 @@ from tests.path import Path, curdir, u
 from pip.util import rmtree
 
 pyversion = sys.version[:3]
+pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
 
 # the directory containing all the tests
 here = Path(__file__).abspath.folder
