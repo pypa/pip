@@ -5,13 +5,49 @@ News
 Changelog
 =========
 
-Next release (1.2) schedule
+Next release (1.3) schedule
 ---------------------------
 
-Beta and final releases planned for the second half of 2012.
+Beta and final releases planned for the end of 2012.
+
 
 develop (unreleased)
--------------------
+--------------------
+
+* --user/--upgrade install options now work together; thanks eevee.
+
+* Added check in ``install --download`` to prevent re-downloading if the target
+  file already exists. Thanks Andrey Bulgakov.
+
+* Added support for bare paths (including relative paths) as argument to
+  `--find-links`. Thanks Paul Moore for draft patch.
+
+* Added support for --no-index in requirements files.
+
+* Added "pip show" command to get information about an installed
+  package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
+
+1.2.1 (2012-09-06)
+------------------
+
+* Fixed a regression introduced in 1.2 about raising an exception when
+  not finding any files to uninstall in the current environment. Thanks for
+  the fix, Marcus Smith.
+
+1.2 (2012-09-01)
+----------------
+
+* **Dropped support for Python 2.4** The minimum supported Python version is
+  now Python 2.5.
+
+* Fixed issue #605 - pypi mirror support broken on some DNS responses. Thanks
+  philwhin.
+
+* Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
+  pjdelport.
+
+* Fixed issues #493, #494, #440, and #573 related to improving support for the
+  user installation scheme. Thanks Marcus Smith.
 
 * Write failure log to temp file if default location is not writable. Thanks
   andreigc.
@@ -38,9 +74,6 @@ develop (unreleased)
 * Fixed issue #504 - allow package URLS to have querystrings. Thanks W.
   Trevor King.
 
-* Dropped support for Python 2.4. The minimum supported Python version is
-  now Python 2.5.
-
 * Fixed issue #58 - pip freeze now falls back to non-editable format rather
   than blowing up if it can't determine the origin repository of an editable.
   Thanks Rory McCann.
@@ -57,6 +90,21 @@ develop (unreleased)
 * Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
   Thomas Fenzl.
 
+* Added support for using any of the built in guaranteed algorithms in
+  ``hashlib`` as a checksum hash.
+
+* Fixed issue #321 - Raise an exception if current working directory can't be
+  found or accessed.
+
+* Fixed issue #82 - Removed special casing of the user directory and use the
+  Python default instead.
+
+* Fixed #436 - Only warn about version conflicts if there is actually one.
+  This re-enables using ``==dev`` in requirements files.
+
+* Moved tests to be run on Travis CI: http://travis-ci.org/pypa/pip
+
+* Added a better help formatter.
 
 1.1 (2012-02-16)
 ----------------

@@ -4,6 +4,7 @@ import os
 from pkgutil import walk_packages
 import socket
 import sys
+import tempfile
 import traceback
 import time
 
@@ -15,6 +16,7 @@ from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+from pip.util import get_prog
 
 
 __all__ = ['command_dict', 'Command', 'load_all_commands',
@@ -35,7 +37,7 @@ class Command(object):
         assert self.name
         self.parser = ConfigOptionParser(
             usage=self.usage,
-            prog='%s %s' % (sys.argv[0], self.name),
+            prog='%s %s' % (get_prog(), self.name),
             version=parser.version,
             formatter=UpdatingDefaultsHelpFormatter(),
             name=self.name)
@@ -144,7 +146,7 @@ class Command(object):
                temp = tempfile.NamedTemporaryFile(delete=False)
                log_fn = temp.name
                log_fp = open_logfile(log_fn, 'w')
-            logger.fatal('Storing complete log in %s' % log_fn)			
+            logger.fatal('Storing complete log in %s' % log_fn)
             log_fp.write(text)
             log_fp.close()
         return exit

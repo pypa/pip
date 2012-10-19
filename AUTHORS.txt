@@ -1,15 +1,20 @@
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
+Andrey Bulgakov
 Antti Kaihola
 Armin Ronacher
+Aziz Köksal
 Ben Rosser
 Brian Rosner
 Carl Meyer
+Chris McDonough
 Christian Oudard
+Clay McClure
 Cody Soyland
 Daniel Holth
 Dave Abrahams
+Donald Stufft
 Francesco
 Hugo Lopes Tavares
 Ian Bicking
@@ -36,12 +41,15 @@ Nowell Strite
 Oliver Tonnhofer
 Olivier Girardot
 Patrick Jenkins
+Paul Moore
 Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Peter Waller
+Phil Whelan
 Piet Delport
 Qiangning Hong
+Rafael Caricio
 Rene Dudfield
 Ronny Pfannschmidt
 Rory McCann

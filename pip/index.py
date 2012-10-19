@@ -20,7 +20,7 @@ from pip.util import Inf
 from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
-                                Queue, httplib, urlparse,
+                                Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty
@@ -29,7 +29,7 @@ from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2Head
 __all__ = ['PackageFinder']
 
 
-DEFAULT_MIRROR_URL = "last.pypi.python.org"
+DEFAULT_MIRROR_HOSTNAME = "last.pypi.python.org"
 
 
 class PackageFinder(object):
@@ -60,8 +60,7 @@ class PackageFinder(object):
         ## FIXME: also, we should track comes_from (i.e., use Link)
         self.dependency_links.extend(links)
 
-    @staticmethod
-    def _sort_locations(locations):
+    def _sort_locations(self, locations):
         """
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
@@ -69,8 +68,7 @@ class PackageFinder(object):
         files = []
         urls = []
 
-        # puts the url for the given file path into the appropriate
-        # list
+        # puts the url for the given file path into the appropriate list
         def sort_path(path):
             url = path_to_url2(path)
             if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
@@ -79,34 +77,30 @@ class PackageFinder(object):
                 files.append(url)
 
         for url in locations:
-            if url.startswith('file:'):
-                path = url_to_path(url)
-                if os.path.isdir(path):
+
+            is_local_path = os.path.exists(url)
+            is_file_url = url.startswith('file:')
+            is_find_link = url in self.find_links
+
+            if is_local_path or is_file_url:
+                if is_local_path:
+                    path = url
+                else:
+                    path = url_to_path(url)
+                if is_find_link and os.path.isdir(path):
                     path = os.path.realpath(path)
                     for item in os.listdir(path):
                         sort_path(os.path.join(path, item))
+                elif is_file_url and os.path.isdir(path):
+                    urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
             else:
                 urls.append(url)
+
         return files, urls
 
     def find_requirement(self, req, upgrade):
-        url_name = req.url_name
-        # Only check main index if index URL is given:
-        main_index_url = None
-        if self.index_urls:
-            # Check that we have the url_name correctly spelled:
-            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
-            # This will also cache the page, so it's okay that we get it again later:
-            page = self._get_page(main_index_url, req)
-            if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
-
-        # Combine index URLs with mirror URLs here to allow
-        # adding more index URLs from requirements files
-        all_index_urls = self.index_urls + self.mirror_urls
-
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
@@ -116,6 +110,22 @@ class PackageFinder(object):
             if not loc.endswith('/'):
                 loc = loc + '/'
             return loc
+
+        url_name = req.url_name
+        # Only check main index if index URL is given:
+        main_index_url = None
+        if self.index_urls:
+            # Check that we have the url_name correctly spelled:
+            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
+            # This will also cache the page, so it's okay that we get it again later:
+            page = self._get_page(main_index_url, req)
+            if page is None:
+                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+
+        # Combine index URLs with mirror URLs here to allow
+        # adding more index URLs from requirements files
+        all_index_urls = self.index_urls + self.mirror_urls
+
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url)
@@ -156,7 +166,7 @@ class PackageFinder(object):
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
         if req.satisfied_by is not None:
-            found_versions.append((req.satisfied_by.parsed_version, Inf, req.satisfied_by.version))
+            found_versions.append((req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version))
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
@@ -168,31 +178,31 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            applicable_versions.append((link, version))
-        applicable_versions = sorted(applicable_versions, key=lambda v: pkg_resources.parse_version(v[1]), reverse=True)
-        existing_applicable = bool([link for link, version in applicable_versions if link is Inf])
+            applicable_versions.append((parsed_version, link, version))
+        applicable_versions = sorted(applicable_versions, reverse=True)
+        existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is Inf:
+            if applicable_versions[0][1] is InfLink:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
-                raise BestVersionAlreadyInstalled
             else:
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
-                            % (req.satisfied_by.version, applicable_versions[0][1]))
+                            % (req.satisfied_by.version, applicable_versions[0][2]))
             return None
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in found_versions])))
             raise DistributionNotFound('No distributions matching the version for %s' % req)
-        if applicable_versions[0][0] is Inf:
+        if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
-                        % (req.satisfied_by.version, ', '.join([version for link, version in applicable_versions[1:]]) or 'none'))
+                        % (req.satisfied_by.version, ', '.join([version for parsed_version, link, version in applicable_versions[1:]]) or 'none'))
             raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
-                        (applicable_versions[0][1], ', '.join([version for link, version in applicable_versions])))
-        return applicable_versions[0][0]
+                        (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
+        return applicable_versions[0][1]
+
 
     def _find_url_name(self, index_url, url_name, req):
         """Finds the true URL name of a package, when the given name isn't quite correct.
@@ -586,13 +596,28 @@ class Link(object):
         if self.comes_from:
             return '%s (from %s)' % (self.url, self.comes_from)
         else:
-            return self.url
+            return str(self.url)
 
     def __repr__(self):
         return '<Link %s>' % self
 
     def __eq__(self, other):
         return self.url == other.url
+
+    def __ne__(self, other):
+        return self.url != other.url
+
+    def __lt__(self, other):
+        return self.url < other.url
+
+    def __le__(self, other):
+        return self.url <= other.url
+
+    def __gt__(self, other):
+        return self.url > other.url
+
+    def __ge__(self, other):
+        return self.url >= other.url
 
     def __hash__(self):
         return hash(self.url)
@@ -629,11 +654,18 @@ class Link(object):
             return None
         return match.group(1)
 
-    _md5_re = re.compile(r'md5=([a-f0-9]+)')
+    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
-    def md5_hash(self):
-        match = self._md5_re.search(self.url)
+    def hash(self):
+        match = self._hash_re.search(self.url)
+        if match:
+            return match.group(2)
+        return None
+
+    @property
+    def hash_name(self):
+        match = self._hash_re.search(self.url)
         if match:
             return match.group(1)
         return None
@@ -641,6 +673,9 @@ class Link(object):
     @property
     def show_url(self):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
+
+#An "Infinite Link" that compares greater than other links
+InfLink = Link(Inf)
 
 
 def get_requirement_from_url(url):
@@ -680,14 +715,17 @@ def get_mirrors(hostname=None):
     Originally written for the distutils2 project by Alexis Metaireau.
     """
     if hostname is None:
-        hostname = DEFAULT_MIRROR_URL
+        hostname = DEFAULT_MIRROR_HOSTNAME
 
     # return the last mirror registered on PyPI.
+    last_mirror_hostname = None
     try:
-        hostname = socket.gethostbyname_ex(hostname)[0]
+        last_mirror_hostname = socket.gethostbyname_ex(hostname)[0]
     except socket.gaierror:
         return []
-    end_letter = hostname.split(".", 1)
+    if not last_mirror_hostname or last_mirror_hostname == DEFAULT_MIRROR_HOSTNAME:
+        last_mirror_hostname = "z.pypi.python.org"
+    end_letter = last_mirror_hostname.split(".", 1)
 
     # determine the list from the last one.
     return ["%s.%s" % (s, end_letter[1]) for s in string_range(end_letter[0])]

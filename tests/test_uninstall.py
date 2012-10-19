@@ -1,7 +1,10 @@
+from __future__ import with_statement
+
 import textwrap
 import sys
-from os.path import join, abspath
+from os.path import join, abspath, normpath
 from tempfile import mkdtemp
+from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
 
@@ -16,6 +19,8 @@ def test_simple_uninstall():
     env = reset_env()
     result = run_pip('install', 'INITools==0.2')
     assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import initools")
     result2 = run_pip('uninstall', 'INITools', '-y')
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
@@ -34,6 +39,19 @@ def test_uninstall_with_scripts():
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
 
 
+def test_uninstall_easy_install_after_import():
+    """
+    Uninstall an easy_installed package after it's been imported
+
+    """
+    env = reset_env()
+    result = env.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import initools")
+    result2 = run_pip('uninstall', 'INITools', '-y')
+    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+
+
 def test_uninstall_namespace_package():
     """
     Uninstall a distribution with a namespace package without clobbering
@@ -46,6 +64,33 @@ def test_uninstall_namespace_package():
     result2 = run_pip('uninstall', 'pd.find', '-y', expect_error=True)
     assert join(env.site_packages, 'pd') not in result2.files_deleted, sorted(result2.files_deleted.keys())
     assert join(env.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
+
+
+def test_uninstall_overlapping_package():
+    """
+    Uninstalling a distribution that adds modules to a pre-existing package
+    should only remove those added modules, not the rest of the existing
+    package.
+
+    See: GitHub issue #355 (pip uninstall removes things it didn't install)
+    """
+    parent_pkg = abspath(join(here, 'packages', 'parent-0.1.tar.gz'))
+    child_pkg = abspath(join(here, 'packages', 'child-0.1.tar.gz'))
+    env = reset_env()
+    result1 = run_pip('install', parent_pkg, expect_error=False)
+    assert join(env.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
+    result2 = run_pip('install', child_pkg, expect_error=False)
+    assert join(env.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
+    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result2.files_created, sorted(result2.files_created.keys())
+    #the import forces the generation of __pycache__ if the version of python supports it
+    env.run('python', '-c', "import parent.plugins.child_plugin, child")
+    result3 = run_pip('uninstall', '-y', 'child', expect_error=False)
+    assert join(env.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
+    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result3.files_deleted, sorted(result3.files_deleted.keys())
+    assert join(env.site_packages, 'parent') not in result3.files_deleted, sorted(result3.files_deleted.keys())
+    # Additional check: uninstalling 'child' should return things to the
+    # previous state, without unintended side effects.
+    assert_all_changes(result2, result3, [])
 
 
 def test_uninstall_console_scripts():
@@ -154,4 +199,43 @@ def test_uninstall_as_egg():
 
     result2 = run_pip('uninstall', 'FSPkg', '-y', expect_error=True)
     assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+
+
+@patch('pip.req.logger')
+def test_uninstallpathset_no_paths(mock_logger):
+    """
+    Test UninstallPathSet logs notification when there are no paths to uninstall
+
+    """
+    from pip.req import UninstallPathSet
+    from pkg_resources import get_distribution
+    test_dist = get_distribution('pip')
+    # ensure that the distribution is "local"
+    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+        mock_dist_is_local.return_value = True
+        uninstall_set = UninstallPathSet(test_dist)
+        uninstall_set.remove() #with no files added to set
+    mock_logger.notify.assert_any_call("Can't uninstall 'pip'. No files were found to uninstall.")
+
+
+@patch('pip.req.logger')
+def test_uninstallpathset_non_local(mock_logger):
+    """
+    Test UninstallPathSet logs notification and returns (with no exception) when dist is non-local
+
+    """
+    from pip.req import UninstallPathSet
+    from pkg_resources import get_distribution
+    test_dist = get_distribution('pip')
+    test_dist.location = "/NON_LOCAL"
+    # ensure that the distribution is "non-local"
+    # setting location isn't enough, due to egg-link file checking for
+    # develop-installs
+    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+        mock_dist_is_local.return_value = False
+        uninstall_set = UninstallPathSet(test_dist)
+        uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
+    mock_logger.notify.assert_any_call("Not uninstalling pip at /NON_LOCAL, outside environment %s" % sys.prefix)
+
+
 

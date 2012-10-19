@@ -5,7 +5,6 @@ import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
 
-from nose import SkipTest
 from nose.tools import assert_raises
 from mock import patch
 
@@ -374,6 +373,16 @@ def test_install_with_pax_header():
     reset_env()
     run_from = abspath(join(here, 'packages'))
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+
+
+def test_install_with_hacked_egg_info():
+    """
+    test installing a package which defines its own egg_info class
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'HackedEggInfo'))
+    result = run_pip('install', '.', cwd=run_from)
+    assert 'Successfully installed hackedegginfo\n' in result.stdout
 
 
 def test_install_using_install_option_and_editable():

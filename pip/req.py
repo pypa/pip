@@ -1,5 +1,6 @@
 from email.parser import FeedParser
 import os
+import imp
 import pkg_resources
 import re
 import sys
@@ -16,10 +17,10 @@ from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
-from pip.util import renames, normalize_path, egg_link_path
+from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
 from pip.util import make_path_relative
 from pip.util import call_subprocess
-from pip.backwardcompat import (urlparse, urllib,
+from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
 from pip.index import Link
@@ -94,7 +95,7 @@ class InstallRequirement(object):
             link = Link(name)
         elif os.path.isdir(path) and (os.path.sep in name or name.startswith('.')):
             if not is_installable_dir(path):
-                raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", name)
+                raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % name)
             link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
@@ -245,14 +246,16 @@ class InstallRequirement(object):
     _run_setup_py = """
 __file__ = __SETUP_PY__
 from setuptools.command import egg_info
+import pkg_resources
+import os
 def replacement_run(self):
     self.mkpath(self.egg_info)
     installer = self.distribution.fetch_build_egg
-    for ep in egg_info.iter_entry_points('egg_info.writers'):
+    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
         # require=False is the change we're making:
         writer = ep.load(require=False)
         if writer:
-            writer(self, ep.name, egg_info.os.path.join(self.egg_info,ep.name))
+            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
 exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
@@ -365,18 +368,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        if self.comes_from is None:
-            # We don't check the versions of things explicitly installed.
-            # This makes, e.g., "pip Package==dev" possible
-            return
         version = self.installed_version
         if version not in self.req:
-            logger.fatal(
-                'Source in %s has the version %s, which does not match the requirement %s'
-                % (display_path(self.source_dir), version, self))
-            raise InstallationError(
-                'Source in %s has version %s that conflicts with %s'
-                % (display_path(self.source_dir), version, self))
+            logger.warn('Requested %s, but installing version %s' % (self, self.installed_version))
         else:
             logger.debug('Source in %s has version %s, which satisfies requirement %s'
                          % (display_path(self.source_dir), version, self))
@@ -446,7 +440,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 for installed_file in dist.get_metadata('installed-files.txt').splitlines():
                     path = os.path.normpath(os.path.join(egg_info_path, installed_file))
                     paths_to_remove.add(path)
-            if dist.has_metadata('top_level.txt'):
+            #FIXME: need a test for this elif block
+            #occurs with --single-version-externally-managed/--record outside of pip
+            elif dist.has_metadata('top_level.txt'):
                 if dist.has_metadata('namespace_packages.txt'):
                     namespaces = dist.get_metadata('namespace_packages.txt')
                 else:
@@ -466,7 +462,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
-        elif os.path.isfile(develop_egg_link):
+        elif develop_egg_link:
             # develop egg
             fh = open(develop_egg_link, 'r')
             link_pointer = os.path.normcase(fh.readline().strip())
@@ -685,6 +681,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
+                elif running_under_virtualenv() and dist_in_site_packages(existing_dist):
+                    raise InstallationError("Will not install to the user site because it will lack sys.path precedence to %s in %s"
+                                            %(existing_dist.project_name, existing_dist.location))
             else:
                 self.conflicts_with = existing_dist
         return True
@@ -890,7 +889,7 @@ class RequirementSet(object):
             req.commit_uninstall()
 
     def locate_files(self):
-        ## FIXME: duplicates code from install_files; relevant code should
+        ## FIXME: duplicates code from prepare_files; relevant code should
         ##        probably be factored out into a separate method
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
@@ -904,7 +903,9 @@ class RequirementSet(object):
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        req_to_install.conflicts_with = req_to_install.satisfied_by
+                        #don't uninstall conflict if user install and and conflict is not user install
+                        if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                            req_to_install.conflicts_with = req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
                     else:
                         install_needed = False
@@ -956,7 +957,9 @@ class RequirementSet(object):
                                 req_to_install.url = url.url
 
                         if not best_installed:
-                            req_to_install.conflicts_with = req_to_install.satisfied_by
+                            #don't uninstall conflict if user install and conflict is not user install
+                            if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                                req_to_install.conflicts_with = req_to_install.satisfied_by
                             req_to_install.satisfied_by = None
                     else:
                         install = False
@@ -998,7 +1001,9 @@ class RequirementSet(object):
                     ##occurs when the script attempts to unpack the
                     ##build directory
 
+                    # NB: This call can result in the creation of a temporary build directory
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
+
                     ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     url = None
@@ -1053,7 +1058,9 @@ class RequirementSet(object):
                         req_to_install.check_if_exists()
                         if req_to_install.satisfied_by:
                             if self.upgrade or self.ignore_installed:
-                                req_to_install.conflicts_with = req_to_install.satisfied_by
+                                #don't uninstall conflict if user install and and conflict is not user install
+                                if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                                    req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
                                 install = False
@@ -1079,7 +1086,7 @@ class RequirementSet(object):
                             self.add_requirement(subreq)
                     if req_to_install.name not in self.requirements:
                         self.requirements[req_to_install.name] = req_to_install
-                    if self.is_download:
+                    if self.is_download or req_to_install._temp_build_dir is not None:
                         self.reqs_to_cleanup.append(req_to_install)
                 else:
                     self.reqs_to_cleanup.append(req_to_install)
@@ -1133,7 +1140,8 @@ class RequirementSet(object):
             loc = location
         if is_vcs_url(link):
             return unpack_vcs_link(link, loc, only_download)
-        elif is_file_url(link):
+        # a local file:// index could have links with hashes
+        elif not link.hash and is_file_url(link):
             return unpack_file_url(link, loc)
         else:
             if self.download_cache:
@@ -1269,9 +1277,10 @@ _scheme_re = re.compile(r'^(http|https|file):', re.I)
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None):
     skip_match = None
-    skip_regex = options.skip_requirements_regex
+    skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
         skip_match = re.compile(skip_regex)
+    reqs_file_dir = os.path.dirname(os.path.abspath(filename))
     filename, content = get_file_content(filename, comes_from=comes_from)
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
@@ -1303,6 +1312,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 line = line[len('--find-links'):].strip().lstrip('=')
             ## FIXME: it would be nice to keep track of the source of
             ## the find_links:
+            # support a find-links local path relative to a requirements file
+            relative_to_reqs_file = os.path.join(reqs_file_dir, line)
+            if os.path.exists(relative_to_reqs_file):
+                line = relative_to_reqs_file
             if finder:
                 finder.find_links.append(line)
         elif line.startswith('-i') or line.startswith('--index-url'):
@@ -1316,6 +1329,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             line = line[len('--extra-index-url'):].strip().lstrip('=')
             if finder:
                 finder.index_urls.append(line)
+        elif line.startswith('--no-index'):
+            finder.index_urls = []
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
@@ -1347,7 +1362,7 @@ def parse_editable(editable_req, default_vcs=None):
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", url_no_extras)
+            raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % url_no_extras)
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
@@ -1428,6 +1443,11 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(path)
 
+        # __pycache__ files can show up after 'installed-files.txt' is created, due to imports
+        if os.path.splitext(path)[1] == '.py' and uses_pycache:
+            self.add(imp.cache_from_source(path))
+
+
     def add_pth(self, pth_file, entry):
         pth_file = normalize_path(pth_file)
         if self._permitted(pth_file):
@@ -1458,6 +1478,9 @@ class UninstallPathSet(object):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
         if not self._can_uninstall():
+            return
+        if not self.paths:
+            logger.notify("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2

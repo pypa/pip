@@ -15,26 +15,26 @@ def running_under_virtualenv():
     """
     return hasattr(sys, 'real_prefix')
 
+
 def virtualenv_no_global():
     """
     Return True if in a venv and no system site packages.
     """
     #this mirrors the logic in virtualenv.py for locating the no-global-site-packages.txt file
     site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
-    no_global_file = os.path.join(site_mod_dir,'no-global-site-packages.txt')
+    no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
     if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
 
 
 if running_under_virtualenv():
-    ## FIXME: is build/ a good name?
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
     # Use tempfile to create a temporary folder for build
     # Note: we are NOT using mkdtemp so we can have a consistent build dir
     build_prefix = os.path.join(tempfile.gettempdir(), 'pip-build')
-    
+
     ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
         src_prefix = os.path.join(os.getcwd(), 'src')

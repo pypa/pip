@@ -9,6 +9,7 @@ from pip.locations import build_prefix, src_prefix, virtualenv_no_global
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
+from pip.backwardcompat import home_lib
 
 
 class InstallCommand(Command):
@@ -36,7 +37,7 @@ class InstallCommand(Command):
             action='append',
             default=[],
             metavar='FILENAME',
-            help='Install all the packages listed in the given requirements file.  '
+            help='Install all the packages listed in the given requirements file. '
             'This option can be used multiple times.')
         self.parser.add_option(
             '-f', '--find-links',
@@ -148,15 +149,15 @@ class InstallCommand(Command):
             dest='install_options',
             action='append',
             help="Extra arguments to be supplied to the setup.py install "
-            "command (use like --install-option=\"--install-scripts=/usr/local/bin\").  "
-            "Use multiple --install-option options to pass multiple options to setup.py install.  "
+            "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
+            "Use multiple --install-option options to pass multiple options to setup.py install. "
             "If you are using an option with a directory path, be sure to use absolute path.")
 
         self.parser.add_option(
             '--global-option',
             dest='global_options',
             action='append',
-            help="Extra global options to be supplied to the setup.py"
+            help="Extra global options to be supplied to the setup.py "
             "call before the install command")
 
         self.parser.add_option(
@@ -276,7 +277,7 @@ class InstallCommand(Command):
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
-            lib_dir = os.path.join(temp_target_dir, "lib/python/")
+            lib_dir = home_lib(temp_target_dir)
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),
