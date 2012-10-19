@@ -5,6 +5,7 @@ Andrey Bulgakov
 Antti Kaihola
 Armin Ronacher
 Aziz Köksal
+Ben Rosser
 Brian Rosner
 Carl Meyer
 Chris McDonough
