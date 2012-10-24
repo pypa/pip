@@ -20,3 +20,4 @@ matrix:
   allow_failures:
 env:
   - PIP_USE_MIRRORS=true
+
