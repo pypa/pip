@@ -22,4 +22,5 @@ pip-log.txt
 pip.log
 *.~
 .tox
+.noseids
 
