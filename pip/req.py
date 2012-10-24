@@ -37,7 +37,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True):
+                 url=None, as_egg=False, update=True, options=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -48,6 +48,7 @@ class InstallRequirement(object):
         self.editable = editable
         self.url = url
         self.as_egg = as_egg
+        self.options = options
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -90,6 +91,7 @@ class InstallRequirement(object):
         req = None
         path = os.path.normpath(os.path.abspath(name))
         link = None
+        options = None
 
         if is_url(name):
             link = Link(name)
@@ -113,9 +115,16 @@ class InstallRequirement(object):
                 url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
 
         else:
+            import shlex
+            line_arguments = shlex.split(name)
+            if len(line_arguments) > 1:
+                from pip.commands.install import InstallCommand
+                parser = InstallCommand().parser
+                (options, args) = parser.parse_args(line_arguments[1:])
+                name = line_arguments[0]
             req = name
 
-        return cls(req, comes_from, url=url)
+        return cls(req, comes_from, url=url, options=options)
 
     def __str__(self):
         if self.req:
@@ -558,6 +567,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         return name
 
     def install(self, install_options, global_options=()):
+        if self.options and self.options.install_options:
+            install_options += self.options.install_options
         if self.editable:
             self.install_editable(install_options, global_options)
             return
