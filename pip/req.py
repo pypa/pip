@@ -1359,6 +1359,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             line = line[len('--extra-index-url'):].strip().lstrip('=')
             if finder:
                 finder.index_urls.append(line)
+        elif line.startswith('--use-wheel'):
+            finder.use_wheel = True
         elif line.startswith('--no-index'):
             finder.index_urls = []
         else:
