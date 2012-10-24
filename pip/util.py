@@ -161,7 +161,8 @@ class _Inf(object):
     def __repr__(self):
         return 'Inf'
 
-Inf = _Inf()
+
+Inf = _Inf() #this object is not currently used as a sortable in our code
 del _Inf
 
 
