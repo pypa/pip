@@ -17,6 +17,8 @@ develop (unreleased)
 * Pip now has experimental "wheel" support.  Thanks Daniel Holth, Paul Moore,
   and Michele Lacchia.
 
+* --user/--upgrade install options now work together; thanks eevee.
+
 * Added check in ``install --download`` to prevent re-downloading if the target
   file already exists. Thanks Andrey Bulgakov.
 
@@ -57,7 +59,10 @@ develop (unreleased)
   Hsiaoming Yang and Markus Hametner.
 
 * Use a temporary directory as the default build location outside of a
-  virtualenv. Fixes issues #339 and #381. Thanks TC01.
+  virtualenv. Fixes issues #339 and #381. Thanks Ben Rosser.
+
+* Moved pip configuration data to ~/.config/pip, the XDG standard for config
+  files on Unix/Linux systems. Thanks Ben Rosser.
 
 * Added support for specifying extras with local editables. Thanks Nick
   Stenning.

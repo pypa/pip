@@ -97,7 +97,7 @@ class InstallRequirement(object):
             link = Link(name)
         elif os.path.isdir(path) and (os.path.sep in name or name.startswith('.')):
             if not is_installable_dir(path):
-                raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", name)
+                raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % name)
             link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
@@ -922,7 +922,9 @@ class RequirementSet(object):
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        req_to_install.conflicts_with = req_to_install.satisfied_by
+                        #don't uninstall conflict if user install and and conflict is not user install
+                        if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                            req_to_install.conflicts_with = req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
                     else:
                         install_needed = False
@@ -974,7 +976,9 @@ class RequirementSet(object):
                                 req_to_install.url = url.url
 
                         if not best_installed:
-                            req_to_install.conflicts_with = req_to_install.satisfied_by
+                            #don't uninstall conflict if user install and conflict is not user install
+                            if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                                req_to_install.conflicts_with = req_to_install.satisfied_by
                             req_to_install.satisfied_by = None
                     else:
                         install = False
@@ -1090,7 +1094,9 @@ class RequirementSet(object):
                         req_to_install.check_if_exists()
                         if req_to_install.satisfied_by:
                             if self.upgrade or self.ignore_installed:
-                                req_to_install.conflicts_with = req_to_install.satisfied_by
+                                #don't uninstall conflict if user install and and conflict is not user install
+                                if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
+                                    req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
                                 install = False
@@ -1392,7 +1398,7 @@ def parse_editable(editable_req, default_vcs=None):
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            raise InstallationError("Directory %r is not installable. File 'setup.py' not found.", url_no_extras)
+            raise InstallationError("Directory %r is not installable. File 'setup.py' not found." % url_no_extras)
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 

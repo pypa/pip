@@ -104,20 +104,6 @@ class PackageFinder(object):
         return files, urls
 
     def find_requirement(self, req, upgrade):
-        url_name = req.url_name
-        # Only check main index if index URL is given:
-        main_index_url = None
-        if self.index_urls:
-            # Check that we have the url_name correctly spelled:
-            main_index_url = Link(posixpath.join(self.index_urls[0], url_name))
-            # This will also cache the page, so it's okay that we get it again later:
-            page = self._get_page(main_index_url, req)
-            if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
-
-        # Combine index URLs with mirror URLs here to allow
-        # adding more index URLs from requirements files
-        all_index_urls = self.index_urls + self.mirror_urls
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -128,6 +114,22 @@ class PackageFinder(object):
             if not loc.endswith('/'):
                 loc = loc + '/'
             return loc
+
+        url_name = req.url_name
+        # Only check main index if index URL is given:
+        main_index_url = None
+        if self.index_urls:
+            # Check that we have the url_name correctly spelled:
+            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
+            # This will also cache the page, so it's okay that we get it again later:
+            page = self._get_page(main_index_url, req)
+            if page is None:
+                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+
+        # Combine index URLs with mirror URLs here to allow
+        # adding more index URLs from requirements files
+        all_index_urls = self.index_urls + self.mirror_urls
+
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url)
@@ -167,13 +169,14 @@ class PackageFinder(object):
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
+        installed_version = []
         if req.satisfied_by is not None:
-            found_versions.append((req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version))
+            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
-            found_versions = file_versions + found_versions
-        all_versions = found_versions + page_versions + dependency_versions
+        #this is an intentional priority ordering
+        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
@@ -181,7 +184,8 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        applicable_versions = sorted(applicable_versions, reverse=True)
+        #bring the latest version to the front, but maintains the priority ordering as secondary
+        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -193,7 +197,7 @@ class PackageFinder(object):
             return None
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
-                         % (req, ', '.join([version for parsed_version, link, version in found_versions])))
+                         % (req, ', '.join([version for parsed_version, link, version in all_versions])))
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
@@ -227,7 +231,7 @@ class PackageFinder(object):
 
     def _get_pages(self, locations, req):
         """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
+        locations that have errors, and adding homepage links"""
         pending_queue = Queue()
         for location in locations:
             pending_queue.put(location)
@@ -258,7 +262,7 @@ class PackageFinder(object):
             if page is None:
                 continue
             done.append(page)
-            for link in page.rel_links():
+            for link in page.rel_links(rels=('homepage',)):
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
@@ -568,8 +572,8 @@ class HTMLPage(object):
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
-    def rel_links(self):
-        for url in self.explicit_rel_links():
+    def rel_links(self, rels=('homepage', 'download')):
+        for url in self.explicit_rel_links(rels):
             yield url
         for url in self.scraped_rel_links():
             yield url
@@ -703,7 +707,7 @@ class Link(object):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
 
 #An "Infinite Link" that compares greater than other links
-InfLink = Link(Inf)
+InfLink = Link(Inf) #this object is not currently used as a sortable
 
 
 def get_requirement_from_url(url):

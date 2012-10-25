@@ -80,20 +80,23 @@ def test_multiple_requirements_files():
 def test_respect_order_in_requirements_file():
     env = reset_env()
     write_file('frameworks-req.txt', textwrap.dedent("""\
-        bidict
-        ordereddict
-        initools
+        parent
+        child
+        simple
         """))
-    result = run_pip('install', '-r', env.scratch_path / 'frameworks-req.txt')
+
+    find_links = 'file://' + os.path.join(here, 'packages')
+    result = run_pip('install', '--no-index', '-f', find_links, '-r', env.scratch_path / 'frameworks-req.txt')
+
     downloaded = [line for line in result.stdout.split('\n')
                   if 'Downloading/unpacking' in line]
 
-    assert 'bidict' in downloaded[0], 'First download should ' \
-            'be "bidict" but was "%s"' % downloaded[0]
-    assert 'ordereddict' in downloaded[1], 'Second download should ' \
-            'be "ordereddict" but was "%s"' % downloaded[1]
-    assert 'initools' in downloaded[2], 'Third download should ' \
-            'be "initools" but was "%s"' % downloaded[2]
+    assert 'parent' in downloaded[0], 'First download should ' \
+            'be "parent" but was "%s"' % downloaded[0]
+    assert 'child' in downloaded[1], 'Second download should ' \
+            'be "child" but was "%s"' % downloaded[1]
+    assert 'simple' in downloaded[2], 'Third download should ' \
+            'be "simple" but was "%s"' % downloaded[2]
 
 
 def test_requirements_data_structure_keeps_order():
