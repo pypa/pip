@@ -102,6 +102,8 @@ class TestPipWheel:
         Test 'pip wheel' unpack only.
         """
         env = reset_env(use_distribute=True)
+        run_pip('install', 'wheel')
+        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--unpack-only', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
