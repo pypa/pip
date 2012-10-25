@@ -75,3 +75,38 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     req.satisfied_by = satisfied_by
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+
+def test_finder_priority_file_over_page():
+    """Test PackageFinder prefers file links over equivalent page links"""
+    req = InstallRequirement.from_line('gmpy==1.15', None)
+    finder = PackageFinder([find_links], ["http://pypi.python.org/simple"])
+    link = finder.find_requirement(req, False)
+    assert link.url.startswith("file://")
+
+
+def test_finder_priority_page_over_deplink():
+    """Test PackageFinder prefers page links over equivalent dependency links"""
+    req = InstallRequirement.from_line('gmpy==1.15', None)
+    finder = PackageFinder([], ["http://pypi.python.org/simple"])
+    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
+    link = finder.find_requirement(req, False)
+    assert link.url.startswith("http://pypi")
+
+
+def test_finder_priority_nonegg_over_eggfragments():
+    """Test PackageFinder prefers non-egg links over "#egg=" links"""
+    req = InstallRequirement.from_line('bar==1.0', None)
+    links = ['http://foo/bar.py#egg=bar-1.0', 'http://foo/bar-1.0.tar.gz']
+
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith('tar.gz')
+
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith('tar.gz')
+
+
+

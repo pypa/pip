@@ -101,6 +101,7 @@ class PackageFinder(object):
         return files, urls
 
     def find_requirement(self, req, upgrade):
+
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
             # For maximum compatibility with easy_install, ensure the path
@@ -165,13 +166,14 @@ class PackageFinder(object):
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
             raise DistributionNotFound('No distributions at all found for %s' % req)
+        installed_version = []
         if req.satisfied_by is not None:
-            found_versions.append((req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version))
+            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
-            found_versions = file_versions + found_versions
-        all_versions = found_versions + page_versions + dependency_versions
+        #this is an intentional priority ordering
+        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
@@ -179,7 +181,8 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        applicable_versions = sorted(applicable_versions, reverse=True)
+        #bring the latest version to the front, but maintains the priority ordering as secondary
+        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -191,7 +194,7 @@ class PackageFinder(object):
             return None
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
-                         % (req, ', '.join([version for parsed_version, link, version in found_versions])))
+                         % (req, ', '.join([version for parsed_version, link, version in all_versions])))
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
@@ -675,7 +678,7 @@ class Link(object):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
 
 #An "Infinite Link" that compares greater than other links
-InfLink = Link(Inf)
+InfLink = Link(Inf) #this object is not currently used as a sortable
 
 
 def get_requirement_from_url(url):
