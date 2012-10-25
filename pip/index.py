@@ -63,10 +63,14 @@ class PackageFinder(object):
         ## FIXME: also, we should track comes_from (i.e., use Link)
         self.dependency_links.extend(links)
 
-    def _sort_locations(self, locations):
-        """
-        Sort locations into "files" (archives) and "urls", and return
-        a pair of lists (files,urls)
+    def partition_locations_by_type(self, locations):
+        """Separate locations into two "files" and "urls".
+
+        Split the list of locations into two parts, one containing "files"
+        (direct links to downloadable archive files) and one containing "urls"
+        (links to index pages containing file links).
+
+        Return the two lists.
         """
         files = []
         urls = []
@@ -103,7 +107,9 @@ class PackageFinder(object):
 
         return files, urls
 
-    def find_requirement(self, req, upgrade):
+    def get_locations(self, req):
+        """Get locations of all the search pages for a requirement.
+        """
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -115,13 +121,20 @@ class PackageFinder(object):
                 loc = loc + '/'
             return loc
 
+        # The URL name of the requirement
         url_name = req.url_name
-        # Only check main index if index URL is given:
+        # The URL of the first specified index (if any are given)
         main_index_url = None
+
+        # If we have indexes specified, check them to confirm the correct URL
+        # name for the requirement. This corrects for minor differences like
+        # case insensitivity (see _find_url_name)
         if self.index_urls:
-            # Check that we have the url_name correctly spelled:
             main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
-            # This will also cache the page, so it's okay that we get it again later:
+            # Can we get the page using this URL name? If not, correct the
+            # name.
+            # This will also cache the page, so it's okay that we get it again
+            # later.
             page = self._get_page(main_index_url, req)
             if page is None:
                 url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
@@ -130,53 +143,27 @@ class PackageFinder(object):
         # adding more index URLs from requirements files
         all_index_urls = self.index_urls + self.mirror_urls
 
+        # Locations to search
+        locations = []
         if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url)
-                for url in all_index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
+            locations = [mkurl_pypi_url(url) for url in all_index_urls]
+        locations.extend(self.find_links)
         locations.extend(self.dependency_links)
+        # Add direct links to version pages for specified absolute versions
+        # Add these at the start, so they are searched first.
         for version in req.absolute_versions:
             if url_name is not None and main_index_url is not None:
-                locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
+                locations = [posixpath.join(main_index_url.url, version)] + locations
 
-        file_locations, url_locations = self._sort_locations(locations)
+        return locations
 
-        locations = [Link(url) for url in url_locations]
-        logger.debug('URLs to search for versions for %s:' % req)
-        for location in locations:
-            logger.debug('* %s' % location)
-        found_versions = []
-        found_versions.extend(
-            self._package_versions(
-                [Link(url, '-f') for url in self.find_links], req.name.lower()))
-        page_versions = []
-        for page in self._get_pages(locations, req):
-            logger.debug('Analyzing links from page %s' % page.url)
-            logger.indent += 2
-            try:
-                page_versions.extend(self._package_versions(page.links, req.name.lower()))
-            finally:
-                logger.indent -= 2
-        dependency_versions = list(self._package_versions(
-            [Link(url) for url in self.dependency_links], req.name.lower()))
-        if dependency_versions:
-            logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
-        file_versions = list(self._package_versions(
-                [Link(url) for url in file_locations], req.name.lower()))
-        if not found_versions and not page_versions and not dependency_versions and not file_versions:
-            logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
-            raise DistributionNotFound('No distributions at all found for %s' % req)
-        installed_version = []
-        if req.satisfied_by is not None:
-            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
-        if file_versions:
-            file_versions.sort(reverse=True)
-            logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
-        #this is an intentional priority ordering
-        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
+
+    def get_applicable_versions(self, req, all_versions):
+        """Get the versions which satisfy req, in priority order.
+
+        Return a list of (parsed version, link, raw version) tuples.
+        """
+
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
@@ -184,8 +171,78 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        #bring the latest version to the front, but maintains the priority ordering as secondary
+
+        # Bring the latest version to the front, but maintain the priority ordering as secondary
+        # This works because sorted() is guaranteed stable.
         applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
+
+        return applicable_versions
+
+
+    def find_requirement(self, req, upgrade):
+
+        locations = self.get_locations(req)
+        file_locations, url_locations = self.partition_locations_by_type(locations)
+
+        # ============================================================
+        # Get a set of lists of versions to consider. There are lists for:
+        #   - versions from --find-links
+        #   - versions located by searching index pages
+        #   - versions specified as dependencies
+        #   - versions specified directly as files
+        #   - the currently installed version
+
+        found_versions = []
+        found_versions.extend(
+            self._package_versions(
+                [Link(url, '-f') for url in self.find_links], req.name.lower()))
+
+        # ------------------------------------------------------------
+        urls = [Link(url) for url in url_locations]
+        logger.debug('URLs to search for versions for %s:' % req)
+        for url in urls:
+            logger.debug('* %s' % url)
+
+        page_versions = []
+        for page in self._get_pages(urls, req):
+            logger.debug('Analyzing links from page %s' % page.url)
+            logger.indent += 2
+            try:
+                page_versions.extend(self._package_versions(page.links, req.name.lower()))
+            finally:
+                logger.indent -= 2
+
+        # ------------------------------------------------------------
+        dependency_versions = list(self._package_versions(
+            [Link(url) for url in self.dependency_links], req.name.lower()))
+        if dependency_versions:
+            logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
+
+        # ------------------------------------------------------------
+        file_versions = list(self._package_versions(
+                [Link(url) for url in file_locations], req.name.lower()))
+
+        # ------------------------------------------------------------
+        installed_version = []
+        if req.satisfied_by is not None:
+            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
+        # ============================================================
+
+        if not found_versions and not page_versions and not dependency_versions and not file_versions:
+            logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+            raise DistributionNotFound('No distributions at all found for %s' % req)
+
+        if file_versions:
+            file_versions.sort(reverse=True)
+            logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
+
+        # Calculate the list of versions which satisfy the requirements, in
+        # priority order.
+        # Note that the order of all_versions is an intentional priority
+        # ordering.
+        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
+        applicable_versions = self.get_applicable_versions(req, all_versions)
+
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -195,18 +252,22 @@ class PackageFinder(object):
                 logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
                             % (req.satisfied_by.version, applicable_versions[0][2]))
             return None
+
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in all_versions])))
             raise DistributionNotFound('No distributions matching the version for %s' % req)
+
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
                         % (req.satisfied_by.version, ', '.join([version for parsed_version, link, version in applicable_versions[1:]]) or 'none'))
             raise BestVersionAlreadyInstalled
+
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
+
         return applicable_versions[0][1]
 
 
