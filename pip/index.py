@@ -172,9 +172,20 @@ class PackageFinder(object):
                 continue
             applicable_versions.append((parsed_version, link, version))
 
+        def sort_key(ver):
+            k1 = ver[0]
+            if self.use_wheel:
+                _, ext = ver[1].splitext()
+                if ext == '.whl':
+                    k2 = 2
+                else:
+                    k2 = 1
+            else:
+                k2 = 1
+            return (k1, k2)
         # Bring the latest version to the front, but maintain the priority ordering as secondary
         # This works because sorted() is guaranteed stable.
-        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
+        applicable_versions = sorted(applicable_versions, key=sort_key, reverse=True)
 
         return applicable_versions
 

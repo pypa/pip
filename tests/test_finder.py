@@ -77,23 +77,6 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
-@patch('pip.pep425tags.get_supported')
-def test_find_wheel(mock_get_supported):
-    """
-    Test finding wheels.
-    """
-    find_links_url = 'file://' + os.path.join(here, 'packages')
-    find_links = [find_links_url]
-    req = InstallRequirement.from_line("simple.dist")
-    finder = PackageFinder(find_links, [], use_wheel=True)
-    mock_get_supported.return_value = [('py1', 'none', 'any')]
-    assert_raises(DistributionNotFound, finder.find_requirement, req, True)
-    mock_get_supported.return_value = [('py2', 'none', 'any')]
-    found = finder.find_requirement(req, True)
-    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
-    mock_get_supported.return_value = [('py3', 'none', 'any')]
-    found = finder.find_requirement(req, True)
-    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
 
 def test_finder_priority_file_over_page():
     """Test PackageFinder prefers file links over equivalent page links"""
@@ -127,3 +110,32 @@ def test_finder_priority_nonegg_over_eggfragments():
     assert link.url.endswith('tar.gz')
 
 
+@patch('pip.pep425tags.get_supported')
+def test_find_wheel(mock_get_supported):
+    """
+    Test finding wheels.
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    req = InstallRequirement.from_line("simple.dist")
+    finder = PackageFinder(find_links, [], use_wheel=True)
+    mock_get_supported.return_value = [('py1', 'none', 'any')]
+    assert_raises(DistributionNotFound, finder.find_requirement, req, True)
+    mock_get_supported.return_value = [('py2', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+    mock_get_supported.return_value = [('py3', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+
+
+def test_wheel_priority():
+    """
+    Test wheels have priority over sdists.
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    req = InstallRequirement.from_line("priority")
+    finder = PackageFinder(find_links, [], use_wheel=True)
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
