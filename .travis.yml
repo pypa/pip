@@ -12,10 +12,10 @@ before_install:
 install: pip install nose virtualenv scripttest mock
 script: nosetests
 notifications:
-  irc: "irc.freenode.org#pip"
 branches:
   only:
-    - develop
+    - wheel_install
+    - wheel_build
 matrix:
   allow_failures:
     - python: 3.1

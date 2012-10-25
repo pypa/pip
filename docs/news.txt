@@ -14,6 +14,9 @@ Beta and final releases planned for the end of 2012.
 develop (unreleased)
 --------------------
 
+* Pip now has experimental "wheel" support.  Thanks Daniel Holth, Paul Moore,
+  and Michele Lacchia.
+
 * --user/--upgrade install options now work together; thanks eevee.
 
 * Added check in ``install --download`` to prevent re-downloading if the target

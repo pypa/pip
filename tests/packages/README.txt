@@ -62,6 +62,9 @@ simple-[123].0.tar.gz
 ---------------------
 contains "simple" package; good for basic testing and version logic.
 
+wheelbroken-0.1.tar.gz
+-----------------
+fails for "setup.py bdist_wheel"
 
 
 
