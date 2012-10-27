@@ -1,9 +1,9 @@
 """
 pip command options
 """
-import os
+
 from optparse import make_option
-from pip.locations import build_prefix, src_prefix
+from pip.locations import build_prefix
 
 REQUIREMENTS = make_option(
             '-r', '--requirement',
