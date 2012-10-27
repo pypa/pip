@@ -38,6 +38,7 @@ class WheelCommand(Command):
         self.parser.add_option(options.REQUIREMENTS)
         self.parser.add_option(options.FIND_LINKS)
         self.parser.add_option(options.INDEX_URL)
+        self.parser.add_option(options.USE_WHEEL)
         self.parser.add_option(options.EXTRA_INDEX_URLS)
         self.parser.add_option(options.NO_INDEX)
         self.parser.add_option(options.USE_MIRRORS)
@@ -70,7 +71,7 @@ class WheelCommand(Command):
                                index_urls=index_urls,
                                use_mirrors=options.use_mirrors,
                                mirrors=options.mirrors,
-                               use_wheel=False)
+                               use_wheel=options.use_wheel)
 
         options.build_dir = os.path.abspath(options.build_dir)
         requirement_set = RequirementSet(
@@ -87,6 +88,7 @@ class WheelCommand(Command):
                 continue
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
+
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 if req.editable or (req.name is None and req.url.endswith(".whl")):
