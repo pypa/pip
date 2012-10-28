@@ -189,9 +189,6 @@ def uninstallation_paths(dist):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    # should also be ignorable during package finding
-    ignore_list = ['distribute','pip','setuptools']
-
     def __init__(self, requirement_set, finder, wheel_dir, build_options=[], global_options=[]):
         self.requirement_set = requirement_set
         self.finder = finder
@@ -241,8 +238,6 @@ class WheelBuilder(object):
         logger.indent += 2
         build_success, build_failure = [], []
         for req in reqset:
-            if req.name.lower() in self.ignore_list:
-                continue
             if req.is_wheel:
                 logger.notify("Skipping existing wheel: %s", req.url)
                 continue
