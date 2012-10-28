@@ -185,7 +185,18 @@ class PackageFinder(object):
                 continue
             applicable_versions.append((parsed_version, link, version))
         #bring the latest version to the front, but maintains the priority ordering as secondary
-        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
+        def sort_key(ver):
+            k1 = ver[0]
+            if self.use_wheel:
+                _, ext = ver[1].splitext()
+                if ext == '.whl':
+                    k2 = 2
+                else:
+                    k2 = 1
+            else:
+                k2 = 1
+            return (k1, k2)
+        applicable_versions = sorted(applicable_versions, key=sort_key, reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
