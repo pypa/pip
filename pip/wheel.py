@@ -199,12 +199,6 @@ class WheelBuilder(object):
     def _build_one(self, req):
         """Build one wheel."""
 
-        try:
-            import wheel
-        except ImportError:
-            logger.error('The wheel package is required; Failed to build a wheel for %s.' %req.name)
-            return False
-
         base_args = [
             sys.executable, '-c',
             "import setuptools;__file__=%r;"\
