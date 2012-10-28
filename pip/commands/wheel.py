@@ -3,8 +3,9 @@ from __future__ import absolute_import
 
 import os
 import sys
+import pip.commands.options as options
+
 from pip.basecommand import Command
-from pip.commands.options import *
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.exceptions import CommandError
@@ -34,26 +35,27 @@ class WheelCommand(Command):
             action='store_true',
             default=False,
             help='Only unpack')
-        self.parser.add_option(REQUIREMENTS)
-        self.parser.add_option(FIND_LINKS)
-        self.parser.add_option(INDEX_URL)
-        self.parser.add_option(EXTRA_INDEX_URLS)
-        self.parser.add_option(NO_INDEX)
-        self.parser.add_option(USE_MIRRORS)
-        self.parser.add_option(MIRRORS)
-        self.parser.add_option(DOWNLOAD_CACHE)
-        self.parser.add_option(BUILD_DIR)
+        self.parser.add_option(options.REQUIREMENTS)
+        self.parser.add_option(options.FIND_LINKS)
+        self.parser.add_option(options.INDEX_URL)
+        self.parser.add_option(options.USE_WHEEL)
+        self.parser.add_option(options.EXTRA_INDEX_URLS)
+        self.parser.add_option(options.NO_INDEX)
+        self.parser.add_option(options.USE_MIRRORS)
+        self.parser.add_option(options.MIRRORS)
+        self.parser.add_option(options.DOWNLOAD_CACHE)
+        self.parser.add_option(options.BUILD_DIR)
         self.parser.add_option(
             '--build-option',
             dest='build_options',
             action='append',
             help="Extra arguments to be supplied to setup.py bdist_wheel")
-        self.parser.add_option(GLOBAL_OPTIONS)
+        self.parser.add_option(options.GLOBAL_OPTIONS)
 
     def run(self, options, args):
 
         if sys.version_info < (2, 6):
-             raise CommandError("'pip wheel' requires Python 2.6 or greater.")
+            raise CommandError("'pip wheel' requires Python 2.6 or greater.")
         
         try:
             import wheel.bdist_wheel
@@ -69,7 +71,7 @@ class WheelCommand(Command):
                                index_urls=index_urls,
                                use_mirrors=options.use_mirrors,
                                mirrors=options.mirrors,
-                               use_wheel=False)
+                               use_wheel=options.use_wheel)
 
         options.build_dir = os.path.abspath(options.build_dir)
         requirement_set = RequirementSet(
@@ -86,6 +88,7 @@ class WheelCommand(Command):
                 continue
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
+
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 if req.editable or (req.name is None and req.url.endswith(".whl")):

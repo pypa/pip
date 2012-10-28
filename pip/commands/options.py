@@ -1,9 +1,9 @@
 """
 pip command options
 """
-import os
+
 from optparse import make_option
-from pip.locations import build_prefix, src_prefix
+from pip.locations import build_prefix
 
 REQUIREMENTS = make_option(
             '-r', '--requirement',
@@ -21,6 +21,7 @@ FIND_LINKS = make_option(
             default=[],
             metavar='URL',
             help='URL to look for packages at')
+
 INDEX_URL = make_option(
             '-i', '--index-url', '--pypi-url',
             dest='index_url',
@@ -42,6 +43,11 @@ NO_INDEX = make_option(
             action='store_true',
             default=False,
             help='Ignore package index (only looking at --find-links URLs instead)')
+
+USE_WHEEL = make_option('--use-wheel',
+            dest='use_wheel',
+            action='store_true',
+            help='Find wheel archives when searching index and find-links')
 
 USE_MIRRORS = make_option(
             '-M', '--use-mirrors',

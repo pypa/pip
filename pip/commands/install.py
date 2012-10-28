@@ -5,7 +5,7 @@ import shutil
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
-from pip.locations import build_prefix, src_prefix, virtualenv_no_global
+from pip.locations import src_prefix, virtualenv_no_global
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
@@ -21,10 +21,6 @@ class InstallCommand(Command):
 
     def __init__(self):
         super(InstallCommand, self).__init__()
-        self.parser.add_option('--use-wheel',
-            dest='use_wheel',
-            action='store_true',
-            help='Find wheel archives when searching index and find-links')
         self.parser.add_option(
             '-e', '--editable',
             dest='editables',
@@ -39,6 +35,7 @@ class InstallCommand(Command):
         self.parser.add_option(REQUIREMENTS)
         self.parser.add_option(FIND_LINKS)
         self.parser.add_option(INDEX_URL)
+        self.parser.add_option(USE_WHEEL)
         self.parser.add_option(EXTRA_INDEX_URLS)
         self.parser.add_option(NO_INDEX)
         self.parser.add_option(USE_MIRRORS)
