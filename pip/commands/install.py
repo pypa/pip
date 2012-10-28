@@ -10,7 +10,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
-from pip.commands.options import *
+from pip.commands import options
 
 
 class InstallCommand(Command):
@@ -32,15 +32,15 @@ class InstallCommand(Command):
             'setup.py develop). You can run this on an existing directory/checkout (like '
             'pip install -e src/mycheckout). This option may be provided multiple times. '
             'Possible values for VCS are: svn, git, hg and bzr.')
-        self.parser.add_option(REQUIREMENTS)
-        self.parser.add_option(FIND_LINKS)
-        self.parser.add_option(INDEX_URL)
-        self.parser.add_option(USE_WHEEL)
-        self.parser.add_option(EXTRA_INDEX_URLS)
-        self.parser.add_option(NO_INDEX)
-        self.parser.add_option(USE_MIRRORS)
-        self.parser.add_option(MIRRORS)
-        self.parser.add_option(BUILD_DIR)
+        self.parser.add_option(options.REQUIREMENTS)
+        self.parser.add_option(options.FIND_LINKS)
+        self.parser.add_option(options.INDEX_URL)
+        self.parser.add_option(options.USE_WHEEL)
+        self.parser.add_option(options.EXTRA_INDEX_URLS)
+        self.parser.add_option(options.NO_INDEX)
+        self.parser.add_option(options.USE_MIRRORS)
+        self.parser.add_option(options.MIRRORS)
+        self.parser.add_option(options.BUILD_DIR)
         self.parser.add_option(
             '-t', '--target',
             dest='target_dir',
@@ -53,7 +53,7 @@ class InstallCommand(Command):
             metavar='DIR',
             default=None,
             help='Download packages into DIR instead of installing them')
-        self.parser.add_option(DOWNLOAD_CACHE)
+        self.parser.add_option(options.DOWNLOAD_CACHE)
         self.parser.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
@@ -76,12 +76,7 @@ class InstallCommand(Command):
             dest='ignore_installed',
             action='store_true',
             help='Ignore the installed packages (reinstalling instead)')
-        self.parser.add_option(
-            '--no-deps', '--no-dependencies',
-            dest='ignore_dependencies',
-            action='store_true',
-            default=False,
-            help='Ignore package dependencies')
+        self.parser.add_option(options.NO_DEPS)
         self.parser.add_option(
             '--no-install',
             dest='no_install',
@@ -93,8 +88,8 @@ class InstallCommand(Command):
             action="store_true",
             help="Don't download any packages, just install the ones already downloaded "
             "(completes an install run with --no-install)")
-        self.parser.add_option(INSTALL_OPTIONS)
-        self.parser.add_option(GLOBAL_OPTIONS)
+        self.parser.add_option(options.INSTALL_OPTIONS)
+        self.parser.add_option(options.GLOBAL_OPTIONS)
         self.parser.add_option(
             '--user',
             dest='use_user_site',

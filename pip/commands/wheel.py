@@ -44,6 +44,7 @@ class WheelCommand(Command):
         self.parser.add_option(options.USE_MIRRORS)
         self.parser.add_option(options.MIRRORS)
         self.parser.add_option(options.DOWNLOAD_CACHE)
+        self.parser.add_option(options.NO_DEPS)
         self.parser.add_option(options.BUILD_DIR)
         self.parser.add_option(
             '--build-option',
@@ -56,7 +57,7 @@ class WheelCommand(Command):
 
         if sys.version_info < (2, 6):
             raise CommandError("'pip wheel' requires Python 2.6 or greater.")
-        
+
         try:
             import wheel.bdist_wheel
         except ImportError:
@@ -79,6 +80,7 @@ class WheelCommand(Command):
             src_dir=None,
             download_dir=None,
             download_cache=options.download_cache,
+            ignore_dependencies=options.ignore_dependencies,
             ignore_installed=True)
 
         #parse args and/or requirements files

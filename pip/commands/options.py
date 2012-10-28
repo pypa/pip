@@ -71,6 +71,13 @@ DOWNLOAD_CACHE = make_option(
             default=None,
             help='Cache downloaded packages in DIR')
 
+NO_DEPS = make_option(
+            '--no-deps', '--no-dependencies',
+            dest='ignore_dependencies',
+            action='store_true',
+            default=False,
+            help='Ignore package dependencies')
+
 BUILD_DIR = make_option(
             '-b', '--build', '--build-dir', '--build-directory',
             dest='build_dir',
