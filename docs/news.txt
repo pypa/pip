@@ -25,6 +25,10 @@ develop (unreleased)
 * Added "pip show" command to get information about an installed
   package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 
+* Added `--root` option for "pip install" to specify root directory. Behaves
+  like the same option in distutils but also plays nice with pip's egg-info.
+  (Issue #253)
+
 1.2.1 (2012-09-06)
 ------------------
 
