@@ -266,7 +266,7 @@ class InstallCommand(Command):
                 requirement_set.locate_files()
 
             if not options.no_install and not self.bundle:
-                requirement_set.install(install_options, global_options)
+                requirement_set.install(install_options, global_options, root=options.root_path)
                 installed = ' '.join([req.name for req in
                                       requirement_set.successfully_installed])
                 if installed:
