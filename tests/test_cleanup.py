@@ -1,7 +1,7 @@
 import os
 import textwrap
 from os.path import abspath, exists, join
-from tests.test_pip import (here, reset_env, run_pip, write_file, mkdir)
+from tests.test_pip import (here, reset_env, run_pip, write_file, mkdir, pyversion)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -135,3 +135,28 @@ def test_download_should_not_delete_existing_build_dir():
     assert os.path.exists(env.venv_path/'build'), "build/ should be left if it exists before pip run"
     assert content == 'I am not empty!', "it should not affect build/ and its content"
     assert ['somefile.txt'] == os.listdir(env.venv_path/'build')
+
+
+def test_cleanup_after_install_exception():
+    """
+    Test clean up after a 'setup.py install' exception.
+    """
+    env = reset_env()
+    find_links = 'file://' + join(here, 'packages')
+    #broken==0.2broken fails during install; see packages readme file
+    result = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)
+    build = env.venv_path/'build'
+    assert not exists(build), "build/ dir still exists: %s" % result.stdout
+    env.assert_no_temp()
+
+def test_cleanup_after_egg_info_exception():
+    """
+    Test clean up after a 'setup.py egg_info' exception.
+    """
+    env = reset_env()
+    find_links = 'file://' + join(here, 'packages')
+    #brokenegginfo fails during egg_info; see packages readme file
+    result = run_pip('install', '-f', find_links, '--no-index', 'brokenegginfo==0.1', expect_error=True)
+    build = env.venv_path/'build'
+    assert not exists(build), "build/ dir still exists: %s" % result.stdout
+    env.assert_no_temp()

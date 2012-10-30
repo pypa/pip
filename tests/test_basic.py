@@ -207,6 +207,23 @@ def test_bad_install_with_no_download():
             "an equivalent install with --no-install?" in result.stdout
 
 
+def test_install_no_reuse_existing_build_dir():
+    """
+    Test install doesn't reuse existing build dir
+    """
+    find_links = 'file://' + join(here, 'packages')
+    env = reset_env()
+
+    # do a --no-install install which will create a build dir
+    result = run_pip('install', '-f', find_links, '--no-index', '--no-install', 'simple==2.0')
+    build_folder = env.venv/'build'/'simple'
+    assert build_folder in result.files_created, str(result)
+
+    #install should fail due to pre-existing build dir
+    result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple', expect_error=True)
+    assert 'Will not install requirement simple due to pre-existing build' in result.stdout
+
+
 def test_install_dev_version_from_pypi():
     """
     Test using package==dev.

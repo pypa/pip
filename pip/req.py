@@ -1014,9 +1014,16 @@ class RequirementSet(object):
                     # NB: This call can result in the creation of a temporary build directory
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
 
-                    ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     url = None
+
+                    #if build dir exists, it's too risky to keep going
+                    #version inconsistencies are logged later, but do not stop installation
+                    if os.path.exists(os.path.join(location, 'setup.py')):
+                        msg = 'Will not install requirement %s due to pre-existing build dir %s'  % (req_to_install, location)
+                        logger.fatal(msg)
+                        raise InstallationError(msg)
+
                     if not os.path.exists(os.path.join(location, 'setup.py')):
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:
