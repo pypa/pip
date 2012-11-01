@@ -1,9 +1,9 @@
 import os.path
 import textwrap
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_is_instance
 from mock import patch
 from pip.backwardcompat import urllib
-from pip.req import Requirements, parse_editable
+from pip.req import Requirements, parse_editable, InstallRequirement
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -184,3 +184,9 @@ def test_install_local_editable_with_extras():
     assert env.site_packages/'easy-install.pth' in res.files_updated
     assert env.site_packages/'LocalExtras.egg-link' in res.files_created
     assert env.site_packages/'simple' in res.files_created
+
+
+def test_parse_extras_with_version():
+    """Test parsing a requirement including a version and an extra feature."""
+    install_req = InstallRequirement.from_line("MyPackage==3.0 [PDF]", None)
+    assert_is_instance(install_req, InstallRequirement)
