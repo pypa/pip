@@ -214,11 +214,12 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
+    is_absolute = url.startswith('file:/')
     path = url[len('file:'):].lstrip('/')
     path = urllib.unquote(path)
     if _url_drive_re.match(path):
         path = path[0] + ':' + path[2:]
-    else:
+    elif is_absolute:
         path = '/' + path
     return path
 

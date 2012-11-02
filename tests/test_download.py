@@ -1,6 +1,7 @@
 import textwrap
 from tests.test_pip import reset_env, run_pip, write_file
 from tests.path import Path
+from pip.download import url_to_path
 
 
 def test_download_if_requested():
@@ -68,3 +69,17 @@ def test_download_should_skip_existing_files():
     assert Path('scratch')/ 'INITools-0.1.tar.gz' not in result.files_created
     assert env.site_packages/ 'initools' not in result.files_created
     assert env.site_packages/ 'openid' not in result.files_created
+
+
+def test_url_to_path():
+    def test(url, path):
+        result = url_to_path(url)
+        assert result == path, '%s != %s' % (result, path)
+    yield test, 'file://', '/'
+    yield test, 'file:///foo/bar', '/foo/bar'
+    yield test, 'file://C:/foo/bar', 'C:/foo/bar'
+    yield test, 'file:///foo/bar%20baz', '/foo/bar baz'
+    yield test, 'file:.', '.'
+    yield test, 'file:relative/path', 'relative/path'
+    yield test, 'file:./relative/path', './relative/path'
+    yield test, 'file:../relative/path', '../relative/path'
