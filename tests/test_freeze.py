@@ -253,13 +253,13 @@ def test_freeze_with_changed_option():
     result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
 
     # Now install something else and check that only that is reported
-    result = run_pip('install', 'MarkupSafe<=0.11')
+    result = run_pip('install', 'wsgiref==0.1.1')
     result = run_pip('freeze', '--local', '--changed', '-r', env.scratch_path/'initools-req.txt', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze --local --changed...
         -- stdout: --------------------
         ## The following requirements were added by pip --freeze on...
-        MarkupSafe==0.11...
+        wsgiref==0.1.1...
         <BLANKLINE>""")
     _check_output(result, expected)
 
@@ -267,15 +267,15 @@ def test_freeze_with_changed_option():
     # Check that upgraded packages are shown as changed
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
-        MarkupSafe<=0.11
+        wsgiref==0.1.1
         """))
-    result = run_pip('install', 'MarkupSafe<=0.12')
+    result = run_pip('install', 'wsgiref==0.1.2')
     result = run_pip('freeze', '--local', '--changed', '-r', env.scratch_path/'initools-req.txt', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze --local --changed...
         -- stdout: --------------------
         ## The following requirements were added by pip --freeze on...
-        MarkupSafe==0.12...
+        wsgiref==0.1.2...
         <BLANKLINE>""")
     _check_output(result, expected)
     
