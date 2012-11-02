@@ -340,7 +340,19 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
     @property
     def dependency_links(self):
-        return self.egg_info_lines('dependency_links.txt')
+        links = self.egg_info_lines('dependency_links.txt')
+        if self.source_dir is not None:
+            for i, url in enumerate(list(links)):
+                if not url.startswith('file:') or url.startswith('file:/'):
+                    continue
+                if '#egg=' in url:
+                    egg_index = url.find('#egg=')
+                    url, extra = url[:egg_index], url[egg_index:]
+                else:
+                    extra = ''
+                path = os.path.join(self.source_dir, url_to_path(url))
+                links[i] = path_to_url(path) + extra
+        return links
 
     _requirements_section_re = re.compile(r'\[(.*?)\]')
 
