@@ -106,15 +106,18 @@ class PackageFinder(object):
     def _link_sort_key(self, link_tuple):
         """
         Function used to generate link sort key for link tuples.
-        If finding wheels, wheels are preferred.
+        If finding wheels, wheels are preferred over sdists
         """
         parsed_version = link_tuple[0]
         link = link_tuple[1]
-        if self.use_wheel and link != InfLink:
-            link_ext = link.splitext()[1]
-            pri = 1
-            if link_ext == '.whl':
+        if self.use_wheel:
+            if link == InfLink: #existing install
                 pri = 2
+            else:
+                pri = 1
+                link_ext = link.splitext()[1]
+                if link_ext == '.whl':
+                    pri = 2
             return (parsed_version, pri)
         else:
             return parsed_version

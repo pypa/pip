@@ -127,13 +127,26 @@ def test_finder_priority_nonegg_over_eggfragments():
     assert link.url.endswith('tar.gz')
 
 
-def test_wheel_priority():
+def test_wheel_over_sdist_priority():
     """
     Test wheels have priority over sdists.
     """
-    find_links_url = 'file://' + os.path.join(here, 'packages')
-    find_links = [find_links_url]
     req = InstallRequirement.from_line("priority")
-    finder = PackageFinder(find_links, [], use_wheel=True)
+    finder = PackageFinder([find_links], [], use_wheel=True)
     found = finder.find_requirement(req, True)
     assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
+
+def test_existing_over_wheel_priority():
+    """
+    Test existing install has priority over wheels.
+    """
+    req = InstallRequirement.from_line('priority', None)
+    latest_version = "1.0"
+    satisfied_by = Mock(
+        location = "/path",
+        parsed_version = parse_version(latest_version),
+        version = latest_version
+        )
+    req.satisfied_by = satisfied_by
+    finder = PackageFinder([find_links], [], use_wheel=True)
+    assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
