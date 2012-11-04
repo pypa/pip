@@ -49,11 +49,12 @@ def test_upgrade_with_newest_already_installed():
     not be reinstalled and the user should be informed.
     """
 
+    find_links = 'file://' + join(here, 'packages')
     env = reset_env()
-    run_pip('install', 'INITools')
-    result = run_pip('install', '--upgrade', 'INITools')
-    assert not result.files_created, 'pip install --upgrade INITools upgraded when it should not have'
-    assert 'already up-to-date' in result.stdout
+    run_pip('install', '-f', find_links, '--no-index', 'simple')
+    result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
+    assert not result.files_created, 'simple upgraded when it should not have'
+    assert 'already up-to-date' in result.stdout, result.stdout
 
 
 def test_upgrade_force_reinstall_newest():

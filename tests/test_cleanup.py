@@ -17,6 +17,7 @@ def test_cleanup_after_install_from_pypi():
     src = env.scratch_path/"src"
     assert not exists(build), "build/ dir still exists: %s" % build
     assert not exists(src), "unexpected src/ dir exists: %s" % src
+    env.assert_no_temp()
 
 
 def test_cleanup_after_install_editable_from_hg():
@@ -34,6 +35,7 @@ def test_cleanup_after_install_editable_from_hg():
     src = env.venv_path/'src'
     assert not exists(build), "build/ dir still exists: %s" % build
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
+    env.assert_no_temp()
 
 
 def test_cleanup_after_install_from_local_directory():
@@ -48,6 +50,7 @@ def test_cleanup_after_install_from_local_directory():
     src = env.venv_path/'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
+    env.assert_no_temp()
 
 
 def test_cleanup_after_create_bundle():
@@ -79,6 +82,7 @@ def test_cleanup_after_create_bundle():
     src_bundle = env.scratch_path/"src-bundle"
     assert not exists(build_bundle), "build-bundle/ dir still exists: %s" % build_bundle
     assert not exists(src_bundle), "src-bundle/ dir still exists: %s" % src_bundle
+    env.assert_no_temp()
 
     # Make sure previously created src/ from editable still exists
     assert exists(src), "expected src dir doesn't exist: %s" % src
@@ -94,6 +98,25 @@ def test_no_install_and_download_should_not_leave_build_dir():
     result = run_pip('install', '--no-install', 'INITools==0.2', '-d', 'downloaded_packages')
     assert Path('scratch')/'downloaded_packages/build' not in result.files_created, 'pip should not leave build/ dir'
     assert not os.path.exists(env.venv_path/'/build'), "build/ dir should be deleted"
+
+
+def test_cleanup_req_satisifed_no_name():
+    """
+    Test cleanup when req is already satisfied, and req has no 'name'
+    """
+    #this test confirms Issue #420 is fixed
+    #reqs with no 'name' that were already satisfied were leaving behind tmp build dirs
+    #2 examples of reqs that would do this
+    # 1) https://bitbucket.org/ianb/initools/get/tip.zip
+    # 2) parent-0.1.tar.gz
+
+    dist = abspath(join(here, 'packages', 'parent-0.1.tar.gz'))
+    env = reset_env()
+    result = run_pip('install', dist)
+    result = run_pip('install', dist)
+    build = env.venv_path/'build'
+    assert not exists(build), "unexpected build/ dir exists: %s" % build
+    env.assert_no_temp()
 
 
 def test_download_should_not_delete_existing_build_dir():

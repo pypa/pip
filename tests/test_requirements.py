@@ -80,20 +80,23 @@ def test_multiple_requirements_files():
 def test_respect_order_in_requirements_file():
     env = reset_env()
     write_file('frameworks-req.txt', textwrap.dedent("""\
-        bidict
-        ordereddict
-        initools
+        parent
+        child
+        simple
         """))
-    result = run_pip('install', '-r', env.scratch_path / 'frameworks-req.txt')
+
+    find_links = 'file://' + os.path.join(here, 'packages')
+    result = run_pip('install', '--no-index', '-f', find_links, '-r', env.scratch_path / 'frameworks-req.txt')
+
     downloaded = [line for line in result.stdout.split('\n')
                   if 'Downloading/unpacking' in line]
 
-    assert 'bidict' in downloaded[0], 'First download should ' \
-            'be "bidict" but was "%s"' % downloaded[0]
-    assert 'ordereddict' in downloaded[1], 'Second download should ' \
-            'be "ordereddict" but was "%s"' % downloaded[1]
-    assert 'initools' in downloaded[2], 'Third download should ' \
-            'be "initools" but was "%s"' % downloaded[2]
+    assert 'parent' in downloaded[0], 'First download should ' \
+            'be "parent" but was "%s"' % downloaded[0]
+    assert 'child' in downloaded[1], 'Second download should ' \
+            'be "child" but was "%s"' % downloaded[1]
+    assert 'simple' in downloaded[2], 'Third download should ' \
+            'be "simple" but was "%s"' % downloaded[2]
 
 
 def test_requirements_data_structure_keeps_order():
@@ -171,7 +174,7 @@ def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normc
     normcase_mock.return_value = "/some/path/foo"
     assert_equal(
         parse_editable('foo[bar,baz]', 'git'),
-        (None, 'file://' + os.path.join("/some/path", 'foo'), ('bar', 'baz'))
+        (None, 'file:///some/path/foo', ('bar', 'baz'))
     )
 
 def test_install_local_editable_with_extras():
@@ -180,4 +183,4 @@ def test_install_local_editable_with_extras():
     res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
     assert env.site_packages/'easy-install.pth' in res.files_updated
     assert env.site_packages/'LocalExtras.egg-link' in res.files_created
-    assert env.site_packages/'fspkg' in res.files_created
+    assert env.site_packages/'simple' in res.files_created
