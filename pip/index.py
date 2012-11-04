@@ -103,6 +103,22 @@ class PackageFinder(object):
 
         return files, urls
 
+    def _link_sort_key(self, link_tuple):
+        """
+        Function used to generate link sort key for link tuples.
+        If finding wheels, wheels are preferred.
+        """
+        parsed_version = link_tuple[0]
+        link = link_tuple[1]
+        if self.use_wheel and link != InfLink:
+            link_ext = link.splitext()[1]
+            pri = 1
+            if link_ext == '.whl':
+                pri = 2
+            return (parsed_version, pri)
+        else:
+            return parsed_version
+
     def find_requirement(self, req, upgrade):
 
         def mkurl_pypi_url(url):
@@ -184,19 +200,8 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        #bring the latest version to the front, but maintains the priority ordering as secondary
-        def sort_key(ver):
-            k1 = ver[0]
-            if self.use_wheel:
-                _, ext = ver[1].splitext()
-                if ext == '.whl':
-                    k2 = 2
-                else:
-                    k2 = 1
-            else:
-                k2 = 1
-            return (k1, k2)
-        applicable_versions = sorted(applicable_versions, key=sort_key, reverse=True)
+        #bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary
+        applicable_versions = sorted(applicable_versions, key=self._link_sort_key, reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -302,9 +307,9 @@ class PackageFinder(object):
         for link in self._sort_links(links):
             for v in self._link_package_versions(link, search_name):
                 yield v
-        
+
     def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip') 
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
         if self.use_wheel:
             return extensions + ('.whl',)
         return extensions
