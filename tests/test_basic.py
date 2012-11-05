@@ -528,6 +528,30 @@ def test_install_with_relative_dependency_links():
     assert simple_egg_info in result.files_created, str(result)
 
 
+def test_install_with_relative_dependency_links_dir():
+    """
+    Test installing a package with a relative directory path in in dependency_links
+    """
+    packages = Path(here).abspath/'packages'
+    env = reset_env()
+    vendor = Path('pkg')/'vendor'
+    mkdir('pkg')
+    mkdir(vendor)
+    shutil.copy(str(packages/'simple-1.0.tar.gz'), str(env.cwd/vendor))
+    pkg_path = env.scratch_path/'pkg'
+    write_file('setup.py', textwrap.dedent('''\
+        from setuptools import setup
+        setup(
+            name='pkg',
+            version='1.0',
+            install_requires=['simple'],
+            dependency_links=['file:vendor'],
+        )'''), pkg_path)
+    result = run_pip('install', '-vv', '--no-index', pkg_path)
+    simple_egg_info = env.site_packages/'simple-1.0-py%s.egg-info' % pyversion
+    assert simple_egg_info in result.files_created, str(result)
+
+
 def test_find_command_folder_in_path():
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for

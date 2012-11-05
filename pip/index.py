@@ -14,6 +14,7 @@ import pkg_resources
 import random
 import socket
 import string
+import urllib
 import zlib
 from pip.log import logger
 from pip.util import Inf
@@ -457,26 +458,35 @@ class HTMLPage(object):
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
-            if scheme == 'file' and os.path.isdir(url2pathname(path)):
-                # add trailing slash if not present so urljoin doesn't trim final segment
-                if not url.endswith('/'):
-                    url += '/'
-                url = urlparse.urljoin(url, 'index.html')
-                logger.debug(' file: URL is directory, getting %s' % url)
+            should_open_url = True
+            filepath = url2pathname(path)
+            if scheme == 'file' and os.path.isdir(filepath):
+                if os.path.exists(os.path.join(filepath, 'index.html')):
+                    # add trailing slash if not present so urljoin doesn't trim final segment
+                    if not url.endswith('/'):
+                        url += '/'
+                    url = urlparse.urljoin(url, 'index.html')
+                    logger.debug(' file: URL is directory, getting %s' % url)
+                else:
+                    # use directory listing if index.html does not exist
+                    should_open_url = False
+                    real_url = url
+                    inst = DirectoryPage(filepath, url)
 
-            resp = urlopen(url)
+            if should_open_url:
+                resp = urlopen(url)
 
-            real_url = geturl(resp)
-            headers = resp.info()
-            contents = resp.read()
-            encoding = headers.get('Content-Encoding', None)
-            #XXX need to handle exceptions and add testing for this
-            if encoding is not None:
-                if encoding == 'gzip':
-                    contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
-                if encoding == 'deflate':
-                    contents = zlib.decompress(contents)
-            inst = cls(u(contents), real_url, headers)
+                real_url = geturl(resp)
+                headers = resp.info()
+                contents = resp.read()
+                encoding = headers.get('Content-Encoding', None)
+                #XXX need to handle exceptions and add testing for this
+                if encoding is not None:
+                    if encoding == 'gzip':
+                        contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
+                    if encoding == 'deflate':
+                        contents = zlib.decompress(contents)
+                inst = cls(u(contents), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -587,6 +597,28 @@ class HTMLPage(object):
         % or other characters)."""
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
+
+
+class DirectoryPage(object):
+
+    def __init__(self, path, url):
+        self.path = path
+        self.url = url
+
+    def __str__(self):
+        return self.url
+
+    @property
+    def links(self):
+        """Yields links to files in this directory"""
+        url = self.url
+        if not url.endswith('/'):
+            url += '/'
+        for filename in os.listdir(self.path):
+            yield Link(url + urllib.quote(filename), self)
+
+    def rel_links(self, rels=None):
+        return []
 
 
 class Link(object):
