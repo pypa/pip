@@ -144,7 +144,15 @@ class FrozenRequirement(object):
             # No SOURCES.txt in metadata, just return location
             return os.path.normcase(os.path.abspath(dist.location))
 
-        line_with_egginfo = (x for x in egginfo_lines if ".egg-info" in x).next()
+        # Find a line from SOURCES.txt with .egg-info
+        for x in egginfo_lines:
+            if ".egg-info" in x:
+                line_with_egginfo = x
+                break
+        else:
+            # No lines with .egg-info, just return location
+            return os.path.normcase(os.path.abspath(dist.location))
+
         path_to_trim_from_location = line_with_egginfo.split(dist.project_name)[0]
         # Remove trailing slash if it exists
         if path_to_trim_from_location.endswith('/'):
