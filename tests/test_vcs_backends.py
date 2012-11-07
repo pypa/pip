@@ -1,7 +1,7 @@
-from tests.test_pip import (reset_env, run_pip,
+from tests.test_pip import (here, reset_env, run_pip,
                       _create_test_package, _change_test_package_version)
 from tests.local_repos import local_checkout
-
+import os
 
 def test_install_editable_from_git_with_https():
     """
@@ -14,6 +14,21 @@ def test_install_editable_from_git_with_https():
                      expect_error=True)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
+def test_install_editable_with_subdirectory():
+    """
+    Test installing a package from a repo subdirectory
+    """
+    env = reset_env()
+    version_pkg_path = _create_test_package(env, subpackage='version_subpkg')
+    #un_pip('install', '-e', '%s@%s#egg=version_pkg' % ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1))
+    #version = env.run('version_pkg')
+    #assert '0.1' in version.stdout, version.stdout
+
+    #reset_env()
+    #result = run_pip('install', '-e',
+    #                 '%s#egg=pip-test-sub-package&subdirectory=piptestsubpackage' %
+    #                 ('git+file://' + os.path.join(here, 'packages/pip-test-sub-package')))
+    #result.assert_installed('pip-test-sub-package')
 
 def test_git_with_sha1_revisions():
     """
@@ -26,6 +41,8 @@ def test_git_with_sha1_revisions():
     run_pip('install', '-e', '%s@%s#egg=version_pkg' % ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1))
     version = env.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
+
+
 
 
 def test_git_with_branch_name_as_revision():

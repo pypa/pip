@@ -47,7 +47,7 @@ develop (unreleased)
 * Fixed issue #605 - pypi mirror support broken on some DNS responses. Thanks
   philwhin.
 
-* Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
+ Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
   pjdelport.
 
 * Fixed issues #493, #494, #440, and #573 related to improving support for the

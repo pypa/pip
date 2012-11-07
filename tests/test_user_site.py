@@ -17,6 +17,14 @@ patch_dist_in_site_packages = """
 """
 
 
+patch_dist_in_site_packages = """
+       def dist_in_site_packages(dist):
+           return False
+       import pip
+       pip.util.dist_in_site_packages=dist_in_site_packages
+"""
+
+
 def test_install_curdir_usersite_fails_in_old_python():
     """
     Test --user option on older Python versions (pre 2.6) fails intelligibly
@@ -223,7 +231,6 @@ class Tests_UserSite:
         assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
                                         %('INITools', dist_location)), result2.stdout
 
-
     def test_uninstall_from_usersite(self):
         """
         Test uninstall from usersite
@@ -252,5 +259,3 @@ class Tests_UserSite:
 
         assert_all_changes(result1, result2,
                            [env.venv/'build', 'cache', env.user_site/'easy-install.pth'])
-
-

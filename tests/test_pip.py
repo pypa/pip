@@ -553,6 +553,8 @@ def write_file(filename, text, dest=None):
     """
     env = get_env()
     if dest:
+        if not os.path.exists(dest):
+            os.mkdir(dest)
         complete_path = dest/ filename
     else:
         complete_path = env.scratch_path/ filename
@@ -648,13 +650,15 @@ def assert_all_changes(start_state, end_state, expected_changes):
     return diff
 
 
-def _create_test_package(env):
+def _create_test_package(env, subpackage=None):
     mkdir('version_pkg')
     version_pkg_path = env.scratch_path/'version_pkg'
     write_file('version_pkg.py', textwrap.dedent('''\
                                 def main():
                                     print('0.1')
                                 '''), version_pkg_path)
+
+
     write_file('setup.py', textwrap.dedent('''\
                         from setuptools import setup, find_packages
                         setup(name='version_pkg',
@@ -663,6 +667,22 @@ def _create_test_package(env):
                               py_modules=['version_pkg'],
                               entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
                         '''), version_pkg_path)
+
+    if subpackage:
+        subpackage_path = os.path.join(version_pkg_path, subpackage)
+        write_file('version_subpkg.py', textwrap.dedent('''\
+                                def main():
+                                    print('0.1')
+                                '''), subpackage_path)
+        write_file('setup.py', textwrap.dedent('''\
+                        from setuptools import setup, find_packages
+                        setup(name='version_subpkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_subpkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
+                        '''), subpackage_path)
+
     env.run('git', 'init', cwd=version_pkg_path)
     env.run('git', 'add', '.', cwd=version_pkg_path)
     env.run('git', 'commit', '-q',
