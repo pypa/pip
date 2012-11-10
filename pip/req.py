@@ -8,6 +8,8 @@ import shutil
 import tempfile
 import zipfile
 
+import pip
+
 from distutils.util import change_root
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
@@ -18,7 +20,7 @@ from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
 from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
-from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
+from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip.util import call_subprocess
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
@@ -680,6 +682,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately."""
+
         if self.req is None:
             return False
         try:
@@ -691,7 +694,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
-                elif running_under_virtualenv() and dist_in_site_packages(existing_dist):
+                elif running_under_virtualenv() and pip.util.dist_in_site_packages(existing_dist):
                     raise InstallationError("Will not install to the user site because it will lack sys.path precedence to %s in %s"
                                             %(existing_dist.project_name, existing_dist.location))
             else:
