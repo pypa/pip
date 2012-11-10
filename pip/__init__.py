@@ -6,12 +6,11 @@ import sys
 import re
 import difflib
 
-from pip.basecommand import command_dict, load_command, load_all_commands, command_names
-from pip.baseparser import parser
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+from pip.commands import commands, get_similar_commands, get_summaries
 
 
 # The version as used in the setup.py and the docs conf.py
@@ -33,8 +32,8 @@ def autocomplete():
         current = cwords[cword - 1]
     except IndexError:
         current = ''
-    load_all_commands()
-    subcommands = [cmd for cmd, cls in command_dict.items() if not cls.hidden]
+
+    subcommands = [cmd for cmd, cls in commands.items() if not cls.hidden]
     options = []
     # subcommand
     try:
@@ -58,7 +57,7 @@ def autocomplete():
                 for dist in installed:
                     print(dist)
                 sys.exit(1)
-        subcommand = command_dict.get(subcommand_name)
+        subcommand = commands.get(subcommand_name)
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list
                     if opt.help != optparse.SUPPRESS_HELP]

@@ -106,6 +106,3 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
-
-
-FreezeCommand()

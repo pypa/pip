@@ -292,6 +292,3 @@ class InstallCommand(Command):
                     )
             shutil.rmtree(temp_target_dir)
         return requirement_set
-
-
-InstallCommand()

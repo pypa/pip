@@ -30,4 +30,3 @@ class HelpCommand(Command):
             print('  %s: %s' % (command.name, command.summary))
         return SUCCESS
 
-HelpCommand()

@@ -34,5 +34,3 @@ class BundleCommand(InstallCommand):
         requirement_set = super(BundleCommand, self).run(options, args)
         return requirement_set
 
-
-BundleCommand()

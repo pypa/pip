@@ -124,6 +124,3 @@ def compare_versions(version1, version2):
 
 def highest_version(versions):
     return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
-
-
-SearchCommand()

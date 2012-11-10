@@ -341,6 +341,3 @@ class ZipCommand(Command):
                          if not f.lower().endswith('.pyc')]
             total += len(filenames)
         return total
-
-
-ZipCommand()

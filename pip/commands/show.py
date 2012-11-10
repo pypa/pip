@@ -73,6 +73,3 @@ def print_results(distributions, list_all_files):
                     logger.notify("  %s" % line.strip())
             else:
                 logger.notify("Cannot locate installed-files.txt")
-
-
-ShowCommand()

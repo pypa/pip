@@ -56,5 +56,3 @@ class CompletionCommand(Command):
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
             sys.stderr.write('ERROR: You must pass %s\n' % ' or '.join(shell_options))
-
-CompletionCommand()

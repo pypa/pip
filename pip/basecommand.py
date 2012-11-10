@@ -8,7 +8,6 @@ import tempfile
 import traceback
 import time
 
-from pip import commands
 from pip.log import logger
 from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
@@ -19,10 +18,8 @@ from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
 
 
-__all__ = ['command_dict', 'Command', 'load_all_commands',
-           'load_command', 'command_names']
+__all__ = ['Command']
 
-command_dict = {}
 
 # for backwards compatibiliy
 get_proxy = urlopen.get_proxy
@@ -178,24 +175,4 @@ def open_logfile(filename, mode='a'):
         log_fp.write('%s\n' % ('-'*60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
-
-
-def load_command(name):
-    full_name = 'pip.commands.%s' % name
-    if full_name in sys.modules:
-        return
-    try:
-        __import__(full_name)
-    except ImportError:
-        pass
-
-
-def load_all_commands():
-    for name in command_names():
-        load_command(name)
-
-
-def command_names():
-    names = set((pkg[1] for pkg in walk_packages(path=commands.__path__)))
-    return list(names)
 
