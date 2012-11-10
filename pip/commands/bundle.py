@@ -11,8 +11,8 @@ class BundleCommand(InstallCommand):
     summary = 'Create pybundles (archives containing multiple packages)'
     bundle = True
 
-    def __init__(self):
-        super(BundleCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(BundleCommand, self).__init__(*args, **kw)
         # bundle uses different default source and build dirs
         build_opt = self.parser.get_option("--build")
         build_opt.default = backup_dir(build_prefix, '-bundle')

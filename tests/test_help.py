@@ -13,7 +13,7 @@ def test_run_method_should_return_sucess_when_finds_command_name():
     """
     options_mock = Mock()
     args = ('freeze',)
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -24,7 +24,7 @@ def test_run_method_should_return_sucess_when_command_name_not_specified():
     """
     options_mock = Mock()
     args = ()
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -35,7 +35,7 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     """
     options_mock = Mock()
     args = ('mycommand',)
-    help_cmd = HelpCommand()
+    help_cmd = HelpCommand(create_main_parser())
     assert_raises(CommandError, help_cmd.run, options_mock, args)
 
 
@@ -64,3 +64,18 @@ def test_help_command_should_exit_status_error_when_command_does_not_exist():
     reset_env()
     result = run_pip('help', 'mycommand', expect_error=True)
     assert result.returncode == ERROR
+
+def test_help_commands_equally_functional():
+    """
+    Test for `pip help`, `pip` and `pip --help` being the same
+    """
+    reset_env()
+
+    results = list(map(run_pip, ('help', '--help')))
+    results.append(run_pip())
+
+    out = map(lambda x: x.stdout, results)
+    ret = map(lambda x: x.returncode, results)
+
+    assert len(set(out)) == 1
+    assert sum(ret) == 0

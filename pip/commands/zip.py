@@ -15,8 +15,8 @@ class ZipCommand(Command):
     usage = '%prog [OPTIONS] PACKAGE_NAMES...'
     summary = 'Zip individual packages'
 
-    def __init__(self):
-        super(ZipCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(ZipCommand, self).__init__(*args, **kw)
         if self.name == 'zip':
             self.parser.add_option(
                 '--unzip',

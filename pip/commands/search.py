@@ -16,8 +16,8 @@ class SearchCommand(Command):
     usage = '%prog QUERY'
     summary = 'Search PyPI'
 
-    def __init__(self):
-        super(SearchCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(SearchCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '--index',
             dest='index',

@@ -9,11 +9,11 @@ import traceback
 import time
 
 from pip.log import logger
-from pip.baseparser import parser, ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
 from pip.backwardcompat import StringIO
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
 
@@ -30,20 +30,37 @@ class Command(object):
     usage = None
     hidden = False
 
-    def __init__(self):
-        assert self.name
-        self.parser = ConfigOptionParser(
-            usage=self.usage,
-            prog='%s %s' % (get_prog(), self.name),
-            version=parser.version,
-            formatter=UpdatingDefaultsHelpFormatter(),
-            name=self.name)
-        for option in parser.option_list:
+    def __init__(self, main_parser):
+        parser_kw = {
+            'usage' : self.usage,
+            'prog'  : '%s %s' % (get_prog(), self.name),
+            'formatter' : UpdatingDefaultsHelpFormatter(),
+            'name' : self.name,
+        }
+
+        self.main_parser = main_parser
+        self.parser = ConfigOptionParser(**parser_kw)
+
+        # Re-add all options and option groups.
+        for group in main_parser.option_groups:
+            self._copy_option_group(self.parser, group)
+
+        # Copies all general options from the main parser.
+        self._copy_options(self.parser, main_parser.option_list)
+    
+    def _copy_options(self, parser, options):
+        """Populate an option parser or group with options."""
+        for option in options:
             if not option.dest or option.dest == 'help':
-                # -h, --version, etc
                 continue
-            self.parser.add_option(option)
-        command_dict[self.name] = self
+            parser.add_option(option)
+
+    def _copy_option_group(self, parser, group):
+        """Copy option group (including options) to another parser."""
+        new_group = optparse.OptionGroup(parser, group.title)
+        self._copy_options(new_group, group.option_list)
+
+        parser.add_option_group(new_group)
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over

@@ -32,8 +32,8 @@ class CompletionCommand(Command):
     summary = 'A helper command to be used for command completion'
     hidden = True
 
-    def __init__(self):
-        super(CompletionCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(CompletionCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '--bash', '-b',
             action='store_const',

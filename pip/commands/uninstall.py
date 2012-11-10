@@ -8,8 +8,8 @@ class UninstallCommand(Command):
     usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
     summary = 'Uninstall packages'
 
-    def __init__(self):
-        super(UninstallCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(UninstallCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirements',

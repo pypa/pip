@@ -85,7 +85,7 @@ def test_searching_through_Search_class():
     dumped_xmlrpc_request = b(xmlrpclib.dumps(({'name': query, 'summary': query}, 'or'), 'search'))
     expected = [{'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
     fake_transport.request.return_value = (expected,)
-    pypi_searcher = SearchCommand()
+    pypi_searcher = SearchCommand(create_main_parser())
     result = pypi_searcher.search(query, 'http://pypi.python.org/pypi')
     try:
         assert expected == result, result
@@ -109,7 +109,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     """
     options_mock = Mock()
     options_mock.index = 'http://pypi.python.org/pypi'
-    search_cmd = SearchCommand()
+    search_cmd = SearchCommand(create_main_parser())
     status = search_cmd.run(options_mock, ('pip',))
     assert status == SUCCESS
 
@@ -120,7 +120,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     """
     options_mock = Mock()
     options_mock.index = 'http://pypi.python.org/pypi'
-    search_cmd = SearchCommand()
+    search_cmd = SearchCommand(create_main_parser())
     status = search_cmd.run(options_mock, ('non-existant-package',))
     assert status == NO_MATCHES_FOUND, status
 
