@@ -310,5 +310,3 @@ def create_main_parser():
 
     return parser
 
-parser = create_main_parser()
-

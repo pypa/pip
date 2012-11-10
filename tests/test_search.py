@@ -5,6 +5,7 @@ from pip.commands.search import (compare_versions,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
+from pip.baseparser import create_main_parser
 from mock import Mock
 from tests.test_pip import run_pip, reset_env, pyversion
 from tests.pypi_server import assert_equal

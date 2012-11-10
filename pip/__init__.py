@@ -10,6 +10,7 @@ from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+from pip.baseparser import create_main_parser
 from pip.commands import commands, get_similar_commands, get_summaries
 
 
@@ -73,40 +74,79 @@ def autocomplete():
                 opt_label += '='
             print(opt_label)
     else:
-        # show options of main parser only when necessary
+        parser = create_main_parser()
+
+        # show main parser options only when necessary
         if current.startswith('-') or current.startswith('--'):
-            subcommands += [opt.get_opt_string()
-                            for opt in parser.option_list
-                            if opt.help != optparse.SUPPRESS_HELP]
+            opts = [i.option_list for i in parser.option_groups]
+            opts.append(parser.option_list)
+            opts = (o for it in opts for o in it) 
+
+            subcommands += [i.get_opt_string() for i in opts
+                            if i.help != optparse.SUPPRESS_HELP]
+
         print(' '.join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
+
+
+def parseopts(args):
+    parser = create_main_parser()
+
+    # create command listing
+    command_summaries = get_summaries()
+
+    description = ['Commands:']
+    description.extend(['  %-20s %s' % (i, j) for i,j in command_summaries])
+
+    # We have to add the name of the default OptionGroup here for now.
+    description.append('\nOptions:')
+    parser.description = '\n'.join(description)
+
+    options, args = parser.parse_args(args)
+
+    if options.version:
+        sys.stdout.write(parser.version)
+        sys.stdout.write(os.linesep)
+        sys.exit()
+
+    # pip || pip help || pip --help -> print_help()
+    if options.help or not args or (args[0] == 'help' and len(args) == 1):
+        parser.print_help()
+        sys.exit()
+
+    if not args:
+        msg = 'You must give a command (use "pip --help" to see a list of commands)'
+        raise CommandError(msg)
+
+    command = args[0].lower()
+
+    if command not in commands:
+        guess = get_similar_commands(command)
+
+        msg = ['unknown command "%s"' % command]
+        if guess:
+           msg.append('maybe you meant "%s"' % guess)
+
+        raise CommandError(' - '.join(msg)) # TODO:
+
+    return command, options, args, parser
 
 
 def main(initial_args=None):
     if initial_args is None:
         initial_args = sys.argv[1:]
+
     autocomplete()
-    options, args = parser.parse_args(initial_args)
-    if options.help and not args:
-        args = ['help']
-    if not args:
-        parser.error('You must give a command '
-            '(use "%s help" to see a list of commands)' % get_prog())
-    command = args[0].lower()
-    load_command(command)
-    if command not in command_dict:
-        close_commands = difflib.get_close_matches(command, command_names())
-        if close_commands:
-            guess = close_commands[0]
-            if args[1:]:
-                guess = "%s %s" % (guess, " ".join(args[1:]))
-        else:
-            guess = 'install %s' % command
-        error_dict = {'arg': command, 'guess': guess,
-                      'script': os.path.basename(sys.argv[0])}
-        parser.error('No command by the name %(script)s %(arg)s\n  '
-                     '(maybe you meant "%(script)s %(guess)s")' % error_dict)
-    command = command_dict[command]
+
+    try:
+        cmd_name, options, args, parser = parseopts(initial_args)
+    except PipError:
+        e = sys.exc_info()[1]
+        sys.stderr.write(str(e))
+        sys.stderr.write(os.linesep)
+        sys.exit(1)
+
+    command = commands[cmd_name](parser) #see baseparser.Command
     return command.main(args[1:], options)
 
 

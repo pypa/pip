@@ -1,4 +1,5 @@
 from pip.exceptions import CommandError
+from pip.baseparser import create_main_parser
 from pip.commands.help import (HelpCommand,
                                SUCCESS,
                                ERROR,)
