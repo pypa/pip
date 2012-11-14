@@ -259,28 +259,31 @@ class InstallCommand(Command):
 
             raise InstallationError('--user --editable not supported with setuptools, use distribute')
 
-        if not options.no_download:
-            requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
-        else:
-            requirement_set.locate_files()
+        try:
+            if not options.no_download:
+                requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+            else:
+                requirement_set.locate_files()
 
-        if not options.no_install and not self.bundle:
-            requirement_set.install(install_options, global_options, root=options.root_path)
-            installed = ' '.join([req.name for req in
-                                  requirement_set.successfully_installed])
-            if installed:
-                logger.notify('Successfully installed %s' % installed)
-        elif not self.bundle:
-            downloaded = ' '.join([req.name for req in
-                                   requirement_set.successfully_downloaded])
-            if downloaded:
-                logger.notify('Successfully downloaded %s' % downloaded)
-        elif self.bundle:
-            requirement_set.create_bundle(self.bundle_filename)
-            logger.notify('Created bundle in %s' % self.bundle_filename)
-        # Clean up
-        if not options.no_install or options.download_dir:
-            requirement_set.cleanup_files(bundle=self.bundle)
+            if not options.no_install and not self.bundle:
+                requirement_set.install(install_options, global_options, root=options.root_path)
+                installed = ' '.join([req.name for req in
+                                      requirement_set.successfully_installed])
+                if installed:
+                    logger.notify('Successfully installed %s' % installed)
+            elif not self.bundle:
+                downloaded = ' '.join([req.name for req in
+                                       requirement_set.successfully_downloaded])
+                if downloaded:
+                    logger.notify('Successfully downloaded %s' % downloaded)
+            elif self.bundle:
+                requirement_set.create_bundle(self.bundle_filename)
+                logger.notify('Created bundle in %s' % self.bundle_filename)
+        finally:
+            # Clean up
+            if not options.no_install or options.download_dir:
+                requirement_set.cleanup_files(bundle=self.bundle)
+
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
