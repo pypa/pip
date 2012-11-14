@@ -1094,8 +1094,8 @@ class RequirementSet(object):
                             subreq = InstallRequirement(req, req_to_install)
                             reqs.append(subreq)
                             self.add_requirement(subreq)
-                    if req_to_install.name not in self.requirements:
-                        self.requirements[req_to_install.name] = req_to_install
+                    if not self.has_requirement(req_to_install.name):
+                        self.add_requirement(req_to_install)
                     if self.is_download or req_to_install._temp_build_dir is not None:
                         self.reqs_to_cleanup.append(req_to_install)
                 else:
