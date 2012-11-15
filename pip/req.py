@@ -107,7 +107,7 @@ class InstallRequirement(object):
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
             url = link.url_without_fragment
-            req = link.egg_fragment
+            req = link.egg_fragment  #when fragment is None, this will become an 'unnamed' requirement
 
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', url):
@@ -843,6 +843,7 @@ class RequirementSet(object):
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         if not name:
+            #url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
         else:
             if self.has_requirement(name):
@@ -1094,8 +1095,9 @@ class RequirementSet(object):
                             subreq = InstallRequirement(req, req_to_install)
                             reqs.append(subreq)
                             self.add_requirement(subreq)
-                    if req_to_install.name not in self.requirements:
-                        self.requirements[req_to_install.name] = req_to_install
+                    if not self.has_requirement(req_to_install.name):
+                        #'unnamed' requirements will get added here
+                        self.add_requirement(req_to_install)
                     if self.is_download or req_to_install._temp_build_dir is not None:
                         self.reqs_to_cleanup.append(req_to_install)
                 else:
