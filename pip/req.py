@@ -66,6 +66,7 @@ class InstallRequirement(object):
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled = None
         self.use_user_site = False
+        self.target_dir = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
@@ -773,7 +774,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self._bundle_editable_dirs = bundle_editable_dirs
 
     def move_wheel_files(self, wheeldir):
-        move_wheel_files(self.req, wheeldir)
+        move_wheel_files(self.name, self.req, wheeldir, user=self.use_user_site, home=self.target_dir)
 
     @property
     def delete_marker_filename(self):
@@ -821,7 +822,7 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False, as_egg=False,
+                 upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
@@ -840,6 +841,7 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
+        self.target_dir = target_dir #set from --target option
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -851,6 +853,7 @@ class RequirementSet(object):
         name = install_req.name
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
+        install_req.target_dir = self.target_dir
         if not name:
             self.unnamed_requirements.append(install_req)
         else:

@@ -125,6 +125,8 @@ class InstallCommand(Command):
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
+
+        temp_target_dir = None
         if options.target_dir:
             options.ignore_installed = True
             temp_target_dir = tempfile.mkdtemp()
@@ -132,6 +134,7 @@ class InstallCommand(Command):
             if os.path.exists(options.target_dir) and not os.path.isdir(options.target_dir):
                 raise CommandError("Target path exists but is not a directory, will not continue.")
             install_options.append('--home=' + temp_target_dir)
+
         global_options = options.global_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -150,7 +153,8 @@ class InstallCommand(Command):
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
-            use_user_site=options.use_user_site)
+            use_user_site=options.use_user_site,
+            target_dir=temp_target_dir)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))

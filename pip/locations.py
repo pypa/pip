@@ -5,6 +5,7 @@ import site
 import os
 import shutil
 import tempfile
+from distutils.command.install import install, SCHEME_KEYS
 from pip.backwardcompat import get_python_lib
 
 
@@ -71,7 +72,7 @@ else:
     default_storage_dir = os.path.join(xdg_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
-    
+
     # Migration path for users- move things from the old dir if it exists
     # If the new dir exists and has no pip.conf and the old dir does, move it
     # When these checks are finished, delete the old directory
@@ -83,9 +84,38 @@ else:
         elif os.path.exists(old_config_file) and not os.path.exists(default_config_file):
             shutil.copy2(old_config_file, default_config_file)
         shutil.rmtree(old_storage_dir)
-    
+
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
         default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
+
+
+def distutils_scheme(dist_name, user=False, home=None):
+    """
+    Return a distutils install scheme
+    """
+    from distutils.dist import Distribution
+
+    scheme = {}
+    d = Distribution({'name': dist_name})
+    i = install(d)
+    if sys.version_info >= (2, 6):
+        i.user = user or i.user
+    i.home = home or i.home
+    i.finalize_options()
+    for key in SCHEME_KEYS:
+        scheme[key] = getattr(i, 'install_'+key)
+
+    #be backward-compatible with what pip has always done?
+    scheme['scripts'] = bin_py
+
+    if running_under_virtualenv():
+        scheme['headers'] = os.path.join(sys.prefix,
+                                    'include',
+                                    'site',
+                                    'python' + sys.version[:3],
+                                    dist_name)
+
+    return scheme

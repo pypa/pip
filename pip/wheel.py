@@ -9,6 +9,7 @@ import sys
 import shutil
 import functools
 import hashlib
+from pip.locations import distutils_scheme
 from pip.log import logger
 from pip.util import call_subprocess, normalize_path
 
@@ -72,17 +73,19 @@ def fix_script(path):
             script.close()
         return True
 
-def move_wheel_files(req, wheeldir):
-    from pip.backwardcompat import get_path
+def move_wheel_files(name, req, wheeldir, user=False, home=None):
+    """Install a wheel"""
 
-    if get_path('purelib') != get_path('platlib'):
+    scheme = distutils_scheme(name, user=user, home=home)
+
+    if scheme['purelib'] != scheme['platlib']:
         # XXX check *.dist-info/WHEEL to deal with this obscurity
         raise NotImplemented("purelib != platlib")
 
     info_dir = []
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    location = dest = get_path('platlib')
+    location = dest = scheme['platlib']
     installed = {}
     changed = set()
 
@@ -135,7 +138,7 @@ def move_wheel_files(req, wheeldir):
             if subdir == 'scripts':
                 fixer = fix_script
             source = os.path.join(wheeldir, datadir, subdir)
-            dest = get_path(subdir)
+            dest = scheme[subdir]
             clobber(source, dest, False, fixer=fixer)
 
     record = os.path.join(info_dir[0], 'RECORD')
