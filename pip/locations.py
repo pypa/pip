@@ -118,9 +118,4 @@ def distutils_scheme(dist_name, user=False, home=None):
                                     'python' + sys.version[:3],
                                     dist_name)
 
-    if running_under_virtualenv() and not (user or home):
-        #use virtualenvs monkey patch of distutils.sysconfig.get_python_lib
-        scheme['purelib'] = site_packages
-        scheme['platlib'] = site_packages
-
     return scheme
