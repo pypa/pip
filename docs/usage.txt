@@ -157,20 +157,20 @@ files, run ``pip show ProjectName``.
 Wheel support
 -------------
 
-Pip has experimental support for installing "wheel" archives,
-which requires distribute>=0.6.28 (not setuptools) and the latest markerlib.
+Pip has support for building and installing wheel distributions.
+Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
+For more details, see the `wheel docs <http://wheel.readthedocs.org/en/latest>`_.
 
-To install directly from a wheel archive::
+Installing wheels requires distribute>=0.6.28 (not setuptools) and the latest `markerlib <http://pypi.python.org/pypi/markerlib>`_.
+Building wheels, additionally requires `wheel <http://pypi.python.org/pypi/wheel>`_.
 
-    $ pip install /path/to/SomePackage[...].whl
+To build wheels for a requirement (and all it's dependencies)::
 
-To have pip try to find wheels on pypi indexes or find-links::
+    $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
 
-    $ pip install --use-wheel SomePackage
+To install wheels from a local cache::
 
-Pip currently only supports finding wheels based on the python version tag, not implementation, abi or platform tags.
-
-For more information, see the `wheel documentation <http://wheel.readthedocs.org/en/latest/index.html>`_
+    $ pip install --use-wheel --no-index --find-links=/tmp/wheelhouse SomePackage
 
 
 Bundles
