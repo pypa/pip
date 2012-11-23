@@ -36,9 +36,14 @@ def _get_build_prefix():
     try:
         os.mkdir(path)
     except OSError:
-        fd = os.open(path, os.O_RDONLY)
-        stat = os.fstat(fd)
-        if os.getuid() != stat.st_uid:
+        file_uid = None
+        try:
+            fd = os.open(path, os.O_RDONLY)
+            file_uid = os.fstat(fd).st_uid
+            os.close(fd)
+        except OSError:
+            file_uid = None
+        if file_uid != os.getuid():
             print ("The temporary folder for building (%s) " % path +
                 "is not owned by your user!")
             print("pip will not work until the temporary folder is " + \
