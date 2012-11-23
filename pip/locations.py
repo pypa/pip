@@ -5,6 +5,7 @@ import site
 import os
 import shutil
 import tempfile
+import getpass
 from pip.backwardcompat import get_python_lib
 
 
@@ -26,6 +27,24 @@ def virtualenv_no_global():
     if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
 
+def _get_build_prefix():
+    """ Returns a safe build_prefix """
+    path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' % \
+        getpass.getuser())
+    if sys.platform == 'win32':
+        return path
+    try:
+        os.mkdir(path)
+    except OSError:
+        fd = os.open(path, os.O_RDONLY)
+        stat = os.fstat(fd)
+        if os.getuid() != stat.st_uid:
+            print ("The temporary folder for building (%s) " % path +
+                "is not owned by your user!")
+            print("pip will not work until the temporary folder is " + \
+                 "either deleted or owned by your user account.")
+            sys.exit(1)
+    return path
 
 if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
@@ -33,7 +52,7 @@ if running_under_virtualenv():
 else:
     # Use tempfile to create a temporary folder for build
     # Note: we are NOT using mkdtemp so we can have a consistent build dir
-    build_prefix = os.path.join(tempfile.gettempdir(), 'pip-build')
+    build_prefix = _get_build_prefix()
 
     ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
