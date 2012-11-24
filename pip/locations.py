@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import getpass
 from pip.backwardcompat import get_python_lib
+import pip.exceptions
 
 
 def running_under_virtualenv():
@@ -32,6 +33,7 @@ def _get_build_prefix():
     path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' % \
         getpass.getuser())
     if sys.platform == 'win32':
+        """ on windows(tested on 7) temp dirs are isolated """
         return path
     try:
         os.mkdir(path)
@@ -44,11 +46,12 @@ def _get_build_prefix():
         except OSError:
             file_uid = None
         if file_uid != os.getuid():
-            print ("The temporary folder for building (%s) " % path +
-                "is not owned by your user!")
+            msg = "The temporary folder for building (%s) is not owned by your user!" \
+                % path
+            print (msg)
             print("pip will not work until the temporary folder is " + \
                  "either deleted or owned by your user account.")
-            sys.exit(1)
+            raise pip.exceptions.InstallationError(msg)
     return path
 
 if running_under_virtualenv():
