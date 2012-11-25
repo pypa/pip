@@ -129,3 +129,33 @@ def test_file_index_url_quoting():
 def test_inflink_greater():
     """Test InfLink compares greater."""
     assert InfLink > Link(object())
+
+
+class TestLink:
+    """Tests for the pip.index.Link"""
+
+    def test_egg_fragment(self):
+        """Test Link egg_fragment property."""
+        url = 'http://test?egg=bogus#egg=test'
+        assert Link(url).egg_fragment == 'test'
+        url = 'http://test?egg=bogus#egg=test&md5=123'
+        assert Link(url).egg_fragment == 'test'
+        url = 'http://test?egg=bogus#md5=123&egg=test'
+        assert Link(url).egg_fragment == 'test'
+
+    def test_hash_name(self):
+        """Test Link hash/hash_name properties."""
+        url = 'http://test?md5=bogus#md5=123'
+        assert Link(url).hash_name == 'md5'
+        assert Link(url).hash == '123'
+        url = 'http://test?md5=bogus#md5=123&egg=test'
+        assert Link(url).hash_name == 'md5'
+        assert Link(url).hash == '123'
+        url = 'http://test?md5=bogus#egg=test&md5=123'
+        assert Link(url).hash_name == 'md5'
+        assert Link(url).hash == '123'
+
+    def test_url_without_fragment(self):
+        """Test Link url_without_fragment property."""
+        url = 'http://test#egg=test&md5=123'
+        assert Link(url).url_without_fragment == 'http://test'

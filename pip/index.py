@@ -648,7 +648,7 @@ class Link(object):
         scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
         return urlparse.urlunsplit((scheme, netloc, path, query, None))
 
-    _egg_fragment_re = re.compile(r'#egg=([^&]*)')
+    _egg_fragment_re = re.compile(r'#[^#]*egg=([^&]*)')
 
     @property
     def egg_fragment(self):
@@ -657,7 +657,7 @@ class Link(object):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
+    _hash_re = re.compile(r'#[^#]*(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
     def hash(self):

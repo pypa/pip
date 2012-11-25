@@ -106,11 +106,11 @@ class InstallRequirement(object):
         # If the line has an egg= definition, but isn't editable, pull the requirement out.
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
-            url = link.url_without_fragment
-            req = link.egg_fragment  #when fragment is None, this will become an 'unnamed' requirement
+            url = link.url
+            req = link.egg_fragment  #when egg fragment is None, this will become an 'unnamed' requirement
 
             # Handle relative file URLs
-            if link.scheme == 'file' and re.search(r'\.\./', url):
+            if link.scheme == 'file' and re.search(r'\.\./', link.url_without_fragment):
                 url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
 
         else:

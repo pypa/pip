@@ -206,4 +206,28 @@ def test_url_req_case_mismatch():
     assert egg_folder not in result.files_created, str(result)
 
 
+def test_url_req_with_correct_hash_fragment():
+    """
+    Test installing url requirement with correct md5 hash fragment succeeds.
+    """
+    env = reset_env()
+    tar =  'simple-1.0.tar.gz#md5=4bdf78ebb7911f215c1972cf71b378f0&egg=simple'
+    req_url = 'file://' + os.path.join(here, 'packages', tar)
+    result = run_pip('install', req_url)
+    egg_folder = env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+
+
+def test_url_req_with_incorrect_hash_fragment():
+    """
+    Test installing url requirement with incorrect md5 hash fragment fails.
+    """
+    env = reset_env()
+    tar =  'simple-1.0.tar.gz#md5=123&egg=simple'
+    req_url = 'file://' + os.path.join(here, 'packages', tar)
+    result = run_pip('install', req_url, expect_error=True, expect_temp=True)
+    'Bad md5 hash' in result.stdout, str(result)
+
+
+
 

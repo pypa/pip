@@ -296,7 +296,7 @@ def unpack_vcs_link(link, location, only_download=False):
 
 
 def unpack_file_url(link, location):
-    source = url_to_path(link.url)
+    source = url_to_path(link.url_without_fragment)
     content_type = mimetypes.guess_type(source)[0]
     if os.path.isdir(source):
         # delete the location since shutil will create it again :(
