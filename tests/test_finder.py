@@ -48,7 +48,7 @@ def test_finder_detects_latest_find_links():
 
 
 def test_finder_detects_latest_already_satisfied_find_links():
-    """Test PackageFinder detects latest already satisified using find-links"""
+    """Test PackageFinder detects latest already satisfied using find-links"""
     req = InstallRequirement.from_line('simple', None)
     #the latest simple in local pkgs is 3.0
     latest_version = "3.0"
@@ -63,7 +63,7 @@ def test_finder_detects_latest_already_satisfied_find_links():
 
 
 def test_finder_detects_latest_already_satisfied_pypi_links():
-    """Test PackageFinder detects latest already satisified using pypi links"""
+    """Test PackageFinder detects latest already satisfied using pypi links"""
     req = InstallRequirement.from_line('initools', None)
     #the latest initools on pypi is 0.3.1
     latest_version = "0.3.1"
@@ -97,7 +97,7 @@ def test_finder_priority_page_over_deplink():
 def test_finder_priority_nonegg_over_eggfragments():
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
     req = InstallRequirement.from_line('bar==1.0', None)
-    links = ['http://foo/bar.py#egg=bar-1.0', 'http://foo/bar-1.0.tar.gz']
+    links = ['file://foo/bar.py#egg=bar-1.0', 'file://foo/bar-1.0.tar.gz']
 
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)

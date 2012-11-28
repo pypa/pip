@@ -45,6 +45,12 @@ class InstallRequirement(object):
             self.extras = req.extras
         self.req = req
         self.comes_from = comes_from
+
+        # origin is used just to record provenance; comes_from is also used to
+        # make decisions about the type of packaging and setting it can break
+        # things
+        self.origin = None
+
         self.source_dir = source_dir
         self.editable = editable
         self.url = url
@@ -1031,6 +1037,7 @@ class RequirementSet(object):
                         if url:
                             try:
                                 self.unpack_url(url, location, self.is_download)
+                                req_to_install.origin = url.url
                             except HTTPError:
                                 e = sys.exc_info()[1]
                                 logger.fatal('Could not install requirement %s because of error %s'
@@ -1173,6 +1180,7 @@ class RequirementSet(object):
         logger.indent += 2
         try:
             for requirement in to_install:
+                logger.debug('Installing %s%s' % (requirement.name, requirement.origin and (' (origin: %s)' % requirement.origin) or requirement.comes_from and ' %s' % requirement.comes_from or ''))
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
                                   % requirement.conflicts_with)

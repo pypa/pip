@@ -1,4 +1,6 @@
 import textwrap
+import time
+
 from os.path import join
 from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
@@ -66,6 +68,9 @@ def test_upgrade_force_reinstall_newest():
     env = reset_env()
     result = run_pip('install', 'INITools')
     assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+
+    time.sleep(1)  # ensure mtimes change, so files_updated is accurate
+
     result2 = run_pip('install', '--upgrade', '--force-reinstall', 'INITools')
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
@@ -109,6 +114,9 @@ def test_upgrade_to_same_version_from_url():
     env = reset_env()
     result = run_pip('install', 'INITools==0.3', expect_error=True)
     assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+
+    time.sleep(1)  # ensure mtimes change, so files_updated is accurate
+
     result2 = run_pip('install', 'http://pypi.python.org/packages/source/I/INITools/INITools-0.3.tar.gz', expect_error=True)
     assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)

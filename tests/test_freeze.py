@@ -46,7 +46,7 @@ def test_freeze_basic():
     write_file('initools-req.txt', textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
-        MarkupSafe<=0.12
+        MarkupSafe==0.12
         """))
     result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
