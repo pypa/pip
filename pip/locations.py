@@ -39,7 +39,7 @@ def _get_build_prefix():
     except OSError:
         file_uid = None
         try:
-            fd = os.open(path, os.O_RDONLY)
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
             file_uid = os.fstat(fd).st_uid
             os.close(fd)
         except OSError:
