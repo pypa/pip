@@ -10,8 +10,12 @@ from pip.basecommand import command_dict, load_command, load_all_commands, comma
 from pip.baseparser import parser
 from pip.exceptions import InstallationError
 from pip.log import logger
-from pip.util import get_installed_distributions
-from pip.vcs import git, mercurial, subversion, bazaar
+from pip.util import get_installed_distributions, get_prog
+from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+
+
+# The version as used in the setup.py and the docs conf.py
+__version__ = "1.2.1.post1"
 
 
 def autocomplete():
@@ -26,7 +30,7 @@ def autocomplete():
     cwords = os.environ['COMP_WORDS'].split()[1:]
     cword = int(os.environ['COMP_CWORD'])
     try:
-        current = cwords[cword-1]
+        current = cwords[cword - 1]
     except IndexError:
         current = ''
     load_all_commands()
@@ -59,7 +63,7 @@ def autocomplete():
                     for opt in subcommand.parser.option_list
                     if opt.help != optparse.SUPPRESS_HELP]
         # filter out previously specified options from available options
-        prev_opts = [x.split('=')[0] for x in cwords[1:cword-1]]
+        prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
         options = [(x, v) for (x, v) in options if x not in prev_opts]
         # filter options by current input
         options = [(k, v) for k, v in options if k.startswith(current)]
@@ -87,7 +91,8 @@ def main(initial_args=None):
     if options.help and not args:
         args = ['help']
     if not args:
-        parser.error('You must give a command (use "pip help" to see a list of commands)')
+        parser.error('You must give a command '
+            '(use "%s help" to see a list of commands)' % get_prog())
     command = args[0].lower()
     load_command(command)
     if command not in command_dict:
@@ -184,7 +189,7 @@ class FrozenRequirement(object):
         req = self.req
         if self.editable:
             req = '-e %s' % req
-        return '\n'.join(list(self.comments)+[str(req)])+'\n'
+        return '\n'.join(list(self.comments) + [str(req)]) + '\n'
 
 
 if __name__ == '__main__':

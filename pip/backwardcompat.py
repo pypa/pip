@@ -1,9 +1,13 @@
 """Stuff that differs in different Python versions"""
 
+import os
+import imp
 import sys
 import site
 
 __all__ = ['WindowsError']
+
+uses_pycache = hasattr(imp,'cache_from_source')
 
 try:
     WindowsError = WindowsError
@@ -11,6 +15,7 @@ except NameError:
     class NeverUsedException(Exception):
         """this exception should never be raised"""
     WindowsError = NeverUsedException
+
 
 console_encoding = sys.__stdout__.encoding
 
@@ -97,3 +102,11 @@ def product(*args, **kwds):
         result = [x+[y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
+
+def home_lib(home):
+    """Return the lib dir under the 'home' installation scheme"""
+    if hasattr(sys, 'pypy_version_info'):
+        lib = 'site-packages'
+    else:
+        lib = os.path.join('lib', 'python')
+    return os.path.join(home, lib)

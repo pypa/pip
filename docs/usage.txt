@@ -26,8 +26,8 @@ local or remote::
 .. _setuptools extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
 
 
-Edit mode
-*********
+Editable mode
+*************
 
 Packages normally_ install under ``site-packages``, but when you're
 making changes, it makes more sense to run the package straight from the
@@ -106,6 +106,16 @@ within a :ref:`requirements file <requirements-files>` in addition to on the
 command line directly.
 
 
+Package Checksum Hashes
+'''''''''''''''''''''''
+
+:term:`PyPI` provides a md5 hash of a package by having the link to the
+package include a #md5=<hash>. pip supports this, as well as any of the
+guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
+
+The hash fragment is case sensitive (i.e. sha1 not SHA1).
+
+
 Uninstall packages
 ------------------
 
@@ -137,8 +147,22 @@ packages. With the ``--index`` option you can search in a different
 repository.
 
 
+Checking installed package status
+---------------------------------
+
+To get info about an installed package, including its location and included
+files, run ``pip show ProjectName``.
+
+
 Bundles
 -------
+
+.. note::
+
+   Pip bundles are poorly supported, poorly tested, not widely used, and
+   unnecessary (the same goals can be achieved by distributing a directory of
+   sdists and using `--find-links` to reference it). The feature will likely be
+   removed in a future version of pip.
 
 Another way to distribute a set of libraries is a bundle format (specific to
 pip).  This format is not stable at this time (there simply hasn't been

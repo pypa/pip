@@ -20,6 +20,6 @@ def test_install_package_that_emits_unicode():
 
     env = reset_env()
     to_install = os.path.abspath(os.path.join(here, 'packages', 'BrokenEmitsUTF8'))
-    result = run_pip('install', to_install, expect_error=True)
-    assert '__main__.FakeError: this package designed to fail on install' in result.stdout
+    result = run_pip('install', to_install, expect_error=True, expect_temp=True, quiet=True)
+    assert 'FakeError: this package designed to fail on install' in result.stdout
     assert 'UnicodeDecodeError' not in result.stdout

@@ -5,7 +5,6 @@ import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
 
-from nose import SkipTest
 from nose.tools import assert_raises
 from mock import patch
 
@@ -376,6 +375,16 @@ def test_install_with_pax_header():
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
 
 
+def test_install_with_hacked_egg_info():
+    """
+    test installing a package which defines its own egg_info class
+    """
+    reset_env()
+    run_from = abspath(join(here, 'packages', 'HackedEggInfo'))
+    result = run_pip('install', '.', cwd=run_from)
+    assert 'Successfully installed hackedegginfo\n' in result.stdout
+
+
 def test_install_using_install_option_and_editable():
     """
     Test installing a tool using -e and --install-option
@@ -480,6 +489,18 @@ def test_install_package_with_target():
     target_dir = env.scratch_path/'target'
     result = run_pip('install', '-t', target_dir, "initools==0.1")
     assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
+
+
+def test_install_package_with_root():
+    """
+    Test installing a package using pip install --root
+    """
+    env = reset_env()
+    root_dir = env.scratch_path/'root'
+    result = run_pip('install', '--root', root_dir, '--install-option=--home=',
+                     '--install-option=--install-lib=/lib/python', "initools==0.1")
+
+    assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():

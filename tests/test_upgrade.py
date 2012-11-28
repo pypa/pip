@@ -1,4 +1,6 @@
 import textwrap
+import time
+
 from os.path import join
 from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
@@ -49,11 +51,12 @@ def test_upgrade_with_newest_already_installed():
     not be reinstalled and the user should be informed.
     """
 
+    find_links = 'file://' + join(here, 'packages')
     env = reset_env()
-    run_pip('install', 'INITools')
-    result = run_pip('install', '--upgrade', 'INITools')
-    assert not result.files_created, 'pip install --upgrade INITools upgraded when it should not have'
-    assert 'already up-to-date' in result.stdout
+    run_pip('install', '-f', find_links, '--no-index', 'simple')
+    result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
+    assert not result.files_created, 'simple upgraded when it should not have'
+    assert 'already up-to-date' in result.stdout, result.stdout
 
 
 def test_upgrade_force_reinstall_newest():
@@ -65,6 +68,9 @@ def test_upgrade_force_reinstall_newest():
     env = reset_env()
     result = run_pip('install', 'INITools')
     assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+
+    time.sleep(1)  # ensure mtimes change, so files_updated is accurate
+
     result2 = run_pip('install', '--upgrade', '--force-reinstall', 'INITools')
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
@@ -108,6 +114,9 @@ def test_upgrade_to_same_version_from_url():
     env = reset_env()
     result = run_pip('install', 'INITools==0.3', expect_error=True)
     assert env.site_packages/ 'initools' in result.files_created, sorted(result.files_created.keys())
+
+    time.sleep(1)  # ensure mtimes change, so files_updated is accurate
+
     result2 = run_pip('install', 'http://pypi.python.org/packages/source/I/INITools/INITools-0.3.tar.gz', expect_error=True)
     assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
     result3 = run_pip('uninstall', 'initools', '-y', expect_error=True)
@@ -207,8 +216,8 @@ def test_upgrade_vcs_req_with_no_dists_found():
 def test_upgrade_vcs_req_with_dist_found():
     """It can upgrade a VCS requirement that has distributions on the index."""
     reset_env()
-    req = "%s#egg=virtualenv" % local_checkout(
-        "git+git://github.com/pypa/virtualenv@c21fef2c2d53cf19f49bcc37f9c058a33fb50499")
+    # TODO(pnasrat) Using local_checkout fails on windows - oddness with the test path urls/git.
+    req = "%s#egg=virtualenv" % "git+git://github.com/pypa/virtualenv@c21fef2c2d53cf19f49bcc37f9c058a33fb50499"
     run_pip("install", req)
     result = run_pip("install", "-U", req)
     assert not "pypi.python.org" in result.stdout, result.stdout
