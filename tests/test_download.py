@@ -1,4 +1,5 @@
 import textwrap
+from nose.tools import assert_equal
 from tests.test_pip import reset_env, run_pip, write_file
 from tests.path import Path
 from pip.download import url_to_path
@@ -72,14 +73,14 @@ def test_download_should_skip_existing_files():
 
 
 def test_url_to_path():
-    def test(url, path):
+    def assert_equal(url, path):
         result = url_to_path(url)
         assert result == path, '%s != %s' % (result, path)
-    yield test, 'file://', '/'
-    yield test, 'file:///foo/bar', '/foo/bar'
-    yield test, 'file://C:/foo/bar', 'C:/foo/bar'
-    yield test, 'file:///foo/bar%20baz', '/foo/bar baz'
-    yield test, 'file:.', '.'
-    yield test, 'file:relative/path', 'relative/path'
-    yield test, 'file:./relative/path', './relative/path'
-    yield test, 'file:../relative/path', '../relative/path'
+    assert_equal('file://', '/')
+    assert_equal('file:///foo/bar', '/foo/bar')
+    assert_equal('file://C:/foo/bar', 'C:/foo/bar')
+    assert_equal('file:///foo/bar%20baz', '/foo/bar baz')
+    assert_equal('file:.', '.')
+    assert_equal('file:relative/path', 'relative/path')
+    assert_equal('file:./relative/path', './relative/path')
+    assert_equal('file:../relative/path', '../relative/path')
