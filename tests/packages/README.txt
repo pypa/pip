@@ -70,6 +70,12 @@ wheelbroken-0.1.tar.gz
 -----------------
 fails for "setup.py bdist_wheel"
 
+Upper-[12].0.tar.gz and requiresuppper-1.0.tar.gz
+--------------------------------------------------
+'requiresupper' requires 'upper'
+used for testing case mismatch case for url requirements
+
+
 
 
 

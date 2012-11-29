@@ -561,6 +561,18 @@ def test_install_wheel_with_target():
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
 
 
+def test_install_package_with_root():
+    """
+    Test installing a package using pip install --root
+    """
+    env = reset_env()
+    root_dir = env.scratch_path/'root'
+    result = run_pip('install', '--root', root_dir, '--install-option=--home=',
+                     '--install-option=--install-lib=/lib/python', "initools==0.1")
+
+    assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
+
+
 def test_find_command_folder_in_path():
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for

@@ -102,6 +102,13 @@ class InstallCommand(Command):
             action='store_true',
             help="Install as self contained egg file, like easy_install does.")
 
+        self.parser.add_option(
+            '--root',
+            dest='root_path',
+            metavar='DIR',
+            default=None,
+            help="Install everything relative to this alternate root directory")
+
     def _build_package_finder(self, options, index_urls):
         """
         Create a package finder appropriate to this install command.
@@ -193,7 +200,7 @@ class InstallCommand(Command):
             requirement_set.locate_files()
 
         if not options.no_install and not self.bundle:
-            requirement_set.install(install_options, global_options)
+            requirement_set.install(install_options, global_options, root=options.root_path)
             installed = ' '.join([req.name for req in
                                   requirement_set.successfully_installed])
             if installed:

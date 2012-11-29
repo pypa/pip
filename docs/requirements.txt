@@ -104,7 +104,7 @@ A line beginning with ``#`` is treated as a comment and ignored.
 
 You can also request `extras`_ in the requirements file::
 
-    MyPackage==3.0 [PDF]
+    MyPackage[PDF]==3.0
 
 .. _extras: http://peak.telecommunity.com/DevCenter/setuptools#declaring-extras-optional-features-with-their-own-dependencies
 
