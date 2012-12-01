@@ -677,7 +677,13 @@ class Link(object):
     @property
     def url_without_fragment(self):
         scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
-        return urlparse.urlunsplit((scheme, netloc, path, query, None))
+        if scheme == 'file' and not path.startswith('/'):
+            # Preserve relative file URL (work around bug in urlunsplit)
+            url = urlparse.urlunsplit(('', netloc, path, query, None))
+            url = scheme + ':' + url
+        else:
+            url = urlparse.urlunsplit((scheme, netloc, path, query, None))
+        return url
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 

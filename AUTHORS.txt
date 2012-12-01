@@ -13,6 +13,7 @@ Christian Oudard
 Clay McClure
 Cody Soyland
 Daniel Holth
+Daniel Miller
 Dave Abrahams
 Donald Stufft
 Francesco

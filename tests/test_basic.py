@@ -504,6 +504,34 @@ def test_install_package_with_root():
     assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
 
 
+def test_relative_file_url_install():
+    """
+    Test relative file URL installation.
+    """
+    packages = Path(here).abspath/'packages'
+    vendor = Path('vendor')
+    env = reset_env()
+    mkdir(vendor)
+    shutil.copy(str(packages/'simple-1.0.tar.gz'), str(env.cwd/vendor))
+    result = run_pip('install', 'file:vendor/simple-1.0.tar.gz')
+    simple_egg_info = env.site_packages/'simple-1.0-py%s.egg-info' % pyversion
+    assert simple_egg_info in result.files_created, str(result)
+
+
+def test_install_with_relative_find_links_file_url():
+    """
+    Test install with relative file: URL in --find-links.
+    """
+    packages = Path(here).abspath/'packages'
+    vendor = Path('vendor')
+    env = reset_env()
+    mkdir(vendor)
+    shutil.copy(str(packages/'simple-1.0.tar.gz'), str(env.cwd/vendor))
+    result = run_pip('install', '--no-index', '--find-links=file:vendor', 'simple==1.0')
+    simple_egg_info = env.site_packages/'simple-1.0-py%s.egg-info' % pyversion
+    assert simple_egg_info in result.files_created, str(result)
+
+
 def test_install_with_relative_dependency_links():
     """
     Test installing a package with relative file: URLs in dependency_links
