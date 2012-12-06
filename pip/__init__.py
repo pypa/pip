@@ -128,7 +128,7 @@ def parseopts(args):
         if guess:
             msg.append('maybe you meant "%s"' % guess)
 
-        raise CommandError(' - '.join(msg))  # TODO:
+        raise CommandError(' - '.join(msg))
 
     return command, options, args, parser
 
@@ -143,7 +143,7 @@ def main(initial_args=None):
         cmd_name, options, args, parser = parseopts(initial_args)
     except PipError:
         e = sys.exc_info()[1]
-        sys.stderr.write(str(e))
+        sys.stderr.write("ERROR: %s" % e)
         sys.stderr.write(os.linesep)
         sys.exit(1)
 

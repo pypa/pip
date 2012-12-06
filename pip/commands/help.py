@@ -8,7 +8,7 @@ class HelpCommand(Command):
     summary = 'Show available commands'
 
     def run(self, options, args):
-        from pip.commands import commands
+        from pip.commands import commands, get_similar_commands
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
@@ -17,7 +17,13 @@ class HelpCommand(Command):
             return SUCCESS
 
         if cmd_name not in commands:
-            raise CommandError('unknown command "%s"' % cmd_name)
+            guess = get_similar_commands(cmd_name)
+
+            msg = ['unknown command "%s"' % cmd_name]
+            if guess:
+                msg.append('maybe you meant "%s"' % guess)
+
+            raise CommandError(' - '.join(msg))
 
         command = commands[cmd_name](self.main_parser)  # instantiate
         command.parser.print_help()
