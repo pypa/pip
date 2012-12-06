@@ -80,7 +80,7 @@ def autocomplete():
         if current.startswith('-') or current.startswith('--'):
             opts = [i.option_list for i in parser.option_groups]
             opts.append(parser.option_list)
-            opts = (o for it in opts for o in it) 
+            opts = (o for it in opts for o in it)
 
             subcommands += [i.get_opt_string() for i in opts
                             if i.help != optparse.SUPPRESS_HELP]
@@ -96,7 +96,7 @@ def parseopts(args):
     command_summaries = get_summaries()
 
     description = ['Commands:']
-    description.extend(['  %-20s %s' % (i, j) for i,j in command_summaries])
+    description.extend(['  %-20s %s' % (i, j) for i, j in command_summaries])
 
     # We have to add the name of the default OptionGroup here for now.
     description.append('\nOptions:')
@@ -115,7 +115,8 @@ def parseopts(args):
         sys.exit()
 
     if not args:
-        msg = 'You must give a command (use "pip --help" to see a list of commands)'
+        msg = ('You must give a command '
+               '(use "pip --help" to see a list of commands)')
         raise CommandError(msg)
 
     command = args[0].lower()
@@ -125,9 +126,9 @@ def parseopts(args):
 
         msg = ['unknown command "%s"' % command]
         if guess:
-           msg.append('maybe you meant "%s"' % guess)
+            msg.append('maybe you meant "%s"' % guess)
 
-        raise CommandError(' - '.join(msg)) # TODO:
+        raise CommandError(' - '.join(msg))  # TODO:
 
     return command, options, args, parser
 
@@ -146,7 +147,7 @@ def main(initial_args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    command = commands[cmd_name](parser) #see baseparser.Command
+    command = commands[cmd_name](parser)  # see baseparser.Command
     return command.main(args[1:], options)
 
 

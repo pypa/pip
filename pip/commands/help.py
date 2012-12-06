@@ -12,14 +12,14 @@ class HelpCommand(Command):
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
-            cmd_name = args[0] # the command we need help for
+            cmd_name = args[0]  # the command we need help for
         except:
             return SUCCESS
 
         if cmd_name not in commands:
             raise CommandError('unknown command "%s"' % cmd_name)
 
-        command = commands[cmd_name](self.main_parser) # instantiate
+        command = commands[cmd_name](self.main_parser)  # instantiate
         command.parser.print_help()
 
         return SUCCESS
