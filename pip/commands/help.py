@@ -13,7 +13,7 @@ class HelpCommand(Command):
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
             cmd_name = args[0]  # the command we need help for
-        except:
+        except IndexError:
             return SUCCESS
 
         if cmd_name not in commands:
