@@ -16,8 +16,8 @@ class SearchCommand(Command):
     usage = '%prog QUERY'
     summary = 'Search PyPI'
 
-    def __init__(self):
-        super(SearchCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(SearchCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '--index',
             dest='index',
@@ -124,6 +124,3 @@ def compare_versions(version1, version2):
 
 def highest_version(versions):
     return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
-
-
-SearchCommand()

@@ -32,8 +32,8 @@ class CompletionCommand(Command):
     summary = 'A helper command to be used for command completion'
     hidden = True
 
-    def __init__(self):
-        super(CompletionCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(CompletionCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '--bash', '-b',
             action='store_const',
@@ -56,5 +56,3 @@ class CompletionCommand(Command):
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
             sys.stderr.write('ERROR: You must pass %s\n' % ' or '.join(shell_options))
-
-CompletionCommand()

@@ -9,8 +9,8 @@ class ShowCommand(Command):
     usage = '%prog QUERY'
     summary = 'Output installed distributions (exact versions, files) to stdout'
 
-    def __init__(self):
-        super(ShowCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(ShowCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '-f', '--files',
             dest='files',
@@ -73,6 +73,3 @@ def print_results(distributions, list_all_files):
                     logger.notify("  %s" % line.strip())
             else:
                 logger.notify("Cannot locate installed-files.txt")
-
-
-ShowCommand()

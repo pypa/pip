@@ -13,8 +13,8 @@ class FreezeCommand(Command):
     usage = '%prog [OPTIONS]'
     summary = 'Output all currently installed packages (exact versions) to stdout'
 
-    def __init__(self):
-        super(FreezeCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(FreezeCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirement',
@@ -106,6 +106,3 @@ class FreezeCommand(Command):
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
             f.write(str(installation))
-
-
-FreezeCommand()

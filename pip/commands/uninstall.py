@@ -8,8 +8,8 @@ class UninstallCommand(Command):
     usage = '%prog [OPTIONS] PACKAGE_NAMES ...'
     summary = 'Uninstall packages'
 
-    def __init__(self):
-        super(UninstallCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(UninstallCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -39,5 +39,3 @@ class UninstallCommand(Command):
             raise InstallationError('You must give at least one requirement '
                 'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
         requirement_set.uninstall(auto_confirm=options.yes)
-
-UninstallCommand()
