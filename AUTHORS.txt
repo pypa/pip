@@ -16,6 +16,7 @@ Daniel Holth
 Dave Abrahams
 Donald Stufft
 Francesco
+Georgi Valkov
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
