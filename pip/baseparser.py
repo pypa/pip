@@ -53,12 +53,10 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def format_usage(self, usage):
         """
-        ensure there is only one newline between usage and the first heading
-        if there is no description
+        Ensure there is only one newline between usage and the first heading
+        if there is no description.
         """
-        msg = 'Usage: %s' % usage
-        if self.parser.description:
-            msg += '\n'
+        msg = 'Usage: %s\n' % usage
         return msg
 
     def format_description(self, description):
