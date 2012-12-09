@@ -7,6 +7,7 @@ import sys
 import tempfile
 import traceback
 import time
+import optparse
 
 from pip.log import logger
 from pip.download import urlopen

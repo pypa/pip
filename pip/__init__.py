@@ -98,8 +98,7 @@ def parseopts(args):
     description = ['Commands:']
     description.extend(['  %-18s %s' % (i, j) for i, j in command_summaries])
 
-    # We have to add the name of the default OptionGroup here for now.
-    description.append('\nOptions:')
+    description.append('')  # empty line between last command and 'General Options'
     parser.description = '\n'.join(description)
 
     options, args = parser.parse_args(args)

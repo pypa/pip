@@ -16,7 +16,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self, *args, **kwargs):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 21
-        kwargs['indent_increment'] = 2
+        # make option groups indented by two spaces
+        kwargs['indent_increment'] = 1
         kwargs['width'] = get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
@@ -202,107 +203,117 @@ def create_main_parser():
     }
 
     parser = ConfigOptionParser(**parser_kw)
+    genopts = optparse.OptionGroup(parser, 'General Options')
     parser.disable_interspersed_args()
+
+    for opt in standard_options:
+        genopts.add_option(opt)
+    parser.add_option_group(genopts)
 
     # having a default version action just causes trouble
     parser.version = version
 
-    parser.add_option(
+    return parser
+
+
+makeopt = optparse.make_option
+standard_options = [
+    makeopt(
         '-h', '--help',
         dest='help',
         action='store_true',
-        help='show this help message and exit')
+        help='show this help message and exit'),
 
-    parser.add_option(
+    makeopt(
         '-V', '--version',
         dest='version',
         action='store_true',
-        help='show version and exit')
+        help='show version and exit'),
 
-    parser.add_option(
+    makeopt(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
         dest='require_venv',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         '-v', '--verbose',
         dest='verbose',
         action='count',
         default=0,
-        help='increase verbosity')
+        help='increase verbosity'),
 
-    parser.add_option(
+    makeopt(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
-        help='decrease verbosity')
+        help='decrease verbosity'),
 
-    parser.add_option(
+    makeopt(
         '--log',
         dest='log',
         metavar='path',
-        help='log file (maximum verbosity)')
+        help='log file (maximum verbosity)'),
 
-    parser.add_option(
+    makeopt(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
         dest='log_explicit_levels',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
         metavar='path',
         default=default_log_file,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         # Don't ask for input
         '--no-input',
         dest='no_input',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         '--proxy',
         dest='proxy',
         type='str',
         default='',
-        help='use proxy server (specified as user:pswd@server:port)')
+        help='use proxy server (specified as user:pswd@server:port)'),
 
-    parser.add_option(
+    makeopt(
         '--timeout', '--default-timeout',
         metavar='sec',
         dest='timeout',
         type='float',
         default=15,
-        help='set socket timeout (default: %default seconds)')
+        help='set socket timeout (default: %default seconds)'),
 
-    parser.add_option(
+    makeopt(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
         dest='default_vcs',
         type='str',
         default='',
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
         dest='skip_requirements_regex',
         type='str',
         default='',
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    makeopt(
         # Option when path already exist
         '--exists-action',
         dest='exists_action',
@@ -311,7 +322,5 @@ def create_main_parser():
         default=[],
         metavar='(s)witch,(i)gnore,(w)ipe,(b)ackup',
         action='append',
-        help='default action for already existing paths')
-
-    return parser
-
+        help='default action for already existing paths'),
+    ]

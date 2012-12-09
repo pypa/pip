@@ -179,9 +179,9 @@ class InstallCommand(Command):
 
         self.parser.epilog = textwrap.dedent('''
         Defaults:
-            --build:     %(build_dir)s
-            --src:       %(src_dir)s
-            --index-url: %(index_url)s
+          --build:     %(build_dir)s
+          --src:       %(src_dir)s
+          --index-url: %(index_url)s
         ''' % optparse_defaults(self.parser))
 
     def _build_package_finder(self, options, index_urls):
