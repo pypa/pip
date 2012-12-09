@@ -14,8 +14,8 @@ from pip.backwardcompat import home_lib
 
 class InstallCommand(Command):
     name = 'install'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Install packages'
+    usage = '%prog [options] <package> [<package> ...]'
+    summary = 'install packages'
     bundle = False
 
     def __init__(self, *args, **kw):
