@@ -42,7 +42,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt % metavar.upper())
+            opts.append(mvarfmt % metavar)
 
         return ''.join(opts)
 
@@ -194,7 +194,7 @@ except pkg_resources.DistributionNotFound:
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '%prog COMMAND [OPTIONS]',
+        'usage' : '%prog <command> [options]',
         'add_help_option' : False,
         'formatter' : UpdatingDefaultsHelpFormatter(),
         'name' : 'global',
@@ -211,7 +211,14 @@ def create_main_parser():
         '-h', '--help',
         dest='help',
         action='store_true',
-        help='Show help')
+        help='show this help message and exit')
+
+    parser.add_option(
+        '-V', '--version',
+        dest='version',
+        action='store_true',
+        help='show version and exit')
+
     parser.add_option(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
@@ -225,23 +232,21 @@ def create_main_parser():
         dest='verbose',
         action='count',
         default=0,
-        help='Give more output')
-    parser.add_option(
-        '-V', '--version',
-        dest='version',
-        action='store_true',
-        help='Show version and exit')
+        help='increase verbosity')
+
     parser.add_option(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
-        help='Give less output')
+        help='decrease verbosity')
+
     parser.add_option(
         '--log',
         dest='log',
-        metavar='FILENAME',
-        help='Log file where a complete (maximum verbosity) record will be kept')
+        metavar='path',
+        help='log file (maximum verbosity)')
+
     parser.add_option(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
@@ -249,13 +254,15 @@ def create_main_parser():
         action='store_true',
         default=False,
         help=optparse.SUPPRESS_HELP)
+
     parser.add_option(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
-        metavar='FILENAME',
+        metavar='path',
         default=default_log_file,
         help=optparse.SUPPRESS_HELP)
+
     parser.add_option(
         # Don't ask for input
         '--no-input',
@@ -269,17 +276,16 @@ def create_main_parser():
         dest='proxy',
         type='str',
         default='',
-        help="Specify a proxy in the form user:passwd@proxy.server:port. "
-        "Note that the user:password@ is optional and required only if you "
-        "are behind an authenticated proxy. If you provide "
-        "user@proxy.server:port then you will be prompted for a password.")
+        help='use proxy server (specified as user:pswd@server:port)')
+
     parser.add_option(
         '--timeout', '--default-timeout',
-        metavar='SECONDS',
+        metavar='sec',
         dest='timeout',
         type='float',
         default=15,
-        help='Set the socket timeout (default %default seconds)')
+        help='set socket timeout (default: %default seconds)')
+
     parser.add_option(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
@@ -287,6 +293,7 @@ def create_main_parser():
         type='str',
         default='',
         help=optparse.SUPPRESS_HELP)
+
     parser.add_option(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
@@ -302,12 +309,9 @@ def create_main_parser():
         type='choice',
         choices=['s', 'i', 'w', 'b'],
         default=[],
+        metavar='(s)witch,(i)gnore,(w)ipe,(b)ackup',
         action='append',
-        help="Default action when a path already exists. "
-             "Use this option more than one time to specify "
-             "another action if a certain option is not "
-             "available. Choices: "
-             "(s)witch, (i)gnore, (w)ipe, (b)ackup")
+        help='default action for already existing paths')
 
     return parser
 
