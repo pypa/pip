@@ -34,7 +34,7 @@ class InstallCommand(Command):
             dest='no_index',
             action='store_true',
             default=False,
-            help='ignore package index (uses --find-links instead)')
+            help='ignore package index (use --find-links instead)')
         pypi_opts.add_option(
             '-M', '--use-mirrors',
             dest='use_mirrors',
@@ -60,7 +60,7 @@ class InstallCommand(Command):
             metavar='url',
             action='append',
             default=[],
-            help='package index urls to use in addition to --index-url')
+            help='package indexes to use in addition to --index-url')
         pypi_opts.add_option(
             '--mirrors',
             dest='mirrors',
@@ -74,12 +74,12 @@ class InstallCommand(Command):
             '--user',
             dest='use_user_site',
             action='store_true',
-            help='install to user-site')
+            help='install to user site-packages')
         cmd_opts.add_option(
             '--egg',
             dest='as_egg',
             action='store_true',
-            help='install as self contained egg file, like easy_install does')
+            help='install as a self contained egg file')
         cmd_opts.add_option(
             '--no-deps', '--no-dependencies',
             dest='ignore_dependencies',
@@ -90,12 +90,12 @@ class InstallCommand(Command):
             '--no-install',
             dest='no_install',
             action='store_true',
-            help='download and unpack all packages only')
+            help='download and unpack packages only')
         cmd_opts.add_option(
             '--no-download',
             dest='no_download',
-            action="store_true",
-            help='install only already downloaded packagse')
+            action='store_true',
+            help='install only already downloaded packages')
         cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
@@ -138,17 +138,23 @@ class InstallCommand(Command):
             default=None,
             help='download packages into <dir> instead of installing them')
         cmd_opts.add_option(
+            '-t', '--target',
+            dest='target_dir',
+            metavar='dir',
+            default=None,
+            help='install packages into <dir>')
+        cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='dir',
             default=src_prefix,
             help='checkout --editable packages into <dir>')
         cmd_opts.add_option(
-            '-t', '--target',
-            dest='target_dir',
+            '--root',
+            dest='root_path',
             metavar='dir',
             default=None,
-            help='install packages into <dir>.')
+            help='install everything relative to <dir>')
         cmd_opts.add_option(
             '--download-cache',
             dest='download_cache',
@@ -166,13 +172,7 @@ class InstallCommand(Command):
             dest='global_options',
             action='append',
             metavar='opts',
-            help="extra arguments to pass to the \'setup.py\'")
-        cmd_opts.add_option(
-            '--root',
-            dest='root_path',
-            metavar='dir',
-            default=None,
-            help='install everything relative to this <dir>')
+            help='extra arguments to pass to the \'setup.py\'')
 
         self.parser.add_option_group(pypi_opts)
         self.parser.add_option_group(cmd_opts)

@@ -8,7 +8,7 @@ from pip.commands.install import InstallCommand
 class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = '%prog [options] <bundle name>.pybundle <package> [<package> ...]'
-    summary = 'create pybundle'
+    summary = 'create a pybundle'
     bundle = True
 
     def __init__(self, *args, **kw):
