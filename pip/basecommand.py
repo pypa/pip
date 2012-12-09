@@ -35,6 +35,7 @@ class Command(object):
         parser_kw = {
             'usage' : self.usage,
             'prog'  : '%s %s' % (get_prog(), self.name),
+            'add_help_option' : False,
             'formatter' : UpdatingDefaultsHelpFormatter(),
             'name' : self.name,
         }
