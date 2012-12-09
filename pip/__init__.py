@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os
-import optparse
-
-import sys
 import re
+import sys
+import optparse
+import textwrap
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
@@ -106,6 +106,11 @@ def parseopts(args):
         sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
+
+    parser.epilog = textwrap.dedent('''
+    Further Information:
+      1. http://www.pip-installer.org/en/latest/index.html
+    ''')
 
     # pip || pip help || pip --help -> print_help()
     if options.help or not args or (args[0] == 'help' and len(args) == 1):
