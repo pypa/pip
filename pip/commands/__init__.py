@@ -13,6 +13,7 @@ from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.unzip import UnzipCommand
 from pip.commands.zip import ZipCommand
+from pip.commands.list import ListCommand
 
 
 commands = {
@@ -26,6 +27,7 @@ commands = {
     UninstallCommand.name: UninstallCommand,
     UnzipCommand.name: UnzipCommand,
     ZipCommand.name: ZipCommand,
+    ListCommand.name: ListCommand,
 }
 
 

@@ -13,8 +13,8 @@ class ListCommand(Command):
     usage = '%prog [OPTIONS]'
     summary = 'List all currently installed packages.'
 
-    def __init__(self):
-        super(ListCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(ListCommand, self).__init__(*args, **kw)
         self.parser.add_option(
             '-l', '--local',
             dest='local',
@@ -94,7 +94,7 @@ class ListCommand(Command):
     def run_outdated(self, options, args):
         for req, remote_version in self.find_packages_latests_versions(options):
             if remote_version > req.installed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, 
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name,
                     req.installed_version, remote_version))
 
     def find_installed_packages(self, options):
@@ -152,6 +152,3 @@ class ListCommand(Command):
             if req.installed_version == remote_version:
                 uptodate.append(req)
         self.output_package_listing(uptodate)
-
-
-ListCommand()
