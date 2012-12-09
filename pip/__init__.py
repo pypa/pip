@@ -4,7 +4,6 @@ import optparse
 
 import sys
 import re
-import difflib
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
