@@ -11,7 +11,7 @@ from pip.util import get_installed_distributions
 class ListCommand(Command):
     name = 'list'
     usage = '%prog [OPTIONS]'
-    summary = 'List all currently installed packages.'
+    summary = 'List all currently installed packages'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
