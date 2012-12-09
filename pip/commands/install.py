@@ -3,6 +3,7 @@ import sys
 import tempfile
 import shutil
 import optparse
+import textwrap
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
@@ -11,6 +12,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
+from pip.util import optparse_defaults
 
 
 class InstallCommand(Command):
@@ -34,6 +36,12 @@ class InstallCommand(Command):
             default=False,
             help='ignore package index (uses --find-links instead)')
         pypi_opts.add_option(
+            '-M', '--use-mirrors',
+            dest='use_mirrors',
+            action='store_true',
+            default=False,
+            help='use a pypi mirror if the main index is offline')
+        pypi_opts.add_option(
             '-f', '--find-links',
             dest='find_links',
             action='append',
@@ -45,13 +53,7 @@ class InstallCommand(Command):
             dest='index_url',
             metavar='url',
             default='http://pypi.python.org/simple/',
-            help='base pypi url (default: %default)')
-        pypi_opts.add_option(
-            '-M', '--use-mirrors',
-            dest='use_mirrors',
-            action='store_true',
-            default=False,
-            help='use PyPI mirrors if the main index is offline')
+            help='base pypi url')
         pypi_opts.add_option(
             '--extra-index-url',
             dest='extra_index_urls',
@@ -121,14 +123,14 @@ class InstallCommand(Command):
             dest='requirements',
             action='append',
             default=[],
-            metavar='path',
+            metavar='pth',
             help='install packages from requirements file')
         cmd_opts.add_option(
             '-b', '--build', '--build-dir', '--build-directory',
             dest='build_dir',
             metavar='dir',
             default=build_prefix,
-            help='unpack and build packages from <dir> (default: %default)')
+            help='unpack and build packages from <dir>')
         cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
@@ -140,7 +142,7 @@ class InstallCommand(Command):
             dest='src_dir',
             metavar='dir',
             default=src_prefix,
-            help='checkout --editable packages into <dir> (default: %default)')
+            help='checkout --editable packages into <dir>')
         cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
@@ -174,6 +176,13 @@ class InstallCommand(Command):
 
         self.parser.add_option_group(pypi_opts)
         self.parser.add_option_group(cmd_opts)
+
+        self.parser.epilog = textwrap.dedent('''
+        Defaults:
+            --build:     %(build_dir)s
+            --src:       %(src_dir)s
+            --index-url: %(index_url)s
+        ''' % optparse_defaults(self.parser))
 
     def _build_package_finder(self, options, index_urls):
         """

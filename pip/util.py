@@ -8,6 +8,7 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
+import optparse
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
@@ -132,6 +133,22 @@ def ask(message, options):
                 response, ', '.join(options)))
         else:
             return response
+
+
+def optparse_defaults(parser, option_groups=True):
+    """Return a mapping of all options in a parser to their default values."""
+
+    sources = [parser.option_list]
+    if option_groups:
+        for grp in parser.option_groups:
+            sources.append(grp.option_list)
+
+    res = {}
+    for source in sources:
+        for opt in source:
+            res[opt.dest] = opt.default
+
+    return res
 
 
 class _Inf(object):
