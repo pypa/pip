@@ -15,26 +15,29 @@ class FreezeCommand(Command):
 
     def __init__(self, *args, **kw):
         super(FreezeCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+
+        self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirement',
             action='store',
             default=None,
             metavar='FILENAME',
             help='Use the given requirements file as a hint about how to generate the new frozen requirements')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-f', '--find-links',
             dest='find_links',
             action='append',
             default=[],
             metavar='URL',
             help='URL for finding packages, which will be added to the frozen requirements file')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-l', '--local',
             dest='local',
             action='store_true',
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
+
+        self.parser.add_option_group(self.cmd_opts)
 
     def setup_logging(self):
         logger.move_stdout_to_stderr()
