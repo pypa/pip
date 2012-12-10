@@ -18,12 +18,14 @@ class SearchCommand(Command):
 
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '--index',
             dest='index',
             metavar='URL',
             default='http://pypi.python.org/pypi',
             help='Base URL of Python Package Index (default %default)')
+
+        self.parser.add_option_group(self.cmd_opts)
 
     def run(self, options, args):
         if not args:
