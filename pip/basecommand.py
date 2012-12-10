@@ -43,6 +43,9 @@ class Command(object):
         self.main_parser = main_parser
         self.parser = ConfigOptionParser(**parser_kw)
 
+        # Commands should add options to this option group
+        self.cmd_opts = optparse.OptionGroup(self.parser, 'Command Options')
+
         # Re-add all options and option groups.
         for group in main_parser.option_groups:
             self._copy_option_group(self.parser, group)

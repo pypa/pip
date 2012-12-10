@@ -23,7 +23,7 @@ class InstallCommand(Command):
         super(InstallCommand, self).__init__(*args, **kw)
 
         pypi_opts = optparse.OptionGroup(self.parser, 'Package Index Options')
-        cmd_opts = optparse.OptionGroup(self.parser, 'Command Options')
+        cmd_opts = self.cmd_opts
 
         pypi_opts.add_option(
             '-f', '--find-links',
