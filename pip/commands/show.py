@@ -11,12 +11,14 @@ class ShowCommand(Command):
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
             default=False,
             help='Show the full list of installed files for each package')
+
+        self.parser.add_option_group(self.cmd_opts)
 
     def run(self, options, args):
         if not args:
