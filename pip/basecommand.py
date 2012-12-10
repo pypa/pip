@@ -7,6 +7,7 @@ import sys
 import tempfile
 import traceback
 import time
+import optparse
 
 from pip.log import logger
 from pip.download import urlopen
@@ -35,6 +36,7 @@ class Command(object):
             'usage' : self.usage,
             'prog'  : '%s %s' % (get_prog(), self.name),
             'formatter' : UpdatingDefaultsHelpFormatter(),
+            'add_help_option' : False,
             'name' : self.name,
         }
 
