@@ -16,7 +16,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self, *args, **kwargs):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 23
-        kwargs['indent_increment'] = 2
+        kwargs['indent_increment'] = 1
         kwargs['width'] = get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
