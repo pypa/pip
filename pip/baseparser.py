@@ -213,15 +213,14 @@ def create_main_parser():
     return parser
 
 
-makeopt = optparse.make_option
 standard_options = [
-    makeopt(
+    optparse.make_option(
         '-h', '--help',
         dest='help',
         action='store_true',
         help='Show help'),
 
-    makeopt(
+    optparse.make_option(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
         dest='require_venv',
@@ -229,33 +228,33 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         '-v', '--verbose',
         dest='verbose',
         action='count',
         default=0,
         help='Give more output'),
 
-    makeopt(
+    optparse.make_option(
         '-V', '--version',
         dest='version',
         action='store_true',
         help='Show version and exit'),
 
-    makeopt(
+    optparse.make_option(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
         help='Give less output'),
 
-    makeopt(
+    optparse.make_option(
         '--log',
         dest='log',
         metavar='FILENAME',
         help='Log file where a complete (maximum verbosity) record will be kept'),
 
-    makeopt(
+    optparse.make_option(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
         dest='log_explicit_levels',
@@ -263,7 +262,7 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
@@ -271,7 +270,7 @@ standard_options = [
         default=default_log_file,
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         # Don't ask for input
         '--no-input',
         dest='no_input',
@@ -279,7 +278,7 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         '--proxy',
         dest='proxy',
         type='str',
@@ -289,7 +288,7 @@ standard_options = [
         "are behind an authenticated proxy. If you provide "
         "user@proxy.server:port then you will be prompted for a password."),
 
-    makeopt(
+    optparse.make_option(
         '--timeout', '--default-timeout',
         metavar='SECONDS',
         dest='timeout',
@@ -297,7 +296,7 @@ standard_options = [
         default=15,
         help='Set the socket timeout (default %default seconds)'),
 
-    makeopt(
+    optparse.make_option(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
         dest='default_vcs',
@@ -305,7 +304,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
         dest='skip_requirements_regex',
@@ -313,7 +312,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    makeopt(
+    optparse.make_option(
         # Option when path already exist
         '--exists-action',
         dest='exists_action',
