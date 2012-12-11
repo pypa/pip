@@ -17,6 +17,7 @@ Dave Abrahams
 Donald Stufft
 Francesco
 Georgi Valkov
+hetmankp
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
@@ -37,6 +38,7 @@ Marc Abramowitz
 Marcus Smith
 Markus Hametner
 Matt Maker
+Maxime R.
 Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
@@ -53,6 +55,7 @@ Przemek Wrzos
 Qiangning Hong
 Rafael Caricio
 Rene Dudfield
+Roey Berman
 Ronny Pfannschmidt
 Rory McCann
 Simon Cross

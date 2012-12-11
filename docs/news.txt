@@ -14,22 +14,45 @@ Beta and final releases planned for the end of 2012.
 develop (unreleased)
 --------------------
 
-* --user/--upgrade install options now work together; thanks eevee.
+develop (unreleased)
+--------------------
+
+* Fixed dependency resolution when installing from archives with uppercase
+  project names. (Pull #724)
+
+* Fixed problem where re-installs always occurred when using file:// find-links.
+  (Pulls #683/#702)
+
+* "pip install -v" now shows the full download url, not just the archive name.
+  Thanks Marc Abramowitz (Pull #687)
+
+* Fix to prevent unnecessary PyPI redirects. Thanks Alex Grönholm (Pull #695)
+
+* Fixed issue #670 - install failure under Python 3 when the same version
+  of a package is found under 2 different URLs.  Thanks Paul Moore (Pull #671)
+
+* Fix git submodule recursive updates.  Thanks Roey Berman. (Pulls #674)
+
+* Explicitly ignore rel='download' links while looking for html pages.
+  Thanks Maxime R. (Pull #677)
+
+* --user/--upgrade install options now work together. Thanks 'eevee' for
+  discovering the problem. (Pull #705)
 
 * Added check in ``install --download`` to prevent re-downloading if the target
-  file already exists. Thanks Andrey Bulgakov.
+  file already exists. Thanks Andrey Bulgakov. (Pull #669)
 
 * Added support for bare paths (including relative paths) as argument to
   `--find-links`. Thanks Paul Moore for draft patch.
 
 * Added support for --no-index in requirements files.
 
-* Added "pip show" command to get information about an installed
-  package. Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
+* Added "pip show" command to get information about an installed package.
+  Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 
 * Added `--root` option for "pip install" to specify root directory. Behaves
   like the same option in distutils but also plays nice with pip's egg-info.
-  (Issue #253)
+  Thanks hetmankp.  (Issue #253 / Pull #693)
 
 1.2.1 (2012-09-06)
 ------------------
