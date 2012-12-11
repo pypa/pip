@@ -217,7 +217,7 @@ standard_options = [
     optparse.make_option(
         '-h', '--help',
         dest='help',
-        action='store_true',
+        action='help',
         help='Show help'),
 
     optparse.make_option(

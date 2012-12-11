@@ -109,7 +109,7 @@ def parseopts(args):
         sys.exit()
 
     # pip || pip help || pip --help -> print_help()
-    if options.help or not args or (args[0] == 'help' and len(args) == 1):
+    if not args or (args[0] == 'help' and len(args) == 1):
         parser.print_help()
         sys.exit()
 

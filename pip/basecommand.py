@@ -57,7 +57,7 @@ class Command(object):
     def _copy_options(self, parser, options):
         """Populate an option parser or group with options."""
         for option in options:
-            if not option.dest or option.dest == 'help':
+            if not option.dest:
                 continue
             parser.add_option(option)
 
