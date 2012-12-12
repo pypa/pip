@@ -17,7 +17,6 @@ Dave Abrahams
 Donald Stufft
 Francesco
 Georgi Valkov
-hetmankp
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
