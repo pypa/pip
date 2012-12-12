@@ -200,8 +200,8 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory")
 
-        self.parser.add_option_group(pypi_opts)
-        self.parser.add_option_group(cmd_opts)
+        self.parser.insert_option_group(0, pypi_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def _build_package_finder(self, options, index_urls):
         """

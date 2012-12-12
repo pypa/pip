@@ -24,7 +24,7 @@ class UninstallCommand(Command):
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
 
-        self.parser.add_option_group(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         requirement_set = RequirementSet(

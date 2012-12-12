@@ -85,7 +85,18 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         return optparse.IndentedHelpFormatter.expand_default(self, option)
 
 
-class ConfigOptionParser(optparse.OptionParser):
+class CustomOptionParser(optparse.OptionParser):
+    def insert_option_group(self, idx, *args, **kwargs):
+        """Insert an OptionGroup at a given position."""
+        group = self.add_option_group(*args, **kwargs)
+
+        self.option_groups.pop()
+        self.option_groups.insert(idx, group)
+
+        return group
+
+
+class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by by checking the
     configuration files and environmental variables"""
 
@@ -188,7 +199,7 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version = None
-
+    
 
 def create_main_parser():
     parser_kw = {

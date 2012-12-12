@@ -18,7 +18,7 @@ class ShowCommand(Command):
             default=False,
             help='Show the full list of installed files for each package')
 
-        self.parser.add_option_group(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args:

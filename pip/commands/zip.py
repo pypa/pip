@@ -55,7 +55,7 @@ class ZipCommand(Command):
             action='store_true',
             help='Do not actually perform the zip/unzip operation')
 
-        self.parser.add_option_group(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def paths(self):
         """All the entries of sys.path, possibly restricted by --path"""

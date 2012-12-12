@@ -37,7 +37,7 @@ class FreezeCommand(Command):
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
 
-        self.parser.add_option_group(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def setup_logging(self):
         logger.move_stdout_to_stderr()

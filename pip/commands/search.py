@@ -25,7 +25,7 @@ class SearchCommand(Command):
             default='http://pypi.python.org/pypi',
             help='Base URL of Python Package Index (default %default)')
 
-        self.parser.add_option_group(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args:
