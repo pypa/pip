@@ -7,6 +7,7 @@ import sys
 import tempfile
 import traceback
 import time
+import optparse
 
 from pip.log import logger
 from pip.download import urlopen
@@ -34,6 +35,7 @@ class Command(object):
         parser_kw = {
             'usage' : self.usage,
             'prog'  : '%s %s' % (get_prog(), self.name),
+            'add_help_option' : False,
             'formatter' : UpdatingDefaultsHelpFormatter(),
             'name' : self.name,
         }

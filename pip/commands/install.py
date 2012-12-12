@@ -2,6 +2,8 @@ import os
 import sys
 import tempfile
 import shutil
+import optparse
+import textwrap
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
@@ -10,174 +12,177 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
+from pip.util import optparse_defaults
 
 
 class InstallCommand(Command):
     name = 'install'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Install packages'
+    usage = '%prog [options] <package> [<package> ...]'
+    summary = 'install packages'
     bundle = False
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
-            '-e', '--editable',
-            dest='editables',
-            action='append',
-            default=[],
-            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
-            help='Install a package directly from a checkout. Source will be checked '
-            'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop). You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout). This option may be provided multiple times. '
-            'Possible values for VCS are: svn, git, hg and bzr.')
-        self.parser.add_option(
-            '-r', '--requirement',
-            dest='requirements',
-            action='append',
-            default=[],
-            metavar='FILENAME',
-            help='Install all the packages listed in the given requirements file. '
-            'This option can be used multiple times.')
-        self.parser.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL to look for packages at')
-        self.parser.add_option(
-            '-i', '--index-url', '--pypi-url',
-            dest='index_url',
-            metavar='URL',
-            default='http://pypi.python.org/simple/',
-            help='Base URL of Python Package Index (default %default)')
-        self.parser.add_option(
-            '--extra-index-url',
-            dest='extra_index_urls',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Extra URLs of package indexes to use in addition to --index-url')
-        self.parser.add_option(
+
+        # the default max_help_position causes excessive wrapping
+        self.parser.formatter.max_help_position = 29
+
+        # package index options
+        pypi_opts = optparse.OptionGroup(self.parser, 'Package Index Options')
+        pypi_opts.add_option(
             '--no-index',
             dest='no_index',
             action='store_true',
             default=False,
-            help='Ignore package index (only looking at --find-links URLs instead)')
-        self.parser.add_option(
+            help='ignore package index (use --find-links instead)')
+        pypi_opts.add_option(
             '-M', '--use-mirrors',
             dest='use_mirrors',
             action='store_true',
             default=False,
-            help='Use the PyPI mirrors as a fallback in case the main index is down.')
-        self.parser.add_option(
-            '--mirrors',
-            dest='mirrors',
-            metavar='URL',
+            help='use a pypi mirror if the main index is offline')
+        pypi_opts.add_option(
+            '-f', '--find-links',
+            dest='find_links',
             action='append',
             default=[],
-            help='Specific mirror URLs to query when --use-mirrors is used')
+            metavar='url',
+            help='search for packages at <url>')
+        pypi_opts.add_option(
+            '-i', '--index-url', '--pypi-url',
+            dest='index_url',
+            metavar='url',
+            default='http://pypi.python.org/simple/',
+            help='base pypi url')
+        pypi_opts.add_option(
+            '--extra-index-url',
+            dest='extra_index_urls',
+            metavar='url',
+            action='append',
+            default=[],
+            help='package indexes to use in addition to --index-url')
+        pypi_opts.add_option(
+            '--mirrors',
+            dest='mirrors',
+            metavar='url',
+            action='append',
+            default=[],
+            help='specific mirror <url> to query when --use-mirrors is used')
 
-        self.parser.add_option(
-            '-b', '--build', '--build-dir', '--build-directory',
-            dest='build_dir',
-            metavar='DIR',
-            default=build_prefix,
-            help='Unpack packages into DIR (default %default) and build from there')
-        self.parser.add_option(
-            '-t', '--target',
-            dest='target_dir',
-            metavar='DIR',
-            default=None,
-            help='Install packages into DIR.')
-        self.parser.add_option(
-            '-d', '--download', '--download-dir', '--download-directory',
-            dest='download_dir',
-            metavar='DIR',
-            default=None,
-            help='Download packages into DIR instead of installing them')
-        self.parser.add_option(
-            '--download-cache',
-            dest='download_cache',
-            metavar='DIR',
-            default=None,
-            help='Cache downloaded packages in DIR')
-        self.parser.add_option(
-            '--src', '--source', '--source-dir', '--source-directory',
-            dest='src_dir',
-            metavar='DIR',
-            default=src_prefix,
-            help='Check out --editable packages into DIR (default %default)')
-
-        self.parser.add_option(
-            '-U', '--upgrade',
-            dest='upgrade',
+        cmd_opts = optparse.OptionGroup(self.parser, 'Install Options')
+        cmd_opts.add_option(
+            '--user',
+            dest='use_user_site',
             action='store_true',
-            help='Upgrade all packages to the newest available version')
-        self.parser.add_option(
-            '--force-reinstall',
-            dest='force_reinstall',
+            help='install to user site-packages')
+        cmd_opts.add_option(
+            '--egg',
+            dest='as_egg',
             action='store_true',
-            help='When upgrading, reinstall all packages even if they are '
-                 'already up-to-date.')
-        self.parser.add_option(
-            '-I', '--ignore-installed',
-            dest='ignore_installed',
-            action='store_true',
-            help='Ignore the installed packages (reinstalling instead)')
-        self.parser.add_option(
+            help='install as a self contained egg file')
+        cmd_opts.add_option(
             '--no-deps', '--no-dependencies',
             dest='ignore_dependencies',
             action='store_true',
             default=False,
-            help='Ignore package dependencies')
-        self.parser.add_option(
+            help='ignore package dependencies')
+        cmd_opts.add_option(
             '--no-install',
             dest='no_install',
             action='store_true',
-            help="Download and unpack all packages, but don't actually install them")
-        self.parser.add_option(
+            help='download and unpack packages only')
+        cmd_opts.add_option(
             '--no-download',
             dest='no_download',
-            action="store_true",
-            help="Don't download any packages, just install the ones already downloaded "
-            "(completes an install run with --no-install)")
-
-        self.parser.add_option(
+            action='store_true',
+            help='install only already downloaded packages')
+        cmd_opts.add_option(
+            '--force-reinstall',
+            dest='force_reinstall',
+            action='store_true',
+            help='reinstall all packages even if they are already up-to-date')
+        cmd_opts.add_option(
+            '-I', '--ignore-installed',
+            dest='ignore_installed',
+            action='store_true',
+            help='ignore installed packages (reinstall instead)')
+        cmd_opts.add_option(
+            '-U', '--upgrade',
+            dest='upgrade',
+            action='store_true',
+            help='upgrade packages to the newest available version')
+        cmd_opts.add_option(
+            '-e', '--editable',
+            dest='editables',
+            action='append',
+            default=[],
+            metavar='wc',
+            help='install a package directly from a checkout')
+        cmd_opts.add_option(
+            '-r', '--requirement',
+            dest='requirements',
+            action='append',
+            default=[],
+            metavar='pth',
+            help='install packages from requirements file')
+        cmd_opts.add_option(
+            '-b', '--build', '--build-dir', '--build-directory',
+            dest='build_dir',
+            metavar='dir',
+            default=build_prefix,
+            help='unpack and build packages from <dir>')
+        cmd_opts.add_option(
+            '-d', '--download', '--download-dir', '--download-directory',
+            dest='download_dir',
+            metavar='dir',
+            default=None,
+            help='download packages into <dir> instead of installing them')
+        cmd_opts.add_option(
+            '-t', '--target',
+            dest='target_dir',
+            metavar='dir',
+            default=None,
+            help='install packages into <dir>')
+        cmd_opts.add_option(
+            '--src', '--source', '--source-dir', '--source-directory',
+            dest='src_dir',
+            metavar='dir',
+            default=src_prefix,
+            help='checkout --editable packages into <dir>')
+        cmd_opts.add_option(
+            '--root',
+            dest='root_path',
+            metavar='dir',
+            default=None,
+            help='install everything relative to <dir>')
+        cmd_opts.add_option(
+            '--download-cache',
+            dest='download_cache',
+            metavar='dir',
+            default=None,
+            help='cache downloaded packages in <dir>')
+        cmd_opts.add_option(
             '--install-option',
             dest='install_options',
             action='append',
-            help="Extra arguments to be supplied to the setup.py install "
-            "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
-            "Use multiple --install-option options to pass multiple options to setup.py install. "
-            "If you are using an option with a directory path, be sure to use absolute path.")
-
-        self.parser.add_option(
+            metavar='opts',
+            help='extra arguments to pass to \'setup.py install\'')
+        cmd_opts.add_option(
             '--global-option',
             dest='global_options',
             action='append',
-            help="Extra global options to be supplied to the setup.py "
-            "call before the install command")
+            metavar='opts',
+            help='extra arguments to pass to the \'setup.py\'')
 
-        self.parser.add_option(
-            '--user',
-            dest='use_user_site',
-            action='store_true',
-            help='Install to user-site')
+        self.parser.add_option_group(pypi_opts)
+        self.parser.add_option_group(cmd_opts)
 
-        self.parser.add_option(
-            '--egg',
-            dest='as_egg',
-            action='store_true',
-            help="Install as self contained egg file, like easy_install does.")
-
-        self.parser.add_option(
-            '--root',
-            dest='root_path',
-            metavar='DIR',
-            default=None,
-            help="Install everything relative to this alternate root directory")
+        self.parser.epilog = textwrap.dedent('''
+        Defaults:
+          --build:     %(build_dir)s
+          --src:       %(src_dir)s
+          --index-url: %(index_url)s
+        ''' % optparse_defaults(self.parser))
 
     def _build_package_finder(self, options, index_urls):
         """

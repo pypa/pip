@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 import os
-import optparse
-
-import sys
 import re
-import difflib
+import sys
+import optparse
+import textwrap
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
@@ -96,10 +95,9 @@ def parseopts(args):
     command_summaries = get_summaries()
 
     description = ['Commands:']
-    description.extend(['  %-20s %s' % (i, j) for i, j in command_summaries])
+    description.extend(['  %-18s %s' % (i, j) for i, j in command_summaries])
 
-    # We have to add the name of the default OptionGroup here for now.
-    description.append('\nOptions:')
+    description.append('')  # empty line between last command and 'General Options'
     parser.description = '\n'.join(description)
 
     options, args = parser.parse_args(args)
@@ -108,6 +106,11 @@ def parseopts(args):
         sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
+
+    parser.epilog = textwrap.dedent('''
+    Further Information:
+      1. http://www.pip-installer.org/en/latest/index.html
+    ''')
 
     # pip || pip help || pip --help -> print_help()
     if options.help or not args or (args[0] == 'help' and len(args) == 1):

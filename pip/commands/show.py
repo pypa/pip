@@ -6,8 +6,8 @@ from pip.log import logger
 
 class ShowCommand(Command):
     name = 'show'
-    usage = '%prog QUERY'
-    summary = 'Output installed distributions (exact versions, files) to stdout'
+    usage = '%prog <package> [<package> ...]'
+    summary = 'show contents of installed distributions'
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
