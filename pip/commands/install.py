@@ -114,7 +114,12 @@ class InstallCommand(Command):
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
-            help='Upgrade all packages to the newest available version')
+            help='Upgrade packages to the latest version, but not dependencies')
+        self.parser.add_option(
+            '-R', '--upgrade-recursive',
+            dest='upgrade_recursive',
+            action='store_true',
+            help='Upgrade packages to the latest version, including dependencies')
         self.parser.add_option(
             '--force-reinstall',
             dest='force_reinstall',
@@ -216,23 +221,27 @@ class InstallCommand(Command):
 
         finder = self._build_package_finder(options, index_urls)
 
+        upgrade = options.upgrade or options.upgrade_recursive
+
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=options.download_dir,
             download_cache=options.download_cache,
-            upgrade=options.upgrade,
+            upgrade=upgrade,
+            upgrade_recursive=options.upgrade_recursive,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
             use_user_site=options.use_user_site)
+
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
+                InstallRequirement.from_line(name, None, upgrade=upgrade))
         for name in options.editables:
             requirement_set.add_requirement(
-                InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
+                InstallRequirement.from_editable(name, default_vcs=options.default_vcs, upgrade=upgrade))
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)

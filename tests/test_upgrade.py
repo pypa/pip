@@ -1,5 +1,6 @@
 import textwrap
-from os.path import join
+from os.path import abspath, join
+from pkg_resources import parse_version
 from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
@@ -55,6 +56,86 @@ def test_upgrade_with_newest_already_installed():
     result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
     assert not result.files_created, 'simple upgraded when it should not have'
     assert 'already up-to-date' in result.stdout, result.stdout
+
+
+def test_upgrade_without_unneeded_recursive_upgrades():
+    """
+    When upgrading a single package, that package's own dependencies should not be
+    upgraded unnecessarily if the user doesn't explicitly ask for them to be upgraded.
+    """
+    env = reset_env()
+    run_pip('install', 'INITools==0.2')
+
+    to_install = abspath(join(here, 'packages', 'FSPkgUsesInitools'))
+    run_pip('install', to_install)
+    run_pip('install', '--upgrade', to_install)
+    assert env.get_pkg_version('initools') == '0.2',\
+           ('pip install --upgrade upgraded recursive dependency INITools '
+            'when it should not have')
+
+
+def test_upgrade_with_needed_recursive_upgrades():
+    """
+    When upgrading a single package A, that package's own dependencies should be
+    upgraded if the installed versions no longer satisfy A's requirements, even if
+    the user doesn't explicitly ask for them to be upgraded, 
+    """
+    env = reset_env()
+    to_install = abspath(join(here, 'packages', 'FSPkgUsesNewishInitools'))
+    run_pip('install', to_install)
+    run_pip('install', 'INITools==0.2')
+    run_pip('install', '--upgrade', to_install)
+    current_version = env.get_pkg_version('initools')
+    assert parse_version(current_version) >= parse_version('0.3'),\
+           ('pip install --upgrade failed to upgrade recursive dependency '
+            'INITools when it should have')
+
+
+def test_upgrade_with_unneeded_recursive_upgrades_explicitly_requested():
+    """
+    When upgrading a single package A with --upgrade-recursive, all of A's
+    dependencies should be upgraded as well, even if the installed versions
+    already satisfy A's requirements.
+    """
+    env = reset_env()
+    run_pip('install', 'INITools==0.2')
+
+    to_install = abspath(join(here, 'packages', 'FSPkgUsesInitools'))
+    run_pip('install', to_install)
+    run_pip('install', '--upgrade-recursive', to_install)
+    current_version = env.get_pkg_version('initools')
+    assert parse_version(current_version) > parse_version('0.2'),\
+           ('pip install --upgrade failed to upgrade recursive dependency '
+            'INITools when it was asked to')
+
+
+def test_upgrade_reqs_file_without_unneeded_recursive_upgrades():
+    """
+    When running non-recursive --upgrade against a requirements file, every package
+    explicitly listed in the requirements file should be upgraded; but any recursive
+    dependencies should not be upgraded.
+    """
+    env = reset_env()
+    run_pip('install', 'INITools==0.2')
+    run_pip('install', 'PyLogo==0.1')
+
+    to_install = abspath(join(here, 'packages', 'FSPkgUsesInitools'))
+    run_pip('install', to_install)
+
+    write_file('test-req.txt', textwrap.dedent("""\
+        %(FSPkgUsesInitools)s
+        PyLogo
+        """ % {'FSPkgUsesInitools': to_install}))
+
+    run_pip('install', '--upgrade', '-r', env.scratch_path/ 'test-req.txt')
+
+    pylogo_version = env.get_pkg_version('pylogo')
+    assert parse_version(pylogo_version) > parse_version('0.1'),\
+           ('pip install --upgrade failed to upgrade explicit dependency '
+            'PyLogo when it should have')
+    assert env.get_pkg_version('initools') == '0.2',\
+           ('pip install --upgrade upgraded recursive dependency INITools '
+            'when it should not have')
 
 
 def test_upgrade_force_reinstall_newest():
