@@ -95,6 +95,15 @@ class CustomOptionParser(optparse.OptionParser):
 
         return group
 
+    @property
+    def option_list_all(self):
+        """Get a list of all options, including those in option groups."""
+        res = self.option_list[:]
+        for i in self.option_groups:
+            res.extend(i.option_list)
+
+        return res
+
 
 class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by by checking the
