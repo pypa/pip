@@ -94,3 +94,13 @@ def test_completion_for_default_parameters():
     res, env = setup_completion('pip --', '1')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
+
+
+def test_completion_option_for_command():
+    """
+    Test getting completion for ``--`` in command (eg. pip search --)
+    """
+
+    res, env = setup_completion('pip search --', '2')
+    assert '--help' in res.stdout,\
+           "autocomplete function could not complete ``--``"
