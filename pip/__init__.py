@@ -41,6 +41,8 @@ def autocomplete():
         subcommand_name = [w for w in cwords if w in subcommands][0]
     except IndexError:
         subcommand_name = None
+
+    parser = create_main_parser()
     # subcommand options
     if subcommand_name:
         # special case: 'help' subcommand has no options
@@ -58,10 +60,12 @@ def autocomplete():
                 for dist in installed:
                     print(dist)
                 sys.exit(1)
-        subcommand = commands.get(subcommand_name)
+
+        subcommand = commands[subcommand_name](parser)
         options += [(opt.get_opt_string(), opt.nargs)
-                    for opt in subcommand.parser.option_list
+                    for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
+
         # filter out previously specified options from available options
         prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
         options = [(x, v) for (x, v) in options if x not in prev_opts]
@@ -74,8 +78,6 @@ def autocomplete():
                 opt_label += '='
             print(opt_label)
     else:
-        parser = create_main_parser()
-
         # show main parser options only when necessary
         if current.startswith('-') or current.startswith('--'):
             opts = [i.option_list for i in parser.option_groups]
@@ -98,8 +100,7 @@ def parseopts(args):
     description = ['Commands:']
     description.extend(['  %-20s %s' % (i, j) for i, j in command_summaries])
 
-    # We have to add the name of the default OptionGroup here for now.
-    description.append('\nOptions:')
+    description.append('')  # empty line between last command and 'General Options'
     parser.description = '\n'.join(description)
 
     options, args = parser.parse_args(args)
@@ -110,7 +111,7 @@ def parseopts(args):
         sys.exit()
 
     # pip || pip help || pip --help -> print_help()
-    if options.help or not args or (args[0] == 'help' and len(args) == 1):
+    if not args or (args[0] == 'help' and len(args) == 1):
         parser.print_help()
         sys.exit()
 

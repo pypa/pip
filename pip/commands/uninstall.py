@@ -10,7 +10,7 @@ class UninstallCommand(Command):
 
     def __init__(self, *args, **kw):
         super(UninstallCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
             action='append',
@@ -18,11 +18,13 @@ class UninstallCommand(Command):
             metavar='FILENAME',
             help='Uninstall all the packages listed in the given requirements file.  '
             'This option can be used multiple times.')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-y', '--yes',
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         requirement_set = RequirementSet(
