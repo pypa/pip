@@ -3,6 +3,7 @@ from pip.baseparser import create_main_parser
 from pip.commands.help import (HelpCommand,
                                SUCCESS,
                                ERROR,)
+from pip.commands import commands
 from mock import Mock
 from nose.tools import assert_raises
 from tests.test_pip import run_pip, reset_env
@@ -68,7 +69,7 @@ def test_help_command_should_exit_status_error_when_command_does_not_exist():
 
 def test_help_commands_equally_functional():
     """
-    Test for `pip help`, `pip` and `pip --help` being the same
+    Test if `pip help` and 'pip --help' behave the same way.
     """
     reset_env()
 
@@ -78,5 +79,13 @@ def test_help_commands_equally_functional():
     out = map(lambda x: x.stdout, results)
     ret = map(lambda x: x.returncode, results)
 
-    assert len(set(out)) == 1
-    assert sum(ret) == 0
+    msg = '"pip --help" != "pip help" != "pip"'
+    assert len(set(out)) == 1, 'output of: ' + msg
+    assert sum(ret) == 0, 'exit codes of: ' + msg
+
+    for name, cls in commands.items():
+        if cls.hidden: continue
+        assert run_pip('help', name).stdout == \
+               run_pip(name, '--help').stdout
+
+        
