@@ -62,7 +62,6 @@ def autocomplete():
                 sys.exit(1)
 
         subcommand = commands[subcommand_name](parser)
-        options += [(opt.get_opt_string(), opt.nargs) for opt in parser.option_list_all]
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
