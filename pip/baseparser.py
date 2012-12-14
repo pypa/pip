@@ -16,7 +16,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self, *args, **kwargs):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 23
-        kwargs['indent_increment'] = 2
+        kwargs['indent_increment'] = 1
         kwargs['width'] = get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
@@ -53,12 +53,10 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def format_usage(self, usage):
         """
-        ensure there is only one newline between usage and the first heading
-        if there is no description
+        Ensure there is only one newline between usage and the first heading
+        if there is no description.
         """
-        msg = 'Usage: %s' % usage
-        if self.parser.description:
-            msg += '\n'
+        msg = 'Usage: %s\n' % usage
         return msg
 
     def format_description(self, description):
@@ -87,7 +85,27 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         return optparse.IndentedHelpFormatter.expand_default(self, option)
 
 
-class ConfigOptionParser(optparse.OptionParser):
+class CustomOptionParser(optparse.OptionParser):
+    def insert_option_group(self, idx, *args, **kwargs):
+        """Insert an OptionGroup at a given position."""
+        group = self.add_option_group(*args, **kwargs)
+
+        self.option_groups.pop()
+        self.option_groups.insert(idx, group)
+
+        return group
+
+    @property
+    def option_list_all(self):
+        """Get a list of all options, including those in option groups."""
+        res = self.option_list[:]
+        for i in self.option_groups:
+            res.extend(i.option_list)
+
+        return res
+
+
+class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by by checking the
     configuration files and environmental variables"""
 
@@ -190,7 +208,7 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version = None
-
+    
 
 def create_main_parser():
     parser_kw = {
@@ -202,69 +220,85 @@ def create_main_parser():
     }
 
     parser = ConfigOptionParser(**parser_kw)
+    genopt = optparse.OptionGroup(parser, 'General Options')
     parser.disable_interspersed_args()
 
     # having a default version action just causes trouble
     parser.version = version
 
-    parser.add_option(
+    for opt in standard_options:
+        genopt.add_option(opt)
+    parser.add_option_group(genopt)
+
+    return parser
+
+
+standard_options = [
+    optparse.make_option(
         '-h', '--help',
         dest='help',
-        action='store_true',
-        help='Show help')
-    parser.add_option(
+        action='help',
+        help='Show help'),
+
+    optparse.make_option(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
         dest='require_venv',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    optparse.make_option(
         '-v', '--verbose',
         dest='verbose',
         action='count',
         default=0,
-        help='Give more output')
-    parser.add_option(
+        help='Give more output'),
+
+    optparse.make_option(
         '-V', '--version',
         dest='version',
         action='store_true',
-        help='Show version and exit')
-    parser.add_option(
+        help='Show version and exit'),
+
+    optparse.make_option(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
-        help='Give less output')
-    parser.add_option(
+        help='Give less output'),
+
+    optparse.make_option(
         '--log',
         dest='log',
         metavar='FILENAME',
-        help='Log file where a complete (maximum verbosity) record will be kept')
-    parser.add_option(
+        help='Log file where a complete (maximum verbosity) record will be kept'),
+
+    optparse.make_option(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
         dest='log_explicit_levels',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
-    parser.add_option(
+        help=optparse.SUPPRESS_HELP),
+
+    optparse.make_option(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
         metavar='FILENAME',
         default=default_log_file,
-        help=optparse.SUPPRESS_HELP)
-    parser.add_option(
+        help=optparse.SUPPRESS_HELP),
+
+    optparse.make_option(
         # Don't ask for input
         '--no-input',
         dest='no_input',
         action='store_true',
         default=False,
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    optparse.make_option(
         '--proxy',
         dest='proxy',
         type='str',
@@ -272,30 +306,33 @@ def create_main_parser():
         help="Specify a proxy in the form user:passwd@proxy.server:port. "
         "Note that the user:password@ is optional and required only if you "
         "are behind an authenticated proxy. If you provide "
-        "user@proxy.server:port then you will be prompted for a password.")
-    parser.add_option(
+        "user@proxy.server:port then you will be prompted for a password."),
+
+    optparse.make_option(
         '--timeout', '--default-timeout',
         metavar='SECONDS',
         dest='timeout',
         type='float',
         default=15,
-        help='Set the socket timeout (default %default seconds)')
-    parser.add_option(
+        help='Set the socket timeout (default %default seconds)'),
+
+    optparse.make_option(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
         dest='default_vcs',
         type='str',
         default='',
-        help=optparse.SUPPRESS_HELP)
-    parser.add_option(
+        help=optparse.SUPPRESS_HELP),
+
+    optparse.make_option(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
         dest='skip_requirements_regex',
         type='str',
         default='',
-        help=optparse.SUPPRESS_HELP)
+        help=optparse.SUPPRESS_HELP),
 
-    parser.add_option(
+    optparse.make_option(
         # Option when path already exist
         '--exists-action',
         dest='exists_action',
@@ -307,7 +344,5 @@ def create_main_parser():
              "Use this option more than one time to specify "
              "another action if a certain option is not "
              "available. Choices: "
-             "(s)witch, (i)gnore, (w)ipe, (b)ackup")
-
-    return parser
-
+             "(s)witch, (i)gnore, (w)ipe, (b)ackup"),
+    ]

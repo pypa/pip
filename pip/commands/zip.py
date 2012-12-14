@@ -18,42 +18,44 @@ class ZipCommand(Command):
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)
         if self.name == 'zip':
-            self.parser.add_option(
+            self.cmd_opts.add_option(
                 '--unzip',
                 action='store_true',
                 dest='unzip',
                 help='Unzip (rather than zip) a package')
         else:
-            self.parser.add_option(
+            self.cmd_opts.add_option(
                 '--zip',
                 action='store_false',
                 dest='unzip',
                 default=True,
                 help='Zip (rather than unzip) a package')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '--no-pyc',
             action='store_true',
             dest='no_pyc',
             help='Do not include .pyc files in zip files (useful on Google App Engine)')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-l', '--list',
             action='store_true',
             dest='list',
             help='List the packages available, and their zip status')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '--sort-files',
             action='store_true',
             dest='sort_files',
             help='With --list, sort packages according to how many files they contain')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '--path',
             action='append',
             dest='paths',
             help='Restrict operations to the given paths (may include wildcards)')
-        self.parser.add_option(
+        self.cmd_opts.add_option(
             '-n', '--simulate',
             action='store_true',
             help='Do not actually perform the zip/unzip operation')
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def paths(self):
         """All the entries of sys.path, possibly restricted by --path"""

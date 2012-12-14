@@ -7,6 +7,7 @@ import sys
 import tempfile
 import traceback
 import time
+import optparse
 
 from pip.log import logger
 from pip.download import urlopen
@@ -35,11 +36,16 @@ class Command(object):
             'usage' : self.usage,
             'prog'  : '%s %s' % (get_prog(), self.name),
             'formatter' : UpdatingDefaultsHelpFormatter(),
+            'add_help_option' : False,
             'name' : self.name,
         }
 
         self.main_parser = main_parser
         self.parser = ConfigOptionParser(**parser_kw)
+
+        # Commands should add options to this option group
+        optgroup_name = '%s Options' % self.name.capitalize()
+        self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Re-add all options and option groups.
         for group in main_parser.option_groups:
@@ -51,7 +57,7 @@ class Command(object):
     def _copy_options(self, parser, options):
         """Populate an option parser or group with options."""
         for option in options:
-            if not option.dest or option.dest == 'help':
+            if not option.dest:
                 continue
             parser.add_option(option)
 
