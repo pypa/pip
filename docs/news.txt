@@ -17,6 +17,9 @@ develop (unreleased)
 develop (unreleased)
 --------------------
 
+* Split help output into general vs command-specific option groups.
+  Thanks Georgi Valkov. (Pull #744; Pull #721 contains preceding refactor)
+
 * Fixed dependency resolution when installing from archives with uppercase
   project names. (Pull #724)
 
