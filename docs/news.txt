@@ -14,9 +14,6 @@ Beta and final releases planned for the end of 2012.
 develop (unreleased)
 --------------------
 
-develop (unreleased)
---------------------
-
 * Split help output into general vs command-specific option groups.
   Thanks Georgi Valkov. (Pull #744; Pull #721 contains preceding refactor)
 
