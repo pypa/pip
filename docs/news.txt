@@ -50,6 +50,9 @@ develop (unreleased)
 * Added "pip show" command to get information about an installed package.
   Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 
+* Moved pip configuration data to ~/.config/pip, the XDG standard for config
+  files on Unix/Linux systems. Thanks Ben Rosser. (Pull #582)
+
 * Added `--root` option for "pip install" to specify root directory. Behaves
   like the same option in distutils but also plays nice with pip's egg-info.
   Thanks Przemek Wrzos.  (Issue #253 / Pull #693)
@@ -84,9 +87,6 @@ develop (unreleased)
 
 * Use a temporary directory as the default build location outside of a
   virtualenv. Fixes issues #339 and #381. Thanks Ben Rosser.
-
-* Moved pip configuration data to ~/.config/pip, the XDG standard for config
-  files on Unix/Linux systems. Thanks Ben Rosser.
 
 * Added support for specifying extras with local editables. Thanks Nick
   Stenning.
