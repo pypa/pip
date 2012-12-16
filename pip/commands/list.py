@@ -6,6 +6,7 @@ from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import InstallRequirement
 from pip.util import get_installed_distributions
+from pip.cmdoptions import make_option_group, index_group
 
 
 class ListCommand(Command):
@@ -13,66 +14,37 @@ class ListCommand(Command):
     usage = '%prog [OPTIONS]'
     summary = 'List all currently installed packages.'
 
-    def __init__(self):
-        super(ListCommand, self).__init__()
-        self.parser.add_option(
+    def __init__(self, *args, **kw):
+        super(ListCommand, self).__init__(*args, **kw)
+
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '-l', '--local',
             dest='local',
             action='store_true',
             default=False,
             help='If in a virtualenv, do not report'
                 ' globally-installed packages')
-        self.parser.add_option(
+        cmd_opts.add_option(
             '-o', '--outdated',
             dest='outdated',
             action='store_true',
             default=False,
             help='Output all currently installed outdated packages to stdout')
-        self.parser.add_option(
+        cmd_opts.add_option(
             '-u', '--uptodate',
             dest='uptodate',
             action='store_true',
             default=False,
             help='Output all currently installed uptodate packages to stdout')
-        self.parser.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL to look for packages at')
-        self.parser.add_option(
-            '-i', '--index-url', '--pypi-url',
-            dest='index_url',
-            metavar='URL',
-            default='http://pypi.python.org/simple/',
-            help='Base URL of Python Package Index (default %default)')
-        self.parser.add_option(
-            '--extra-index-url',
-            dest='extra_index_urls',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Extra URLs of package indexes to use in addition to --index-url')
-        self.parser.add_option(
-            '--no-index',
-            dest='no_index',
-            action='store_true',
-            default=False,
-            help='Ignore package index (only looking at --find-links URLs instead)')
-        self.parser.add_option(
-            '-M', '--use-mirrors',
-            dest='use_mirrors',
-            action='store_true',
-            default=False,
-            help='Use the PyPI mirrors as a fallback in case the main index is down.')
-        self.parser.add_option(
-            '--mirrors',
-            dest='mirrors',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Specific mirror URLs to query when --use-mirrors is used')
+
+        index_opts = make_option_group(index_group, self.parser)
+
+        self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, cmd_opts)
+
 
     def _build_package_finder(self, options, index_urls):
         """
@@ -94,7 +66,7 @@ class ListCommand(Command):
     def run_outdated(self, options, args):
         for req, remote_version in self.find_packages_latests_versions(options):
             if remote_version > req.installed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name, 
+                logger.notify('%s (CURRENT: %s LATEST: %s)' % (req.name,
                     req.installed_version, remote_version))
 
     def find_installed_packages(self, options):
@@ -153,5 +125,3 @@ class ListCommand(Command):
                 uptodate.append(req)
         self.output_package_listing(uptodate)
 
-
-ListCommand()
