@@ -83,7 +83,7 @@ class ListCommand(Command):
         finder = self._build_package_finder(options, index_urls)
         finder.add_dependency_links(dependency_links)
 
-        installed_packages = get_installed_distributions(local_only=options.local)
+        installed_packages = get_installed_distributions(local_only=options.local, include_editables=False)
         for dist in installed_packages:
             req = InstallRequirement.from_line(dist.key, None)
             try:
