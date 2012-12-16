@@ -337,7 +337,14 @@ def dist_in_site_packages(dist):
     return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
 
 
-def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
+def dist_is_editable(dist):
+    """Is distribution an editable install?"""
+    from pip.vcs import vcs
+    location = normalize_path(dist.location)
+    return bool(vcs.get_backend_name(location))
+
+
+def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python'), include_editables=True):
     """
     Return a list of installed Distribution objects.
 
@@ -348,12 +355,24 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
     ignore; defaults to ('setuptools', 'pip', 'python'). [FIXME also
     skip virtualenv?]
 
+    If ``editables`` is False, don't report editables.
+
     """
     if local_only:
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+
+    if include_editables:
+        editable_test = lambda d: True
+    else:
+        editable_test = lambda d: not dist_is_editable(d)
+
+    return [d for d in pkg_resources.working_set
+            if local_test(d)
+            and d.key not in skip
+            and editable_test(d)
+            ]
 
 
 def egg_link_path(dist):
