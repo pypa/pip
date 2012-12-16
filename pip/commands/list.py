@@ -11,7 +11,7 @@ from pip.cmdoptions import make_option_group, index_group
 class ListCommand(Command):
     name = 'list'
     usage = '%prog [OPTIONS]'
-    summary = 'List all currently installed packages.'
+    summary = 'List installed packages (including editables).'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
@@ -20,25 +20,26 @@ class ListCommand(Command):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(
-            '-l', '--local',
-            action='store_true',
-            default=False,
-            help='If in a virtualenv, do not report globally-installed packages')
-        cmd_opts.add_option(
             '-o', '--outdated',
             action='store_true',
             default=False,
-            help='Output all currently installed outdated packages to stdout (excluding editables)')
+            help='List outdated packages (excluding editables)')
         cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
-            help='Output all currently installed uptodate packages to stdout (excluding editables)')
+            help='List uptodate packages (excluding editables)')
         cmd_opts.add_option(
             '-e', '--editables',
             action='store_true',
             default=False,
-            help='Output all currently installed editable packages to stdout')
+            help='List editable packages.')
+        cmd_opts.add_option(
+            '-l', '--local',
+            action='store_true',
+            default=False,
+            help='If in a virtualenv, do not list globally-installed packages')
+
 
         index_opts = make_option_group(index_group, self.parser)
 
