@@ -11,8 +11,8 @@ def test_list_command():
     reset_env()
     run_pip('install', 'INITools==0.2', 'mock==0.7.0')
     result = run_pip('list')
-    assert 'initools (0.2)' in result.stdout
-    assert 'mock (0.7.0)' in result.stdout
+    assert 'INITools (0.2)' in result.stdout, str(result)
+    assert 'mock (0.7.0)' in result.stdout, str(result)
 
 
 def test_local_flag():
@@ -59,5 +59,5 @@ def test_outdated_flag():
     result = run_pip('search', 'INITools')
     initools_ver = total_re.search(str(result)).group(1)
     result = run_pip('list', '--outdated', expect_stderr=True)
-    assert 'initools (CURRENT: 0.2 LATEST: %s)' % initools_ver in result.stdout
-    assert 'mock (CURRENT: 0.7.0 LATEST: %s)' % mock_ver in result.stdout
+    assert 'INITools (CURRENT: 0.2 LATEST: %s)' % initools_ver in result.stdout, str(result)
+    assert 'mock (CURRENT: 0.7.0 LATEST: %s)' % mock_ver in result.stdout, str(result)
