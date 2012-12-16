@@ -4,7 +4,7 @@ from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import InstallRequirement
-from pip.util import get_installed_distributions
+from pip.util import get_installed_distributions, dist_is_editable
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -21,22 +21,24 @@ class ListCommand(Command):
 
         cmd_opts.add_option(
             '-l', '--local',
-            dest='local',
             action='store_true',
             default=False,
             help='If in a virtualenv, do not report globally-installed packages')
         cmd_opts.add_option(
             '-o', '--outdated',
-            dest='outdated',
             action='store_true',
             default=False,
             help='Output all currently installed outdated packages to stdout (excluding editables)')
         cmd_opts.add_option(
             '-u', '--uptodate',
-            dest='uptodate',
             action='store_true',
             default=False,
             help='Output all currently installed uptodate packages to stdout (excluding editables)')
+        cmd_opts.add_option(
+            '-e', '--editables',
+            action='store_true',
+            default=False,
+            help='Output all currently installed editable packages to stdout')
 
         index_opts = make_option_group(index_group, self.parser)
 
@@ -55,13 +57,15 @@ class ListCommand(Command):
 
     def run(self, options, args):
         if options.outdated:
-            self.run_outdated(options, args)
+            self.run_outdated(options)
         elif options.uptodate:
-            self.run_uptodate(options, args)
+            self.run_uptodate(options)
+        elif options.editables:
+            self.run_editables(options)
         else:
-            self.run_listing(options, args)
+            self.run_listing(options)
 
-    def run_outdated(self, options, args):
+    def run_outdated(self, options):
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
                 logger.notify('%s (CURRENT: %s LATEST: %s)' % (dist.project_name,
@@ -104,15 +108,22 @@ class ListCommand(Command):
                 remote_version_parsed = remote_version[0]
             yield dist, remote_version_raw, remote_version_parsed
 
-    def run_listing(self, options, args):
+    def run_listing(self, options):
         installed_packages = get_installed_distributions(local_only=options.local)
+        self.output_package_listing(installed_packages)
+
+    def run_editables(self, options):
+        installed_packages = get_installed_distributions(local_only=options.local, editables_only=True)
         self.output_package_listing(installed_packages)
 
     def output_package_listing(self, installed_packages):
         for dist in installed_packages:
-            logger.notify('%s (%s)' % (dist.project_name, dist.version))
+            line = '%s (%s)' % (dist.project_name, dist.version)
+            if dist_is_editable(dist):
+                line += ' editable src at %s' % dist.location
+            logger.notify(line)
 
-    def run_uptodate(self, options, args):
+    def run_uptodate(self, options):
         uptodate = []
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if dist.parsed_version == remote_version_parsed:
