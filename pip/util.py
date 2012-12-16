@@ -344,7 +344,10 @@ def dist_is_editable(dist):
     return bool(vcs.get_backend_name(location))
 
 
-def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python'), include_editables=True):
+def get_installed_distributions(local_only=True,
+                                skip=('setuptools', 'pip', 'python'),
+                                include_editables=True,
+                                editables_only=False):
     """
     Return a list of installed Distribution objects.
 
@@ -368,10 +371,16 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
     else:
         editable_test = lambda d: not dist_is_editable(d)
 
+    if editables_only:
+        editables_only_test = lambda d: dist_is_editable(d)
+    else:
+        editables_only_test = lambda d: True
+
     return [d for d in pkg_resources.working_set
             if local_test(d)
             and d.key not in skip
             and editable_test(d)
+            and editables_only_test(d)
             ]
 
 
