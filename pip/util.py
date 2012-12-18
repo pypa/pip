@@ -339,10 +339,10 @@ def dist_in_site_packages(dist):
 
 def dist_is_editable(dist):
     """Is distribution an editable install?"""
-    from pip.vcs import vcs
-    location = normalize_path(dist.location)
-    return bool(vcs.get_backend_name(location))
-
+    #TODO: factor out determining editableness out of FrozenRequirement
+    from pip import FrozenRequirement
+    req = FrozenRequirement.from_dist(dist, [])
+    return req.editable
 
 def get_installed_distributions(local_only=True,
                                 skip=('setuptools', 'pip', 'python'),
