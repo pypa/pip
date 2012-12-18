@@ -360,6 +360,8 @@ def get_installed_distributions(local_only=True,
 
     If ``editables`` is False, don't report editables.
 
+    If ``editables_only`` is True , only report editables.
+
     """
     if local_only:
         local_test = dist_is_local
