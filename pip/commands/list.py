@@ -30,7 +30,7 @@ class ListCommand(Command):
             default=False,
             help='List uptodate packages (excluding editables)')
         cmd_opts.add_option(
-            '-e', '--editables',
+            '-e', '--editable',
             action='store_true',
             default=False,
             help='List editable packages.')
@@ -61,7 +61,7 @@ class ListCommand(Command):
             self.run_outdated(options)
         elif options.uptodate:
             self.run_uptodate(options)
-        elif options.editables:
+        elif options.editable:
             self.run_editables(options)
         else:
             self.run_listing(options)
@@ -69,7 +69,7 @@ class ListCommand(Command):
     def run_outdated(self, options):
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
-                logger.notify('%s (CURRENT: %s LATEST: %s)' % (dist.project_name,
+                logger.notify('%s (Current: %s Latest: %s)' % (dist.project_name,
                     dist.version, remote_version_raw))
 
     def find_packages_latests_versions(self, options):
@@ -119,9 +119,10 @@ class ListCommand(Command):
 
     def output_package_listing(self, installed_packages):
         for dist in installed_packages:
-            line = '%s (%s)' % (dist.project_name, dist.version)
             if dist_is_editable(dist):
-                line += ' editable src at %s' % dist.location
+                line = '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
+            else:
+                line = '%s (%s)' % (dist.project_name, dist.version)
             logger.notify(line)
 
     def run_uptodate(self, options):

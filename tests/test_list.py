@@ -63,9 +63,9 @@ def test_outdated_flag():
     result = run_pip('search', 'INITools')
     initools_ver = total_re.search(str(result)).group(1)
     result = run_pip('list', '--outdated', expect_stderr=True)
-    assert 'INITools (CURRENT: 0.2 LATEST: %s)' % initools_ver in result.stdout, str(result)
+    assert 'INITools (Current: 0.2 Latest: %s)' % initools_ver in result.stdout, str(result)
     assert 'pip-test-package' not in result.stdout #editables excluded
-    assert 'mock (CURRENT: 0.7.0 LATEST: %s)' % mock_ver in result.stdout, str(result)
+    assert 'mock (Current: 0.7.0 Latest: %s)' % mock_ver in result.stdout, str(result)
 
 
 def test_editables_flag():
@@ -75,7 +75,7 @@ def test_editables_flag():
     reset_env()
     run_pip('install', 'mock==0.7.0')
     result = run_pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
-    result = run_pip('list', '--editables')
+    result = run_pip('list', '--editable')
     assert 'mock (0.7.0)' not in result.stdout, str(result)
     assert 'src/pip-test-package' in result.stdout, str(result)
 
