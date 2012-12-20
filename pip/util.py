@@ -337,7 +337,17 @@ def dist_in_site_packages(dist):
     return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
 
 
-def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
+def dist_is_editable(dist):
+    """Is distribution an editable install?"""
+    #TODO: factor out determining editableness out of FrozenRequirement
+    from pip import FrozenRequirement
+    req = FrozenRequirement.from_dist(dist, [])
+    return req.editable
+
+def get_installed_distributions(local_only=True,
+                                skip=('setuptools', 'pip', 'python'),
+                                include_editables=True,
+                                editables_only=False):
     """
     Return a list of installed Distribution objects.
 
@@ -348,12 +358,32 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
     ignore; defaults to ('setuptools', 'pip', 'python'). [FIXME also
     skip virtualenv?]
 
+    If ``editables`` is False, don't report editables.
+
+    If ``editables_only`` is True , only report editables.
+
     """
     if local_only:
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+
+    if include_editables:
+        editable_test = lambda d: True
+    else:
+        editable_test = lambda d: not dist_is_editable(d)
+
+    if editables_only:
+        editables_only_test = lambda d: dist_is_editable(d)
+    else:
+        editables_only_test = lambda d: True
+
+    return [d for d in pkg_resources.working_set
+            if local_test(d)
+            and d.key not in skip
+            and editable_test(d)
+            and editables_only_test(d)
+            ]
 
 
 def egg_link_path(dist):
