@@ -11,6 +11,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
+from pip.cmdoptions import make_option_group, index_group
 
 
 class InstallCommand(Command):
@@ -22,54 +23,8 @@ class InstallCommand(Command):
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
 
-        pypi_opts = optparse.OptionGroup(self.parser, 'Package Index Options')
         cmd_opts = self.cmd_opts
 
-        pypi_opts.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL to look for packages at')
-
-        pypi_opts.add_option(
-            '-i', '--index-url', '--pypi-url',
-            dest='index_url',
-            metavar='URL',
-            default='http://pypi.python.org/simple/',
-            help='Base URL of Python Package Index (default %default)')
-
-        pypi_opts.add_option(
-            '--extra-index-url',
-            dest='extra_index_urls',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Extra URLs of package indexes to use in addition to --index-url')
-
-        pypi_opts.add_option(
-            '--no-index',
-            dest='no_index',
-            action='store_true',
-            default=False,
-            help='Ignore package index (only looking at --find-links URLs instead)')
-
-        pypi_opts.add_option(
-            '-M', '--use-mirrors',
-            dest='use_mirrors',
-            action='store_true',
-            default=False,
-            help='Use the PyPI mirrors as a fallback in case the main index is down.')
-
-        pypi_opts.add_option(
-            '--mirrors',
-            dest='mirrors',
-            metavar='URL',
-            action='append',
-            default=[],
-            help='Specific mirror URLs to query when --use-mirrors is used')
-        
         cmd_opts.add_option(
             '-e', '--editable',
             dest='editables',
@@ -200,7 +155,9 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory")
 
-        self.parser.insert_option_group(0, pypi_opts)
+        index_opts = make_option_group(index_group, self.parser)
+
+        self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
     def _build_package_finder(self, options, index_urls):

@@ -7,6 +7,7 @@ from pip.commands.bundle import BundleCommand
 from pip.commands.completion import CompletionCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.help import HelpCommand
+from pip.commands.list import ListCommand
 from pip.commands.search import SearchCommand
 from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
@@ -26,6 +27,7 @@ commands = {
     UninstallCommand.name: UninstallCommand,
     UnzipCommand.name: UnzipCommand,
     ZipCommand.name: ZipCommand,
+    ListCommand.name: ListCommand,
 }
 
 
