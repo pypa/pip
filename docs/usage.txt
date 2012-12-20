@@ -134,8 +134,37 @@ old version of the package is automatically restored if the new version
 fails to download or install.
 
 
-Searching for packages
-----------------------
+List installed packages
+--------------------------
+
+To list installed packages::
+
+    $ pip list
+
+To only list editables::
+
+    $ pip list --editable
+
+To list outdated packages (excluding editables), and the latest version available::
+
+    $ pip list --outdated
+
+To list uptodate packages (excluding editables)::
+
+    $ pip list --uptodate
+
+
+Show package status
+-------------------
+
+To get info about an installed package, including its location and included
+files::
+
+    $ pip show SomePackage
+
+
+Search for packages
+-------------------
 
 pip can search :term:`PyPI` for packages using the ``pip search``
 command::
@@ -145,13 +174,6 @@ command::
 The query will be used to search the names and summaries of all
 packages. With the ``--index`` option you can search in a different
 repository.
-
-
-Checking installed package status
----------------------------------
-
-To get info about an installed package, including its location and included
-files, run ``pip show ProjectName``.
 
 
 Bundles
