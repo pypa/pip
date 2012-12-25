@@ -34,7 +34,7 @@ def autocomplete():
     except IndexError:
         current = ''
 
-    subcommands = [cmd for cmd, cls in commands.items() if not cls.hidden]
+    subcommands = [cmd for cmd, summary in get_summaries()]
     options = []
     # subcommand
     try:
