@@ -82,8 +82,7 @@ def test_completion_for_un_snippet():
     """
 
     res, env = setup_completion('pip un', '1')
-    assert res.stdout.strip().split() == ['unzip', 'uninstall'],\
-           "autocomplete function could not complete ``un`` snippet"
+    assert res.stdout.strip().split() == ['uninstall', 'unzip'], res.stdout
 
 
 def test_completion_for_default_parameters():
