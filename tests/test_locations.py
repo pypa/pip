@@ -37,6 +37,7 @@ class TestLocations:
     def revert_patch(self):
         """ revert the patches to python methods """
         tempfile.gettempdir = self.tempfile_gettempdir
+        getpass.getuser = self.old_getpass_getuser
         os.getuid = self.old_os_getuid
         os.fstat = self.old_os_fstat
 
