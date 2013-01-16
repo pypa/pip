@@ -32,7 +32,8 @@ if running_under_virtualenv():
 else:
     # Use tempfile to create a temporary folder for build
     # Note: we are NOT using mkdtemp so we can have a consistent build dir
-    build_prefix = os.path.join(tempfile.gettempdir(), 'pip-build')
+    # Note: using realpath due to tmp dirs on OSX being symlinks
+    build_prefix = os.path.realpath(os.path.join(tempfile.gettempdir(), 'pip-build'))
 
     ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
