@@ -918,7 +918,9 @@ class RequirementSet(object):
                         #don't uninstall conflict if user install and and conflict is not user install
                         if not (self.use_user_site and not dist_in_usersite(req_to_install.satisfied_by)):
                             req_to_install.conflicts_with = req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
+                        #don't install if this exact requirement is already installed
+                        if not (self.satisfied_by.version == req_to_install.version):
+                            req_to_install.satisfied_by = None
                     else:
                         install_needed = False
                 if req_to_install.satisfied_by:
@@ -954,7 +956,9 @@ class RequirementSet(object):
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
-                    if self.upgrade:
+                    # check if we are upgrading and that we don't already have
+                    # an exact version match
+                    if self.upgrade and not (req_to_install.satisfied_by.as_requirement() == req_to_install.req):
                         if not self.force_reinstall and not req_to_install.url:
                             try:
                                 url = finder.find_requirement(
