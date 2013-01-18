@@ -4,6 +4,7 @@ import sys
 import optparse
 import pkg_resources
 import os
+import textwrap
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
@@ -15,7 +16,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def __init__(self, *args, **kwargs):
         # help position must be aligned with __init__.parseopts.description
-        kwargs['max_help_position'] = 23
+        kwargs['max_help_position'] = 30
         kwargs['indent_increment'] = 1
         kwargs['width'] = get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
@@ -42,7 +43,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt % metavar.upper())
+            opts.append(mvarfmt % metavar.lower())
 
         return ''.join(opts)
 
@@ -56,12 +57,17 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         Ensure there is only one newline between usage and the first heading
         if there is no description.
         """
-        msg = 'Usage: %s\n' % usage
+        msg = '\nUsage: %s\n' % self.indent_lines(textwrap.dedent(usage), "  ")
         return msg
 
     def format_description(self, description):
         # leave full control over description to us
         if description:
+            if hasattr(self.parser, 'main'):
+                label = 'Commands:'
+            else:
+                label = 'Description:'
+            description = label + ' %s\n' % self.indent_lines(textwrap.dedent(description), "  ")
             return description
         else:
             return ''
@@ -72,6 +78,10 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             return epilog
         else:
             return ''
+
+    def indent_lines(self, text, indent):
+        new_lines = [indent + line for line in text.split('\n')]
+        return "\n".join(new_lines)
 
 
 class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
@@ -208,11 +218,11 @@ try:
 except pkg_resources.DistributionNotFound:
     # when running pip.py without installing
     version = None
-    
+
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '%prog COMMAND [OPTIONS]',
+        'usage' : '\n%prog <command> [options]',
         'add_help_option' : False,
         'formatter' : UpdatingDefaultsHelpFormatter(),
         'name' : 'global',
@@ -238,7 +248,7 @@ standard_options = [
         '-h', '--help',
         dest='help',
         action='help',
-        help='Show help'),
+        help='Show help.'),
 
     optparse.make_option(
         # Run only if inside a virtualenv, bail if not.
@@ -253,26 +263,26 @@ standard_options = [
         dest='verbose',
         action='count',
         default=0,
-        help='Give more output'),
+        help='Give more output. Option is additive, and can be used up to 3 times.'),
 
     optparse.make_option(
         '-V', '--version',
         dest='version',
         action='store_true',
-        help='Show version and exit'),
+        help='Show version and exit.'),
 
     optparse.make_option(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
-        help='Give less output'),
+        help='Give less output.'),
 
     optparse.make_option(
         '--log',
         dest='log',
-        metavar='FILENAME',
-        help='Log file where a complete (maximum verbosity) record will be kept'),
+        metavar='file',
+        help='Log file where a complete (maximum verbosity) record will be kept.'),
 
     optparse.make_option(
         # Writes the log levels explicitely to the log'
@@ -286,7 +296,7 @@ standard_options = [
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
-        metavar='FILENAME',
+        metavar='file',
         default=default_log_file,
         help=optparse.SUPPRESS_HELP),
 
@@ -303,18 +313,15 @@ standard_options = [
         dest='proxy',
         type='str',
         default='',
-        help="Specify a proxy in the form user:passwd@proxy.server:port. "
-        "Note that the user:password@ is optional and required only if you "
-        "are behind an authenticated proxy. If you provide "
-        "user@proxy.server:port then you will be prompted for a password."),
+        help="Specify a proxy in the form [user:passwd@]proxy.server:port."),
 
     optparse.make_option(
         '--timeout', '--default-timeout',
-        metavar='SECONDS',
+        metavar='sec',
         dest='timeout',
         type='float',
         default=15,
-        help='Set the socket timeout (default %default seconds)'),
+        help='Set the socket timeout (default %default seconds).'),
 
     optparse.make_option(
         # The default version control system for editables, e.g. 'svn'
@@ -340,9 +347,7 @@ standard_options = [
         choices=['s', 'i', 'w', 'b'],
         default=[],
         action='append',
-        help="Default action when a path already exists. "
-             "Use this option more than one time to specify "
-             "another action if a certain option is not "
-             "available. Choices: "
-             "(s)witch, (i)gnore, (w)ipe, (b)ackup"),
+        metavar='action',
+        help="Default action when a path already exists: "
+             "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
     ]

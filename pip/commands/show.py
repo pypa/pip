@@ -6,8 +6,11 @@ from pip.log import logger
 
 class ShowCommand(Command):
     name = 'show'
-    usage = '%prog QUERY'
-    summary = 'Output installed distributions (exact versions, files) to stdout'
+    usage = """
+      %prog [options] <package> ..."""
+    summary = 'Show information about installed packages.'
+    description = """
+      Show information about one or more installed packages."""
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
@@ -16,13 +19,13 @@ class ShowCommand(Command):
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package')
+            help='Show the full list of installed files for each package.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Please provide a project name or names.')
+            logger.warn('ERROR: Please provide a package name or names.')
             return
         query = args
 

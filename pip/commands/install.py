@@ -16,8 +16,29 @@ from pip.cmdoptions import make_option_group, index_group
 
 class InstallCommand(Command):
     name = 'install'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Install packages'
+
+    usage = """
+      %prog [options] <requirement specifier> ...
+      %prog [options] -r <requirements file> ...
+      %prog [options] [-e] <vcs project url> ...
+      %prog [options] [-e] <local project path> ...
+      %prog [options] <archive url/path> ..."""
+
+    description = """
+       Install packages from:
+
+       - PyPI (and other indexes) using requirement specifiers.
+       - VCS project urls.
+       - Local project directories.
+       - Local or remote source archives.
+
+       pip also supports installing from "requirements files", which provide
+       an easy way to specify a whole environment to be installed.
+
+       See http://www.pip-installer.org for details on VCS url formats and
+       requirements files."""
+
+    summary = 'Install packages.'
     bundle = False
 
     def __init__(self, *args, **kw):
@@ -30,62 +51,63 @@ class InstallCommand(Command):
             dest='editables',
             action='append',
             default=[],
-            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
-            help='Install a package directly from a checkout. Source will be checked '
-            'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop). You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout). This option may be provided multiple times. '
-            'Possible values for VCS are: svn, git, hg and bzr.')
+            metavar='path/url',
+            help='Install a project in editable mode (i.e. setuptools "develop mode") from a local project path or a VCS url.')
 
         cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
             action='append',
             default=[],
-            metavar='FILENAME',
-            help='Install all the packages listed in the given requirements file. '
+            metavar='file',
+            help='Install from the given requirements file. '
             'This option can be used multiple times.')
 
         cmd_opts.add_option(
             '-b', '--build', '--build-dir', '--build-directory',
             dest='build_dir',
-            metavar='DIR',
+            metavar='dir',
             default=build_prefix,
-            help='Unpack packages into DIR (default %default) and build from there')
+            help='Directory to unpack packages into and build in. '
+            'The default in a virtualenv is "<venv path>/build". '
+            'The default for global installs is "<OS temp dir>/pip-build".')
 
         cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help='Install packages into DIR.')
+            help='Install packages into <dir>.')
 
         cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help='Download packages into DIR instead of installing them')
+            help="Download packages into <dir> instead of installing them, irregardless of what's already installed.")
 
         cmd_opts.add_option(
             '--download-cache',
             dest='download_cache',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help='Cache downloaded packages in DIR')
+            help='Cache downloaded packages in <dir>.')
 
         cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
-            metavar='DIR',
+            metavar='dir',
             default=src_prefix,
-            help='Check out --editable packages into DIR (default %default)')
+            help='Directory to check out editable projects into. '
+            'The default in a virtualenv is "<venv path>/src". '
+            'The default for global installs is "<current dir>/src".')
 
         cmd_opts.add_option(
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
-            help='Upgrade all packages to the newest available version')
+            help='Upgrade all packages to the newest available version. '
+            'This process is recursive irregardless of whether a dependency is already satisfied.')
 
         cmd_opts.add_option(
             '--force-reinstall',
@@ -98,32 +120,33 @@ class InstallCommand(Command):
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead)')
+            help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(
             '--no-deps', '--no-dependencies',
             dest='ignore_dependencies',
             action='store_true',
             default=False,
-            help='Ignore package dependencies')
+            help="Don't install package dependencies.")
 
         cmd_opts.add_option(
             '--no-install',
             dest='no_install',
             action='store_true',
-            help="Download and unpack all packages, but don't actually install them")
+            help="Download and unpack all packages, but don't actually install them.")
 
         cmd_opts.add_option(
             '--no-download',
             dest='no_download',
             action="store_true",
             help="Don't download any packages, just install the ones already downloaded "
-            "(completes an install run with --no-install)")
+            "(completes an install run with --no-install).")
 
         cmd_opts.add_option(
             '--install-option',
             dest='install_options',
             action='append',
+            metavar='options',
             help="Extra arguments to be supplied to the setup.py install "
             "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
             "Use multiple --install-option options to pass multiple options to setup.py install. "
@@ -133,14 +156,15 @@ class InstallCommand(Command):
             '--global-option',
             dest='global_options',
             action='append',
+            metavar='options',
             help="Extra global options to be supplied to the setup.py "
-            "call before the install command")
+            "call before the install command.")
 
         cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
-            help='Install to user-site')
+            help='Install using the user scheme.')
 
         cmd_opts.add_option(
             '--egg',
@@ -151,9 +175,9 @@ class InstallCommand(Command):
         cmd_opts.add_option(
             '--root',
             dest='root_path',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help="Install everything relative to this alternate root directory")
+            help="Install everything relative to this alternate root directory.")
 
         index_opts = make_option_group(index_group, self.parser)
 

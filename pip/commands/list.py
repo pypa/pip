@@ -10,8 +10,11 @@ from pip.cmdoptions import make_option_group, index_group
 
 class ListCommand(Command):
     name = 'list'
-    usage = '%prog [OPTIONS]'
-    summary = 'List installed packages (including editables).'
+    usage = """
+      %prog [options]"""
+    summary = 'List installed packages.'
+    description = """
+       List installed packages, including editables."""
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
@@ -33,12 +36,12 @@ class ListCommand(Command):
             '-e', '--editable',
             action='store_true',
             default=False,
-            help='List editable packages.')
+            help='List editable projects.')
         cmd_opts.add_option(
             '-l', '--local',
             action='store_true',
             default=False,
-            help='If in a virtualenv, do not list globally-installed packages')
+            help='If in a virtualenv that has global access, do not list globally-installed packages.')
 
 
         index_opts = make_option_group(index_group, self.parser)

@@ -4,8 +4,11 @@ from pip.exceptions import CommandError
 
 class HelpCommand(Command):
     name = 'help'
-    usage = '%prog'
-    summary = 'Show available commands'
+    usage = """
+      %prog <command>"""
+    summary = 'Show help for commands.'
+    description = """
+       Show help for commands"""
 
     def run(self, options, args):
         from pip.commands import commands, get_similar_commands
