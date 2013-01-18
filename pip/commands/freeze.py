@@ -10,8 +10,11 @@ from pip.util import get_installed_distributions
 
 class FreezeCommand(Command):
     name = 'freeze'
-    usage = '%prog [OPTIONS]'
-    summary = 'Output all currently installed packages (exact versions) to stdout'
+    usage = """
+      %prog [options]"""
+    summary = 'Output installed packages in requirements format.'
+    description = """
+      Output installed packages in requirements format."""
 
     def __init__(self, *args, **kw):
         super(FreezeCommand, self).__init__(*args, **kw)
@@ -21,21 +24,21 @@ class FreezeCommand(Command):
             dest='requirement',
             action='store',
             default=None,
-            metavar='FILENAME',
-            help='Use the given requirements file as a hint about how to generate the new frozen requirements')
+            metavar='file',
+            help="Use the order in the given requirements file and it's comments when generating output.")
         self.cmd_opts.add_option(
             '-f', '--find-links',
             dest='find_links',
             action='append',
             default=[],
             metavar='URL',
-            help='URL for finding packages, which will be added to the frozen requirements file')
+            help='URL for finding packages, which will be added to the output.')
         self.cmd_opts.add_option(
             '-l', '--local',
             dest='local',
             action='store_true',
             default=False,
-            help='If in a virtualenv, do not report globally-installed packages')
+            help='If in a virtualenv that has global access, do not output globally-installed packages.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 

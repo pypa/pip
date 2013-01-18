@@ -1,35 +1,19 @@
+.. _`Configuration`:
+
 Configuration
-=============
+=================
 
-pip allows you to set its default options by using the following facilities,
-in the order of each item's importance:
-
-1. Command line options
-
-2. `Environment variables`_
-
-3. `Config files`_
-
-   1. Command specific section, e.g. ``[install]``
-   2. Global section ``[global]``
-
-That means it will check each of those configuration sources and set the
-defaults appropriately.
-
-Examples
---------
-
-- ``--host=foo`` overrides ``PIP_HOST=foo``
-- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
-- A command specific section in the config file ``[<command>] host = bar``
-  overrides the option with same name in the ``[global]`` config file section
-- Environment variables override config files
-
-Config files
+Config file
 ------------
 
 pip allows you to set all command line option defaults in a standard ini
 style config file.
+
+The names and locations of the configuration files vary slightly across
+platforms.
+
+* On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
+* On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the
@@ -56,6 +40,7 @@ global setting with the same name will be overridden; e.g. decreasing the
     [freeze]
     timeout = 10
 
+
 Boolean options like ``--ignore-installed`` or ``--no-dependencies`` can be
 set like this:
 
@@ -78,38 +63,22 @@ Appending options like ``--find-links`` can be written on multiple lines:
         http://mirror1.example.com
         http://mirror2.example.com
 
-Location
-********
 
-The names and locations of the configuration files vary slightly across
-platforms.
+Environment Variables
+---------------------
 
-On Unix and Mac OS X the configuration file is:
-:file:`$HOME/.pip/pip.conf`
+pip's command line options can be set with
+environment variables using the format ``PIP_<UPPER_LONG_NAME>`` . Dashes (``-``) have to replaced with underscores (``_``).
 
-And on Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
-
-Environment variables
------------------------
-
-Just like with `config files`_, each of pip's command line options
-(long version, e.g. ``--find-links``) are automatically set by looking for
-environment variables with the name format ``PIP_<UPPER_NAME>``. That means
-the name of the command line options are capitalized and have dashes (``-``)
-replaced with underscores (``_``).
-
-For example, to redefine the default timeout you can also set an
-environment variable::
+For example, to set the default timeout::
 
     export PIP_DEFAULT_TIMEOUT=60
-    pip install ipython
 
-Which is the same as passing the option to pip directly::
+This is the same as passing the option to pip directly::
 
-    pip --default-timeout=60 install ipython
+    pip --default-timeout=60 [...]
 
-This also works for appending command line options, like ``--find-links``.
-Just leave an empty space between the passsed values, e.g.::
+To set options that can be set multiple times on the command line, just add spaces in between values. For example::
 
     export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
@@ -117,26 +86,37 @@ is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
-Configuration options
----------------------
 
-Mirror support
-**************
+Config Precedence
+-----------------
 
-The `PyPI mirroring infrastructure <http://pypi.python.org/mirrors>`_ as
-described in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_ can be
-used by passing the ``--use-mirrors`` option to the install command.
-Alternatively, you can use the other ways to configure pip, e.g.::
+Command line options have precedence over environment variables, which have precedence over the config file.
 
-    $ export PIP_USE_MIRRORS=true
+Within the config file, command specific sections have precedence over the global section.
 
-If enabled, pip will automatically query the DNS entry of the mirror index URL
-to find the list of mirrors to use. In case you want to override this list,
-please use the ``--mirrors`` option of the install command, or add to your pip
-configuration file::
+Examples:
 
-    [install]
-    use-mirrors = true
-    mirrors =
-        http://d.pypi.python.org
-        http://b.pypi.python.org
+- ``--host=foo`` overrides ``PIP_HOST=foo``
+- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
+- A command specific section in the config file ``[<command>] host = bar``
+  overrides the option with same name in the ``[global]`` config file section
+
+
+Command Completion
+------------------
+
+pip comes with support for command line completion in bash and zsh.
+
+To setup for bash::
+
+    $ pip completion --bash >> ~/.profile
+
+To setup for zsh::
+
+    $ pip completion --zsh >> ~/.zprofile
+
+Alternatively, you can use the result of the ``completion`` command
+directly with the eval function of you shell, e.g. by adding the following to your startup file::
+
+    eval "`pip completion --bash`"
+

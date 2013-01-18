@@ -2,12 +2,13 @@ import codecs
 import os
 import re
 import sys
+import textwrap
 from setuptools import setup
 
+here = os.path.abspath(os.path.dirname(__file__))
 
 def read(*parts):
-    return codecs.open(os.path.join(os.path.abspath(os.path.dirname(__file__)), *parts), 'r').read()
-
+    return codecs.open(os.path.join(here, *parts), 'r', 'utf8').read()
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
@@ -17,24 +18,16 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-long_description = """
-
-The main website for pip is `www.pip-installer.org
-<http://www.pip-installer.org>`_. You can also install
-the `in-development version <https://github.com/pypa/pip/tarball/develop#egg=pip-dev>`_
-of pip with ``easy_install pip==dev``.
-
-"""
-# remove the toctree from sphinx index, as it breaks long_description
-parts = read("docs", "index.txt").split("split here", 2)
-long_description = (parts[0] + long_description + parts[2] +
-                    "\n\n" + read("docs", "news.txt"))
+long_description = "\n" + "\n".join([
+        read('PROJECT.txt'),
+        read('docs', 'quickstart.txt'),
+        read('CHANGES.txt')])
 
 tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
 
 setup(name="pip",
       version=find_version('pip', '__init__.py'),
-      description="pip installs packages. Python packages. An easy_install replacement",
+      description="A tool for installing and managing Python packages.",
       long_description=long_description,
       classifiers=[
         'Development Status :: 5 - Production/Stable',
