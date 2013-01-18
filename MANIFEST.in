@@ -1,5 +1,7 @@
 include AUTHORS.txt
 include LICENSE.txt
+include CHANGES.txt
+include PROJECT.txt
 recursive-include docs *.txt
 recursive-include docs *.html
 recursive-exclude docs/_build *.txt

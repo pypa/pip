@@ -38,6 +38,7 @@ class Command(object):
             'formatter' : UpdatingDefaultsHelpFormatter(),
             'add_help_option' : False,
             'name' : self.name,
+            'description' : self.description
         }
 
         self.main_parser = main_parser
@@ -53,7 +54,7 @@ class Command(object):
 
         # Copies all general options from the main parser.
         self._copy_options(self.parser, main_parser.option_list)
-    
+
     def _copy_options(self, parser, options):
         """Populate an option parser or group with options."""
         for option in options:

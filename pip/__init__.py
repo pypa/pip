@@ -93,14 +93,12 @@ def autocomplete():
 
 def parseopts(args):
     parser = create_main_parser()
+    parser.main = True # so the help formatter knows
 
     # create command listing
     command_summaries = get_summaries()
 
-    description = ['Commands:']
-    description.extend(['  %-20s %s' % (i, j) for i, j in command_summaries])
-
-    description.append('')  # empty line between last command and 'General Options'
+    description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
     parser.description = '\n'.join(description)
 
     options, args = parser.parse_args(args)

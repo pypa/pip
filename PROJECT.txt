@@ -1,0 +1,8 @@
+Project Info
+============
+
+* Project Page: https://github.com/pypa/pip
+* Bug Tracking: https://github.com/pypa/pip/issues
+* Mailing list: http://groups.google.com/group/python-virtualenv
+* Docs: http://www.pip-installer.org
+* IRC: #pip.

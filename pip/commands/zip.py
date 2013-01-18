@@ -12,8 +12,11 @@ from pip.basecommand import Command
 
 class ZipCommand(Command):
     name = 'zip'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Zip individual packages'
+    usage = """
+     %prog [options] <package> ..."""
+    summary = 'Zip individual packages.'
+    description = """
+       Zip individual packages."""
 
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)
@@ -22,38 +25,38 @@ class ZipCommand(Command):
                 '--unzip',
                 action='store_true',
                 dest='unzip',
-                help='Unzip (rather than zip) a package')
+                help='Unzip (rather than zip) a package.')
         else:
             self.cmd_opts.add_option(
                 '--zip',
                 action='store_false',
                 dest='unzip',
                 default=True,
-                help='Zip (rather than unzip) a package')
+                help='Zip (rather than unzip) a package.')
         self.cmd_opts.add_option(
             '--no-pyc',
             action='store_true',
             dest='no_pyc',
-            help='Do not include .pyc files in zip files (useful on Google App Engine)')
+            help='Do not include .pyc files in zip files (useful on Google App Engine).')
         self.cmd_opts.add_option(
             '-l', '--list',
             action='store_true',
             dest='list',
-            help='List the packages available, and their zip status')
+            help='List the packages available, and their zip status.')
         self.cmd_opts.add_option(
             '--sort-files',
             action='store_true',
             dest='sort_files',
-            help='With --list, sort packages according to how many files they contain')
+            help='With --list, sort packages according to how many files they contain.')
         self.cmd_opts.add_option(
             '--path',
             action='append',
             dest='paths',
-            help='Restrict operations to the given paths (may include wildcards)')
+            help='Restrict operations to the given paths (may include wildcards).')
         self.cmd_opts.add_option(
             '-n', '--simulate',
             action='store_true',
-            help='Do not actually perform the zip/unzip operation')
+            help='Do not actually perform the zip/unzip operation.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
