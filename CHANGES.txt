@@ -43,9 +43,6 @@ develop (unreleased)
 * Added "pip show" command to get information about an installed package.
   Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
 
-* Moved pip configuration data to ~/.config/pip, the XDG standard for config
-  files on Unix/Linux systems. Thanks Ben Rosser. (Pull #582)
-
 * Added `--root` option for "pip install" to specify root directory. Behaves
   like the same option in distutils but also plays nice with pip's egg-info.
   Thanks Przemek Wrzos.  (Issue #253 / Pull #693)
