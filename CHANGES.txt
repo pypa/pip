@@ -9,6 +9,9 @@ develop (unreleased)
 
 * Improvements to sphinx docs and cli help. (Pull #773)
 
+* Fixed issue #707, dealing with OS X temp dir handling, which was causing
+  global NumPy installs to fail. (Pull #768)
+
 * Split help output into general vs command-specific option groups.
   Thanks Georgi Valkov. (Pull #744; Pull #721 contains preceding refactor)
 
