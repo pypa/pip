@@ -305,7 +305,7 @@ class PackageFinder(object):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
+            if ext not in ('.tar.gz', '.tar.bz2', '.tar.xz', '.tar', '.tgz', '.zip'):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
@@ -443,7 +443,7 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tar.xz', '.tgz', '.zip']:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(url)
                         if content_type.lower().startswith('text/html'):

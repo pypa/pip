@@ -6,6 +6,7 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose.tools import assert_raises
+from nose import SkipTest
 from mock import patch
 
 from pip.util import rmtree, find_command
@@ -373,6 +374,31 @@ def test_install_with_pax_header():
     reset_env()
     run_from = abspath(join(here, 'packages'))
     run_pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+
+
+def support_xz():
+    """Check if system supports xz compression."""
+    try:
+        import lzma
+        return True
+    except ImportError:
+        try:
+            find_command('xz')
+            return True
+        except BadCommand:
+            pass
+    return False
+
+
+def test_install_with_tar_xz():
+    """
+    test install from a .tar.xz tarball
+    """
+    if not support_xz():
+        raise SkipTest()
+    reset_env()
+    run_from = abspath(join(here, 'packages'))
+    run_pip('install', 'xzpkg-1.0.tar.xz', cwd=run_from)
 
 
 def test_install_with_hacked_egg_info():
