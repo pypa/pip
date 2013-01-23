@@ -1,3 +1,4 @@
+import os
 import re
 import textwrap
 from tests.test_pip import pyversion, reset_env, run_pip, write_file
@@ -77,5 +78,5 @@ def test_editables_flag():
     result = run_pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
     result = run_pip('list', '--editable')
     assert 'mock (0.7.0)' not in result.stdout, str(result)
-    assert 'src/pip-test-package' in result.stdout, str(result)
+    assert os.path.join('src', 'pip-test-package') in result.stdout, str(result)
 
