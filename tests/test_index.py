@@ -3,7 +3,7 @@ from pip.backwardcompat import urllib
 from tests.path import Path
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from pip.index import PackageFinder, Link, InfLink
-from tests.test_pip import reset_env, run_pip, pyversion, here
+from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
 from string import ascii_lowercase
 from mock import patch
 
@@ -87,7 +87,7 @@ def test_sort_locations_file_find_link():
     """
     Test that a file:// find-link dir gets listdir run
     """
-    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links_url = path_to_url(os.path.join(here, 'packages'))
     find_links = [find_links_url]
     finder = PackageFinder(find_links, [])
     files, urls = finder._sort_locations(find_links)
@@ -98,7 +98,7 @@ def test_sort_locations_file_not_find_link():
     """
     Test that a file:// url dir that's not a find-link, doesn't get a listdir run
     """
-    index_url = 'file://' + os.path.join(here, 'indexes', 'empty_with_pkg')
+    index_url = path_to_url(os.path.join(here, 'indexes', 'empty_with_pkg'))
     finder = PackageFinder([], [])
     files, urls = finder._sort_locations([index_url])
     assert urls and not files, "urls, but not files should have been found"
@@ -109,7 +109,7 @@ def test_install_from_file_index_hash_link():
     Test that a pkg can be installed from a file:// index using a link with a hash
     """
     env = reset_env()
-    index_url = 'file://' + os.path.join(here, 'indexes', 'simple')
+    index_url = path_to_url(os.path.join(here, 'indexes', 'simple'))
     result = run_pip('install', '-i', index_url, 'simple==1.0')
     egg_info_folder = env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
     assert egg_info_folder in result.files_created, str(result)
@@ -119,7 +119,7 @@ def test_file_index_url_quoting():
     """
     Test url quoting of file index url with a space
     """
-    index_url = 'file://' + urllib.quote(str(Path(here).abspath/'indexes'/'in dex').replace('\\', '/'))
+    index_url = path_to_url(os.path.join(here, 'indexes', urllib.quote('in dex')))
     env = reset_env()
     result = run_pip('install', '-vvv', '--index-url', index_url, 'simple', expect_error=False)
     assert (env.site_packages/'simple') in result.files_created, str(result.stdout)
