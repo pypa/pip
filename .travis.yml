@@ -9,7 +9,7 @@ python:
 before_install:
     - sudo apt-get install subversion bzr mercurial
     - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
-install: pip install nose virtualenv scripttest mock
+install: pip install nose scripttest mock -e git+git://github.com/qwcode/virtualenv.git@dist_upgrade_0.6.34#egg=virtualenv
 script: nosetests
 notifications:
   irc: "irc.freenode.org#pip"
