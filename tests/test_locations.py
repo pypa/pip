@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import getpass
 from mock import Mock
+from nose import SkipTest
 from nose.tools import assert_raises
 import pip
 
@@ -26,7 +27,9 @@ class TestLocations:
         """ first store and then patch python methods pythons """
         self.tempfile_gettempdir = tempfile.gettempdir
         self.old_os_fstat = os.fstat
-        self.old_os_getuid = os.getuid
+        if sys.platform != 'win32':
+            # os.getuid not implemented on windows
+            self.old_os_getuid = os.getuid
         self.old_getpass_getuser = getpass.getuser
 
         # now patch
@@ -39,7 +42,9 @@ class TestLocations:
         """ revert the patches to python methods """
         tempfile.gettempdir = self.tempfile_gettempdir
         getpass.getuser = self.old_getpass_getuser
-        os.getuid = self.old_os_getuid
+        if sys.platform != 'win32':
+            # os.getuid not implemented on windows
+            os.getuid = self.old_os_getuid
         os.fstat = self.old_os_fstat
 
     def get_mock_fstat(self, fd):
@@ -56,11 +61,19 @@ class TestLocations:
         """
         return os.path.join(self.tempdir, 'pip-build-%s' % self.username)
 
+    def test_dir_path(self):
+        """ test the path name for the build_prefix
+        """
+        from pip import locations
+        assert locations._get_build_prefix() == self.get_build_dir_location()
+
     def test_dir_created(self):
         """ test that the build_prefix directory is generated when
             _get_build_prefix is called.
         """
-
+        #skip on windows, build dir is not created
+        if sys.platform == 'win32':
+            raise SkipTest()
         assert not os.path.exists(self.get_build_dir_location() ), \
             "the build_prefix directory should not exist yet!"
         from pip import locations
@@ -72,6 +85,9 @@ class TestLocations:
         """ test calling _get_build_prefix when there is a temporary
             directory owned by another user raises an InstallationError.
         """
+        #skip on windows; this exception logic only runs on linux
+        if sys.platform == 'win32':
+            raise SkipTest()
         from pip import locations
         os.getuid = lambda : 1111
         os.mkdir(self.get_build_dir_location() )
