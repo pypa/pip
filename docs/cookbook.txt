@@ -72,7 +72,7 @@ pip allows you to *just* unpack archives to a build directory without installing
 
 $ pip install --no-install SomePackage
 
-If you're in a virtualenv, the build dir is ``<virtualenv path>/build``.  Otherwise, it's ``<OS temp dir>/pip-build``
+If you're in a virtualenv, the build dir is ``<virtualenv path>/build``.  Otherwise, it's ``<OS temp dir>/pip-build-<username>``
 
 Afterwards, to finish the job of installing unpacked archives, run::
 
