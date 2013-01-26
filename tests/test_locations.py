@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import getpass
 from mock import Mock
+from nose.tools import assert_raises
 import pip
 
 class TestLocations:
@@ -74,8 +75,4 @@ class TestLocations:
         from pip import locations
         os.getuid = lambda : 1111
         os.mkdir(self.get_build_dir_location() )
-        try:
-            locations._get_build_prefix()
-            raise AssertionError("An InstallationError should have been raised!")
-        except pip.exceptions.InstallationError:
-            pass
+        assert_raises(pip.exceptions.InstallationError, locations._get_build_prefix)
