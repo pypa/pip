@@ -70,7 +70,7 @@ class InstallCommand(Command):
             default=build_prefix,
             help='Directory to unpack packages into and build in. '
             'The default in a virtualenv is "<venv path>/build". '
-            'The default for global installs is "<OS temp dir>/pip-build".')
+            'The default for global installs is "<OS temp dir>/pip-build-<username>".')
 
         cmd_opts.add_option(
             '-t', '--target',
