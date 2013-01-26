@@ -8,7 +8,7 @@ from setuptools import setup
 here = os.path.abspath(os.path.dirname(__file__))
 
 def read(*parts):
-    return codecs.open(os.path.join(here, *parts), 'r', 'utf8').read()
+    return codecs.open(os.path.join(here, *parts), 'r').read()
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
