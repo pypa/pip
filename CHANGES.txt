@@ -8,7 +8,7 @@ develop (unreleased)
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
 
 * Fixed security issues with pip's use of temp build directories.
-  Thanks David (d1b) and Thomas Güttler. (Pull #779)
+  Thanks David (d1b) and Thomas Güttler. (Pull #780)
 
 * Improvements to sphinx docs and cli help. (Pull #773)
 
