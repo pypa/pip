@@ -76,3 +76,11 @@ class TestLocations:
         os.getuid = lambda : 1111
         os.mkdir(self.get_build_dir_location() )
         assert_raises(pip.exceptions.InstallationError, locations._get_build_prefix)
+
+    def test_no_error_raised_when_owned_by_you(self):
+        """ test calling _get_build_prefix when there is a temporary
+            directory owned by you raise no InstallationError.
+        """
+        from pip import locations
+        os.mkdir(self.get_build_dir_location())
+        locations._get_build_prefix()
