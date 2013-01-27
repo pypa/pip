@@ -153,7 +153,7 @@ class ConfigOptionParser(CustomOptionParser):
                     continue
                 # handle multiline configs
                 if option.action == 'append':
-                    val = val.split()
+                    val = val.split() if len(val) > 1 else val
                 else:
                     option.nargs = 1
                 if option.action in ('store_true', 'store_false', 'count'):
