@@ -575,6 +575,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         name = name.replace(os.path.sep, '/')
         return name
 
+    def _get_setup_command(self, setup_py_path):
+        cmd = ('import setuptools;'
+               '__file__ = %r;'
+               'setup_py=open(__file__).read();'
+               'setup_py=setup_py.replace("\\r\\n", "\\n");'
+               'exec(compile(setup_py, __file__, "exec"))')
+
+        return cmd % setup_py_path
+
     def install(self, install_options, global_options=(), root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
@@ -586,13 +595,9 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [
-                sys.executable, '-c',
-                "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
-                list(global_options) + [
-                'install',
-                '--record', record_filename]
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
+            install_args += list(global_options)
+            install_args += ['install', '--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -671,15 +676,17 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def install_editable(self, install_options, global_options=()):
         logger.notify('Running setup.py develop for %s' % self.name)
         logger.indent += 2
-        try:
-            ## FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [sys.executable, '-c',
-                 "import setuptools; __file__=%r; exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
-                + list(global_options) + ['develop', '--no-deps'] + list(install_options),
 
-                cwd=self.source_dir, filter_stdout=self._filter_install,
-                show_stdout=False)
+        try:
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
+            install_args += list(global_options)
+            install_args += ['develop', '--no-deps']
+            install_args += list(install_options)
+
+            ## FIXME: should we do --install-headers here too?
+            call_subprocess(install_args, cwd=self.source_dir,
+                            filter_stdout=self._filter_install,
+                            show_stdout=False)
         finally:
             logger.indent -= 2
         self.install_succeeded = True
