@@ -72,6 +72,7 @@ class URLOpener(object):
     """
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        self._read_pypirc()
 
     def __call__(self, url):
         """
@@ -112,17 +113,26 @@ class URLOpener(object):
 
         stored_username, stored_password = self.passman.find_user_password(None, netloc)
         # see if we have a password stored
-        if stored_username is None:
-            if username is None and self.prompting:
-                username = urllib.quote(raw_input('User for %s: ' % netloc))
-                password = urllib.quote(getpass.getpass('Password: '))
-            if username and password:
-                self.passman.add_password(None, netloc, username, password)
-            stored_username, stored_password = self.passman.find_user_password(None, netloc)
-        authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
-        # FIXME: should catch a 401 and offer to let the user reenter credentials
-        return opener.open(req)
+        while True:
+            if stored_username is None:
+                if username is None and self.prompting:
+                    username = urllib.quote(raw_input('User for %s: ' % netloc))
+                    password = urllib.quote(getpass.getpass('Password: '))
+                if username and password:
+                    self.passman.add_password(None, netloc, username, password)
+
+            authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
+            opener = urllib2.build_opener(authhandler)
+            try:
+                return opener.open(req)
+            except urllib2.HTTPError, e:
+                if e.code == 401:
+                    stored_username = None
+                    print e
+                else:
+                    raise
+            except KeyboardInterrupt:
+                return None
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -196,6 +206,39 @@ class URLOpener(object):
                 return proxystr
         else:
             return None
+
+    def _get_rc_file(self):
+        """Returns rc file path."""
+        return os.path.join(os.path.expanduser('~'), '.pypirc')
+
+    def _read_pypirc(self):
+        from ConfigParser import ConfigParser
+
+        """Reads the .pypirc file."""
+        rc = self._get_rc_file()
+        if os.path.exists(rc):
+            config = ConfigParser()
+            config.read(rc)
+            sections = config.sections()
+            if 'distutils' in sections:
+                index_servers = config.get('distutils', 'index-servers')
+                _servers = [server.strip() for server in  index_servers.split('\n') if server.strip() != '']
+                for server in _servers:
+                    if config.has_option(server, 'repository'):
+                        scheme, netloc, path, query, frag = urlparse.urlsplit(config.get(server, 'repository'))
+                    else:
+                        scheme, netloc, path, query, frag = urlparse.urlsplit(server)
+                    credentials = {'realm': None,
+                                   'uri': netloc,
+                                   'passwd': '', # allow blank password
+                    }
+                    if config.has_option(server, 'username'):
+                        credentials['user'] = config.get(server, 'username')
+                        if config.has_option(server, 'password'):
+                            credentials['passwd'] = config.get(server, 'password')
+                        self.passman.add_password(**credentials)
+
+        return {}
 
 urlopen = URLOpener()
 
@@ -325,7 +368,7 @@ def is_file_url(link):
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
         logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.digest_size, link, link.hash_name))
+                     % (download_hash.digest_size, link, link.hash_name))
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
@@ -363,7 +406,7 @@ def _download_url(resp, link, temp_location):
     except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
-    show_progress = total_length > 40*1000 or not total_length
+    show_progress = total_length > 40 * 1000 or not total_length
     show_url = link.show_url
     try:
         if show_progress:
@@ -385,7 +428,7 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
@@ -439,7 +482,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     if (target_file
         and os.path.exists(target_file)
         and os.path.exists(target_file + '.content-type')):
-        fp = open(target_file+'.content-type')
+        fp = open(target_file + '.content-type')
         content_type = fp.read().strip()
         fp.close()
         if link.hash and link.hash_name:
