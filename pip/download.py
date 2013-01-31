@@ -1,3 +1,4 @@
+from ConfigParser import ParsingError
 import cgi
 import getpass
 import hashlib
@@ -72,7 +73,10 @@ class URLOpener(object):
     """
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        self._read_pypirc()
+        try:
+            self._read_pypirc()
+        except ParsingError:
+            pass
 
     def __call__(self, url):
         """
@@ -130,7 +134,7 @@ class URLOpener(object):
                     stored_username = None
                     print e
                 else:
-                    raise
+                    raise e
             except KeyboardInterrupt:
                 return None
 
@@ -207,15 +211,11 @@ class URLOpener(object):
         else:
             return None
 
-    def _get_rc_file(self):
-        """Returns rc file path."""
-        return os.path.join(os.path.expanduser('~'), '.pypirc')
-
     def _read_pypirc(self):
         from ConfigParser import ConfigParser
 
         """Reads the .pypirc file."""
-        rc = self._get_rc_file()
+        rc = os.path.join(os.path.expanduser('~'), '.pypirc')
         if os.path.exists(rc):
             config = ConfigParser()
             config.read(rc)
@@ -230,15 +230,12 @@ class URLOpener(object):
                         scheme, netloc, path, query, frag = urlparse.urlsplit(server)
                     credentials = {'realm': None,
                                    'uri': netloc,
-                                   'passwd': '', # allow blank password
-                    }
+                                   'passwd': ''}# allow blank password
                     if config.has_option(server, 'username'):
                         credentials['user'] = config.get(server, 'username')
                         if config.has_option(server, 'password'):
                             credentials['passwd'] = config.get(server, 'password')
                         self.passman.add_password(**credentials)
-
-        return {}
 
 urlopen = URLOpener()
 
