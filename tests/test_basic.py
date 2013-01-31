@@ -112,7 +112,7 @@ def test_editable_install():
     """
     reset_env()
     result = run_pip('install', '-e', 'INITools==0.2', expect_error=True)
-    assert "--editable=INITools==0.2 should be formatted with svn+URL" in result.stdout
+    assert "INITools==0.2 should either by a path to a local project or a VCS url" in result.stdout
     assert len(result.files_created) == 1, result.files_created
     assert not result.files_updated, result.files_updated
 
