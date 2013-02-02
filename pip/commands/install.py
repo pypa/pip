@@ -2,7 +2,8 @@ import os
 import sys
 import tempfile
 import shutil
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import InstallRequirement, RequirementSet
+from pip.req_parser import parse_requirements
 from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global
 from pip.basecommand import Command

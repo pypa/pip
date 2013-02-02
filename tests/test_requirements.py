@@ -204,6 +204,3 @@ def test_url_req_case_mismatch():
     assert egg_folder in result.files_created, str(result)
     egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
-
-
-
