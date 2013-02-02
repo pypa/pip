@@ -114,11 +114,10 @@ class URLOpener(object):
         # see if we have a password stored
         if stored_username is None:
             if username is None and self.prompting:
-                username = urllib.quote(raw_input('User for %s: ' % netloc))
-                password = urllib.quote(getpass.getpass('Password: '))
+                username = raw_input('User for %s: ' % netloc)
+                password = getpass.getpass('Password: ')
             if username and password:
                 self.passman.add_password(None, netloc, username, password)
-            stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
         opener = urllib2.build_opener(authhandler)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
