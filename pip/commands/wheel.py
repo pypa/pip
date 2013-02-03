@@ -23,14 +23,11 @@ class WheelCommand(Command):
     summary = 'Build wheels from your requirements.'
 
     description = """
-       Build wheel archives from your requirements using "setup.py bdist_wheel"
-
+       Build wheel archives from your requirements using "setup.py bdist_wheel".
        "bdist_wheel" is available from the "wheel" package, which is required when running this command.
 
        Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
-
-       For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
-    """
+       For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest."""
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)
@@ -53,6 +50,7 @@ class WheelCommand(Command):
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',
+            metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
         cmd_opts.add_option(cmdoptions.requirements)
