@@ -5,10 +5,10 @@ import textwrap
 
 from nose import SkipTest
 from pip import wheel
-from tests.test_pip import here, reset_env, run_pip, pyversion_nodot, write_file
+from tests.test_pip import here, reset_env, run_pip, pyversion_nodot, write_file, path_to_url
 
 
-FIND_LINKS = 'file://' + os.path.join(here, 'packages')
+FIND_LINKS = path_to_url(os.path.join(here, 'packages'))
 
 def test_uninstallation_paths():
     class dist(object):
