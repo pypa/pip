@@ -1,16 +1,17 @@
+import os
 from pkg_resources import parse_version
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder
 from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from tests.path import Path
-from tests.test_pip import here
+from tests.test_pip import here, path_to_url
 from nose.tools import assert_raises
 from mock import Mock, patch
 import os
 
-find_links = 'file://' + urllib.quote(str(Path(here).abspath/'packages').replace('\\', '/'))
-find_links2 = 'file://' + urllib.quote(str(Path(here).abspath/'packages2').replace('\\', '/'))
+find_links = path_to_url(os.path.join(here, 'packages'))
+find_links2 = path_to_url(os.path.join(here, 'packages2'))
 
 
 def test_no_mpkg():

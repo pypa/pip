@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import shutil
+import optparse
 from pip.req import InstallRequirement, RequirementSet
 from pip.req import parse_requirements
 from pip.log import logger
@@ -10,104 +11,140 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
-from pip.commands import options
+from pip import cmdoptions
 
 
 class InstallCommand(Command):
     name = 'install'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Install packages'
+
+    usage = """
+      %prog [options] <requirement specifier> ...
+      %prog [options] -r <requirements file> ...
+      %prog [options] [-e] <vcs project url> ...
+      %prog [options] [-e] <local project path> ...
+      %prog [options] <archive url/path> ..."""
+
+    description = """
+       Install packages from:
+
+       - PyPI (and other indexes) using requirement specifiers.
+       - VCS project urls.
+       - Local project directories.
+       - Local or remote source archives.
+
+       pip also supports installing from "requirements files", which provide
+       an easy way to specify a whole environment to be installed.
+
+       See http://www.pip-installer.org for details on VCS url formats and
+       requirements files."""
+
+    summary = 'Install packages.'
     bundle = False
 
-    def __init__(self):
-        super(InstallCommand, self).__init__()
-        self.parser.add_option(
+    def __init__(self, *args, **kw):
+        super(InstallCommand, self).__init__(*args, **kw)
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '-e', '--editable',
             dest='editables',
             action='append',
             default=[],
-            metavar='VCS+REPOS_URL[@REV]#egg=PACKAGE',
-            help='Install a package directly from a checkout. Source will be checked '
-            'out into src/PACKAGE (lower-case) and installed in-place (using '
-            'setup.py develop). You can run this on an existing directory/checkout (like '
-            'pip install -e src/mycheckout). This option may be provided multiple times. '
-            'Possible values for VCS are: svn, git, hg and bzr.')
-        self.parser.add_option(options.REQUIREMENTS)
-        self.parser.add_option(options.FIND_LINKS)
-        self.parser.add_option(options.INDEX_URL)
-        self.parser.add_option(options.USE_WHEEL)
-        self.parser.add_option(options.EXTRA_INDEX_URLS)
-        self.parser.add_option(options.NO_INDEX)
-        self.parser.add_option(options.USE_MIRRORS)
-        self.parser.add_option(options.MIRRORS)
-        self.parser.add_option(options.BUILD_DIR)
-        self.parser.add_option(
+            metavar='path/url',
+            help='Install a project in editable mode (i.e. setuptools "develop mode") from a local project path or a VCS url.')
+
+        cmd_opts.add_option(cmdoptions.requirements)
+        cmd_opts.add_option(cmdoptions.build_dir)
+
+        cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help='Install packages into DIR.')
-        self.parser.add_option(
+            help='Install packages into <dir>.')
+
+        cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help='Download packages into DIR instead of installing them')
-        self.parser.add_option(options.DOWNLOAD_CACHE)
-        self.parser.add_option(
+            help="Download packages into <dir> instead of installing them, irregardless of what's already installed.")
+
+        cmd_opts.add_option(cmdoptions.download_cache)
+
+        cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
-            metavar='DIR',
+            metavar='dir',
             default=src_prefix,
-            help='Check out --editable packages into DIR (default %default)')
-        self.parser.add_option(
+            help='Directory to check out editable projects into. '
+            'The default in a virtualenv is "<venv path>/src". '
+            'The default for global installs is "<current dir>/src".')
+
+        cmd_opts.add_option(
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
-            help='Upgrade all packages to the newest available version')
-        self.parser.add_option(
+            help='Upgrade all packages to the newest available version. '
+            'This process is recursive irregardless of whether a dependency is already satisfied.')
+
+        cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
             help='When upgrading, reinstall all packages even if they are '
                  'already up-to-date.')
-        self.parser.add_option(
+
+        cmd_opts.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead)')
-        self.parser.add_option(options.NO_DEPS)
-        self.parser.add_option(
+            help='Ignore the installed packages (reinstalling instead).')
+
+        cmd_opts.add_option(cmdoptions.no_deps)
+
+        cmd_opts.add_option(
             '--no-install',
             dest='no_install',
             action='store_true',
-            help="Download and unpack all packages, but don't actually install them")
-        self.parser.add_option(
+            help="Download and unpack all packages, but don't actually install them.")
+
+        cmd_opts.add_option(
             '--no-download',
             dest='no_download',
             action="store_true",
             help="Don't download any packages, just install the ones already downloaded "
-            "(completes an install run with --no-install)")
-        self.parser.add_option(options.INSTALL_OPTIONS)
-        self.parser.add_option(options.GLOBAL_OPTIONS)
-        self.parser.add_option(
+            "(completes an install run with --no-install).")
+
+        cmd_opts.add_option(cmdoptions.install_options)
+        cmd_opts.add_option(cmdoptions.global_options)
+
+        cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
-            help='Install to user-site')
+            help='Install using the user scheme.')
 
-        self.parser.add_option(
+        cmd_opts.add_option(
             '--egg',
             dest='as_egg',
             action='store_true',
             help="Install as self contained egg file, like easy_install does.")
 
-        self.parser.add_option(
+        cmd_opts.add_option(
             '--root',
             dest='root_path',
-            metavar='DIR',
+            metavar='dir',
             default=None,
-            help="Install everything relative to this alternate root directory")
+            help="Install everything relative to this alternate root directory.")
+
+        cmd_opts.add_option(cmdoptions.use_wheel)
+
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
+
+        self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def _build_package_finder(self, options, index_urls):
         """
@@ -227,6 +264,3 @@ class InstallCommand(Command):
                     )
             shutil.rmtree(temp_target_dir)
         return requirement_set
-
-
-InstallCommand()

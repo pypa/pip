@@ -3,8 +3,6 @@ from __future__ import absolute_import
 
 import os
 import sys
-import pip.commands.options as options
-
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
@@ -12,46 +10,68 @@ from pip.exceptions import CommandError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
 from pip.wheel import WheelBuilder
-
+from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
 class WheelCommand(Command):
     name = 'wheel'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Build wheels from your requirements'
+    usage = """
+      %prog [options] <requirement specifier> ...
+      %prog [options] -r <requirements file> ..."""
 
-    def __init__(self):
-        super(WheelCommand, self).__init__()
-        self.parser.add_option(
+    summary = 'Build wheels from your requirements.'
+
+    description = """
+       Build wheel archives from your requirements using "setup.py bdist_wheel"
+
+       "bdist_wheel" is available from the "wheel" package, which is required when running this command.
+
+       Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
+
+       For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
+    """
+
+    def __init__(self, *args, **kw):
+        super(WheelCommand, self).__init__(*args, **kw)
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '-w', '--wheel-dir',
             dest='wheel_dir',
-            metavar='DIR',
+            metavar='dir',
             default=DEFAULT_WHEEL_DIR,
-            help='Build wheels into DIR (default %default)')
-        self.parser.add_option(
+            help="Build wheels into <dir>, where the default is '<cwd>/wheelhouse'.")
+        cmd_opts.add_option(cmdoptions.use_wheel)
+        cmd_opts.add_option(
             '--unpack-only',
             dest='unpack_only',
             action='store_true',
             default=False,
-            help='Only unpack')
-        self.parser.add_option(options.REQUIREMENTS)
-        self.parser.add_option(options.FIND_LINKS)
-        self.parser.add_option(options.INDEX_URL)
-        self.parser.add_option(options.USE_WHEEL)
-        self.parser.add_option(options.EXTRA_INDEX_URLS)
-        self.parser.add_option(options.NO_INDEX)
-        self.parser.add_option(options.USE_MIRRORS)
-        self.parser.add_option(options.MIRRORS)
-        self.parser.add_option(options.DOWNLOAD_CACHE)
-        self.parser.add_option(options.NO_DEPS)
-        self.parser.add_option(options.BUILD_DIR)
-        self.parser.add_option(
+            help="Only unpack packages into the build dir. Don't build wheels.")
+        cmd_opts.add_option(
             '--build-option',
             dest='build_options',
             action='append',
-            help="Extra arguments to be supplied to setup.py bdist_wheel")
-        self.parser.add_option(options.GLOBAL_OPTIONS)
+            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+        cmd_opts.add_option(cmdoptions.requirements)
+        cmd_opts.add_option(cmdoptions.download_cache)
+        cmd_opts.add_option(cmdoptions.no_deps)
+        cmd_opts.add_option(cmdoptions.build_dir)
+
+        cmd_opts.add_option(
+            '--global-option',
+            dest='global_options',
+            action='append',
+            metavar='options',
+            help="Extra global options to be supplied to the setup.py "
+            "call before the 'bdist_wheel' command.")
+
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
+
+        self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
 
@@ -124,5 +144,3 @@ class WheelCommand(Command):
 
         requirement_set.cleanup_files()
 
-
-WheelCommand()

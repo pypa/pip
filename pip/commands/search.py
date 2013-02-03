@@ -13,17 +13,22 @@ from distutils.version import StrictVersion, LooseVersion
 
 class SearchCommand(Command):
     name = 'search'
-    usage = '%prog QUERY'
-    summary = 'Search PyPI'
+    usage = """
+      %prog [options] <query>"""
+    summary = 'Search PyPI for packages.'
+    description = """
+       Search for PyPI packages whose name or summary contains <query>."""
 
-    def __init__(self):
-        super(SearchCommand, self).__init__()
-        self.parser.add_option(
+    def __init__(self, *args, **kw):
+        super(SearchCommand, self).__init__(*args, **kw)
+        self.cmd_opts.add_option(
             '--index',
             dest='index',
             metavar='URL',
             default='http://pypi.python.org/pypi',
             help='Base URL of Python Package Index (default %default)')
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args:
@@ -124,6 +129,3 @@ def compare_versions(version1, version2):
 
 def highest_version(versions):
     return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
-
-
-SearchCommand()

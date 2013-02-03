@@ -1,4 +1,6 @@
 import os
+import sys
+from nose import SkipTest
 from tests.test_pip import here, reset_env, run_pip
 
 
@@ -17,6 +19,10 @@ def test_install_package_that_emits_unicode():
 
     Refs https://github.com/pypa/pip/issues/326
     """
+
+    #skip on win/py3 for now, see issue #782
+    if sys.platform == 'win32' and sys.version_info >= (3,):
+        raise SkipTest()
 
     env = reset_env()
     to_install = os.path.abspath(os.path.join(here, 'packages', 'BrokenEmitsUTF8'))

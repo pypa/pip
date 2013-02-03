@@ -14,8 +14,11 @@ Clay McClure
 Cody Soyland
 Daniel Holth
 Dave Abrahams
+David (d1b)
+Dmitry Gladkov
 Donald Stufft
 Francesco
+Georgi Valkov
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
@@ -36,6 +39,8 @@ Marc Abramowitz
 Marcus Smith
 Markus Hametner
 Matt Maker
+Maxime R.
+Miguel Araujo
 Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
@@ -52,6 +57,7 @@ Przemek Wrzos
 Qiangning Hong
 Rafael Caricio
 Rene Dudfield
+Roey Berman
 Ronny Pfannschmidt
 Rory McCann
 Simon Cross

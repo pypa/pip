@@ -17,8 +17,8 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.util import display_path, rmtree
 from pip.util import ask, ask_path_exists, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
-from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
+from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite, dist_in_site_packages
+from pip.util import renames, normalize_path, egg_link_path
 from pip.util import make_path_relative
 from pip.util import call_subprocess
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
@@ -693,6 +693,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately."""
+
         if self.req is None:
             return False
         try:
@@ -1433,7 +1434,7 @@ def parse_editable(editable_req, default_vcs=None):
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
-                '--editable=%s should be formatted with svn+URL, git+URL, hg+URL or bzr+URL' % editable_req)
+                '%s should either by a path to a local project or a VCS url beginning with svn+, git+, hg+, or bzr+' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
     if not vcs.get_backend(vc_type):
         error_message = 'For --editable=%s only ' % editable_req + \

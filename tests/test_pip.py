@@ -23,9 +23,6 @@ src_folder = here.folder
 download_cache = tempfile.mkdtemp(prefix='pip-test-cache')
 site_packages_suffix = site.USER_SITE[len(site.USER_BASE) + 1:]
 
-
-FIND_LINKS = 'file://' + os.path.join(here, 'packages')
-
 def path_to_url(path):
     """
     Convert a path to URI. The path will be made absolute and

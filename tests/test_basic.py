@@ -12,7 +12,7 @@ from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file,  FIND_LINKS)
+                            src_folder, write_file, path_to_url)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -112,7 +112,7 @@ def test_editable_install():
     """
     reset_env()
     result = run_pip('install', '-e', 'INITools==0.2', expect_error=True)
-    assert "--editable=INITools==0.2 should be formatted with svn+URL" in result.stdout
+    assert "INITools==0.2 should either by a path to a local project or a VCS url" in result.stdout
     assert len(result.files_created) == 1, result.files_created
     assert not result.files_updated, result.files_updated
 
@@ -556,8 +556,9 @@ def test_install_wheel_with_target():
     run_pip('install', 'wheel')
     run_pip('install', 'markerlib')
     target_dir = env.scratch_path/'target'
+    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
-                     '--no-index', '--find-links='+FIND_LINKS)
+                     '--no-index', '--find-links='+find_links)
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
 
 
@@ -567,8 +568,8 @@ def test_install_package_with_root():
     """
     env = reset_env()
     root_dir = env.scratch_path/'root'
-    result = run_pip('install', '--root', root_dir, '--install-option=--home=',
-                     '--install-option=--install-lib=/lib/python', "initools==0.1")
+    result = run_pip('install', '--root', root_dir, "--install-option=--home=''",
+                     '--install-option=--install-lib=lib/python', "initools==0.1")
 
     assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
 
