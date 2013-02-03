@@ -94,7 +94,7 @@ class TestPipWheel:
         assert "Successfully built simple" in result.stdout, result.stdout
         assert "Failed to build" not in result.stdout, result.stdout
         assert "ignoring %s" % local_wheel in result.stdout
-        assert "ignoring file://%s" % local_editable in result.stdout, result.stdout
+        assert "ignoring %s" % path_to_url(local_editable) in result.stdout, result.stdout
 
 
     def test_pip_wheel_unpack_only(self):
