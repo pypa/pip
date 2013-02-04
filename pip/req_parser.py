@@ -5,6 +5,8 @@ Requirement file constants and parsing functions.
 
 import os
 import re
+import shlex
+import optparse
 
 from pip.log import logger
 from pip.download import get_file_content
@@ -22,14 +24,17 @@ EXTRAINDEXURL = 0x6
 NOINDEX = 0x7
 UNKNOWN = 0xFF
 
+# Options and flags that can be set on REQUIREMENT lines
+requirement_args = ['--install-options', '--global-options']
+requirement_flags = []
+
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None):
     '''Parse a requirements file and yield InstallRequirement instances.
     @param fn: path or url to requirements file.
     @param finder: pip.index.PackageFinder or None
     @param comes_from: used as a source for generated InstallRequirements
-    @param options: dictionary of options
-    '''
+    @param options: dictionary of options'''
     fn, content = get_file_content(filename, comes_from=comes_from)
     for item in parse_content(filename, content, finder, comes_from, options):
         yield item
@@ -47,7 +52,8 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None)
 
         if linetype == REQUIREMENT:
             comes_from = '-r %s (line %s)' % (filename, nr)
-            yield InstallRequirement.from_line(value, comes_from)
+            req, opts = value
+            yield InstallRequirement.from_line(req, comes_from)
 
         if linetype == REQUIREMENT_EDITABLE:
             comes_from = '-r %s (line %s)' % (filename, nr)
@@ -76,9 +82,11 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None)
             logger.info(msg, filename, nr, value)
 
 
-def parse_line(line, number, filename):
+def parse_line(line, number, filename, opts=True):
     if not line.startswith('-'):
-        return REQUIREMENT, line.strip()
+        opts = get_options(line) if opts else {}
+        line = line.split('--')[0].strip()
+        return REQUIREMENT, (line, opts)
 
     if line.startswith('-e') or line.startswith('--editable'):
         _, line = re.split(r'[\s=]', line, 1)
@@ -118,6 +126,33 @@ def parse_line(line, number, filename):
         return UNKNOWN, line  # backwards compatibility
 
     return UNKNOWN, line
+
+
+_option_parser_cache = {}
+def get_options_parser(flags, args):
+    if (flags,args) in _option_parser_cache:
+        return _option_parser_cache[(flags, args)]
+
+    parser = optparse.OptionParser()
+    for flag in flags:
+        parser.add_option(flag, action='store_true')
+    for arg in args:
+        parser.add_option(arg, action='store')
+
+    _option_parser_cache[(flags, args)] = parser
+    return parser
+
+
+def get_options(line, flags=None, args=None):
+    '''Parse options and flags from a requirement line. Example:
+    >>> get_options('INITools --one --options="--two", ['--one'], ['--options'])
+    {'--two' : True, '--options' : "--two"}'''
+    args = args if args else requirement_args
+    flags = flags if flags else requirement_flags
+
+    parser = get_options_parser(tuple(flags), tuple(args))
+    opts, args = parser.parse_args(shlex.split(line))
+    return opts.__dict__
 
 
 def join_lines(it):
