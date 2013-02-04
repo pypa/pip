@@ -1,3 +1,7 @@
+from __future__ import with_statement
+import subprocess
+
+from mock import patch
 from textwrap import dedent
 from tempfile import NamedTemporaryFile
 from nose.tools import assert_equal, assert_raises
@@ -33,8 +37,9 @@ def test_parse_simple_requirement():
 def test_parse_requirement_with_options():
     line = 'INITools==0.2 --install-options="--prefix=/opt" --global-options="--bindir=/usr/bin"'
     res = parse_line(line, 0, 't')
-    assert res == (REQUIREMENT, ('INITools==0.2', {'install_options': '--prefix=/opt',
-                                                   'global_options': '--bindir=/usr/bin'}))
+    assert res == (REQUIREMENT, ('INITools==0.2',
+                                 {'install_options': ['--prefix=/opt'],
+                                  'global_options': ['--bindir=/usr/bin']}))
 
 
 def test_parse_editable_requirement():
@@ -59,7 +64,7 @@ def test_parse_requirements_include():
         res = map_parse(lines)
         assert res == [(REQUIREMENT_FILE, fh.name)] * 3
 
-        fh.write('INITools==0.2\ndistribute\n')
+        fh.write('INITools==0.2\ndistribute\n'.encode('utf-8'))
         fh.flush()
 
         ireq = list(parse_content('t', lines[0]))
@@ -105,5 +110,24 @@ def test_get_requirement_options():
     assert opts == {'install_options': '--aflag', 'aflag': True, 'global_options': '--abc'}
 
 
-def map_parse(lines):
-    return list(map(lambda x: parse_line(x, 0, 't'), lines))
+def test_get_requirement_options_2():
+    line = 'INITools==2.0 --global-options="--one --two -3" --install-options="--prefix=/opt"'
+    req = list(parse_content('t', line))[0]
+    assert req.options == {'install_options': ['--prefix=/opt'],
+                           'global_options': ['--one', '--two', '-3']}
+
+
+def test_install_requirement_options():
+    line = 'INITools==2.0 --global-options="--one --two -3" --install-options="--prefix=/opt"'
+    req = list(parse_content('t', line))[0]
+    req.source_dir = os.curdir
+    with patch.object(subprocess, 'Popen') as popen:
+        try: req.install([])
+        except: pass
+
+    call = popen.call_args_list[0][0][0]
+    for i in '--one', '--two', '-3', '--prefix=/opt':
+        assert i in call
+
+
+map_parse = lambda lines: [parse_line(i, 0, 't') for i in lines]

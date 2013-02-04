@@ -53,7 +53,7 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None)
         if linetype == REQUIREMENT:
             comes_from = '-r %s (line %s)' % (filename, nr)
             req, opts = value
-            yield InstallRequirement.from_line(req, comes_from)
+            yield InstallRequirement.from_line(req, comes_from, options=opts)
 
         if linetype == REQUIREMENT_EDITABLE:
             comes_from = '-r %s (line %s)' % (filename, nr)
@@ -85,6 +85,12 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None)
 def parse_line(line, number, filename, opts=True):
     if not line.startswith('-'):
         opts = get_options(line) if opts else {}
+
+        # make sure that install|global_options are lists
+        for i in ('install_options', 'global_options'):
+            if i in opts:
+                opts[i] = shlex.split(opts[i]) if opts[i] else []
+
         line = line.split('--')[0].strip()
         return REQUIREMENT, (line, opts)
 
@@ -130,7 +136,7 @@ def parse_line(line, number, filename, opts=True):
 
 _option_parser_cache = {}
 def get_options_parser(flags, args):
-    if (flags,args) in _option_parser_cache:
+    if (flags, args) in _option_parser_cache:
         return _option_parser_cache[(flags, args)]
 
     parser = optparse.OptionParser()
