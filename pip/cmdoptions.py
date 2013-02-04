@@ -21,7 +21,7 @@ index_url = make_option(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
-    default='http://pypi.python.org/simple/',
+    default='https://pypi.python.org/simple/',
     help='Base URL of Python Package Index (default %default).')
 
 extra_index_url = make_option(

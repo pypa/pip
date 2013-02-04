@@ -1,10 +1,17 @@
 import cgi
 import getpass
 import hashlib
+import httplib
 import mimetypes
 import os
 import re
 import shutil
+import socket
+import ssl
+try:
+    from ssl import match_hostname
+except ImportError:
+    from backports.ssl_match_hostname import match_hostname
 import sys
 import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
@@ -65,6 +72,33 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+    def connect(self):
+        # overrides the version in httplib so that we do
+        #    certificate verification
+        sock = socket.create_connection((self.host, self.port), self.timeout)
+        if self._tunnel_host:
+            self.sock = sock
+            self._tunnel()
+        # wrap the socket using verification with the root
+        #    certs in trusted_root_certs
+        cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
+        self.sock = ssl.wrap_socket(sock,
+                                self.key_file,
+                                self.cert_file,
+                                cert_reqs=ssl.CERT_REQUIRED,
+                                ca_certs=cert_path)
+        match_hostname(self.sock.getpeercert(), self.host)
+
+
+# wraps https connections with ssl certificate verification
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+    def __init__(self, connection_class = VerifiedHTTPSConnection):
+        self.specialized_conn_class = connection_class
+        urllib2.HTTPSHandler.__init__(self)
+    def https_open(self, req):
+        return self.do_open(self.specialized_conn_class, req)
+
 
 class URLOpener(object):
     """
@@ -83,7 +117,7 @@ class URLOpener(object):
         url, username, password = self.extract_credentials(url)
         if username is None:
             try:
-                response = urllib2.urlopen(self.get_request(url))
+                response = self.secure_opener().open(url)
             except urllib2.HTTPError:
                 e = sys.exc_info()[1]
                 if e.code != 401:
@@ -120,9 +154,17 @@ class URLOpener(object):
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
+        opener = self.secure_opener(authhandler)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
+
+    def secure_opener(self, *args):
+        """
+        given a list of handlers, will return a secure (verified HTTPS) opener
+        with those handlers also attached.
+        """
+        https_handler = VerifiedHTTPSHandler()
+        return urllib2.build_opener(https_handler, *args)
 
     def setup(self, proxystr='', prompting=True):
         """
