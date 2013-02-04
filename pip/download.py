@@ -8,6 +8,10 @@ import re
 import shutil
 import socket
 import ssl
+try:
+    from ssl import match_hostname
+except ImportError:
+    from backports.ssl_match_hostname import match_hostname
 import sys
 import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
@@ -80,10 +84,11 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         #    certs in trusted_root_certs
         cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
         self.sock = ssl.wrap_socket(sock,
-                                    self.key_file,
-                                    self.cert_file,
-                                    cert_reqs=ssl.CERT_REQUIRED,
-                                    ca_certs=cert_path)
+                                self.key_file,
+                                self.cert_file,
+                                cert_reqs=ssl.CERT_REQUIRED,
+                                ca_certs=cert_path)
+        match_hostname(self.sock.getpeercert(), self.host)
 
 
 # wraps https connections with ssl certificate verification
