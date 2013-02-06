@@ -1,21 +1,15 @@
 import cgi
 import getpass
 import hashlib
-import httplib
 import mimetypes
 import os
 import re
 import shutil
 import socket
-import ssl
-try:
-    from ssl import match_hostname
-except ImportError:
-    from backports.ssl_match_hostname import match_hostname
 import sys
 import tempfile
-from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
-                                urlparse, string_types)
+from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
+                                urlparse, string_types, ssl, match_hostname)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
@@ -117,7 +111,7 @@ class URLOpener(object):
         url, username, password = self.extract_credentials(url)
         if username is None:
             try:
-                response = self.secure_opener().open(url)
+                response = self.get_opener().open(url)
             except urllib2.HTTPError:
                 e = sys.exc_info()[1]
                 if e.code != 401:
@@ -154,17 +148,20 @@ class URLOpener(object):
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = self.secure_opener(authhandler)
+        opener = self.get_opener(authhandler)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
 
-    def secure_opener(self, *args):
+    def get_opener(self, *args):
         """
-        given a list of handlers, will return a secure (verified HTTPS) opener
-        with those handlers also attached.
+        If ssl module is available, will return secure (verified HTTPS) opener
+        Otherwise, standard.
         """
-        https_handler = VerifiedHTTPSHandler()
-        return urllib2.build_opener(https_handler, *args)
+        if ssl:
+            https_handler = VerifiedHTTPSHandler()
+            return urllib2.build_opener(https_handler, *args)
+        else:
+            return urllib2.build_opener(*args)
 
     def setup(self, proxystr='', prompting=True):
         """
