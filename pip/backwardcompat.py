@@ -110,3 +110,15 @@ def home_lib(home):
     else:
         lib = os.path.join('lib', 'python')
     return os.path.join(home, lib)
+
+
+## py25 has no builtin ssl module
+## only >=py32 has ssl.match_hostname
+try:
+    import ssl
+    try:
+        from ssl import match_hostname
+    except ImportError:
+        from backwardcompat_ssl import match_hostname
+except ImportError:
+    ssl = None
