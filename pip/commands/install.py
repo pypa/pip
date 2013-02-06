@@ -12,6 +12,7 @@ from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
 from pip.backwardcompat import home_lib
 from pip.cmdoptions import make_option_group, index_group
+from pip.util import warn_if_no_ssl
 
 
 class InstallCommand(Command):
@@ -196,6 +197,7 @@ class InstallCommand(Command):
                              mirrors=options.mirrors)
 
     def run(self, options, args):
+        warn_if_no_ssl()
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True

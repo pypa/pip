@@ -8,8 +8,10 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
+import textwrap
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+from pip.backwardcompat import(WindowsError, string_types, raw_input,
+                                console_to_str, user_site, ssl)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
@@ -664,3 +666,18 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+
+def warn_if_no_ssl():
+    """Warn when there's no ssl"""
+    if not ssl:
+        logger.warn(textwrap.dedent("""
+            #############################################################
+            ##  WARNING!!                                              ##
+            ##  You don't have an importable ssl module.               ##
+            ##  We can not provide ssl certified downloads from PyPI.  ##
+            ##  Install this: http://pypi.python.org/pypi/ssl/         ##
+            ##  It provides ssl support for older Pythons.             ##
+            #############################################################
+            """))
+
