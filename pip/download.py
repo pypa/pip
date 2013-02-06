@@ -16,7 +16,7 @@ from pip.util import (splitext, rmtree, format_size, display_path,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
-
+from pip.locations import cert_path
 
 __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
@@ -76,7 +76,6 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
             self._tunnel()
         # wrap the socket using verification with the root
         #    certs in trusted_root_certs
-        cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
         self.sock = ssl.wrap_socket(sock,
                                 self.key_file,
                                 self.cert_file,
