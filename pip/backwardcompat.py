@@ -113,12 +113,12 @@ def home_lib(home):
 
 
 ## py25 has no builtin ssl module
-## only >=py32 has ssl.match_hostname
+## only >=py32 has ssl.match_hostname and ssl.CertificateError
 try:
     import ssl
     try:
-        from ssl import match_hostname
+        from ssl import match_hostname, CertificateError
     except ImportError:
-        from backwardcompat_ssl import match_hostname
+        from backwardcompat_ssl import match_hostname, CertificateError
 except ImportError:
     ssl = None
