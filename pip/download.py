@@ -9,7 +9,9 @@ import socket
 import sys
 import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
-                                urlparse, string_types, ssl, match_hostname)
+                                urlparse, string_types, ssl)
+if ssl:
+    from pip.backwardcompat import match_hostname
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
