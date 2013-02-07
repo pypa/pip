@@ -1,8 +1,7 @@
 import os
 import re
 import textwrap
-from tests.test_pip import pyversion, reset_env, run_pip, write_file
-from tests.local_repos import local_checkout
+from tests.test_pip import reset_env, run_pip, write_file
 
 
 def test_list_command():
