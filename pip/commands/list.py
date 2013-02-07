@@ -1,4 +1,3 @@
-import pkg_resources
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.index import PackageFinder
