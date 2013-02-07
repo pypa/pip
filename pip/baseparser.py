@@ -350,4 +350,19 @@ standard_options = [
         metavar='action',
         help="Default action when a path already exists: "
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
+
+    optparse.make_option(
+        '--allow-no-ssl',
+        dest='allow_no_ssl',
+        action='store_true',
+        default=False,
+        help = "Allow lack of certificate checking when ssl is not installed."),
+
+    optparse.make_option(
+        '--cert-path',
+        dest='cert_path',
+        type='str',
+        default='',
+        help = "Path to alternate certificate file."),
+
     ]

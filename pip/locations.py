@@ -8,7 +8,7 @@ import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
-cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
+default_cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
 
 def running_under_virtualenv():
     """

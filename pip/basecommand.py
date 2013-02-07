@@ -75,7 +75,8 @@ class Command(object):
                      'log_explicit_levels', 'log_file',
                      'timeout', 'default_vcs',
                      'skip_requirements_regex',
-                     'no_input', 'exists_action']:
+                     'no_input', 'exists_action',
+                     'allow_no_ssl', 'cert_path']:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -105,6 +106,12 @@ class Command(object):
 
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
+
+        if options.allow_no_ssl:
+            os.environ['PIP_ALLOW_NO_SSL'] = '1'
+
+        if options.cert_path:
+            os.environ['PIP_CERT_PATH'] = options.cert_path
 
         if options.require_venv:
             # If a venv is required check if it can really be found

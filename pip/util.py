@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 import subprocess
 import textwrap
-from pip.exceptions import InstallationError, BadCommand
+from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
                                 console_to_str, user_site, ssl)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
@@ -668,16 +668,16 @@ def call_subprocess(cmd, show_stdout=True,
         return ''.join(all_output)
 
 
-def warn_if_no_ssl():
-    """Warn when there's no ssl"""
-    if not ssl:
-        logger.warn(textwrap.dedent("""
+def raise_no_ssl_exception():
+    """Raise when there's no ssl and not using '--no-ssl'"""
+    raise PipError(textwrap.dedent("""
             #############################################################
-            ##  WARNING!!                                              ##
             ##  You don't have an importable ssl module.               ##
-            ##  We can not provide ssl certified downloads from PyPI.  ##
-            ##  Install this: http://pypi.python.org/pypi/ssl/         ##
-            ##  It provides ssl support for older Pythons.             ##
+            ##  We can not provide ssl certified downloads.            ##
+            ##  Do one of 2 things:                                    ##
+            ##   1) Install this: https://pypi.python.org/pypi/ssl/    ##
+            ##      (It provides ssl support for older Pythons )       ##
+            ##   2) Use the --no-ssl option to allow this insecurity   ##
             #############################################################
             """))
 

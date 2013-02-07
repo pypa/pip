@@ -15,10 +15,11 @@ if ssl:
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download)
+                      create_download_cache_folder, cache_download,
+                      raise_no_ssl_exception)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.locations import cert_path
+from pip.locations import default_cert_path
 
 __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
@@ -70,6 +71,7 @@ _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 class VerifiedHTTPSConnection(httplib.HTTPSConnection):
     def connect(self):
+        cert_path = os.environ.get('PIP_CERT_PATH', '') or default_cert_path
         # overrides the version in httplib so that we do
         #    certificate verification
         sock = socket.create_connection((self.host, self.port), self.timeout)
@@ -156,13 +158,16 @@ class URLOpener(object):
     def get_opener(self, *args):
         """
         If ssl module is available, will return secure (verified HTTPS) opener
-        Otherwise, standard.
+        Elif --allow-no-ssl, then standard opener
+        Else fail
         """
         if ssl:
             https_handler = VerifiedHTTPSHandler()
             return urllib2.build_opener(https_handler, *args)
-        else:
+        elif os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
             return urllib2.build_opener(*args)
+        else:
+            raise_no_ssl_exception()
 
     def setup(self, proxystr='', prompting=True):
         """
