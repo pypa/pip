@@ -11,6 +11,7 @@ import site
 from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
+from pip.backwardcompat import ssl
 
 pyversion = sys.version[:3]
 
@@ -534,7 +535,11 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
 
 def run_pip(*args, **kw):
-    result = env.run('pip', *args, **kw)
+    if not ssl and 'install' in args:
+        #allow py25 tests to work
+        result = env.run('pip', '--allow-no-ssl', *args, **kw)
+    else:
+        result = env.run('pip', *args, **kw)
     ignore = []
     for path, f in result.files_before.items():
         # ignore updated directories, often due to .pyc or __pycache__

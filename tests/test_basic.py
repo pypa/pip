@@ -48,7 +48,7 @@ def test_pip_second_command_line_interface_works():
     Check if ``pip-<PYVERSION>`` commands behaves equally
     """
     e = reset_env()
-    result = e.run('pip-%s' % pyversion, 'install', 'INITools==0.2')
+    result = e.run('pip-%s' % pyversion, '--allow-no-ssl', 'install', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
