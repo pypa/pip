@@ -86,7 +86,6 @@ This process includes virtualenv, since pip releases necessitate a virtualenv re
  #. Merge ``vitualenv:<newv>`` to ``virtualenv:develop``.
  #. In ``virtualenv:<newv>``, change ``virtualenv.version`` to '<newv>', and tag with '<newv>'.
  #. Merge ``virtualenv:<newp>`` to ``virtualenv:master``
- #. Build and upload pip and virtualenv sdists to PyPI.
 
 .. _`Refresh virtualenv`:
 
