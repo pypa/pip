@@ -13,6 +13,9 @@ from tests.path import Path, curdir, u
 from pip.util import rmtree
 from pip.backwardcompat import ssl
 
+#allow py25 unit tests to work
+os.environ['PIP_ALLOW_NO_SSL'] = '1'
+
 pyversion = sys.version[:3]
 
 # the directory containing all the tests
@@ -535,11 +538,10 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
 
 def run_pip(*args, **kw):
-    if not ssl and 'install' in args:
+    if not ssl:
         #allow py25 tests to work
-        result = env.run('pip', '--allow-no-ssl', *args, **kw)
-    else:
-        result = env.run('pip', *args, **kw)
+        env.environ['PIP_ALLOW_NO_SSL'] = '1'
+    result = env.run('pip', *args, **kw)
     ignore = []
     for path, f in result.files_before.items():
         # ignore updated directories, often due to .pyc or __pycache__
