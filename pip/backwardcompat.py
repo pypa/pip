@@ -29,6 +29,7 @@ if sys.version_info >= (3,):
     from email import message as emailmessage
     import urllib.parse as urllib
     import urllib.request as urllib2
+    from urllib.error import URLError as URLError
     import configparser as ConfigParser
     import xmlrpc.client as xmlrpclib
     import urllib.parse as urlparse
@@ -63,6 +64,7 @@ else:
     from email import Message as emailmessage
     import urllib
     import urllib2
+    from urllib2 import URLError
     import urlparse
     import ConfigParser
     import xmlrpclib

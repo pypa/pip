@@ -12,7 +12,7 @@ from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, ssl)
 if ssl:
     from pip.backwardcompat import match_hostname
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, PipError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download,
@@ -88,13 +88,22 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         match_hostname(self.sock.getpeercert(), self.host)
 
 
-# wraps https connections with ssl certificate verification
-class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler, urllib2.HTTPHandler):
+    """
+    A HTTPSHandler that wraps connections with ssl certificate verification.
+    By inheriting from both HTTPSHandler and HTTPHandler, this overrides
+    the default https *and* http handlers during the 'build_opener' routine.
+    We specifically *don't* want a http handler in the chain of handlers
+    to prevent MITM attacks that spoof https servers with http content.
+    """
     def __init__(self, connection_class = VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
         urllib2.HTTPSHandler.__init__(self)
     def https_open(self, req):
         return self.do_open(self.specialized_conn_class, req)
+    def http_open(self, req):
+        #this should not be called.
+        raise PipError("This handler is only for https")
 
 
 class URLOpener(object):
@@ -111,10 +120,10 @@ class URLOpener(object):
         auth.
 
         """
-        url, username, password = self.extract_credentials(url)
+        url, username, password, scheme = self.extract_credentials(url)
         if username is None:
             try:
-                response = self.get_opener().open(url)
+                response = self.get_opener(scheme=scheme).open(url)
             except urllib2.HTTPError:
                 e = sys.exc_info()[1]
                 if e.code != 401:
@@ -151,23 +160,25 @@ class URLOpener(object):
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = self.get_opener(authhandler)
+        opener = self.get_opener(authhandler, scheme=scheme)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
 
-    def get_opener(self, *args):
+    def get_opener(self, *args, **kwargs):
         """
-        If ssl module is available, will return secure (verified HTTPS) opener
-        Elif --allow-no-ssl, then standard opener
-        Else fail
+        Build an OpenerDirector instance based on the scheme, whether ssl is
+        importable and the --allow-no-ssl parameter.
         """
-        if ssl:
-            https_handler = VerifiedHTTPSHandler()
-            return urllib2.build_opener(https_handler, *args)
-        elif os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
-            return urllib2.build_opener(*args)
+        if kwargs.get('scheme') == 'https':
+            if ssl:
+                https_handler = VerifiedHTTPSHandler()
+                return urllib2.build_opener(https_handler, *args)
+            if not ssl and os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
+                return urllib2.build_opener(*args)
+            else:
+                raise_no_ssl_exception()
         else:
-            raise_no_ssl_exception()
+            return urllib2.build_opener(*args)
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -205,7 +216,7 @@ class URLOpener(object):
 
         username, password = self.parse_credentials(netloc)
         if username is None:
-            return url, None, None
+            return url, None, None, scheme
         elif password is None and self.prompting:
             # remove the auth credentials from the url part
             netloc = netloc.replace('%s@' % username, '', 1)
@@ -217,7 +228,7 @@ class URLOpener(object):
             netloc = netloc.replace('%s:%s@' % (username, password), '', 1)
 
         target_url = urlparse.urlunsplit((scheme, netloc, path, query, frag))
-        return target_url, username, password
+        return target_url, username, password, scheme
 
     def get_proxy(self, proxystr=''):
         """
