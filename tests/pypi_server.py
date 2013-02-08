@@ -8,8 +8,6 @@ from pip.backwardcompat import urllib, string_types, b, u, emailmessage
 
 urlopen_original = pip.backwardcompat.urllib2.urlopen
 build_opener_original = pip.backwardcompat.urllib2.build_opener
-# openerdirector_original = pip.backwardcompat.urllib2.OpenerDirector
-# HTTPBasicAuthHandler_original = pip.backwardcompat.urllib2.HTTPBasicAuthHandler
 
 
 class HttpResponse(object):
