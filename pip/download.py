@@ -143,7 +143,7 @@ class URLOpener(object):
                         raise e
                 except KeyboardInterrupt:
                     return None
-        raise urllib2.HTTPError(req, 401, "Not Authorized", None, None)
+        raise urllib2.HTTPError(url, 401, "Not Authorized", None, None)
 
     def setup(self, proxystr='', prompting=True):
         """
