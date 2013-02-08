@@ -131,7 +131,7 @@ class URLOpener(object):
                 opener = urllib2.build_opener(authhandler)
                 try:
                     return opener.open(req)
-                except urllib2.HTTPError, e:
+                except urllib2.HTTPError as e:
                     if e.code == 401:
                         if self.prompting:
                             logger.error("Protected repository `%s`: invalid credentials" % netloc)
