@@ -23,7 +23,6 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
-
 xmlrpclib_transport = xmlrpclib.Transport()
 
 
@@ -71,12 +70,9 @@ class URLOpener(object):
     """
     pip's own URL helper that adds HTTP auth and proxy support
     """
+
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        try:
-            self._read_pypirc()
-        except ParsingError:
-            pass
 
     def __call__(self, url):
         """
@@ -114,29 +110,40 @@ class URLOpener(object):
         """
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
         req = self.get_request(url)
+        if username is None:
+            username, password = self.passman.find_user_password(None, netloc)
 
-        stored_username, stored_password = self.passman.find_user_password(None, netloc)
-        # see if we have a password stored
-        while True:
-            if stored_username is None:
-                if username is None and self.prompting:
-                    username = urllib.quote(raw_input('User for %s: ' % netloc))
-                    password = urllib.quote(getpass.getpass('Password: '))
-                if username and password:
-                    self.passman.add_password(None, netloc, username, password)
+        if username:
+            logger.debug("Protected repository `%s`: using `%s` credentials" % (netloc, username))
+        else:
+            logger.debug("Protected repository `%s`: no credentials found" % netloc)
+        retry = 0
+        while retry < 3:
+            retry += 1
+            if username is None and self.prompting:
+                username = urllib.quote(raw_input('User for %s: ' % netloc))
+                password = urllib.quote(getpass.getpass('Password: '))
+            if username and password:
+                self.passman.add_password(None, netloc, username, password)
 
-            authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-            opener = urllib2.build_opener(authhandler)
-            try:
-                return opener.open(req)
-            except urllib2.HTTPError, e:
-                if e.code == 401:
-                    stored_username = None
-                    print e
-                else:
-                    raise e
-            except KeyboardInterrupt:
-                return None
+            if username:
+                authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
+                opener = urllib2.build_opener(authhandler)
+                try:
+                    return opener.open(req)
+                except urllib2.HTTPError, e:
+                    if e.code == 401:
+                        if self.prompting:
+                            logger.error("Protected repository `%s`: invalid credentials" % netloc)
+                            username = None
+                        else:
+                            logger.fatal("Protected repository `%s`: unable to login" % netloc)
+                            raise e
+                    else:
+                        raise e
+                except KeyboardInterrupt:
+                    return None
+        raise urllib2.HTTPError(req, 401, "Not Authorized", None, None)
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -150,6 +157,10 @@ class URLOpener(object):
             proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
+        try:
+            self._read_pypirc()
+        except ParsingError:
+            logger.warn("Unable to parse .pypirc file")
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
@@ -166,6 +177,7 @@ class URLOpener(object):
         Returns a tuple:
             (url-without-auth, username, password)
         """
+
         if isinstance(url, urllib2.Request):
             result = urlparse.urlsplit(url.get_full_url())
         else:
@@ -211,18 +223,25 @@ class URLOpener(object):
         else:
             return None
 
+    def _get_pypirc(self):
+
+        rc = os.environ.get('PIP_PYPIRC',
+                            os.path.join(os.path.expanduser('~'), '.pypirc'))
+        logger.debug("Using `%s` as `.pypirc`" % rc)
+        return rc
+
     def _read_pypirc(self):
         from ConfigParser import ConfigParser
 
         """Reads the .pypirc file."""
-        rc = os.path.join(os.path.expanduser('~'), '.pypirc')
+        rc = self._get_pypirc()
         if os.path.exists(rc):
             config = ConfigParser()
             config.read(rc)
             sections = config.sections()
             if 'distutils' in sections:
                 index_servers = config.get('distutils', 'index-servers')
-                _servers = [server.strip() for server in  index_servers.split('\n') if server.strip() != '']
+                _servers = [server.strip() for server in index_servers.split('\n') if server.strip() != '']
                 for server in _servers:
                     if config.has_option(server, 'repository'):
                         scheme, netloc, path, query, frag = urlparse.urlsplit(config.get(server, 'repository'))
@@ -236,6 +255,7 @@ class URLOpener(object):
                         if config.has_option(server, 'password'):
                             credentials['passwd'] = config.get(server, 'password')
                         self.passman.add_password(**credentials)
+
 
 urlopen = URLOpener()
 
