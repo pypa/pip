@@ -173,7 +173,7 @@ class URLOpener(object):
             if ssl:
                 https_handler = VerifiedHTTPSHandler()
                 return urllib2.build_opener(https_handler, *args)
-            if not ssl and os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
+            elif os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
                 return urllib2.build_opener(*args)
             else:
                 raise_no_ssl_exception()
