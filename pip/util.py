@@ -677,7 +677,7 @@ def raise_no_ssl_exception():
             ##  Do one of 2 things:                                    ##
             ##   1) Install this: https://pypi.python.org/pypi/ssl/    ##
             ##      (It provides ssl support for older Pythons )       ##
-            ##   2) Use the --no-ssl option to allow this insecurity   ##
+            ##   2) Use the --allow-no-ssl option to allow insecurity  ##
             #############################################################
             """))
 
