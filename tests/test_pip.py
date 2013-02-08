@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import re
 import tempfile
 import shutil
 import glob
@@ -14,7 +15,8 @@ from pip.util import rmtree
 from pip.backwardcompat import ssl
 
 #allow py25 unit tests to work
-os.environ['PIP_ALLOW_NO_SSL'] = '1'
+if sys.version_info[:2] == (2, 5) and not ssl:
+    os.environ['PIP_ALLOW_NO_SSL'] = '1'
 
 pyversion = sys.version[:3]
 
@@ -538,7 +540,7 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
 
 def run_pip(*args, **kw):
-    if not ssl:
+    if sys.version_info[:2] == (2, 5) and not ssl:
         #allow py25 tests to work
         env.environ['PIP_ALLOW_NO_SSL'] = '1'
     result = env.run('pip', *args, **kw)
@@ -686,6 +688,17 @@ def _change_test_package_version(env, version_pkg_path):
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'messed version',
             cwd=version_pkg_path, expect_stderr=True)
+
+
+def assert_raises_regexp(exception, reg, run, *args, **kwargs):
+    """Like assertRaisesRegexp in unittest"""
+    try:
+        run(*args, **kwargs)
+        assert False, "%s should have been thrown" %exception
+    except Exception:
+        e = sys.exc_info()[1]
+        p = re.compile(reg)
+        assert p.search(str(e)), str(e)
 
 
 if __name__ == '__main__':
