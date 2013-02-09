@@ -150,16 +150,37 @@ pip offers a set of :ref:`Package Index Options <Package Index Options>` for mod
 See the :ref:`pip install Examples<pip install Examples>`.
 
 
+.. _`SSL Certificate Verification`:
+
+SSL Certificate Verification
+============================
+
+Starting with v1.3, pip provides SSL certificate verification over https, for the purpose
+of providing secure, certified downloads from PyPI.
+
+This is supported by default in all Python versions pip supports, except Python 2.5.
+
+Python 2.5 users can install https://pypi.python.org/pypi/ssl/, which provides ssl support for older pythons.
+
+Although not recommended, Python 2.5 users who are unable to install ssl, can use
+:ref:`--allow-no-ssl <--allow-no-ssl>`, to allow
+access PyPI w/o attempting SSL certificate verification.
+This option will have no effect on new Python versions that have ssl in the stdlib.
+
+
 Hash Verification
 =================
 
-PyPI provides a md5 hash of a package by having the link to the
-package include a #md5=<hash>.
+PyPI provides md5 hashes in the hash fragment of package download urls.
 
 pip supports checking this, as well as any of the
 guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
 
 The hash fragment is case sensitive (i.e. sha1 not SHA1).
+
+This check is only intended to provide basic download corruption protection.
+It is not intended to provide security against tampering. For that,
+see :ref:`SSL Certificate Verification`
 
 
 Download Cache
