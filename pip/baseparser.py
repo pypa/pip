@@ -363,6 +363,7 @@ standard_options = [
         dest='cert_path',
         type='str',
         default='',
+        metavar='path',
         help = "Path to alternate certificate file."),
 
     ]
