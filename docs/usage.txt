@@ -258,6 +258,16 @@ Examples
   docutils (Current: 0.9.1 Latest: 0.10)
   Sphinx (Current: 1.1.2 Latest: 1.1.3)
 
+3) List installed packages with a customized output.
+
+ ::
+
+ $ pip list --format "{name} - {version}"
+  Pygments - 1.5
+  docutils - 0.9.1
+  Sphinx - 1.1.2
+  Jinja2 - 2.6
+
 pip show
 --------
 

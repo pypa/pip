@@ -16,6 +16,17 @@ def test_list_command():
     assert 'mock (0.7.0)' in result.stdout, str(result)
 
 
+def test_output_formating():
+    """
+    Test the output formating in the list command
+
+    """
+    reset_env()
+    run_pip('install', 'mock==0.7.0')
+    result = run_pip('list', '--format', '{name} - {version}')
+    assert 'mock - 0.7.0' in result.stdout
+
+
 def test_local_flag():
     """
     Test the behavior of --local flag in the list command
@@ -68,6 +79,22 @@ def test_outdated_flag():
     assert 'mock (Current: 0.7.0 Latest: %s)' % mock_ver in result.stdout, str(result)
 
 
+def test_output_formating_in_outdated_flag():
+    """
+    Test the output formating for --outdated flag in the list command
+
+    """
+    reset_env()
+    run_pip('install', 'mock==0.7.0')
+    total_re = re.compile('LATEST: +([0-9.\w]+)')
+    result = run_pip('search', 'mock')
+    mock_ver = total_re.search(str(result)).group(1)
+    as_json = '{{"packageName": "{name}","current":"{version}","latest":"{version_raw}"}}'
+    result = run_pip('list', '--outdated', '--format', as_json, expect_stderr=True)
+    expected = '{"packageName": "mock","current":"0.7.0","latest":"%s"}' % mock_ver
+    assert expected in result.stdout
+
+
 def test_editables_flag():
     """
     Test the behavior of --editables flag in the list command
@@ -78,4 +105,3 @@ def test_editables_flag():
     result = run_pip('list', '--editable')
     assert 'mock (0.7.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, str(result)
-

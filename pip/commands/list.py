@@ -41,7 +41,11 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='If in a virtualenv that has global access, do not list globally-installed packages.')
-
+        cmd_opts.add_option(
+            '-t', '--format',
+            dest='output_format',
+            default=None,
+            help='Defines the output format.')
 
         index_opts = make_option_group(index_group, self.parser)
 
@@ -64,15 +68,16 @@ class ListCommand(Command):
         elif options.uptodate:
             self.run_uptodate(options)
         elif options.editable:
-            self.run_editables(options)
+            self.run_editable(options)
         else:
             self.run_listing(options)
 
     def run_outdated(self, options):
+        output_format = options.output_format or '{name} (Current: {version} Latest: {version_raw})'
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
-                logger.notify('%s (Current: %s Latest: %s)' % (dist.project_name,
-                    dist.version, remote_version_raw))
+                logger.notify(output_format.format(name=dist.project_name,
+                    version=dist.version, version_raw=remote_version_raw))
 
     def find_packages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
@@ -113,24 +118,26 @@ class ListCommand(Command):
 
     def run_listing(self, options):
         installed_packages = get_installed_distributions(local_only=options.local)
-        self.output_package_listing(installed_packages)
+        self.output_package_listing(installed_packages, options)
 
-    def run_editables(self, options):
+    def run_editable(self, options):
         installed_packages = get_installed_distributions(local_only=options.local, editables_only=True)
-        self.output_package_listing(installed_packages)
+        self.output_package_listing(installed_packages, options)
 
-    def output_package_listing(self, installed_packages):
+    def output_package_listing(self, installed_packages, options):
+        output_format = options.output_format or '{name} ({version})'
         for dist in installed_packages:
+            context = dict(name=dist.project_name)
             if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
+                context['version'] = dist.location
             else:
-                line = '%s (%s)' % (dist.project_name, dist.version)
-            logger.notify(line)
+                context['version'] = dist.version
+            logger.notify(output_format.format(**context))
 
     def run_uptodate(self, options):
         uptodate = []
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
-        self.output_package_listing(uptodate)
+        self.output_package_listing(uptodate, options)
 
