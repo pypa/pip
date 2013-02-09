@@ -74,10 +74,19 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         cert_path = os.environ.get('PIP_CERT_PATH', '') or default_cert_path
         # overrides the version in httplib so that we do
         #    certificate verification
-        sock = socket.create_connection((self.host, self.port), self.timeout)
-        if self._tunnel_host:
+
+        args = [(self.host, self.port)]
+        if hasattr(self, 'timeout'):
+            args.append(self.timeout)
+        if hasattr(self, 'source_address'):
+            args.append(self.source_address)
+
+        sock = socket.create_connection(*args)
+
+        if getattr(self, '_tunnel_host', None):
             self.sock = sock
             self._tunnel()
+
         # wrap the socket using verification with the root
         #    certs in trusted_root_certs
         self.sock = ssl.wrap_socket(sock,
