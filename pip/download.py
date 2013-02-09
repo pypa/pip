@@ -1,4 +1,8 @@
-from ConfigParser import ParsingError
+try:
+    from ConfigParser import ParsingError, ConfigParser
+except ImportError:
+    from configparser import ParsingError, ConfigParser
+
 import cgi
 import getpass
 import hashlib
@@ -231,8 +235,6 @@ class URLOpener(object):
         return rc
 
     def _read_pypirc(self):
-        from ConfigParser import ConfigParser
-
         """Reads the .pypirc file."""
         rc = self._get_pypirc()
         if os.path.exists(rc):
