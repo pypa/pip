@@ -108,5 +108,5 @@ class Tests_not_py25:
         bad_cert = os.path.join(here, 'packages', 'README.txt')
         os.environ['PIP_CERT_PATH'] = bad_cert
         o = urlopen.get_opener(scheme='https')
-        assert_raises_regexp(URLError, 'ssl', o.open, pypi_https)
+        assert_raises_regexp(URLError, '[sS][sS][lL]', o.open, pypi_https)
 
