@@ -7,9 +7,10 @@ import re
 import shutil
 import sys
 import tempfile
+import socket
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
                                 urlparse, string_types)
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, DownloadTimeoutError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
@@ -377,7 +378,12 @@ def _download_url(resp, link, temp_location):
         logger.info('Downloading from URL %s' % link)
 
         while True:
-            chunk = resp.read(4096)
+            try:
+                chunk = resp.read(4096)
+            except socket.timeout:
+                timeout_msg = '\n\nTimeout on download, you may want to use mirror site'
+                logger.fatal(timeout_msg)
+                raise DownloadTimeoutError(timeout_msg)
             if not chunk:
                 break
             downloaded += len(chunk)

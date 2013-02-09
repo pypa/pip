@@ -28,3 +28,6 @@ class BadCommand(PipError):
 
 class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
+
+class DownloadTimeoutError(PipError):
+    """Raised on timeout when downloading"""
