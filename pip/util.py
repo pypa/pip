@@ -348,6 +348,7 @@ def dist_is_editable(dist):
     return req.editable
 
 def get_installed_distributions(local_only=True,
+                                user_only=False,
                                 skip=('setuptools', 'pip', 'python'),
                                 include_editables=True,
                                 editables_only=False):
@@ -376,6 +377,11 @@ def get_installed_distributions(local_only=True,
     else:
         editable_test = lambda d: not dist_is_editable(d)
 
+    if user_only:
+        user_test = lambda d: dist_in_usersite(d)
+    else:
+        user_test = lambda d: True
+
     if editables_only:
         editables_only_test = lambda d: dist_is_editable(d)
     else:
@@ -386,6 +392,7 @@ def get_installed_distributions(local_only=True,
             and d.key not in skip
             and editable_test(d)
             and editables_only_test(d)
+            and user_test(d)
             ]
 
 
