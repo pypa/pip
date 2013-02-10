@@ -1,8 +1,3 @@
-try:
-    from ConfigParser import ParsingError, ConfigParser
-except ImportError:
-    from configparser import ParsingError, ConfigParser
-
 import cgi
 import getpass
 import hashlib
@@ -13,7 +8,7 @@ import shutil
 import sys
 import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
-                                urlparse, string_types)
+                                urlparse, string_types, ConfigParser)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
@@ -125,7 +120,7 @@ class URLOpener(object):
         while retry < 3:
             retry += 1
             if username is None and self.prompting:
-                username = urllib.quote(raw_input('User for %s: ' % netloc))
+                username = urllib.quote(getpass.getuser('User for %s: ' % netloc))
                 password = urllib.quote(getpass.getpass('Password: '))
             if username and password:
                 self.passman.add_password(None, netloc, username, password)
@@ -135,7 +130,8 @@ class URLOpener(object):
                 opener = urllib2.build_opener(authhandler)
                 try:
                     return opener.open(req)
-                except urllib2.HTTPError as e:
+                except urllib2.HTTPError:
+                    e = sys.exc_info()[1]
                     if e.code == 401:
                         if self.prompting:
                             logger.error("Protected repository `%s`: invalid credentials" % netloc)
@@ -163,7 +159,7 @@ class URLOpener(object):
             urllib2.install_opener(opener)
         try:
             self._read_pypirc()
-        except ParsingError:
+        except ConfigParser.ParsingError:
             logger.warn("Unable to parse .pypirc file")
 
     def parse_credentials(self, netloc):
@@ -238,7 +234,7 @@ class URLOpener(object):
         """Reads the .pypirc file."""
         rc = self._get_pypirc()
         if os.path.exists(rc):
-            config = ConfigParser()
+            config = ConfigParser.ConfigParser()
             config.read(rc)
             sections = config.sections()
             if 'distutils' in sections:
