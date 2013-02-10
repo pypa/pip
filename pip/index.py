@@ -210,12 +210,22 @@ class PackageFinder(object):
     def _find_url_name(self, index_url, url_name, req):
         """Finds the true URL name of a package, when the given name isn't quite correct.
         This is usually used to implement case-insensitivity."""
+        def remove_index(link):
+            try:
+                self.index_urls.remove(link.url)
+            except ValueError:
+                try:
+                    self.index_urls.remove(link.url.rstrip('/'))
+                except ValueError:
+                    logger.fatal('Failed to remove index %s' % index_url)
+
         if not index_url.url.endswith('/'):
             # Vaguely part of the PyPI API... weird but true.
             ## FIXME: bad to modify this?
             index_url.url += '/'
         page = self._get_page(index_url, req)
         if page is None:
+            remove_index(index_url)
             logger.fatal('Cannot fetch index base URL %s' % index_url)
             return
         norm_name = normalize_name(req.url_name)
