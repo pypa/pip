@@ -57,14 +57,14 @@ class VcsSupport(object):
         else:
             logger.warn('Cannot unregister because no class or name given')
 
-    def get_backend_name(self, location):
+    def get_backend_name(self, dist):
         """
         Return the name of the version control backend if found at given
-        location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
+        pkg_resources.distribution, e.g. vcs.get_backend_name(dist)
         """
         for vc_type in self._registry.values():
-            path = os.path.join(location, vc_type.dirname)
-            if os.path.exists(path):
+            vc = vc_type()
+            if vc.check_repository(dist):
                 return vc_type.name
         return None
 
@@ -73,8 +73,8 @@ class VcsSupport(object):
         if name in self._registry:
             return self._registry[name]
 
-    def get_backend_from_location(self, location):
-        vc_type = self.get_backend_name(location)
+    def get_backend_from_location(self, dist):
+        vc_type = self.get_backend_name(dist)
         if vc_type:
             return self.get_backend(vc_type)
         return None
@@ -111,6 +111,9 @@ class VersionControl(object):
         logger.info('Found command %r at %r' % (self.name, command))
         self._cmd = command
         return command
+
+    def check_repository(self, dist):
+        raise NotImplementedError
 
     def get_url_rev(self):
         """
@@ -244,7 +247,7 @@ class VersionControl(object):
 
 
 def get_src_requirement(dist, location, find_tags):
-    version_control = vcs.get_backend_from_location(location)
+    version_control = vcs.get_backend_from_location(dist)
     if version_control:
         return version_control().get_src_requirement(dist, location, find_tags)
     logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)

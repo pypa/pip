@@ -176,7 +176,7 @@ class FrozenRequirement(object):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        if vcs.get_backend_name(dist):
             editable = True
             try:
                 req = get_src_requirement(dist, location, find_tags)

@@ -24,6 +24,13 @@ class Subversion(VersionControl):
     guide = ('# This was an svn checkout; to make it a checkout again run:\n'
             'svn checkout --force -r %(rev)s %(url)s .\n')
 
+    def check_repository(self, dist):
+        svn_path = os.path.join(dist.location, self.dirname)
+        if os.path.exists(svn_path) and os.path.isdir(svn_path):
+            return True
+        else:
+            return False
+
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
