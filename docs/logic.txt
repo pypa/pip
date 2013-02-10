@@ -164,8 +164,7 @@ Python 2.5 users can install https://pypi.python.org/pypi/ssl/, which provides s
 
 Although not recommended, Python 2.5 users who are unable to install ssl, can use
 :ref:`--allow-no-ssl <--allow-no-ssl>`, to allow
-access PyPI w/o attempting SSL certificate verification.
-This option will have no effect on new Python versions that have ssl in the stdlib.
+access to PyPI w/o attempting SSL certificate verification.
 
 
 Hash Verification
