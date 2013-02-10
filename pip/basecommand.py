@@ -13,7 +13,7 @@ from pip.log import logger
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
-from pip.backwardcompat import StringIO
+from pip.backwardcompat import StringIO, ssl
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
@@ -71,12 +71,15 @@ class Command(object):
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
-        for attr in ['log', 'proxy', 'require_venv',
+        attrs = ['log', 'proxy', 'require_venv',
                      'log_explicit_levels', 'log_file',
                      'timeout', 'default_vcs',
                      'skip_requirements_regex',
                      'no_input', 'exists_action',
-                     'allow_no_ssl', 'cert_path']:
+                     'cert_path']
+        if not ssl:
+            attrs.append('allow_no_ssl')
+        for attr in attrs:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -107,7 +110,7 @@ class Command(object):
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
 
-        if options.allow_no_ssl:
+        if not ssl and options.allow_no_ssl:
             os.environ['PIP_ALLOW_NO_SSL'] = '1'
 
         if options.cert_path:
