@@ -33,41 +33,60 @@ Installing Globally
 pip can be installed globally in order to manage global packages.
 Often this requires the installation to be performed as root.
 
-Prerequisites
-+++++++++++++
+.. warning::
 
-A global install of pip requires either `setuptools <http://pypi.python.org/pypi/setuptools>`_
-or `distribute <http://pypi.python.org/pypi/distribute>`_ to be installed globally as well.
+    We advise against using easy_install to install pip, because easy_install
+    does not download it through SSL, so the installation might be insecure.
+    Since pip can then be used to install packages (which execute code on
+    your computer), it is better to go through a trusted path.
+
+.. warning::
+
+    pip versions before 1.3 do not use SSL for installing packages, and thus
+    might be subject to attacks that can result in serious attacks on your
+    computer (remote code execution). We advise to make sure you are installing
+    at least pip 1.3.
+
+
+Installing on Linux
++++++++++++++++++++
+
+On Linux, pip is packaged by most distributions. For instance, on an Ubuntu
+system, you can install it with::
+
+    $ sudo apt-get install python-pip
+
+On a Fedora system, you can install it with::
+
+    $ yum install python-pip
+
+
+Installing on other operating systems
++++++++++++++++++++++++++++++++++++++
+
+A global install of pip requires either `setuptools <https://pypi.python.org/pypi/setuptools>`_
+or `distribute <https://pypi.python.org/pypi/distribute>`_ to be installed globally as well.
 
 In many cases, these can be installed using your OS package manager.
 
-See the `Distribute Install Instructions <http://pypi.python.org/pypi/distribute/>`_ or the
-`Setuptools Install Instructions <http://pypi.python.org/pypi/setuptools#installation-instructions>`_
+See the `Distribute Install Instructions <https://pypi.python.org/pypi/distribute/>`_ or the
+`Setuptools Install Instructions <https://pypi.python.org/pypi/setuptools#installation-instructions>`_
 
 .. warning::
 
     If you are using Python 3.X you **must** use distribute; setuptools doesn't
     support Python 3.X.
 
-Using get-pip
-+++++++++++++
 
-Download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
-and execute it using Python.  This will only install pip, not the prerequisites.
-
-::
+After having installed the prerequisites, download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
+and execute it using Python::
 
  $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
  $ [sudo] python get-pip.py
 
+or alternatively, you can install the package from sources::
 
-From source
-+++++++++++
-
-::
-
- $ curl -O http://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
+ $ curl -O https://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
  $ tar xvfz pip-X.X.tar.gz
  $ cd pip-X.X
  $ [sudo] python setup.py install
-
