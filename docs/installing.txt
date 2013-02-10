@@ -64,13 +64,13 @@ On a Fedora system, you can install it with::
 Installing on other operating systems
 +++++++++++++++++++++++++++++++++++++
 
-A global install of pip requires either `setuptools <http://pypi.python.org/pypi/setuptools>`_
-or `distribute <http://pypi.python.org/pypi/distribute>`_ to be installed globally as well.
+A global install of pip requires either `setuptools <https://pypi.python.org/pypi/setuptools>`_
+or `distribute <https://pypi.python.org/pypi/distribute>`_ to be installed globally as well.
 
 In many cases, these can be installed using your OS package manager.
 
-See the `Distribute Install Instructions <http://pypi.python.org/pypi/distribute/>`_ or the
-`Setuptools Install Instructions <http://pypi.python.org/pypi/setuptools#installation-instructions>`_
+See the `Distribute Install Instructions <https://pypi.python.org/pypi/distribute/>`_ or the
+`Setuptools Install Instructions <https://pypi.python.org/pypi/setuptools#installation-instructions>`_
 
 .. warning::
 
@@ -86,7 +86,7 @@ and execute it using Python::
 
 or alternatively, you can install the package from sources::
 
- $ curl -O http://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
+ $ curl -O https://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
  $ tar xvfz pip-X.X.tar.gz
  $ cd pip-X.X
  $ [sudo] python setup.py install
