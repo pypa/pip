@@ -364,6 +364,6 @@ standard_options = [
         type='str',
         default='',
         metavar='path',
-        help = "Path to alternate certificate file."),
+        help = "Path to alternate CA bundle."),
 
     ]
