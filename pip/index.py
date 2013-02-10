@@ -263,7 +263,8 @@ class PackageFinder(object):
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
-    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
+    _egg_info_re = re.compile(
+        r'(?P<url_end>252f)?(?P<name>([a-z0-9_.]+)-([a-z0-9_.-]+))', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
@@ -336,13 +337,13 @@ class PackageFinder(object):
         if not match:
             logger.debug('Could not parse version from link: %s' % link)
             return None
-        name = match.group(0).lower()
+        name = match.group('name').lower()
         # To match the "safe" name that pkg_resources creates:
         name = name.replace('_', '-')
         # project name and version must be separated by a dash
         look_for = search_name.lower() + "-"
         if name.startswith(look_for):
-            return match.group(0)[len(look_for):]
+            return match.group('name')[len(look_for):]
         else:
             return None
 
