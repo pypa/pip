@@ -97,22 +97,15 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         match_hostname(self.sock.getpeercert(), self.host)
 
 
-class VerifiedHTTPSHandler(urllib2.HTTPSHandler, urllib2.HTTPHandler):
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
     """
     A HTTPSHandler that wraps connections with ssl certificate verification.
-    By inheriting from both HTTPSHandler and HTTPHandler, this overrides
-    the default https *and* http handlers during the 'build_opener' routine.
-    We specifically *don't* want a http handler in the chain of handlers
-    to prevent MITM attacks that spoof https servers with http content.
     """
     def __init__(self, connection_class = VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
         urllib2.HTTPSHandler.__init__(self)
     def https_open(self, req):
         return self.do_open(self.specialized_conn_class, req)
-    def http_open(self, req):
-        #this should not be called.
-        raise PipError("This handler is only for https")
 
 
 class URLOpener(object):
@@ -181,7 +174,12 @@ class URLOpener(object):
         if kwargs.get('scheme') == 'https':
             if ssl:
                 https_handler = VerifiedHTTPSHandler()
-                return urllib2.build_opener(https_handler, *args)
+                director =  urllib2.build_opener(https_handler, *args)
+                #strip out HTTPHandler to prevent MITM spoof
+                for handler in director.handlers:
+                    if isinstance(handler, urllib2.HTTPHandler):
+                        director.handlers.remove(handler)
+                return director
             elif os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
                 return urllib2.build_opener(*args)
             else:
