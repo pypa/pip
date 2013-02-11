@@ -107,7 +107,11 @@ def install_setuptools(env):
 env = None
 
 
-def reset_env(environ=None, use_distribute=None, system_site_packages=False, sitecustomize=None):
+def reset_env(environ=None,
+              use_distribute=None,
+              system_site_packages=False,
+              sitecustomize=None,
+              allow_no_ssl=True):
     """Return a test environment.
 
     Keyword arguments:
@@ -115,6 +119,7 @@ def reset_env(environ=None, use_distribute=None, system_site_packages=False, sit
     use_distribute: use distribute, not setuptools.
     system_site_packages: create a virtualenv that simulates --system-site-packages.
     sitecustomize: a string containing python code to add to sitecustomize.py.
+    allow_no_ssl: how to set the --allow-no-ssl option for py25 tests.
     """
 
     global env
@@ -130,6 +135,10 @@ def reset_env(environ=None, use_distribute=None, system_site_packages=False, sit
         #to create a 'system-site-packages' virtualenv
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
+
+    if sys.version_info[:2] == (2, 5) and (not ssl) and allow_no_ssl:
+        #allow py25 tests to work
+        env.environ['PIP_ALLOW_NO_SSL'] = '1'
 
     return env
 
@@ -192,10 +201,14 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, with_files=[], without_files=[], without_egg_link=False, use_user_site=False):
+    def assert_installed(self, pkg_name, editable=True, with_files=[], without_files=[], without_egg_link=False, use_user_site=False):
         e = self.test_env
 
-        pkg_dir = e.venv/ 'src'/ pkg_name.lower()
+        if editable:
+            pkg_dir = e.venv/ 'src'/ pkg_name.lower()
+        else:
+            without_egg_link = True
+            pkg_dir = e.site_packages / pkg_name
 
         if use_user_site:
             egg_link_path = e.user_site / pkg_name + '.egg-link'
@@ -540,9 +553,6 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
 
 def run_pip(*args, **kw):
-    if sys.version_info[:2] == (2, 5) and not ssl:
-        #allow py25 tests to work
-        env.environ['PIP_ALLOW_NO_SSL'] = '1'
     result = env.run('pip', *args, **kw)
     ignore = []
     for path, f in result.files_before.items():

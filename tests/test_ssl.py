@@ -20,6 +20,7 @@ class Tests_py25:
             raise SkipTest()
 
     def teardown(self):
+        #make sure this is set back for other tests
         os.environ['PIP_ALLOW_NO_SSL'] = '1'
 
     def test_https_fails(self):
@@ -45,6 +46,29 @@ class Tests_py25:
         os.environ['PIP_ALLOW_NO_SSL'] = ''
         response = urlopen.get_opener().open(pypi_http)
         assert response.code == 200, str(dir(response))
+
+    def test_install_fails_with_no_ssl_backport(self):
+        """
+        Test installing w/o ssl backport fails
+        """
+        reset_env(allow_no_ssl=False)
+        #expect error because ssl's setup.py is hard coded to install test data to global prefix
+        result = run_pip('install', 'INITools', expect_error=True)
+        assert "You don't have an importable ssl module" in result.stdout
+
+    def test_install_with_ssl_backport(self):
+        """
+        Test installing with ssl backport
+        """
+        # allow_no_ssl=True so we can install ssl first
+        env = reset_env(allow_no_ssl=True)
+        #expect error because ssl's setup.py is hard coded to install test data to global prefix
+        result = run_pip('install', 'ssl', expect_error=True)
+
+        #set it back to false
+        env.environ['PIP_ALLOW_NO_SSL'] = ''
+        result = run_pip('install', 'INITools', expect_error=True)
+        result.assert_installed('initools', editable=False)
 
 
 class Tests_not_py25:
