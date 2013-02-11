@@ -8,7 +8,7 @@ import shutil
 import sys
 import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
-                                urlparse, string_types)
+                                urlparse, string_types, ConfigParser)
 from pip.exceptions import InstallationError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
@@ -21,7 +21,6 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
-
 
 xmlrpclib_transport = xmlrpclib.Transport()
 
@@ -70,6 +69,7 @@ class URLOpener(object):
     """
     pip's own URL helper that adds HTTP auth and proxy support
     """
+
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
@@ -109,20 +109,41 @@ class URLOpener(object):
         """
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
         req = self.get_request(url)
+        if username is None:
+            username, password = self.passman.find_user_password(None, netloc)
 
-        stored_username, stored_password = self.passman.find_user_password(None, netloc)
-        # see if we have a password stored
-        if stored_username is None:
+        if username:
+            logger.debug("Protected repository `%s`: using `%s` credentials" % (netloc, username))
+        else:
+            logger.debug("Protected repository `%s`: no credentials found" % netloc)
+        retry = 0
+        while retry < 3:
+            retry += 1
             if username is None and self.prompting:
-                username = urllib.quote(raw_input('User for %s: ' % netloc))
+                username = urllib.quote(getpass.getuser('User for %s: ' % netloc))
                 password = urllib.quote(getpass.getpass('Password: '))
             if username and password:
                 self.passman.add_password(None, netloc, username, password)
-            stored_username, stored_password = self.passman.find_user_password(None, netloc)
-        authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
-        # FIXME: should catch a 401 and offer to let the user reenter credentials
-        return opener.open(req)
+
+            if username:
+                authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
+                opener = urllib2.build_opener(authhandler)
+                try:
+                    return opener.open(req)
+                except urllib2.HTTPError:
+                    e = sys.exc_info()[1]
+                    if e.code == 401:
+                        if self.prompting:
+                            logger.error("Protected repository `%s`: invalid credentials" % netloc)
+                            username = None
+                        else:
+                            logger.fatal("Protected repository `%s`: unable to login" % netloc)
+                            raise e
+                    else:
+                        raise e
+                except KeyboardInterrupt:
+                    return None
+        raise urllib2.HTTPError(url, 401, "Not Authorized", None, None)
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -136,6 +157,10 @@ class URLOpener(object):
             proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
             opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
             urllib2.install_opener(opener)
+        try:
+            self._read_pypirc()
+        except ConfigParser.ParsingError:
+            logger.warn("Unable to parse .pypirc file")
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
@@ -152,6 +177,7 @@ class URLOpener(object):
         Returns a tuple:
             (url-without-auth, username, password)
         """
+
         if isinstance(url, urllib2.Request):
             result = urlparse.urlsplit(url.get_full_url())
         else:
@@ -196,6 +222,38 @@ class URLOpener(object):
                 return proxystr
         else:
             return None
+
+    def _get_pypirc(self):
+
+        rc = os.environ.get('PIP_PYPIRC',
+                            os.path.join(os.path.expanduser('~'), '.pypirc'))
+        logger.debug("Using `%s` as `.pypirc`" % rc)
+        return rc
+
+    def _read_pypirc(self):
+        """Reads the .pypirc file."""
+        rc = self._get_pypirc()
+        if os.path.exists(rc):
+            config = ConfigParser.ConfigParser()
+            config.read(rc)
+            sections = config.sections()
+            if 'distutils' in sections:
+                index_servers = config.get('distutils', 'index-servers')
+                _servers = [server.strip() for server in index_servers.split('\n') if server.strip() != '']
+                for server in _servers:
+                    if config.has_option(server, 'repository'):
+                        scheme, netloc, path, query, frag = urlparse.urlsplit(config.get(server, 'repository'))
+                    else:
+                        scheme, netloc, path, query, frag = urlparse.urlsplit(server)
+                    credentials = {'realm': None,
+                                   'uri': netloc,
+                                   'passwd': ''}# allow blank password
+                    if config.has_option(server, 'username'):
+                        credentials['user'] = config.get(server, 'username')
+                        if config.has_option(server, 'password'):
+                            credentials['passwd'] = config.get(server, 'password')
+                        self.passman.add_password(**credentials)
+
 
 urlopen = URLOpener()
 
@@ -325,7 +383,7 @@ def is_file_url(link):
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
         logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.digest_size, link, link.hash_name))
+                     % (download_hash.digest_size, link, link.hash_name))
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
@@ -363,7 +421,7 @@ def _download_url(resp, link, temp_location):
     except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
-    show_progress = total_length > 40*1000 or not total_length
+    show_progress = total_length > 40 * 1000 or not total_length
     show_url = link.show_url
     try:
         if show_progress:
@@ -385,7 +443,7 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
@@ -439,7 +497,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     if (target_file
         and os.path.exists(target_file)
         and os.path.exists(target_file + '.content-type')):
-        fp = open(target_file+'.content-type')
+        fp = open(target_file + '.content-type')
         content_type = fp.read().strip()
         fp.close()
         if link.hash and link.hash_name:
