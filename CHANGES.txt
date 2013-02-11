@@ -5,7 +5,7 @@ develop (unreleased)
 --------------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland and many others (Pull #789).
+  Thanks James Cleveland, Giovanni Bajo and many others (Pull #789).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
