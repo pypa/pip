@@ -18,6 +18,7 @@ David (d1b)
 Dmitry Gladkov
 Donald Stufft
 Francesco
+Geoffrey Lehée
 Georgi Valkov
 Hugo Lopes Tavares
 Ian Bicking
