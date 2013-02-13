@@ -150,3 +150,98 @@ def test_log_file_no_directory():
     fp.close()
     assert os.path.exists(fp.name)
     os.remove(fp.name)
+
+
+def test_get_config_files():
+    """
+    Test the loading of local config files
+
+    """
+    from pip.baseparser import ConfigOptionParser
+    from pip.locations import default_config_file, default_config_file_name
+    parser = ConfigOptionParser(name = "test")
+    local_config_path = os.path.abspath(default_config_file_name)
+    fp = None
+    if not os.path.exists(default_config_file_name):
+        fp = open(default_config_file_name, "w")
+    files = parser.get_config_files()
+    if fp:
+        fp.close()
+        os.remove(fp.name)
+    assert [default_config_file, local_config_path] == files
+
+
+def test_multiple_configs():
+    """
+    Test the support of multiple config files, and the config files precedence 
+
+    """
+    fd1, config_file1 = tempfile.mkstemp('-pip.cfg', 'test1-')
+    fd2, config_file2 = tempfile.mkstemp('-pip.cfg', 'test1-')
+    try:
+        _test_multiple_configs(config_file1, config_file2)
+    finally:
+        os.close(fd1)
+        os.remove(config_file1)
+        os.close(fd2)
+        os.remove(config_file2)
+
+def _test_multiple_configs(config1, config2):
+    from pip.baseparser import ConfigOptionParser
+    write_file(config1, textwrap.dedent("""\
+        [global]
+        no-index = 1
+        index-url = http://download.zope.org/ppix
+        """))
+    write_file(config2, textwrap.dedent("""\
+        [global]
+        no-index = 0
+        """))
+    parser = ConfigOptionParser(name="test")
+    parser.read_config_files([config1, config2])
+    no_index = parser.config.get("global", "no-index")
+    index_url = parser.config.get("global", "index-url")
+    assert "0" == no_index
+    assert "http://download.zope.org/ppix" == index_url
+
+def test_substitute_config_value():
+    """
+    Test the config placeholders and their substitutions
+
+    """
+    from pip.baseparser import ConfigOptionParser
+    parser = ConfigOptionParser(name="test")
+    file_ = os.path.abspath("pip.ini")
+    assert "".join(["--",file_,"--"]) == parser.substitute_config_value("--%(file)s--", file_)
+    assert "".join(["--", os.path.dirname(file_), "--"]) == parser.substitute_config_value("--%(here)s--", file_)
+    assert "".join(["--",os.getcwd(),"--"]) == parser.substitute_config_value("--%(cwd)s--", file_)
+
+def test_update_sys_path():
+    """
+    Test the directive for appending paths to the sys.path
+
+    """
+    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
+    dir_ = tempfile.mkdtemp("-pip", "test-")
+    try:
+        _test_update_sys_path(config_file, dir_)
+    finally:
+        os.close(fd)
+        os.remove(config_file)
+        os.rmdir(dir_)
+
+def _test_update_sys_path(config_file, dir_):
+    environ = clear_environ(os.environ.copy())
+    environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
+    reset_env(environ)
+    config = """\
+        [global]
+        sys.path = %s
+        """ % dir_ 
+    write_file(config_file, textwrap.dedent(config))
+    result = run_pip('install', '-vvv', 'INITools', expect_error=True)
+    import sys
+    assert dir_ in sys.path
+
+
+
