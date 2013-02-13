@@ -43,7 +43,6 @@ class ListCommand(Command):
             default=False,
             help='If in a virtualenv that has global access, do not list globally-installed packages.')
 
-
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -121,6 +120,7 @@ class ListCommand(Command):
         self.output_package_listing(installed_packages)
 
     def output_package_listing(self, installed_packages):
+        installed_packages = sorted(installed_packages, key=lambda dist: dist.project_name.lower())
         for dist in installed_packages:
             if dist_is_editable(dist):
                 line = '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
