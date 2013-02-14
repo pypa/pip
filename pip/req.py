@@ -305,7 +305,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
-                raise InstallationError('No files/directores in %s (from %s)' % (base, filename))
+                raise InstallationError('No files/directories in %s (from %s)' % (base, filename))
             assert filenames, "No files/directories in %s (from %s)" % (base, filename)
 
             # if we have more than one match, we pick the toplevel one.  This can
@@ -849,7 +849,7 @@ class RequirementSet(object):
         else:
             if self.has_requirement(name):
                 raise InstallationError(
-                    'Double requirement given: %s (aready in %s, name=%r)'
+                    'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
             self.requirements[name] = install_req
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
