@@ -68,7 +68,7 @@ pip requires a working VCS command on your path: git, hg, svn, or bzr.
 
 VCS projects can be installed in :ref:`editable mode <editable-installs>` (using the :ref:`--editable <install_--editable>` option) or not.
 
-* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global intalls.
+* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global installs.
   The :ref:`--src <install_--src>` option can be used to modify this location.
 * For non-editable installs, the project is built locally in a temp dir and then installed normally.
 
@@ -153,8 +153,8 @@ See the :ref:`pip install Examples<pip install Examples>`.
 Hash Verification
 =================
 
-PyPI provides a md5 hash of a package by having the link to the
-package include a #md5=<hash>.
+PyPI provides an md5 hash of a package by having the link to the
+package include an #md5=<hash>.
 
 pip supports checking this, as well as any of the
 guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
