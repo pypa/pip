@@ -162,11 +162,12 @@ class Command(object):
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             try:
-               log_fp = open_logfile(log_fn, 'w')
+                log_fp = open_logfile(log_fn, 'w')
             except IOError:
-               temp = tempfile.NamedTemporaryFile(delete=False)
-               log_fn = temp.name
-               log_fp = open_logfile(log_fn, 'w')
+                # this is kind of awkward, but seems to be necessary
+                # for python 2.5 compatibility
+                _log_fd, log_fn = tempfile.mkstemp()
+                log_fp = open_logfile(log_fn, 'w')
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp.write(text)
             log_fp.close()
