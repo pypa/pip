@@ -29,6 +29,7 @@ Jannis Leidel
 Jay Graves
 John-Scott Atlakson
 Jon Parise
+Jonas Nockert
 Josh Bronson
 Kamal Bin Mustafa
 Kelsey Hightower
