@@ -1,8 +1,6 @@
 import pip.download
-from pip.commands.search import (compare_versions,
-                                 highest_version,
-                                 transform_hits,
-                                 SearchCommand)
+from pip.util import compare_versions, highest_version
+from pip.commands.search import transform_hits, SearchCommand
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
 from pip.baseparser import create_main_parser

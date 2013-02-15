@@ -3,12 +3,11 @@ import textwrap
 import pkg_resources
 import pip.download
 from pip.basecommand import Command, SUCCESS
-from pip.util import get_terminal_size
+from pip.util import get_terminal_size, highest_version
 from pip.log import logger
-from pip.backwardcompat import xmlrpclib, reduce, cmp
+from pip.backwardcompat import xmlrpclib
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
-from distutils.version import StrictVersion, LooseVersion
 
 
 class SearchCommand(Command):
@@ -109,22 +108,3 @@ def print_results(hits, name_column_width=25, terminal_width=None):
                     logger.indent -= 2
         except UnicodeEncodeError:
             pass
-
-
-def compare_versions(version1, version2):
-    try:
-        return cmp(StrictVersion(version1), StrictVersion(version2))
-    # in case of abnormal version number, fall back to LooseVersion
-    except ValueError:
-        pass
-    try:
-        return cmp(LooseVersion(version1), LooseVersion(version2))
-    except TypeError:
-    # certain LooseVersion comparions raise due to unorderable types,
-    # fallback to string comparison
-        return cmp([str(v) for v in LooseVersion(version1).version],
-                   [str(v) for v in LooseVersion(version2).version])
-
-
-def highest_version(versions):
-    return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)

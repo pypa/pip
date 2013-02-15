@@ -8,10 +8,13 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
+from distutils.version import StrictVersion, LooseVersion
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
+
+from pip.backwardcompat import (WindowsError, string_types, raw_input,
+                                console_to_str, user_site, cmp, reduce)
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -664,3 +667,22 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+
+def compare_versions(version1, version2):
+    try:
+        return cmp(StrictVersion(version1), StrictVersion(version2))
+    # in case of abnormal version number, fall back to LooseVersion
+    except ValueError:
+        pass
+    try:
+        return cmp(LooseVersion(version1), LooseVersion(version2))
+    except TypeError:
+    # certain LooseVersion comparions raise due to unorderable types,
+    # fallback to string comparison
+        return cmp([str(v) for v in LooseVersion(version1).version],
+                   [str(v) for v in LooseVersion(version2).version])
+
+
+def highest_version(versions):
+    return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
