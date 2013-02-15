@@ -7,7 +7,7 @@ import pkg_resources
 from mock import Mock, patch
 from nose.tools import eq_
 from tests.path import Path
-from pip.util import egg_link_path, Inf, get_installed_distributions, dist_is_editable
+from pip.util import egg_link_path, Inf, get_installed_distributions, dist_is_editable, uniqify
 
 
 class Tests_EgglinkPath:
@@ -196,6 +196,8 @@ class Tests_get_installed_distributions:
         assert len(dists) == 3
 
 
-
-
-
+def test_uniqify():
+    assert list(uniqify('123')) == ['1', '2', '3']
+    assert list(uniqify('112223333')) == ['1', '2', '3']
+    assert list(uniqify(['abc', 'zxc', 'AbC', 'ZXC'], str.upper)) == \
+           ['abc', 'zxc']

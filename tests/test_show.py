@@ -57,7 +57,7 @@ def test_missing_argument():
     """
     reset_env()
     result = run_pip('show')
-    assert 'ERROR: Please provide a package name or names.' in result.stdout
+    assert 'ERROR: Please provide one or more package names.' in result.stdout
 
 
 def test_find_package_not_found():

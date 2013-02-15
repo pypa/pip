@@ -686,3 +686,17 @@ def compare_versions(version1, version2):
 
 def highest_version(versions):
     return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
+
+
+def uniqify(seq, key=None):
+    "Yield only unique items from sequence."
+    if not key:
+        key = lambda x: x
+
+    seen = set()
+    for item in seq:
+        mark = key(item)
+        if mark in seen:
+            continue
+        seen.add(mark)
+        yield item
