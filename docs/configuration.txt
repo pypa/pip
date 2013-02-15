@@ -15,6 +15,8 @@ platforms.
 * On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
+You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
+
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the
 HTTP timeout (``--default-timeout``) to 60 seconds your config file would
