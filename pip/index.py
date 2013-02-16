@@ -429,17 +429,6 @@ class HTMLPage(object):
                 if cache is not None:
                     if cache.is_archive(url):
                         return None
-                filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url)
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
             logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
@@ -455,6 +444,17 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
+
+            if skip_archives:
+                filename = Link(real_url).filename
+                if filename.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tgz', 'zip')):
+                    content_type = headers.get('content-type', '').lower()
+                    if not content_type.startswith('text/html'):
+                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                        if cache is not None:
+                            cache.set_is_archive(url)
+                        return None
+
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
@@ -498,24 +498,6 @@ class HTMLPage(object):
         if cache is not None:
             cache.add_page([url, real_url], inst)
         return inst
-
-    @staticmethod
-    def _get_content_type(url):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
-            return ''
-        req = Urllib2HeadRequest(url, headers={'Host': netloc})
-        resp = urlopen(req)
-        try:
-            if hasattr(resp, 'code') and resp.code != 200 and scheme not in ('ftp', 'ftps'):
-                ## FIXME: doesn't handle redirects
-                return ''
-            return resp.info().get('content-type', '')
-        finally:
-            resp.close()
 
     @property
     def base_url(self):
