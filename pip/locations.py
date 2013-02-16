@@ -8,7 +8,7 @@ import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
-explicit_paths = []
+explicit_paths = [] # all paths that were defined explicitly in the config with the `sys.path` directive
 def add_explicit_path(path):
     explicit_paths.append(path)
 
