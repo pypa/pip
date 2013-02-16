@@ -23,7 +23,7 @@ from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname, ssl
+                                product, url2pathname, ssl,
                                 Empty as QueueEmpty)
 if ssl:
     from pip.backwardcompat import CertificateError
