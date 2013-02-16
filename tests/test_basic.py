@@ -99,7 +99,7 @@ def test_install_from_mirrors_with_specific_mirrors():
     Test installing a package from a specific PyPI mirror.
     """
     e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://d.pypi.python.org/", '--no-index', 'INITools==0.2')
+    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
