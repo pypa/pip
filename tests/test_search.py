@@ -4,7 +4,7 @@ from pip.commands.search import transform_hits, SearchCommand
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
 from pip.baseparser import create_main_parser
-from mock import Mock
+from mock import Mock, patch
 from tests.test_pip import run_pip, reset_env, pyversion
 from tests.pypi_server import assert_equal
 
@@ -74,23 +74,27 @@ def test_multiple_search():
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
 
-def test_searching_through_Search_class():
+@patch('pip.download.xmlrpclib_transport')
+def test_searching_through_Search_class(transport):
     """
     Verify if ``pip.vcs.Search`` uses tests xmlrpclib.Transport class
     """
-    original_xmlrpclib_transport = pip.download.xmlrpclib_transport
-    pip.download.xmlrpclib_transport = fake_transport = Mock()
+
     query = 'mylittlequerythatdoesnotexists'
-    dumped_xmlrpc_request = b(xmlrpclib.dumps(({'name': query, 'summary': query}, 'or'), 'search'))
-    expected = [{'_pypi_ordering': 100, 'name': 'foo', 'summary': 'foo summary', 'version': '1.0'}]
-    fake_transport.request.return_value = (expected,)
-    pypi_searcher = SearchCommand(create_main_parser())
-    result = pypi_searcher.search(query, 'http://pypi.python.org/pypi')
-    try:
-        assert expected == result, result
-        fake_transport.request.assert_called_with('pypi.python.org', '/pypi', dumped_xmlrpc_request, verbose=VERBOSE_FALSE)
-    finally:
-        pip.download.xmlrpclib_transport = original_xmlrpclib_transport
+    expected = [{'_pypi_ordering': 100, 'name': 'foo',
+                 'summary': 'foo summary', 'version': '1.0'}]
+    transport.request.return_value = (expected,)
+
+    cmd = SearchCommand(create_main_parser())
+    result = cmd.search(query, 'http://pypi.python.org/pypi')
+
+    assert expected == result, result
+
+    request = ({'name': query, 'summary': query}, 'or')
+    dumped_xmlrpc_request = b(xmlrpclib.dumps(request, 'search'))
+    transport.request.assert_called_with('pypi.python.org', '/pypi',
+                                         dumped_xmlrpc_request,
+                                         verbose=VERBOSE_FALSE)
 
 
 def test_search_missing_argument():
