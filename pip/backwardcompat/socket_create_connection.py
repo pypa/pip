@@ -1,11 +1,11 @@
 """
-patches for py25 socket to work with http://pypi.python.org/pypi/ssl/
-inspired from https://gist.github.com/zed/1347055
+patch for py25 socket to work with http://pypi.python.org/pypi/ssl/
+copy-paste from py2.6 stdlib socket.py
+https://gist.github.com/zed/1347055
 """
 import socket
 
 _GLOBAL_DEFAULT_TIMEOUT = getattr(socket, '_GLOBAL_DEFAULT_TIMEOUT', object())
-# copy-paste from stdlib's socket.py (py2.6)
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
                       source_address=None):
     """Connect to *address* and return the socket object.

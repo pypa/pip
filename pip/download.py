@@ -70,36 +70,45 @@ _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+    """
+    A connection that wraps connections with ssl certificate verification.
+    """
     def connect(self):
-        cert_path = os.environ.get('PIP_CERT_PATH', '') or default_cert_path
-        # overrides the version in httplib so that we do
-        #    certificate verification
 
-        args = [(self.host, self.port)]
+        self.connection_kwargs = {}
+
+        #TODO: refactor compatibility logic into backwardcompat?
+
+        # for > py2.5
         if hasattr(self, 'timeout'):
-            args.append(self.timeout)
+            self.connection_kwargs.update(timeout = self.timeout)
+
+        # for >= py2.7
         if hasattr(self, 'source_address'):
-            args.append(self.source_address)
+            self.connection_kwargs.update(source_address = self.source_address)
 
-        sock = socket.create_connection(*args)
+        sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
 
+        # for >= py2.7
         if getattr(self, '_tunnel_host', None):
             self.sock = sock
             self._tunnel()
 
-        # wrap the socket using verification with the root
-        #    certs in trusted_root_certs
+        # get alternate bundle or use our included bundle
+        cert_path = os.environ.get('PIP_CERT_PATH', '') or default_cert_path
+
         self.sock = ssl.wrap_socket(sock,
                                 self.key_file,
                                 self.cert_file,
                                 cert_reqs=ssl.CERT_REQUIRED,
                                 ca_certs=cert_path)
+
         match_hostname(self.sock.getpeercert(), self.host)
 
 
 class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
     """
-    A HTTPSHandler that wraps connections with ssl certificate verification.
+    A HTTPSHandler that uses our own VerifiedHTTPSConnection.
     """
     def __init__(self, connection_class = VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
