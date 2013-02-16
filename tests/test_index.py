@@ -36,7 +36,7 @@ def test_html_page_should_be_able_to_scrape_from_latin1_html():
     Test non UTF-8 page can be scraped.
     """
     page = HTMLPage(b("""This page contains non ascii byte.
-    and encoded in latin1 encoding. ･""").decode('utf-8').encode('latin1'))
+    and encoded in latin1 encoding. ·""").decode('utf-8').encode('latin1'))
     links = list(page.scraped_rel_links())
     assert len(links) == 1
     #assert not raising UnicodeError
