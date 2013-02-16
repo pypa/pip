@@ -384,7 +384,7 @@ def get_installed_distributions(local_only=True,
     else:
         editables_only_test = lambda d: True
 
-    return [d for d in pkg_resources.working_set
+    return [d for d in pkg_resources.WorkingSet()
             if local_test(d)
             and d.key not in skip
             and editable_test(d)
