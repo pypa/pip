@@ -1,6 +1,5 @@
 # coding: utf-8
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
-from pip.backwardcompat import b, unichr
 from string import ascii_lowercase
 from mock import patch
 
@@ -30,16 +29,6 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     assert len(links) == 1
     assert links[0].url == 'http://supervisord.org/'
 
-
-def test_html_page_should_be_able_to_scrape_from_latin1_html():
-    """
-    Test non UTF-8 page can be scraped.
-    """
-    content = b("""This page contains non ascii byte.""").decode('utf-8') + unichr(0xb7)
-    page = HTMLPage(content.encode('latin1'))
-    links = list(page.scraped_rel_links())
-    assert len(links) == 1
-    #assert not raising UnicodeError
 
 @patch('socket.gethostbyname_ex')
 def test_get_mirrors(mock_gethostbyname_ex):

@@ -52,7 +52,6 @@ if sys.version_info >= (3,):
     def fwrite(f, s):
         f.buffer.write(b(s))
 
-    unichr = chr
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -83,7 +82,6 @@ else:
 
     bytes = str
     string_types = (basestring,)
-    unichr = unichr
     reduce = reduce
     cmp = cmp
     raw_input = raw_input

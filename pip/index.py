@@ -21,7 +21,7 @@ from pip.util import normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, httplib, urlparse,
-                                URLError, HTTPError, b, u,
+                                URLError, HTTPError, u,
                                 product, url2pathname)
 from pip.backwardcompat import Empty as QueueEmpty
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
@@ -391,12 +391,12 @@ class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     ## FIXME: these regexes are horrible hacks:
-    _homepage_re = re.compile(b(r'<th>\s*home\s*page'), re.I)
-    _download_re = re.compile(b(r'<th>\s*download\s+url'), re.I)
+    _homepage_re = re.compile(r'<th>\s*home\s*page', re.I)
+    _download_re = re.compile(r'<th>\s*download\s+url', re.I)
     ## These aren't so aweful:
-    _rel_re = re.compile(b("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>"""), re.I)
-    _href_re = re.compile(b('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))'), re.I|re.S)
-    _base_re = re.compile(b(r"""<base\s+href\s*=\s*['"]?([^'">]+)"""), re.I)
+    _rel_re = re.compile("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>""", re.I)
+    _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
+    _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
     def __init__(self, content, url, headers=None):
         self.content = content
@@ -463,7 +463,12 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            inst = cls(contents, real_url, headers)
+            try:
+                inst = cls(u(contents), real_url, headers)
+            except UnicodeDecodeError:
+                # Python 3 raises this error when page is not utf-8.
+                # fallback to latin1. Decoding latin1 should not raise UnicodeError.
+                inst = cls(contents.decode('latin1'), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -527,11 +532,6 @@ class HTMLPage(object):
         """Yields all links in the page"""
         for match in self._href_re.finditer(self.content):
             url = match.group(1) or match.group(2) or match.group(3)
-            try:
-                url = u(url)
-            except UnicodeError:
-                logger.warn("Can't declode link url: %r" % (url,))
-                continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
