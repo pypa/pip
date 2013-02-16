@@ -1,8 +1,8 @@
 .. _`pip logic`:
 
-===================
+================
 Internal Details
-===================
+================
 
 .. _`Requirements File Format`:
 
@@ -141,9 +141,10 @@ Tags or revisions can be installed like this::
 Finding Packages
 ================
 
-pip searches for packages on `PyPI <http://pypi.python.org>`_ using the `http simple interface <http://pypi.python.org/simple>`_,
+pip searches for packages on `PyPI <http://pypi.python.org>`_ using the
+`http simple interface <http://pypi.python.org/simple>`_,
 which is documented `here <http://packages.python.org/distribute/easy_install.html#package-index-api>`_
-and `here <http://www.python.org/dev/peps/pep-0301/>`_
+and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a set of :ref:`Package Index Options <Package Index Options>` for modifying how packages are found.
 
