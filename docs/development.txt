@@ -63,23 +63,34 @@ This process includes virtualenv, since pip releases necessitate a virtualenv re
 :<oldv>/<newv>: refers to the old and new versions of virtualenv.
 
 1. Upgrade distribute, if needed:
+
  #. Upgrade distribute in ``virtualenv:develop`` using the :ref:`Refresh virtualenv` process.
  #. Create a pull request against ``pip:develop`` with a modified ``.travis.yml`` file that installs virtualenv from ``virtualenv:develop``, to confirm the travis builds are still passing.
-3. Create Release branches:
+
+2. Create Release branches:
+
  #. Create ``pip:<newp>`` branch.
  #. In ``pip:develop``, change ``pip.version`` to '<newp>.post1'.
  #. Create ``virtualenv:<newv>`` branch.
  #. In ``virtualenv:develop``, change ``virtualenv.version`` to '<newv>.post1'.
-4. Prepare "rcX":
+
+3. Prepare "rcX":
+
  #. In ``pip:<newp>``, change ``pip.version`` to '<newp>rcX', and tag with '<newp>rcX'.
  #. Build a pip sdist from ``pip:<newp>``, and build it into ``virtualenv:<newv>`` using the :ref:`Refresh virtualenv` process.
  #. In ``virtualenv:<newv>``, change ``virtualenv.version`` to '<newv>rcX', and tag with '<newv>rcX'.
-5. Announce ``pip-<newp>rcX`` and ``virtualenv-<newv>rcX`` with the :ref:`RC Install Instructions` and elicit feedback.
-6. Apply fixes to 'rcX':
+
+4. Announce ``pip-<newp>rcX`` and ``virtualenv-<newv>rcX`` with the :ref:`RC Install Instructions` and elicit feedback.
+
+5. Apply fixes to 'rcX':
+
  #. Apply fixes to ``pip:<newp>`` and ``virtualenv:<newv>``
  #. Periodically merge fixes to ``pip:develop`` and ``virtualenv:develop``
-7. Repeat #4 thru #6 if needed.
-8. Final Release:
+
+6. Repeat #4 thru #6 if needed.
+
+7. Final Release:
+
  #. In ``pip:<newp>``, change ``pip.version`` to '<newp>', and tag with '<newp>'.
  #. Merge ``pip:<newp>`` to ``pip:master``.
  #. Build a pip sdist from ``pip:<newp>``, and load it into ``virtualenv:<newv>`` using the :ref:`Refresh virtualenv` process.

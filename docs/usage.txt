@@ -158,6 +158,7 @@ Examples
 ********
 
 1) Uninstall a package.
+
   ::
 
     $ pip uninstall simplejson

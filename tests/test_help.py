@@ -1,8 +1,7 @@
 from pip.exceptions import CommandError
 from pip.baseparser import create_main_parser
-from pip.commands.help import (HelpCommand,
-                               SUCCESS,
-                               ERROR,)
+from pip.basecommand import ERROR, SUCCESS
+from pip.commands.help import HelpCommand
 from pip.commands import commands
 from mock import Mock
 from nose.tools import assert_raises

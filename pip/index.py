@@ -5,27 +5,28 @@ import os
 import re
 import gzip
 import mimetypes
-try:
-    import threading
-except ImportError:
-    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
 import socket
 import string
 import zlib
+
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
+
 from pip.log import logger
-from pip.util import Inf
-from pip.util import normalize_name, splitext
+from pip.util import Inf, normalize_name, splitext
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname, ssl)
+                                product, url2pathname, ssl
+                                Empty as QueueEmpty)
 if ssl:
     from pip.backwardcompat import CertificateError
-from pip.backwardcompat import Empty as QueueEmpty
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 
 __all__ = ['PackageFinder']

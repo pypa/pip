@@ -64,10 +64,16 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # leave full control over description to us
         if description:
             if hasattr(self.parser, 'main'):
-                label = 'Commands:'
+                label = 'Commands'
             else:
-                label = 'Description:'
-            description = label + ' %s\n' % self.indent_lines(textwrap.dedent(description), "  ")
+                label = 'Description'
+            #some doc strings have inital newlines, some don't
+            description = description.lstrip('\n')
+            #some doc strings have final newlines and spaces, some don't
+            description = description.rstrip()
+            #dedent, then reindent
+            description = self.indent_lines(textwrap.dedent(description), "  ")
+            description = '%s:\n%s\n' % (label, description)
             return description
         else:
             return ''
@@ -222,11 +228,11 @@ except pkg_resources.DistributionNotFound:
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '\n%prog <command> [options]',
-        'add_help_option' : False,
-        'formatter' : UpdatingDefaultsHelpFormatter(),
-        'name' : 'global',
-        'prog' : get_prog(),
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)
