@@ -1,6 +1,6 @@
 # coding: utf-8
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
-from pip.backwardcompat import b
+from pip.backwardcompat import b, unichr
 from string import ascii_lowercase
 from mock import patch
 
@@ -35,8 +35,8 @@ def test_html_page_should_be_able_to_scrape_from_latin1_html():
     """
     Test non UTF-8 page can be scraped.
     """
-    page = HTMLPage(b("""This page contains non ascii byte.
-    and encoded in latin1 encoding. ·""").decode('utf-8').encode('latin1'))
+    content = b("""This page contains non ascii byte.""").decode('utf-8') + unichr(0xb7)
+    page = HTMLPage(content.encode('latin1'))
     links = list(page.scraped_rel_links())
     assert len(links) == 1
     #assert not raising UnicodeError
