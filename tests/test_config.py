@@ -186,7 +186,12 @@ def test_multiple_configs():
         os.close(fd2)
         os.remove(config_file2)
 
+
 def _test_multiple_configs(config1, config2):
+    """
+    Test the ability to have multiple config files override each other
+
+    """
     from pip.baseparser import ConfigOptionParser
     write_file(config1, textwrap.dedent("""\
         [global]
@@ -204,6 +209,7 @@ def _test_multiple_configs(config1, config2):
     assert "0" == no_index
     assert "http://download.zope.org/ppix" == index_url
 
+
 def test_substitute_config_value():
     """
     Test the config placeholders and their substitutions
@@ -216,32 +222,35 @@ def test_substitute_config_value():
     assert "".join(["--", os.path.dirname(file_), "--"]) == parser.substitute_config_value("--%(here)s--", file_)
     assert "".join(["--",os.getcwd(),"--"]) == parser.substitute_config_value("--%(cwd)s--", file_)
 
+
 def test_update_sys_path():
     """
     Test the directive for appending paths to the sys.path
 
     """
+    import sys
+    old_paths = list(sys.path)
     fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    dir_ = tempfile.mkdtemp("-pip", "test-")
+    path = tempfile.mkdtemp('-pip', 'test-')
     try:
-        _test_update_sys_path(config_file, dir_)
+        _test_update_sys_path(config_file, path)
     finally:
+        sys.path = old_paths
         os.close(fd)
         os.remove(config_file)
-        os.rmdir(dir_)
+        os.rmdir(path)
 
-def _test_update_sys_path(config_file, dir_):
-    environ = clear_environ(os.environ.copy())
-    environ['PIP_CONFIG_FILE'] = config_file # set this to make pip load it
-    reset_env(environ)
+
+def _test_update_sys_path(config_file, path):
+    import sys
+    from pip.baseparser import ConfigOptionParser
     config = """\
         [global]
         sys.path = %s
-        """ % dir_ 
+        """ % path 
     write_file(config_file, textwrap.dedent(config))
-    result = run_pip('install', '-vvv', 'INITools', expect_error=True)
-    import sys
-    assert dir_ in sys.path
-
-
-
+    parser = ConfigOptionParser(name="test")
+    assert path not in sys.path
+    parser.read_config_files([config_file])
+    parser.update_sys_path()
+    assert path in sys.path
