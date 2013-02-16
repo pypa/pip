@@ -68,7 +68,7 @@ pip requires a working VCS command on your path: git, hg, svn, or bzr.
 
 VCS projects can be installed in :ref:`editable mode <editable-installs>` (using the :ref:`--editable <install_--editable>` option) or not.
 
-* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global intalls.
+* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global installs.
   The :ref:`--src <install_--src>` option can be used to modify this location.
 * For non-editable installs, the project is built locally in a temp dir and then installed normally.
 

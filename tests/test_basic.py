@@ -13,7 +13,7 @@ from pip.exceptions import BadCommand
 from pip.backwardcompat import ssl
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file)
+                            src_folder, write_file, path_to_url)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -105,7 +105,7 @@ def test_install_from_mirrors_with_specific_mirrors():
     Test installing a package from a specific PyPI mirror.
     """
     e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://d.pypi.python.org/", '--no-index', 'INITools==0.2')
+    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -503,10 +503,13 @@ def test_install_package_with_root():
     """
     env = reset_env()
     root_dir = env.scratch_path/'root'
-    result = run_pip('install', '--root', root_dir, "--install-option=--home=''",
-                     '--install-option=--install-lib=lib/python', "initools==0.1")
-
-    assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
+    find_links = path_to_url(os.path.join(here, 'packages'))
+    result = run_pip('install', '--root', root_dir, '-f', find_links, '--no-index', 'simple==1.0')
+    normal_install_path = env.root_path / env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+    #use distutils to change the root exactly how the --root option does it
+    from distutils.util import change_root
+    root_path = change_root(os.path.join(env.scratch, 'root'), normal_install_path)
+    assert root_path in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():

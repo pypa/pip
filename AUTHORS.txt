@@ -18,6 +18,7 @@ David (d1b)
 Dmitry Gladkov
 Donald Stufft
 Francesco
+Geoffrey Lehée
 Georgi Valkov
 Hugo Lopes Tavares
 Ian Bicking
@@ -29,6 +30,7 @@ Jannis Leidel
 Jay Graves
 John-Scott Atlakson
 Jon Parise
+Jonas Nockert
 Josh Bronson
 Kamal Bin Mustafa
 Kelsey Hightower
