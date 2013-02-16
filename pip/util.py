@@ -10,7 +10,7 @@ import tarfile
 import subprocess
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
-from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
+from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global, explicit_paths
 from pip.log import logger
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -307,7 +307,13 @@ def is_local(path):
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+
+    path = normalize_path(path)
+    for explicit_path in explicit_paths: # was this path defined explicitly?
+        if path.startswith(normalize_path(explicit_path)):
+            return True
+
+    return path.startswith(normalize_path(sys.prefix))
 
 
 def dist_is_local(dist):
