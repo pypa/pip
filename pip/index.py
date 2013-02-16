@@ -446,14 +446,12 @@ class HTMLPage(object):
             headers = resp.info()
 
             if skip_archives:
-                filename = Link(real_url).filename
-                if filename.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tgz', 'zip')):
-                    content_type = headers.get('content-type', '').lower()
-                    if not content_type.startswith('text/html'):
-                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                        if cache is not None:
-                            cache.set_is_archive(url)
-                        return None
+                content_type = headers.get('content-type', '').lower()
+                if not content_type.startswith('text/html'):
+                    logger.debug('Skipping page %s because of Content-Type: %s' % (real_url, content_type))
+                    if cache is not None:
+                        cache.set_is_archive(url)
+                    return None
 
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
