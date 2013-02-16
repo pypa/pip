@@ -5,6 +5,7 @@ import optparse
 import pkg_resources
 import os
 import textwrap
+import site
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file, default_config_file_name, add_explicit_path
@@ -255,13 +256,11 @@ class ConfigOptionParser(CustomOptionParser):
         self.exit(2, "%s\n" % msg)
 
     def update_sys_path(self):
-        import pkg_resources
         prev_sys_path = list(sys.path)
         if self.config.has_option('global', 'sys.path'):
             value = self.config.get('global', 'sys.path')
             value = [v.strip() for v in value.splitlines() if v.strip()]
             for path in value:
-                import site
                 site.addsitedir(path)
         for path in sys.path:
             if path not in prev_sys_path:
