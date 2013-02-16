@@ -35,4 +35,3 @@ class BundleCommand(InstallCommand):
         self.bundle_filename = args.pop(0)
         requirement_set = super(BundleCommand, self).run(options, args)
         return requirement_set
-

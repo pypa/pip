@@ -222,11 +222,11 @@ except pkg_resources.DistributionNotFound:
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '\n%prog <command> [options]',
-        'add_help_option' : False,
-        'formatter' : UpdatingDefaultsHelpFormatter(),
-        'name' : 'global',
-        'prog' : get_prog(),
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)

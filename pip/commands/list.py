@@ -1,4 +1,3 @@
-import pkg_resources
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.index import PackageFinder
@@ -17,7 +16,6 @@ class ListCommand(Command):
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
-
 
         cmd_opts = self.cmd_opts
 
@@ -46,7 +44,6 @@ class ListCommand(Command):
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
-
 
     def _build_package_finder(self, options, index_urls):
         """
@@ -133,4 +130,3 @@ class ListCommand(Command):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)
-

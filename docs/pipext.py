@@ -14,6 +14,7 @@ from pip.util import get_prog
 
 class PipCommandUsage(rst.Directive):
     required_arguments = 1
+
     def run(self):
         cmd = commands[self.arguments[0]]
         prog = '%s %s' % (get_prog(), cmd.name)
@@ -21,8 +22,10 @@ class PipCommandUsage(rst.Directive):
         node = nodes.literal_block(usage, usage)
         return [node]
 
+
 class PipCommandDescription(rst.Directive):
     required_arguments = 1
+
     def run(self):
         node = nodes.paragraph()
         node.document = self.state.document
@@ -32,6 +35,7 @@ class PipCommandDescription(rst.Directive):
             desc.append(line, "")
         self.state.nested_parse(desc, 0, node)
         return [node]
+
 
 class PipOptions(rst.Directive):
 
@@ -72,19 +76,24 @@ class PipOptions(rst.Directive):
         self.state.nested_parse(self.view_list, 0, node)
         return [node]
 
+
 class PipGeneralOptions(PipOptions):
     def process_options(self):
         self._format_options(standard_options)
+
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
         self._format_options(cmdoptions.index_group['options'])
 
+
 class PipCommandOptions(PipOptions):
     required_arguments = 1
+
     def process_options(self):
         cmd = commands[self.arguments[0]](create_main_parser())
         self._format_options(cmd.parser.option_groups[0].option_list, cmd_name=cmd.name)
+
 
 def setup(app):
     app.add_directive('pip-command-usage', PipCommandUsage)

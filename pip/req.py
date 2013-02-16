@@ -15,12 +15,11 @@ from pip.exceptions import (InstallationError, UninstallationError,
                             DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree
-from pip.util import ask, ask_path_exists, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite, dist_in_site_packages
-from pip.util import renames, normalize_path, egg_link_path
-from pip.util import make_path_relative
-from pip.util import call_subprocess
+from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
+                      is_installable_dir, is_local, dist_is_local,
+                      dist_in_usersite, dist_in_site_packages, renames,
+                      normalize_path, egg_link_path, make_path_relative,
+                      call_subprocess)
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)

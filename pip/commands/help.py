@@ -1,4 +1,4 @@
-from pip.basecommand import Command, SUCCESS, ERROR
+from pip.basecommand import Command, SUCCESS
 from pip.exceptions import CommandError
 
 

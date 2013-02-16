@@ -1,7 +1,6 @@
 """Base Command class, and related routines"""
 
 import os
-from pkgutil import walk_packages
 import socket
 import sys
 import tempfile
@@ -86,10 +85,10 @@ class Command(object):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
-        level = 1 # Notify
+        level = 1  # Notify
         level += options.verbose
         level -= options.quiet
-        level = logger.level_for_integer(4-level)
+        level = logger.level_for_integer(4 - level)
         complete_log = []
         logger.consumers.extend(
             [(level, sys.stdout),
@@ -161,11 +160,11 @@ class Command(object):
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             try:
-               log_fp = open_logfile(log_fn, 'w')
+                log_fp = open_logfile(log_fn, 'w')
             except IOError:
-               temp = tempfile.NamedTemporaryFile(delete=False)
-               log_fn = temp.name
-               log_fp = open_logfile(log_fn, 'w')
+                temp = tempfile.NamedTemporaryFile(delete=False)
+                log_fn = temp.name
+                log_fp = open_logfile(log_fn, 'w')
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp.write(text)
             log_fp.close()
@@ -195,7 +194,6 @@ def open_logfile(filename, mode='a'):
 
     log_fp = open(filename, mode)
     if exists:
-        log_fp.write('%s\n' % ('-'*60))
+        log_fp.write('%s\n' % ('-' * 60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
-

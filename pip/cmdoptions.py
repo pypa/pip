@@ -1,6 +1,6 @@
 """shared options and groups"""
-
 from optparse import make_option, OptionGroup
+
 
 def make_option_group(group, parser):
     """
