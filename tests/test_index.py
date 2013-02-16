@@ -1,4 +1,3 @@
-# coding: utf-8
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from string import ascii_lowercase
 from mock import patch
@@ -28,7 +27,6 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     links = list(page.scraped_rel_links())
     assert len(links) == 1
     assert links[0].url == 'http://supervisord.org/'
-
 
 @patch('socket.gethostbyname_ex')
 def test_get_mirrors(mock_gethostbyname_ex):
