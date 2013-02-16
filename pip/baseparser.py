@@ -207,7 +207,7 @@ class ConfigOptionParser(CustomOptionParser):
                     val = option.convert_value(key, val)
                 except optparse.OptionValueError:
                     e = sys.exc_info()[1]
-                    print("An error occured during configuration: %s" % e)
+                    print("An error occurred during configuration: %s" % e)
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
@@ -279,11 +279,11 @@ except pkg_resources.DistributionNotFound:
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '\n%prog <command> [options]',
-        'add_help_option' : False,
-        'formatter' : UpdatingDefaultsHelpFormatter(),
-        'name' : 'global',
-        'prog' : get_prog(),
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)

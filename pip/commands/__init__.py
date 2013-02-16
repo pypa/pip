@@ -31,17 +31,33 @@ commands = {
 }
 
 
-def get_summaries(ignore_hidden=True):
-    """Return a sorted list of (command name, command summary)."""
-    items = []
+commands_order = [
+    InstallCommand,
+    UninstallCommand,
+    FreezeCommand,
+    ListCommand,
+    ShowCommand,
+    SearchCommand,
+    ZipCommand,
+    UnzipCommand,
+    BundleCommand,
+    HelpCommand,
+]
 
-    for name, command_class in commands.items():
+
+def get_summaries(ignore_hidden=True, ordered=True):
+    """Yields sorted (command name, command summary) tuples."""
+
+    if ordered:
+        cmditems = _sort_commands(commands, commands_order)
+    else:
+        cmditems = commands.items()
+
+    for name, command_class in cmditems:
         if ignore_hidden and command_class.hidden:
             continue
 
-        items.append((name, command_class.summary))
-
-    return sorted(items)
+        yield (name, command_class.summary)
 
 
 def get_similar_commands(name):
@@ -56,3 +72,14 @@ def get_similar_commands(name):
         guess = False
 
     return guess
+
+
+def _sort_commands(cmddict, order):
+    def keyfn(key):
+        try:
+            return order.index(key[1])
+        except ValueError:
+            # unordered items should come last
+            return 0xff
+
+    return sorted(cmddict.items(), key=keyfn)

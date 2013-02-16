@@ -7,7 +7,7 @@ import site
 
 __all__ = ['WindowsError']
 
-uses_pycache = hasattr(imp,'cache_from_source')
+uses_pycache = hasattr(imp, 'cache_from_source')
 
 try:
     WindowsError = WindowsError
@@ -91,7 +91,8 @@ else:
 from distutils.sysconfig import get_python_lib, get_python_version
 
 #site.USER_SITE was created in py2.6
-user_site = getattr(site,'USER_SITE',None)
+user_site = getattr(site, 'USER_SITE', None)
+
 
 def product(*args, **kwds):
     # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
@@ -99,9 +100,10 @@ def product(*args, **kwds):
     pools = list(map(tuple, args)) * kwds.get('repeat', 1)
     result = [[]]
     for pool in pools:
-        result = [x+[y] for x in result for y in pool]
+        result = [x + [y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
+
 
 def home_lib(home):
     """Return the lib dir under the 'home' installation scheme"""

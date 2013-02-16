@@ -72,7 +72,7 @@ Examples
   $ pip install --upgrade SomePackage
 
 
-4) Install a local project in  in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
+4) Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
   ::
 
@@ -158,6 +158,7 @@ Examples
 ********
 
 1) Uninstall a package.
+
   ::
 
     $ pip uninstall simplejson
