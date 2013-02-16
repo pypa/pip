@@ -4,19 +4,20 @@ from pip.exceptions import InstallationError
 
 
 class UninstallCommand(Command):
+    """
+    Uninstall packages.
+
+    pip is able to uninstall most installed packages. Known exceptions are:
+
+    - Pure distutils packages installed with ``python setup.py install``, which
+      leave behind no metadata to determine what files were installed.
+    - Script wrappers installed by ``python setup.py develop``.
+    """
     name = 'uninstall'
     usage = """
       %prog [options] <package> ...
       %prog [options] -r <requirements file> ..."""
     summary = 'Uninstall packages.'
-    description = """
-      Uninstall packages.
-
-      pip is able to uninstall most installed packages. Known exceptions are:
-
-      - Pure distutils packages installed with ``python setup.py install``, which
-        leave behind no metadata to determine what files were installed.
-      - Script wrappers installed by ``python setup.py develop``."""
 
     def __init__(self, *args, **kw):
         super(UninstallCommand, self).__init__(*args, **kw)

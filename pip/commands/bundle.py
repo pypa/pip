@@ -6,13 +6,11 @@ from pip.commands.install import InstallCommand
 
 
 class BundleCommand(InstallCommand):
+    """Create pybundles (archives containing multiple packages)."""
     name = 'bundle'
     usage = """
       %prog [options] <bundle name>.pybundle <package>..."""
     summary = 'Create pybundles.'
-    description = """
-      Create pybundles (archives containing multiple packages)."""
-
     bundle = True
 
     def __init__(self, *args, **kw):

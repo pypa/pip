@@ -9,12 +9,11 @@ from pip.cmdoptions import make_option_group, index_group
 
 
 class ListCommand(Command):
+    """List installed packages, including editables."""
     name = 'list'
     usage = """
       %prog [options]"""
     summary = 'List installed packages.'
-    description = """
-       List installed packages, including editables."""
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)

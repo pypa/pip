@@ -9,12 +9,11 @@ from pip.util import get_installed_distributions
 
 
 class FreezeCommand(Command):
+    """Output installed packages in requirements format."""
     name = 'freeze'
     usage = """
       %prog [options]"""
     summary = 'Output installed packages in requirements format.'
-    description = """
-      Output installed packages in requirements format."""
 
     def __init__(self, *args, **kw):
         super(FreezeCommand, self).__init__(*args, **kw)

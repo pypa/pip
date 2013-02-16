@@ -33,14 +33,13 @@ class Command(object):
 
     def __init__(self, main_parser):
         parser_kw = {
-            'usage' : self.usage,
-            'prog'  : '%s %s' % (get_prog(), self.name),
-            'formatter' : UpdatingDefaultsHelpFormatter(),
-            'add_help_option' : False,
-            'name' : self.name,
-            'description' : self.description
+            'usage': self.usage,
+            'prog': '%s %s' % (get_prog(), self.name),
+            'formatter': UpdatingDefaultsHelpFormatter(),
+            'add_help_option': False,
+            'name': self.name,
+            'description': self.__doc__,
         }
-
         self.main_parser = main_parser
         self.parser = ConfigOptionParser(**parser_kw)
 

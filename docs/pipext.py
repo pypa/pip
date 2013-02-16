@@ -27,7 +27,7 @@ class PipCommandDescription(rst.Directive):
         node = nodes.paragraph()
         node.document = self.state.document
         desc = ViewList()
-        description = dedent(commands[self.arguments[0]].description)
+        description = dedent(commands[self.arguments[0]].__doc__)
         for line in description.split('\n'):
             desc.append(line, "")
         self.state.nested_parse(desc, 0, node)

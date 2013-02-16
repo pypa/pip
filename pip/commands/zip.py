@@ -11,12 +11,11 @@ from pip.basecommand import Command
 
 
 class ZipCommand(Command):
+    """Zip individual packages."""
     name = 'zip'
     usage = """
      %prog [options] <package> ..."""
     summary = 'Zip individual packages.'
-    description = """
-       Zip individual packages."""
 
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)

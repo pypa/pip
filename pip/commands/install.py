@@ -15,6 +15,20 @@ from pip.cmdoptions import make_option_group, index_group
 
 
 class InstallCommand(Command):
+    """
+    Install packages from:
+
+    - PyPI (and other indexes) using requirement specifiers.
+    - VCS project urls.
+    - Local project directories.
+    - Local or remote source archives.
+
+    pip also supports installing from "requirements files", which provide
+    an easy way to specify a whole environment to be installed.
+
+    See http://www.pip-installer.org for details on VCS url formats and
+    requirements files.
+    """
     name = 'install'
 
     usage = """
@@ -23,20 +37,6 @@ class InstallCommand(Command):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    description = """
-       Install packages from:
-
-       - PyPI (and other indexes) using requirement specifiers.
-       - VCS project urls.
-       - Local project directories.
-       - Local or remote source archives.
-
-       pip also supports installing from "requirements files", which provide
-       an easy way to specify a whole environment to be installed.
-
-       See http://www.pip-installer.org for details on VCS url formats and
-       requirements files."""
 
     summary = 'Install packages.'
     bundle = False
