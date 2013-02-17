@@ -20,6 +20,13 @@ class ShowCommand(Command):
             default=False,
             help='Show the full list of installed files for each package.')
 
+        self.cmd_opts.add_option(
+            '-d', '--dependents',
+            dest='dependents',
+            action='store_true',
+            default=False,
+            help='Add a list of packages that depend on the passed packages.')
+
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -29,7 +36,7 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        print_results(results, options.files)
+        print_results(results, options.files, options.dependents)
 
 
 def search_packages_info(query):
@@ -67,7 +74,7 @@ def search_packages_info(query):
             yield package
 
 
-def print_results(distributions, list_all_files):
+def print_results(distributions, list_all_files, add_dependents):
     """
     Print the informations from installed distributions found.
     """
@@ -77,7 +84,8 @@ def print_results(distributions, list_all_files):
         logger.notify("Version: %s" % dist['version'])
         logger.notify("Location: %s" % dist['location'])
         logger.notify("Requires: %s" % ', '.join(dist['requires']))
-        logger.notify("Required by(%d): %s" % (len(dist['required_by']), ', '.join(dist['required_by'])))
+        if add_dependents:
+            logger.notify("Required by(%d): %s" % (len(dist['required_by']), ', '.join(dist['required_by'])))
         if list_all_files:
             logger.notify("Files:")
             if 'files' in dist:
