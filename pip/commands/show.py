@@ -45,11 +45,18 @@ def search_packages_info(query):
         normalized_name = name.lower()
         if normalized_name in installed_packages:
             dist = installed_packages[normalized_name]
+
+            required_by = []
+            for _, p in installed_packages.iteritems():
+                if dist.project_name in [dep.project_name for dep in p.requires()]:
+                    required_by += [p.project_name]
+                    
             package = {
                 'name': dist.project_name,
                 'version': dist.version,
                 'location': dist.location,
                 'requires': [dep.project_name for dep in dist.requires()],
+                'required_by': required_by
             }
             filelist = os.path.join(
                        dist.location,
@@ -70,6 +77,7 @@ def print_results(distributions, list_all_files):
         logger.notify("Version: %s" % dist['version'])
         logger.notify("Location: %s" % dist['location'])
         logger.notify("Requires: %s" % ', '.join(dist['requires']))
+        logger.notify("Required by(%d): %s" % (len(dist['required_by']), ', '.join(dist['required_by'])))
         if list_all_files:
             logger.notify("Files:")
             if 'files' in dist:
