@@ -68,21 +68,6 @@ If installing pip using a linux package manager, these requirements will be inst
     support Python 3.X.
 
 
-Using a Package Manager
-+++++++++++++++++++++++
-
-On Linux, pip is packaged by most distributions. For instance, on an Ubuntu
-system, you can install it with::
-
-    $ sudo apt-get install python-pip
-
-On a Fedora system, you can install it with::
-
-    $ yum install python-pip
-
-The latest versions of pip may not be available using this method.
-
-
 Using get-pip
 +++++++++++++
 
