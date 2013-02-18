@@ -4,6 +4,7 @@ copy-paste from py2.6 stdlib socket.py
 https://gist.github.com/zed/1347055
 """
 import socket
+import sys
 
 _GLOBAL_DEFAULT_TIMEOUT = getattr(socket, '_GLOBAL_DEFAULT_TIMEOUT', object())
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
