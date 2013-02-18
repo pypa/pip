@@ -70,11 +70,11 @@ class Command(object):
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
         attrs = ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs',
-                     'skip_requirements_regex',
-                     'no_input', 'exists_action',
-                     'cert_path']
+                 'log_explicit_levels', 'log_file',
+                 'timeout', 'default_vcs',
+                 'skip_requirements_regex',
+                 'no_input', 'exists_action',
+                 'cert_path']
         if not ssl:
             attrs.append('allow_no_ssl')
         for attr in attrs:
