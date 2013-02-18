@@ -8,7 +8,7 @@ Installation
     Prior to version 1.3, pip did not use SSL for downloading packages from PyPI, and thus left
     users more vulnerable to security threats. We advise installing at least version 1.3.
     If you're using `virtualenv <http://www.virtualenv.org>`_ to install pip, we advise installing
-    at least version 1.8.5, which contains pip version 1.3.
+    at least version 1.9, which contains pip version 1.3.
 
 
 Python & OS Support
