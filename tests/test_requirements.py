@@ -181,6 +181,29 @@ def test_install_local_editable_with_extras():
     env = reset_env()
     to_install = os.path.abspath(os.path.join(here, 'packages', 'LocalExtras'))
     res = run_pip('install', '-e', to_install + '[bar]', expect_error=False)
-    assert env.site_packages/'easy-install.pth' in res.files_updated
-    assert env.site_packages/'LocalExtras.egg-link' in res.files_created
-    assert env.site_packages/'simple' in res.files_created
+    assert env.site_packages/'easy-install.pth' in res.files_updated, str(result)
+    assert env.site_packages/'LocalExtras.egg-link' in res.files_created, str(result)
+    assert env.site_packages/'simple' in res.files_created, str(result)
+
+
+def test_url_req_case_mismatch():
+    """
+    tar ball url requirements (with no egg fragment), that happen to have upper case project names,
+    should be considered equal to later requirements that reference the project name using lower case.
+
+    tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
+    'requiresupper' has install_requires = ['upper']
+    """
+    env = reset_env()
+    find_links = 'file://' + os.path.join(here, 'packages')
+    Upper = os.path.join(find_links, 'Upper-1.0.tar.gz')
+    result = run_pip('install', '--no-index', '-f', find_links, Upper, 'requiresupper')
+
+    #only Upper-1.0.tar.gz should get installed.
+    egg_folder = env.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+    egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
+    assert egg_folder not in result.files_created, str(result)
+
+
+

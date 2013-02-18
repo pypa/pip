@@ -1,66 +1,73 @@
-Installation instructions
-=========================
+.. _`Installation`:
 
-The recommended way to use pip is within `virtualenv
-<http://www.virtualenv.org>`_, since every virtualenv has pip installed in it
-automatically. This does not require root access or modify your system Python
+Installation
+============
+
+Python Support
+--------------
+
+pip works with CPython versions 2.5, 2.6, 2.7, 3.1, 3.2, 3.3 and also pypy.
+
+
+Using virtualenv
+----------------
+
+The easiest way to install and use pip is with `virtualenv
+<http://www.virtualenv.org>`_, since every virtualenv has pip (and it's dependencies) installed into it
+automatically.
+
+This does not require root access or modify your system Python
 installation. For instance::
 
-    $ curl -O https://raw.github.com/pypa/virtualenv/master/virtualenv.py
-    $ python virtualenv.py my_new_env
-    $ . my_new_env/bin/activate
-    (my_new_env)$ pip install ...
+    $ virtualenv my_env
+    $ . my_env/bin/activate
+    (my_env)$ pip install SomePackage
 
 When used in this manner, pip will only affect the active virtual environment.
-If you do want to install pip globally into your Python installation, see the
-instructions below.
+
+See the `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_.
+
+Installing Globally
+-------------------
+
+pip can be installed globally in order to manage global packages.
+Often this requires the installation to be performed as root.
 
 Prerequisites
--------------
++++++++++++++
 
-Prior to installing pip make sure you have either `setuptools
-<http://pypi.python.org/pypi/setuptools>`_ or `distribute
-<http://pypi.python.org/pypi/distribute>`_ installed.  Please consult your
-operating system's package manager or install it manually::
+A global install of pip requires either `setuptools <http://pypi.python.org/pypi/setuptools>`_
+or `distribute <http://pypi.python.org/pypi/distribute>`_ to be installed globally as well.
 
-    $ curl http://python-distribute.org/distribute_setup.py | python
+In many cases, these can be installed using your OS package manager.
+
+See the `Distribute Install Instructions <http://pypi.python.org/pypi/distribute/>`_ or the
+`Setuptools Install Instructions <http://pypi.python.org/pypi/setuptools#installation-instructions>`_
 
 .. warning::
 
     If you are using Python 3.X you **must** use distribute; setuptools doesn't
     support Python 3.X.
 
-Using the installer
--------------------
+Using get-pip
++++++++++++++
 
 Download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_
-and execute it, using the Python interpreter of your choice::
+and execute it using Python.  This will only install pip, not the prerequisites.
 
-    $ curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python
+::
 
-This may have to be run as root.
+ $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+ $ [sudo] python get-pip.py
 
-Alternative installation procedures
------------------------------------
 
-Using the source distribution
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+From source
++++++++++++
 
-You can find the source on `PyPI <http://pypi.python.org/pypi/pip>`_::
+::
 
-    $ curl -O http://pypi.python.org/packages/source/p/pip/pip-1.0.tar.gz
-    $ tar xvfz pip-1.0.tar.gz
-    $ cd pip-1.0
-    $ python setup.py install # may need to be root
+ $ curl -O http://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
+ $ tar xvfz pip-X.X.tar.gz
+ $ cd pip-X.X
+ $ [sudo] python setup.py install
 
-Installing the development version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-First you will need to clone the git repo::
-
-    $ git clone https://github.com/pypa/pip.git
-
-Now we can install from the repo::
-
-    $ cd pip
-    $ python setup.py install # may need to be root

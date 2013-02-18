@@ -62,6 +62,11 @@ simple-[123].0.tar.gz
 ---------------------
 contains "simple" package; good for basic testing and version logic.
 
+Upper-[12].0.tar.gz and requiresuppper-1.0.tar.gz
+--------------------------------------------------
+'requiresupper' requires 'upper'
+used for testing case mismatch case for url requirements
+
 
 
 

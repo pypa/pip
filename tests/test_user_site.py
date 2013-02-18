@@ -12,8 +12,8 @@ from tests.test_pip import here, reset_env, run_pip, pyversion, assert_all_chang
 patch_dist_in_site_packages = """
        def dist_in_site_packages(dist):
            return False
-       import pip
-       pip.util.dist_in_site_packages=dist_in_site_packages
+       from pip import req
+       req.dist_in_site_packages=dist_in_site_packages
 """
 
 

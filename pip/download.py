@@ -7,6 +7,7 @@ import re
 import shutil
 import sys
 import tempfile
+
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
                                 urlparse, string_types)
 from pip.exceptions import InstallationError
@@ -363,7 +364,7 @@ def _download_url(resp, link, temp_location):
     except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
-    show_progress = total_length > 40*1000 or not total_length
+    show_progress = total_length > 40 * 1000 or not total_length
     show_url = link.show_url
     try:
         if show_progress:
@@ -385,7 +386,7 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)

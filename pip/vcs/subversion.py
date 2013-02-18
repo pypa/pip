@@ -126,7 +126,7 @@ class Subversion(VersionControl):
             dirurl, localrev = self._get_svn_url_rev(base)
 
             if base == location:
-                base_url = dirurl+'/'   # save the root url
+                base_url = dirurl + '/'   # save the root url
             elif not dirurl or not dirurl.startswith(base_url):
                 dirs[:] = []
                 continue    # not part of the same svn tree, skip it
@@ -163,13 +163,13 @@ class Subversion(VersionControl):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
             url = data[0][3]
-            revs = [int(d[9]) for d in data if len(d)>9 and d[9]]+[0]
+            revs = [int(d[9]) for d in data if len(d) > 9 and d[9]] + [0]
         elif data.startswith('<?xml'):
             match = _svn_xml_url_re.search(data)
             if not match:
                 raise ValueError('Badly formatted data: %r' % data)
             url = match.group(1)    # get repository URL
-            revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)]+[0]
+            revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)] + [0]
         else:
             try:
                 # subversion >= 1.7

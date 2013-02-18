@@ -15,12 +15,11 @@ from pip.exceptions import (InstallationError, UninstallationError,
                             DistributionNotFound)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.util import display_path, rmtree
-from pip.util import ask, ask_path_exists, backup_dir
-from pip.util import is_installable_dir, is_local, dist_is_local, dist_in_usersite
-from pip.util import renames, normalize_path, egg_link_path, dist_in_site_packages
-from pip.util import make_path_relative
-from pip.util import call_subprocess
+from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
+                      is_installable_dir, is_local, dist_is_local,
+                      dist_in_usersite, dist_in_site_packages, renames,
+                      normalize_path, egg_link_path, make_path_relative,
+                      call_subprocess)
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
@@ -107,7 +106,7 @@ class InstallRequirement(object):
         # Otherwise, assume the name is the req for the non URL/path/archive case.
         if link and req is None:
             url = link.url_without_fragment
-            req = link.egg_fragment
+            req = link.egg_fragment  #when fragment is None, this will become an 'unnamed' requirement
 
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', url):
@@ -305,7 +304,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
-                raise InstallationError('No files/directores in %s (from %s)' % (base, filename))
+                raise InstallationError('No files/directories in %s (from %s)' % (base, filename))
             assert filenames, "No files/directories in %s (from %s)" % (base, filename)
 
             # if we have more than one match, we pick the toplevel one.  This can
@@ -680,6 +679,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately."""
+
         if self.req is None:
             return False
         try:
@@ -843,11 +843,12 @@ class RequirementSet(object):
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         if not name:
+            #url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
         else:
             if self.has_requirement(name):
                 raise InstallationError(
-                    'Double requirement given: %s (aready in %s, name=%r)'
+                    'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
             self.requirements[name] = install_req
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
@@ -1094,8 +1095,9 @@ class RequirementSet(object):
                             subreq = InstallRequirement(req, req_to_install)
                             reqs.append(subreq)
                             self.add_requirement(subreq)
-                    if req_to_install.name not in self.requirements:
-                        self.requirements[req_to_install.name] = req_to_install
+                    if not self.has_requirement(req_to_install.name):
+                        #'unnamed' requirements will get added here
+                        self.add_requirement(req_to_install)
                     if self.is_download or req_to_install._temp_build_dir is not None:
                         self.reqs_to_cleanup.append(req_to_install)
                 else:
@@ -1390,7 +1392,7 @@ def parse_editable(editable_req, default_vcs=None):
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
-                '--editable=%s should be formatted with svn+URL, git+URL, hg+URL or bzr+URL' % editable_req)
+                '%s should either by a path to a local project or a VCS url beginning with svn+, git+, hg+, or bzr+' % editable_req)
     vc_type = url.split('+', 1)[0].lower()
     if not vcs.get_backend(vc_type):
         error_message = 'For --editable=%s only ' % editable_req + \
