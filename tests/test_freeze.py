@@ -164,6 +164,7 @@ def test_freeze_mercurial_clone():
         ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
     _check_output(result, expected)
 
+
 def test_freeze_bazaar_clone():
     """
     Test freezing a Bazaar clone.
@@ -266,4 +267,3 @@ def test_freeze_with_requirement_option():
         INITools==0.2
         """) + ignores + "## The following requirements were added by pip --freeze:..."
     _check_output(result, expected)
-
