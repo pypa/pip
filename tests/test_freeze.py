@@ -164,7 +164,6 @@ def test_freeze_mercurial_clone():
         ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
     _check_output(result, expected)
 
-
 def test_freeze_bazaar_clone():
     """
     Test freezing a Bazaar clone.
