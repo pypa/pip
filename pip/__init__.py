@@ -170,49 +170,15 @@ class FrozenRequirement(object):
     _rev_re = re.compile(r'-r(\d+)$')
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
-    @staticmethod
-    def get_expected_vcs_root(dist):
-        """Return the expected location of the VCS root directory.
-
-        This is the directory that would have the .git or .hg subdirectory
-        if the package was installed from git or mercurial"""
-        try:
-            egginfo_lines = dist.get_metadata("SOURCES.txt").split()
-        except KeyError:
-            # No SOURCES.txt in metadata, just return location
-            return os.path.normcase(os.path.abspath(dist.location))
-
-        # Find a line from SOURCES.txt with .egg-info
-        for x in egginfo_lines:
-            if ".egg-info" in x:
-                line_with_egginfo = x
-                break
-        else:
-            # No lines with .egg-info, just return location
-            return os.path.normcase(os.path.abspath(dist.location))
-
-        path_to_trim_from_location = line_with_egginfo.split(dist.project_name)[0]
-        # Remove trailing slash if it exists
-        if path_to_trim_from_location.endswith('/'):
-            path_to_trim_from_location = path_to_trim_from_location[:-1]
-        rind = dist.location.rfind(path_to_trim_from_location)
-
-        location = dist.location
-        if rind >= 0:
-            location = location[:rind]
-        return os.path.normcase(os.path.abspath(location))
-
-
-
     @classmethod
     def from_dist(cls, dist, dependency_links, find_tags=False):
-        location = cls.get_expected_vcs_root(dist)
         comments = []
         from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        src_location = vcs.src_location(dist)
+        if src_location:
             editable = True
             try:
-                req = get_src_requirement(dist, location, find_tags)
+                req = get_src_requirement(dist, src_location, find_tags)
             except InstallationError:
                 ex = sys.exc_info()[1]
                 logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)

@@ -112,6 +112,26 @@ def test_freeze_git_clone():
     _check_output(result, expected)
 
 
+def test_freeze_git_clone_with_src_dir():
+    """
+    Test freezing a Git clone with a source directory
+
+    """
+    env = reset_env()
+    repo = "git://github.com/dcramer/piplint.git@c1c7921784d0315b659e0b53a2752ee5f0d202fe"
+    args = ['install']
+    args.extend(['-e',
+                 '%s#egg=piplint-dev' % repo])
+    run_pip(*args)
+    result = run_pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: ...pip freeze
+        -- stdout: --------------------
+        ...-e %s#egg=piplint-dev
+        ...""" % repo)
+    _check_output(result, expected)
+
+
 def test_freeze_mercurial_clone():
     """
     Test freezing a Mercurial clone.
@@ -247,3 +267,4 @@ def test_freeze_with_requirement_option():
         INITools==0.2
         """) + ignores + "## The following requirements were added by pip --freeze:..."
     _check_output(result, expected)
+
