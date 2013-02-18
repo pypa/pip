@@ -96,7 +96,7 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
             self._tunnel()
 
         # get alternate bundle or use our included bundle
-        cert_path = os.environ.get('PIP_CERT_PATH', '') or default_cert_path
+        cert_path = os.environ.get('PIP_CERT', '') or default_cert_path
 
         self.sock = ssl.wrap_socket(sock,
                                 self.key_file,

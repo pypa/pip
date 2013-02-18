@@ -83,7 +83,7 @@ class Tests_not_py25:
             raise SkipTest()
 
     def teardown(self):
-        os.environ['PIP_CERT_PATH'] = ''
+        os.environ['PIP_CERT'] = ''
 
 
     def test_https_ok(self):
@@ -134,7 +134,7 @@ class Tests_not_py25:
         Also confirms alternate --cert-path option works
         """
         bad_cert = os.path.join(here, 'packages', 'README.txt')
-        os.environ['PIP_CERT_PATH'] = bad_cert
+        os.environ['PIP_CERT'] = bad_cert
         o = urlopen.get_opener(scheme='https')
         assert_raises_regexp(URLError, '[sS][sS][lL]', o.open, pypi_https)
 

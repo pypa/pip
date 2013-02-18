@@ -358,8 +358,8 @@ standard_options = [
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
 
     optparse.make_option(
-        '--cert-path',
-        dest='cert_path',
+        '--cert',
+        dest='cert',
         type='str',
         default='',
         metavar='path',

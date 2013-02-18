@@ -74,7 +74,7 @@ class Command(object):
                  'timeout', 'default_vcs',
                  'skip_requirements_regex',
                  'no_input', 'exists_action',
-                 'cert_path']
+                 'cert']
         if not ssl:
             attrs.append('allow_no_ssl')
         for attr in attrs:
@@ -111,8 +111,8 @@ class Command(object):
         if not ssl and options.allow_no_ssl:
             os.environ['PIP_ALLOW_NO_SSL'] = '1'
 
-        if options.cert_path:
-            os.environ['PIP_CERT_PATH'] = options.cert_path
+        if options.cert:
+            os.environ['PIP_CERT'] = options.cert
 
         if options.require_venv:
             # If a venv is required check if it can really be found
