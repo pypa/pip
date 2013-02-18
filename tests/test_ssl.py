@@ -21,21 +21,21 @@ class Tests_py25:
 
     def teardown(self):
         #make sure this is set back for other tests
-        os.environ['PIP_ALLOW_NO_SSL'] = '1'
+        os.environ['PIP_INSECURE'] = '1'
 
     def test_https_fails(self):
         """
         Test py25 access https fails
         """
-        os.environ['PIP_ALLOW_NO_SSL'] = ''
+        os.environ['PIP_INSECURE'] = ''
         assert_raises_regexp(PipError, 'ssl certified', urlopen.get_opener, scheme='https')
 
     def test_https_ok_with_flag(self):
         """
-        Test py25 access https url ok with --allow-no-ssl flag
+        Test py25 access https url ok with --insecure flag
         This doesn't mean it's doing cert verification, just accessing over https
         """
-        os.environ['PIP_ALLOW_NO_SSL'] = '1'
+        os.environ['PIP_INSECURE'] = '1'
         response = urlopen.get_opener().open(pypi_https)
         assert response.code == 200, str(dir(response))
 
@@ -43,7 +43,7 @@ class Tests_py25:
         """
         Test http pypi access with pip urlopener
         """
-        os.environ['PIP_ALLOW_NO_SSL'] = ''
+        os.environ['PIP_INSECURE'] = ''
         response = urlopen.get_opener().open(pypi_http)
         assert response.code == 200, str(dir(response))
 
@@ -51,7 +51,7 @@ class Tests_py25:
         """
         Test installing w/o ssl backport fails
         """
-        reset_env(allow_no_ssl=False)
+        reset_env(insecure=False)
         #expect error because ssl's setup.py is hard coded to install test data to global prefix
         result = run_pip('install', 'INITools', expect_error=True)
         assert "You don't have an importable ssl module" in result.stdout
@@ -64,13 +64,13 @@ class Tests_py25:
         #unable to get ssl backport to install on travis.
         raise SkipTest()
 
-        # allow_no_ssl=True so we can install ssl first
-        env = reset_env(allow_no_ssl=True)
+        # insecure=True so we can install ssl first
+        env = reset_env(insecure=True)
         #expect error because ssl's setup.py is hard coded to install test data to global prefix
         result = run_pip('install', 'ssl', expect_error=True)
 
         #set it back to false
-        env.environ['PIP_ALLOW_NO_SSL'] = ''
+        env.environ['PIP_INSECURE'] = ''
         result = run_pip('install', 'INITools', expect_error=True)
         result.assert_installed('initools', editable=False)
 

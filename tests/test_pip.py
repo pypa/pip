@@ -16,7 +16,7 @@ from pip.backwardcompat import ssl
 
 #allow py25 unit tests to work
 if sys.version_info[:2] == (2, 5) and not ssl:
-    os.environ['PIP_ALLOW_NO_SSL'] = '1'
+    os.environ['PIP_INSECURE'] = '1'
 
 pyversion = sys.version[:3]
 
@@ -111,7 +111,7 @@ def reset_env(environ=None,
               use_distribute=None,
               system_site_packages=False,
               sitecustomize=None,
-              allow_no_ssl=True):
+              insecure=True):
     """Return a test environment.
 
     Keyword arguments:
@@ -119,7 +119,7 @@ def reset_env(environ=None,
     use_distribute: use distribute, not setuptools.
     system_site_packages: create a virtualenv that simulates --system-site-packages.
     sitecustomize: a string containing python code to add to sitecustomize.py.
-    allow_no_ssl: how to set the --allow-no-ssl option for py25 tests.
+    insecure: how to set the --insecure option for py25 tests.
     """
 
     global env
@@ -136,9 +136,9 @@ def reset_env(environ=None,
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
 
-    if sys.version_info[:2] == (2, 5) and (not ssl) and allow_no_ssl:
+    if sys.version_info[:2] == (2, 5) and (not ssl) and insecure:
         #allow py25 tests to work
-        env.environ['PIP_ALLOW_NO_SSL'] = '1'
+        env.environ['PIP_INSECURE'] = '1'
 
     return env
 

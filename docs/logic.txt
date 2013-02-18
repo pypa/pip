@@ -163,9 +163,8 @@ This is supported by default in all Python versions pip supports, except Python 
 
 Python 2.5 users can install https://pypi.python.org/pypi/ssl/, which provides ssl support for older pythons.
 
-Although not recommended, Python 2.5 users who are unable to install ssl, can use
-:ref:`--allow-no-ssl <--allow-no-ssl>`, to allow
-access to PyPI w/o attempting SSL certificate verification.
+Although not recommended, Python 2.5 users who are unable to install ssl, can use the option,
+``--insecure``, to allow access to PyPI w/o attempting SSL certificate verification.
 
 
 Hash Verification

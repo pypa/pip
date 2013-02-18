@@ -369,8 +369,8 @@ standard_options = [
 
 if not ssl:
     standard_options.append(optparse.make_option(
-        '--allow-no-ssl',
-        dest='allow_no_ssl',
+        '--insecure',
+        dest='insecure',
         action='store_true',
         default=False,
         help = "Allow lack of certificate checking when ssl is not installed."))

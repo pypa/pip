@@ -179,7 +179,7 @@ class URLOpener(object):
     def get_opener(self, *args, **kwargs):
         """
         Build an OpenerDirector instance based on the scheme, whether ssl is
-        importable and the --allow-no-ssl parameter.
+        importable and the --insecure parameter.
         """
         if kwargs.get('scheme') == 'https':
             if ssl:
@@ -190,7 +190,7 @@ class URLOpener(object):
                     if isinstance(handler, urllib2.HTTPHandler):
                         director.handlers.remove(handler)
                 return director
-            elif os.environ.get('PIP_ALLOW_NO_SSL', '') == '1':
+            elif os.environ.get('PIP_INSECURE', '') == '1':
                 return urllib2.build_opener(*args)
             else:
                 raise_no_ssl_exception()
