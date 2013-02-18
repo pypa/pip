@@ -13,11 +13,10 @@ from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, ssl)
 if ssl:
     from pip.backwardcompat import match_hostname
-from pip.exceptions import InstallationError, PipError
+from pip.exceptions import InstallationError, PipError, NoSSLError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download,
-                      raise_no_ssl_exception)
+                      create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.locations import default_cert_path
@@ -193,7 +192,7 @@ class URLOpener(object):
             elif os.environ.get('PIP_INSECURE', '') == '1':
                 return urllib2.build_opener(*args)
             else:
-                raise_no_ssl_exception()
+                raise NoSSLError()
         else:
             return urllib2.build_opener(*args)
 
