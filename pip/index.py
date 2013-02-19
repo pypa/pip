@@ -363,12 +363,13 @@ class PackageFinder(object):
 
         mirror_urls = set()
         for mirror_url in mirrors:
+            mirror_url = mirror_url.rstrip('/')
             # Make sure we have a valid URL
-            if not ("http://" or "https://" or "file://") in mirror_url:
+            if not any([mirror_url.startswith(scheme) for scheme in ["http://", "https://", "file://"]]):
                 mirror_url = "http://%s" % mirror_url
             if not mirror_url.endswith("/simple"):
-                mirror_url = "%s/simple/" % mirror_url
-            mirror_urls.add(mirror_url)
+                mirror_url = "%s/simple" % mirror_url
+            mirror_urls.add(mirror_url + '/')
 
         return list(mirror_urls)
 
