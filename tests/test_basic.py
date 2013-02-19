@@ -10,6 +10,7 @@ from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
+from pip.backwardcompat import ssl
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file, path_to_url)
@@ -48,7 +49,12 @@ def test_pip_second_command_line_interface_works():
     Check if ``pip-<PYVERSION>`` commands behaves equally
     """
     e = reset_env()
-    result = e.run('pip-%s' % pyversion, 'install', 'INITools==0.2')
+
+    args = ['pip-%s' % pyversion]
+    if not ssl:
+        args.append('--insecure')
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
