@@ -102,6 +102,9 @@ class Command(object):
 
         self.setup_logging()
 
+        #TODO: try to get these passing down from the command?
+        #      without resorting to os.environ to hold these.
+
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
 
