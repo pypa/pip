@@ -6,6 +6,7 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose.tools import assert_raises
+from nose import SkipTest
 from mock import patch
 
 from pip.util import rmtree, find_command
@@ -411,6 +412,58 @@ def test_install_pardir():
     egg_info_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+
+def test_install_curdir_with_symlink():
+    """
+    Test installing directory with symlink.
+    """
+
+    # Skip this test when symlinks are not available on the system
+    if not hasattr(os, "symlink"):
+        raise SkipTest()
+
+    env = reset_env()
+    run_from = abspath(join(here, 'packages', 'FSPkg'))
+
+    # Generate file names
+    # All test files on the same directory
+    test_dir = join(run_from, 'symlinks_tests')
+    real_file = join(test_dir, 'foo')
+    real_dir = join(test_dir, 'bar')
+    link_file = join(test_dir, 'foo_link')
+    link_dir = join(test_dir, 'bar_link')
+
+    # Creates files
+    os.mkdir(test_dir)
+    open(real_file, 'w').close()
+    os.mkdir(real_dir)
+
+    # Creates links
+    os.symlink(real_file, link_file)
+    os.symlink(real_dir, link_dir)
+
+    # Python 2.4 Windows balks if this exists already
+    egg_info = join(run_from, "FSPkg.egg-info")
+    if os.path.isdir(egg_info):
+        rmtree(egg_info)
+
+    try:
+        result = run_pip('install', curdir, cwd=run_from, expect_error=False)
+    finally:
+        # Remove created files
+        os.remove(link_dir)
+        os.remove(link_file)
+        os.remove(real_file)
+        os.rmdir(real_dir)
+        os.rmdir(test_dir)
+
+    fspkg_folder = env.site_packages/'fspkg'
+    egg_info_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+
+    assert fspkg_folder in result.files_created, str(result.stdout)
+    assert egg_info_folder in result.files_created, str(result)
+
 
 
 def test_install_global_option():

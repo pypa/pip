@@ -380,7 +380,9 @@ def unpack_file_url(link, location):
         # delete the location since shutil will create it again :(
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(source, location)
+        # The py3k version of `shutil.copytree` fails when symlinks point on
+        # directories. So `symlinks` argument must be True
+        shutil.copytree(source, location, symlinks=True)
     else:
         unpack_file(source, location, content_type, link)
 
