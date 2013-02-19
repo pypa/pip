@@ -1,1 +1,2 @@
 1. Revert previous fix that disable symlinks dereference.
+2. Fixed shutil.copytree for py3 when a symlink points to a directory (python version > 2 and < 3.5).
