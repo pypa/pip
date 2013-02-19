@@ -25,6 +25,7 @@ Ian Bicking
 Igor Sobreira
 Ionel Maries Cristian
 Jakub Vysoky
+James Cleveland
 Jannis Leidel
 Jay Graves
 John-Scott Atlakson

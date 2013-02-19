@@ -2,6 +2,7 @@ include AUTHORS.txt
 include LICENSE.txt
 include CHANGES.txt
 include PROJECT.txt
+include pip/cacert.pem
 recursive-include docs *.txt
 recursive-include docs *.html
 recursive-exclude docs/_build *.txt

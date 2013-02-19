@@ -58,9 +58,9 @@ pkgwithmpkg-1.0.tar.gz; pkgwithmpkg-1.0-py2.7-macosx10.7.mpkg.zip
 -----------------------------------------------------------------
 used for osx test case (tests.test_finder:test_no_mpkg)
 
-simple-[123].0.tar.gz
+simple[2]-[123].0.tar.gz
 ---------------------
-contains "simple" package; good for basic testing and version logic.
+contains "simple[2]" package; good for basic testing and version logic.
 
 Upper-[12].0.tar.gz and requiresuppper-1.0.tar.gz
 --------------------------------------------------

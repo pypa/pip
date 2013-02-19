@@ -8,8 +8,10 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
-from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+import textwrap
+from pip.exceptions import InstallationError, BadCommand, PipError
+from pip.backwardcompat import(WindowsError, string_types, raw_input,
+                                console_to_str, user_site, ssl)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 
