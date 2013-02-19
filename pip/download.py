@@ -26,6 +26,7 @@ from pip.utils import (splitext, rmtree, format_size, display_path,
 from pip.utils.filesystem import check_path_owner
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
+from pip.compat import copytree
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
@@ -694,7 +695,7 @@ def unpack_file_url(link, location, download_dir=None):
     if os.path.isdir(link_path):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        copytree(link_path, location, symlinks=True)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return

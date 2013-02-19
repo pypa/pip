@@ -5,6 +5,7 @@ from __future__ import absolute_import, division
 import os
 import imp
 import sys
+import shutil
 
 from pip._vendor.six import text_type
 
@@ -40,7 +41,62 @@ if sys.version_info >= (3,):
             return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
+    def copytree(source, location, symlinks=False, ignore=None):
+        # The py3k version of `shutil.copytree` fails when symlinks point on
+        # directories.
+        follow_symlinks = not symlinks
+        copying = []
+
+        def copy_callback(src, dst, follow_symlinks=follow_symlinks):
+            if not follow_symlinks and os.path.islink(src):
+                linkto = os.readlink(src)
+                if not os.path.isabs(linkto):
+                    linkto = os.path.join(os.path.dirname(src), linkto)
+                try:
+                    os.symlink(linkto, dst)
+                    return dst
+                except OSError:
+                    # catch the OSError when the os.symlink function is called
+                    # on Windows by an unprivileged user. In that case we pass
+                    # follow_symlinks to True
+                    follow_symlinks = True
+            src = os.path.normcase(os.path.realpath(src))
+            if src in copying:
+                # Already seen this path, so we must have a symlink loop
+                raise Exception(
+                    'Circular reference detected in "%s" ("%s" > "%s").'
+                    '' % (copying[0], '" > "'.join(copying), copying[0])
+                )
+            copying.append(src)
+            if os.path.isdir(src):
+                shutil.copytree(
+                    src,
+                    dst,
+                    symlinks=not follow_symlinks,
+                    ignore=ignore,
+                    copy_function=copy_callback,
+                )
+            else:
+                shutil.copy2(src, dst)
+            copying.remove(src)
+            return dst
+        return shutil.copytree(
+            source,
+            location,
+            symlinks=symlinks,
+            ignore=ignore,
+            copy_function=copy_callback,
+        )
+
 else:
+    def copytree(source, location, symlinks=False, ignore=None):
+        return shutil.copytree(
+            source,
+            location,
+            symlinks=symlinks,
+            ignore=ignore,
+        )
+
     def console_to_str(s):
         return s
 
