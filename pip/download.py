@@ -35,6 +35,7 @@ from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
+from pip.compat import copytree
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
@@ -673,7 +674,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location)
+        copytree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
