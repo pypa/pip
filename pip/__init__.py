@@ -4,7 +4,6 @@ import optparse
 
 import sys
 import re
-import difflib
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
@@ -15,7 +14,7 @@ from pip.commands import commands, get_similar_commands, get_summaries
 
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "1.2.1.post1"
+__version__ = "1.4.dev1"
 
 
 def autocomplete():

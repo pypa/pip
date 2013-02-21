@@ -129,3 +129,25 @@ def test_file_index_url_quoting():
 def test_inflink_greater():
     """Test InfLink compares greater."""
     assert InfLink > Link(object())
+
+
+def test_mirror_url_formats():
+    """
+    Test various mirror formats get transformed properly
+    """
+    formats = [
+        'some_mirror',
+        'some_mirror/',
+        'some_mirror/simple',
+        'some_mirror/simple/'
+        ]
+    for scheme in ['http://', 'https://', 'file://', '']:
+        result = (scheme or 'http://') + 'some_mirror/simple/'
+        scheme_formats = ['%s%s' % (scheme, format) for format in formats]
+        finder = PackageFinder([], [])
+        urls = finder._get_mirror_urls(mirrors=scheme_formats, main_mirror_url=None)
+        for url in urls:
+            assert url == result, str([url, result])
+
+
+

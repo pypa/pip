@@ -6,7 +6,7 @@ import pkg_resources
 import os
 import textwrap
 from distutils.util import strtobool
-from pip.backwardcompat import ConfigParser, string_types
+from pip.backwardcompat import ConfigParser, string_types, ssl
 from pip.locations import default_config_file, default_log_file
 from pip.util import get_terminal_size, get_prog
 
@@ -64,10 +64,16 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # leave full control over description to us
         if description:
             if hasattr(self.parser, 'main'):
-                label = 'Commands:'
+                label = 'Commands'
             else:
-                label = 'Description:'
-            description = label + ' %s\n' % self.indent_lines(textwrap.dedent(description), "  ")
+                label = 'Description'
+            #some doc strings have inital newlines, some don't
+            description = description.lstrip('\n')
+            #some doc strings have final newlines and spaces, some don't
+            description = description.rstrip()
+            #dedent, then reindent
+            description = self.indent_lines(textwrap.dedent(description), "  ")
+            description = '%s:\n%s\n' % (label, description)
             return description
         else:
             return ''
@@ -162,7 +168,7 @@ class ConfigOptionParser(CustomOptionParser):
                     val = option.convert_value(key, val)
                 except optparse.OptionValueError:
                     e = sys.exc_info()[1]
-                    print("An error occured during configuration: %s" % e)
+                    print("An error occurred during configuration: %s" % e)
                     sys.exit(3)
                 defaults[option.dest] = val
         return defaults
@@ -222,11 +228,11 @@ except pkg_resources.DistributionNotFound:
 
 def create_main_parser():
     parser_kw = {
-        'usage' : '\n%prog <command> [options]',
-        'add_help_option' : False,
-        'formatter' : UpdatingDefaultsHelpFormatter(),
-        'name' : 'global',
-        'prog' : get_prog(),
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)
@@ -350,4 +356,21 @@ standard_options = [
         metavar='action',
         help="Default action when a path already exists: "
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
+
+    optparse.make_option(
+        '--cert',
+        dest='cert',
+        type='str',
+        default='',
+        metavar='path',
+        help = "Path to alternate CA bundle."),
+
     ]
+
+if not ssl:
+    standard_options.append(optparse.make_option(
+        '--insecure',
+        dest='insecure',
+        action='store_true',
+        default=False,
+        help = "Allow lack of certificate checking when ssl is not installed."))

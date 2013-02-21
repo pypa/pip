@@ -8,16 +8,14 @@ from pip.cmdoptions import make_option_group, index_group
 
 
 class ListCommand(Command):
+    """List installed packages, including editables."""
     name = 'list'
     usage = """
       %prog [options]"""
     summary = 'List installed packages.'
-    description = """
-       List installed packages, including editables."""
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
-
 
         cmd_opts = self.cmd_opts
 
@@ -51,7 +49,6 @@ class ListCommand(Command):
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
-
 
     def _build_package_finder(self, options, index_urls):
         """
@@ -140,4 +137,3 @@ class ListCommand(Command):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
         self.output_package_listing(uptodate, options)
-

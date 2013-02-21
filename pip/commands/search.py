@@ -12,12 +12,11 @@ from distutils.version import StrictVersion, LooseVersion
 
 
 class SearchCommand(Command):
+    """Search for PyPI packages whose name or summary contains <query>."""
     name = 'search'
     usage = """
       %prog [options] <query>"""
     summary = 'Search PyPI for packages.'
-    description = """
-       Search for PyPI packages whose name or summary contains <query>."""
 
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
@@ -25,7 +24,7 @@ class SearchCommand(Command):
             '--index',
             dest='index',
             metavar='URL',
-            default='http://pypi.python.org/pypi',
+            default='https://pypi.python.org/pypi',
             help='Base URL of Python Package Index (default %default)')
 
         self.parser.insert_option_group(0, self.cmd_opts)

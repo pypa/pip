@@ -7,6 +7,8 @@ from setuptools import setup
 here = os.path.abspath(os.path.dirname(__file__))
 
 def read(*parts):
+    # intentionally *not* adding an encoding option to open
+    # see here: https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
     return codecs.open(os.path.join(here, *parts), 'r').read()
 
 def find_version(*file_paths):
@@ -46,7 +48,8 @@ setup(name="pip",
       author_email='python-virtualenv@groups.google.com',
       url='http://www.pip-installer.org',
       license='MIT',
-      packages=['pip', 'pip.commands', 'pip.vcs'],
+      packages=['pip', 'pip.commands', 'pip.vcs', 'pip.backwardcompat'],
+      package_data={'pip': ['*.pem']},
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
       tests_require=tests_require,

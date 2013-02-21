@@ -5,12 +5,11 @@ from pip.log import logger
 
 
 class ShowCommand(Command):
+    """Show information about one or more installed packages."""
     name = 'show'
     usage = """
       %prog [options] <package> ..."""
     summary = 'Show information about installed packages.'
-    description = """
-      Show information about one or more installed packages."""
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)

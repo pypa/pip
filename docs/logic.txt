@@ -1,8 +1,8 @@
 .. _`pip logic`:
 
-===================
+================
 Internal Details
-===================
+================
 
 .. _`Requirements File Format`:
 
@@ -68,7 +68,7 @@ pip requires a working VCS command on your path: git, hg, svn, or bzr.
 
 VCS projects can be installed in :ref:`editable mode <editable-installs>` (using the :ref:`--editable <install_--editable>` option) or not.
 
-* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global intalls.
+* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global installs.
   The :ref:`--src <install_--src>` option can be used to modify this location.
 * For non-editable installs, the project is built locally in a temp dir and then installed normally.
 
@@ -141,25 +141,82 @@ Tags or revisions can be installed like this::
 Finding Packages
 ================
 
-pip searches for packages on `PyPI <http://pypi.python.org>`_ using the `http simple interface <http://pypi.python.org/simple>`_,
+pip searches for packages on `PyPI <http://pypi.python.org>`_ using the
+`http simple interface <http://pypi.python.org/simple>`_,
 which is documented `here <http://packages.python.org/distribute/easy_install.html#package-index-api>`_
-and `here <http://www.python.org/dev/peps/pep-0301/>`_
+and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a set of :ref:`Package Index Options <Package Index Options>` for modifying how packages are found.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
 
+.. _`SSL Certificate Verification`:
+
+SSL Certificate Verification
+============================
+
+Starting with v1.3, pip provides SSL certificate verification over https, for the purpose
+of providing secure, certified downloads from PyPI.
+
+This is supported by default in all Python versions pip supports, except Python 2.5.
+
+Python 2.5 users can :ref:`install an SSL backport <SSL Backport>`, which provides ssl support for older pythons.
+Pip does not try to install this automatically because it requires a compiler, which not all systems will have.
+
+Although not recommended, Python 2.5 users who are unable to install ssl, can use the global option,
+``--insecure``, to allow access to PyPI w/o attempting SSL certificate verification. This option will only be visible
+when ssl is not importable.  This is *not* a general option.
+
+
+.. _`SSL Backport`:
+
+Installing the SSL Backport
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    We advise against using ``pip`` itself to install the ssl backport, because it won't be secure
+    until *after* installing ssl.  Likewise, ``easy_install`` is not advised, because it
+    does not currently support ssl.
+
+
+1. Download the ssl archive:
+
+  * Using a Browser:
+
+    1. Go to `this url <https://pypi.python.org/pypi/ssl/1.15>`_.
+    2. Confirm the identity of the site is valid.
+       Most browsers provide this information to the left of the URL bar in the form of padlock icon that you can click on to confirm the site is verified.
+    3. Scroll down, and click to download ``ssl-1.15.tar.gz``.
+
+  * Using curl, which supports ssl certificate verification:
+     ::
+
+      $ curl -O https://pypi.python.org/packages/source/s/ssl/ssl-1.15.tar.gz
+
+2. Confirm the md5sum:
+   ::
+     $ md5sum ssl-1.15.tar.gz
+     81ea8a1175e437b4c769ae65b3290e0c  ssl-1.15.tar.gz
+
+3. Unpack the archive, and change into the ``ssl-1.15`` directory.
+4. Run: ``python setup.py install``.
+
+
 Hash Verification
 =================
 
-PyPI provides a md5 hash of a package by having the link to the
-package include a #md5=<hash>.
+PyPI provides md5 hashes in the hash fragment of package download urls.
 
 pip supports checking this, as well as any of the
 guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
 
 The hash fragment is case sensitive (i.e. sha1 not SHA1).
+
+This check is only intended to provide basic download corruption protection.
+It is not intended to provide security against tampering. For that,
+see :ref:`SSL Certificate Verification`
 
 
 Download Cache
