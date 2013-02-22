@@ -45,7 +45,7 @@ Often this requires the installation to be performed as root.
 
 .. warning::
 
-    We advise against using easy_install to install pip, because easy_install
+    We advise against using `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ to install pip, because easy_install
     does not download from PyPI over SSL, so the installation might be insecure.
     Since pip can then be used to install packages (which execute code on
     your computer), it is better to go through a trusted path.

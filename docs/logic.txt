@@ -177,7 +177,7 @@ Installing the SSL Backport
 .. warning::
 
     We advise against using ``pip`` itself to install the ssl backport, because it won't be secure
-    until *after* installing ssl.  Likewise, ``easy_install`` is not advised, because it
+    until *after* installing ssl.  Likewise, `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ is not advised, because it
     does not currently support ssl.
 
 
