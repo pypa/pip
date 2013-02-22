@@ -55,7 +55,7 @@ def _get_build_prefix():
     return path
 
 if running_under_virtualenv():
-    build_prefix = os.path.join(sys.prefix, 'build')
+    build_prefix = os.path.realpath(os.path.join(sys.prefix, 'build'))
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
     # Use tempfile to create a temporary folder for build
