@@ -1,8 +1,8 @@
 Changelog
 =========
 
-develop (unreleased)
---------------------
+1.3rc1 (unreleased)
+-------------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
   Thanks James Cleveland, Giovanni Bajo and many others (Pull #789).
