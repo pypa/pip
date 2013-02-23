@@ -2,7 +2,6 @@ import codecs
 import os
 import re
 import sys
-import textwrap
 from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
