@@ -150,12 +150,11 @@ def test_Inf_equals_Inf():
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
-    def workingset():
-        return [
-                Mock(test_name="global"),
-                Mock(test_name="editable"),
-                Mock(test_name="normal")
-            ]
+    def workingset = [
+        Mock(test_name="global"),
+        Mock(test_name="editable"),
+        Mock(test_name="normal")
+    ]
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
@@ -166,7 +165,7 @@ class Tests_get_installed_distributions:
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
-    @patch('pkg_resources.WorkingSet', workingset)
+    @patch('pkg_resources.working_set', workingset)
     def test_editables_only(self, mock_dist_is_editable, mock_dist_is_local):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
