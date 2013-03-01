@@ -8,8 +8,8 @@ import textwrap
 import site
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types, ssl
-from pip.locations import default_config_file, default_log_file, 
-                            default_config_file_name, add_explicit_path
+from pip.locations import (default_config_file, default_log_file, 
+                            default_config_file_name, add_explicit_path)
 from pip.util import get_terminal_size, get_prog
 
 
