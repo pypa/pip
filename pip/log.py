@@ -4,7 +4,7 @@
 import sys
 import logging
 
-import pip.backwardcompat
+from pip import backwardcompat
 
 
 class Logger(object):
@@ -72,7 +72,7 @@ class Logger(object):
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
                     rendered += '\n'
-                    pip.backwardcompat.fwrite(consumer, rendered)
+                    backwardcompat.fwrite(consumer, rendered)
                 else:
                     consumer(rendered)
 

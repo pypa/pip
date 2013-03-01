@@ -7,8 +7,9 @@ import os
 import textwrap
 import site
 from distutils.util import strtobool
-from pip.backwardcompat import ConfigParser, string_types
-from pip.locations import default_config_file, default_log_file, default_config_file_name, add_explicit_path
+from pip.backwardcompat import ConfigParser, string_types, ssl
+from pip.locations import default_config_file, default_log_file, 
+                            default_config_file_name, add_explicit_path
 from pip.util import get_terminal_size, get_prog
 
 
@@ -413,4 +414,21 @@ standard_options = [
         metavar='action',
         help="Default action when a path already exists: "
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
+
+    optparse.make_option(
+        '--cert',
+        dest='cert',
+        type='str',
+        default='',
+        metavar='path',
+        help = "Path to alternate CA bundle."),
+
     ]
+
+if not ssl:
+    standard_options.append(optparse.make_option(
+        '--insecure',
+        dest='insecure',
+        action='store_true',
+        default=False,
+        help = "Allow lack of certificate checking when ssl is not installed."))

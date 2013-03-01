@@ -112,3 +112,24 @@ def home_lib(home):
     else:
         lib = os.path.join('lib', 'python')
     return os.path.join(home, lib)
+
+
+## py25 has no builtin ssl module
+## only >=py32 has ssl.match_hostname and ssl.CertificateError
+try:
+    import ssl
+    try:
+        from ssl import match_hostname, CertificateError
+    except ImportError:
+        from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
+except ImportError:
+    ssl = None
+
+
+# patch for py25 socket to work with http://pypi.python.org/pypi/ssl/
+import socket
+if not hasattr(socket, 'create_connection'): # for Python 2.5
+    # monkey-patch socket module
+    from pip.backwardcompat.socket_create_connection import create_connection
+    socket.create_connection = create_connection
+

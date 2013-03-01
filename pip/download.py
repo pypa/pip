@@ -5,18 +5,21 @@ import mimetypes
 import os
 import re
 import shutil
+import socket
 import sys
 import tempfile
 
-from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
-                                urlparse, string_types)
-from pip.exceptions import InstallationError
+from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
+                                urlparse, string_types, ssl)
+if ssl:
+    from pip.backwardcompat import match_hostname
+from pip.exceptions import InstallationError, PipError, NoSSLError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
-
+from pip.locations import default_cert_path
 
 __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
@@ -66,6 +69,53 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+    """
+    A connection that wraps connections with ssl certificate verification.
+    """
+    def connect(self):
+
+        self.connection_kwargs = {}
+
+        #TODO: refactor compatibility logic into backwardcompat?
+
+        # for > py2.5
+        if hasattr(self, 'timeout'):
+            self.connection_kwargs.update(timeout = self.timeout)
+
+        # for >= py2.7
+        if hasattr(self, 'source_address'):
+            self.connection_kwargs.update(source_address = self.source_address)
+
+        sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+
+        # for >= py2.7
+        if getattr(self, '_tunnel_host', None):
+            self.sock = sock
+            self._tunnel()
+
+        # get alternate bundle or use our included bundle
+        cert_path = os.environ.get('PIP_CERT', '') or default_cert_path
+
+        self.sock = ssl.wrap_socket(sock,
+                                self.key_file,
+                                self.cert_file,
+                                cert_reqs=ssl.CERT_REQUIRED,
+                                ca_certs=cert_path)
+
+        match_hostname(self.sock.getpeercert(), self.host)
+
+
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+    """
+    A HTTPSHandler that uses our own VerifiedHTTPSConnection.
+    """
+    def __init__(self, connection_class = VerifiedHTTPSConnection):
+        self.specialized_conn_class = connection_class
+        urllib2.HTTPSHandler.__init__(self)
+    def https_open(self, req):
+        return self.do_open(self.specialized_conn_class, req)
+
 
 class URLOpener(object):
     """
@@ -81,10 +131,10 @@ class URLOpener(object):
         auth.
 
         """
-        url, username, password = self.extract_credentials(url)
+        url, username, password, scheme = self.extract_credentials(url)
         if username is None:
             try:
-                response = urllib2.urlopen(self.get_request(url))
+                response = self.get_opener(scheme=scheme).open(url)
             except urllib2.HTTPError:
                 e = sys.exc_info()[1]
                 if e.code != 401:
@@ -121,9 +171,30 @@ class URLOpener(object):
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
+        opener = self.get_opener(authhandler, scheme=scheme)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
+
+    def get_opener(self, *args, **kwargs):
+        """
+        Build an OpenerDirector instance based on the scheme, whether ssl is
+        importable and the --insecure parameter.
+        """
+        if kwargs.get('scheme') == 'https':
+            if ssl:
+                https_handler = VerifiedHTTPSHandler()
+                director =  urllib2.build_opener(https_handler, *args)
+                #strip out HTTPHandler to prevent MITM spoof
+                for handler in director.handlers:
+                    if isinstance(handler, urllib2.HTTPHandler):
+                        director.handlers.remove(handler)
+                return director
+            elif os.environ.get('PIP_INSECURE', '') == '1':
+                return urllib2.build_opener(*args)
+            else:
+                raise NoSSLError()
+        else:
+            return urllib2.build_opener(*args)
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -161,7 +232,7 @@ class URLOpener(object):
 
         username, password = self.parse_credentials(netloc)
         if username is None:
-            return url, None, None
+            return url, None, None, scheme
         elif password is None and self.prompting:
             # remove the auth credentials from the url part
             netloc = netloc.replace('%s@' % username, '', 1)
@@ -173,7 +244,7 @@ class URLOpener(object):
             netloc = netloc.replace('%s:%s@' % (username, password), '', 1)
 
         target_url = urlparse.urlunsplit((scheme, netloc, path, query, frag))
-        return target_url, username, password
+        return target_url, username, password, scheme
 
     def get_proxy(self, proxystr=''):
         """

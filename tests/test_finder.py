@@ -89,10 +89,10 @@ def test_finder_priority_file_over_page():
 def test_finder_priority_page_over_deplink():
     """Test PackageFinder prefers page links over equivalent dependency links"""
     req = InstallRequirement.from_line('gmpy==1.15', None)
-    finder = PackageFinder([], ["http://pypi.python.org/simple"])
-    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
+    finder = PackageFinder([], ["https://pypi.python.org/simple"])
+    finder.add_dependency_links(['https://c.pypi.python.org/simple/gmpy/'])
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("http://pypi")
+    assert link.url.startswith("https://pypi"), link
 
 
 def test_finder_priority_nonegg_over_eggfragments():

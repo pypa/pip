@@ -23,8 +23,10 @@ from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname,
+                                product, url2pathname, ssl,
                                 Empty as QueueEmpty)
+if ssl:
+    from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 
 __all__ = ['PackageFinder']
@@ -361,12 +363,13 @@ class PackageFinder(object):
 
         mirror_urls = set()
         for mirror_url in mirrors:
+            mirror_url = mirror_url.rstrip('/')
             # Make sure we have a valid URL
-            if not ("http://" or "https://" or "file://") in mirror_url:
+            if not any([mirror_url.startswith(scheme) for scheme in ["http://", "https://", "file://"]]):
                 mirror_url = "http://%s" % mirror_url
             if not mirror_url.endswith("/simple"):
-                mirror_url = "%s/simple/" % mirror_url
-            mirror_urls.add(mirror_url)
+                mirror_url = "%s/simple" % mirror_url
+            mirror_urls.add(mirror_url + '/')
 
         return list(mirror_urls)
 
@@ -486,6 +489,9 @@ class HTMLPage(object):
                 level =1
                 desc = 'timed out'
             elif isinstance(e, URLError):
+                #ssl/certificate error
+                if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
+                    desc = 'there was a problem confirming the ssl certificate %s' % e
                 log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
