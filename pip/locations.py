@@ -8,6 +8,11 @@ import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
+# all paths that were defined explicitly in the config with the `sys.path` directive
+explicit_paths = [] 
+def add_explicit_path(path):
+    explicit_paths.append(path)
+
 default_cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
 
 def running_under_virtualenv():
@@ -77,6 +82,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
+default_config_file_name = 'pip.ini'
 site_packages = get_python_lib()
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
@@ -85,12 +91,12 @@ if sys.platform == 'win32':
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
     default_storage_dir = os.path.join(user_dir, 'pip')
-    default_config_file = os.path.join(default_storage_dir, 'pip.ini')
+    default_config_file = os.path.join(default_storage_dir, default_config_file_name)
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     default_storage_dir = os.path.join(user_dir, '.pip')
-    default_config_file = os.path.join(default_storage_dir, 'pip.conf')
+    default_config_file = os.path.join(default_storage_dir, default_config_file_name)
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs

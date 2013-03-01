@@ -5,9 +5,11 @@ import optparse
 import pkg_resources
 import os
 import textwrap
+import site
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types, ssl
-from pip.locations import default_config_file, default_log_file
+from pip.locations import (default_config_file, default_log_file, 
+                            default_config_file_name, add_explicit_path)
 from pip.util import get_terminal_size, get_prog
 
 
@@ -129,7 +131,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.config = ConfigParser.RawConfigParser()
         self.name = kwargs.pop('name')
         self.files = self.get_config_files()
-        self.config.read(self.files)
+        self.read_config_files(self.files)
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
@@ -137,7 +139,48 @@ class ConfigOptionParser(CustomOptionParser):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
             return [config_file]
-        return [default_config_file]
+        files = []
+        search_path = os.path.abspath(os.getcwd())
+        last_search_path = None
+        while search_path != last_search_path:
+            path = os.path.join(search_path, default_config_file_name)
+            if os.path.exists(path):
+                files.append(path)
+            if sys.platform != 'win32':
+                path = os.path.join(search_path, '.' + default_config_file_name)
+                if os.path.exists(path):
+                    files.append(path)
+            last_search_path = search_path
+            search_path = os.path.dirname(search_path)
+        files.append(default_config_file)
+        # Put local files at the end of the list, where they get highest priority:
+        files.reverse()
+        return files
+
+    def read_config_files(self, files):
+        existing = {}
+        for file_ in files:
+             if not self.config.read([file_]):
+                  continue # nothing was actually read
+             for section in self.config.sections():
+                  for name in self.config.options(section):
+                        value = self.config.get(section, name)
+                        if existing.get(section, {}).get(name) == value:
+                            continue
+                        value = self.substitute_config_value(value, file_)
+                        existing.setdefault(section, {})[name] = value
+                        self.config.set(section, name, value)
+
+    def substitute_config_value(self, value, file_):
+        file_ = os.path.abspath(file_)
+        subs = [
+            ('%(file)s', file_),
+            ('%(here)s', os.path.dirname(file_)),
+            ('%(cwd)s', os.getcwd()),
+        ]
+        for var, sub in subs:
+            value = value.replace(var, sub)
+        return value
 
     def update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
@@ -159,7 +202,10 @@ class ConfigOptionParser(CustomOptionParser):
                     continue
                 # handle multiline configs
                 if option.action == 'append':
-                    val = val.split()
+                    if '\n' in val:
+                        val = [v.strip() for v in val.splitlines() if v.strip()]
+                    else:
+                        val = val.split()
                 else:
                     option.nargs = 1
                 if option.action in ('store_true', 'store_false', 'count'):
@@ -215,6 +261,18 @@ class ConfigOptionParser(CustomOptionParser):
     def error(self, msg):
         self.print_usage(sys.stderr)
         self.exit(2, "%s\n" % msg)
+
+    def update_sys_path(self):
+        prev_sys_path = list(sys.path)
+        if self.config.has_option('global', 'sys.path'):
+            value = self.config.get('global', 'sys.path')
+            value = [v.strip() for v in value.splitlines() if v.strip()]
+            for path in value:
+                site.addsitedir(path)
+        for path in sys.path:
+            if path not in prev_sys_path:
+                add_explicit_path(path)
+                pkg_resources.working_set.add_entry(path)
 
 
 try:

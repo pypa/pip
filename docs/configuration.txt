@@ -15,6 +15,9 @@ platforms.
 * On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
+Also pip will search in the current and parent directories for a file
+called ``pip.ini`` or ``.pip.ini``.
+
 You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
 
 The names of the settings are derived from the long command line option, e.g.
@@ -122,3 +125,17 @@ directly with the eval function of you shell, e.g. by adding the following to yo
 
     eval "`pip completion --bash`"
 
+Path management
+***************
+
+You can have entries added to ``sys.path`` in your config file,
+generally to support cases when you are installing libraries somewhere
+not normally on the path, but you want to be able to uninstall these
+libraries, or have pip detect them when upgrading/etc.  To do this
+use::
+     
+    [global]
+    sys.path = %(here)s/vendor/
+
+You can include multiple paths, each on their own line.  These are
+added using ``site.addsitedir()`` so ``.pth`` files are respected.

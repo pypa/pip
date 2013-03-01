@@ -150,12 +150,11 @@ def test_Inf_equals_Inf():
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
-
     workingset = [
-            Mock(test_name="global"),
-            Mock(test_name="editable"),
-            Mock(test_name="normal")
-            ]
+        Mock(test_name="global"),
+        Mock(test_name="editable"),
+        Mock(test_name="normal")
+    ]
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
