@@ -492,7 +492,9 @@ class HTMLPage(object):
                 #ssl/certificate error
                 if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
                     desc = 'there was a problem confirming the ssl certificate %s' % e
-                log_meth = logger.info
+                    log_meth = logger.notify
+                else:
+                    log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
                     level = 1

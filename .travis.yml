@@ -18,5 +18,6 @@ notifications:
 branches:
   only:
     - develop
+    - 1.3.X
 env:
   - PIP_USE_MIRRORS=true
