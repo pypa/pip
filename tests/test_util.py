@@ -150,7 +150,7 @@ def test_Inf_equals_Inf():
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
-    def workingset = [
+    workingset = [
         Mock(test_name="global"),
         Mock(test_name="editable"),
         Mock(test_name="normal")
