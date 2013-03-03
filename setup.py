@@ -22,7 +22,7 @@ def find_version(*file_paths):
 
 long_description = "\n" + "\n".join([
         read('PROJECT.txt'),
-        read('docs', 'quickstart.txt'),
+        read('docs', 'quickstart.rst'),
         read('CHANGES.txt')])
 
 tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']

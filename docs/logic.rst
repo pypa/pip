@@ -197,6 +197,7 @@ Installing the SSL Backport
 
 2. Confirm the md5sum:
    ::
+
      $ md5sum ssl-1.15.tar.gz
      81ea8a1175e437b4c769ae65b3290e0c  ssl-1.15.tar.gz
 
