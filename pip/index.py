@@ -491,7 +491,7 @@ class HTMLPage(object):
             elif isinstance(e, URLError):
                 #ssl/certificate error
                 if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
-                    desc = 'there was a problem confirming the ssl certificate %s' % e
+                    desc = 'There was a problem confirming the ssl certificate: %s' % e
                     log_meth = logger.notify
                 else:
                     log_meth = logger.info

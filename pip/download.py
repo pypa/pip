@@ -12,7 +12,7 @@ import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, ssl)
 if ssl:
-    from pip.backwardcompat import match_hostname
+    from pip.backwardcompat import match_hostname, CertificateError
 from pip.exceptions import InstallationError, PipError, NoSSLError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
@@ -103,7 +103,13 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
                                 cert_reqs=ssl.CERT_REQUIRED,
                                 ca_certs=cert_path)
 
-        match_hostname(self.sock.getpeercert(), self.host)
+        try:
+            match_hostname(self.sock.getpeercert(), self.host)
+        except CertificateError:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+            raise
+
 
 
 class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
