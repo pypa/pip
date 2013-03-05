@@ -6,6 +6,7 @@ Package containing all pip commands
 from pip.commands.bundle import BundleCommand
 from pip.commands.completion import CompletionCommand
 from pip.commands.freeze import FreezeCommand
+from pip.commands.deps import DependenciesCommand
 from pip.commands.help import HelpCommand
 from pip.commands.list import ListCommand
 from pip.commands.search import SearchCommand
@@ -20,6 +21,7 @@ commands = {
     BundleCommand.name: BundleCommand,
     CompletionCommand.name: CompletionCommand,
     FreezeCommand.name: FreezeCommand,
+    DependenciesCommand.name: DependenciesCommand,
     HelpCommand.name: HelpCommand,
     SearchCommand.name: SearchCommand,
     ShowCommand.name: ShowCommand,
@@ -35,6 +37,7 @@ commands_order = [
     InstallCommand,
     UninstallCommand,
     FreezeCommand,
+    DependenciesCommand,
     ListCommand,
     ShowCommand,
     SearchCommand,
