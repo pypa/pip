@@ -3,7 +3,7 @@ import sys
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
 from pip.locations import build_prefix, src_prefix
-from pip.basecommand import Command
+from pip.basecommand import Command, ERROR, SUCCESS
 from pip.index import PackageFinder
 from pip.cmdoptions import make_option_group, index_group
 
@@ -89,13 +89,9 @@ class DependenciesCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=None,
-            download_cache=None,
-            upgrade=False,
-            as_egg=False,
             ignore_installed=True,
-            ignore_dependencies=False,
-            force_reinstall=True,
-            use_user_site=False)
+            force_reinstall=True)
+
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -105,6 +101,7 @@ class DependenciesCommand(Command):
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
                 requirement_set.add_requirement(req)
+
         if not requirement_set.has_requirements:
             opts = {'name': self.name}
             if options.find_links:
@@ -115,7 +112,7 @@ class DependenciesCommand(Command):
                 msg = ('You must give at least one requirement '
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warn(msg)
-            return
+            return ERROR
 
         requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
 
@@ -126,7 +123,7 @@ class DependenciesCommand(Command):
         if requirements:
             sys.stdout.write(requirements + '\n')
 
-        return requirement_set
+        return SUCCESS
 
     def setup_logging(self):
         # Avoid download progress on stdout
