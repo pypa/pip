@@ -114,13 +114,14 @@ class DependenciesCommand(Command):
             logger.warn(msg)
             return ERROR
 
-        requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+        requirement_set.prepare_files(finder)
 
         requirements = '\n'.join(
             ['%s==%s' % (req.name, req.installed_version) for req in
                 requirement_set.successfully_downloaded])
 
         if requirements:
+            requirement_set.cleanup_files()
             sys.stdout.write(requirements + '\n')
 
         return SUCCESS
