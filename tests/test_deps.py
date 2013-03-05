@@ -4,14 +4,21 @@ import os
 from tests.test_pip import reset_env, run_pip, here, mkdir
 
 
-def test_should_run():
+def _run_deps(*args, **kwargs):
     reset_env()
-    result = run_pip('deps', 'INITools==0.3', expect_stderr=True)
+    kwargs['expect_stderr'] = True
+    find_links = 'file://' + os.path.join(here, 'packages/deps')
+    return run_pip('deps', '--no-index', '-f', find_links, *args, **kwargs)
 
-    assert 'INITools==0.3' in result.stdout
+def test_deps_command_returns_info_for_a_single_package():
+    result = _run_deps('dependency')
+    assert 'dependency==1.0' in result.stdout
 
-def test_should_direct_downloading_messages_to_stderr():
-    reset_env()
-    result = run_pip('deps', 'INITools==0.3', expect_stderr=True)
+def test_deps_command_returns_info_for_a_package_with_dependencies():
+    result = _run_deps('dependant')
+    assert 'dependant==1.0' in result.stdout
+    assert 'dependency==1.0' in result.stdout
 
+def test_deps_command_redirects_downloading_messages_to_stderr():
+    result = _run_deps('dependency')
     assert 'Downloading/unpacking' in result.stderr

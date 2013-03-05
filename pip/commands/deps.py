@@ -124,7 +124,7 @@ class DependenciesCommand(Command):
                 requirement_set.successfully_downloaded])
 
         if requirements:
-            sys.stdout.write(requirements)
+            sys.stdout.write(requirements + '\n')
 
         return requirement_set
 
