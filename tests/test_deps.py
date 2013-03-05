@@ -28,6 +28,9 @@ class TestDepsCommandWithASinglePackage(TestCase):
     def test_redirects_downloading_messages_to_stderr(self):
         self.assertTrue('Downloading/unpacking' in self.result.stderr)
 
+    def test_removes_downloaded_files(self):
+        self.assertFalse(self.result.files_created)
+
 
 class TestDepsCommandWithDependencies(TestCase):
 
