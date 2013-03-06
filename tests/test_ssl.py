@@ -7,6 +7,8 @@ from tests.test_pip import assert_raises_regexp, here, reset_env, run_pip
 from nose import SkipTest
 from nose.tools import assert_raises
 from pip.backwardcompat import urllib2, ssl, URLError
+if ssl:
+    from pip.backwardcompat import CertificateError
 from pip.exceptions import PipError
 
 pypi_https = 'https://pypi.python.org/simple/'
@@ -126,6 +128,20 @@ class Tests_not_py25:
         mock_getpeercert.return_value = None
         o = urlopen.get_opener(scheme='https')
         assert_raises_regexp(ValueError, 'empty or no certificate', o.open, pypi_https)
+
+
+    @patch('pip.download.match_hostname')
+    def test_raises_certificate_error(self, mock_match_hostname):
+        """
+        Test CertificateError gets raised, which implicity confirms the sock.shutdown/sock.close calls ran
+        TODO: mock socket._socket.close (to explicitly confirm the close upon exception)
+        """
+        def mock_matchhostname(cert, host):
+            raise CertificateError()
+
+        mock_match_hostname.side_effect = mock_matchhostname
+        opener = urlopen.get_opener(scheme='https')
+        assert_raises(CertificateError, opener.open, pypi_https)
 
 
     def test_bad_pem_fails(self):
