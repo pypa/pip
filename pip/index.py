@@ -262,7 +262,7 @@ class PackageFinder(object):
             if page is None:
                 continue
             done.append(page)
-            for link in page.rel_links(rels=('homepage',)):
+            for link in page.rel_links():
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
@@ -552,8 +552,8 @@ class HTMLPage(object):
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
-    def rel_links(self, rels=('homepage', 'download')):
-        for url in self.explicit_rel_links(rels):
+    def rel_links(self):
+        for url in self.explicit_rel_links():
             yield url
         for url in self.scraped_rel_links():
             yield url
