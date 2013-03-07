@@ -1,9 +1,10 @@
+import os
 import textwrap
 from os.path import join
 from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
-                            _change_test_package_version)
+                            _change_test_package_version, path_to_url)
 from tests.local_repos import local_checkout
 
 
@@ -49,11 +50,12 @@ def test_upgrade_with_newest_already_installed():
     not be reinstalled and the user should be informed.
     """
 
+    find_links = path_to_url(os.path.join(here, 'packages'))
     env = reset_env()
-    run_pip('install', 'INITools')
-    result = run_pip('install', '--upgrade', 'INITools')
-    assert not result.files_created, 'pip install --upgrade INITools upgraded when it should not have'
-    assert 'already up-to-date' in result.stdout
+    run_pip('install', '-f', find_links, '--no-index', 'simple')
+    result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
+    assert not result.files_created, 'simple upgraded when it should not have'
+    assert 'already up-to-date' in result.stdout, result.stdout
 
 
 def test_upgrade_force_reinstall_newest():
@@ -143,7 +145,7 @@ def test_uninstall_rollback():
 
     """
     env = reset_env()
-    find_links = 'file://' + join(here, 'packages')
+    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', '-f', find_links, '--no-index', 'broken==0.1')
     assert env.site_packages / 'broken.py' in result.files_created, list(result.files_created.keys())
     result2 = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)

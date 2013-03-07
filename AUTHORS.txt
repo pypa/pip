@@ -1,26 +1,36 @@
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
+Andrey Bulgakov
 Antti Kaihola
 Armin Ronacher
+Aziz Köksal
+Ben Rosser
 Brian Rosner
 Carl Meyer
+Chris McDonough
 Christian Oudard
 Clay McClure
 Cody Soyland
 Daniel Holth
 Dave Abrahams
+David (d1b)
+Dmitry Gladkov
 Donald Stufft
 Francesco
+Geoffrey Lehée
+Georgi Valkov
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
 Ionel Maries Cristian
 Jakub Vysoky
+James Cleveland
 Jannis Leidel
 Jay Graves
 John-Scott Atlakson
 Jon Parise
+Jonas Nockert
 Josh Bronson
 Kamal Bin Mustafa
 Kelsey Hightower
@@ -32,19 +42,25 @@ Marc Abramowitz
 Marcus Smith
 Markus Hametner
 Matt Maker
+Maxime R.
+Miguel Araujo
 Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
 Olivier Girardot
 Patrick Jenkins
+Paul Moore
 Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Peter Waller
 Phil Whelan
 Piet Delport
+Przemek Wrzos
 Qiangning Hong
+Rafael Caricio
 Rene Dudfield
+Roey Berman
 Ronny Pfannschmidt
 Rory McCann
 Simon Cross

@@ -12,8 +12,8 @@ from tests.test_pip import here, reset_env, run_pip, pyversion, assert_all_chang
 patch_dist_in_site_packages = """
        def dist_in_site_packages(dist):
            return False
-       import pip
-       pip.util.dist_in_site_packages=dist_in_site_packages
+       from pip import req
+       req.dist_in_site_packages=dist_in_site_packages
 """
 
 
@@ -145,6 +145,37 @@ class Tests_UserSite:
         egg_info_folder = env.root_path / env.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
         initools_folder = env.root_path / env.site_packages / 'initools'
         assert isdir(egg_info_folder)
+        assert isdir(initools_folder)
+
+
+    def test_upgrade_user_conflict_in_globalsite(self):
+        """
+        Test user install/upgrade with conflict in global site ignores site and installs to usersite
+        """
+
+        # the test framework only supports testing using virtualenvs
+        # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site
+        # this test will use 2 modifications to simulate the user-site/global-site relationship
+        # 1) a monkey patch which will make it appear INITools==0.2 is not in in the virtualenv site
+        #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
+        # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
+
+        env = reset_env(system_site_packages=True, sitecustomize=patch_dist_in_site_packages)
+        env.environ["PYTHONPATH"] = env.root_path / env.user_site
+
+        result1 = run_pip('install', 'INITools==0.2')
+        result2 = run_pip('install', '--user', '--upgrade', 'INITools')
+
+        #usersite has 0.3.1
+        egg_info_folder = env.user_site / 'INITools-0.3.1-py%s.egg-info' % pyversion
+        initools_folder = env.user_site / 'initools'
+        assert egg_info_folder in result2.files_created, str(result2)
+        assert initools_folder in result2.files_created, str(result2)
+
+        #site still has 0.2 (can't look in result1; have to check)
+        egg_info_folder = env.root_path / env.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+        initools_folder = env.root_path / env.site_packages / 'initools'
+        assert isdir(egg_info_folder), result2.stdout
         assert isdir(initools_folder)
 
 

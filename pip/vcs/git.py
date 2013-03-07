@@ -214,8 +214,7 @@ class Git(VersionControl):
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        call_subprocess([self.cmd, 'submodule', 'init', '-q'], cwd=location)
-        call_subprocess([self.cmd, 'submodule', 'update', '--recursive', '-q'],
+        call_subprocess([self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
                         cwd=location)
 
 vcs.register(Git)

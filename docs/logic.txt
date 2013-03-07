@@ -1,0 +1,268 @@
+.. _`pip logic`:
+
+================
+Internal Details
+================
+
+.. _`Requirements File Format`:
+
+Requirements File Format
+========================
+
+Each line of the requirements file indicates something to be installed,
+and like arguments to :ref:`pip install`, the following forms are supported::
+
+    <requirement specifier>
+    <archive url/path>
+    [-e] <local project path>
+    [-e] <vcs project url>
+
+See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
+
+A line beginning with ``#`` is treated as a comment and ignored.
+
+Additionally, the following :ref:`Package Index Options <Package Index Options>` are supported
+
+  *  :ref:`-i, --index-url <--index-url>`
+  *  :ref:`--extra-index-url <--extra-index-url>`
+  *  :ref:`--no-index <--no-index>`
+  *  :ref:`-f, --find-links <--find-links>`
+
+For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
+
+::
+
+--no-index
+--find-links /my/local/archives
+--find-links http://some.archives.com/archives
+
+
+Lastly, if you wish, you can refer to other requirements files, like this::
+
+    -r more_requirements.txt
+
+.. _`Requirement Specifiers`:
+
+Requirement Specifiers
+======================
+
+pip supports installing from "requirement specifiers" as implemented in
+`pkg_resources Requirements <http://packages.python.org/distribute/pkg_resources.html#requirement-objects>`_
+
+Some Examples::
+
+  FooProject >= 1.2
+  Fizzy [foo, bar]
+  PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1
+  SomethingWhoseVersionIDontCareAbout
+
+
+.. _`VCS Support`:
+
+VCS Support
+===========
+
+pip supports installing from Git, Mercurial, Subversion and Bazaar, and detects the type of VCS using url prefixes: "git+", "hg+", "bzr+", "svn+".
+
+pip requires a working VCS command on your path: git, hg, svn, or bzr.
+
+VCS projects can be installed in :ref:`editable mode <editable-installs>` (using the :ref:`--editable <install_--editable>` option) or not.
+
+* For editable installs, the clone location by default is "<venv path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject" for global installs.
+  The :ref:`--src <install_--src>` option can be used to modify this location.
+* For non-editable installs, the project is built locally in a temp dir and then installed normally.
+
+The url suffix "egg=<project name>" is used by pip in it's dependency logic to identify the project prior to pip downloading and analyzing the metadata.
+
+Git
+~~~
+
+pip currently supports cloning over ``git``, ``git+http`` and ``git+ssh``::
+
+    git+git://git.myproject.org/MyProject#egg=MyProject
+    git+http://git.myproject.org/MyProject#egg=MyProject
+    git+ssh://git.myproject.org/MyProject#egg=MyProject
+
+Passing branch names, a commit hash or a tag name is also possible::
+
+    git://git.myproject.org/MyProject.git@master#egg=MyProject
+    git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
+    git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+
+Mercurial
+~~~~~~~~~
+
+The supported schemes are: ``hg+http``, ``hg+https``,
+``hg+static-http`` and ``hg+ssh``::
+
+    hg+http://hg.myproject.org/MyProject#egg=MyProject
+    hg+https://hg.myproject.org/MyProject#egg=MyProject
+    hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+
+You can also specify a revision number, a revision hash, a tag name or a local
+branch name::
+
+    hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
+    hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
+    hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
+    hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
+
+Subversion
+~~~~~~~~~~
+
+pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
+You can also give specific revisions to an SVN URL, like::
+
+    svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
+    svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+
+which will check out revision 2019.  ``@{20080101}`` would also check
+out the revision from 2008-01-01. You can only check out specific
+revisions using ``-e svn+...``.
+
+Bazaar
+~~~~~~
+
+pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
+``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes::
+
+    bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
+    bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
+    bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    bzr+lp:MyProject#egg=MyProject
+
+Tags or revisions can be installed like this::
+
+    bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
+    bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
+
+
+Finding Packages
+================
+
+pip searches for packages on `PyPI <http://pypi.python.org>`_ using the
+`http simple interface <http://pypi.python.org/simple>`_,
+which is documented `here <http://packages.python.org/distribute/easy_install.html#package-index-api>`_
+and `there <http://www.python.org/dev/peps/pep-0301/>`_
+
+pip offers a set of :ref:`Package Index Options <Package Index Options>` for modifying how packages are found.
+
+See the :ref:`pip install Examples<pip install Examples>`.
+
+
+.. _`SSL Certificate Verification`:
+
+SSL Certificate Verification
+============================
+
+Starting with v1.3, pip provides SSL certificate verification over https, for the purpose
+of providing secure, certified downloads from PyPI.
+
+This is supported by default in all Python versions pip supports, except Python 2.5.
+
+Python 2.5 users can :ref:`install an SSL backport <SSL Backport>`, which provides ssl support for older pythons.
+Pip does not try to install this automatically because it requires a compiler, which not all systems will have.
+
+Although not recommended, Python 2.5 users who are unable to install ssl, can use the global option,
+``--insecure``, to allow access to PyPI w/o attempting SSL certificate verification. This option will only be visible
+when ssl is not importable.  This is *not* a general option.
+
+
+.. _`SSL Backport`:
+
+Installing the SSL Backport
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    We advise against using ``pip`` itself to install the ssl backport, because it won't be secure
+    until *after* installing ssl.  Likewise, `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ is not advised, because it
+    does not currently support ssl.
+
+
+1. Download the ssl archive:
+
+  * Using a Browser:
+
+    1. Go to `this url <https://pypi.python.org/pypi/ssl/1.15>`_.
+    2. Confirm the identity of the site is valid.
+       Most browsers provide this information to the left of the URL bar in the form of padlock icon that you can click on to confirm the site is verified.
+    3. Scroll down, and click to download ``ssl-1.15.tar.gz``.
+
+  * Using curl, which supports ssl certificate verification:
+     ::
+
+      $ curl -O https://pypi.python.org/packages/source/s/ssl/ssl-1.15.tar.gz
+
+2. Confirm the md5sum:
+   ::
+     $ md5sum ssl-1.15.tar.gz
+     81ea8a1175e437b4c769ae65b3290e0c  ssl-1.15.tar.gz
+
+3. Unpack the archive, and change into the ``ssl-1.15`` directory.
+4. Run: ``python setup.py install``.
+
+
+Hash Verification
+=================
+
+PyPI provides md5 hashes in the hash fragment of package download urls.
+
+pip supports checking this, as well as any of the
+guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
+
+The hash fragment is case sensitive (i.e. sha1 not SHA1).
+
+This check is only intended to provide basic download corruption protection.
+It is not intended to provide security against tampering. For that,
+see :ref:`SSL Certificate Verification`
+
+
+Download Cache
+==============
+
+pip offers a :ref:`--download-cache <install_--download-cache>` option for installs to prevent redundant downloads of archives from PyPI.
+
+The point of this cache is *not* to circumvent the index crawling process, but to *just* prevent redundant downloads.
+
+Items are stored in this cache based on the url the archive was found at, not simply the archive name.
+
+If you want a fast/local install solution that circumvents crawling PyPI, see the :ref:`Fast & Local Installs` Cookbook entry.
+
+Like all options, :ref:`--download-cache <install_--download-cache>`, can also be set as an environment variable, or placed into the pip config file.
+See the :ref:`Configuration` section.
+
+
+.. _`editable-installs`:
+
+"Editable" Installs
+===================
+
+"Editable" installs are fundamentally `"setuptools develop mode" <http://packages.python.org/distribute/setuptools.html#development-mode>`_ installs.
+
+You can install local projects or VCS projects in "editable" mode::
+
+$ pip install -e path/to/SomeProject
+$ pip install -e git+http://repo/my_project.git#egg=SomeProject
+
+For local projects, the "SomeProject.egg-info" directory is created relative to the project path.
+This is one advantage over just using ``setup.py develop``, which creates the "egg-info" directly relative the current working directory.
+
+
+setuptools & pkg_resources
+==========================
+
+Internally, pip uses the `setuptools` package, and the `pkg_resources` module, which are available from the project, `Setuptools`_, or it's fork `Distribute`_.
+
+pip can work with either `Setuptools`_ or `Distribute`_, although for Python 3, `Distribute`_ is required.
+
+Here are some examples of how pip uses `setuptools` and `pkg_resources`:
+
+* The core of pip's install process uses the `setuptools`'s "install" command.
+* Editable ("-e") installs use the `setuptools`'s "develop" command.
+* pip uses `pkg_resources` for version parsing, for detecting version conflicts, and to determine what projects are installed,
+
+
+.. _Setuptools: http://pypi.python.org/pypi/setuptools/0.6c11
+.. _Distribute: http://pypi.python.org/pypi/distribute/

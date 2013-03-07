@@ -5,15 +5,15 @@ import textwrap
 import sys
 from os.path import abspath, join, curdir, pardir
 
-from nose import SkipTest
 from nose.tools import assert_raises
 from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
+from pip.backwardcompat import ssl
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file)
+                            src_folder, write_file, path_to_url)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -29,7 +29,7 @@ def test_correct_pip_version():
     result = run_pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
-    dir = re.match(r'pip \d(\.[\d])+(\.(pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
+    dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
                    result.stdout).group(4)
     pip_folder = join(src_folder, 'pip')
     pip_folder_outputed = join(dir, 'pip')
@@ -49,7 +49,12 @@ def test_pip_second_command_line_interface_works():
     Check if ``pip-<PYVERSION>`` commands behaves equally
     """
     e = reset_env()
-    result = e.run('pip-%s' % pyversion, 'install', 'INITools==0.2')
+
+    args = ['pip-%s' % pyversion]
+    if not ssl:
+        args.append('--insecure')
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -100,7 +105,7 @@ def test_install_from_mirrors_with_specific_mirrors():
     Test installing a package from a specific PyPI mirror.
     """
     e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://d.pypi.python.org/", '--no-index', 'INITools==0.2')
+    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -113,7 +118,7 @@ def test_editable_install():
     """
     reset_env()
     result = run_pip('install', '-e', 'INITools==0.2', expect_error=True)
-    assert "--editable=INITools==0.2 should be formatted with svn+URL" in result.stdout
+    assert "INITools==0.2 should either by a path to a local project or a VCS url" in result.stdout
     assert len(result.files_created) == 1, result.files_created
     assert not result.files_updated, result.files_updated
 
@@ -490,6 +495,21 @@ def test_install_package_with_target():
     target_dir = env.scratch_path/'target'
     result = run_pip('install', '-t', target_dir, "initools==0.1")
     assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
+
+
+def test_install_package_with_root():
+    """
+    Test installing a package using pip install --root
+    """
+    env = reset_env()
+    root_dir = env.scratch_path/'root'
+    find_links = path_to_url(os.path.join(here, 'packages'))
+    result = run_pip('install', '--root', root_dir, '-f', find_links, '--no-index', 'simple==1.0')
+    normal_install_path = env.root_path / env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+    #use distutils to change the root exactly how the --root option does it
+    from distutils.util import change_root
+    root_path = change_root(os.path.join(env.scratch, 'root'), normal_install_path)
+    assert root_path in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():

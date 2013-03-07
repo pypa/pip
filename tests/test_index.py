@@ -1,4 +1,9 @@
+import os
+from pip.backwardcompat import urllib
+from tests.path import Path
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
+from pip.index import PackageFinder, Link, InfLink
+from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
 from string import ascii_lowercase
 from mock import patch
 
@@ -28,6 +33,30 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     assert len(links) == 1
     assert links[0].url == 'http://supervisord.org/'
 
+
+def test_html_page_should_be_able_to_filter_links_by_rel():
+    """
+    Test selecting links by the rel attribute
+    """
+    page = HTMLPage("""
+        <a href="http://example.com/page.html">Some page</a>
+        <a href="http://example.com/archive-1.2.3.tar.gz" rel="download">Download URL</a>
+        <a href="http://example.com/home.html" rel="homepage">Homepage</a>
+        """, "archive")
+
+    links = list(page.rel_links())
+    urls = [l.url for l in links]
+    hlinks = list(page.rel_links(('homepage',)))
+    dlinks = list(page.rel_links(('download',)))
+    assert len(links) == 2
+    assert 'http://example.com/archive-1.2.3.tar.gz' in urls
+    assert 'http://example.com/home.html' in urls
+    assert len(hlinks) == 1
+    assert hlinks[0].url == 'http://example.com/home.html'
+    assert len(dlinks) == 1
+    assert dlinks[0].url == 'http://example.com/archive-1.2.3.tar.gz'
+
+
 @patch('socket.gethostbyname_ex')
 def test_get_mirrors(mock_gethostbyname_ex):
     # Test when the expected result comes back
@@ -52,4 +81,73 @@ def test_get_mirrors_no_cname(mock_gethostbyname_ex):
     assert len(mirrors) == 26
     for c in ascii_lowercase:
         assert c + ".pypi.python.org" in mirrors
+
+
+def test_sort_locations_file_find_link():
+    """
+    Test that a file:// find-link dir gets listdir run
+    """
+    find_links_url = path_to_url(os.path.join(here, 'packages'))
+    find_links = [find_links_url]
+    finder = PackageFinder(find_links, [])
+    files, urls = finder._sort_locations(find_links)
+    assert files and not urls, "files and not urls should have been found at find-links url: %s" % find_links_url
+
+
+def test_sort_locations_file_not_find_link():
+    """
+    Test that a file:// url dir that's not a find-link, doesn't get a listdir run
+    """
+    index_url = path_to_url(os.path.join(here, 'indexes', 'empty_with_pkg'))
+    finder = PackageFinder([], [])
+    files, urls = finder._sort_locations([index_url])
+    assert urls and not files, "urls, but not files should have been found"
+
+
+def test_install_from_file_index_hash_link():
+    """
+    Test that a pkg can be installed from a file:// index using a link with a hash
+    """
+    env = reset_env()
+    index_url = path_to_url(os.path.join(here, 'indexes', 'simple'))
+    result = run_pip('install', '-i', index_url, 'simple==1.0')
+    egg_info_folder = env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+    assert egg_info_folder in result.files_created, str(result)
+
+
+def test_file_index_url_quoting():
+    """
+    Test url quoting of file index url with a space
+    """
+    index_url = path_to_url(os.path.join(here, 'indexes', urllib.quote('in dex')))
+    env = reset_env()
+    result = run_pip('install', '-vvv', '--index-url', index_url, 'simple', expect_error=False)
+    assert (env.site_packages/'simple') in result.files_created, str(result.stdout)
+    assert (env.site_packages/'simple-1.0-py%s.egg-info' % pyversion) in result.files_created, str(result)
+
+
+def test_inflink_greater():
+    """Test InfLink compares greater."""
+    assert InfLink > Link(object())
+
+
+def test_mirror_url_formats():
+    """
+    Test various mirror formats get transformed properly
+    """
+    formats = [
+        'some_mirror',
+        'some_mirror/',
+        'some_mirror/simple',
+        'some_mirror/simple/'
+        ]
+    for scheme in ['http://', 'https://', 'file://', '']:
+        result = (scheme or 'http://') + 'some_mirror/simple/'
+        scheme_formats = ['%s%s' % (scheme, format) for format in formats]
+        finder = PackageFinder([], [])
+        urls = finder._get_mirror_urls(mirrors=scheme_formats, main_mirror_url=None)
+        for url in urls:
+            assert url == result, str([url, result])
+
+
 

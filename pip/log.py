@@ -4,20 +4,18 @@
 import sys
 import logging
 
-import pip.backwardcompat
+from pip import backwardcompat
 
 
 class Logger(object):
-
     """
     Logging object for use in command-line script.  Allows ranges of
     levels, to avoid some redundancy of displayed information.
     """
-
-    VERBOSE_DEBUG = logging.DEBUG-1
+    VERBOSE_DEBUG = logging.DEBUG - 1
     DEBUG = logging.DEBUG
     INFO = logging.INFO
-    NOTIFY = (logging.INFO+logging.WARN)/2
+    NOTIFY = (logging.INFO + logging.WARN) / 2
     WARN = WARNING = logging.WARN
     ERROR = logging.ERROR
     FATAL = logging.FATAL
@@ -68,13 +66,13 @@ class Logger(object):
                         rendered = msg % args
                     else:
                         rendered = msg
-                    rendered = ' '*self.indent + rendered
+                    rendered = ' ' * self.indent + rendered
                     if self.explicit_levels:
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
                     rendered += '\n'
-                    pip.backwardcompat.fwrite(consumer, rendered)
+                    backwardcompat.fwrite(consumer, rendered)
                 else:
                     consumer(rendered)
 
@@ -87,7 +85,7 @@ class Logger(object):
             "Tried to start_progress(%r) while in_progress %r"
             % (msg, self.in_progress))
         if self._show_progress():
-            sys.stdout.write(' '*self.indent + msg)
+            sys.stdout.write(' ' * self.indent + msg)
             sys.stdout.flush()
             self.in_progress_hanging = True
         else:
@@ -121,10 +119,11 @@ class Logger(object):
                 sys.stdout.flush()
             else:
                 if self.last_message:
-                    padding = ' ' * max(0, len(self.last_message)-len(message))
+                    padding = ' ' * max(0, len(self.last_message) - len(message))
                 else:
                     padding = ''
-                sys.stdout.write('\r%s%s%s%s' % (' '*self.indent, self.in_progress, message, padding))
+                sys.stdout.write('\r%s%s%s%s' %
+                                (' ' * self.indent, self.in_progress, message, padding))
                 sys.stdout.flush()
                 self.last_message = message
 

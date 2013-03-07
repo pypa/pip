@@ -7,15 +7,22 @@ import site
 
 __all__ = ['WindowsError']
 
-uses_pycache = hasattr(imp,'cache_from_source')
+uses_pycache = hasattr(imp, 'cache_from_source')
+
+
+class NeverUsedException(Exception):
+    """this exception should never be raised"""
 
 try:
     WindowsError = WindowsError
 except NameError:
-    class NeverUsedException(Exception):
-        """this exception should never be raised"""
     WindowsError = NeverUsedException
 
+try:
+    #new in Python 3.3
+    PermissionError = PermissionError
+except NameError:
+    PermissionError = NeverUsedException
 
 console_encoding = sys.__stdout__.encoding
 
@@ -91,7 +98,8 @@ else:
 from distutils.sysconfig import get_python_lib, get_python_version
 
 #site.USER_SITE was created in py2.6
-user_site = getattr(site,'USER_SITE',None)
+user_site = getattr(site, 'USER_SITE', None)
+
 
 def product(*args, **kwds):
     # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
@@ -99,9 +107,10 @@ def product(*args, **kwds):
     pools = list(map(tuple, args)) * kwds.get('repeat', 1)
     result = [[]]
     for pool in pools:
-        result = [x+[y] for x in result for y in pool]
+        result = [x + [y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
+
 
 def home_lib(home):
     """Return the lib dir under the 'home' installation scheme"""
@@ -110,3 +119,24 @@ def home_lib(home):
     else:
         lib = os.path.join('lib', 'python')
     return os.path.join(home, lib)
+
+
+## py25 has no builtin ssl module
+## only >=py32 has ssl.match_hostname and ssl.CertificateError
+try:
+    import ssl
+    try:
+        from ssl import match_hostname, CertificateError
+    except ImportError:
+        from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
+except ImportError:
+    ssl = None
+
+
+# patch for py25 socket to work with http://pypi.python.org/pypi/ssl/
+import socket
+if not hasattr(socket, 'create_connection'): # for Python 2.5
+    # monkey-patch socket module
+    from pip.backwardcompat.socket_create_connection import create_connection
+    socket.create_connection = create_connection
+

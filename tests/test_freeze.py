@@ -60,7 +60,12 @@ def test_freeze_basic():
 
 
 def test_freeze_svn():
-    """Now lets try it with an svn checkout"""
+    """Test freezing a svn checkout"""
+
+    checkout_path = local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')
+    #svn internally stores windows drives as uppercase; we'll match that.
+    checkout_path = checkout_path.replace('c:', 'C:')
+
     env = reset_env()
     result = env.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
@@ -72,7 +77,7 @@ def test_freeze_svn():
         Script result: ...pip freeze
         -- stdout: --------------------
         -e %s@10#egg=INITools-0.3.1dev...-dev_r10
-        ...""" % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+        ...""" % checkout_path)
     _check_output(result, expected)
 
 
@@ -145,6 +150,11 @@ def test_freeze_bazaar_clone():
     Test freezing a Bazaar clone.
 
     """
+
+    checkout_path = local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')
+    #bzr internally stores windows drives as uppercase; we'll match that.
+    checkout_pathC = checkout_path.replace('c:', 'C:')
+
     reset_env()
     env = get_env()
     result = env.run('bzr', 'checkout', '-r', '174',
@@ -157,20 +167,18 @@ def test_freeze_bazaar_clone():
         Script result: ...pip freeze
         -- stdout: --------------------
         ...-e %s@...#egg=django_wikiapp-...
-        ...""" % local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'))
+        ...""" % checkout_pathC)
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s/#egg=django-wikiapp' %
-                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
+                     '%s/#egg=django-wikiapp' % checkout_path,
                      expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
-        ...-e %(repo)s@...#egg=django_wikiapp-...
-        ...""" % {'repo':
-                  local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')})
+        ...-e %(repoC)s@...#egg=django_wikiapp-...
+        ...""" % {'repoC': checkout_pathC, 'repo': checkout_path})
     _check_output(result, expected)
 
 

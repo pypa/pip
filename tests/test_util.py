@@ -4,10 +4,10 @@ util tests
 """
 import os
 import pkg_resources
-from mock import Mock
+from mock import Mock, patch
 from nose.tools import eq_
 from tests.path import Path
-from pip.util import egg_link_path
+from pip.util import egg_link_path, Inf, get_installed_distributions, dist_is_editable
 
 
 class Tests_EgglinkPath:
@@ -137,4 +137,65 @@ class Tests_EgglinkPath:
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
         eq_(egg_link_path(self.mock_dist), None)
+
+def test_Inf_greater():
+    """Test Inf compares greater."""
+    assert Inf > object()
+
+def test_Inf_equals_Inf():
+    """Test Inf compares greater."""
+    assert Inf == Inf
+
+
+class Tests_get_installed_distributions:
+    """test util.get_installed_distributions"""
+
+
+    workingset = [
+            Mock(test_name="global"),
+            Mock(test_name="editable"),
+            Mock(test_name="normal")
+            ]
+
+    def dist_is_editable(self, dist):
+        return dist.test_name == "editable"
+
+    def dist_is_local(self, dist):
+        return dist.test_name != "global"
+
+
+    @patch('pip.util.dist_is_local')
+    @patch('pip.util.dist_is_editable')
+    @patch('pkg_resources.working_set', workingset)
+    def test_editables_only(self, mock_dist_is_editable, mock_dist_is_local):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        dists = get_installed_distributions(editables_only=True)
+        assert len(dists) == 1, dists
+        assert dists[0].test_name == "editable"
+
+
+    @patch('pip.util.dist_is_local')
+    @patch('pip.util.dist_is_editable')
+    @patch('pkg_resources.working_set', workingset)
+    def test_exclude_editables(self, mock_dist_is_editable, mock_dist_is_local):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        dists = get_installed_distributions(include_editables=False)
+        assert len(dists) == 1
+        assert dists[0].test_name == "normal"
+
+
+    @patch('pip.util.dist_is_local')
+    @patch('pip.util.dist_is_editable')
+    @patch('pkg_resources.working_set', workingset)
+    def test_include_globals(self, mock_dist_is_editable, mock_dist_is_local):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        dists = get_installed_distributions(local_only=False)
+        assert len(dists) == 3
+
+
+
+
 
