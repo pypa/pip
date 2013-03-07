@@ -1,7 +1,3 @@
-.. note::
-
-  pip-1.3 is not yet released to PyPI, but `see the mailing list for details on installing the latest RC <https://groups.google.com/forum/?fromgroups#!forum/python-virtualenv>`_.
-
 pip
 ===
 
