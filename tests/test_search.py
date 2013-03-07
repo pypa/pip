@@ -62,7 +62,7 @@ def test_search():
     """
     reset_env()
     output = run_pip('search', 'pip')
-    assert 'pip installs packages' in output.stdout
+    assert 'A tool for installing and managing Python packages' in output.stdout
 
 
 def test_multiple_search():
@@ -72,7 +72,7 @@ def test_multiple_search():
     """
     reset_env()
     output = run_pip('search', 'pip', 'INITools')
-    assert 'pip installs packages' in output.stdout
+    assert 'A tool for installing and managing Python packages' in output.stdout
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
 
