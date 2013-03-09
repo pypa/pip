@@ -70,8 +70,7 @@ class Command(object):
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
         attrs = ['log', 'proxy', 'require_venv',
-                 'log_explicit_levels', 'log_file',
-                 'timeout', 'default_vcs',
+                 'log_explicit_levels', 'default_vcs',
                  'skip_requirements_regex',
                  'no_input', 'exists_action',
                  'cert']
