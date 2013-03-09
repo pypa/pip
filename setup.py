@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import textwrap
-from setuptools import setup
+from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -49,7 +49,7 @@ setup(name="pip",
       author_email='python-virtualenv@groups.google.com',
       url='http://www.pip-installer.org',
       license='MIT',
-      packages=['pip', 'pip.commands', 'pip.vcs', 'pip.backwardcompat'],
+      packages=find_packages(exclude=["contrib", "docs", "tests"]),
       package_data={'pip': ['*.pem']},
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',

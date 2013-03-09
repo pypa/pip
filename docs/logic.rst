@@ -57,6 +57,23 @@ Some Examples::
   SomethingWhoseVersionIDontCareAbout
 
 
+.. _`Pre Release Versions`:
+
+Pre Release Versions
+====================
+
+By default pip will only install stable versions as specified by PEP426. If
+a version cannot be parsed as a compliant PEP426 version then it is assumed
+to be stable.
+
+If a Requirement specifier includes a pre release version (e.g. ``>=0.0.dev0``) then
+pip will allow pre-release versions for that requirement. This does not include
+the != flag.
+
+The ``pip install`` command also supports a ``--pre`` flag that will enable
+installing pre-releases.
+
+
 .. _`VCS Support`:
 
 VCS Support
