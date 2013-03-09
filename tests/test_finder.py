@@ -110,4 +110,52 @@ def test_finder_priority_nonegg_over_eggfragments():
     assert link.url.endswith('tar.gz')
 
 
+def test_finder_only_installs_stable_releases():
+    """
+    Test PackageFinder only accepts stable versioned releases by default.
+    """
+    req = InstallRequirement.from_line("bar", None)
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
+
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
+
+
+def test_finder_installs_pre_releases():
+    """
+    Test PackageFinder only accepts stable versioned releases by default.
+    """
+    req = InstallRequirement.from_line("bar", None, prereleases=True)
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
+
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+
+def test_finder_installs_pre_releases_with_version_spec():
+    """
+    Test PackageFinder only accepts stable versioned releases by default.
+    """
+    req = InstallRequirement.from_line("bar>=0.0.dev0", None)
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
+
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
