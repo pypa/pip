@@ -100,7 +100,10 @@ def parseopts(args):
     description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
     parser.description = '\n'.join(description)
 
-    options, args = parser.parse_args(args)
+    options, cmd_args = parser.parse_args(args)
+    # args:     ['--timeout=5', 'install', '--user', 'INITools']
+    # cmd_args: ['install', '--user', 'INITools']
+    # note: parser calls disable_interspersed_args()
 
     if options.version:
         sys.stdout.write(parser.version)
@@ -108,16 +111,18 @@ def parseopts(args):
         sys.exit()
 
     # pip || pip help || pip --help -> print_help()
-    if not args or (args[0] == 'help' and len(args) == 1):
+    if not cmd_args or (cmd_args[0] == 'help' and len(cmd_args) == 1):
         parser.print_help()
         sys.exit()
 
-    if not args:
+    if not cmd_args:
         msg = ('You must give a command '
                '(use "pip --help" to see a list of commands)')
         raise CommandError(msg)
 
-    command = args[0].lower()
+    command = cmd_args[0].lower()  # install
+    args.remove(cmd_args[0])  
+    cmd_args = args  # --timeout=5 --user INITools
 
     if command not in commands:
         guess = get_similar_commands(command)
@@ -128,7 +133,7 @@ def parseopts(args):
 
         raise CommandError(' - '.join(msg))
 
-    return command, options, args, parser
+    return command, options, cmd_args, parser
 
 
 def main(initial_args=None):
@@ -138,7 +143,7 @@ def main(initial_args=None):
     autocomplete()
 
     try:
-        cmd_name, options, args, parser = parseopts(initial_args)
+        cmd_name, options, cmd_args, parser = parseopts(initial_args)
     except PipError:
         e = sys.exc_info()[1]
         sys.stderr.write("ERROR: %s" % e)
@@ -146,7 +151,7 @@ def main(initial_args=None):
         sys.exit(1)
 
     command = commands[cmd_name](parser)  # see baseparser.Command
-    return command.main(args[1:], options)
+    return command.main(cmd_args, options)
 
 
 def bootstrap():

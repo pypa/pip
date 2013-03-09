@@ -67,25 +67,11 @@ class Command(object):
 
         parser.add_option_group(new_group)
 
-    def merge_options(self, initial_options, options):
-        # Make sure we have all global options carried over
-        attrs = ['log', 'proxy', 'require_venv',
-                 'log_explicit_levels', 'log_file',
-                 'timeout', 'default_vcs',
-                 'skip_requirements_regex',
-                 'no_input', 'exists_action',
-                 'cert']
-        for attr in attrs:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
-        options.quiet += initial_options.quiet
-        options.verbose += initial_options.verbose
-
     def setup_logging(self):
         pass
 
     def main(self, args, initial_options):
         options, args = self.parser.parse_args(args)
-        self.merge_options(initial_options, options)
 
         level = 1  # Notify
         level += options.verbose
