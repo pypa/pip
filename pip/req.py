@@ -19,7 +19,7 @@ from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
                       is_installable_dir, is_local, dist_is_local,
                       dist_in_usersite, dist_in_site_packages, renames,
                       normalize_path, egg_link_path, make_path_relative,
-                      call_subprocess)
+                      call_subprocess, is_prerelease)
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
@@ -37,7 +37,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True):
+                 url=None, as_egg=False, update=True, prereleases=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -65,6 +65,14 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
 
+        # True if pre-releases are acceptable
+        if prereleases:
+            self.prereleases = True
+        elif self.req is not None:
+            self.prereleases = any([is_prerelease(x[1]) and x[0] != "!=" for x in self.req.specs])
+        else:
+            self.prereleases = False
+
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
         name, url, extras_override = parse_editable(editable_req, default_vcs)
@@ -73,7 +81,7 @@ class InstallRequirement(object):
         else:
             source_dir = None
 
-        res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url)
+        res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url, prereleases=True)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -81,7 +89,7 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None):
+    def from_line(cls, name, comes_from=None, prereleases=None):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -115,7 +123,7 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url)
+        return cls(req, comes_from, url=url, prereleases=prereleases)
 
     def __str__(self):
         if self.req:
@@ -1353,7 +1361,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_editable(
                     line, comes_from=comes_from, default_vcs=options.default_vcs)
             else:
-                req = InstallRequirement.from_line(line, comes_from)
+                req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
             yield req
 
 
