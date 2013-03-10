@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import textwrap
-from setuptools import setup
+from setuptools import setup, Extension
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,6 +26,28 @@ long_description = "\n" + "\n".join([
         read('CHANGES.txt')])
 
 tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
+
+include_dirs = [dir for dir in ('/usr/include/',
+                                '/usr/local/include/',
+                                '/opt/local/include/',
+                                '/usr/local/ssl/include',
+                                '/usr/contrib/ssl/include/',
+                                '/usr/kerberos/include')
+                if os.path.exists(dir)]
+
+library_dirs = [dir for dir in ('/usr/lib/',
+                                '/usr/local/lib/',
+                                '/opt/local/lib/',
+                                '/usr/local/ssl/lib',
+                                '/usr/contrib/ssl/lib/')
+                if os.path.exists(dir)]
+
+ssl_module = Extension(os.path.join('pip', 'backwardcompat', '_ssl'),
+                       [os.path.join('pip', 'backwardcompat', '_ssl.c')],
+                       include_dirs = include_dirs,
+                       library_dirs = library_dirs,
+                       libraries = ['ssl', 'crypto'],
+                       depends = ['socketmodule.h'])
 
 setup(name="pip",
       version=find_version('pip', '__init__.py'),
@@ -58,4 +80,5 @@ setup(name="pip",
       extras_require = {
           'testing':tests_require,
           },
+      ext_modules=[ssl_module],
       )
