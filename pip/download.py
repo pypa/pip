@@ -12,7 +12,7 @@ import tempfile
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, ssl)
 if ssl:
-    from pip.backwardcompat import match_hostname, CertificateError
+    from pip.backwardcompat import match_hostname, CertificateError, HAS_SNI, wrap_socket
 from pip.exceptions import InstallationError, PipError, NoSSLError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
@@ -97,11 +97,15 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         # get alternate bundle or use our included bundle
         cert_path = os.environ.get('PIP_CERT', '') or default_cert_path
 
-        self.sock = ssl.wrap_socket(sock,
+        # hostname for SNI certificates
+        server_hostname = self.host if HAS_SNI else None
+
+        self.sock = wrap_socket(sock,
                                 self.key_file,
                                 self.cert_file,
                                 cert_reqs=ssl.CERT_REQUIRED,
-                                ca_certs=cert_path)
+                                ca_certs=cert_path,
+                                server_hostname=server_hostname)
 
         try:
             match_hostname(self.sock.getpeercert(), self.host)
