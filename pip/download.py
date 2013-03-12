@@ -130,6 +130,7 @@ class URLOpener(object):
     """
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        self.proxy_handler = None
 
     def __call__(self, url):
         """
@@ -187,6 +188,11 @@ class URLOpener(object):
         Build an OpenerDirector instance based on the scheme, whether ssl is
         importable and the --insecure parameter.
         """
+
+        args = list(args)
+        if self.proxy_handler:
+            args.extend([self.proxy_handler, urllib2.CacheFTPHandler])
+
         if kwargs.get('scheme') == 'https':
             if ssl:
                 https_handler = VerifiedHTTPSHandler()
@@ -212,9 +218,7 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
-            opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
-            urllib2.install_opener(opener)
+            self.proxy_handler = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
