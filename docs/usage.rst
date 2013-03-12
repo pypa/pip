@@ -124,7 +124,7 @@ Examples
   $ pip install --no-index --find-links:relative/dir/ SomePackage
 
 
-9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions by default.
+9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
 
  ::
 
