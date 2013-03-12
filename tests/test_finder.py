@@ -114,13 +114,20 @@ def test_finder_only_installs_stable_releases():
     """
     Test PackageFinder only accepts stable versioned releases by default.
     """
-    req = InstallRequirement.from_line("bar", None)
-    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index (that has pre & dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'pre'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-1.0.tar.gz"), link.url
+
+    # using find-links
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url == "https://foo/bar-1.0.tar.gz"
-
     links.reverse()
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
@@ -129,19 +136,40 @@ def test_finder_only_installs_stable_releases():
 
 def test_finder_installs_pre_releases():
     """
-    Test PackageFinder only accepts stable versioned releases by default.
+    Test PackageFinder finds pre-releases if asked to.
     """
-    req = InstallRequirement.from_line("bar", None, prereleases=True)
-    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
+    req = InstallRequirement.from_line("bar", None, prereleases=True)
+
+    # using a local index (that has pre & dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'pre'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-2.0b1.tar.gz"), link.url
+
+    # using find-links
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url == "https://foo/bar-2.0b1.tar.gz"
-
     links.reverse()
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+
+def test_finder_installs_dev_releases():
+    """
+    Test PackageFinder finds dev releases if asked to.
+    """
+
+    req = InstallRequirement.from_line("bar", None, prereleases=True)
+
+    # using a local index (that has dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'dev'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-2.0.dev1.tar.gz"), link.url
 
 
 def test_finder_installs_pre_releases_with_version_spec():
