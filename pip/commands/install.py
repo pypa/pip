@@ -181,7 +181,7 @@ class InstallCommand(Command):
             '--pre',
             action='store_true',
             default=False,
-            help="Include pre-releases in the available versions.")
+            help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
         index_opts = make_option_group(index_group, self.parser)
 

@@ -59,20 +59,22 @@ Some Examples::
 
 .. _`Pre Release Versions`:
 
-Pre Release Versions
+Pre-release Versions
 ====================
 
-By default pip will only install stable versions as specified by PEP426. If
-a version cannot be parsed as a compliant PEP426 version then it is assumed
+Starting with v1.4, pip will only install stable versions as specified by `PEP426`_ by default. If
+a version cannot be parsed as a compliant `PEP426`_ version then it is assumed
 to be stable.
 
-If a Requirement specifier includes a pre release version (e.g. ``>=0.0.dev0``) then
-pip will allow pre-release versions for that requirement. This does not include
+If a Requirement specifier includes a pre-release or development version (e.g. ``>=0.0.dev0``) then
+pip will allow pre-release and development versions for that requirement. This does not include
 the != flag.
 
-The ``pip install`` command also supports a ``--pre`` flag that will enable
-installing pre-releases.
+The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag that will enable
+installing pre-releases and development releases.
 
+
+.. _PEP426: http://www.python.org/dev/peps/pep-0426
 
 .. _`VCS Support`:
 
