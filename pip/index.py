@@ -18,7 +18,7 @@ except ImportError:
     import dummy_threading as threading
 
 from pip.log import logger
-from pip.util import Inf, normalize_name, splitext
+from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
@@ -182,6 +182,9 @@ class PackageFinder(object):
             if version not in req.req:
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
+                continue
+            elif is_prerelease(version) and not req.prereleases:
+                logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
                 continue
             applicable_versions.append((parsed_version, link, version))
         #bring the latest version to the front, but maintains the priority ordering as secondary

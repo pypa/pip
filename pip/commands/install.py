@@ -177,6 +177,12 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory.")
 
+        cmd_opts.add_option(
+            '--pre',
+            action='store_true',
+            default=False,
+            help="Include pre-releases in the available versions.")
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -232,7 +238,7 @@ class InstallCommand(Command):
             use_user_site=options.use_user_site)
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
+                InstallRequirement.from_line(name, None, prereleases=options.pre))
         for name in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
