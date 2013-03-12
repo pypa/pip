@@ -2,7 +2,7 @@ all: clean vendor
 
 clean:
 	@# Delete vendored items
-	for i in `find . -maxdepth 1 -type d -print`; do rm -rf $i; done
+	find . -maxdepth 1 -mindepth 1 -type d -exec rm -rf {} \;
 
 vendor:
 	@# Install vendored libraries
