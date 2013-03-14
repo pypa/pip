@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import textwrap
 from tests.test_pip import pyversion, reset_env, run_pip, write_file, path_to_url, here
@@ -68,3 +69,16 @@ def test_editables_flag():
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, str(result)
 
+
+def test_location_flag():
+    """
+    Test the behavior of --location param in the list command
+
+    """
+    reset_env()
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
+    location = os.path.join(here, 'tests_cache', 'test_ws', '.virtualenv', 'lib',
+        'python%d.%d' % (sys.version_info.major, sys.version_info.minor),
+        'site-packages')
+    result = run_pip('list', '--location', os.path.normcase(os.path.realpath(location)))
+    assert 'simple (1.0)' in result.stdout

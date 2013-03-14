@@ -39,6 +39,10 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='If in a virtualenv that has global access, do not list globally-installed packages.')
+        cmd_opts.add_option(
+            '--location',
+            default=None,
+            help='Show only packages that are located in specific directory.')
 
         index_opts = make_option_group(index_group, self.parser)
 
@@ -77,7 +81,7 @@ class ListCommand(Command):
             index_urls = []
 
         dependency_links = []
-        for dist in get_installed_distributions(local_only=options.local):
+        for dist in get_installed_distributions(local_only=options.local, location=options.location):
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -86,7 +90,8 @@ class ListCommand(Command):
         finder = self._build_package_finder(options, index_urls)
         finder.add_dependency_links(dependency_links)
 
-        installed_packages = get_installed_distributions(local_only=options.local, include_editables=False)
+        installed_packages = get_installed_distributions(local_only=options.local,
+            location=options.location, include_editables=False)
         for dist in installed_packages:
             req = InstallRequirement.from_line(dist.key, None)
             try:
@@ -108,11 +113,12 @@ class ListCommand(Command):
             yield dist, remote_version_raw, remote_version_parsed
 
     def run_listing(self, options):
-        installed_packages = get_installed_distributions(local_only=options.local)
+        installed_packages = get_installed_distributions(local_only=options.local, location=options.location)
         self.output_package_listing(installed_packages)
 
     def run_editables(self, options):
-        installed_packages = get_installed_distributions(local_only=options.local, editables_only=True)
+        installed_packages = get_installed_distributions(local_only=options.local,
+            location=options.location, editables_only=True)
         self.output_package_listing(installed_packages)
 
     def output_package_listing(self, installed_packages):

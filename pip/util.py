@@ -347,10 +347,19 @@ def dist_is_editable(dist):
     req = FrozenRequirement.from_dist(dist, [])
     return req.editable
 
+
+def dist_check_location(dist, location):
+    """
+    Checks if dist location matches provided path
+    """
+    return normalize_path(dist_location(dist)) == normalize_path(location)
+
+
 def get_installed_distributions(local_only=True,
                                 skip=('setuptools', 'pip', 'python'),
                                 include_editables=True,
-                                editables_only=False):
+                                editables_only=False,
+                                location=None):
     """
     Return a list of installed Distribution objects.
 
@@ -381,8 +390,14 @@ def get_installed_distributions(local_only=True,
     else:
         editables_only_test = lambda d: True
 
+    if location:
+        location_test = lambda d, l: dist_check_location(d, l)
+    else:
+        location_test = lambda d, l: True
+
     return [d for d in pkg_resources.working_set
             if local_test(d)
+            and location_test(d, location)
             and d.key not in skip
             and editable_test(d)
             and editables_only_test(d)
