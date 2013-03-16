@@ -4,6 +4,7 @@ import sys
 import site
 import os
 import tempfile
+from distutils.command.install import install, SCHEME_KEYS
 import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
@@ -98,3 +99,32 @@ else:
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
         default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
+
+
+def distutils_scheme(dist_name, user=False, home=None):
+    """
+    Return a distutils install scheme
+    """
+    from distutils.dist import Distribution
+
+    scheme = {}
+    d = Distribution({'name': dist_name})
+    i = install(d)
+    if sys.version_info >= (2, 6):
+        i.user = user or i.user
+    i.home = home or i.home
+    i.finalize_options()
+    for key in SCHEME_KEYS:
+        scheme[key] = getattr(i, 'install_'+key)
+
+    #be backward-compatible with what pip has always done?
+    scheme['scripts'] = bin_py
+
+    if running_under_virtualenv():
+        scheme['headers'] = os.path.join(sys.prefix,
+                                    'include',
+                                    'site',
+                                    'python' + sys.version[:3],
+                                    dist_name)
+
+    return scheme

@@ -19,6 +19,7 @@ if sys.version_info[:2] == (2, 5) and not ssl:
     os.environ['PIP_INSECURE'] = '1'
 
 pyversion = sys.version[:3]
+pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
 
 # the directory containing all the tests
 here = Path(__file__).abspath.folder

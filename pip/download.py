@@ -358,7 +358,8 @@ def geturl(urllib2_resp):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle')
+    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle',
+               '.whl')
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True

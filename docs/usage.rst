@@ -344,6 +344,43 @@ Examples
   peppercorn      - A library for converting a token stream into [...]
 
 
+pip wheel
+---------
+
+Usage
+*****
+
+.. pip-command-usage:: wheel
+
+
+Description
+***********
+
+.. pip-command-description:: wheel
+
+Options
+*******
+
+**Wheel Options:**
+
+.. pip-command-options:: wheel
+
+**Other Options:**
+
+* :ref:`Package Index Options <Package Index Options>`
+* :ref:`General Options <General Options>`
+
+Examples
+********
+
+1. Build wheels for a requirement (and all it's dependencies), and then install
+
+  ::
+
+    $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+    $ pip install --use-wheel --no-index --find-links=/tmp/wheelhouse SomePackage
+
+
 pip zip
 -------
 

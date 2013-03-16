@@ -3,10 +3,11 @@ tests specific to "--user" option
 """
 
 import sys
+import os
 from os.path import abspath, join, curdir, isdir, isfile
 from nose import SkipTest
 from tests.local_repos import local_checkout
-from tests.test_pip import here, reset_env, run_pip, pyversion, assert_all_changes
+from tests.test_pip import here, reset_env, run_pip, pyversion, assert_all_changes, path_to_url
 
 
 patch_dist_in_site_packages = """
@@ -252,5 +253,19 @@ class Tests_UserSite:
 
         assert_all_changes(result1, result2,
                            [env.venv/'build', 'cache', env.user_site/'easy-install.pth'])
+
+
+    def test_install_user_wheel(self):
+        """
+        Test user install from wheel
+        """
+        env = reset_env(system_site_packages=True, use_distribute=True)
+        run_pip('install', 'wheel')
+        run_pip('install', 'markerlib')
+        find_links = path_to_url(os.path.join(here, 'packages'))
+        result = run_pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
+                     '--no-index', '--find-links='+find_links)
+        egg_info_folder = env.user_site / 'simple.dist-0.1.dist-info'
+        assert egg_info_folder in result.files_created, str(result)
 
 

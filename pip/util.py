@@ -476,7 +476,8 @@ def unzip_file(filename, location, flatten=True):
     try:
         zip = zipfile.ZipFile(zipfp)
         leading = has_leading_dir(zip.namelist()) and flatten
-        for name in zip.namelist():
+        for info in zip.infolist():
+            name = info.filename
             data = zip.read(name)
             fn = name
             if leading:
@@ -495,6 +496,11 @@ def unzip_file(filename, location, flatten=True):
                     fp.write(data)
                 finally:
                     fp.close()
+                    unix_attributes = info.external_attr >> 16
+                    if unix_attributes:
+                        os.chmod(fn, unix_attributes)
+
+
     finally:
         zipfp.close()
 
@@ -580,6 +586,7 @@ def cache_download(target_file, temp_location, content_type):
 
 
 def unpack_file(filename, location, content_type, link):
+    filename = os.path.realpath(filename)
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
