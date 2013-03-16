@@ -40,6 +40,7 @@ commands_order = [
     ListCommand,
     ShowCommand,
     SearchCommand,
+    WheelCommand,
     ZipCommand,
     UnzipCommand,
     BundleCommand,
