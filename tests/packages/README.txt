@@ -58,9 +58,17 @@ pkgwithmpkg-1.0.tar.gz; pkgwithmpkg-1.0-py2.7-macosx10.7.mpkg.zip
 -----------------------------------------------------------------
 used for osx test case (tests.test_finder:test_no_mpkg)
 
+priority-*
+----------
+used for testing wheel priority over sdists
+
 simple[2]-[123].0.tar.gz
----------------------
+------------------------
 contains "simple[2]" package; good for basic testing and version logic.
+
+wheelbroken-0.1.tar.gz
+----------------------
+fails for "setup.py bdist_wheel"
 
 Upper-[12].0.tar.gz and requiresuppper-1.0.tar.gz
 --------------------------------------------------

@@ -28,6 +28,7 @@ from pip.backwardcompat import (WindowsError, BytesIO,
 if ssl:
     from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
+import pip.pep425tags
 
 __all__ = ['PackageFinder']
 
@@ -43,7 +44,8 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None,
+            use_wheel=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -55,6 +57,7 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
+        self.use_wheel = use_wheel
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -102,6 +105,25 @@ class PackageFinder(object):
                 urls.append(url)
 
         return files, urls
+
+    def _link_sort_key(self, link_tuple):
+        """
+        Function used to generate link sort key for link tuples.
+        If finding wheels, wheels are preferred over sdists
+        """
+        parsed_version = link_tuple[0]
+        link = link_tuple[1]
+        if self.use_wheel:
+            if link == InfLink: #existing install
+                pri = 2
+            else:
+                pri = 1
+                link_ext = link.splitext()[1]
+                if link_ext == '.whl':
+                    pri = 2
+            return (parsed_version, pri)
+        else:
+            return parsed_version
 
     def find_requirement(self, req, upgrade):
 
@@ -187,8 +209,8 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        #bring the latest version to the front, but maintains the priority ordering as secondary
-        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
+        #bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary
+        applicable_versions = sorted(applicable_versions, key=self._link_sort_key, reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -271,6 +293,11 @@ class PackageFinder(object):
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _wheel_info_re = re.compile(
+                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+                \.whl|\.dist-info)$""",
+                re.VERBOSE)
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -290,6 +317,12 @@ class PackageFinder(object):
             for v in self._link_package_versions(link, search_name):
                 yield v
 
+    def _known_extensions(self):
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+        if self.use_wheel:
+            return extensions + ('.whl',)
+        return extensions
+
     def _link_package_versions(self, link, search_name):
         """
         Return an iterable of triples (pkg_resources_version_key,
@@ -298,6 +331,7 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
         else:
@@ -311,7 +345,7 @@ class PackageFinder(object):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
+            if ext not in self._known_extensions():
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
@@ -321,7 +355,21 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-        version = self._egg_info_matches(egg_info, search_name, link)
+            if ext == '.whl':
+                wheel_info = self._wheel_info_re.match(link.filename)
+                if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
+                    version = wheel_info.group('ver')
+                    pyversions = wheel_info.group('pyver').split('.')
+                    abis = wheel_info.group('abi').split('.')
+                    plats = wheel_info.group('plat').split('.')
+                    wheel_supports = set((x, y, z) for x in pyversions for y
+                            in abis for z in plats)
+                    supported = set(pip.pep425tags.get_supported())
+                    if not supported.intersection(wheel_supports):
+                        logger.debug('Skipping %s because it is not compatible with this Python' % link)
+                        return []
+        if not version:
+            version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
