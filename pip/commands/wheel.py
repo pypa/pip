@@ -15,20 +15,21 @@ from pip import cmdoptions
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
 class WheelCommand(Command):
+    """
+    Build wheel archives from your requirements using "setup.py bdist_wheel".
+
+    Requirements: Distribute>=0.6.28 (not Setuptools), wheel, and markerlib.
+
+    Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
+    For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
+    """
+
     name = 'wheel'
     usage = """
       %prog [options] <requirement specifier> ...
       %prog [options] -r <requirements file> ..."""
 
     summary = 'Build wheels from your requirements.'
-
-    description = """
-       Build wheel archives from your requirements using "setup.py bdist_wheel".
-
-       Requirements: Distribute>=0.6.28 (not Setuptools), wheel, and markerlib.
-
-       Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
-       For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest."""
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)
