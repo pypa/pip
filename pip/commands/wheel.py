@@ -18,7 +18,7 @@ class WheelCommand(Command):
     """
     Build wheel archives from your requirements using "setup.py bdist_wheel".
 
-    Requirements: Distribute>=0.6.28 (not Setuptools), wheel, and markerlib.
+    Requirements: distribute>=0.6.34 (not setuptools), and wheel.
 
     Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
     For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.

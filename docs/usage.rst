@@ -373,7 +373,7 @@ Options
 Examples
 ********
 
-1. Build wheels for a requirement (and all it's dependencies), and then install
+1. Build wheels for a requirement (and all its dependencies), and then install
 
   ::
 
