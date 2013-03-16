@@ -17,6 +17,21 @@ from base64 import urlsafe_b64encode
 
 from pip.util import make_path_relative
 
+def wheel_ok(required_ver=None):
+    """Return True if we have a distribute that supports wheel (.dist-info directories)."""
+    supported = False
+    if not required_ver:
+        import pkg_resources
+        required_ver = pkg_resources.Requirement.parse("distribute >= 0.6.34")
+    try:
+        installed_ver = pkg_resources.working_set.by_key['distribute']
+        supported = installed_ver in required_ver
+    except KeyError:
+        pass
+    if not supported:
+        logger.warn("%s is required for wheel installs.", required_ver)
+    return supported
+    
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
     h = hashlib.new(algo)

@@ -12,7 +12,7 @@ from distutils.util import change_root
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
-                            DistributionNotFound)
+                            DistributionNotFound, CommandError)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
@@ -1389,6 +1389,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             if finder:
                 finder.index_urls.append(line)
         elif line.startswith('--use-wheel'):
+            if not pip.wheel.wheel_ok():
+                raise InstallationError("wheel runtime requirements not met.")
             finder.use_wheel = True
         elif line.startswith('--no-index'):
             finder.index_urls = []
