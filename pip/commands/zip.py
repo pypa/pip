@@ -11,12 +11,11 @@ from pip.basecommand import Command
 
 
 class ZipCommand(Command):
+    """Zip individual packages."""
     name = 'zip'
     usage = """
      %prog [options] <package> ..."""
     summary = 'Zip individual packages.'
-    description = """
-       Zip individual packages."""
 
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)
@@ -71,7 +70,7 @@ class ZipCommand(Command):
             for match in self.select_paths:
                 match = os.path.normcase(os.path.abspath(match))
                 if '*' in match:
-                    if re.search(fnmatch.translate(match+'*'), path):
+                    if re.search(fnmatch.translate(match + '*'), path):
                         result.append(path)
                         match_any.add(match)
                         break
@@ -86,8 +85,8 @@ class ZipCommand(Command):
         for match in self.select_paths:
             if match not in match_any and '*' not in match:
                 result.append(match)
-                logger.debug("Adding path %s because it doesn't match anything already on sys.path"
-                             % match)
+                logger.debug("Adding path %s because it doesn't match "
+                             "anything already on sys.path" % match)
         return result
 
     def run(self, options, args):
@@ -198,7 +197,7 @@ class ZipCommand(Command):
                                 full = os.path.join(dirpath, fn)
                                 dest = os.path.join(module_name, dirpath[len(filename):].lstrip(os.path.sep), fn)
                                 if is_dir:
-                                    zip.writestr(dest+'/', '')
+                                    zip.writestr(dest + '/', '')
                                 else:
                                     zip.write(full, dest)
                     zip.close()
@@ -247,7 +246,7 @@ class ZipCommand(Command):
                 f.close()
                 if lines and not lines[-1].endswith('\n'):
                     lines[-1] += '\n'
-                lines.append(filename+'\n')
+                lines.append(filename + '\n')
             else:
                 lines = [filename + '\n']
             f = open(dest, 'wb')

@@ -72,7 +72,7 @@ Examples
   $ pip install --upgrade SomePackage
 
 
-4) Install a local project in  in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
+4) Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
   ::
 
@@ -124,6 +124,14 @@ Examples
   $ pip install --no-index --find-links:relative/dir/ SomePackage
 
 
+9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
+
+ ::
+
+  $ pip install --pre SomePackage
+
+
+
 .. _PyPI: http://pypi.python.org/pypi
 .. _setuptools extras: http://packages.python.org/distribute/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
@@ -158,6 +166,7 @@ Examples
 ********
 
 1) Uninstall a package.
+
   ::
 
     $ pip uninstall simplejson

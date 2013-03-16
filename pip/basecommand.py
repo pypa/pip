@@ -1,7 +1,6 @@
 """Base Command class, and related routines"""
 
 import os
-from pkgutil import walk_packages
 import socket
 import sys
 import tempfile
@@ -13,7 +12,7 @@ from pip.log import logger
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
-from pip.backwardcompat import StringIO
+from pip.backwardcompat import StringIO, ssl
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
@@ -33,14 +32,13 @@ class Command(object):
 
     def __init__(self, main_parser):
         parser_kw = {
-            'usage' : self.usage,
-            'prog'  : '%s %s' % (get_prog(), self.name),
-            'formatter' : UpdatingDefaultsHelpFormatter(),
-            'add_help_option' : False,
-            'name' : self.name,
-            'description' : self.description
+            'usage': self.usage,
+            'prog': '%s %s' % (get_prog(), self.name),
+            'formatter': UpdatingDefaultsHelpFormatter(),
+            'add_help_option': False,
+            'name': self.name,
+            'description': self.__doc__,
         }
-
         self.main_parser = main_parser
         self.parser = ConfigOptionParser(**parser_kw)
 
@@ -71,11 +69,15 @@ class Command(object):
 
     def merge_options(self, initial_options, options):
         # Make sure we have all global options carried over
-        for attr in ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs',
-                     'skip_requirements_regex',
-                     'no_input', 'exists_action']:
+        attrs = ['log', 'proxy', 'require_venv',
+                 'log_explicit_levels', 'log_file',
+                 'timeout', 'default_vcs',
+                 'skip_requirements_regex',
+                 'no_input', 'exists_action',
+                 'cert']
+        if not ssl:
+            attrs.append('insecure')
+        for attr in attrs:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
@@ -87,10 +89,10 @@ class Command(object):
         options, args = self.parser.parse_args(args)
         self.merge_options(initial_options, options)
 
-        level = 1 # Notify
+        level = 1  # Notify
         level += options.verbose
         level -= options.quiet
-        level = logger.level_for_integer(4-level)
+        level = logger.level_for_integer(4 - level)
         complete_log = []
         logger.consumers.extend(
             [(level, sys.stdout),
@@ -100,11 +102,20 @@ class Command(object):
 
         self.setup_logging()
 
+        #TODO: try to get these passing down from the command?
+        #      without resorting to os.environ to hold these.
+
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
 
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
+
+        if not ssl and options.insecure:
+            os.environ['PIP_INSECURE'] = '1'
+
+        if options.cert:
+            os.environ['PIP_CERT'] = options.cert
 
         if options.require_venv:
             # If a venv is required check if it can really be found
@@ -162,11 +173,11 @@ class Command(object):
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             try:
-               log_fp = open_logfile(log_fn, 'w')
+                log_fp = open_logfile(log_fn, 'w')
             except IOError:
-               temp = tempfile.NamedTemporaryFile(delete=False)
-               log_fn = temp.name
-               log_fp = open_logfile(log_fn, 'w')
+                temp = tempfile.NamedTemporaryFile(delete=False)
+                log_fn = temp.name
+                log_fp = open_logfile(log_fn, 'w')
             logger.fatal('Storing complete log in %s' % log_fn)
             log_fp.write(text)
             log_fp.close()
@@ -196,7 +207,6 @@ def open_logfile(filename, mode='a'):
 
     log_fp = open(filename, mode)
     if exists:
-        log_fp.write('%s\n' % ('-'*60))
+        log_fp.write('%s\n' % ('-' * 60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
     return log_fp
-

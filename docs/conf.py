@@ -31,7 +31,7 @@ extensions = ['docs.pipext']
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.txt'
+source_suffix = '.rst'
 
 # The encoding of source files.
 #source_encoding = 'utf-8'
@@ -41,7 +41,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2008-2012, The pip developers'
+copyright = '2008-2013, The pip developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

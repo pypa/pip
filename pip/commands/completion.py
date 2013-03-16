@@ -28,10 +28,9 @@ compctl -K _pip_completion pip
 
 
 class CompletionCommand(Command):
+    """A helper command to be used for command completion."""
     name = 'completion'
     summary = 'A helper command to be used for command completion'
-    description = """
-      A helper command to be used for command completion."""
     hidden = True
 
     def __init__(self, *args, **kw):
@@ -52,7 +51,7 @@ class CompletionCommand(Command):
     def run(self, options, args):
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
-        shell_options = ['--'+shell for shell in sorted(shells)]
+        shell_options = ['--' + shell for shell in sorted(shells)]
         if options.shell in shells:
             script = COMPLETION_SCRIPTS.get(options.shell, '')
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})

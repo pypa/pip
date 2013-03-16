@@ -5,25 +5,28 @@ import os
 import re
 import gzip
 import mimetypes
-try:
-    import threading
-except ImportError:
-    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
 import socket
 import string
 import zlib
+
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
+
 from pip.log import logger
-from pip.util import Inf
-from pip.util import normalize_name, splitext
+from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname)
-from pip.backwardcompat import Empty as QueueEmpty
+                                product, url2pathname, ssl,
+                                Empty as QueueEmpty)
+if ssl:
+    from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 import pip.pep425tags
 
@@ -202,6 +205,9 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
+            elif is_prerelease(version) and not req.prereleases:
+                logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
+                continue
             applicable_versions.append((parsed_version, link, version))
         #bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary
         applicable_versions = sorted(applicable_versions, key=self._link_sort_key, reverse=True)
@@ -250,7 +256,7 @@ class PackageFinder(object):
 
     def _get_pages(self, locations, req):
         """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding homepage links"""
+        locations that have errors, and adding download/homepage links"""
         pending_queue = Queue()
         for location in locations:
             pending_queue.put(location)
@@ -281,7 +287,7 @@ class PackageFinder(object):
             if page is None:
                 continue
             done.append(page)
-            for link in page.rel_links(rels=('homepage',)):
+            for link in page.rel_links():
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
@@ -408,12 +414,13 @@ class PackageFinder(object):
 
         mirror_urls = set()
         for mirror_url in mirrors:
+            mirror_url = mirror_url.rstrip('/')
             # Make sure we have a valid URL
-            if not ("http://" or "https://" or "file://") in mirror_url:
+            if not any([mirror_url.startswith(scheme) for scheme in ["http://", "https://", "file://"]]):
                 mirror_url = "http://%s" % mirror_url
             if not mirror_url.endswith("/simple"):
-                mirror_url = "%s/simple/" % mirror_url
-            mirror_urls.add(mirror_url)
+                mirror_url = "%s/simple" % mirror_url
+            mirror_urls.add(mirror_url + '/')
 
         return list(mirror_urls)
 
@@ -533,7 +540,12 @@ class HTMLPage(object):
                 level =1
                 desc = 'timed out'
             elif isinstance(e, URLError):
-                log_meth = logger.info
+                #ssl/certificate error
+                if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
+                    desc = 'There was a problem confirming the ssl certificate: %s' % e
+                    log_meth = logger.notify
+                else:
+                    log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
                     level = 1
@@ -591,8 +603,8 @@ class HTMLPage(object):
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
-    def rel_links(self, rels=('homepage', 'download')):
-        for url in self.explicit_rel_links(rels):
+    def rel_links(self):
+        for url in self.explicit_rel_links():
             yield url
         for url in self.scraped_rel_links():
             yield url

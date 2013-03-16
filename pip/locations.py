@@ -9,6 +9,7 @@ import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
+default_cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
 
 def running_under_virtualenv():
     """
@@ -61,7 +62,7 @@ else:
     # Use tempfile to create a temporary folder for build
     # Note: we are NOT using mkdtemp so we can have a consistent build dir
     # Note: using realpath due to tmp dirs on OSX being symlinks
-    build_prefix = os.path.realpath(_get_build_prefix())
+    build_prefix = _get_build_prefix()
 
     ## FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
@@ -72,7 +73,7 @@ else:
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
-build_prefix = os.path.abspath(build_prefix)
+build_prefix = os.path.abspath(os.path.realpath(build_prefix))
 src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages

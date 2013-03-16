@@ -8,10 +8,13 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
-from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+import textwrap
+from pip.exceptions import InstallationError, BadCommand, PipError
+from pip.backwardcompat import(WindowsError, string_types, raw_input,
+                                console_to_str, user_site, ssl)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
+from pip.vendor.distlib import version
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -671,3 +674,20 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+
+def is_prerelease(vers):
+    """
+    Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
+
+    Will return True if it is a pre-release, False is not, and None if we cannot
+    determine.
+    """
+    normalized = version.suggest_normalized_version(vers)
+
+    if normalized is None:
+        # Cannot normalize
+        return
+
+    parsed = version.normalized_key(normalized)
+    return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])

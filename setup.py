@@ -3,11 +3,13 @@ import os
 import re
 import sys
 import textwrap
-from setuptools import setup
+from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 def read(*parts):
+    # intentionally *not* adding an encoding option to open
+    # see here: https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
     return codecs.open(os.path.join(here, *parts), 'r').read()
 
 def find_version(*file_paths):
@@ -20,7 +22,7 @@ def find_version(*file_paths):
 
 long_description = "\n" + "\n".join([
         read('PROJECT.txt'),
-        read('docs', 'quickstart.txt'),
+        read('docs', 'quickstart.rst'),
         read('CHANGES.txt')])
 
 tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
@@ -47,7 +49,8 @@ setup(name="pip",
       author_email='python-virtualenv@groups.google.com',
       url='http://www.pip-installer.org',
       license='MIT',
-      packages=['pip', 'pip.commands', 'pip.vcs'],
+      packages=find_packages(exclude=["contrib", "docs", "tests"]),
+      package_data={'pip': ['*.pem']},
       entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
       tests_require=tests_require,

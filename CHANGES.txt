@@ -1,14 +1,33 @@
 Changelog
 =========
 
-develop (unreleased)
---------------------
+1.4.dev1 (unreleased)
+---------------------
+
+* pip now only installs stable versions by default, and offers a new ``--pre`` option
+  to also find pre-release and development versions.  Thanks Donald Stufft.  (Pull #834)
+* Dropped support for Python 2.5. The minimum supported Python version for pip-1.4
+  is Python 2.6.
+* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org).
+
+
+1.3.1 (2013-03-08)
+------------------
+
+* Fixed a major backward incompatible change of parsing URLs to externally
+  hosted packages that got accidentily included in 1.3.
+
+1.3 (2013-03-07)
+----------------
+
+* SSL Cert Verification; Make https the default for PyPI access.
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #789).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
 
 * Fixed security issues with pip's use of temp build directories.
-  Thanks David (d1b) and Thomas Güttler. (Pull #780)
+  Thanks David (d1b) and Thomas Guttler. (Pull #780)
 
 * Improvements to sphinx docs and cli help. (Pull #773)
 

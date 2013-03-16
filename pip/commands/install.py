@@ -2,9 +2,7 @@ import os
 import sys
 import tempfile
 import shutil
-import optparse
-from pip.req import InstallRequirement, RequirementSet
-from pip.req import parse_requirements
+from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global
 from pip.basecommand import Command
@@ -15,6 +13,20 @@ from pip import cmdoptions
 
 
 class InstallCommand(Command):
+    """
+    Install packages from:
+
+    - PyPI (and other indexes) using requirement specifiers.
+    - VCS project urls.
+    - Local project directories.
+    - Local or remote source archives.
+
+    pip also supports installing from "requirements files", which provide
+    an easy way to specify a whole environment to be installed.
+
+    See http://www.pip-installer.org for details on VCS url formats and
+    requirements files.
+    """
     name = 'install'
 
     usage = """
@@ -23,20 +35,6 @@ class InstallCommand(Command):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    description = """
-       Install packages from:
-
-       - PyPI (and other indexes) using requirement specifiers.
-       - VCS project urls.
-       - Local project directories.
-       - Local or remote source archives.
-
-       pip also supports installing from "requirements files", which provide
-       an easy way to specify a whole environment to be installed.
-
-       See http://www.pip-installer.org for details on VCS url formats and
-       requirements files."""
 
     summary = 'Install packages.'
     bundle = False
@@ -141,6 +139,12 @@ class InstallCommand(Command):
 
         cmd_opts.add_option(cmdoptions.use_wheel)
 
+        cmd_opts.add_option(
+            '--pre',
+            action='store_true',
+            default=False,
+            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -201,7 +205,7 @@ class InstallCommand(Command):
             target_dir=temp_target_dir)
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
+                InstallRequirement.from_line(name, None, prereleases=options.pre))
         for name in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))

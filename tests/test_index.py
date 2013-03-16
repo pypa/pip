@@ -33,30 +33,6 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     assert len(links) == 1
     assert links[0].url == 'http://supervisord.org/'
 
-
-def test_html_page_should_be_able_to_filter_links_by_rel():
-    """
-    Test selecting links by the rel attribute
-    """
-    page = HTMLPage("""
-        <a href="http://example.com/page.html">Some page</a>
-        <a href="http://example.com/archive-1.2.3.tar.gz" rel="download">Download URL</a>
-        <a href="http://example.com/home.html" rel="homepage">Homepage</a>
-        """, "archive")
-
-    links = list(page.rel_links())
-    urls = [l.url for l in links]
-    hlinks = list(page.rel_links(('homepage',)))
-    dlinks = list(page.rel_links(('download',)))
-    assert len(links) == 2
-    assert 'http://example.com/archive-1.2.3.tar.gz' in urls
-    assert 'http://example.com/home.html' in urls
-    assert len(hlinks) == 1
-    assert hlinks[0].url == 'http://example.com/home.html'
-    assert len(dlinks) == 1
-    assert dlinks[0].url == 'http://example.com/archive-1.2.3.tar.gz'
-
-
 @patch('socket.gethostbyname_ex')
 def test_get_mirrors(mock_gethostbyname_ex):
     # Test when the expected result comes back
@@ -129,3 +105,25 @@ def test_file_index_url_quoting():
 def test_inflink_greater():
     """Test InfLink compares greater."""
     assert InfLink > Link(object())
+
+
+def test_mirror_url_formats():
+    """
+    Test various mirror formats get transformed properly
+    """
+    formats = [
+        'some_mirror',
+        'some_mirror/',
+        'some_mirror/simple',
+        'some_mirror/simple/'
+        ]
+    for scheme in ['http://', 'https://', 'file://', '']:
+        result = (scheme or 'http://') + 'some_mirror/simple/'
+        scheme_formats = ['%s%s' % (scheme, format) for format in formats]
+        finder = PackageFinder([], [])
+        urls = finder._get_mirror_urls(mirrors=scheme_formats, main_mirror_url=None)
+        for url in urls:
+            assert url == result, str([url, result])
+
+
+

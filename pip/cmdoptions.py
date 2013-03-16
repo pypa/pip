@@ -1,7 +1,7 @@
 """shared options and groups"""
-
 from optparse import make_option, OptionGroup
 from pip.locations import build_prefix
+
 
 def make_option_group(group, parser):
     """
@@ -22,7 +22,7 @@ index_url = make_option(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
-    default='http://pypi.python.org/simple/',
+    default='https://pypi.python.org/simple/',
     help='Base URL of Python Package Index (default %default).')
 
 extra_index_url = make_option(

@@ -1,9 +1,10 @@
 import os
 import re
 import textwrap
-from tests.test_pip import pyversion, reset_env, run_pip, write_file
+from tests.test_pip import pyversion, reset_env, run_pip, write_file, path_to_url, here
 from tests.local_repos import local_checkout
 
+find_links = path_to_url(os.path.join(here, 'packages'))
 
 def test_list_command():
     """
@@ -11,10 +12,10 @@ def test_list_command():
 
     """
     reset_env()
-    run_pip('install', 'INITools==0.2', 'mock==0.7.0')
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
     result = run_pip('list')
-    assert 'INITools (0.2)' in result.stdout, str(result)
-    assert 'mock (0.7.0)' in result.stdout, str(result)
+    assert 'simple (1.0)' in result.stdout, str(result)
+    assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
 def test_local_flag():
@@ -23,9 +24,9 @@ def test_local_flag():
 
     """
     reset_env()
-    run_pip('install', 'mock==0.7.0')
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
     result = run_pip('list', '--local')
-    assert 'mock (0.7.0)' in result.stdout
+    assert 'simple (1.0)' in result.stdout
 
 
 def test_uptodate_flag():
@@ -34,15 +35,12 @@ def test_uptodate_flag():
 
     """
     reset_env()
-    total_re = re.compile('INSTALLED: +([0-9.\w]+)')
-    run_pip('install', 'pytz', 'mock==0.8.0')
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
     run_pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
-    result = run_pip('search', 'pytz')
-    pytz_ver = total_re.search(str(result)).group(1)
-    result = run_pip('list', '--uptodate')
-    assert not 'mock (0.8.0)' in result.stdout
+    result = run_pip('list', '-f', find_links, '--no-index', '--uptodate')
+    assert 'simple (1.0)' not in result.stdout #3.0 is latest
     assert 'pip-test-package' not in result.stdout #editables excluded
-    assert 'pytz (%s)' % pytz_ver in result.stdout
+    assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
 def test_outdated_flag():
@@ -50,22 +48,13 @@ def test_outdated_flag():
     Test the behavior of --outdated flag in the list command
 
     """
-    env = reset_env()
-    total_re = re.compile('LATEST: +([0-9.\w]+)')
-    write_file('req.txt', textwrap.dedent("""\
-        INITools==0.2
-        mock==0.7
-        -e git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package
-    """))
-    run_pip('install', '-r', env.scratch_path/'req.txt')
-    result = run_pip('search', 'mock')
-    mock_ver = total_re.search(str(result)).group(1)
-    result = run_pip('search', 'INITools')
-    initools_ver = total_re.search(str(result)).group(1)
-    result = run_pip('list', '--outdated', expect_stderr=True)
-    assert 'INITools (Current: 0.2 Latest: %s)' % initools_ver in result.stdout, str(result)
+    reset_env()
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
+    run_pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
+    result = run_pip('list', '-f', find_links, '--no-index', '--outdated')
+    assert 'simple (Current: 1.0 Latest: 3.0)' in result.stdout
     assert 'pip-test-package' not in result.stdout #editables excluded
-    assert 'mock (Current: 0.7.0 Latest: %s)' % mock_ver in result.stdout, str(result) + ' ' + mock_ver
+    assert 'simple2' not in result.stdout, str(result) #3.0 is latest
 
 
 def test_editables_flag():
@@ -73,9 +62,9 @@ def test_editables_flag():
     Test the behavior of --editables flag in the list command
     """
     reset_env()
-    run_pip('install', 'mock==0.7.0')
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
     result = run_pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
     result = run_pip('list', '--editable')
-    assert 'mock (0.7.0)' not in result.stdout, str(result)
+    assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, str(result)
 
