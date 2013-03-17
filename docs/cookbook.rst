@@ -148,3 +148,34 @@ To install "SomePackage" into an environment with site.USER_BASE customized to '
     export PYTHONUSERBASE=/myappenv
     pip install --user SomePackage
 
+
+Controlling setup_requires
+**************************
+
+Setuptools offers the ``setup_requires``
+`setup() keyword <http://pythonhosted.org/distribute/setuptools.html#new-and-changed-setup-keywords>`_
+for specifying dependencies that need to be present in order for the `setup.py` script to run.
+Internally, Setuptools uses ``easy_install`` to fulfill these dependencies.
+
+pip has no way to control how these dependencies are located.
+None of the :ref:`Package Index Options <Package Index Options>` have an effect.
+
+The solution is to configure a
+`Distutils configuration file <http://docs.python.org/2/install/index.html#distutils-configuration-files>`_
+to manage the fulfillment.
+
+For example, to have the dependency located at an alternate index:
+
+::
+
+  [easy_install]
+  index_url = https://my.index-mirror.com
+
+To have the dependency located from a local directory and not crawl PyPI:
+
+::
+
+  [easy_install]
+  allow_hosts = ''
+  find_links = file:///path/to/local/archives
+
