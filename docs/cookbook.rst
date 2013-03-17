@@ -160,18 +160,18 @@ Internally, Setuptools uses ``easy_install`` to fulfill these dependencies.
 pip has no way to control how these dependencies are located.
 None of the :ref:`Package Index Options <Package Index Options>` have an effect.
 
-The solution is to configure a
+The solution is to configure a "system" or "personal"
 `Distutils configuration file <http://docs.python.org/2/install/index.html#distutils-configuration-files>`_
 to manage the fulfillment.
 
-For example, to have the dependency located at an alternate index:
+For example, to have the dependency located at an alternate index, add this:
 
 ::
 
   [easy_install]
   index_url = https://my.index-mirror.com
 
-To have the dependency located from a local directory and not crawl PyPI:
+To have the dependency located from a local directory and not crawl PyPI, add this:
 
 ::
 
