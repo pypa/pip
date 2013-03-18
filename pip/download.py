@@ -32,7 +32,7 @@ xmlrpclib_transport = xmlrpclib.Transport()
 
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content)"""
+    http: URL.  Returns (location, content).  Content is unicode."""
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
@@ -54,7 +54,13 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urlopen(url)
-            return geturl(resp), resp.read()
+            try:
+                encoding = resp.headers.get_param('charset', 'utf8')
+            except AttributeError:
+                encoding = resp.headers.getparam('charset')
+                if encoding is None:
+                    encoding = 'utf8'
+            return geturl(resp), resp.read().decode(encoding)
     try:
         f = open(url)
         content = f.read()
