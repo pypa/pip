@@ -47,8 +47,15 @@ if sys.version_info >= (3,):
     def b(s):
         return s.encode('utf-8')
 
-    def u(s):
-        return s.decode('utf-8')
+    def u(s, fallback_encoding=None):
+        try:
+            return s.decode('utf-8')
+        except UnicodeDecodeError:
+            if ((fallback_encoding is not None) and
+                    (fallback_encoding != 'utf-8')):
+                return s.decode(fallback_encoding)
+            else:
+                raise
 
     def console_to_str(s):
         try:
@@ -78,7 +85,7 @@ else:
     def b(s):
         return s
 
-    def u(s):
+    def u(s, fallback_encoding=None):
         return s
 
     def console_to_str(s):
