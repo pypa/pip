@@ -69,21 +69,21 @@ Building and Installing Wheels
 ******************************
 
 "Wheel" is a built, archive format that can greatly speed installation compared
-to building and installing from source archives. For more information see, the
+to building and installing from source archives. For more information, see the
 `Wheel docs <http://wheel.readthedocs.org>`_ ,
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
-pip's wheel support currently requires `Distribute`_ >=0.6.29, not `Setuptools`_.
+pip's support for wheels currently requires `Distribute`_ >=0.6.29, not `Setuptools`_.
 
 To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
 If no satisfactory wheels are found, pip will default to finding source archives.
 
-To install from a local directory of wheels, and not crawl PyPI:
+To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
 
 ::
 
- pip install --use-wheel --no-index --find-links=/local/wheels SomePackage
+ pip install --use-wheel SomePackage
 
 
 To install directly from a wheel archive:
@@ -93,15 +93,8 @@ To install directly from a wheel archive:
  pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
-To install from wheels on PyPI, if they exist:
-
-::
-
- pip install --use-wheel SomePackage
-
-
-Since wheels are not likely to be pervasive on PyPI for awhile, pip additionally offers :ref:`pip wheel` as
-a convenience, to build wheels for all the dependencies that underlie your requirements.
+Since wheels won't be pervasive on PyPI for awhile, pip additionally offers :ref:`pip wheel` as
+a convenience, to build wheels for your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package <https://pypi.python.org/pypi/wheel>`_ to be installed,
 which provides the "bdist_wheel" setuptools extension that it uses.
@@ -112,6 +105,13 @@ To build wheels for your requirements and all their dependencies to a local dire
 
  pip install wheel
  pip wheel --wheel-dir=/local/wheels -r requirements.txt
+
+
+And *then* to install those requirements just using your local directory of wheels (and not from PyPI):
+
+::
+
+ pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
 
 
 .. _Setuptools: http://pypi.python.org/pypi/setuptools/
