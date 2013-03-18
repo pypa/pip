@@ -4,7 +4,8 @@ Changelog
 1.4.dev1 (unreleased)
 ---------------------
 
-* Added support for installing and building wheel archives. (Pull #845)
+* Added support for installing and building wheel archives.
+  Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia (Pull #845)
 * pip now only installs stable versions by default, and offers a new ``--pre`` option
   to also find pre-release and development versions.  Thanks Donald Stufft.  (Pull #834)
 * Dropped support for Python 2.5. The minimum supported Python version for pip-1.4
