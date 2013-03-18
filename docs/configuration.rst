@@ -15,6 +15,11 @@ platforms.
 * On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
+pip also supports global configuration files for all users at the following locations:
+
+* On Unix and Mac OS X the configuration file is: :file:`/etc/pip.conf`
+* On Windows, the configuration file is: :file:`%ALLUSERSPROFILE$\\Application Data\\pip\\pip.ini`
+
 You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
 
 The names of the settings are derived from the long command line option, e.g.
