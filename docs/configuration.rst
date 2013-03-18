@@ -107,6 +107,7 @@ Examples:
 - ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
 - A command specific section in the config file ``[<command>] host = bar``
   overrides the option with same name in the ``[global]`` config file section
+- Local config file options always override same options of global config file.
 
 
 Command Completion
