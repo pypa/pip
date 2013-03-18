@@ -16,12 +16,15 @@ DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
 class WheelCommand(Command):
     """
-    Build wheel archives from your requirements using "setup.py bdist_wheel".
-
-    Requirements: Distribute>=0.6.28 (not Setuptools), wheel, and markerlib.
+    Build Wheel archives for your requirements and dependencies.
 
     Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
     For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
+
+    Requirements: Distribute>=0.6.29 (not Setuptools) and wheel.
+
+    'pip wheel' uses the bdist_wheel setuptools extension from the wheel package to build individual wheels.
+
     """
 
     name = 'wheel'

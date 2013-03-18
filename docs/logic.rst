@@ -284,5 +284,5 @@ Here are some examples of how pip uses `setuptools` and `pkg_resources`:
 * pip uses `pkg_resources` for version parsing, for detecting version conflicts, and to determine what projects are installed,
 
 
-.. _Setuptools: http://pypi.python.org/pypi/setuptools/0.6c11
+.. _Setuptools: http://pypi.python.org/pypi/setuptools/
 .. _Distribute: http://pypi.python.org/pypi/distribute/

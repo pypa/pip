@@ -76,7 +76,7 @@ use_wheel = make_option(
     '--use-wheel',
     dest='use_wheel',
     action='store_true',
-    help='Find wheel archives when searching indexes and find-links locations.')
+    help='Find and prefer wheel archives when searching indexes and find-links locations. Default to accepting source archives.')
 
 download_cache = make_option(
     '--download-cache',
