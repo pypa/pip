@@ -7,7 +7,7 @@ import os
 import textwrap
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types, ssl
-from pip.locations import default_config_file, default_log_file, global_config_file
+from pip.locations import default_config_file, default_log_file, system_config_file
 from pip.util import get_terminal_size, get_prog
 
 
@@ -137,7 +137,7 @@ class ConfigOptionParser(CustomOptionParser):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
             return [config_file]
-        return [global_config_file, default_config_file]
+        return [system_config_file, default_config_file]
 
     def update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and

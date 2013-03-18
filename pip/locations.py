@@ -88,14 +88,14 @@ if sys.platform == 'win32':
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
-    global_config_file = os.path.join(os.environ['ALLUSERSPROFILE'],
+    system_config_file = os.path.join(os.environ['ALLUSERSPROFILE'],
         'Application Data', 'pip', 'pip.ini')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     default_storage_dir = os.path.join(user_dir, '.pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
-    global_config_file = '/etc/pip.conf'
+    system_config_file = '/etc/pip.conf'
 
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer

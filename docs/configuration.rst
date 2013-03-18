@@ -15,10 +15,10 @@ platforms.
 * On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
-pip also supports global configuration files for all users at the following locations:
+pip also supports system-wide configuration files at the following locations:
 
 * On Unix and Mac OS X the configuration file is: :file:`/etc/pip.conf`
-* On Windows, the configuration file is: :file:`%ALLUSERSPROFILE$\\Application Data\\pip\\pip.ini`
+* On Windows, the configuration file is: :file:`%ALLUSERSPROFILE%\\Application Data\\pip\\pip.ini`
 
 You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
 
@@ -107,7 +107,7 @@ Examples:
 - ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
 - A command specific section in the config file ``[<command>] host = bar``
   overrides the option with same name in the ``[global]`` config file section
-- Local config file options always override same options of global config file.
+- Local config file options always override same options of system-wide config file.
 
 
 Command Completion
