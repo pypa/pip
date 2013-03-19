@@ -478,7 +478,7 @@ class HTMLPage(object):
     def get_page(cls, link, req, cache=None, skip_archives=True):
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
+        if cache is not None and cache.too_many_failures(url):
             return None
 
         # Check for VCS schemes that do not support lookup as web pages.

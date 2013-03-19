@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from pip.backwardcompat import urllib
 from tests.path import Path
@@ -126,4 +127,42 @@ def test_mirror_url_formats():
             assert url == result, str([url, result])
 
 
+def test_get_page_gzip_content_type():
+    """
+    Test gzipped HTML response with gzip 'Content-Type', no 'Content-Encoding'.
+    """
+    import pip.index
+    orig_urlopen = pip.index.urlopen
+    def _urlopen(*args, **keywords):
+        response = orig_urlopen(*args, **keywords)
+        # force 'Content-Encoding' to be missing (which triggers the original
+        # bug), then make sure 'Content-Type' is a gzip MIME type
+        del response.headers['content-encoding']
+        if 'content-type' in response.headers:
+            response.headers.replace_header('Content-Type',
+                                            'application/x-gzip')
+        else:
+            response.headers.add_header('Content-Type', 'application/x-gzip')
+        return response
+    pip.index.urlopen = _urlopen
+    try:
+        # index.html is gzipped
+        link = Link(path_to_url(os.path.join(here, 'indexes', 'gzipped',
+                                             'index.html')))
+        page = HTMLPage.get_page(link, None, cache=None, skip_archives=False)
+    finally:
+        # reinstall original pip.index.urlopen
+        pip.index.urlopen = orig_urlopen
+    assert page.content == '<!-- gzipped HTML -->\n\n', repr(page.content)
+
+
+def test_get_page_non_utf8_response():
+    """
+    Test ISO-8859-1 HTML response.
+    """
+    # index.html is ISO-8859-1-encoded (UTF-8 decoding will fail)
+    link = Link(path_to_url(os.path.join(here, 'indexes', 'iso_8859_1',
+                                         'index.html')))
+    page = HTMLPage.get_page(link, None, cache=None, skip_archives=False)
+    assert page.content == '<!-- Vålerenga Fotball -->\n\n', repr(page.content)
 
