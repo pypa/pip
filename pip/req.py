@@ -585,13 +585,21 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 
         return cmd % setup_py_path
 
-    def install(self, install_options, global_options=(), root=None):
+    def install(self, install_options, global_options=[], root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
             self.move_wheel_files(self.source_dir)
             return
+
+        # Extend the list of global/install options passed on the
+        # command line with the global/install options specified in
+        # requirement files. Options specified in requirement files
+        # override those specified on the command line, since the last
+        # option given to setuptools is the one that will be used.
+        global_options += self.options.get('global_options', [])
+        install_options += self.options.get('install_options', [])
 
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')

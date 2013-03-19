@@ -152,7 +152,7 @@ def get_options_parser(flags, args):
 def get_options(line, flags=None, args=None):
     '''Parse options and flags from a requirement line. Example:
     >>> get_options('INITools --one --options="--two", ['--one'], ['--options'])
-    {'--two' : True, '--options' : "--two"}'''
+    {'--one' : True, '--options' : "--two"}'''
     args = args if args else requirement_args
     flags = flags if flags else requirement_flags
 
@@ -162,7 +162,7 @@ def get_options(line, flags=None, args=None):
 
 
 def join_lines(it):
-    '''Joins a line that end in a '\' with the previous line.'''
+    '''Joins a line that ends in a '\' with the previous line.'''
     # TODO: handle '\ '
     # TODO: handle '\' on last line
     lines = []
