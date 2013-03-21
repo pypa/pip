@@ -209,7 +209,7 @@ def test_uninstallpathset_no_paths(mock_logger):
 
     """
     from pip.req import UninstallPathSet
-    from pkg_resources import get_distribution
+    from pip.vendor.distlib.pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     # ensure that the distribution is "local"
     with patch("pip.req.dist_is_local") as mock_dist_is_local:
@@ -227,7 +227,7 @@ def test_uninstallpathset_non_local(mock_logger):
     """
     nonlocal_path = os.path.abspath("/nonlocal")
     from pip.req import UninstallPathSet
-    from pkg_resources import get_distribution
+    from pip.vendor.distlib.pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     test_dist.location = nonlocal_path
     # ensure that the distribution is "non-local"
@@ -238,6 +238,3 @@ def test_uninstallpathset_non_local(mock_logger):
         uninstall_set = UninstallPathSet(test_dist)
         uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists
     mock_logger.notify.assert_any_call("Not uninstalling pip at %s, outside environment %s" % (nonlocal_path, sys.prefix)), mock_logger.notify.mock_calls
-
-
-

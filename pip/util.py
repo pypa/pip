@@ -4,7 +4,7 @@ import os
 import stat
 import re
 import posixpath
-import pkg_resources
+from pip.vendor.distlib import pkg_resources
 import zipfile
 import tarfile
 import subprocess

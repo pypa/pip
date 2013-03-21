@@ -17,9 +17,9 @@ dist/*
 docs/_build/*
 build/*
 *.pyc
-*.pyo 
+*.pyo
 pip-log.txt
 pip.log
 *.~
 .tox
-
+env/*
