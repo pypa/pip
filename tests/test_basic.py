@@ -241,10 +241,10 @@ def test_install_editable_from_hg():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
-    result.assert_installed('django-registration', with_files=['.hg'])
+    result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
 def test_vcs_url_final_slash_normalization():
@@ -253,8 +253,8 @@ def test_vcs_url_final_slash_normalization():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s/#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
