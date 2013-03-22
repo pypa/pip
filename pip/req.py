@@ -1399,8 +1399,9 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                     line = line[2:].strip()
                 else:
                     line = line[len('--editable'):].strip().lstrip('=')
+                default_vcs = options.default_vcs if options else None
                 req = InstallRequirement.from_editable(
-                    line, comes_from=comes_from, default_vcs=options.default_vcs)
+                    line, comes_from=comes_from, default_vcs=default_vcs)
             else:
                 req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
             yield req
