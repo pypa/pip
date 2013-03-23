@@ -69,9 +69,16 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
+        args_low = [arg.lower() for arg in args]
         for dist in get_installed_distributions(local_only=local_only):
             req = pip.FrozenRequirement.from_dist(dist, dependency_links, find_tags=find_tags)
-            installations[req.name] = req
+            if args:
+                for arg in args_low:
+                    if arg in req.name.lower():
+                        installations[req.name] = req
+                        break
+            else:
+                installations[req.name] = req
         if requirement:
             req_f = open(requirement)
             for line in req_f:
