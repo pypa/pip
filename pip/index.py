@@ -523,6 +523,13 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
+            content_type = headers.get('Content-Type', None)
+            if not content_type.lower().startswith('text/html'):
+                logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                if cache is not None:
+                    cache.set_is_archive(url)
+                return None
+
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
