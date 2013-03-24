@@ -6,7 +6,7 @@ import re
 import gzip
 import mimetypes
 import posixpath
-import pkg_resources
+from pip.vendor.distlib import pkg_resources
 import random
 import socket
 import string
@@ -805,4 +805,3 @@ def string_range(last):
             yield result
             if result == last:
                 return
-
