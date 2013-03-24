@@ -446,17 +446,6 @@ class HTMLPage(object):
                 if cache is not None:
                     if cache.is_archive(url):
                         return None
-                filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url)
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
             logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
@@ -472,6 +461,15 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
+
+            if skip_archives:
+                content_type = headers.get('content-type', '').lower()
+                if not content_type.startswith('text/html'):
+                    logger.debug('Skipping page %s because of Content-Type: %s' % (real_url, content_type))
+                    if cache is not None:
+                        cache.set_is_archive(url)
+                    return None
+
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
@@ -480,7 +478,12 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            inst = cls(u(contents), real_url, headers)
+            try:
+                inst = cls(u(contents), real_url, headers)
+            except UnicodeDecodeError:
+                # Python 3 raises this error when page is not utf-8.
+                # fallback to latin1. Decoding latin1 should not raise UnicodeError.
+                inst = cls(contents.decode('latin1'), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -515,24 +518,6 @@ class HTMLPage(object):
         if cache is not None:
             cache.add_page([url, real_url], inst)
         return inst
-
-    @staticmethod
-    def _get_content_type(url):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
-            return ''
-        req = Urllib2HeadRequest(url, headers={'Host': netloc})
-        resp = urlopen(req)
-        try:
-            if hasattr(resp, 'code') and resp.code != 200 and scheme not in ('ftp', 'ftps'):
-                ## FIXME: doesn't handle redirects
-                return ''
-            return resp.info().get('content-type', '')
-        finally:
-            resp.close()
 
     @property
     def base_url(self):
