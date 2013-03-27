@@ -261,7 +261,6 @@ class Tests_UserSite:
         """
         env = reset_env(system_site_packages=True, use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         find_links = path_to_url(os.path.join(here, 'packages'))
         result = run_pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
                      '--no-index', '--find-links='+find_links)

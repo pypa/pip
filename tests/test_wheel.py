@@ -50,7 +50,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -64,7 +63,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'wheelbroken==0.1')
         wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -79,7 +77,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
 
         local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % FIND_LINKS
         local_editable = os.path.abspath(os.path.join(here, 'packages', 'FSPkg'))
@@ -108,7 +105,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--unpack-only', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
