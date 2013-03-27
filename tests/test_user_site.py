@@ -206,8 +206,8 @@ class Tests_UserSite:
         result2 = run_pip('install', '--user', 'INITools==0.1', expect_error=True)
         resultp = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').location)")
         dist_location = resultp.stdout.strip()
-        assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
-                                        %('INITools', dist_location)), result2.stdout
+        assert "Will not install to the user site because it will lack sys.path precedence to %s in %s" \
+            % ('INITools', dist_location) in result2.stdout, result2.stdout
 
 
     def test_uninstall_from_usersite(self):
