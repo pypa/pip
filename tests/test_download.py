@@ -77,6 +77,9 @@ def test_download_should_skip_existing_files():
     assert env.site_packages/ 'openid' not in result.files_created
 
 def test_unpack_http_url_with_urllib_response_without_content_type():
+    """
+    It should download and unpack files even if no Content-Type header exists
+    """
     def _get_response_from_url_mock(*args, **kw):
         resp = _get_response_from_url_original(*args, **kw)
         del resp.info()['content-type']
@@ -88,6 +91,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type():
         temp_dir = mkdtemp()
         try:
             unpack_http_url(link, temp_dir, download_cache=None, download_dir=None)
-            assert os.listdir(temp_dir) == ['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info']
+            assert set(os.listdir(temp_dir)) == set(['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'])
         finally:
             rmtree(temp_dir)
