@@ -1,5 +1,12 @@
+import os
 import textwrap
-from tests.test_pip import reset_env, run_pip, write_file
+from pip.download import _get_response_from_url as _get_response_from_url_original
+from mock import patch
+from shutil import rmtree
+from tempfile import mkdtemp
+from pip.download import path_to_url, unpack_http_url
+from pip.index import Link
+from tests.test_pip import reset_env, run_pip, write_file, here
 from tests.path import Path
 
 
@@ -68,3 +75,19 @@ def test_download_should_skip_existing_files():
     assert Path('scratch')/ 'INITools-0.1.tar.gz' not in result.files_created
     assert env.site_packages/ 'initools' not in result.files_created
     assert env.site_packages/ 'openid' not in result.files_created
+
+def test_unpack_http_url_with_urllib_response_without_content_type():
+    def _get_response_from_url_mock(*args, **kw):
+        resp = _get_response_from_url_original(*args, **kw)
+        del resp.info()['content-type']
+        return resp
+
+    with patch('pip.download._get_response_from_url', _get_response_from_url_mock) as mocked:
+        uri = path_to_url(os.path.join(here, 'packages', 'simple-1.0.tar.gz'))
+        link = Link(uri)
+        temp_dir = mkdtemp()
+        try:
+            unpack_http_url(link, temp_dir, download_cache=None, download_dir=None)
+            assert os.listdir(temp_dir) == ['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info']
+        finally:
+            rmtree(temp_dir)
