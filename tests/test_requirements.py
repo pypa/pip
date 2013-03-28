@@ -29,6 +29,17 @@ def test_requirements_file():
     assert result.files_created[env.site_packages/fn].dir
 
 
+def test_remote_reqs():
+    """
+    Test installing from a remote requirements file.
+    """
+    env = reset_env()
+    result = run_pip(
+        'install', '--download', env.scratch_path, '-r',
+        'https://raw.github.com/pypa/pip-test-package/master/requirements.txt')
+    assert result.files_created, result.files_created
+
+
 def test_schema_check_in_requirements_file():
     """
     Test installing from a requirements file with an invalid vcs schema..
