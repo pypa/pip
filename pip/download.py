@@ -533,7 +533,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         logger.notify('File was already downloaded %s' % already_downloaded)
     else:
         resp = _get_response_from_url(target_url, link)
-        content_type = resp.info()['content-type']
+        content_type = resp.info().get('content-type', '')
         filename = link.filename  # fallback
         # Have a look at the Content-Disposition header for a better guess
         content_disposition = resp.info().get('content-disposition')
