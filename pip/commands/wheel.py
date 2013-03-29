@@ -7,7 +7,8 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.exceptions import CommandError
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import InstallRequirement, RequirementSet
+from pip.req_parser import parse_requirements
 from pip.util import normalize_path
 from pip.wheel import WheelBuilder
 from pip import cmdoptions

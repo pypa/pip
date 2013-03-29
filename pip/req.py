@@ -20,7 +20,7 @@ from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
                       dist_in_usersite, dist_in_site_packages, renames,
                       normalize_path, egg_link_path, make_path_relative,
                       call_subprocess, is_prerelease)
-from pip.backwardcompat import (urlparse, urllib, uses_pycache,
+from pip.backwardcompat import (urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
 from pip.index import Link
@@ -39,7 +39,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True, prereleases=None):
+                 url=None, as_egg=False, update=True, prereleases=None, options=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -67,6 +67,7 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
+        self.options = options if options else {}
 
         # True if pre-releases are acceptable
         if prereleases:
@@ -92,7 +93,7 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None, prereleases=None):
+    def from_line(cls, name, comes_from=None, prereleases=None, options=None):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -126,7 +127,7 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url, prereleases=prereleases)
+        return cls(req, comes_from, url=url, prereleases=prereleases, options=options)
 
     def __str__(self):
         if self.req:
@@ -575,7 +576,16 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         name = name.replace(os.path.sep, '/')
         return name
 
-    def install(self, install_options, global_options=(), root=None):
+    def _get_setup_command(self, setup_py_path):
+        cmd = ('import setuptools;'
+               '__file__ = %r;'
+               'setup_py=open(__file__).read();'
+               'setup_py=setup_py.replace("\\r\\n", "\\n");'
+               'exec(compile(setup_py, __file__, "exec"))')
+
+        return cmd % setup_py_path
+
+    def install(self, install_options, global_options=[], root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -583,16 +593,20 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             self.move_wheel_files(self.source_dir)
             return
 
+        # Extend the list of global/install options passed on the
+        # command line with the global/install options specified in
+        # requirement files. Options specified in requirement files
+        # override those specified on the command line, since the last
+        # option given to setuptools is the one that will be used.
+        global_options += self.options.get('global_options', [])
+        install_options += self.options.get('install_options', [])
+
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [
-                sys.executable, '-c',
-                "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
-                list(global_options) + [
-                'install',
-                '--record', record_filename]
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
+            install_args += list(global_options)
+            install_args += ['install', '--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -671,15 +685,17 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
     def install_editable(self, install_options, global_options=()):
         logger.notify('Running setup.py develop for %s' % self.name)
         logger.indent += 2
-        try:
-            ## FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [sys.executable, '-c',
-                 "import setuptools; __file__=%r; exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
-                + list(global_options) + ['develop', '--no-deps'] + list(install_options),
 
-                cwd=self.source_dir, filter_stdout=self._filter_install,
-                show_stdout=False)
+        try:
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
+            install_args += list(global_options)
+            install_args += ['develop', '--no-deps']
+            install_args += list(install_options)
+
+            ## FIXME: should we do --install-headers here too?
+            call_subprocess(install_args, cwd=self.source_dir,
+                            filter_stdout=self._filter_install,
+                            show_stdout=False)
         finally:
             logger.indent -= 2
         self.install_succeeded = True
@@ -1332,78 +1348,6 @@ def _write_delete_marker_message(filepath):
 
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
-
-
-def parse_requirements(filename, finder=None, comes_from=None, options=None):
-    skip_match = None
-    skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        skip_match = re.compile(skip_regex)
-    reqs_file_dir = os.path.dirname(os.path.abspath(filename))
-    filename, content = get_file_content(filename, comes_from=comes_from)
-    for line_number, line in enumerate(content.splitlines()):
-        line_number += 1
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        if skip_match and skip_match.search(line):
-            continue
-        if line.startswith('-r') or line.startswith('--requirement'):
-            if line.startswith('-r'):
-                req_url = line[2:].strip()
-            else:
-                req_url = line[len('--requirement'):].strip().strip('=')
-            if _scheme_re.search(filename):
-                # Relative to a URL
-                req_url = urlparse.urljoin(filename, req_url)
-            elif not _scheme_re.search(req_url):
-                req_url = os.path.join(os.path.dirname(filename), req_url)
-            for item in parse_requirements(req_url, finder, comes_from=filename, options=options):
-                yield item
-        elif line.startswith('-Z') or line.startswith('--always-unzip'):
-            # No longer used, but previously these were used in
-            # requirement files, so we'll ignore.
-            pass
-        elif line.startswith('-f') or line.startswith('--find-links'):
-            if line.startswith('-f'):
-                line = line[2:].strip()
-            else:
-                line = line[len('--find-links'):].strip().lstrip('=')
-            ## FIXME: it would be nice to keep track of the source of
-            ## the find_links:
-            # support a find-links local path relative to a requirements file
-            relative_to_reqs_file = os.path.join(reqs_file_dir, line)
-            if os.path.exists(relative_to_reqs_file):
-                line = relative_to_reqs_file
-            if finder:
-                finder.find_links.append(line)
-        elif line.startswith('-i') or line.startswith('--index-url'):
-            if line.startswith('-i'):
-                line = line[2:].strip()
-            else:
-                line = line[len('--index-url'):].strip().lstrip('=')
-            if finder:
-                finder.index_urls = [line]
-        elif line.startswith('--extra-index-url'):
-            line = line[len('--extra-index-url'):].strip().lstrip('=')
-            if finder:
-                finder.index_urls.append(line)
-        elif line.startswith('--use-wheel'):
-            finder.use_wheel = True
-        elif line.startswith('--no-index'):
-            finder.index_urls = []
-        else:
-            comes_from = '-r %s (line %s)' % (filename, line_number)
-            if line.startswith('-e') or line.startswith('--editable'):
-                if line.startswith('-e'):
-                    line = line[2:].strip()
-                else:
-                    line = line[len('--editable'):].strip().lstrip('=')
-                req = InstallRequirement.from_editable(
-                    line, comes_from=comes_from, default_vcs=options.default_vcs)
-            else:
-                req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
-            yield req
 
 
 def parse_editable(editable_req, default_vcs=None):

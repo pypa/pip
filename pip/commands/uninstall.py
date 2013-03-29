@@ -1,4 +1,5 @@
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import InstallRequirement, RequirementSet
+from pip.req_parser import parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
 
