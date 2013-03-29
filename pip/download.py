@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
-                                urlparse, string_types, ssl)
+                                urlparse, string_types, ssl, get_http_message_param)
 if ssl:
     from pip.backwardcompat import match_hostname, CertificateError
 from pip.exceptions import InstallationError, PipError, NoSSLError
@@ -54,12 +54,7 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urlopen(url)
-            try:
-                encoding = resp.headers.get_param('charset', 'utf8')
-            except AttributeError:
-                encoding = resp.headers.getparam('charset')
-                if encoding is None:
-                    encoding = 'utf8'
+            encoding = get_http_message_param(resp.headers, 'charset', 'utf-8')
             return geturl(resp), resp.read().decode(encoding)
     try:
         f = open(url)

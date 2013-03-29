@@ -59,6 +59,9 @@ if sys.version_info >= (3,):
     def fwrite(f, s):
         f.buffer.write(b(s))
 
+    def get_http_message_param(http_message, param, default_value):
+        return http_message.get_param(param, default_value)
+
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -86,6 +89,10 @@ else:
 
     def fwrite(f, s):
         f.write(s)
+
+    def get_http_message_param(http_message, param, default_value):
+        encoding = http_message.getparam(param)
+        return encoding or default_value
 
     bytes = str
     string_types = (basestring,)
