@@ -21,8 +21,7 @@ import sys
 import tempfile
 import zipfile
 
-import distlib
-from . import DistlibException
+from . import __version__, DistlibException
 from .compat import sysconfig, ZipFile, fsdecode, text_type
 from .database import DistributionPath, InstalledDistribution
 from .scripts import ScriptMaker
@@ -305,7 +304,7 @@ class Wheel(object):
 
         wheel_metadata = [
             'Wheel-Version: %d.%d' % self.wheel_version,
-            'Generator: distlib %s' % distlib.__version__,
+            'Generator: distlib %s' % __version__,
             'Root-Is-Purelib: %s' % is_pure,
         ]
         for pyver, abi, arch in self.tags:
