@@ -36,7 +36,7 @@ def test_remote_reqs():
     env = reset_env()
     result = run_pip(
         'install', '--download', env.scratch_path, '-r',
-        'https://raw.github.com/pypa/pip-test-package/master/requirements.txt')
+        'https://gist.github.com/hltbra/5271779/raw/pip-test-package-requirements.txt')
     assert result.files_created, result.files_created
 
 
