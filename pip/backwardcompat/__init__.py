@@ -91,8 +91,8 @@ else:
         f.write(s)
 
     def get_http_message_param(http_message, param, default_value):
-        encoding = http_message.getparam(param)
-        return encoding or default_value
+        result = http_message.getparam(param)
+        return result or default_value
 
     bytes = str
     string_types = (basestring,)
