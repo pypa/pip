@@ -4,6 +4,8 @@ Changelog
 1.4.dev1 (unreleased)
 ---------------------
 
+* Fixed issue #32 - pip fails when server does not send content-type header.
+  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
 * Added support for installing and building wheel archives.
   Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia (Pull #845)
 * pip now only installs stable versions by default, and offers a new ``--pre`` option
@@ -23,7 +25,7 @@ Changelog
 ----------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #789).
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
