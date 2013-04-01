@@ -28,8 +28,8 @@ def test_cleanup_after_install_editable_from_hg():
     env = reset_env()
     run_pip('install',
             '-e',
-            '%s#egg=django-registration' %
-            local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+            '%s#egg=ScriptTest' %
+            local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
             expect_error=True)
     build = env.venv_path/'build'
     src = env.venv_path/'src'

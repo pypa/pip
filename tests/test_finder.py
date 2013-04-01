@@ -1,15 +1,17 @@
+import os
 from pkg_resources import parse_version
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder
-from pip.exceptions import BestVersionAlreadyInstalled
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from tests.path import Path
-from tests.test_pip import here
+from tests.test_pip import here, path_to_url
 from nose.tools import assert_raises
-from mock import Mock
+from mock import Mock, patch
+import os
 
-find_links = 'file://' + urllib.quote(str(Path(here).abspath/'packages').replace('\\', '/'))
-find_links2 = 'file://' + urllib.quote(str(Path(here).abspath/'packages2').replace('\\', '/'))
+find_links = path_to_url(os.path.join(here, 'packages'))
+find_links2 = path_to_url(os.path.join(here, 'packages2'))
 
 
 def test_no_mpkg():
@@ -76,6 +78,23 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
+@patch('pip.pep425tags.get_supported')
+def test_find_wheel(mock_get_supported):
+    """
+    Test finding wheels.
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    req = InstallRequirement.from_line("simple.dist")
+    finder = PackageFinder(find_links, [], use_wheel=True)
+    mock_get_supported.return_value = [('py1', 'none', 'any')]
+    assert_raises(DistributionNotFound, finder.find_requirement, req, True)
+    mock_get_supported.return_value = [('py2', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+    mock_get_supported.return_value = [('py3', 'none', 'any')]
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
 
 def test_finder_priority_file_over_page():
     """Test PackageFinder prefers file links over equivalent page links"""
@@ -88,10 +107,10 @@ def test_finder_priority_file_over_page():
 def test_finder_priority_page_over_deplink():
     """Test PackageFinder prefers page links over equivalent dependency links"""
     req = InstallRequirement.from_line('gmpy==1.15', None)
-    finder = PackageFinder([], ["http://pypi.python.org/simple"])
-    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
+    finder = PackageFinder([], ["https://pypi.python.org/simple"])
+    finder.add_dependency_links(['https://c.pypi.python.org/simple/gmpy/'])
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("http://pypi")
+    assert link.url.startswith("https://pypi"), link
 
 
 def test_finder_priority_nonegg_over_eggfragments():
@@ -109,4 +128,105 @@ def test_finder_priority_nonegg_over_eggfragments():
     assert link.url.endswith('tar.gz')
 
 
+def test_wheel_over_sdist_priority():
+    """
+    Test wheels have priority over sdists.
+    """
+    req = InstallRequirement.from_line("priority")
+    finder = PackageFinder([find_links], [], use_wheel=True)
+    found = finder.find_requirement(req, True)
+    assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
 
+def test_existing_over_wheel_priority():
+    """
+    Test existing install has priority over wheels.
+    """
+    req = InstallRequirement.from_line('priority', None)
+    latest_version = "1.0"
+    satisfied_by = Mock(
+        location = "/path",
+        parsed_version = parse_version(latest_version),
+        version = latest_version
+        )
+    req.satisfied_by = satisfied_by
+    finder = PackageFinder([find_links], [], use_wheel=True)
+    assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+
+def test_finder_only_installs_stable_releases():
+    """
+    Test PackageFinder only accepts stable versioned releases by default.
+    """
+
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index (that has pre & dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'pre'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-1.0.tar.gz"), link.url
+
+    # using find-links
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
+
+
+def test_finder_installs_pre_releases():
+    """
+    Test PackageFinder finds pre-releases if asked to.
+    """
+
+    req = InstallRequirement.from_line("bar", None, prereleases=True)
+
+    # using a local index (that has pre & dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'pre'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-2.0b1.tar.gz"), link.url
+
+    # using find-links
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+
+def test_finder_installs_dev_releases():
+    """
+    Test PackageFinder finds dev releases if asked to.
+    """
+
+    req = InstallRequirement.from_line("bar", None, prereleases=True)
+
+    # using a local index (that has dev releases)
+    index_url = path_to_url(os.path.join(here, 'indexes', 'dev'))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("bar-2.0.dev1.tar.gz"), link.url
+
+
+def test_finder_installs_pre_releases_with_version_spec():
+    """
+    Test PackageFinder only accepts stable versioned releases by default.
+    """
+    req = InstallRequirement.from_line("bar>=0.0.dev0", None)
+    links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
+
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    links.reverse()
+    finder = PackageFinder(links, [])
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"

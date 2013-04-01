@@ -6,13 +6,15 @@ from pip.commands.install import InstallCommand
 
 
 class BundleCommand(InstallCommand):
+    """Create pybundles (archives containing multiple packages)."""
     name = 'bundle'
-    usage = '%prog [OPTIONS] BUNDLE_NAME.pybundle PACKAGE_NAMES...'
-    summary = 'Create pybundles (archives containing multiple packages)'
+    usage = """
+      %prog [options] <bundle name>.pybundle <package>..."""
+    summary = 'Create pybundles.'
     bundle = True
 
-    def __init__(self):
-        super(BundleCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(BundleCommand, self).__init__(*args, **kw)
         # bundle uses different default source and build dirs
         build_opt = self.parser.get_option("--build")
         build_opt.default = backup_dir(build_prefix, '-bundle')
@@ -33,6 +35,3 @@ class BundleCommand(InstallCommand):
         self.bundle_filename = args.pop(0)
         requirement_set = super(BundleCommand, self).run(options, args)
         return requirement_set
-
-
-BundleCommand()

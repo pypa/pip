@@ -11,49 +11,53 @@ from pip.basecommand import Command
 
 
 class ZipCommand(Command):
+    """Zip individual packages."""
     name = 'zip'
-    usage = '%prog [OPTIONS] PACKAGE_NAMES...'
-    summary = 'Zip individual packages'
+    usage = """
+     %prog [options] <package> ..."""
+    summary = 'Zip individual packages.'
 
-    def __init__(self):
-        super(ZipCommand, self).__init__()
+    def __init__(self, *args, **kw):
+        super(ZipCommand, self).__init__(*args, **kw)
         if self.name == 'zip':
-            self.parser.add_option(
+            self.cmd_opts.add_option(
                 '--unzip',
                 action='store_true',
                 dest='unzip',
-                help='Unzip (rather than zip) a package')
+                help='Unzip (rather than zip) a package.')
         else:
-            self.parser.add_option(
+            self.cmd_opts.add_option(
                 '--zip',
                 action='store_false',
                 dest='unzip',
                 default=True,
-                help='Zip (rather than unzip) a package')
-        self.parser.add_option(
+                help='Zip (rather than unzip) a package.')
+        self.cmd_opts.add_option(
             '--no-pyc',
             action='store_true',
             dest='no_pyc',
-            help='Do not include .pyc files in zip files (useful on Google App Engine)')
-        self.parser.add_option(
+            help='Do not include .pyc files in zip files (useful on Google App Engine).')
+        self.cmd_opts.add_option(
             '-l', '--list',
             action='store_true',
             dest='list',
-            help='List the packages available, and their zip status')
-        self.parser.add_option(
+            help='List the packages available, and their zip status.')
+        self.cmd_opts.add_option(
             '--sort-files',
             action='store_true',
             dest='sort_files',
-            help='With --list, sort packages according to how many files they contain')
-        self.parser.add_option(
+            help='With --list, sort packages according to how many files they contain.')
+        self.cmd_opts.add_option(
             '--path',
             action='append',
             dest='paths',
-            help='Restrict operations to the given paths (may include wildcards)')
-        self.parser.add_option(
+            help='Restrict operations to the given paths (may include wildcards).')
+        self.cmd_opts.add_option(
             '-n', '--simulate',
             action='store_true',
-            help='Do not actually perform the zip/unzip operation')
+            help='Do not actually perform the zip/unzip operation.')
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def paths(self):
         """All the entries of sys.path, possibly restricted by --path"""
@@ -66,7 +70,7 @@ class ZipCommand(Command):
             for match in self.select_paths:
                 match = os.path.normcase(os.path.abspath(match))
                 if '*' in match:
-                    if re.search(fnmatch.translate(match+'*'), path):
+                    if re.search(fnmatch.translate(match + '*'), path):
                         result.append(path)
                         match_any.add(match)
                         break
@@ -81,8 +85,8 @@ class ZipCommand(Command):
         for match in self.select_paths:
             if match not in match_any and '*' not in match:
                 result.append(match)
-                logger.debug("Adding path %s because it doesn't match anything already on sys.path"
-                             % match)
+                logger.debug("Adding path %s because it doesn't match "
+                             "anything already on sys.path" % match)
         return result
 
     def run(self, options, args):
@@ -134,7 +138,8 @@ class ZipCommand(Command):
             ## FIXME: this should be undoable:
             zip = zipfile.ZipFile(zip_filename)
             to_save = []
-            for name in zip.namelist():
+            for info in zip.infolist():
+                name = info.filename
                 if name.startswith(module_name + os.path.sep):
                     content = zip.read(name)
                     dest = os.path.join(package_path, name)
@@ -192,7 +197,7 @@ class ZipCommand(Command):
                                 full = os.path.join(dirpath, fn)
                                 dest = os.path.join(module_name, dirpath[len(filename):].lstrip(os.path.sep), fn)
                                 if is_dir:
-                                    zip.writestr(dest+'/', '')
+                                    zip.writestr(dest + '/', '')
                                 else:
                                     zip.write(full, dest)
                     zip.close()
@@ -241,7 +246,7 @@ class ZipCommand(Command):
                 f.close()
                 if lines and not lines[-1].endswith('\n'):
                     lines[-1] += '\n'
-                lines.append(filename+'\n')
+                lines.append(filename + '\n')
             else:
                 lines = [filename + '\n']
             f = open(dest, 'wb')
@@ -341,6 +346,3 @@ class ZipCommand(Command):
                          if not f.lower().endswith('.pyc')]
             total += len(filenames)
         return total
-
-
-ZipCommand()

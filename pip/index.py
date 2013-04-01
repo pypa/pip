@@ -5,26 +5,30 @@ import os
 import re
 import gzip
 import mimetypes
-try:
-    import threading
-except ImportError:
-    import dummy_threading as threading
 import posixpath
 import pkg_resources
 import random
 import socket
 import string
 import zlib
+
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
+
 from pip.log import logger
-from pip.util import Inf
-from pip.util import normalize_name, splitext
+from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname)
-from pip.backwardcompat import Empty as QueueEmpty
+                                product, url2pathname, ssl,
+                                Empty as QueueEmpty)
+if ssl:
+    from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
+import pip.pep425tags
 
 __all__ = ['PackageFinder']
 
@@ -40,7 +44,8 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None):
+            use_mirrors=False, mirrors=None, main_mirror_url=None,
+            use_wheel=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -52,6 +57,7 @@ class PackageFinder(object):
             logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
         else:
             self.mirror_urls = []
+        self.use_wheel = use_wheel
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -99,6 +105,25 @@ class PackageFinder(object):
                 urls.append(url)
 
         return files, urls
+
+    def _link_sort_key(self, link_tuple):
+        """
+        Function used to generate link sort key for link tuples.
+        If finding wheels, wheels are preferred over sdists
+        """
+        parsed_version = link_tuple[0]
+        link = link_tuple[1]
+        if self.use_wheel:
+            if link == InfLink: #existing install
+                pri = 2
+            else:
+                pri = 1
+                link_ext = link.splitext()[1]
+                if link_ext == '.whl':
+                    pri = 2
+            return (parsed_version, pri)
+        else:
+            return parsed_version
 
     def find_requirement(self, req, upgrade):
 
@@ -180,9 +205,12 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
+            elif is_prerelease(version) and not req.prereleases:
+                logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
+                continue
             applicable_versions.append((parsed_version, link, version))
-        #bring the latest version to the front, but maintains the priority ordering as secondary
-        applicable_versions = sorted(applicable_versions, key=lambda v: v[0], reverse=True)
+        #bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary
+        applicable_versions = sorted(applicable_versions, key=self._link_sort_key, reverse=True)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -228,7 +256,7 @@ class PackageFinder(object):
 
     def _get_pages(self, locations, req):
         """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding homepage links"""
+        locations that have errors, and adding download/homepage links"""
         pending_queue = Queue()
         for location in locations:
             pending_queue.put(location)
@@ -259,12 +287,17 @@ class PackageFinder(object):
             if page is None:
                 continue
             done.append(page)
-            for link in page.rel_links(rels=('homepage',)):
+            for link in page.rel_links():
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _wheel_info_re = re.compile(
+                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+                \.whl|\.dist-info)$""",
+                re.VERBOSE)
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -284,6 +317,12 @@ class PackageFinder(object):
             for v in self._link_package_versions(link, search_name):
                 yield v
 
+    def _known_extensions(self):
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+        if self.use_wheel:
+            return extensions + ('.whl',)
+        return extensions
+
     def _link_package_versions(self, link, search_name):
         """
         Return an iterable of triples (pkg_resources_version_key,
@@ -292,6 +331,7 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
         else:
@@ -305,7 +345,7 @@ class PackageFinder(object):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
-            if ext not in ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip'):
+            if ext not in self._known_extensions():
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
                     self.logged_links.add(link)
@@ -315,7 +355,21 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-        version = self._egg_info_matches(egg_info, search_name, link)
+            if ext == '.whl':
+                wheel_info = self._wheel_info_re.match(link.filename)
+                if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
+                    version = wheel_info.group('ver')
+                    pyversions = wheel_info.group('pyver').split('.')
+                    abis = wheel_info.group('abi').split('.')
+                    plats = wheel_info.group('plat').split('.')
+                    wheel_supports = set((x, y, z) for x in pyversions for y
+                            in abis for z in plats)
+                    supported = set(pip.pep425tags.get_supported())
+                    if not supported.intersection(wheel_supports):
+                        logger.debug('Skipping %s because it is not compatible with this Python' % link)
+                        return []
+        if not version:
+            version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
@@ -360,12 +414,13 @@ class PackageFinder(object):
 
         mirror_urls = set()
         for mirror_url in mirrors:
+            mirror_url = mirror_url.rstrip('/')
             # Make sure we have a valid URL
-            if not ("http://" or "https://" or "file://") in mirror_url:
+            if not any([mirror_url.startswith(scheme) for scheme in ["http://", "https://", "file://"]]):
                 mirror_url = "http://%s" % mirror_url
             if not mirror_url.endswith("/simple"):
-                mirror_url = "%s/simple/" % mirror_url
-            mirror_urls.add(mirror_url)
+                mirror_url = "%s/simple" % mirror_url
+            mirror_urls.add(mirror_url + '/')
 
         return list(mirror_urls)
 
@@ -485,7 +540,12 @@ class HTMLPage(object):
                 level =1
                 desc = 'timed out'
             elif isinstance(e, URLError):
-                log_meth = logger.info
+                #ssl/certificate error
+                if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
+                    desc = 'There was a problem confirming the ssl certificate: %s' % e
+                    log_meth = logger.notify
+                else:
+                    log_meth = logger.info
                 if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
                     desc = 'timed out'
                     level = 1
@@ -543,8 +603,8 @@ class HTMLPage(object):
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
             yield Link(url, self)
 
-    def rel_links(self, rels=('homepage', 'download')):
-        for url in self.explicit_rel_links(rels):
+    def rel_links(self):
+        for url in self.explicit_rel_links():
             yield url
         for url in self.scraped_rel_links():
             yield url

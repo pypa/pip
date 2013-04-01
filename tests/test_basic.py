@@ -10,9 +10,10 @@ from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
+from pip.backwardcompat import ssl
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file)
+                            src_folder, write_file, path_to_url)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -28,7 +29,7 @@ def test_correct_pip_version():
     result = run_pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
-    dir = re.match(r'pip \d(\.[\d])+(\.(pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
+    dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
                    result.stdout).group(4)
     pip_folder = join(src_folder, 'pip')
     pip_folder_outputed = join(dir, 'pip')
@@ -48,7 +49,12 @@ def test_pip_second_command_line_interface_works():
     Check if ``pip-<PYVERSION>`` commands behaves equally
     """
     e = reset_env()
-    result = e.run('pip-%s' % pyversion, 'install', 'INITools==0.2')
+
+    args = ['pip-%s' % pyversion]
+    if not ssl:
+        args.append('--insecure')
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -99,7 +105,7 @@ def test_install_from_mirrors_with_specific_mirrors():
     Test installing a package from a specific PyPI mirror.
     """
     e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://d.pypi.python.org/", '--no-index', 'INITools==0.2')
+    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -112,7 +118,7 @@ def test_editable_install():
     """
     reset_env()
     result = run_pip('install', '-e', 'INITools==0.2', expect_error=True)
-    assert "--editable=INITools==0.2 should be formatted with svn+URL" in result.stdout
+    assert "INITools==0.2 should either by a path to a local project or a VCS url" in result.stdout
     assert len(result.files_created) == 1, result.files_created
     assert not result.files_updated, result.files_updated
 
@@ -235,10 +241,10 @@ def test_install_editable_from_hg():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
-    result.assert_installed('django-registration', with_files=['.hg'])
+    result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
 def test_vcs_url_final_slash_normalization():
@@ -247,8 +253,8 @@ def test_vcs_url_final_slash_normalization():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s/#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
@@ -324,6 +330,60 @@ def test_install_as_egg():
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
+
+
+def test_install_from_wheel():
+    """
+    Test installing from a wheel.
+    """
+    env = reset_env(use_distribute=True)
+    find_links = 'file://'+abspath(join(here, 'packages'))
+    result = run_pip('install', 'simple.dist', '--use-wheel',
+                     '--no-index', '--find-links='+find_links,
+                     expect_error=False)
+    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, (dist_info_folder,
+                                                      result.files_created,
+                                                      result.stdout)
+
+
+def test_install_from_wheel_with_extras():
+    """
+    Test installing from a wheel.
+    """
+    from nose import SkipTest
+    try:
+        import ast
+    except ImportError:
+        raise SkipTest("Need ast module to interpret wheel extras")
+    env = reset_env(use_distribute=True)
+    find_links = 'file://'+abspath(join(here, 'packages'))
+    result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
+                     '--no-index', '--find-links='+find_links,
+                     expect_error=False)
+    dist_info_folder = env.site_packages/'complex_dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, (dist_info_folder,
+                                                      result.files_created,
+                                                      result.stdout)
+    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, (dist_info_folder,
+                                                      result.files_created,
+                                                      result.stdout)
+
+
+def test_install_from_wheel_file():
+    """
+    Test installing directly from a wheel file.
+    """
+    env = reset_env(use_distribute=True)
+    package = abspath(join(here,
+                           'packages',
+                           'simple.dist-0.1-py2.py3-none-any.whl'))
+    result = run_pip('install', package, '--no-index', expect_error=False)
+    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, (dist_info_folder,
+                                                      result.files_created,
+                                                      result.stdout)
 
 
 def test_install_curdir():
@@ -491,16 +551,32 @@ def test_install_package_with_target():
     assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
 
 
+def test_install_wheel_with_target():
+    """
+    Test installing a wheel using pip install --target
+    """
+    env = reset_env(use_distribute=True)
+    run_pip('install', 'wheel')
+    target_dir = env.scratch_path/'target'
+    find_links = path_to_url(os.path.join(here, 'packages'))
+    result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
+                     '--no-index', '--find-links='+find_links)
+    assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
+
+
 def test_install_package_with_root():
     """
     Test installing a package using pip install --root
     """
     env = reset_env()
     root_dir = env.scratch_path/'root'
-    result = run_pip('install', '--root', root_dir, '--install-option=--home=',
-                     '--install-option=--install-lib=/lib/python', "initools==0.1")
-
-    assert Path('scratch')/'root'/'lib'/'python'/'initools' in result.files_created, str(result)
+    find_links = path_to_url(os.path.join(here, 'packages'))
+    result = run_pip('install', '--root', root_dir, '-f', find_links, '--no-index', 'simple==1.0')
+    normal_install_path = env.root_path / env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+    #use distutils to change the root exactly how the --root option does it
+    from distutils.util import change_root
+    root_path = change_root(os.path.join(env.scratch, 'root'), normal_install_path)
+    assert root_path in result.files_created, str(result)
 
 
 def test_find_command_folder_in_path():

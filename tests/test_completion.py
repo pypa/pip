@@ -56,8 +56,23 @@ def test_completion_alone():
     """
     reset_env()
     result = run_pip('completion', expect_error=True)
-    assert 'ERROR: You must pass --bash or --zsh' in result.stderr,\
-            'completion alone failed -- ' + result.stderr
+    assert 'ERROR: You must pass --bash or --zsh' in result.stderr, \
+           'completion alone failed -- ' + result.stderr
+
+
+def setup_completion(words, cword):
+    environ = os.environ.copy()
+    reset_env(environ)
+    environ['PIP_AUTO_COMPLETE'] = '1'
+    environ['COMP_WORDS'] = words
+    environ['COMP_CWORD'] = cword
+    env = get_env()
+
+    # expect_error is True because autocomplete exists with 1 status code
+    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
+            expect_error=True)
+
+    return result, env
 
 
 def test_completion_for_un_snippet():
@@ -65,31 +80,26 @@ def test_completion_for_un_snippet():
     Test getting completion for ``un`` should return
     uninstall and unzip
     """
-    environ = os.environ.copy()
-    reset_env(environ)
-    environ['PIP_AUTO_COMPLETE'] = '1'
-    environ['COMP_WORDS'] = 'pip un'
-    environ['COMP_CWORD'] = '1'
-    env = get_env()
-    # expect_error is True because autocomplete exists with 1 status code
-    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
-            expect_error=True)
-    assert result.stdout.strip().split() == ['unzip', 'uninstall'],\
-           "autocomplete function could not complete ``un`` snippet"
+
+    res, env = setup_completion('pip un', '1')
+    assert res.stdout.strip().split() == ['uninstall', 'unzip'], res.stdout
 
 
 def test_completion_for_default_parameters():
     """
     Test getting completion for ``--`` should contain --help
     """
-    environ = os.environ.copy()
-    reset_env(environ)
-    environ['PIP_AUTO_COMPLETE'] = '1'
-    environ['COMP_WORDS'] = 'pip --'
-    environ['COMP_CWORD'] = '1'
-    env = get_env()
-    # expect_error is True because autocomplete exists with 1 status code
-    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
-            expect_error=True)
-    assert '--help' in result.stdout,\
+
+    res, env = setup_completion('pip --', '1')
+    assert '--help' in res.stdout,\
+           "autocomplete function could not complete ``--``"
+
+
+def test_completion_option_for_command():
+    """
+    Test getting completion for ``--`` in command (eg. pip search --)
+    """
+
+    res, env = setup_completion('pip search --', '2')
+    assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
