@@ -29,8 +29,8 @@ from pip.backwardcompat import (WindowsError, BytesIO,
                                 Empty as QueueEmpty)
 from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
-import pip.pep425tags
-import pip.wheel
+from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
+from pip.pep425tags import supported_tags
 
 __all__ = ['PackageFinder']
 
@@ -68,9 +68,8 @@ class PackageFinder(object):
     @use_wheel.setter
     def use_wheel(self, value):
         self._use_wheel = value
-        if self._use_wheel:
-            if not pip.wheel.wheel_distribute_support():
-                raise InstallationError("pip's wheel support requires %s." % pip.wheel.distribute_requirement)
+        if self._use_wheel and not wheel_distribute_support():
+            raise InstallationError("pip's wheel support requires %s." % distribute_requirement)
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
@@ -122,21 +121,37 @@ class PackageFinder(object):
     def _link_sort_key(self, link_tuple):
         """
         Function used to generate link sort key for link tuples.
-        If finding wheels, wheels are preferred over sdists
+        The greater the return value, the more preferred it is.
+        If not finding wheels, then sorted by version only.
+        If finding wheels, then the sort order is by version, then:
+          1. existing installs
+          2. wheels ordered via Wheel.support_index_min()
+          3. source archives
+        Note: it was considered to embed this logic into the Link
+              comparison operators, but then different sdist links
+              with the same version, would have to be considered equal
         """
-        parsed_version = link_tuple[0]
-        link = link_tuple[1]
+        parsed_version, link, _ = link_tuple
         if self.use_wheel:
-            if link == InfLink: #existing install
-                pri = 2
-            else:
+            support_num = len(supported_tags)
+            if link == InfLink: # existing install
                 pri = 1
-                link_ext = link.splitext()[1]
-                if link_ext == '.whl':
-                    pri = 2
+            elif link.wheel:
+                # all wheel links are known to be supported at this stage
+                pri = -(link.wheel.support_index_min())
+            else: # sdist
+                pri = -(support_num)
             return (parsed_version, pri)
         else:
             return parsed_version
+
+    def _sort_versions(self, applicable_versions):
+        """
+        Bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary.
+        See the docstring for `_link_sort_key` for details.
+        This function is isolated for easier unit testing.
+        """
+        return sorted(applicable_versions, key=self._link_sort_key, reverse=True)
 
     def find_requirement(self, req, upgrade):
 
@@ -222,8 +237,7 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
                 continue
             applicable_versions.append((parsed_version, link, version))
-        #bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary
-        applicable_versions = sorted(applicable_versions, key=self._link_sort_key, reverse=True)
+        applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is InfLink:
@@ -306,11 +320,6 @@ class PackageFinder(object):
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-    _wheel_info_re = re.compile(
-                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
-                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
-                \.whl|\.dist-info)$""",
-                re.VERBOSE)
 
     def _sort_links(self, links):
         "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
@@ -333,7 +342,7 @@ class PackageFinder(object):
     def _known_extensions(self):
         extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
         if self.use_wheel:
-            return extensions + ('.whl',)
+            return extensions + (wheel_ext,)
         return extensions
 
     def _link_package_versions(self, link, search_name):
@@ -368,19 +377,11 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-            if ext == '.whl':
-                wheel_info = self._wheel_info_re.match(link.filename)
-                if wheel_info.group('name').replace('_', '-').lower() == search_name.lower():
-                    version = wheel_info.group('ver')
-                    pyversions = wheel_info.group('pyver').split('.')
-                    abis = wheel_info.group('abi').split('.')
-                    plats = wheel_info.group('plat').split('.')
-                    wheel_supports = set((x, y, z) for x in pyversions for y
-                            in abis for z in plats)
-                    supported = set(pip.pep425tags.get_supported())
-                    if not supported.intersection(wheel_supports):
-                        logger.debug('Skipping %s because it is not compatible with this Python' % link)
-                        return []
+            if link.wheel and link.wheel.name.lower() == search_name.lower():
+                version = link.wheel.version
+                if not link.wheel.supported():
+                    logger.debug('Skipping %s because it is not compatible with this Python' % link)
+                    return []
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
@@ -647,6 +648,11 @@ class Link(object):
     def __init__(self, url, comes_from=None):
         self.url = url
         self.comes_from = comes_from
+
+        # Set whether it's a wheel
+        self.wheel = None
+        if url != Inf and self.splitext()[1] == wheel_ext:
+            self.wheel = Wheel(self.filename)
 
     def __str__(self):
         if self.comes_from:
