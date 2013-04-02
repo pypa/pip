@@ -104,7 +104,7 @@ def test_file_index_url_quoting():
 
 def test_inflink_greater():
     """Test InfLink compares greater."""
-    assert InfLink > Link(object())
+    assert InfLink > Link("some link")
 
 
 def test_mirror_url_formats():
