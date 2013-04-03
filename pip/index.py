@@ -25,7 +25,7 @@ from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname, ssl,
-                                Empty as QueueEmpty)
+                                Empty as QueueEmpty, get_http_message_param)
 if ssl:
     from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
@@ -540,10 +540,7 @@ class HTMLPage(object):
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
 
-            if 'charset' in content_type:
-                charset = content_type.split('charset=')[-1]
-            else:
-                charset = 'latin-1'
+            charset = get_http_message_param(resp, 'charset', 'latin-1')
             inst = cls(contents.decode(charset), real_url, headers)
 
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
