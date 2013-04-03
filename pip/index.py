@@ -545,7 +545,7 @@ class HTMLPage(object):
                 charset = content_type.split('charset=')[-1] or 'latin-1'
             else:
                 charset = 'latin-1'
-            inst = cls(u(contents, encoding=charset), real_url, headers)
+            inst = cls(contents.decode(charset), real_url, headers)
 
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
