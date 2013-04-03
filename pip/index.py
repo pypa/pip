@@ -434,8 +434,14 @@ class PageGetter(object):
         return self._pages_done
 
     def _get_queued_page(self):
-        while 1:
+        while True:
             location = self._pending_queue.get()
+            if self.exc_info:
+                # a worker thread has encountered an exception
+                # drain the queue to allow exception to be reraised
+                # in main thread
+                self._pending_queue.task_done()
+                continue
             if location in self._seen_locations:
                 self._pending_queue.task_done()
                 continue
