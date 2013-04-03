@@ -58,6 +58,7 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
+        self.page_getter = PageGetter(self.cache)
 
 
     def add_dependency_links(self, links):
@@ -176,8 +177,7 @@ class PackageFinder(object):
             self._package_versions(
                 [Link(url, '-f') for url in self.find_links], req.name.lower()))
         page_versions = []
-        page_getter = PageGetter(self.cache)
-        for page in page_getter.get_pages(locations, req):
+        for page in self.page_getter.get_pages(locations, req):
             logger.debug('Analyzing links from page %s' % page.url)
             logger.indent += 2
             try:
