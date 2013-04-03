@@ -514,9 +514,8 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                content_type = cls._get_content_type(url)
-                if (cls._archive_filenames.search(filename) or
-                        cls._archive_content_types.search(content_type)):
+                if cls._archive_filenames.search(filename):
+                    content_type = cls._get_content_type(url)
                     if not content_type.lower().startswith('text/html'):
                         logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
                         if cache is not None:
