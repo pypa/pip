@@ -406,6 +406,7 @@ class PageGetter(object):
         self._seen_locations = set()
         self._pending_queue = Queue()
         self._page_getting_threads = []
+        self.exc_info = None
 
     def get_pages(self, locations, req):
         """Returns a list of HTMLPage objects from the given locations, skipping
@@ -426,6 +427,10 @@ class PageGetter(object):
             self._pending_queue.put(location)
 
         self._pending_queue.join()
+        if self.exc_info:
+            # if any worker thread encountered an unhandled exception
+            from pip.backwardcompat import reraise
+            reraise(*self.exc_info)
         return self._pages_done
 
     def _get_queued_page(self):
@@ -436,17 +441,23 @@ class PageGetter(object):
                 continue
 
             self._seen_locations.add(location)
-            page = self._get_page(location, self._current_req)
+            try:
+                page = self._get_page(location, self._current_req)
+            except Exception as e:
+                self._pending_queue.task_done()
+                self.exc_info = sys.exc_info()
+                # raise e
+                continue
+
+            self._pending_queue.task_done()
 
             if page is None:
-                self._pending_queue.task_done()
                 continue
 
             self._pages_done.append(page)
             for link in page.rel_links():
                 self._pending_queue.put(link)
 
-            self._pending_queue.task_done()
 
     def _get_page(self, link, req):
         return HTMLPage.get_page(link, req, cache=self.cache)
