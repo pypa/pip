@@ -545,7 +545,16 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            inst = cls(u(contents), real_url, headers)
+            try:
+                inst = cls(u(contents), real_url, headers)
+            except UnicodeDecodeError:
+                # a gzipped file may be served without an extension
+                content_type =  headers.get('Content-Type', '')
+                if 'gzip' in content_type:
+                    logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                else:
+                    raise
+
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
