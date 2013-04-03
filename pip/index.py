@@ -479,8 +479,6 @@ class HTMLPage(object):
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
     _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
-    _archive_filenames = re.compile('[\.tar|\.gz|\.bz2|\.tgz|\.zip]$')
-
     def __init__(self, content, url, headers=None):
         self.content = content
         self.url = url
@@ -527,14 +525,11 @@ class HTMLPage(object):
                 if cache is not None:
                     if cache.is_archive(url):
                         return None
-                filename = link.filename
-                if (cls._archive_filenames.search(filename) or
-                        cls._archive_filenames.search(real_url)):
-                    if not content_type.lower().startswith('text/html'):
-                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                        if cache is not None:
-                            cache.set_is_archive(url)
-                        return None
+                if not content_type.lower().startswith('text/html'):
+                    logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                    if cache is not None:
+                        cache.set_is_archive(url)
+                    return None
             logger.debug('Getting page %s' % url)
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
