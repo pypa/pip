@@ -480,6 +480,9 @@ class HTMLPage(object):
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
     _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
+    _archive_content_types = re.compile('zip|tar|gz')
+    _archive_filenames = re.compile('[\.tar|\.gz|\.bz2|\.tgz|\.zip]$')
+
     def __init__(self, content, url, headers=None):
         self.content = content
         self.url = url
@@ -512,16 +515,14 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url)
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
+                content_type = cls._get_content_type(url)
+                if (cls._archive_filenames.search(filename) or
+                        cls._archive_content_types.search(content_type)):
+                    if not content_type.lower().startswith('text/html'):
+                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                        if cache is not None:
+                            cache.set_is_archive(url)
+                        return None
             logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
