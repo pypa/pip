@@ -479,7 +479,6 @@ class HTMLPage(object):
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
     _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
-    _archive_content_types = re.compile('zip|tar|gz')
     _archive_filenames = re.compile('[\.tar|\.gz|\.bz2|\.tgz|\.zip]$')
 
     def __init__(self, content, url, headers=None):
@@ -509,19 +508,6 @@ class HTMLPage(object):
             if inst is not None:
                 return inst
         try:
-            if skip_archives:
-                if cache is not None:
-                    if cache.is_archive(url):
-                        return None
-                filename = link.filename
-                if cls._archive_filenames.search(filename):
-                    content_type = cls._get_content_type(url)
-                    if not content_type.lower().startswith('text/html'):
-                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                        if cache is not None:
-                            cache.set_is_archive(url)
-                        return None
-            logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
@@ -533,9 +519,23 @@ class HTMLPage(object):
                 logger.debug(' file: URL is directory, getting %s' % url)
 
             resp = urlopen(url)
-
             real_url = geturl(resp)
             headers = resp.info()
+            content_type = headers.get('Content-Type', '')
+
+            if skip_archives:
+                if cache is not None:
+                    if cache.is_archive(url):
+                        return None
+                filename = link.filename
+                if (cls._archive_filenames.search(filename) or
+                        cls._archive_filenames.search(real_url)):
+                    if not content_type.lower().startswith('text/html'):
+                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                        if cache is not None:
+                            cache.set_is_archive(url)
+                        return None
+            logger.debug('Getting page %s' % url)
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
@@ -544,15 +544,12 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            try:
-                inst = cls(u(contents), real_url, headers)
-            except UnicodeDecodeError:
-                # a gzipped file may be served without an extension
-                content_type =  headers.get('Content-Type', '')
-                if 'gzip' in content_type:
-                    logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                else:
-                    raise
+
+            if 'charset' in content_type:
+                charset = content_type.split('charset=')[-1] or 'latin-1'
+            else:
+                charset = 'latin-1'
+            inst = cls(u(contents, encoding=charset), real_url, headers)
 
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]

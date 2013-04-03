@@ -47,8 +47,8 @@ if sys.version_info >= (3,):
     def b(s):
         return s.encode('utf-8')
 
-    def u(s):
-        return s.decode('utf-8')
+    def u(s, encoding='utf-8'):
+        return s.decode(encoding)
 
     def console_to_str(s):
         try:
