@@ -541,7 +541,7 @@ class HTMLPage(object):
                     contents = zlib.decompress(contents)
 
             if 'charset' in content_type:
-                charset = content_type.split('charset=')[-1] or 'latin-1'
+                charset = content_type.split('charset=')[-1]
             else:
                 charset = 'latin-1'
             inst = cls(contents.decode(charset), real_url, headers)
