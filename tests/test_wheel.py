@@ -204,7 +204,6 @@ class TestWheelFile(object):
         """
         Test multi-version wheel is known to be supported
         """
-        mock_supported_tags = [('py3', 'none', 'any')]
         w = wheel.Wheel('simple-0.1-py2.py3-none-any.whl')
         assert w.supported()
 
