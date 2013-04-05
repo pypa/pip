@@ -450,10 +450,11 @@ class PageGetter(object):
             try:
                 page = self._get_page(location, self._current_req)
             except Exception as e:
+                # we set the exception info on the class
+                # which will be reraised in the main thread
                 self._pending_queue.task_done()
                 self.exc_info = sys.exc_info()
-                # raise e
-                continue
+                return
 
             self._pending_queue.task_done()
 
