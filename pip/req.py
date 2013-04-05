@@ -12,7 +12,7 @@ from distutils.util import change_root
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
-                            DistributionNotFound)
+                            DistributionNotFound, CommandError)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
