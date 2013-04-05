@@ -19,7 +19,8 @@ except ImportError:
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
+    InstallationError
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
@@ -29,6 +30,7 @@ if ssl:
     from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 import pip.pep425tags
+import pip.wheel
 
 __all__ = ['PackageFinder']
 
@@ -58,6 +60,17 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
+
+    @property
+    def use_wheel(self):
+        return self._use_wheel
+
+    @use_wheel.setter
+    def use_wheel(self, value):
+        self._use_wheel = value
+        if self._use_wheel:
+            if not pip.wheel.wheel_distribute_support():
+                raise InstallationError("pip's wheel support requires %s." % pip.wheel.distribute_requirement)
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
