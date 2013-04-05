@@ -1,11 +1,14 @@
 import os
 from pip.backwardcompat import urllib
 from tests.path import Path
-from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
-from pip.index import PackageFinder, Link, InfLink
+from pip.index import (package_to_requirement, HTMLPage, get_mirrors,
+        DEFAULT_MIRROR_HOSTNAME, PackageFinder, Link, InfLink, PageGetter,
+        PageCache)
 from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
 from string import ascii_lowercase
 from mock import patch
+import threading
+import time
 
 
 def test_package_name_should_be_converted_to_requirement():
@@ -125,5 +128,24 @@ def test_mirror_url_formats():
         for url in urls:
             assert url == result, str([url, result])
 
+
+def test_threaded_page_getter():
+    """
+    Test that page getting is done in a threaded fashion
+    """
+    thread_ids = set()
+
+    def mocked_get_page(self, link, req):
+        time.sleep(.1)
+        this_thread = threading.current_thread()
+        thread_ids.add(this_thread.ident)
+
+    with patch.object(PageGetter, '_get_page', mocked_get_page):
+        dummy_cache = PageCache()
+        getter = PageGetter(dummy_cache)
+        locations = ['http://foo{}.com'.format(i) for i in range(15)]
+        result = getter.get_pages(locations, 'some-req')
+
+    assert len(thread_ids) == 10
 
 
