@@ -143,7 +143,7 @@ def test_threaded_page_getter():
     with patch.object(PageGetter, '_get_page', mocked_get_page):
         dummy_cache = PageCache()
         getter = PageGetter(dummy_cache)
-        locations = ['http://foo{}.com'.format(i) for i in range(15)]
+        locations = ['http://foo%s.com' % i for i in range(15)]
         result = getter.get_pages(locations, 'some-req')
 
     assert len(thread_ids) == 10
