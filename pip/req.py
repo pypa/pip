@@ -1389,8 +1389,6 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             if finder:
                 finder.index_urls.append(line)
         elif line.startswith('--use-wheel'):
-            if not pip.wheel.wheel_ok():
-                raise InstallationError("wheel runtime requirements not met.")
             finder.use_wheel = True
         elif line.startswith('--no-index'):
             finder.index_urls = []

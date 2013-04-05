@@ -60,11 +60,17 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
-        
-        if self.use_wheel:
-            if not pip.wheel.wheel_ok():
-                raise InstallationError("wheel runtime requirements not met.")
-            
+
+    @property
+    def use_wheel(self):
+        return self._use_wheel
+
+    @use_wheel.setter
+    def use_wheel(self, value):
+        self._use_wheel = value
+        if self._use_wheel:
+            if not pip.wheel.wheel_distribute_support():
+                raise InstallationError("pip's wheel support requires %s." % pip.wheel.distribute_requirement)
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only

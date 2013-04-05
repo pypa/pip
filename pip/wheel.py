@@ -4,34 +4,35 @@ Support functions for installing and building the "wheel" binary package format.
 from __future__ import with_statement
 
 import csv
-import os
-import sys
-import shutil
 import functools
 import hashlib
-from pip.locations import distutils_scheme
-from pip.log import logger
-from pip.util import call_subprocess, normalize_path
-
+import os
+import pkg_resources
+import shutil
+import sys
 from base64 import urlsafe_b64encode
 
-from pip.util import make_path_relative
+from pip.locations import distutils_scheme
+from pip.log import logger
+from pip.util import call_subprocess, normalize_path, make_path_relative
 
-def wheel_ok(required_ver=None):
-    """Return True if we have a distribute that supports wheel (.dist-info directories)."""
-    supported = False
-    if not required_ver:
-        import pkg_resources
-        required_ver = pkg_resources.Requirement.parse("distribute >= 0.6.34")
+distribute_requirement = pkg_resources.Requirement.parse("distribute>=0.6.34")
+
+def wheel_distribute_support(distribute_req=distribute_requirement):
+    """
+    Return True if we have a distribute that supports wheel.
+
+    distribute_req: a pkg_resources.Requirement for distribute
+    """
     try:
-        installed_ver = pkg_resources.working_set.by_key['distribute']
-        supported = installed_ver in required_ver
-    except KeyError:
-        pass
+        installed_dist = pkg_resources.get_distribution('distribute')
+        supported = installed_dist in distribute_req
+    except pkg_resources.DistributionNotFound:
+        supported = False
     if not supported:
-        logger.warn("%s is required for wheel installs.", required_ver)
+        logger.warn("%s is required for wheel installs.", distribute_req)
     return supported
-    
+
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
     h = hashlib.new(algo)
