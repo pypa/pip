@@ -105,14 +105,14 @@ class Manifest(object):
                 assert parent not in ('', '/')
                 add_dir(dirs, parent)
 
-        files = self.files
+        result = set(self.files)    # make a copy!
         if wantdirs:
             dirs = set()
-            for f in files:
+            for f in result:
                 add_dir(dirs, os.path.dirname(f))
-            files |= dirs
+            result |= dirs
         return [os.path.join(*path_tuple) for path_tuple in
-                sorted(os.path.split(path) for path in files)]
+                sorted(os.path.split(path) for path in result)]
 
     def clear(self):
         """Clear all collected files."""

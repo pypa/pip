@@ -107,6 +107,9 @@ class Locator(object):
         # we use our own opener rather than just using urlopen.
         self.opener = build_opener(RedirectHandler())
 
+    def clear_cache(self):
+        self._cache.clear()
+
     def _get_scheme(self):
         return self._scheme
 
@@ -283,13 +286,16 @@ class Locator(object):
         dist.locator = self
         result[version] = dist
 
-    def locate(self, requirement):
+    def locate(self, requirement, prereleases=False):
         """
         Find the most recent distribution which matches the given
         requirement.
 
         :param requirement: A requirement of the form 'foo (1.0)' or perhaps
                             'foo (>= 1.0, < 2.0, != 1.3)'
+        :param prereleases: If ``True``, allow pre-release versions
+                            to be located. Otherwise, pre-release versions
+                            are not returned.
         :return: A :class:`Distribution` instance, or ``None`` if no such
                  distribution could be located.
         """
@@ -300,10 +306,9 @@ class Locator(object):
             raise DistlibException('Not a valid requirement: %r' % requirement)
         if r.extras:
             # lose the extras part of the requirement
-            i = requirement.find('[')
-            assert i > 0, 'expected to find a [ in a requirement with extras'
-            requirement = requirement[:i]
+            requirement = r.requirement
         matcher = scheme.matcher(requirement)
+        vcls = matcher.version_class
         logger.debug('matcher: %s (%s)', matcher, type(matcher).__name__)
         versions = self.get_project(matcher.name)
         if versions:
@@ -314,7 +319,10 @@ class Locator(object):
                     if not matcher.match(k):
                         logger.debug('%s did not match %r', matcher, k)
                     else:
-                        slist.append(k)
+                        if prereleases or not vcls(k).is_prerelease:
+                            slist.append(k)
+                        else:
+                            logger.debug('skipping pre-release version %s', k)
                 except Exception:
                     logger.warning('error matching %s with %r', matcher, k)
                     pass # slist.append(k)
@@ -837,6 +845,11 @@ class AggregatingLocator(Locator):
         self.locators = locators
         super(AggregatingLocator, self).__init__(**kwargs)
 
+    def clear_cache(self):
+        super(AggregatingLocator, self).clear_cache()
+        for locator in self.locators:
+            locator.clear_cache()
+
     def _set_scheme(self, value):
         self._scheme = value
         for locator in self.locators:
@@ -1020,13 +1033,15 @@ class DependencyFinder(object):
             result = True
         return result
 
-    def find(self, requirement, tests=False):
+    def find(self, requirement, tests=False, prereleases=False):
         """
         Find a distribution matching requirement and all distributions
         it depends on. Use the ``tests`` argument to determine whether
         distributions used only for testing should be included in the
         results. Allow ``requirement`` to be either a :class:`Distribution`
-        instance or a string expressing a requirement.
+        instance or a string expressing a requirement. If ``prereleases``
+        is True, allow pre-release versions to be returned - otherwise,
+        don't.
 
         Return a set of :class:`Distribution` instances and a set of
         problems.
@@ -1051,7 +1066,8 @@ class DependencyFinder(object):
             dist = odist = requirement
             logger.debug('passed %s as requirement', odist)
         else:
-            dist = odist = self.locator.locate(requirement)
+            dist = odist = self.locator.locate(requirement,
+                                               prereleases=prereleases)
             if dist is None:
                 raise DistlibException('Unable to locate %r' % requirement)
             logger.debug('located %s', odist)
@@ -1070,32 +1086,19 @@ class DependencyFinder(object):
                 if other != dist:
                     self.try_to_replace(dist, other, problems)
 
-            ireqts = set(dist.get_requirements('install'))
-            sreqts = set(dist.get_requirements('setup'))
+            ireqts = dist.requires
+            sreqts = dist.setup_requires
             ereqts = set()
-            extras = dist.extras
-            if extras:
-                d = dist.get_requirements('extras')
-                for extra in extras:
-                    if extra not in d:
-                        logger.warning('Requested extra not known: %r', extra)
-                    else:
-                        s = set(d[extra])
-                        ereqts |= s
-                        if extra not in ('doc', 'test'):
-                            ireqts |= s
             if not tests or dist not in install_dists:
                 treqts = set()
             else:
-                treqts = set(dist.get_requirements('test'))
-                if extras and 'test' in d:
-                    treqts |= set(d['test'])
+                treqts = dist.test_requires
             all_reqts = ireqts | sreqts | treqts | ereqts
             for r in all_reqts:
                 providers = self.find_providers(r)
                 if not providers:
                     logger.debug('No providers found for %r', r)
-                    provider = self.locator.locate(r)
+                    provider = self.locator.locate(r, prereleases=prereleases)
                     if provider is None:
                         logger.debug('Cannot satisfy %r', r)
                         problems.add(('unsatisfied', r))
