@@ -165,7 +165,7 @@ class ScriptMaker(object):
                                self.get_command_name(),  script)
                 return
 
-            match = FIRST_LINE_RE.match(first_line)
+            match = FIRST_LINE_RE.match(first_line.replace(b'\r\n', b'\n'))
             if match:
                 adjust = True
                 post_interp = match.group(1) or b''
