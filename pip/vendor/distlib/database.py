@@ -16,10 +16,11 @@ import sys
 import zipimport
 
 from . import DistlibException
-from .compat import StringIO, configparser
+from .compat import StringIO, configparser, string_types
 from .version import get_scheme, UnsupportedVersionError
+from .markers import interpret
 from .metadata import Metadata
-from .util import (parse_requires, cached_property, get_export_entry,
+from .util import (parse_requirement, cached_property, get_export_entry,
                    CSVReader, CSVWriter)
 
 
@@ -116,10 +117,10 @@ class DistributionPath(object):
             for dir in os.listdir(realpath):
                 dist_path = os.path.join(realpath, dir)
                 if self._include_dist and dir.endswith(DISTINFO_EXT):
-                    yield InstalledDistribution(dist_path, env=self)
+                    yield new_dist_class(dist_path, env=self)
                 elif self._include_egg and dir.endswith(('.egg-info',
                                                          '.egg')):
-                    yield EggInfoDistribution(dist_path, self)
+                    yield old_dist_class(dist_path, self)
 
     def _generate_cache(self):
         """
@@ -299,11 +300,6 @@ class Distribution(object):
     present (in other words, whether the package was installed by user
     request or it was installed as a dependency)."""
 
-    extras = None
-    """
-    Set to a list of requested extras if specified in a requirement.
-    """
-
     def __init__(self, metadata):
         """
         Initialise an instance.
@@ -316,6 +312,7 @@ class Distribution(object):
         self.version = metadata.version
         self.locator = None
         self.md5_digest = None
+        self.extras = None  # additional features requested during installation
 
     @property
     def download_url(self):
@@ -337,45 +334,55 @@ class Distribution(object):
         A set of distribution names and versions provided by this distribution.
         :return: A set of "name (version)" strings.
         """
-        return set(self.metadata['Provides-Dist']
-                   + self.metadata['Provides']
-                   + ['%s (%s)' % (self.name, self.version)]
-                  )
+        plist = self.metadata['Provides-Dist']
+        s = '%s (%s)' % (self.name, self.version)
+        if s not in plist:
+            plist.append(s)
+        return self.filter_requirements(plist)
 
-    @cached_property
+    @property
     def requires(self):
-        """
-        A set of requirements (dependencies of this distribution).
-        :return: A set of strings like "foo (>= 1.0, < 2.0, != 1.3)" where
-                 ``foo`` is the name of the distribution depended on, and
-                 the constraints indicate which versions of ``foo`` are
-                 acceptable to fulfill the requirement.
-        """
-        return set(self.metadata['Requires-Dist']
-                   + self.get_requirements('install')
-                   + self.get_requirements('setup')
-                   + self.get_requirements('test')
-                   )
+        rlist = self.metadata['Requires-Dist']
+        return self.filter_requirements(rlist)
 
-    def get_requirements(self, key):
-        """
-        Get the requirements of a particular type
-        ('setup', 'install', 'test', 'extra:key').
-        """
-        result = []
-        parts = key.split(':', 1)
-        if len(parts) == 2:
-            key, extra = parts
-        else:
-            extra = None
-        d = self.metadata.dependencies
-        if key in d:
-            if extra is None:
-                result = d[key]
+    @property
+    def setup_requires(self):
+        rlist = self.metadata['Setup-Requires-Dist']
+        return self.filter_requirements(rlist)
+
+    @property
+    def test_requires(self):
+        rlist = self.metadata['Requires-Dist']
+        return self.filter_requirements(rlist, extras=['test'])
+
+    @property
+    def doc_requires(self):
+        rlist = self.metadata['Requires-Dist']
+        return self.filter_requirements(rlist, extras=['doc'])
+
+    def filter_requirements(self, rlist, context=None, extras=None):
+        result = set()
+        marked = []
+        for req in rlist:
+            if ';' not in req:
+                result.add(req)
             else:
-                ed = d[key]
-                assert isinstance(ed, dict)
-                result = ed.get(extra, [])
+                marked.append(req.split(';', 1))
+        if marked:
+            if context is None:
+                context = {}
+            if extras is None:
+                extras = self.extras
+            if not extras:
+                extras = [None]
+            else:
+                extras = list(extras)   # leave original alone
+                extras.append(None)
+            for extra in extras:
+                context['extra'] = extra
+                for r, marker in marked:
+                    if interpret(marker, context):
+                        result.add(r.strip())
         return result
 
     def matches_requirement(self, req):
@@ -852,6 +859,39 @@ class EggInfoDistribution(BaseInstalledDistribution):
     def _get_metadata(self, path):
         requires = None
 
+        def parse_requires(req_path):
+            """Create a list of dependencies from a requires.txt file.
+
+            *req_path* must be the path to a setuptools-produced requires.txt file.
+            """
+
+            reqs = []
+            try:
+                with open(req_path, 'r') as fp:
+                    lines = fp.read().splitlines()
+            except IOError:
+                return reqs
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('['):
+                    logger.warning('Unexpected line: quitting requirement scan: %r',
+                                   line)
+                    break
+                r = parse_requirement(line)
+                if not r:
+                    logger.warning('Not recognised as a requirement: %r', line)
+                    continue
+                if r.extras:
+                    logger.warning('extra requirements in requires.txt are '
+                                   'not supported')
+                if not r.constraints:
+                    reqs.append(r.name)
+                else:
+                    cons = ', '.join('%s%s' % c for c in r.constraints)
+                    reqs.append('%s (%s)' % (r.name, cons))
+            return reqs
+
         if path.endswith('.egg'):
             if os.path.isdir(path):
                 meta_path = os.path.join(path, 'EGG-INFO', 'PKG-INFO')
@@ -985,6 +1025,10 @@ class EggInfoDistribution(BaseInstalledDistribution):
 
     # See http://docs.python.org/reference/datamodel#object.__hash__
     __hash__ = object.__hash__
+
+new_dist_class = InstalledDistribution
+old_dist_class = EggInfoDistribution
+
 
 class DependencyGraph(object):
     """
@@ -1168,11 +1212,7 @@ def make_graph(dists, scheme='default'):
 
     # now make the edges
     for dist in dists:
-        # need to leave this in because tests currently rely on it ...
-        requires = dist.metadata['Requires-Dist']
-        if not requires:
-            requires = (dist.get_requirements('install') +
-                        dist.get_requirements('setup'))
+        requires = (dist.requires | dist.setup_requires)
         for req in requires:
             try:
                 matcher = scheme.matcher(req)

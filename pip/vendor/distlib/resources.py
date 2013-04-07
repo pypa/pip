@@ -101,54 +101,41 @@ class Cache(object):
 
 cache = Cache()
 
-class Resource(object):
+class ResourceBase(object):
+    def __init__(self, finder, name):
+        self.finder = finder
+        self.name = name
+
+class Resource(ResourceBase):
     """
     A class representing an in-package resource, such as a data file. This is
     not normally instantiated by user code, but rather by a
     :class:`ResourceFinder` which manages the resource.
     """
-    def __init__(self, finder, name):
-        self.finder = finder
-        self.name = name
-
+    is_container = False # Backwards compatibility
+    
     def as_stream(self):
         "Get the resource as a stream. Not a property, as not idempotent."
-        if self.is_container:
-            raise DistlibException("A container resource can't be returned as "
-                                    "a stream")
         return self.finder.get_stream(self)
-
+     
     @cached_property
     def file_path(self):
-        if self.is_container:
-            raise DistlibException("A container resource can't be returned as "
-                                   "a file in the file system")
         return cache.get(self)
-
+     
     @cached_property
     def bytes(self):
-        if self.is_container:
-            raise DistlibException("A container resource can't be returned as "
-                                   "bytes")
         return self.finder.get_bytes(self)
-
-    @cached_property
-    def resources(self):
-        if not self.is_container:
-            raise DistlibException("A non-container resource can't be queried "
-                                   "for its contents")
-        return self.finder.get_resources(self)
-
-    @cached_property
-    def is_container(self):
-        return self.finder.is_container(self)
-
+     
     @cached_property
     def size(self):
-        if self.is_container:
-            raise DistlibException("The size of container resource can't be "
-                                   "returned")
         return self.finder.get_size(self)
+     
+class ResourceContainer(ResourceBase):
+    is_container = True # Backwards compatibility
+    
+    @cached_property
+    def resources(self):
+        return self.finder.get_resources(self)
 
 class ResourceFinder(object):
     """
@@ -175,7 +162,10 @@ class ResourceFinder(object):
         if not self._find(path):
             result = None
         else:
-            result = Resource(self, resource_name)
+            if self._is_directory(path):
+                result = ResourceContainer(self, resource_name)
+            else:
+                result = Resource(self, resource_name)
             result.path = path
         return result
 
@@ -195,7 +185,9 @@ class ResourceFinder(object):
         return set([f for f in os.listdir(resource.path) if allowed(f)])
 
     def is_container(self, resource):
-        return os.path.isdir(resource.path)
+        return self._is_directory(resource.path)
+    
+    _is_directory = staticmethod(os.path.isdir)
 
 class ZipResourceFinder(ResourceFinder):
     """
@@ -260,8 +252,8 @@ class ZipResourceFinder(ResourceFinder):
             i += 1
         return result
 
-    def is_container(self, resource):
-        path = resource.path[self.prefix_len:]
+    def _is_directory(self, path):
+        path = path[self.prefix_len:]
         if path[-1] != os.sep:
             path += os.sep
         i = bisect.bisect(self.index, path)

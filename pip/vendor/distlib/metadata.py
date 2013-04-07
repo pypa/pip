@@ -5,15 +5,15 @@
 #
 """Implementation of the Metadata for Python packages PEPs.
 
-Supports all metadata formats (1.0, 1.1, 1.2).
+Supports all metadata formats (1.0, 1.1, 1.2, and 2.0 experimental).
 """
 from __future__ import unicode_literals
 
-import re
 import codecs
-import logging
-
 from email import message_from_file
+import logging
+import re
+
 
 from . import DistlibException
 from .compat import StringIO, string_types
@@ -97,11 +97,26 @@ _345_MARKERS = ('Provides-Dist', 'Requires-Dist', 'Requires-Python',
                 'Obsoletes-Dist', 'Requires-External', 'Maintainer',
                 'Maintainer-email', 'Project-URL')
 
+_426_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
+               'Supported-Platform', 'Summary', 'Description',
+               'Keywords', 'Home-page', 'Author', 'Author-email',
+               'Maintainer', 'Maintainer-email', 'License',
+               'Classifier', 'Download-URL', 'Obsoletes-Dist',
+               'Project-URL', 'Provides-Dist', 'Requires-Dist',
+               'Requires-Python', 'Requires-External', 'Private-Version',
+               'Obsoleted-By', 'Setup-Requires-Dist', 'Extension',
+               'Provides-Extra')
+
+_426_MARKERS = ('Private-Version', 'Provides-Extra', 'Obsoleted-By',
+                'Setup-Requires-Dist', 'Extension')
+
 _ALL_FIELDS = set()
 _ALL_FIELDS.update(_241_FIELDS)
 _ALL_FIELDS.update(_314_FIELDS)
 _ALL_FIELDS.update(_345_FIELDS)
+_ALL_FIELDS.update(_426_FIELDS)
 
+EXTRA_RE = re.compile(r'''extra\s*==\s*("([^"]+)"|'([^']+)')''')
 
 def _version2fieldlist(version):
     if version == '1.0':
@@ -110,6 +125,8 @@ def _version2fieldlist(version):
         return _314_FIELDS
     elif version == '1.2':
         return _345_FIELDS
+    elif version == '2.0':
+        return _426_FIELDS
     raise MetadataUnrecognizedVersionError(version)
 
 
@@ -127,7 +144,7 @@ def _best_version(fields):
             continue
         keys.append(key)
 
-    possible_versions = ['1.0', '1.1', '1.2']
+    possible_versions = ['1.0', '1.1', '1.2', '2.0']
 
     # first let's try to see if a field is not part of one of the version
     for key in keys:
@@ -137,6 +154,8 @@ def _best_version(fields):
             possible_versions.remove('1.1')
         if key not in _345_FIELDS and '1.2' in possible_versions:
             possible_versions.remove('1.2')
+        if key not in _426_FIELDS and '2.0' in possible_versions:
+            possible_versions.remove('2.0')
 
     # possible_version contains qualified versions
     if len(possible_versions) == 1:
@@ -147,23 +166,25 @@ def _best_version(fields):
     # let's see if one unique marker is found
     is_1_1 = '1.1' in possible_versions and _has_marker(keys, _314_MARKERS)
     is_1_2 = '1.2' in possible_versions and _has_marker(keys, _345_MARKERS)
-    if is_1_1 and is_1_2:
-        raise MetadataConflictError('You used incompatible 1.1 and 1.2 fields')
+    is_2_0 = '2.0' in possible_versions and _has_marker(keys, _426_MARKERS)
+    if int(is_1_1) + int(is_1_2) + int(is_2_0) > 1:
+        raise MetadataConflictError('You used incompatible 1.1/1.2/2.0 fields')
 
-    # we have the choice, either 1.0, or 1.2
+    # we have the choice, 1.0, or 1.2, or 2.0
     #   - 1.0 has a broken Summary field but works with all tools
     #   - 1.1 is to avoid
-    #   - 1.2 fixes Summary but is not widespread yet
-    if not is_1_1 and not is_1_2:
+    #   - 1.2 fixes Summary but has little adoption
+    #   - 2.0 adds more features and is very new
+    if not is_1_1 and not is_1_2 and not is_2_0:
         # we couldn't find any specific marker
         if PKG_INFO_PREFERRED_VERSION in possible_versions:
             return PKG_INFO_PREFERRED_VERSION
     if is_1_1:
         return '1.1'
+    if is_1_2:
+        return '1.2'
 
-    # default marker when 1.0 is disqualified
-    return '1.2'
-
+    return '2.0'
 
 _ATTR2FIELD = {
     'metadata_version': 'Metadata-Version',
@@ -185,12 +206,17 @@ _ATTR2FIELD = {
     'obsoletes_dist': 'Obsoletes-Dist',
     'provides_dist': 'Provides-Dist',
     'requires_dist': 'Requires-Dist',
+    'setup_requires_dist': 'Setup-Requires-Dist',
     'requires_python': 'Requires-Python',
     'requires_external': 'Requires-External',
     'requires': 'Requires',
     'provides': 'Provides',
     'obsoletes': 'Obsoletes',
     'project_url': 'Project-URL',
+    'private_version': 'Private-Version',
+    'obsoleted_by': 'Obsoleted-By',
+    'extension': 'Extension',
+    'provides_extra': 'Provides-Extra',
 }
 
 _PREDICATE_FIELDS = ('Requires-Dist', 'Obsoletes-Dist', 'Provides-Dist')
@@ -199,7 +225,8 @@ _VERSION_FIELDS = ('Version',)
 _LISTFIELDS = ('Platform', 'Classifier', 'Obsoletes',
                'Requires', 'Provides', 'Obsoletes-Dist',
                'Provides-Dist', 'Requires-Dist', 'Requires-External',
-               'Project-URL', 'Supported-Platform')
+               'Project-URL', 'Supported-Platform', 'Setup-Requires-Dist',
+               'Provides-Extra', 'Extension')
 _LISTTUPLEFIELDS = ('Project-URL',)
 
 _ELEMENTSFIELD = ('Keywords',)
@@ -233,8 +260,8 @@ class Metadata(object):
         self.docutils_support = _HAS_DOCUTILS
         self.platform_dependent = platform_dependent
         self.execution_context = execution_context
+        self._dependencies = None
         self.scheme = scheme
-        self.dependencies = {}
         if [path, fileobj, mapping].count(None) < 2:
             raise TypeError('path, fileobj and mapping are exclusive')
         if path is not None:
@@ -319,9 +346,57 @@ class Metadata(object):
             return self[name]
         raise AttributeError(name)
 
+    def _get_dependencies(self):
+        def handle_req(req, rlist, extras):
+            if ';' not in req:
+                rlist.append(req)
+            else:
+                r, marker = req.split(';')
+                m = EXTRA_RE.search(marker)
+                if m:
+                    extra = m.groups()[0][1:-1]
+                    extras.setdefault(extra, []).append(r)
+
+        result = self._dependencies
+        if result is None:
+            self._dependencies = result = {}
+            extras = {}
+            setup_reqs = self['Setup-Requires-Dist']
+            if setup_reqs:
+                result['setup'] = setup_reqs
+            install_reqs = []
+            for req in self['Requires-Dist']:
+                handle_req(req, install_reqs, extras)
+            if install_reqs:
+                result['install'] = install_reqs
+            if extras:
+                result['extras'] = extras
+        return result
+
+    def _set_dependencies(self, value):
+        if 'test' in value:
+            value = dict(value) # don't change value passed in
+            value.setdefault('extras', {})['test'] = value.pop('test')
+        self._dependencies = value
+        setup_reqs = value.get('setup', [])
+        install_reqs = value.get('install', [])
+        klist = []
+        for k, rlist in value.get('extras', {}).items():
+            klist.append(k)
+            for r in rlist:
+                install_reqs.append('%s; extra == "%s"' % (r, k))
+        if setup_reqs:
+            self['Setup-Requires-Dist'] = setup_reqs
+        if install_reqs:
+            self['Requires-Dist'] = install_reqs
+        if klist:
+            self['Provides-Extra'] = klist
     #
     # Public API
     #
+
+    dependencies = property(_get_dependencies, _set_dependencies)
+
     def get_fullname(self, filesafe=False):
         """Return the distribution name with version.
 
@@ -335,7 +410,7 @@ class Metadata(object):
             version = _FILESAFE.sub('-', version.replace(' ', '.'))
         return '%s-%s' % (name, version)
 
-    def is_metadata_field(self, name):
+    def is_field(self, name):
         """return True if name is a valid metadata key"""
         name = self._convert_name(name)
         return name in _ALL_FIELDS
@@ -371,20 +446,22 @@ class Metadata(object):
                     self.set(field, value)
         self.set_metadata_version()
 
-    def write(self, filepath):
+    def write(self, filepath, skip_unknown=False):
         """Write the metadata fields to filepath."""
         fp = codecs.open(filepath, 'w', encoding='utf-8')
         try:
-            self.write_file(fp)
+            self.write_file(fp, skip_unknown)
         finally:
             fp.close()
 
-    def write_file(self, fileobject):
+    def write_file(self, fileobject, skip_unknown=False):
         """Write the PKG-INFO format data to a file object."""
         self.set_metadata_version()
 
         for field in _version2fieldlist(self['Metadata-Version']):
             values = self.get(field)
+            if skip_unknown and values in ('UNKNOWN', [], ['UNKNOWN']):
+                continue
             if field in _ELEMENTSFIELD:
                 self._write_field(fileobject, field, ','.join(values))
                 continue
