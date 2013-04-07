@@ -107,75 +107,28 @@ def parse_requirement(s):
     return result
 
 
-def parse_requires(req_path):
-    """Create a list of dependencies from a requires.txt file.
-
-    *req_path* must be the path to a setuptools-produced requires.txt file.
-    """
-
-    # reused from Distribute's pkg_resources
-    def yield_lines(strs):
-        """Yield non-empty/non-comment lines of a string or sequence"""
-        if isinstance(strs, string_types):
-            for s in strs.splitlines():
-                s = s.strip()
-                # skip blank lines/comments
-                if s and not s.startswith('#'):
-                    yield s
-        else:
-            for ss in strs:
-                for s in yield_lines(ss):
-                    yield s
-
-    reqs = []
-    try:
-        with open(req_path, 'r') as fp:
-            requires = fp.read()
-    except IOError:
-        return reqs
-
-    for line in yield_lines(requires):
-        line = line.strip()
-        if line.startswith('['):
-            logger.warning('Unexpected line: quitting requirement scan: %r',
-                           line)
-            break
-        r = parse_requirement(line)
-        if not r:
-            logger.warning('Not recognised as a requirement: %r', line)
-            continue
-        if r.extras:
-            logger.warning('extra requirements in requires.txt are '
-                           'not supported')
-        if not r.constraints:
-            reqs.append(r.name)
-        else:
-            cons = ', '.join('%s%s' % c for c in r.constraints)
-            reqs.append('%s (%s)' % (r.name, cons))
-    return reqs
-
-
-def _rel_path(base, path):
-    # normalizes and returns a lstripped-/-separated path
-    base = base.replace(os.path.sep, '/')
-    path = path.replace(os.path.sep, '/')
-    assert path.startswith(base)
-    return path[len(base):].lstrip('/')
-
-
 def get_resources_dests(resources_root, rules):
     """Find destinations for resources files"""
+
+    def get_rel_path(base, path):
+        # normalizes and returns a lstripped-/-separated path
+        base = base.replace(os.path.sep, '/')
+        path = path.replace(os.path.sep, '/')
+        assert path.startswith(base)
+        return path[len(base):].lstrip('/')
+
+
     destinations = {}
     for base, suffix, dest in rules:
         prefix = os.path.join(resources_root, base)
         for abs_base in iglob(prefix):
             abs_glob = os.path.join(abs_base, suffix)
             for abs_path in iglob(abs_glob):
-                resource_file = _rel_path(resources_root, abs_path)
+                resource_file = get_rel_path(resources_root, abs_path)
                 if dest is None:  # remove the entry if it was here
                     destinations.pop(resource_file, None)
                 else:
-                    rel_path = _rel_path(abs_base, abs_path)
+                    rel_path = get_rel_path(abs_base, abs_path)
                     rel_dest = dest.replace(os.path.sep, '/').rstrip('/')
                     destinations[resource_file] = rel_dest + '/' + rel_path
     return destinations
@@ -544,10 +497,11 @@ def get_export_entry(specification):
     return result
 
 
-def get_cache_base():
+def get_cache_base(suffix=None):
     """
     Return the default base location for distlib caches. If the directory does
-    not exist, it is created.
+    not exist, it is created. Use the suffix provided for the base directory,
+    and default to '.distlib' if it isn't provided.
 
     On Windows, if LOCALAPPDATA is defined in the environment, then it is
     assumed to be a directory, and will be the parent directory of the result.
@@ -556,14 +510,16 @@ def get_cache_base():
     the result.
 
     The result is just the directory '.distlib' in the parent directory as
-    determined above.
+    determined above, or with the name specified with ``suffix``.
     """
+    if suffix is None:
+        suffix = '.distlib'
     if os.name == 'nt' and 'LOCALAPPDATA' in os.environ:
         result = os.path.expandvars('$localappdata')
     else:
         # Assume posix, or old Windows
         result = os.path.expanduser('~')
-    result = os.path.join(result, '.distlib')
+    result = os.path.join(result, suffix)
     # we use 'isdir' instead of 'exists', because we want to
     # fail if there's a file with that name
     if not os.path.isdir(result):
@@ -704,6 +660,8 @@ def update_metadata(metadata, pkginfo):
         if k is not None:
             metadata[k] = v
     metadata.set_metadata_version()
+    if 'requirements' in pkginfo:
+        metadata.dependencies = pkginfo['requirements']
 
 
 #
@@ -968,7 +926,7 @@ def unarchive(archive_filename, dest_dir, format=None, check=True):
 def zip_dir(directory):
     """zip a directory tree into a BytesIO object"""
     result = io.BytesIO()
-    dlen = len(directory) + 1
+    dlen = len(directory)
     with zipfile.ZipFile(result, "w") as zf:
         for root, dirs, files in os.walk(directory):
             for name in files:
@@ -1317,7 +1275,11 @@ class CSVBase(object):
 class CSVReader(CSVBase):
     def __init__(self, fn, **kwargs):
         if 'stream' in kwargs:
-            self.stream = kwargs['stream']
+            stream = kwargs['stream']
+            if sys.version_info[0] >= 3:
+                # needs to be a text stream
+                stream = codecs.getreader('utf-8')(stream)
+            self.stream = stream
         else:
             self.stream = _csv_open(fn, 'r')
         self.reader = csv.reader(self.stream, **self.defaults)

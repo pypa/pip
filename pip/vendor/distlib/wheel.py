@@ -8,10 +8,12 @@ from __future__ import unicode_literals
 
 import base64
 import codecs
+import datetime
 import distutils.util
 from email import message_from_file
 import hashlib
 import imp
+import json
 import logging
 import os
 import posixpath
@@ -21,12 +23,13 @@ import sys
 import tempfile
 import zipfile
 
-import distlib
 from . import DistlibException
-from .compat import sysconfig, ZipFile, fsdecode, text_type
+from .compat import sysconfig, ZipFile, fsdecode, text_type, filter
 from .database import DistributionPath, InstalledDistribution
+from .metadata import Metadata
 from .scripts import ScriptMaker
-from .util import FileOperator, convert_path, CSVReader, CSVWriter
+from .util import (FileOperator, convert_path, CSVReader, CSVWriter,
+                   cached_property, get_cache_base)
 
 
 logger = logging.getLogger(__name__)
@@ -79,41 +82,41 @@ else:
     to_posix = lambda o: o.replace(os.sep, '/')
 
 
-def compatible_tags():
-    """
-    Return (pyver, abi, arch) tuples compatible with this Python.
-    """
-    versions = [VER_SUFFIX]
-    major = VER_SUFFIX[0]
-    for minor in range(sys.version_info[1] - 1, - 1, -1):
-        versions.append(''.join([major, str(minor)]))
+class Mounter(object):
+    def __init__(self):
+        self.impure_wheels = {}
+        self.libs = {}
 
-    abis = []
-    for suffix, _, _ in imp.get_suffixes():
-        if suffix.startswith('.abi'):
-            abis.append(suffix.split('.', 2)[1])
-    abis.sort()
-    if ABI != 'none':
-        abis.insert(0, ABI)
-    abis.append('none')
-    result = []
+    def add(self, pathname, extensions):
+        self.impure_wheels[pathname] = extensions
+        self.libs.update(extensions)
 
-    # Most specific - our Python version, ABI and arch
-    for abi in abis:
-        result.append((''.join((IMP_PREFIX, versions[0])), abi, ARCH))
+    def remove(self, pathname):
+        extensions = self.impure_wheels.pop(pathname)
+        for k, v in extensions:
+            if k in self.libs:
+                del self.libs[k]
 
-    # where no ABI / arch dependency, but IMP_PREFIX dependency
-    for i, version in enumerate(versions):
-        result.append((''.join((IMP_PREFIX, version)), 'none', 'any'))
-        if i == 0:
-            result.append((''.join((IMP_PREFIX, version[0])), 'none', 'any'))
+    def find_module(self, fullname, path=None):
+        if fullname in self.libs:
+            result = self
+        else:
+            result = None
+        return result
 
-    # no IMP_PREFIX, ABI or arch dependency
-    for i, version in enumerate(versions):
-        result.append((''.join(('py', version)), 'none', 'any'))
-        if i == 0:
-            result.append((''.join(('py', version[0])), 'none', 'any'))
-    return result
+    def load_module(self, fullname):
+        if fullname in sys.modules:
+            result = sys.modules[fullname]
+        else:
+            if fullname not in self.libs:
+                raise ImportError('unable to find extension for %s' % fullname)
+            result = imp.load_dynamic(fullname, self.libs[fullname])
+            result.__loader__ = self
+            result.__package__, _ = fullname.rsplit('.', 1)
+        return result
+
+_hook = Mounter()
+
 
 class Wheel(object):
     """
@@ -153,7 +156,7 @@ class Wheel(object):
                     raise DistlibException('Invalid name or '
                                            'filename: %r' % filename)
                 if dirname:
-                    self.dirname = dirname
+                    self.dirname = os.path.abspath(dirname)
                 self._filename = filename
                 info = m.groupdict('')
                 self.name = info['nm']
@@ -184,6 +187,34 @@ class Wheel(object):
             for abi in self.abi:
                 for arch in self.arch:
                     yield pyver, abi, arch
+
+    @cached_property
+    def metadata(self):
+        pathname = os.path.join(self.dirname, self.filename)
+        name_ver = '%s-%s' % (self.name, self.version)
+        info_dir = '%s.dist-info' % name_ver
+        metadata_filename = posixpath.join(info_dir, 'METADATA')
+        wrapper = codecs.getreader('utf-8')
+        with ZipFile(pathname, 'r') as zf:
+            with zf.open(metadata_filename) as bf:
+                wf = wrapper(bf)
+                result = Metadata()
+                result.read_file(wf)
+        return result
+
+    @cached_property
+    def info(self):
+        pathname = os.path.join(self.dirname, self.filename)
+        name_ver = '%s-%s' % (self.name, self.version)
+        info_dir = '%s.dist-info' % name_ver
+        metadata_filename = posixpath.join(info_dir, 'WHEEL')
+        wrapper = codecs.getreader('utf-8')
+        with ZipFile(pathname, 'r') as zf:
+            with zf.open(metadata_filename) as bf:
+                wf = wrapper(bf)
+                message = message_from_file(wf)
+                result = dict(message)
+        return result
 
     def process_shebang(self, data):
         m = SHEBANG_RE.match(data)
@@ -303,6 +334,8 @@ class Wheel(object):
                 ap = to_posix(os.path.join(info_dir, fn))
                 archive_paths.append((ap, p))
 
+        import distlib
+
         wheel_metadata = [
             'Wheel-Version: %d.%d' % self.wheel_version,
             'Generator: distlib %s' % distlib.__version__,
@@ -374,8 +407,7 @@ class Wheel(object):
                 libdir = paths['platlib']
             records = {}
             with zf.open(record_name) as bf:
-                wf = wrapper(bf)
-                with CSVReader(record_name, stream=wf) as reader:
+                with CSVReader(record_name, stream=bf) as reader:
                     for row in reader:
                         p = row[0]
                         records[p] = row
@@ -401,10 +433,14 @@ class Wheel(object):
             try:
                 for zinfo in zf.infolist():
                     arcname = zinfo.filename
-                    row = records[arcname]
+                    if isinstance(arcname, text_type):
+                        u_arcname = arcname
+                    else:
+                        u_arcname = arcname.decode('utf-8')
+                    row = records[u_arcname]
                     if row[2] and str(zinfo.file_size) != row[2]:
                         raise DistlibException('size mismatch for '
-                                               '%s' % arcname)
+                                               '%s' % u_arcname)
                     if row[1]:
                         kind, value = row[1].split('=', 1)
                         with zf.open(arcname) as bf:
@@ -414,17 +450,17 @@ class Wheel(object):
                             raise DistlibException('digest mismatch for '
                                                    '%s' % arcname)
 
-                    is_script = (arcname.startswith(script_pfx)
-                                 and not arcname.endswith('.exe'))
+                    is_script = (u_arcname.startswith(script_pfx)
+                                 and not u_arcname.endswith('.exe'))
 
-                    if arcname.startswith(data_pfx):
-                        _, where, rp = arcname.split('/', 2)
+                    if u_arcname.startswith(data_pfx):
+                        _, where, rp = u_arcname.split('/', 2)
                         outfile = os.path.join(paths[where], convert_path(rp))
                     else:
                         # meant for site-packages.
-                        if arcname in (wheel_metadata_name, record_name):
+                        if u_arcname in (wheel_metadata_name, record_name):
                             continue
-                        outfile = os.path.join(libdir, convert_path(arcname))
+                        outfile = os.path.join(libdir, convert_path(u_arcname))
                     if not is_script:
                         with zf.open(arcname) as bf:
                             fileop.copy_stream(bf, outfile)
@@ -473,7 +509,7 @@ class Wheel(object):
                 # Write RECORD
                 dist.write_installed_files(outfiles, paths['prefix'],
                                            dry_run)
-
+                return dist
             except Exception as e:  # pragma: no cover
                 logger.exception('installation failed.')
                 fileop.rollback()
@@ -481,7 +517,113 @@ class Wheel(object):
             finally:
                 shutil.rmtree(workdir)
 
+    def _get_dylib_cache(self):
+        result = os.path.join(get_cache_base(), 'dylib-cache')
+        if not os.path.isdir(result):
+            os.makedirs(result)
+        return result
+
+    def _get_extensions(self):
+        pathname = os.path.join(self.dirname, self.filename)
+        name_ver = '%s-%s' % (self.name, self.version)
+        info_dir = '%s.dist-info' % name_ver
+        arcname = posixpath.join(info_dir, 'EXTENSIONS')
+        wrapper = codecs.getreader('utf-8')
+        result = []
+        with ZipFile(pathname, 'r') as zf:
+            try:
+                with zf.open(arcname) as bf:
+                    wf = wrapper(bf)
+                    extensions = json.load(wf)
+                    cache_base = self._get_dylib_cache()
+                    for name, relpath in extensions.items():
+                        dest = os.path.join(cache_base, convert_path(relpath))
+                        if not os.path.exists(dest):
+                            extract = True
+                        else:
+                            file_time = os.stat(dest).st_mtime
+                            file_time = datetime.datetime.fromtimestamp(file_time)
+                            info = zf.getinfo(relpath)
+                            wheel_time = datetime.datetime(*info.date_time)
+                            extract = wheel_time > file_time
+                        if extract:
+                            zf.extract(relpath, cache_base)
+                        result.append((name, dest))
+            except KeyError:
+                pass
+        return result
+
+    def mount(self, append=False):
+        pathname = os.path.abspath(os.path.join(self.dirname, self.filename))
+        if not is_compatible(self):
+            msg = 'Wheel %s not mountable in this Python.' % pathname
+            raise DistlibException(msg)
+        if pathname in sys.path:
+            logger.debug('%s already in path', pathname)
+        else:
+            if append:
+                sys.path.append(pathname)
+            else:
+                sys.path.insert(0, pathname)
+            extensions = self._get_extensions()
+            if extensions:
+                if _hook not in sys.meta_path:
+                    sys.meta_path.append(_hook)
+                _hook.add(pathname, extensions)
+
+    def unmount(self):
+        pathname = os.path.abspath(os.path.join(self.dirname, self.filename))
+        if pathname not in sys.path:
+            logger.debug('%s not in path', pathname)
+        else:
+            sys.path.remove(pathname)
+            if pathname in _hook.impure_wheels:
+                _hook.remove(pathname)
+            if not _hook.impure_wheels:
+                if _hook in sys.meta_path:
+                    sys.meta_path.remove(_hook)
+
+
+def compatible_tags():
+    """
+    Return (pyver, abi, arch) tuples compatible with this Python.
+    """
+    versions = [VER_SUFFIX]
+    major = VER_SUFFIX[0]
+    for minor in range(sys.version_info[1] - 1, - 1, -1):
+        versions.append(''.join([major, str(minor)]))
+
+    abis = []
+    for suffix, _, _ in imp.get_suffixes():
+        if suffix.startswith('.abi'):
+            abis.append(suffix.split('.', 2)[1])
+    abis.sort()
+    if ABI != 'none':
+        abis.insert(0, ABI)
+    abis.append('none')
+    result = []
+
+    # Most specific - our Python version, ABI and arch
+    for abi in abis:
+        result.append((''.join((IMP_PREFIX, versions[0])), abi, ARCH))
+
+    # where no ABI / arch dependency, but IMP_PREFIX dependency
+    for i, version in enumerate(versions):
+        result.append((''.join((IMP_PREFIX, version)), 'none', 'any'))
+        if i == 0:
+            result.append((''.join((IMP_PREFIX, version[0])), 'none', 'any'))
+
+    # no IMP_PREFIX, ABI or arch dependency
+    for i, version in enumerate(versions):
+        result.append((''.join(('py', version)), 'none', 'any'))
+        if i == 0:
+            result.append((''.join(('py', version[0])), 'none', 'any'))
+    return result
+
+
 COMPATIBLE_TAGS = compatible_tags()
+
+del compatible_tags
 
 def is_compatible(wheel, tags=None):
     if not isinstance(wheel, Wheel):
