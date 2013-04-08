@@ -492,7 +492,7 @@ class HTMLPage(object):
     def get_page(cls, link, req, cache=None, skip_archives=True):
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
+        if cache is not None and cache.too_many_failures(url):
             return None
 
         # Check for VCS schemes that do not support lookup as web pages.
@@ -521,7 +521,6 @@ class HTMLPage(object):
             real_url = geturl(resp)
             headers = resp.info()
             content_type = headers.get('Content-Type', '')
-
             if skip_archives:
                 if cache is not None:
                     if cache.is_archive(url):
@@ -541,7 +540,7 @@ class HTMLPage(object):
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
 
-            charset = get_http_message_param(resp, 'charset', 'latin-1')
+            charset = get_http_message_param(headers, 'charset', 'latin-1')
             inst = cls(contents.decode(charset), real_url, headers)
 
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
