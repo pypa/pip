@@ -1,6 +1,5 @@
 import os
 from pip.backwardcompat import urllib
-from tests.path import Path
 from pip.index import (package_to_requirement, HTMLPage, get_mirrors,
         DEFAULT_MIRROR_HOSTNAME, PackageFinder, Link, InfLink, PageGetter,
         PageCache)
@@ -8,7 +7,6 @@ from tests.test_pip import (reset_env, run_pip, pyversion, here, path_to_url,
     assert_raises_regexp)
 from string import ascii_lowercase
 from mock import patch
-from nose.tools import assert_raises
 import threading
 import time
 
