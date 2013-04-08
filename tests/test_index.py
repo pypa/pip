@@ -1,6 +1,7 @@
 import os
-from pip.backwardcompat import urllib
+from pip.backwardcompat import urllib, get_http_message_param, u
 from tests.path import Path
+from pip.download import urlopen
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from pip.index import PackageFinder, Link, InfLink
 from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
@@ -134,6 +135,17 @@ def test_non_html_page_should_not_be_scraped():
     # Content-type is already set
     # no need to monkeypatch on response headers
     url = path_to_url(os.path.join(here, 'indexes', 'empty_with_pkg', 'simple-1.0.tar.gz'))
-    page = HTMLPage.get_page(Link(url), None, cache=None, skip_archives=True)
-    print page
+    page = HTMLPage.get_page(Link(url), None, cache=None)
     assert page == None
+
+def test_page_charset_encoded():
+    """
+    Test that pages that have charset specified in content-type are decoded
+    """
+    url = 'https://raw.github.com/ptone/pip/07ad7dc5142cbb942118183af9677beaef7e03ff/tests/indexes/encoded/utf16.html'
+
+    page = HTMLPage.get_page(Link(url), None, cache=None)
+    print page.content
+    print type(page.content)
+    print u(page.content)
+    assert u(page.content) == u('helloworld')
