@@ -29,6 +29,9 @@ class Tests_py25:
         """
         Test py25 access https fails
         """
+        if ssl:
+            #travis installs the backport in py25
+            raise SkipTest()
         os.environ['PIP_INSECURE'] = ''
         assert_raises_regexp(PipError, 'ssl certified', urlopen.get_opener, scheme='https')
 
