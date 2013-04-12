@@ -31,9 +31,9 @@ def test_pypiproxy_patch_applied():
     assert here not in paths, paths
 
 
-def test_add_patch_to_sitecustomize():
+def test_add_patch_to_sitecustomizeD():
     """
-    Test adding monkey patch snippet to sitecustomize.py (using TestPipEnvironment)
+    Test adding monkey patch snippet to sitecustomize.py (using TestPipEnvironmentD)
     """
 
     env = reset_env(sitecustomize=patch_urlopen, use_distribute=True)
@@ -41,9 +41,9 @@ def test_add_patch_to_sitecustomize():
     assert "sitecustomize"== result.stdout.strip(), result.stdout
 
 
-def test_add_patch_to_sitecustomize_fast():
+def test_add_patch_to_sitecustomize():
     """
-    Test adding monkey patch snippet to sitecustomize.py (using FastTestPipEnvironment)
+    Test adding monkey patch snippet to sitecustomize.py (using TestPipEnvironment)
     """
 
     env = reset_env(sitecustomize=patch_urlopen)

@@ -461,6 +461,8 @@ class TestPipEnvironment(TestFileEnvironment):
         sitecustomize.write(textwrap.dedent('''
                                %s
         ''' %snippet))
+        sitecustomize.flush()
+        os.fsync(sitecustomize.fileno())
         sitecustomize.close()
 
 
