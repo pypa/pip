@@ -292,40 +292,41 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 base = self.source_dir
             else:
                 base = os.path.join(self.source_dir, 'pip-egg-info')
-            filenames = os.listdir(base)
-            if self.editable:
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        # Don't search in anything that looks like a virtualenv environment
-                        if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
+
+            # if we have more than one match, we pick the toplevel one.
+            # This can easily be the case if there is a dist folder which
+            # contains an extracted tarball for testing purposes.
+            found = False
+            for root, dirs, files in os.walk(base):
+                for dir in vcs.dirnames:
+                    if dir in dirs:
+                        dirs.remove(dir)
+
+                # Iterate over a copy of ``dirs``, since mutating
+                # a list while iterating over it can cause trouble.
+                # (See https://github.com/pypa/pip/pull/462.)
+                for dir in list(dirs):
+                    # Don't search in anything that looks like a virtualenv environment
+                    if (os.path.exists(os.path.join(root, dir, 'bin', 'python'))
                             or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        if dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                     for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
+                        dirs.remove(dir)
 
-            if not filenames:
+                    # Also don't search through tests
+                    if dir == 'test' or dir == 'tests':
+                        dirs.remove(dir)
+
+                    if dir.endswith('.egg-info'):
+                        found = True
+                        self._egg_info_path = os.path.join(base, root, dir)
+                        break
+
+                if found:
+                    break
+
+            if not found:
                 raise InstallationError('No files/directories in %s (from %s)' % (base, filename))
-            assert filenames, "No files/directories in %s (from %s)" % (base, filename)
+            assert found, "No files/directories in %s (from %s)" % (base, filename)
 
-            # if we have more than one match, we pick the toplevel one.  This can
-            # easily be the case if there is a dist folder which contains an
-            # extracted tarball for testing purposes.
-            if len(filenames) > 1:
-                filenames.sort(key=lambda x: x.count(os.path.sep) +
-                                             (os.path.altsep and
-                                              x.count(os.path.altsep) or 0))
-            self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
 
     def egg_info_lines(self, filename):
