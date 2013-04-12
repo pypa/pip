@@ -137,7 +137,7 @@ def reset_env(environ=None,
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
 
-    if sys.version_info[:2] == (2, 5) and (not ssl) and insecure:
+    if sys.version_info[:2] == (2, 5) and insecure:
         #allow py25 tests to work
         env.environ['PIP_INSECURE'] = '1'
 
