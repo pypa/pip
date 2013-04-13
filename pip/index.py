@@ -491,7 +491,7 @@ class HTMLPage(object):
     def get_page(cls, link, req, cache=None, skip_archives=True):
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
+        if cache is not None and cache.too_many_failures(url):
             return None
 
         # Check for VCS schemes that do not support lookup as web pages.
@@ -536,6 +536,13 @@ class HTMLPage(object):
 
             real_url = geturl(resp)
             headers = resp.info()
+            content_type = headers.get('Content-Type', None)
+            if not content_type.lower().startswith('text/html'):
+                logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                if cache is not None:
+                    cache.set_is_archive(url)
+                return None
+
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this

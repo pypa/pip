@@ -126,4 +126,14 @@ def test_mirror_url_formats():
             assert url == result, str([url, result])
 
 
+def test_non_html_page_should_not_be_scraped():
+    """
+    Test that a url whose content-type is not text/html
+    will never be scraped as an html page.
+    """
+    # Content-type is already set
+    # no need to monkeypatch on response headers
+    url = path_to_url(os.path.join(here, 'indexes', 'empty_with_pkg', 'simple-1.0.tar.gz'))
+    page = HTMLPage.get_page(Link(url), None, cache=None, skip_archives=False)
+    assert page == None
 
