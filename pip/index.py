@@ -491,7 +491,7 @@ class HTMLPage(object):
     def get_page(cls, link, req, cache=None, skip_archives=True):
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
+        if cache is not None and cache.too_many_failures(url):
             return None
 
         # Check for VCS schemes that do not support lookup as web pages.
@@ -544,7 +544,12 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            inst = cls(u(contents), real_url, headers)
+            elif headers.get('Content-Type') in ['application/gzip',
+                                                 'application/gzip-compressed',
+                                                 'application/gzipped',
+                                                 'application/x-gzip']:
+                contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
+            inst = cls(u(contents, fallback='iso-8859-1'), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
