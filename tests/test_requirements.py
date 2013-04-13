@@ -3,7 +3,7 @@ import textwrap
 from nose.tools import assert_equal, assert_raises
 from mock import patch
 from pip.backwardcompat import urllib
-from pip.req import Requirements, parse_editable
+from pip.req import Requirements, parse_editable, parse_requirements
 from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -28,17 +28,14 @@ def test_requirements_file():
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[env.site_packages/fn].dir
 
-
-def test_remote_reqs():
+def test_remote_reqs_parse():
     """
-    Test installing from a remote requirements file.
+    Test parsing a simple remote requirements file
     """
-    env = reset_env()
-    result = run_pip(
-        'install', '--download', env.scratch_path, '-r',
-        'https://gist.github.com/hltbra/5271779/raw/pip-test-package-requirements.txt')
-    assert result.files_created, result.files_created
-
+    # this requirements file just contains a comment
+    # previously this has failed in py3 (https://github.com/pypa/pip/issues/760)
+    for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
+        pass
 
 def test_schema_check_in_requirements_file():
     """
