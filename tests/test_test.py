@@ -9,10 +9,10 @@ from tests.test_pip import here, reset_env, run_pip, pyversion
 
 
 patch_urlopen = """
-       def mock_urlopen():
+       def mock_isdir():
            pass
-       import pip
-       pip.backwardcompat.urllib2.urlopen = mock_urlopen
+       import os
+       os.path.isdir = mock_isdir
     """
 
 def test_pypiproxy_patch_applied():
@@ -31,23 +31,23 @@ def test_pypiproxy_patch_applied():
     assert here not in paths, paths
 
 
+def test_add_patch_to_sitecustomizeD():
+    """
+    Test adding monkey patch snippet to sitecustomize.py (using TestPipEnvironmentD)
+    """
+
+    env = reset_env(sitecustomize=patch_urlopen, use_distribute=True)
+    result = env.run('python', '-c', "import os; print(os.path.isdir.__module__)")
+    assert "sitecustomize" == result.stdout.strip(), result.stdout
+
+
 def test_add_patch_to_sitecustomize():
     """
     Test adding monkey patch snippet to sitecustomize.py (using TestPipEnvironment)
     """
 
-    env = reset_env(sitecustomize=patch_urlopen, use_distribute=True)
-    result = env.run('python', '-c', "import pip; print(pip.backwardcompat.urllib2.urlopen.__module__)")
-    assert "sitecustomize"== result.stdout.strip(), result.stdout
-
-
-def test_add_patch_to_sitecustomize_fast():
-    """
-    Test adding monkey patch snippet to sitecustomize.py (using FastTestPipEnvironment)
-    """
-
     env = reset_env(sitecustomize=patch_urlopen)
-    result = env.run('python', '-c', "import pip; print(pip.backwardcompat.urllib2.urlopen.__module__)")
+    result = env.run('python', '-c', "import os; print(os.path.isdir.__module__)")
     assert "sitecustomize"== result.stdout.strip(), result.stdout
 
 
