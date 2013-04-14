@@ -9,7 +9,7 @@ from tests.test_pip import here, reset_env, run_pip, pyversion
 
 
 patch_urlopen = """
-       def mock_isdir():
+       def mock_isdir(d):
            pass
        import os
        os.path.isdir = mock_isdir
@@ -87,8 +87,9 @@ def test_add_patch_to_sitecustomize():
     """
 
     env = reset_env(sitecustomize=patch_urlopen)
+    content = open(env.lib_path / 'sitecustomize.py').read()
     result = env.run('python', '-c', "import os; print(os.path.isdir.__module__)")
-    assert "sitecustomize"== result.stdout.strip(), result.stdout
+    assert "sitecustomize" == result.stdout.strip(), content
 
 
 def test_sitecustomize_not_growing_in_fast_environment():
