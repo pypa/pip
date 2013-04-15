@@ -14,14 +14,14 @@ import shutil
 def unpack(sources):
     temp_dir = tempfile.mkdtemp('-scratchdir', 'unpacker-')
     for package, content in sources.items():
-        filepath = package.split(".")
+        filepath = package.split("/")
         dirpath = os.sep.join(filepath[:-1])
         packagedir = os.path.join(temp_dir, dirpath)
         if not os.path.isdir(packagedir):
             os.makedirs(packagedir)
-        mod = open(os.path.join(packagedir, "%s.py" % filepath[-1]), 'wb')
+        mod = open(os.path.join(packagedir, filepath[-1]), 'wb')
         try:
-            mod.write(content.encode("ascii"))
+            mod.write(base64.decodestring(content.encode('ascii')))
         finally:
             mod.close()
     return temp_dir
