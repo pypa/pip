@@ -89,9 +89,19 @@ def test_add_patch_to_sitecustomize():
     """
 
     env = reset_env(sitecustomize=patch_urlopen)
+
+    if uses_pycache:
+        # caught py32 with an outdated __pycache__ file after a sitecustomize update (after python should have updated it)
+        # https://github.com/pypa/pip/pull/893#issuecomment-16426701
+        # now we delete the cache file to be sure in TestPipEnvironment._add_to_sitecustomize
+        # it should not exist after creating the env
+        cache_path = imp.cache_from_source(env.lib_path / 'sitecustomize.py')
+        assert not os.path.isfile(cache_path)
+
     debug_content = open(env.lib_path / 'sitecustomize.py').read()
     result = env.run('python', '-c', "import os; print(os.path.isdir.__module__)")
     if uses_pycache:
+        # if this next assert fails, let's have the modified time to look at
         cache_path = imp.cache_from_source(env.lib_path / 'sitecustomize.py')
         src_mtime = os.stat(env.lib_path / 'sitecustomize.py').st_mtime
         cache_mtime = os.stat(cache_path).st_mtime
