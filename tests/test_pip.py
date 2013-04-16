@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import imp
 import os
 import sys
 import re
@@ -12,7 +13,7 @@ import site
 from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
-from pip.backwardcompat import ssl
+from pip.backwardcompat import ssl, uses_pycache
 
 #allow py25 unit tests to work
 if sys.version_info[:2] == (2, 5) and not ssl:
@@ -462,6 +463,14 @@ class TestPipEnvironment(TestFileEnvironment):
                                %s
         ''' %snippet))
         sitecustomize.close()
+        # caught py32 with an outdated __pycache__ file after a sitecustomize update (after python should have updated it)
+        # https://github.com/pypa/pip/pull/893#issuecomment-16426701
+        # will delete the cache file to be sure
+        if uses_pycache:
+            cache_path = imp.cache_from_source(sitecustomize_path)
+            if os.path.isfile(cache_path):
+                os.remove(cache_path)
+
 
 
 class TestPipEnvironmentD(TestPipEnvironment):
