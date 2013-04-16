@@ -3,7 +3,7 @@
 
 import sys
 import pickle
-import zlib
+import bz2
 import base64
 import os
 
@@ -44,7 +44,7 @@ def pkg_to_mapping(name):
 
 def compress_mapping(mapping):
     data = pickle.dumps(mapping, 2)
-    data = zlib.compress(data, 9)
+    data = bz2.compress(data, 9)
     data = base64.encodestring(data)
     data = data.decode('ascii')
     return data
