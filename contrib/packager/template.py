@@ -3,6 +3,7 @@
 sources = """
 @SOURCES@"""
 
+import codecs
 import os
 import sys
 import base64
@@ -10,6 +11,9 @@ import zlib
 import tempfile
 import shutil
 
+# quoted-printable is poorly supported on Python 3,
+# use the codecs module directly
+quopri_decode = codecs.getdecoder('quopri_codec')
 
 def unpack(sources):
     temp_dir = tempfile.mkdtemp('-scratchdir', 'unpacker-')
@@ -21,7 +25,7 @@ def unpack(sources):
             os.makedirs(packagedir)
         mod = open(os.path.join(packagedir, filepath[-1]), 'wb')
         try:
-            mod.write(base64.decodestring(content.encode('ascii')))
+            mod.write(quopri_decode(content.encode('ascii'))[0])
         finally:
             mod.close()
     return temp_dir
