@@ -7,7 +7,7 @@ import codecs
 import os
 import sys
 import base64
-import zlib
+import bz2
 import tempfile
 import shutil
 
@@ -36,11 +36,11 @@ if __name__ == "__main__":
         exec("def do_exec(co, loc): exec(co, loc)\n")
         import pickle
         sources = sources.encode("ascii") # ensure bytes
-        sources = pickle.loads(zlib.decompress(base64.decodebytes(sources)))
+        sources = pickle.loads(bz2.decompress(base64.decodebytes(sources)))
     else:
         import cPickle as pickle
         exec("def do_exec(co, loc): exec co in loc\n")
-        sources = pickle.loads(zlib.decompress(base64.decodestring(sources)))
+        sources = pickle.loads(bz2.decompress(base64.decodestring(sources)))
 
     try:
         temp_dir = unpack(sources)
