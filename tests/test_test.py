@@ -1,11 +1,13 @@
 """Test the test support."""
 
+import imp
 import sys
 import os
 from os.path import abspath, join, curdir, isdir, isfile
 from nose import SkipTest
 from tests.local_repos import local_checkout
 from tests.test_pip import here, reset_env, run_pip, pyversion
+from pip.backwardcompat import uses_pycache
 
 
 patch_urlopen = """
@@ -87,9 +89,14 @@ def test_add_patch_to_sitecustomize():
     """
 
     env = reset_env(sitecustomize=patch_urlopen)
-    content = open(env.lib_path / 'sitecustomize.py').read()
+    debug_content = open(env.lib_path / 'sitecustomize.py').read()
     result = env.run('python', '-c', "import os; print(os.path.isdir.__module__)")
-    assert "sitecustomize" == result.stdout.strip(), content
+    if uses_pycache:
+        cache_path = imp.cache_from_source(env.lib_path / 'sitecustomize.py')
+        src_mtime = os.stat(env.lib_path / 'sitecustomize.py').st_mtime
+        cache_mtime = os.stat(cache_path).st_mtime
+        debug_content += "src mtime: %s, cache mtime: %s" % (src_mtime, cache_mtime)
+    assert "sitecustomize" == result.stdout.strip(), debug_content
 
 
 def test_sitecustomize_not_growing_in_fast_environment():
