@@ -36,7 +36,7 @@ def pkg_to_mapping(name):
                 pkg = pkgname(name, toplevel, os.path.join(root, pyfile))
                 f = open(os.path.join(root, pyfile))
                 try:
-                    name2src[pkg] = base64.encodestring(f.read())
+                    name2src[pkg] = f.read().encode('quoted-printable')
                 finally:
                     f.close()
     return name2src
