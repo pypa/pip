@@ -12,7 +12,7 @@ from pip.log import logger
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError)
-from pip.backwardcompat import StringIO, ssl
+from pip.backwardcompat import StringIO
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
@@ -75,8 +75,6 @@ class Command(object):
                  'skip_requirements_regex',
                  'no_input', 'exists_action',
                  'cert']
-        if not ssl:
-            attrs.append('insecure')
         for attr in attrs:
             setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
         options.quiet += initial_options.quiet
@@ -110,9 +108,6 @@ class Command(object):
 
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
-
-        if not ssl and options.insecure:
-            os.environ['PIP_INSECURE'] = '1'
 
         if options.cert:
             os.environ['PIP_CERT'] = options.cert

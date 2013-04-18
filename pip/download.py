@@ -6,14 +6,14 @@ import os
 import re
 import shutil
 import socket
+import ssl
 import sys
 import tempfile
 
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
-                                urlparse, string_types, ssl, get_http_message_param)
-if ssl:
-    from pip.backwardcompat import match_hostname, CertificateError
-from pip.exceptions import InstallationError, PipError, NoSSLError
+                                urlparse, string_types, get_http_message_param,
+                                match_hostname, CertificateError)
+from pip.exceptions import InstallationError, PipError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
@@ -185,8 +185,7 @@ class URLOpener(object):
 
     def get_opener(self, *args, **kwargs):
         """
-        Build an OpenerDirector instance based on the scheme, whether ssl is
-        importable and the --insecure parameter.
+        Build an OpenerDirector instance based on the scheme and proxy option
         """
 
         args = list(args)
@@ -194,18 +193,13 @@ class URLOpener(object):
             args.extend([self.proxy_handler, urllib2.CacheFTPHandler])
 
         if kwargs.get('scheme') == 'https':
-            if ssl:
-                https_handler = VerifiedHTTPSHandler()
-                director =  urllib2.build_opener(https_handler, *args)
-                #strip out HTTPHandler to prevent MITM spoof
-                for handler in director.handlers:
-                    if isinstance(handler, urllib2.HTTPHandler):
-                        director.handlers.remove(handler)
-                return director
-            elif os.environ.get('PIP_INSECURE', '') == '1':
-                return urllib2.build_opener(*args)
-            else:
-                raise NoSSLError()
+            https_handler = VerifiedHTTPSHandler()
+            director =  urllib2.build_opener(https_handler, *args)
+            #strip out HTTPHandler to prevent MITM spoof
+            for handler in director.handlers:
+                if isinstance(handler, urllib2.HTTPHandler):
+                    director.handlers.remove(handler)
+            return director
         else:
             return urllib2.build_opener(*args)
 
