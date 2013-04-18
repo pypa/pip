@@ -45,10 +45,6 @@ def test_uninstallation_paths():
 
 class TestPipWheel:
 
-    def setup(self):
-        if sys.version_info < (2, 6):
-            raise SkipTest() #bdist_wheel fails in py25?
-
     def test_pip_wheel_fails_without_wheel(self):
         """
         Test 'pip wheel' fails without wheel

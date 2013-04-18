@@ -18,24 +18,9 @@ patch_dist_in_site_packages = """
 """
 
 
-def test_install_curdir_usersite_fails_in_old_python():
-    """
-    Test --user option on older Python versions (pre 2.6) fails intelligibly
-    """
-    if sys.version_info >= (2, 6):
-        raise SkipTest()
-    reset_env(system_site_packages=True)
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-
 class Tests_UserSite:
 
     def setup(self):
-        # --user only works on 2.6 or higher
-        if sys.version_info < (2, 6):
-            raise SkipTest()
         # --user option is broken in pypy
         if hasattr(sys, "pypy_version_info"):
             raise SkipTest()

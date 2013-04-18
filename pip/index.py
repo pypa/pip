@@ -9,6 +9,7 @@ import posixpath
 import pkg_resources
 import random
 import socket
+import ssl
 import string
 import zlib
 
@@ -24,10 +25,9 @@ from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
-                                product, url2pathname, ssl,
-                                Empty as QueueEmpty, get_http_message_param)
-if ssl:
-    from pip.backwardcompat import CertificateError
+                                product, url2pathname,
+                                Empty as QueueEmpty)
+from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 import pip.pep425tags
 import pip.wheel
@@ -552,7 +552,7 @@ class HTMLPage(object):
                 desc = 'timed out'
             elif isinstance(e, URLError):
                 #ssl/certificate error
-                if ssl and hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
+                if hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
                     desc = 'There was a problem confirming the ssl certificate: %s' % e
                     log_meth = logger.notify
                 else:

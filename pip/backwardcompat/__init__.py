@@ -9,7 +9,6 @@ __all__ = ['WindowsError']
 
 uses_pycache = hasattr(imp, 'cache_from_source')
 
-
 class NeverUsedException(Exception):
     """this exception should never be raised"""
 
@@ -128,22 +127,8 @@ def home_lib(home):
     return os.path.join(home, lib)
 
 
-## py25 has no builtin ssl module
 ## only >=py32 has ssl.match_hostname and ssl.CertificateError
 try:
-    import ssl
-    try:
-        from ssl import match_hostname, CertificateError
-    except ImportError:
-        from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
+    from ssl import match_hostname, CertificateError
 except ImportError:
-    ssl = None
-
-
-# patch for py25 socket to work with http://pypi.python.org/pypi/ssl/
-import socket
-if not hasattr(socket, 'create_connection'): # for Python 2.5
-    # monkey-patch socket module
-    from pip.backwardcompat.socket_create_connection import create_connection
-    socket.create_connection = create_connection
-
+    from ssl_match_hostname import match_hostname, CertificateError

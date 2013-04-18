@@ -110,8 +110,7 @@ def distutils_scheme(dist_name, user=False, home=None):
     scheme = {}
     d = Distribution({'name': dist_name})
     i = install(d)
-    if sys.version_info >= (2, 6):
-        i.user = user or i.user
+    i.user = user or i.user
     i.home = home or i.home
     i.finalize_options()
     for key in SCHEME_KEYS:
