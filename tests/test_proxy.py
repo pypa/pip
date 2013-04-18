@@ -13,7 +13,7 @@ import os
 import pip
 import getpass
 from pip.basecommand import get_proxy
-from pip.backwardcompat import urllib2, ssl
+from pip.backwardcompat import urllib2
 from pip.download import urlopen, VerifiedHTTPSHandler
 from tests.test_pip import here
 
@@ -79,28 +79,15 @@ def test_proxy_handlers_present():
 
     handler_types = [h.__class__ for h in o.handlers]
 
-    if not ssl:
-        assert handler_types == [
-            urllib2.ProxyHandler, # this is needed
-            urllib2.UnknownHandler,
-            urllib2.HTTPHandler,
-            urllib2.HTTPDefaultErrorHandler,
-            urllib2.HTTPRedirectHandler,
-            urllib2.FileHandler,
-            urllib2.HTTPSHandler,
-            urllib2.CacheFTPHandler,  # and this
-            urllib2.HTTPErrorProcessor
-            ], str(handler_types)
-    else:
-        assert handler_types == [
-            urllib2.ProxyHandler, # this is needed
-            urllib2.UnknownHandler,
-            urllib2.HTTPDefaultErrorHandler,
-            urllib2.HTTPRedirectHandler,
-            urllib2.FileHandler,
-            VerifiedHTTPSHandler,
-            urllib2.CacheFTPHandler,  # and this
-            urllib2.HTTPErrorProcessor
-            ], str(handler_types)
+    assert handler_types == [
+        urllib2.ProxyHandler, # this is needed
+        urllib2.UnknownHandler,
+        urllib2.HTTPDefaultErrorHandler,
+        urllib2.HTTPRedirectHandler,
+        urllib2.FileHandler,
+        VerifiedHTTPSHandler,
+        urllib2.CacheFTPHandler,  # and this
+        urllib2.HTTPErrorProcessor
+        ], str(handler_types)
 
 

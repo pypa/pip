@@ -13,11 +13,7 @@ import site
 from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
-from pip.backwardcompat import ssl, uses_pycache
-
-#allow py25 unit tests to work
-if sys.version_info[:2] == (2, 5) and not ssl:
-    os.environ['PIP_INSECURE'] = '1'
+from pip.backwardcompat import uses_pycache
 
 pyversion = sys.version[:3]
 pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
@@ -143,10 +139,6 @@ def reset_env(environ=None,
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
         test_class.rebuild_venv = True
-
-    if sys.version_info[:2] == (2, 5) and insecure:
-        #allow py25 tests to work
-        env.environ['PIP_INSECURE'] = '1'
 
     return env
 
