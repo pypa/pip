@@ -224,10 +224,6 @@ class InstallCommand(Command):
             logger.warn(msg)
             return
 
-        if (options.use_user_site and
-            sys.version_info < (2, 6)):
-            raise InstallationError('--user is only supported in Python version 2.6 and newer')
-
         import setuptools
         if (options.use_user_site and
             requirement_set.has_editables and

@@ -81,9 +81,7 @@ class WheelCommand(Command):
 
     def run(self, options, args):
 
-        # requirements: py26, wheel, and distribute
-        if sys.version_info < (2, 6):
-            raise CommandError("'pip wheel' requires Python 2.6 or greater.")
+        # requirements: wheel, and distribute
         try:
             import wheel.bdist_wheel
         except ImportError:
