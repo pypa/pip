@@ -3,12 +3,15 @@ import getpass
 import hashlib
 import mimetypes
 import os
+import platform
 import re
 import shutil
 import socket
 import ssl
 import sys
 import tempfile
+
+import pip
 
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, get_http_message_param,
@@ -28,6 +31,37 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
 
 
 xmlrpclib_transport = xmlrpclib.Transport()
+
+
+def build_user_agent():
+    """Return a string representing the user agent."""
+    _implementation = platform.python_implementation()
+
+    if _implementation == 'CPython':
+        _implementation_version = platform.python_version()
+    elif _implementation == 'PyPy':
+        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
+                                                sys.pypy_version_info.minor,
+                                                sys.pypy_version_info.micro)
+        if sys.pypy_version_info.releaselevel != 'final':
+            _implementation_version = ''.join([_implementation_version, sys.pypy_version_info.releaselevel])
+    elif _implementation == 'Jython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    elif _implementation == 'IronPython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    else:
+        _implementation_version = 'Unknown'
+
+    try:
+        p_system = platform.system()
+        p_release = platform.release()
+    except IOError:
+        p_system = 'Unknown'
+        p_release = 'Unknown'
+
+    return " ".join(['pip/%s' % pip.__version__,
+                     '%s/%s' % (_implementation, _implementation_version),
+                     '%s/%s' % (p_system, p_release)])
 
 
 def get_file_content(url, comes_from=None):
@@ -194,14 +228,21 @@ class URLOpener(object):
 
         if kwargs.get('scheme') == 'https':
             https_handler = VerifiedHTTPSHandler()
-            director =  urllib2.build_opener(https_handler, *args)
+            director = urllib2.build_opener(https_handler, *args)
             #strip out HTTPHandler to prevent MITM spoof
             for handler in director.handlers:
                 if isinstance(handler, urllib2.HTTPHandler):
                     director.handlers.remove(handler)
-            return director
+            # return director
         else:
-            return urllib2.build_opener(*args)
+            director = urllib2.build_opener(*args)
+
+        # Add our new headers to the opener
+        headers = [x for x in director.addheaders if x[0].lower() != "user-agent"]
+        headers.append(("User-agent", build_user_agent()))
+        director.addheaders = headers
+
+        return director
 
     def setup(self, proxystr='', prompting=True):
         """
