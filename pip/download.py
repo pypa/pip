@@ -233,7 +233,6 @@ class URLOpener(object):
             for handler in director.handlers:
                 if isinstance(handler, urllib2.HTTPHandler):
                     director.handlers.remove(handler)
-            # return director
         else:
             director = urllib2.build_opener(*args)
 
