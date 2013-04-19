@@ -4,11 +4,10 @@ import tempfile
 import shutil
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
-from pip.locations import src_prefix, virtualenv_no_global
+from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
-from pip.backwardcompat import home_lib
 from pip import cmdoptions
 
 
@@ -256,7 +255,7 @@ class InstallCommand(Command):
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
-            lib_dir = home_lib(temp_target_dir)
+            lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),
