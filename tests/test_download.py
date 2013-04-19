@@ -1,5 +1,8 @@
 import os
 import textwrap
+
+import pip
+
 from pip.download import _get_response_from_url as _get_response_from_url_original
 from mock import patch
 from shutil import rmtree
@@ -8,6 +11,7 @@ from pip.download import path_to_url2, unpack_http_url
 from pip.index import Link
 from tests.test_pip import reset_env, run_pip, write_file, here
 from tests.path import Path
+from pip.download import URLOpener
 
 
 def test_download_if_requested():
@@ -94,3 +98,9 @@ def test_unpack_http_url_with_urllib_response_without_content_type():
             assert set(os.listdir(temp_dir)) == set(['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'])
         finally:
             rmtree(temp_dir)
+
+
+def test_user_agent():
+    opener = URLOpener().get_opener()
+    user_agent = [x for x in opener.addheaders if x[0].lower() == "user-agent"][0]
+    assert user_agent[1].startswith("pip/%s" % pip.__version__)
