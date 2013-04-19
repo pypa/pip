@@ -67,7 +67,7 @@ class InstallCommand(Command):
             dest='download_dir',
             metavar='dir',
             default=None,
-            help="Download packages into <dir> instead of installing them, irregardless of what's already installed.")
+            help="Download packages into <dir> instead of installing them, regardless of what's already installed.")
 
         cmd_opts.add_option(cmdoptions.download_cache)
 
@@ -85,7 +85,7 @@ class InstallCommand(Command):
             dest='upgrade',
             action='store_true',
             help='Upgrade all packages to the newest available version. '
-            'This process is recursive irregardless of whether a dependency is already satisfied.')
+            'This process is recursive regardless of whether a dependency is already satisfied.')
 
         cmd_opts.add_option(
             '--force-reinstall',
