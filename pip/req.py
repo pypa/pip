@@ -1049,8 +1049,8 @@ class RequirementSet(object):
                     unpack = True
                     url = None
 
-                    #if a checkout exists, it's unwise to keep going
-                    #version inconsistencies are logged later, but do not fail the installation
+                    # If a checkout exists, it's unwise to keep going.
+                    # Version inconsistencies are logged later, but do not fail the installation.
                     if os.path.exists(os.path.join(location, 'setup.py')):
                         msg = textwrap.dedent("""
                           pip can't install requirement '%s' due to a pre-existing build directory.
