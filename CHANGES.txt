@@ -4,6 +4,9 @@ Changelog
 1.4.dev1 (unreleased)
 ---------------------
 
+* Fixed a number of issues (#413, #709, #634 and #602) related to cleaning up and
+  not reusing build directories. (Pull #865)
+* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
 * Fixed issue #32 - pip fails when server does not send content-type header.
   Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
 * Added support for installing and building wheel archives.
