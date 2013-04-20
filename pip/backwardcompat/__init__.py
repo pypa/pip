@@ -118,15 +118,6 @@ def product(*args, **kwds):
         yield tuple(prod)
 
 
-def home_lib(home):
-    """Return the lib dir under the 'home' installation scheme"""
-    if hasattr(sys, 'pypy_version_info'):
-        lib = 'site-packages'
-    else:
-        lib = os.path.join('lib', 'python')
-    return os.path.join(home, lib)
-
-
 ## only >=py32 has ssl.match_hostname and ssl.CertificateError
 try:
     from ssl import match_hostname, CertificateError
