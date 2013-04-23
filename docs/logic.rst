@@ -64,7 +64,7 @@ Pre-release Versions
 
 Starting with v1.4, pip will only install stable versions as specified by `PEP426`_ by default. If
 a version cannot be parsed as a compliant `PEP426`_ version then it is assumed
-to be stable.
+to be a pre-release.
 
 If a Requirement specifier includes a pre-release or development version (e.g. ``>=0.0.dev0``) then
 pip will allow pre-release and development versions for that requirement. This does not include
