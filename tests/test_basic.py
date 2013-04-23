@@ -10,7 +10,6 @@ from mock import patch
 
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
-from pip.backwardcompat import ssl
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
                             src_folder, write_file, path_to_url)
@@ -51,8 +50,6 @@ def test_pip_second_command_line_interface_works():
     e = reset_env()
 
     args = ['pip-%s' % pyversion]
-    if not ssl:
-        args.append('--insecure')
     args.extend(['install', 'INITools==0.2'])
     result = e.run(*args)
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
@@ -241,10 +238,10 @@ def test_install_editable_from_hg():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
-    result.assert_installed('django-registration', with_files=['.hg'])
+    result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
 def test_vcs_url_final_slash_normalization():
@@ -253,8 +250,8 @@ def test_vcs_url_final_slash_normalization():
     """
     reset_env()
     result = run_pip('install', '-e',
-                     '%s/#egg=django-registration' %
-                     local_checkout('hg+http://bitbucket.org/ubernostrum/django-registration'),
+                     '%s/#egg=ScriptTest' %
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
@@ -337,7 +334,6 @@ def test_install_from_wheel():
     Test installing from a wheel.
     """
     env = reset_env(use_distribute=True)
-    result = run_pip('install', 'markerlib', expect_error=False)
     find_links = 'file://'+abspath(join(here, 'packages'))
     result = run_pip('install', 'simple.dist', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
@@ -358,7 +354,6 @@ def test_install_from_wheel_with_extras():
     except ImportError:
         raise SkipTest("Need ast module to interpret wheel extras")
     env = reset_env(use_distribute=True)
-    result = run_pip('install', 'markerlib', expect_error=False)
     find_links = 'file://'+abspath(join(here, 'packages'))
     result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
@@ -378,7 +373,6 @@ def test_install_from_wheel_file():
     Test installing directly from a wheel file.
     """
     env = reset_env(use_distribute=True)
-    result = run_pip('install', 'markerlib', expect_error=False)
     package = abspath(join(here,
                            'packages',
                            'simple.dist-0.1-py2.py3-none-any.whl'))
@@ -560,7 +554,6 @@ def test_install_wheel_with_target():
     """
     env = reset_env(use_distribute=True)
     run_pip('install', 'wheel')
-    run_pip('install', 'markerlib')
     target_dir = env.scratch_path/'target'
     find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',

@@ -1,19 +1,19 @@
 from email.parser import FeedParser
 import os
 import imp
-#import pkg_resources
 from pip.vendor.distlib import pkg_resources
 import re
 import sys
 import shutil
 import tempfile
+import textwrap
 import zipfile
 
 from distutils.util import change_root
 from pip.locations import bin_py, running_under_virtualenv
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
-                            DistributionNotFound)
+                            DistributionNotFound, PreviousBuildDirError)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
@@ -1045,11 +1045,23 @@ class RequirementSet(object):
 
                     # NB: This call can result in the creation of a temporary build directory
                     location = req_to_install.build_location(self.build_dir, not self.is_download)
-
-                    ## FIXME: is the existance of the checkout good enough to use it?  I don't think so.
                     unpack = True
                     url = None
-                    if not os.path.exists(os.path.join(location, 'setup.py')):
+
+                    # If a checkout exists, it's unwise to keep going.
+                    # Version inconsistencies are logged later, but do not fail the installation.
+                    if os.path.exists(os.path.join(location, 'setup.py')):
+                        msg = textwrap.dedent("""
+                          pip can't install requirement '%s' due to a pre-existing build directory.
+                           location: %s
+                          This is likely due to a previous installation that failed.
+                          pip is being responsible and not assuming it can delete this.
+                          Please delete it and try again.
+                        """ % (req_to_install, location))
+                        e = PreviousBuildDirError(msg)
+                        logger.fatal(e)
+                        raise e
+                    else:
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:
                             if not_found:

@@ -9,7 +9,6 @@ __all__ = ['WindowsError']
 
 uses_pycache = hasattr(imp, 'cache_from_source')
 
-
 class NeverUsedException(Exception):
     """this exception should never be raised"""
 
@@ -59,6 +58,9 @@ if sys.version_info >= (3,):
     def fwrite(f, s):
         f.buffer.write(b(s))
 
+    def get_http_message_param(http_message, param, default_value):
+        return http_message.get_param(param, default_value)
+
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -87,6 +89,10 @@ else:
     def fwrite(f, s):
         f.write(s)
 
+    def get_http_message_param(http_message, param, default_value):
+        result = http_message.getparam(param)
+        return result or default_value
+
     bytes = str
     string_types = (basestring,)
     reduce = reduce
@@ -112,31 +118,8 @@ def product(*args, **kwds):
         yield tuple(prod)
 
 
-def home_lib(home):
-    """Return the lib dir under the 'home' installation scheme"""
-    if hasattr(sys, 'pypy_version_info'):
-        lib = 'site-packages'
-    else:
-        lib = os.path.join('lib', 'python')
-    return os.path.join(home, lib)
-
-
-## py25 has no builtin ssl module
 ## only >=py32 has ssl.match_hostname and ssl.CertificateError
 try:
-    import ssl
-    try:
-        from ssl import match_hostname, CertificateError
-    except ImportError:
-        from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
+    from ssl import match_hostname, CertificateError
 except ImportError:
-    ssl = None
-
-
-# patch for py25 socket to work with http://pypi.python.org/pypi/ssl/
-import socket
-if not hasattr(socket, 'create_connection'): # for Python 2.5
-    # monkey-patch socket module
-    from pip.backwardcompat.socket_create_connection import create_connection
-    socket.create_connection = create_connection
-
+    from ssl_match_hostname import match_hostname, CertificateError

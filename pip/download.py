@@ -3,17 +3,20 @@ import getpass
 import hashlib
 import mimetypes
 import os
+import platform
 import re
 import shutil
 import socket
+import ssl
 import sys
 import tempfile
 
+import pip
+
 from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
-                                urlparse, string_types, ssl)
-if ssl:
-    from pip.backwardcompat import match_hostname, CertificateError
-from pip.exceptions import InstallationError, PipError, NoSSLError
+                                urlparse, string_types, get_http_message_param,
+                                match_hostname, CertificateError)
+from pip.exceptions import InstallationError, PipError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
@@ -30,9 +33,40 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
 xmlrpclib_transport = xmlrpclib.Transport()
 
 
+def build_user_agent():
+    """Return a string representing the user agent."""
+    _implementation = platform.python_implementation()
+
+    if _implementation == 'CPython':
+        _implementation_version = platform.python_version()
+    elif _implementation == 'PyPy':
+        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
+                                                sys.pypy_version_info.minor,
+                                                sys.pypy_version_info.micro)
+        if sys.pypy_version_info.releaselevel != 'final':
+            _implementation_version = ''.join([_implementation_version, sys.pypy_version_info.releaselevel])
+    elif _implementation == 'Jython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    elif _implementation == 'IronPython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    else:
+        _implementation_version = 'Unknown'
+
+    try:
+        p_system = platform.system()
+        p_release = platform.release()
+    except IOError:
+        p_system = 'Unknown'
+        p_release = 'Unknown'
+
+    return " ".join(['pip/%s' % pip.__version__,
+                     '%s/%s' % (_implementation, _implementation_version),
+                     '%s/%s' % (p_system, p_release)])
+
+
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content)"""
+    http: URL.  Returns (location, content).  Content is unicode."""
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
@@ -54,7 +88,8 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urlopen(url)
-            return geturl(resp), resp.read()
+            encoding = get_http_message_param(resp.headers, 'charset', 'utf-8')
+            return geturl(resp), resp.read().decode(encoding)
     try:
         f = open(url)
         content = f.read()
@@ -129,6 +164,7 @@ class URLOpener(object):
     """
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        self.proxy_handler = None
 
     def __call__(self, url):
         """
@@ -183,24 +219,29 @@ class URLOpener(object):
 
     def get_opener(self, *args, **kwargs):
         """
-        Build an OpenerDirector instance based on the scheme, whether ssl is
-        importable and the --insecure parameter.
+        Build an OpenerDirector instance based on the scheme and proxy option
         """
+
+        args = list(args)
+        if self.proxy_handler:
+            args.extend([self.proxy_handler, urllib2.CacheFTPHandler])
+
         if kwargs.get('scheme') == 'https':
-            if ssl:
-                https_handler = VerifiedHTTPSHandler()
-                director =  urllib2.build_opener(https_handler, *args)
-                #strip out HTTPHandler to prevent MITM spoof
-                for handler in director.handlers:
-                    if isinstance(handler, urllib2.HTTPHandler):
-                        director.handlers.remove(handler)
-                return director
-            elif os.environ.get('PIP_INSECURE', '') == '1':
-                return urllib2.build_opener(*args)
-            else:
-                raise NoSSLError()
+            https_handler = VerifiedHTTPSHandler()
+            director = urllib2.build_opener(https_handler, *args)
+            #strip out HTTPHandler to prevent MITM spoof
+            for handler in director.handlers:
+                if isinstance(handler, urllib2.HTTPHandler):
+                    director.handlers.remove(handler)
         else:
-            return urllib2.build_opener(*args)
+            director = urllib2.build_opener(*args)
+
+        # Add our new headers to the opener
+        headers = [x for x in director.addheaders if x[0].lower() != "user-agent"]
+        headers.append(("User-agent", build_user_agent()))
+        director.addheaders = headers
+
+        return director
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -211,9 +252,7 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
-            opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
-            urllib2.install_opener(opener)
+            self.proxy_handler = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
@@ -533,7 +572,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         logger.notify('File was already downloaded %s' % already_downloaded)
     else:
         resp = _get_response_from_url(target_url, link)
-        content_type = resp.info()['content-type']
+        content_type = resp.info().get('content-type', '')
         filename = link.filename  # fallback
         # Have a look at the Content-Disposition header for a better guess
         content_disposition = resp.info().get('content-disposition')

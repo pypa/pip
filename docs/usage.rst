@@ -220,6 +220,15 @@ Examples
   docutils==0.9.1
 
 
+2) Generate a requirements file and then install from it in another environment.
+
+ ::
+
+  $ env1/bin/pip freeze > requirements.txt
+  $ env2/bin/pip install -r requirements.txt
+
+
+
 pip list
 ---------
 
@@ -374,7 +383,7 @@ Options
 Examples
 ********
 
-1. Build wheels for a requirement (and all it's dependencies), and then install
+1. Build wheels for a requirement (and all its dependencies), and then install
 
   ::
 

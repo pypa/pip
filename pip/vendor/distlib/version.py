@@ -83,6 +83,10 @@ class Version(_Common):
     def __hash__(self):
         return hash(self._parts)
 
+    @property
+    def is_prerelease(self):
+        raise NotImplementedError('Please implement in subclasses.')
+
 class Matcher(_Common):
     version_class = None
 
@@ -201,7 +205,7 @@ def _parse_numdots(s, full_ver, drop_zeroes=False, min_length=0):
             result.pop()
     return result
 
-def normalized_key(s, fail_on_huge_major_ver=True):
+def pep386_key(s, fail_on_huge_major_ver=True):
     """Parses a string version into parts using PEP-386 logic."""
 
     match = _VERSION_RE.search(s)
@@ -243,6 +247,54 @@ def normalized_key(s, fail_on_huge_major_ver=True):
            "which might cause future problems: %r" % (parts[0][0], s))
     return tuple(parts)
 
+
+PEP426_VERSION_RE = re.compile('^(\d+\.\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
+                               '(\.(post)(\d+))?(\.(dev)(\d+))?$')
+
+def pep426_key(s, _=None):
+    s = s.strip()
+    m = PEP426_VERSION_RE.match(s)
+    if not m:
+        raise UnsupportedVersionError('Not a valid version: %s' % s)
+    groups = m.groups()
+    nums = tuple(int(v) for v in groups[0].split('.'))
+    while len(nums) > 1 and nums[-1] == 0:
+        nums = nums[:-1]
+
+    pre = groups[3:5]
+    post = groups[6:8]
+    dev = groups[9:11]
+    if pre == (None, None):
+        pre = ()
+    else:
+        pre = pre[0], int(pre[1])
+    if post == (None, None):
+        post = ()
+    else:
+        post = post[0], int(post[1])
+    if dev == (None, None):
+        dev = ()
+    else:
+        dev = dev[0], int(dev[1])
+    if not pre:
+        # either before pre-release, or final release and after
+        if not post and dev:
+            # before pre-release
+            pre = ('a', -1) # to sort before a0
+        else:
+            pre = ('z',)    # to sort after all pre-releases
+    # now look at the state of post and dev.
+    if not post:
+        post = ('_',)   # sort before 'a'
+    if not dev:
+        dev = ('final',)
+
+    #print('%s -> %s' % (s, m.groups()))
+    return nums, pre, post, dev
+
+
+normalized_key = pep426_key
+
 class NormalizedVersion(Version):
     """A rational version.
 
@@ -262,6 +314,12 @@ class NormalizedVersion(Version):
         1.2.3b
     """
     def parse(self, s): return normalized_key(s)
+
+    PREREL_TAGS = set(['a', 'b', 'c', 'rc', 'dev'])
+
+    @property
+    def is_prerelease(self):
+        return any(t[0] in self.PREREL_TAGS for t in self._parts)
 
 class UnlimitedMajorVersion(Version):
     def parse(self, s): return normalized_key(s, False)
@@ -516,6 +574,14 @@ def legacy_key(s):
 class LegacyVersion(Version):
     def parse(self, s): return legacy_key(s)
 
+    PREREL_TAGS = set(
+        ['*a', '*alpha', '*b', '*beta', '*c', '*rc', '*r', '*@', '*pre']
+    )
+
+    @property
+    def is_prerelease(self):
+        return any(x in self.PREREL_TAGS for x in self._parts)
+
 class LegacyMatcher(Matcher):
     version_class = LegacyVersion
 
@@ -551,8 +617,14 @@ def semantic_key(s):
     pre, build = make_tuple(groups[3], '|'), make_tuple(groups[5], '*')
     return ((major, minor, patch), pre, build)
 
+
 class SemanticVersion(Version):
     def parse(self, s): return semantic_key(s)
+
+    @property
+    def is_prerelease(self):
+        return self._parts[1][0] != '|'
+
 
 class SemanticMatcher(Matcher):
     version_class = SemanticVersion
@@ -577,6 +649,18 @@ def adaptive_key(s):
 
 class AdaptiveVersion(NormalizedVersion):
     def parse(self, s): return adaptive_key(s)
+
+    @property
+    def is_prerelease(self):
+        try:
+            normalized_key(self._string)
+            not_sem = True
+        except UnsupportedVersionError:
+            ss = suggest_normalized_version(self._string)
+            not_sem = ss is not None
+        if not_sem:
+            return any(t[0] in self.PREREL_TAGS for t in self._parts)
+        return self._parts[1][0] != '|'
 
 class AdaptiveMatcher(NormalizedMatcher):
     version_class = AdaptiveVersion

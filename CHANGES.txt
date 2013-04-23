@@ -4,6 +4,11 @@ Changelog
 1.4.dev1 (unreleased)
 ---------------------
 
+* Fixed a number of issues (#413, #709, #634 and #602) related to cleaning up and
+  not reusing build directories. (Pull #865)
+* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
+* Fixed issue #32 - pip fails when server does not send content-type header.
+  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
 * Added support for installing and building wheel archives.
   Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia (Pull #845)
 * pip now only installs stable versions by default, and offers a new ``--pre`` option
@@ -12,6 +17,10 @@ Changelog
   is Python 2.6.
 * "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org).
 
+1.3.2 (unreleased)
+------------------
+
+* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
 
 1.3.1 (2013-03-08)
 ------------------
@@ -23,7 +32,7 @@ Changelog
 ----------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #789).
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)

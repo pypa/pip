@@ -1,11 +1,17 @@
 """Tests for wheel binary packages and .dist-info."""
 import os
+import pkg_resources
 import sys
 import textwrap
 
+from mock import patch
 from nose import SkipTest
+from pip.exceptions import InstallationError
+from pip.index import PackageFinder
 from pip import wheel
-from tests.test_pip import here, reset_env, run_pip, pyversion_nodot, write_file, path_to_url
+from pip.download import path_to_url as path_to_url_d
+from tests.test_pip import (here, reset_env, run_pip, pyversion_nodot, write_file,
+                            path_to_url, assert_raises_regexp)
 
 
 FIND_LINKS = path_to_url(os.path.join(here, 'packages'))
@@ -39,9 +45,25 @@ def test_uninstallation_paths():
 
 class TestPipWheel:
 
-    def setup(self):
-        if sys.version_info < (2, 6):
-            raise SkipTest() #bdist_wheel fails in py25?
+    def test_pip_wheel_fails_without_wheel(self):
+        """
+        Test 'pip wheel' fails without wheel
+        """
+        env = reset_env(use_distribute=True)
+        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0', expect_error=True)
+        assert "'pip wheel' requires bdist_wheel" in result.stdout
+
+    def test_pip_wheel_setuptools_fails(self):
+        """
+        Test 'pip wheel' fails with setuptools
+        """
+        if sys.version_info >= (3, 0):
+            # virtualenv installs distribute in py3
+            raise SkipTest()
+        env = reset_env(use_distribute=False)
+        run_pip('install', 'wheel')
+        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0', expect_error=True)
+        assert "'pip wheel' requires %s" % wheel.distribute_requirement in result.stdout, result.stdout
 
     def test_pip_wheel_success(self):
         """
@@ -49,7 +71,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -63,7 +84,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'wheelbroken==0.1')
         wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -78,7 +98,6 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
 
         local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % FIND_LINKS
         local_editable = os.path.abspath(os.path.join(here, 'packages', 'FSPkg'))
@@ -94,7 +113,11 @@ class TestPipWheel:
         assert "Successfully built simple" in result.stdout, result.stdout
         assert "Failed to build" not in result.stdout, result.stdout
         assert "ignoring %s" % local_wheel in result.stdout
-        assert "ignoring %s" % path_to_url(local_editable) in result.stdout, result.stdout
+        ignore_editable = "ignoring %s" % path_to_url(local_editable)
+        #TODO: understand this divergence
+        if sys.platform == 'win32':
+            ignore_editable = "ignoring %s" % path_to_url_d(local_editable)
+        assert ignore_editable in result.stdout, result.stdout
 
 
     def test_pip_wheel_unpack_only(self):
@@ -103,10 +126,64 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         result = run_pip('wheel', '--unpack-only', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
         assert wheel_file_path not in result.files_created, (wheel_file_path, result.files_created)
         assert env.venv/'build'/'simple'/'setup.py' in result.files_created, result.files_created
+
+
+class TestWheelSupported(object):
+
+    def raise_not_found(self, dist):
+        raise pkg_resources.DistributionNotFound()
+
+    def set_use_wheel_true(self, finder):
+        finder.use_wheel = True
+
+    @patch("pip.wheel.pkg_resources.get_distribution")
+    def test_wheel_supported_true(self, mock_get_distribution):
+        """
+        Test wheel_supported returns true, when distribute is installed and requirement is met
+        """
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.34')
+        assert wheel.wheel_distribute_support()
+
+    @patch("pip.wheel.pkg_resources.get_distribution")
+    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+        """
+        Test wheel_supported returns false, when distribute not installed
+        """
+        mock_get_distribution.side_effect = self.raise_not_found
+        assert not wheel.wheel_distribute_support()
+
+    @patch("pip.wheel.pkg_resources.get_distribution")
+    def test_wheel_supported_false_req_fail(self, mock_get_distribution):
+        """
+        Test wheel_supported returns false, when distribute is installed, but req is not met
+        """
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.28')
+        assert not wheel.wheel_distribute_support()
+
+    @patch("pip.wheel.pkg_resources.get_distribution")
+    def test_finder_raises_error(self, mock_get_distribution):
+        """
+        Test the PackageFinder raises an error when wheel is not supported
+        """
+        mock_get_distribution.side_effect = self.raise_not_found
+        # on initialization
+        assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
+        # when setting property later
+        p = PackageFinder([], [])
+        assert_raises_regexp(InstallationError, 'wheel support', self.set_use_wheel_true, p)
+
+    @patch("pip.wheel.pkg_resources.get_distribution")
+    def test_finder_no_raises_error(self, mock_get_distribution):
+        """
+        Test the PackageFinder doesn't raises an error when use_wheel is False, and wheel is supported
+        """
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.34')
+        p = PackageFinder( [], [], use_wheel=False)
+        p = PackageFinder([], [])
+        p.use_wheel = False
 

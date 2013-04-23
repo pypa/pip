@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import imp
 import os
 import sys
 import re
@@ -12,11 +13,7 @@ import site
 from scripttest import TestFileEnvironment, FoundDir
 from tests.path import Path, curdir, u
 from pip.util import rmtree
-from pip.backwardcompat import ssl
-
-#allow py25 unit tests to work
-if sys.version_info[:2] == (2, 5) and not ssl:
-    os.environ['PIP_INSECURE'] = '1'
+from pip.backwardcompat import uses_pycache
 
 pyversion = sys.version[:3]
 pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
@@ -107,9 +104,8 @@ def install_setuptools(env):
 
 env = None
 
-
 def reset_env(environ=None,
-              use_distribute=None,
+              use_distribute=False,
               system_site_packages=False,
               sitecustomize=None,
               insecure=True):
@@ -123,12 +119,18 @@ def reset_env(environ=None,
     insecure: how to set the --insecure option for py25 tests.
     """
 
+    if sys.version_info >= (3,):
+        use_distribute = True
+
     global env
-    # FastTestPipEnv reuses env, not safe if use_distribute specified
-    if use_distribute is None and not system_site_packages:
-        env = FastTestPipEnvironment(environ, sitecustomize=sitecustomize)
+
+    if use_distribute:
+        test_class = TestPipEnvironmentD
     else:
-        env = TestPipEnvironment(environ, use_distribute=use_distribute, sitecustomize=sitecustomize)
+        test_class = TestPipEnvironment
+
+    env = test_class(environ, sitecustomize=sitecustomize)
+    test_class.rebuild_venv = False
 
     if system_site_packages:
         #testing often occurs starting from a private virtualenv (e.g. with tox)
@@ -136,10 +138,7 @@ def reset_env(environ=None,
         #to create a 'system-site-packages' virtualenv
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
-
-    if sys.version_info[:2] == (2, 5) and (not ssl) and insecure:
-        #allow py25 tests to work
-        env.environ['PIP_INSECURE'] = '1'
+        test_class.rebuild_venv = True
 
     return env
 
@@ -269,6 +268,10 @@ class TestPipResult(object):
                                   'unexpected content %f' % (pkg_dir, f))
 
 
+fast_test_env_root = here / 'tests_cache' / 'test_ws'
+fast_test_env_backup = here / 'tests_cache' / 'test_ws_backup'
+
+
 class TestPipEnvironment(TestFileEnvironment):
     """A specialized TestFileEnvironment for testing pip"""
 
@@ -295,162 +298,16 @@ class TestPipEnvironment(TestFileEnvironment):
     scratch = Path('scratch')
 
     exe = sys.platform == 'win32' and '.exe' or ''
-
     verbose = False
+    use_distribute = False
+    setuptools = 'setuptools'
+    rebuild_venv = True
 
-    def __init__(self, environ=None, use_distribute=None, sitecustomize=None):
-
-        self.root_path = Path(tempfile.mkdtemp('-piptest'))
-
-        # We will set up a virtual environment at root_path.
-        self.scratch_path = self.root_path / self.scratch
-
-        self.venv_path = self.root_path / self.venv
-
-        if not environ:
-            environ = os.environ.copy()
-            environ = clear_environ(environ)
-            environ['PIP_DOWNLOAD_CACHE'] = str(download_cache)
-
-        environ['PIP_NO_INPUT'] = '1'
-        environ['PIP_LOG_FILE'] = str(self.root_path/'pip-log.txt')
-
-        super(TestPipEnvironment, self).__init__(
-            self.root_path, ignore_hidden=False,
-            environ=environ, split_cmd=False, start_clear=False,
-            cwd=self.scratch_path, capture_temp=True, assert_no_temp=True)
-
-        demand_dirs(self.venv_path)
-        demand_dirs(self.scratch_path)
-
-        if use_distribute is None:
-            use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
-        self.use_distribute = use_distribute
-
-        # Create a virtualenv and remember where it's putting things.
-        virtualenv_paths = create_virtualenv(self.venv_path, distribute=self.use_distribute)
-
-        assert self.venv_path == virtualenv_paths[0] # sanity check
-
-        for id, path in zip(('venv', 'lib', 'include', 'bin'), virtualenv_paths):
-            #fix for virtualenv issue #306
-            if hasattr(sys, "pypy_version_info") and id == 'lib':
-                path = os.path.join(self.venv_path, 'lib-python', pyversion)
-            setattr(self, id+'_path', Path(path))
-            setattr(self, id, relpath(self.root_path, path))
-
-        assert self.venv == TestPipEnvironment.venv # sanity check
-
-        if hasattr(sys, "pypy_version_info"):
-            self.site_packages = self.venv/'site-packages'
-        else:
-            self.site_packages = self.lib/'site-packages'
-        self.user_base_path = self.venv_path/'user'
-        self.user_site_path = self.venv_path/'user'/site_packages_suffix
-
-        self.user_site = relpath(self.root_path, self.user_site_path)
-        demand_dirs(self.user_site_path)
-        self.environ["PYTHONUSERBASE"] = self.user_base_path
-
-        # create easy-install.pth in user_site, so we always have it updated instead of created
-        open(self.user_site_path/'easy-install.pth', 'w').close()
-
-        # put the test-scratch virtualenv's bin dir first on the PATH
-        self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
-
-        # test that test-scratch virtualenv creation produced sensible venv python
-        result = self.run('python', '-c', 'import sys; print(sys.executable)')
-        pythonbin = result.stdout.strip()
-
-        if Path(pythonbin).noext != self.bin_path/'python':
-            raise RuntimeError(
-                "Oops! 'python' in our test environment runs %r"
-                " rather than expected %r" % (pythonbin, self.bin_path/'python'))
-
-        # make sure we have current setuptools to avoid svn incompatibilities
-        if not self.use_distribute:
-            install_setuptools(self)
-
-        # Uninstall whatever version of pip came with the virtualenv.
-        # Earlier versions of pip were incapable of
-        # self-uninstallation on Windows, so we use the one we're testing.
-        self.run('python', '-c',
-                 '"import sys; sys.path.insert(0, %r); import pip; sys.exit(pip.main());"' % os.path.dirname(here),
-                 'uninstall', '-vvv', '-y', 'pip')
-
-        # Install this version instead
-        self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
-
-        #create sitecustomize.py and add patches
-        self._create_empty_sitecustomize()
-        self._use_cached_pypi_server()
-        if sitecustomize:
-            self._add_to_sitecustomize(sitecustomize)
-
-        # Ensure that $TMPDIR exists  (because we use start_clear=False, it's not created for us)
-        if self.temp_path and not os.path.exists(self.temp_path):
-            os.makedirs(self.temp_path)
-
-    def _ignore_file(self, fn):
-        if fn.endswith('__pycache__') or fn.endswith(".pyc"):
-            result = True
-        else:
-            result = super(TestPipEnvironment, self)._ignore_file(fn)
-        return result
-
-    def run(self, *args, **kw):
-        if self.verbose:
-            print('>> running %s %s' % (args, kw))
-        cwd = kw.pop('cwd', None)
-        run_from = kw.pop('run_from', None)
-        assert not cwd or not run_from, "Don't use run_from; it's going away"
-        cwd = Path.string(cwd or run_from or self.cwd)
-        assert not isinstance(cwd, Path)
-        return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
-
-    def __del__(self):
-        rmtree(str(self.root_path), ignore_errors=True)
-
-    def _use_cached_pypi_server(self):
-        # previously, this was handled in a pth file, and not in sitecustomize.py
-        # pth processing happens during the construction of sys.path.
-        # 'import pypi_server' ultimately imports pkg_resources (which intializes pkg_resources.working_set based on the current state of sys.path)
-        # pkg_resources.get_distribution (used in pip.req) requires an accurate pkg_resources.working_set
-        # therefore, 'import pypi_server' shouldn't occur in a pth file.
-
-        patch = """
-            import sys
-            sys.path.insert(0, %r)
-            import pypi_server
-            pypi_server.PyPIProxy.setup()
-            sys.path.remove(%r)""" % (str(here), str(here))
-        self._add_to_sitecustomize(patch)
-
-    def _create_empty_sitecustomize(self):
-        "Create empty sitecustomize.py."
-        sitecustomize_path = self.lib_path / 'sitecustomize.py'
-        sitecustomize = open(sitecustomize_path, 'w')
-        sitecustomize.close()
-
-    def _add_to_sitecustomize(self, snippet):
-        "Adds a python code snippet to sitecustomize.py."
-        sitecustomize_path = self.lib_path / 'sitecustomize.py'
-        sitecustomize = open(sitecustomize_path, 'a')
-        sitecustomize.write(textwrap.dedent('''
-                               %s
-        ''' %snippet))
-        sitecustomize.close()
-
-fast_test_env_root = here / 'tests_cache' / 'test_ws'
-fast_test_env_backup = here / 'tests_cache' / 'test_ws_backup'
-
-
-class FastTestPipEnvironment(TestPipEnvironment):
     def __init__(self, environ=None, sitecustomize=None):
         import virtualenv
 
-        self.root_path = fast_test_env_root
-        self.backup_path = fast_test_env_backup
+        self.root_path = fast_test_env_root / self.setuptools
+        self.backup_path = fast_test_env_backup / self.setuptools
 
         self.scratch_path = self.root_path / self.scratch
 
@@ -495,11 +352,9 @@ class FastTestPipEnvironment(TestPipEnvironment):
         # put the test-scratch virtualenv's bin dir first on the PATH
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
-        self.use_distribute = os.environ.get('PIP_TEST_USE_DISTRIBUTE', False)
-
         if self.root_path.exists:
             rmtree(self.root_path)
-        if self.backup_path.exists:
+        if self.backup_path.exists and not self.rebuild_venv:
             shutil.copytree(self.backup_path, self.root_path, True)
         else:
             demand_dirs(self.venv_path)
@@ -535,6 +390,10 @@ class FastTestPipEnvironment(TestPipEnvironment):
 
             # Install this version instead
             self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
+
+            # make the backup (remove previous backup if exists)
+            if self.backup_path.exists:
+                rmtree(self.backup_path)
             shutil.copytree(self.root_path, self.backup_path, True)
 
         #create sitecustomize.py and add patches
@@ -549,8 +408,69 @@ class FastTestPipEnvironment(TestPipEnvironment):
         if self.temp_path and not os.path.exists(self.temp_path):
             os.makedirs(self.temp_path)
 
-    def __del__(self):
-        pass # shutil.rmtree(str(self.root_path), ignore_errors=True)
+
+    def _ignore_file(self, fn):
+        if fn.endswith('__pycache__') or fn.endswith(".pyc"):
+            result = True
+        else:
+            result = super(TestPipEnvironment, self)._ignore_file(fn)
+        return result
+
+    def run(self, *args, **kw):
+        if self.verbose:
+            print('>> running %s %s' % (args, kw))
+        cwd = kw.pop('cwd', None)
+        run_from = kw.pop('run_from', None)
+        assert not cwd or not run_from, "Don't use run_from; it's going away"
+        cwd = Path.string(cwd or run_from or self.cwd)
+        assert not isinstance(cwd, Path)
+        return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
+
+    def _use_cached_pypi_server(self):
+        # previously, this was handled in a pth file, and not in sitecustomize.py
+        # pth processing happens during the construction of sys.path.
+        # 'import pypi_server' ultimately imports pkg_resources (which intializes pkg_resources.working_set based on the current state of sys.path)
+        # pkg_resources.get_distribution (used in pip.req) requires an accurate pkg_resources.working_set
+        # therefore, 'import pypi_server' shouldn't occur in a pth file.
+
+        patch = """
+            import sys
+            sys.path.insert(0, %r)
+            import pypi_server
+            pypi_server.PyPIProxy.setup()
+            sys.path.remove(%r)""" % (str(here), str(here))
+        self._add_to_sitecustomize(patch)
+
+    def _create_empty_sitecustomize(self):
+        "Create empty sitecustomize.py."
+        sitecustomize_path = self.lib_path / 'sitecustomize.py'
+        sitecustomize = open(sitecustomize_path, 'w')
+        sitecustomize.close()
+
+    def _add_to_sitecustomize(self, snippet):
+        "Adds a python code snippet to sitecustomize.py."
+        sitecustomize_path = self.lib_path / 'sitecustomize.py'
+        sitecustomize = open(sitecustomize_path, 'a')
+        sitecustomize.write(textwrap.dedent('''
+                               %s
+        ''' %snippet))
+        sitecustomize.close()
+        # caught py32 with an outdated __pycache__ file after a sitecustomize update (after python should have updated it)
+        # https://github.com/pypa/pip/pull/893#issuecomment-16426701
+        # will delete the cache file to be sure
+        if uses_pycache:
+            cache_path = imp.cache_from_source(sitecustomize_path)
+            if os.path.isfile(cache_path):
+                os.remove(cache_path)
+
+
+
+class TestPipEnvironmentD(TestPipEnvironment):
+    """A specialized TestFileEnvironment that contains distribute"""
+
+    use_distribute = True
+    setuptools = 'distribute'
+    rebuild_venv = True
 
 
 def run_pip(*args, **kw):

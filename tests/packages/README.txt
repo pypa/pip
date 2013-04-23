@@ -13,6 +13,10 @@ install). If any earlier step would fail (i.e. egg-info-generation), the
 already-installed version would never be uninstalled, so uninstall-rollback
 would not come into play.
 
+brokenegginfo-0.1.tar.gz
+------------------------
+crafted to fail on egg_info
+
 BrokenEmitsUTF8
 ---------------
 for generating unicode error in py3.x

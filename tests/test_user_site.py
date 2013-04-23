@@ -18,24 +18,9 @@ patch_dist_in_site_packages = """
 """
 
 
-def test_install_curdir_usersite_fails_in_old_python():
-    """
-    Test --user option on older Python versions (pre 2.6) fails intelligibly
-    """
-    if sys.version_info >= (2, 6):
-        raise SkipTest()
-    reset_env(system_site_packages=True)
-    run_from = abspath(join(here, 'packages', 'FSPkg'))
-    result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=True)
-    assert '--user is only supported in Python version 2.6 and newer' in result.stdout
-
-
 class Tests_UserSite:
 
     def setup(self):
-        # --user only works on 2.6 or higher
-        if sys.version_info < (2, 6):
-            raise SkipTest()
         # --user option is broken in pypy
         if hasattr(sys, "pypy_version_info"):
             raise SkipTest()
@@ -221,8 +206,8 @@ class Tests_UserSite:
         result2 = run_pip('install', '--user', 'INITools==0.1', expect_error=True)
         resultp = env.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').location)")
         dist_location = resultp.stdout.strip()
-        assert result2.stdout.startswith("Will not install to the user site because it will lack sys.path precedence to %s in %s"
-                                        %('INITools', dist_location)), result2.stdout
+        assert "Will not install to the user site because it will lack sys.path precedence to %s in %s" \
+            % ('INITools', dist_location) in result2.stdout, result2.stdout
 
 
     def test_uninstall_from_usersite(self):
@@ -261,7 +246,6 @@ class Tests_UserSite:
         """
         env = reset_env(system_site_packages=True, use_distribute=True)
         run_pip('install', 'wheel')
-        run_pip('install', 'markerlib')
         find_links = path_to_url(os.path.join(here, 'packages'))
         result = run_pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
                      '--no-index', '--find-links='+find_links)

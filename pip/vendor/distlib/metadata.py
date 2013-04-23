@@ -119,7 +119,6 @@ _ALL_FIELDS.update(_426_FIELDS)
 
 EXTRA_RE = re.compile(r'''extra\s*==\s*("([^"]+)"|'([^']+)')''')
 
-
 def _version2fieldlist(version):
     if version == '1.0':
         return _241_FIELDS
@@ -377,7 +376,7 @@ class Metadata(object):
 
     def _set_dependencies(self, value):
         if 'test' in value:
-            value = dict(value)     # don't change value passed in
+            value = dict(value) # don't change value passed in
             value.setdefault('extras', {})['test'] = value.pop('test')
         self._dependencies = value
         setup_reqs = value.get('setup', [])
@@ -685,9 +684,8 @@ class Metadata(object):
                 ('requires', 'Requires'),
                 ('obsoletes', 'Obsoletes'),
             )
-            for key, field_name in mapping_1_1:
-                if not skip_missing or field_name in self._fields:
-                    data[key] = self[field_name]
+            if not skip_missing or field_name in self._fields:
+                data[key] = self[field_name]
 
         return data
 
