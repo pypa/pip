@@ -680,14 +680,14 @@ def is_prerelease(vers):
     """
     Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
 
-    Will return True if it is a pre-release, False is not, and None if we cannot
-    determine.
+    Will return True if it is a pre-release and False if not. Versions are
+    assumed to be a pre-release if they cannot be parsed.
     """
     normalized = version.suggest_normalized_version(vers)
 
     if normalized is None:
-        # Cannot normalize
-        return
+        # Cannot normalize, assume it is a pre-release
+        return True
 
     parsed = version.normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
