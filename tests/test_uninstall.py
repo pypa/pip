@@ -5,6 +5,7 @@ import os
 import sys
 from os.path import join, abspath, normpath
 from tempfile import mkdtemp
+from nose import SkipTest
 from mock import patch
 from tests.test_pip import here, reset_env, run_pip, assert_all_changes, write_file, pyversion
 from tests.local_repos import local_repo, local_checkout
@@ -59,6 +60,13 @@ def test_uninstall_namespace_package():
     the namespace and everything in it.
 
     """
+    # This test is skipped on Python 3 because the installation fails.
+    # The reason it fails is that distribute has a bug: setuptools/extension.py
+    # has the line "from dist import _get_unpatched". This should be using
+    # "from .dist" or "from setuptools.dist" under Python 3 - because it isn't,
+    # we get an "ImportError: No module named dist".
+    if sys.version_info >= (3,):
+        raise SkipTest()
     env = reset_env()
     result = run_pip('install', 'pd.requires==0.0.3', expect_error=True)
     assert join(env.site_packages, 'pd') in result.files_created, sorted(result.files_created.keys())
