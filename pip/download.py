@@ -447,7 +447,7 @@ def _check_hash(download_hash, link):
         raise InstallationError('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (link, download_hash, link.hash))
+                     % (link, download_hash.hexdigest(), link.hash))
         raise InstallationError('Bad %s hash for package %s' % (link.hash_name, link))
 
 
