@@ -188,9 +188,7 @@ class NewDistribution(DistInfoDistribution, Common):
     def requires(self, extras=None):
         init_logging()
         try:
-            reqs = DistInfoDistribution.requires.__get__(self, None)
-            if 'requires' in self.__dict__:
-                del self.__dict__['requires']
+            reqs = set(self.metadata['Requires-Dist'])
             result = []
             logger.debug('requires(%s): %s -> %s', extras, self, reqs)
             marked = []
