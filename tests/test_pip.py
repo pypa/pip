@@ -387,6 +387,17 @@ class TestPipEnvironment(TestFileEnvironment):
             self.run('python', '-c',
                      '"import sys; sys.path.insert(0, %r); import pip; sys.exit(pip.main());"' % os.path.dirname(here),
                      'uninstall', '-vvv', '-y', 'pip')
+            # For some reason, the above command can return with a zero exit code, no
+            # stdout or stderr output, but without uninstalling. So we check specifically
+            # for a pip directory in the site-packages and zap it if it exists
+            spdir = self.root_path / self.site_packages
+            spcontents = os.listdir(spdir)
+            pattern = re.compile(r'pip-\d+(\.\d+)*(\.\w+)?-py\d\.\d\.egg$')
+            for spfile in spcontents:
+                fn = os.path.join(spdir, spfile)
+                if os.path.isdir(fn) and pattern.match(spfile):
+                    shutil.rmtree(fn)
+                    break
 
             # Install this version instead
             self.run('python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
