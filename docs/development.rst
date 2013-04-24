@@ -59,44 +59,43 @@ Release Process
 
 This process includes virtualenv, since pip releases necessitate a virtualenv release.
 
-:<oldp>/<newp>: refers to the old and new versions of pip.
-:<oldv>/<newv>: refers to the old and new versions of virtualenv.
+As an example, the instructions assume we're releasing pip-1.4, and virtualenv-1.10.
 
 1. Upgrade distribute, if needed:
 
- #. Upgrade distribute in ``virtualenv:develop`` using the :ref:`Refresh virtualenv` process.
- #. Create a pull request against ``pip:develop`` with a modified ``.travis.yml`` file that installs virtualenv from ``virtualenv:develop``, to confirm the travis builds are still passing.
+ #. Upgrade distribute in ``virtualenv/develop`` using the :ref:`Refresh virtualenv` process.
+ #. Create a pull request against ``pip/develop`` with a modified ``.travis.yml`` file that installs virtualenv from ``virtualenv/develop``, to confirm the travis builds are still passing.
 
 2. Create Release branches:
 
- #. Create ``pip:<newp>`` branch.
- #. In ``pip:develop``, change ``pip.version`` to '<newp>.post1'.
- #. Create ``virtualenv:<newv>`` branch.
- #. In ``virtualenv:develop``, change ``virtualenv.version`` to '<newv>.post1'.
+ #. Create ``pip/release-1.4`` branch.
+ #. In ``pip/develop``, change ``pip.version`` to '1.5.dev1'.
+ #. Create ``virtualenv/release-1.10`` branch.
+ #. In ``virtualenv/develop``, change ``virtualenv.version`` to '1.11.dev1'.
 
 3. Prepare "rcX":
 
- #. In ``pip:<newp>``, change ``pip.version`` to '<newp>rcX', and tag with '<newp>rcX'.
- #. Build a pip sdist from ``pip:<newp>``, and build it into ``virtualenv:<newv>`` using the :ref:`Refresh virtualenv` process.
- #. In ``virtualenv:<newv>``, change ``virtualenv.version`` to '<newv>rcX', and tag with '<newv>rcX'.
+ #. In ``pip/release-1.4``, change ``pip.version`` to '1.4rcX', and tag with '1.4rcX'.
+ #. Build a pip sdist from ``pip/release-1.4``, and build it into ``virtualenv/release-1.10`` using the :ref:`Refresh virtualenv` process.
+ #. In ``virtualenv/release-1.10``, change ``virtualenv.version`` to '1.10rcX', and tag with '1.10rcX'.
 
-4. Announce ``pip-<newp>rcX`` and ``virtualenv-<newv>rcX`` with the :ref:`RC Install Instructions` and elicit feedback.
+4. Announce ``pip-1.4rcX`` and ``virtualenv-1.10rcX`` with the :ref:`RC Install Instructions` and elicit feedback.
 
 5. Apply fixes to 'rcX':
 
- #. Apply fixes to ``pip:<newp>`` and ``virtualenv:<newv>``
- #. Periodically merge fixes to ``pip:develop`` and ``virtualenv:develop``
+ #. Apply fixes to ``pip/release-1.4`` and ``virtualenv/release-1.10``
+ #. Periodically merge fixes to ``pip/develop`` and ``virtualenv/develop``
 
 6. Repeat #4 thru #6 if needed.
 
 7. Final Release:
 
- #. In ``pip:<newp>``, change ``pip.version`` to '<newp>', and tag with '<newp>'.
- #. Merge ``pip:<newp>`` to ``pip:master``.
- #. Build a pip sdist from ``pip:<newp>``, and load it into ``virtualenv:<newv>`` using the :ref:`Refresh virtualenv` process.
- #. Merge ``vitualenv:<newv>`` to ``virtualenv:develop``.
- #. In ``virtualenv:<newv>``, change ``virtualenv.version`` to '<newv>', and tag with '<newv>'.
- #. Merge ``virtualenv:<newp>`` to ``virtualenv:master``
+ #. In ``pip/release-1.4``, change ``pip.version`` to '1.4', and tag with '1.4'.
+ #. Merge ``pip/release-1.4`` to ``pip/master``.
+ #. Build a pip sdist from ``pip/release-1.4``, and load it into ``virtualenv/release-1.10`` using the :ref:`Refresh virtualenv` process.
+ #. Merge ``vitualenv/release-1.10`` to ``virtualenv/develop``.
+ #. In ``virtualenv/release-1.10``, change ``virtualenv.version`` to '1.10', and tag with '1.10'.
+ #. Merge ``virtualenv/release-1.10`` to ``virtualenv/master``
  #. Build and upload pip and virtualenv sdists to PyPI.
 
 .. _`Refresh virtualenv`:
@@ -116,6 +115,12 @@ Refresh virtualenv
 RC Install Instructions
 +++++++++++++++++++++++
 
-#. Download and unpack ``https://github.com/pypa/virtualenv/archive/<newv>rcX.tar.gz``
-#. Run: ``python virtualenv-<newv>rcX/virtualenv.py myVE``
-#. ``myVE/bin/pip`` will be the <newp>rcX version of pip.
+::
+
+ $ curl -L -O https://github.com/pypa/virtualenv/archive/1.10rc1.tar.gz
+ $ echo "<md5sum value>  1.10rc1.tar.gz" | md5sum -c
+ 1.10rc1.tar.gz: OK
+ $ tar zxf 1.10rc1.tar.gz
+ $ python virtualenv-1.10rc1/virtualenv.py myVE
+ $ myVE/bin/pip install SomePackage
+
