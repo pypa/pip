@@ -1,6 +1,6 @@
 import sys
 import textwrap
-from pip.vendor.distlib import pkg_resources
+from pip.compat import pkg_resources
 import pip.download
 from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size

@@ -1,5 +1,5 @@
 import os
-from pip.vendor.distlib import pkg_resources
+from pip.compat import pkg_resources
 from pip.basecommand import Command
 from pip.log import logger
 

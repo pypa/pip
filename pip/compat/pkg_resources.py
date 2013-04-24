@@ -110,8 +110,22 @@ class Common(object):
 
 class Distribution(EggInfoDistribution, Common):
     def __init__(self, *args, **kwargs):
-        super(Distribution, self).__init__(*args, **kwargs)
-        self.project_name = self.name
+        project_name = kwargs.pop('project_name', None)
+        version = kwargs.pop('version', None)
+        # if args is None, the code is being called for test mocking only,
+        # so we take a different path
+        if args:
+            super(Distribution, self).__init__(*args, **kwargs)
+        if project_name is None:
+            project_name = self.name
+        if version is not None:
+            self.version = version
+        self.project_name = project_name
+        # if args is None, the code is being called for test mocking only,
+        # so we take a different path
+        if not args:
+            self.key = self.project_name.lower()
+            return
         self.location = self.path
         if not self.location.endswith('.egg'):
             self.location = os.path.dirname(self.location)

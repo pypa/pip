@@ -7,7 +7,7 @@ import csv
 import functools
 import hashlib
 import os
-import pkg_resources
+from pip.compat import pkg_resources
 import shutil
 import sys
 from base64 import urlsafe_b64encode

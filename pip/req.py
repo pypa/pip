@@ -1,7 +1,7 @@
 from email.parser import FeedParser
 import os
 import imp
-from pip.vendor.distlib import pkg_resources
+from pip.compat import pkg_resources
 import re
 import sys
 import shutil

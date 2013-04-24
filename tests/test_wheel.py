@@ -1,6 +1,6 @@
 """Tests for wheel binary packages and .dist-info."""
 import os
-import pkg_resources
+from pip.compat import pkg_resources
 import sys
 import textwrap
 
@@ -186,4 +186,3 @@ class TestWheelSupported(object):
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
-

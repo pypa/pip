@@ -1,5 +1,5 @@
 import os
-from pip.vendor.distlib.pkg_resources import parse_version
+from pip.compat.pkg_resources import parse_version
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder

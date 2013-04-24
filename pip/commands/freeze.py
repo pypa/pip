@@ -1,6 +1,6 @@
 import re
 import sys
-from pip.vendor.distlib import pkg_resources
+from pip.compat import pkg_resources
 import pip
 from pip.req import InstallRequirement
 from pip.log import logger

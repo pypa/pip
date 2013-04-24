@@ -3,7 +3,7 @@ util tests
 
 """
 import os
-from pip.vendor.distlib import pkg_resources
+from pip.compat import pkg_resources
 from mock import Mock, patch
 from nose.tools import eq_
 from tests.path import Path
@@ -166,7 +166,7 @@ class Tests_get_installed_distributions:
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
-    @patch('pip.vendor.distlib.pkg_resources.working_set', workingset)
+    @patch('pip.compat.pkg_resources.working_set', workingset)
     def test_editables_only(self, mock_dist_is_editable, mock_dist_is_local):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
@@ -177,7 +177,7 @@ class Tests_get_installed_distributions:
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
-    @patch('pip.vendor.distlib.pkg_resources.working_set', workingset)
+    @patch('pip.compat.pkg_resources.working_set', workingset)
     def test_exclude_editables(self, mock_dist_is_editable, mock_dist_is_local):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
@@ -188,7 +188,7 @@ class Tests_get_installed_distributions:
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
-    @patch('pip.vendor.distlib.pkg_resources.working_set', workingset)
+    @patch('pip.compat.pkg_resources.working_set', workingset)
     def test_include_globals(self, mock_dist_is_editable, mock_dist_is_local):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
