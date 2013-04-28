@@ -94,6 +94,7 @@ class Command(object):
         level -= options.quiet
         level = logger.level_for_integer(4 - level)
         complete_log = []
+        initial_logger_consumers = logger.consumers[::] # copy
         logger.consumers.extend(
             [(level, sys.stdout),
              (logger.DEBUG, complete_log.append)])
@@ -167,20 +168,21 @@ class Command(object):
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
             exit = UNKNOWN_ERROR
-        if log_fp is not None:
-            log_fp.close()
         if store_log:
             log_fn = options.log_file
             text = '\n'.join(complete_log)
             try:
-                log_fp = open_logfile(log_fn, 'w')
+                log_file_fp = open_logfile(log_fn, 'w')
             except IOError:
                 temp = tempfile.NamedTemporaryFile(delete=False)
                 log_fn = temp.name
-                log_fp = open_logfile(log_fn, 'w')
+                log_file_fp = open_logfile(log_fn, 'w')
             logger.fatal('Storing complete log in %s' % log_fn)
-            log_fp.write(text)
+            log_file_fp.write(text)
+            log_file_fp.close()
+        if options.log:
             log_fp.close()
+        logger.consumers = initial_logger_consumers
         return exit
 
 
