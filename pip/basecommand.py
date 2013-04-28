@@ -78,7 +78,7 @@ class Command(object):
         if not ssl:
             attrs.append('insecure')
         for attr in attrs:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
+            setattr(options, attr, getattr(options, attr) or getattr(initial_options, attr))
         options.quiet += initial_options.quiet
         options.verbose += initial_options.verbose
 

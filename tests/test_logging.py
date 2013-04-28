@@ -24,3 +24,17 @@ def test_should_accept_custom_log_location():
 
     assert os.path.exists(log_path)
     os.remove(log_path)
+
+
+def test_log_file_through_log_file_option_should_work():
+    # there was a bug with regards to --log-file not being respected:
+    # https://github.com/pypa/pip/issues/350
+    log_file_path = tempfile.mktemp()
+    parser = create_main_parser()
+    options, args = parser.parse_args(["fake", "--log-file", log_file_path])
+
+    cmd = FakeCommand(parser)
+    cmd.main(args, options)
+
+    assert os.path.exists(log_file_path)
+    os.remove(log_file_path)
