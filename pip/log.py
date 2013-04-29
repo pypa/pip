@@ -70,9 +70,10 @@ class Logger(object):
                     if self.explicit_levels:
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
-                if hasattr(consumer, 'write'):
-                    rendered += '\n'
-                    backwardcompat.fwrite(consumer, rendered)
+                if isinstance(consumer, backwardcompat.StringIOTypes):
+                    consumer.write(rendered + '\n')
+                elif hasattr(consumer, 'write'):
+                    backwardcompat.fwrite(consumer, rendered + '\n')
                 else:
                     consumer(rendered)
 
