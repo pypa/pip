@@ -1,13 +1,14 @@
-import sys
 import os
-import tempfile
 import shutil
+import tempfile
 
+from mock import Mock
 from pip.exceptions import PreviousBuildDirError
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import InstallRequirement, RequirementSet
 from tests.test_pip import here, path_to_url, assert_raises_regexp
+
 
 find_links = path_to_url(os.path.join(here, 'packages'))
 
@@ -15,7 +16,7 @@ class TestRequirementSet(object):
     """RequirementSet tests"""
 
     def setup(self):
-        logger.consumers = [(logger.NOTIFY, sys.stdout)]
+        logger.consumers = [(logger.NOTIFY, Mock())]
         self.tempdir = tempfile.mkdtemp()
 
     def teardown(self):
