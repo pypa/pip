@@ -1,9 +1,11 @@
+import sys
 import os
 import tempfile
 import shutil
 
 from pip.exceptions import PreviousBuildDirError
 from pip.index import PackageFinder
+from pip.log import logger
 from pip.req import InstallRequirement, RequirementSet
 from tests.test_pip import here, path_to_url, assert_raises_regexp
 
@@ -13,9 +15,11 @@ class TestRequirementSet(object):
     """RequirementSet tests"""
 
     def setup(self):
+        logger.consumers = [(logger.NOTIFY, sys.stdout)]
         self.tempdir = tempfile.mkdtemp()
 
     def teardown(self):
+        logger.consumers = []
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def basic_reqset(self):
@@ -38,7 +42,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't install[\s\S]*%s[\s\S]*%s" % (req, build_dir),
+            "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir),
             reqset.prepare_files,
             finder
             )
