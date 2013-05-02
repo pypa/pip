@@ -3,6 +3,7 @@ import os
 import pkg_resources
 import sys
 import textwrap
+from mock import patch
 
 from mock import patch
 from nose import SkipTest
@@ -186,4 +187,53 @@ class TestWheelSupported(object):
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
+
+
+class TestWheelFile(object):
+
+    @patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
+    def test_supported_single_version(self):
+        """
+        Test single-version wheel is known to be supported
+        """
+        w = wheel.Wheel('simple-0.1-py2-none-any.whl')
+        assert w.supported()
+
+    @patch('pip.wheel.supported_tags', [('py3', 'none', 'any')])
+    def test_supported_multi_version(self):
+        """
+        Test multi-version wheel is known to be supported
+        """
+        w = wheel.Wheel('simple-0.1-py2.py3-none-any.whl')
+        assert w.supported()
+
+    @patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
+    def test_not_supported_version(self):
+        """
+        Test unsupported wheel is known to be unsupported
+        """
+        w = wheel.Wheel('simple-0.1-py2-none-any.whl')
+        assert not w.supported()
+
+    @patch('pip.wheel.supported_tags', [
+        ('py2', 'none', 'TEST'),
+        ('py2', 'TEST', 'any'),
+        ('py2', 'none', 'any'),
+        ])
+    def test_support_index_min(self):
+        """
+        Test results from `support_index_min`
+        """
+        w = wheel.Wheel('simple-0.1-py2-none-any.whl')
+        assert w.support_index_min() == 2
+        w = wheel.Wheel('simple-0.1-py2-none-TEST.whl')
+        assert w.support_index_min() == 0
+
+    @patch('pip.wheel.supported_tags', [])
+    def test_support_index_min_none(self):
+        """
+        Test `support_index_min` returns None, when wheel not supported
+        """
+        w = wheel.Wheel('simple-0.1-py2-none-any.whl')
+        assert w.support_index_min() == None
 
