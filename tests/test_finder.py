@@ -2,13 +2,13 @@ import os
 from pkg_resources import parse_version
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
-from pip.index import PackageFinder
+from pip.index import PackageFinder, Link
 from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip.util import Inf
 from tests.path import Path
 from tests.test_pip import here, path_to_url
 from nose.tools import assert_raises
 from mock import Mock, patch
-import os
 
 find_links = path_to_url(os.path.join(here, 'packages'))
 find_links2 = path_to_url(os.path.join(here, 'packages2'))
@@ -78,23 +78,30 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
-@patch('pip.pep425tags.get_supported')
-def test_find_wheel(mock_get_supported):
+@patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
+def test_not_find_wheel_not_supported():
     """
-    Test finding wheels.
+    Test not finding an unsupported wheel.
     """
     find_links_url = 'file://' + os.path.join(here, 'packages')
     find_links = [find_links_url]
     req = InstallRequirement.from_line("simple.dist")
     finder = PackageFinder(find_links, [], use_wheel=True)
-    mock_get_supported.return_value = [('py1', 'none', 'any')]
     assert_raises(DistributionNotFound, finder.find_requirement, req, True)
-    mock_get_supported.return_value = [('py2', 'none', 'any')]
+
+
+@patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
+def test_find_wheel_supported():
+    """
+    Test finding supported wheel.
+    """
+    find_links_url = 'file://' + os.path.join(here, 'packages')
+    find_links = [find_links_url]
+    req = InstallRequirement.from_line("simple.dist")
+    finder = PackageFinder(find_links, [], use_wheel=True)
     found = finder.find_requirement(req, True)
     assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
-    mock_get_supported.return_value = [('py3', 'none', 'any')]
-    found = finder.find_requirement(req, True)
-    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+
 
 def test_finder_priority_file_over_page():
     """Test PackageFinder prefers file links over equivalent page links"""
@@ -131,6 +138,7 @@ def test_finder_priority_nonegg_over_eggfragments():
 def test_wheel_over_sdist_priority():
     """
     Test wheels have priority over sdists.
+    `test_link_sorting` also covers this at lower level
     """
     req = InstallRequirement.from_line("priority")
     finder = PackageFinder([find_links], [], use_wheel=True)
@@ -140,6 +148,7 @@ def test_wheel_over_sdist_priority():
 def test_existing_over_wheel_priority():
     """
     Test existing install has priority over wheels.
+    `test_link_sorting` also covers this at a lower level
     """
     req = InstallRequirement.from_line('priority', None)
     latest_version = "1.0"
@@ -230,3 +239,30 @@ def test_finder_installs_pre_releases_with_version_spec():
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+
+@patch('pip.wheel.supported_tags', [
+        ('pyT', 'none', 'TEST'),
+        ('pyT', 'TEST', 'any'),
+        ('pyT', 'none', 'any'),
+        ])
+def test_link_sorting():
+    """
+    Test link sorting
+    """
+    links = [
+        (parse_version('2.0'), Link(Inf), '2.0'),
+        (parse_version('2.0'), Link('simple-2.0.tar.gz'), '2.0'),
+        (parse_version('1.0'), Link('simple-1.0-pyT-none-TEST.whl'), '1.0'),
+        (parse_version('1.0'), Link('simple-1.0-pyT-TEST-any.whl'), '1.0'),
+        (parse_version('1.0'), Link('simple-1.0-pyT-none-any.whl'), '1.0'),
+        (parse_version('1.0'), Link('simple-1.0.tar.gz'), '1.0'),
+        ]
+
+    finder = PackageFinder([], [])
+    finder.use_wheel = True
+
+    results = finder._sort_versions(links)
+    results2 = finder._sort_versions(sorted(links, reverse=True))
+
+    assert links == results == results2, results2

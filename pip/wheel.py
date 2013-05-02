@@ -1,5 +1,5 @@
 """
-Support functions for installing and building the "wheel" binary package format.
+Support for installing and building the "wheel" binary package format.
 """
 from __future__ import with_statement
 
@@ -8,14 +8,17 @@ import functools
 import hashlib
 import os
 import pkg_resources
+import re
 import shutil
 import sys
 from base64 import urlsafe_b64encode
 
 from pip.locations import distutils_scheme
 from pip.log import logger
+from pip.pep425tags import supported_tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
+wheel_ext = '.whl'
 distribute_requirement = pkg_resources.Requirement.parse("distribute>=0.6.34")
 
 def wheel_distribute_support(distribute_req=distribute_requirement):
@@ -32,6 +35,7 @@ def wheel_distribute_support(distribute_req=distribute_requirement):
     if not supported:
         logger.warn("%s is required for wheel installs.", distribute_req)
     return supported
+
 
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
@@ -182,6 +186,7 @@ def _unique(fn):
                 yield item
     return unique
 
+# TODO: this goes somewhere besides the wheel module
 @_unique
 def uninstallation_paths(dist):
     """
@@ -203,6 +208,43 @@ def uninstallation_paths(dist):
             path = os.path.join(dn, base+'.pyc')
             yield path
 
+
+class Wheel(object):
+    """A wheel file"""
+
+    # TODO: maybe move the install code into this class
+
+    wheel_file_re = re.compile(
+                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+                \.whl|\.dist-info)$""",
+                re.VERBOSE)
+
+    def __init__(self, filename):
+        wheel_info = self.wheel_file_re.match(filename)
+        self.filename = filename
+        self.name = wheel_info.group('name').replace('_', '-')
+        self.version = wheel_info.group('ver')
+        self.pyversions = wheel_info.group('pyver').split('.')
+        self.abis = wheel_info.group('abi').split('.')
+        self.plats = wheel_info.group('plat').split('.')
+
+        # All the tag combinations from this file
+        self.file_tags = set((x, y, z) for x in self.pyversions for y
+                            in self.abis for z in self.plats)
+
+    def support_index_min(self):
+        """
+        Return the lowest index that a file_tag achieves in the supported_tags list
+        e.g. if there are 8 supported tags, and one of the file tags is first in the
+        list, then return 0.
+        """
+        indexes = [supported_tags.index(c) for c in self.file_tags if c in supported_tags]
+        return min(indexes) if indexes else None
+
+    def supported(self):
+        """Is this wheel supported on this system?"""
+        return bool(set(supported_tags).intersection(self.file_tags))
 
 
 class WheelBuilder(object):
