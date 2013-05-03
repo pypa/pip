@@ -631,7 +631,7 @@ def call_subprocess(cmd, show_stdout=True,
         env.update(extra_environ)
     if override_locale:
         # custom locales are evil when you parse command output
-        env['LC_ALL'] = 'C'
+        env['LC_ALL'] = 'en_US.UTF-8'
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
