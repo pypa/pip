@@ -30,7 +30,28 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
 
-xmlrpclib_transport = xmlrpclib.Transport()
+class ProxiedTransport(xmlrpclib.Transport):
+    def __init__(self):
+        xmlrpclib.Transport.__init__(self)
+        self.proxy = None
+
+    def set_proxy(self, proxy):
+        self.proxy = proxy
+
+    def make_connection(self, host):
+        self.realhost = host
+        if self.proxy:
+			return xmlrpclib.Transport.make_connection(self, self.proxy)
+        else:
+			return xmlrpclib.Transport.make_connection(self, host)
+
+    def send_request(self, connection, handler, request_body):
+        connection.putrequest("POST", 'http://%s%s' % (self.realhost, handler))
+
+    def send_host(self, connection, host):
+        connection.putheader('Host', self.realhost)
+
+xmlrpclib_transport = ProxiedTransport()
 
 
 def build_user_agent():
