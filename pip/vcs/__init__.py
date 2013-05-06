@@ -4,6 +4,7 @@ import os
 import shutil
 
 from pip.backwardcompat import urlparse, urllib
+from pip.exceptions import BadCommand
 from pip.log import logger
 from pip.util import (display_path, backup_dir, find_command,
                       rmtree, ask_path_exists)
@@ -246,6 +247,10 @@ class VersionControl(object):
 def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
-        return version_control().get_src_requirement(dist, location, find_tags)
+        try:
+            return version_control().get_src_requirement(dist, location, find_tags)
+        except BadCommand:
+            logger.warn('cannot determine version of editable source in %s (%s command not found in path)' % (location, version_control.name))
+            return dist.as_requirement()
     logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
     return dist.as_requirement()
