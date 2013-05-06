@@ -105,21 +105,22 @@ def find_command(cmd, paths=None, pathext=None):
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
         pathext = get_pathext()
-    pathext = [ext for ext in pathext.lower().split(os.pathsep) if len(ext)]
+    pathext = [ext for ext in pathext.lower().split(os.pathsep) if ext]
     # don't use extensions if the command ends with one of them
     if os.path.splitext(cmd)[1].lower() in pathext:
-        pathext = ['']
+        pathext = []
     # check if we find the command on PATH
     for path in paths:
-        # try without extension first
         cmd_path = os.path.join(path, cmd)
         for ext in pathext:
-            # then including the extension
+            # if we have extensions, try them
             cmd_path_ext = cmd_path + ext
             if os.path.isfile(cmd_path_ext):
                 return cmd_path_ext
-        if os.path.isfile(cmd_path):
-            return cmd_path
+        if not pathext:
+            # else, don't
+            if os.path.isfile(cmd_path):
+                return cmd_path
     raise BadCommand('Cannot find command %r' % cmd)
 
 
