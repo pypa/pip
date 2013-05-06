@@ -41,9 +41,9 @@ class ProxiedTransport(xmlrpclib.Transport):
     def make_connection(self, host):
         self.realhost = host
         if self.proxy:
-			return xmlrpclib.Transport.make_connection(self, self.proxy)
+            return xmlrpclib.Transport.make_connection(self, self.proxy)
         else:
-			return xmlrpclib.Transport.make_connection(self, host)
+            return xmlrpclib.Transport.make_connection(self, host)
 
     def send_request(self, connection, handler, request_body):
         connection.putrequest("POST", 'http://%s%s' % (self.realhost, handler))

@@ -50,8 +50,9 @@ class SearchCommand(Command):
 
     def search(self, query, index_url, proxy):
         trans = pip.download.xmlrpclib_transport
+        proxy = pip.download.urlopen.get_proxy(proxy)
         if proxy:
-            trans.set_proxy(pip.download.urlopen.get_proxy(proxy))
+            trans.set_proxy(proxy)
         pypi = xmlrpclib.ServerProxy(index_url, trans)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
