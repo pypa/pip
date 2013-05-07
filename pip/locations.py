@@ -61,9 +61,10 @@ def _get_build_prefix():
     except OSError:
         file_uid = None
         try:
-            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-            file_uid = os.fstat(fd).st_uid
-            os.close(fd)
+            if not os.path.islink(path):
+                # Use `os.stat()` instead of `os.fstat()` since Jython 2.5 lacks `os.fstat()`
+                # http://bugs.jython.org/issue1736
+                file_uid = os.stat(path).st_uid
         except OSError:
             file_uid = None
         if file_uid != os.getuid():
