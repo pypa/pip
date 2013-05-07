@@ -34,9 +34,8 @@ class SearchCommand(Command):
             raise CommandError('Missing required argument (search query).')
         query = args
         index_url = options.index
-        proxy = options.proxy
 
-        pypi_hits = self.search(query, index_url, proxy)
+        pypi_hits = self.search(query, index_url)
         hits = transform_hits(pypi_hits)
 
         terminal_width = None
@@ -48,10 +47,13 @@ class SearchCommand(Command):
             return SUCCESS
         return NO_MATCHES_FOUND
 
-    def search(self, query, index_url, proxy=None):
+    def search(self, query, index_url):
         trans = pip.download.xmlrpclib_transport
-        proxy = pip.download.urlopen.get_proxy(proxy)
-        if proxy:
+        if pip.download.urlopen.proxy_handler:
+            if index_url.find('https') == 0:
+                proxy = pip.download.urlopen.proxy_handler.proxies['https']
+            else:
+                proxy = pip.download.urlopen.proxy_handler.proxies['http']
             trans.set_proxy(proxy)
         pypi = xmlrpclib.ServerProxy(index_url, trans)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
