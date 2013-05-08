@@ -30,28 +30,24 @@ __all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
 
-class ProxiedTransport(xmlrpclib.Transport):
-    def __init__(self):
-        xmlrpclib.Transport.__init__(self)
-        self.proxy = None
+class Urllib2Transport(xmlrpclib.Transport):
+    def __init__(self, opener=None, https=False, use_datetime=0):
+        xmlrpclib.Transport.__init__(self, use_datetime)
+        self.opener = opener or urllib2.build_opener()
+        self.https = https
 
-    def set_proxy(self, proxy):
-        self.proxy = proxy
-
-    def make_connection(self, host):
-        self.realhost = host
-        if self.proxy:
-            return xmlrpclib.Transport.make_connection(self, self.proxy)
-        else:
-            return xmlrpclib.Transport.make_connection(self, host)
-
-    def send_request(self, connection, handler, request_body):
-        connection.putrequest("POST", 'http://%s%s' % (self.realhost, handler))
-
-    def send_host(self, connection, host):
-        connection.putheader('Host', self.realhost)
-
-xmlrpclib_transport = ProxiedTransport()
+    def request(self, host, handler, request_body, verbose=0):
+        proto = ('http', 'https')[bool(self.https)]
+        req = urllib2.Request('%s://%s%s' % (proto, host, handler), request_body)
+        req.add_header('User-agent', self.user_agent)
+        req.add_header('Content-Type', 'text/xml')
+        self.verbose = verbose
+        return self.parse_response(self.opener.open(req))
+ 
+class ProxiedTransport(Urllib2Transport):
+    def __init__(self, proxy_handler):
+        opener = proxy_handler and urllib2.build_opener(proxy_handler) or None
+        Urllib2Transport.__init__(self, opener)
 
 
 def build_user_agent():
@@ -336,6 +332,8 @@ class URLOpener(object):
             return None
 
 urlopen = URLOpener()
+
+xmlrpclib_transport = ProxiedTransport(urlopen.proxy_handler)
 
 
 def is_url(name):

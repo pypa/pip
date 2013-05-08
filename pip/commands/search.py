@@ -49,12 +49,9 @@ class SearchCommand(Command):
 
     def search(self, query, index_url):
         trans = pip.download.xmlrpclib_transport
-        if pip.download.urlopen.proxy_handler:
-            if index_url.find('https') == 0:
-                proxy = pip.download.urlopen.proxy_handler.proxies['https']
-            else:
-                proxy = pip.download.urlopen.proxy_handler.proxies['http']
-            trans.set_proxy(proxy)
+        from pip.backwardcompat import urlparse
+        h_type = urlparse.urlparse(index_url).scheme
+        trans.https = h_type == 'https'
         pypi = xmlrpclib.ServerProxy(index_url, trans)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
