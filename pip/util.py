@@ -11,7 +11,7 @@ import subprocess
 import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site)
+                                console_to_str, user_site, PermissionError)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 from pip.vendor.distlib import version
