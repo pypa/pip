@@ -16,8 +16,8 @@ def running_under_virtualenv():
     Return True if we're running inside a virtualenv, False otherwise.
 
     """
-    return hasattr(sys, 'real_prefix')
-
+    return (hasattr(sys, 'real_prefix') or
+            (hasattr(sys, 'base_prefix') and sys.prefix != sys.base_prefix))
 
 def virtualenv_no_global():
     """
