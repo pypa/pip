@@ -352,6 +352,47 @@ Examples
   pepperedform    - Helpers for using peppercorn with formprocess.
   peppercorn      - A library for converting a token stream into [...]
 
+.. _`pip bundle`:
+
+pip bundle
+----------
+
+Usage
+*****
+
+.. pip-command-usage:: bundle
+
+Description
+***********
+
+.. pip-command-description:: bundle
+
+Options
+*******
+
+**bundle Options:**
+
+.. pip-command-options:: bundle
+
+**Other Options:**
+
+* :ref:`Package Index Options <Package Index Options>`
+* :ref:`General Options <General Options>`
+
+Examples
+********
+
+1. Build a bundle for the contents of a requirement file (and all dependencies),
+   and then install
+
+  ::
+
+    $ pip bundle mypkg.pybundle -r requirements_mypkg.txt
+    $ pip install mypkg.pybundle
+
+Note that the package must have the extension `.pybundle` for the install command
+to work.
+
 .. _`pip wheel`:
 
 pip wheel
