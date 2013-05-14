@@ -20,7 +20,7 @@ from pip.exceptions import InstallationError, PipError
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download,
-                      get_decoded_content_from_response)
+                      get_unicode_content)
 from pip.vcs import vcs
 from pip.log import logger
 from pip.locations import default_cert_path
@@ -89,7 +89,7 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urlopen(url)
-            content = get_decoded_content_from_response(resp)
+            content = get_unicode_content(resp.headers, resp.read())
             return geturl(resp), content
     try:
         f = open(url)
