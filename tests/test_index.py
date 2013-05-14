@@ -139,6 +139,7 @@ def test_non_html_page_should_not_be_scraped():
     page = HTMLPage.get_page(Link(url), None, cache=None)
     assert page == None
 
+
 @patch("pip.index.urlopen")
 @patch("pip.util.get_http_message_param")
 def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
@@ -158,3 +159,44 @@ def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
     page = HTMLPage.get_page(Link(fake_url), None, cache=None)
 
     assert page.content == utf16_content.decode('utf-16')
+
+
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_get_page_fallbacks_to_utf8_if_no_charset_is_given(get_http_message_param_mock, urlopen_mock):
+    """
+    Test that pages that have no charset specified in content-type are decoded with utf-8
+    """
+    utf8_content = u'á'.encode('utf-8')
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf8_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html'}
+
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = None # no charset given
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == utf8_content.decode('utf-8')
+
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_get_page_fallbacks_to_latin1_if_utf8_fails(get_http_message_param_mock, urlopen_mock):
+    """
+    Test that pages that have no charset specified in content-type are decoded with utf-8
+    """
+    utf8_content = u'á'.encode('latin-1')
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf8_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html'}
+
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = None # no charset given
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == utf8_content.decode('latin-1')
