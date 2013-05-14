@@ -26,7 +26,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'cache_download', 'unpack_file', 'call_subprocess',
+           'get_unicode_content']
 
 
 def get_prog():
@@ -694,9 +695,8 @@ def is_prerelease(vers):
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
 
 
-def get_decoded_content_from_response(resp):
-    encoding = get_http_message_param(resp.headers, 'charset', None)
-    content = resp.read()
+def get_unicode_content(headers, content):
+    encoding = get_http_message_param(headers, 'charset', None)
     if encoding is None:
         try:
             result = content.decode('utf-8')
