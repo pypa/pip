@@ -19,14 +19,15 @@ except ImportError:
     import dummy_threading as threading
 
 from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
+from pip.util import Inf, normalize_name, splitext, is_prerelease, get_unicode_content
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
     InstallationError
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname,
-                                Empty as QueueEmpty)
+                                Empty as QueueEmpty,
+                                get_http_message_param)
 from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
@@ -541,8 +542,8 @@ class HTMLPage(object):
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
 
-            charset = get_http_message_param(headers, 'charset', 'latin-1')
-            inst = cls(contents.decode(charset), real_url, headers)
+            unicode_content = get_unicode_content(resp.headers, contents)
+            inst = cls(unicode_content, real_url, headers)
 
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]

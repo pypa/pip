@@ -1,3 +1,4 @@
+# coding: utf-8
 import os
 from pip.backwardcompat import urllib, get_http_message_param, u
 from tests.path import Path
@@ -6,7 +7,7 @@ from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIR
 from pip.index import PackageFinder, Link, InfLink
 from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
 from string import ascii_lowercase
-from mock import patch
+from mock import patch, Mock
 
 
 def test_package_name_should_be_converted_to_requirement():
@@ -138,14 +139,22 @@ def test_non_html_page_should_not_be_scraped():
     page = HTMLPage.get_page(Link(url), None, cache=None)
     assert page == None
 
-def test_page_charset_encoded():
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
     """
     Test that pages that have charset specified in content-type are decoded
     """
-    url = 'https://raw.github.com/ptone/pip/07ad7dc5142cbb942118183af9677beaef7e03ff/tests/indexes/encoded/utf16.html'
+    utf16_content = u'á'.encode('utf-16')
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf16_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html; charset=utf-16'}
 
-    page = HTMLPage.get_page(Link(url), None, cache=None)
-    print page.content
-    print type(page.content)
-    print u(page.content)
-    assert u(page.content) == u('helloworld')
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = 'utf-16' # easier to mock charset here
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == utf16_content.decode('utf-16')
