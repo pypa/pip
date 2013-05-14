@@ -10,8 +10,9 @@ import tarfile
 import subprocess
 import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
-from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site, PermissionError)
+from pip.backwardcompat import (WindowsError, string_types, raw_input,
+                                console_to_str, user_site, PermissionError,
+                                get_http_message_param)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 from pip.vendor.distlib import version
@@ -691,3 +692,16 @@ def is_prerelease(vers):
 
     parsed = version.normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
+
+
+def get_decoded_content_from_response(resp):
+    encoding = get_http_message_param(resp.headers, 'charset', None)
+    content = resp.read()
+    if encoding is None:
+        try:
+            result = content.decode('utf-8')
+        except UnicodeDecodeError:
+            result = content.decode('latin-1')
+    else:
+        result = content.decode(encoding)
+    return result
