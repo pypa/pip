@@ -518,6 +518,7 @@ class HTMLPage(object):
                 url = urlparse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s' % url)
 
+            logger.debug('Getting page %s' % url)
             resp = urlopen(url)
             real_url = geturl(resp)
             headers = resp.info()
@@ -532,7 +533,6 @@ class HTMLPage(object):
                     if cache is not None:
                         cache.set_is_archive(url)
                     return None
-            logger.debug('Getting page %s' % url)
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
