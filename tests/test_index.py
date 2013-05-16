@@ -146,7 +146,11 @@ def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
     """
     Test that pages that have charset specified in content-type are decoded
     """
-    utf16_content = u'á'.encode('utf-16')
+    if pyversion >= '3':
+        utf16_content_before = 'á'
+    else:
+        utf16_content_before = 'á'.decode('utf-8')
+    utf16_content = utf16_content_before.encode('utf-16')
     fake_url = 'http://example.com'
     mocked_response = Mock()
     mocked_response.read = lambda: utf16_content
@@ -158,7 +162,7 @@ def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
 
     page = HTMLPage.get_page(Link(fake_url), None, cache=None)
 
-    assert page.content == utf16_content.decode('utf-16')
+    assert page.content == utf16_content_before
 
 
 @patch("pip.index.urlopen")
