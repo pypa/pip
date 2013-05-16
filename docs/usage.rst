@@ -55,7 +55,7 @@ Examples
 
   $ pip install SomePackage            # latest version
   $ pip install SomePackage==1.0.4     # specific version
-  $ pip install SomePackage>=1.0.4     # minimum version
+  $ pip install 'SomePackage>=1.0.4'     # minimum version
 
 
 2) Install a list of requirements specified in a file.  See the :ref:`Cookbook entry on Requirements files <Requirements Files>`.

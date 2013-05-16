@@ -49,16 +49,18 @@ Requirement Specifiers
 pip supports installing from "requirement specifiers" as implemented in
 `pkg_resources Requirements <http://packages.python.org/distribute/pkg_resources.html#requirement-objects>`_
 
-Some Examples::
+Some Examples:
 
-  FooProject >= 1.2
+ ::
+
+  'FooProject >= 1.2'
   Fizzy [foo, bar]
-  PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1
+  'PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1'
   SomethingWhoseVersionIDontCareAbout
 
 .. note::
 
-  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being interpreted as shell redirects. e.g. ``pip install "FooProject>=1.2"``.
+  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being interpreted as shell redirects. e.g. ``pip install 'FooProject>=1.2'``.
 
 .. _`Pre Release Versions`:
 
