@@ -300,7 +300,8 @@ class TestPipEnvironment(TestFileEnvironment):
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
     use_distribute = False
-    setuptools = 'setuptools'
+    # Keep short to undercut windows path length issues
+    setuptools = 's'
     rebuild_venv = True
 
     def __init__(self, environ=None, sitecustomize=None):
@@ -469,7 +470,8 @@ class TestPipEnvironmentD(TestPipEnvironment):
     """A specialized TestFileEnvironment that contains distribute"""
 
     use_distribute = True
-    setuptools = 'distribute'
+    # Keep short to undercut windows path length issues
+    setuptools = 'd'
     rebuild_venv = True
 
 
