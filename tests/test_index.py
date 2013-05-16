@@ -1,6 +1,6 @@
 # coding: utf-8
 import os
-from pip.backwardcompat import urllib, get_http_message_param, u
+from pip.backwardcompat import urllib, get_http_message_param
 from tests.path import Path
 from pip.download import urlopen
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
@@ -167,7 +167,12 @@ def test_get_page_fallbacks_to_utf8_if_no_charset_is_given(get_http_message_para
     """
     Test that pages that have no charset specified in content-type are decoded with utf-8
     """
-    utf8_content = u'á'.encode('utf-8')
+    if pyversion >= '3':
+        utf8_content_before = 'á'
+    else:
+        utf8_content_before = 'á'.decode('utf-8')
+    utf8_content = utf8_content_before.encode('latin-1')
+
     fake_url = 'http://example.com'
     mocked_response = Mock()
     mocked_response.read = lambda: utf8_content
@@ -179,7 +184,7 @@ def test_get_page_fallbacks_to_utf8_if_no_charset_is_given(get_http_message_para
 
     page = HTMLPage.get_page(Link(fake_url), None, cache=None)
 
-    assert page.content == utf8_content.decode('utf-8')
+    assert page.content == utf8_content_before
 
 @patch("pip.index.urlopen")
 @patch("pip.util.get_http_message_param")
@@ -187,10 +192,15 @@ def test_get_page_fallbacks_to_latin1_if_utf8_fails(get_http_message_param_mock,
     """
     Test that pages that have no charset specified in content-type are decoded with utf-8
     """
-    utf8_content = u'á'.encode('latin-1')
+    if pyversion >= '3':
+        latin1_content_before = 'á'
+    else:
+        latin1_content_before = 'á'.decode('utf-8')
+    latin1_content = latin1_content_before.encode('latin-1')
+
     fake_url = 'http://example.com'
     mocked_response = Mock()
-    mocked_response.read = lambda: utf8_content
+    mocked_response.read = lambda: latin1_content
     mocked_response.geturl = lambda: fake_url
     mocked_response.info = lambda: {'Content-Type': 'text/html'}
 
@@ -199,4 +209,4 @@ def test_get_page_fallbacks_to_latin1_if_utf8_fails(get_http_message_param_mock,
 
     page = HTMLPage.get_page(Link(fake_url), None, cache=None)
 
-    assert page.content == utf8_content.decode('latin-1')
+    assert page.content == latin1_content_before

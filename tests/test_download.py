@@ -11,7 +11,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from pip.download import path_to_url2, unpack_http_url
 from pip.index import Link
-from tests.test_pip import reset_env, run_pip, write_file, here
+from tests.test_pip import reset_env, run_pip, write_file, here, pyversion
 from tests.path import Path
 from pip.download import URLOpener
 
@@ -115,7 +115,11 @@ def get_http_message_param_mock(headers, param, default):
 @patch("pip.download.urlopen")
 @patch("pip.util.get_http_message_param", get_http_message_param_mock)
 def test_get_file_content_fallbacks_to_utf8_when_no_charset_exists(urlopen_mock):
-    utf8_content = u'á'.encode('utf-8')
+    if pyversion >= '3':
+        utf8_content_before = 'á'
+    else:
+        utf8_content_before = 'á'.decode('utf-8')
+    utf8_content = utf8_content_before.encode('latin-1')
 
     fake_url = 'http://example.com'
     mocked_response = Mock()
@@ -124,13 +128,17 @@ def test_get_file_content_fallbacks_to_utf8_when_no_charset_exists(urlopen_mock)
     urlopen_mock.return_value = mocked_response
 
     url, content = get_file_content(fake_url)
-    assert content == utf8_content.decode('utf-8')
+    assert content == utf8_content_before
 
 
 @patch("pip.download.urlopen")
 @patch("pip.util.get_http_message_param", get_http_message_param_mock)
 def test_get_file_content_fallbacks_to_latin1_when_no_charset_exists_and_utf8_fails(urlopen_mock):
-    latin1_content = u'á'.encode('latin-1')
+    if pyversion >= '3':
+        latin1_content_before = 'á'
+    else:
+        latin1_content_before = 'á'.decode('utf-8')
+    latin1_content = latin1_content_before.encode('latin-1')
 
     fake_url = 'http://example.com'
     mocked_response = Mock()
@@ -140,4 +148,4 @@ def test_get_file_content_fallbacks_to_latin1_when_no_charset_exists_and_utf8_fa
     urlopen_mock.return_value = mocked_response
 
     url, content = get_file_content(fake_url)
-    assert content == latin1_content.decode('latin-1')
+    assert content == latin1_content_before
