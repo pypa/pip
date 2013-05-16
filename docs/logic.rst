@@ -56,6 +56,9 @@ Some Examples::
   PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1
   SomethingWhoseVersionIDontCareAbout
 
+.. note::
+
+  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being interpreted as shell redirects. e.g. ``pip install "FooProject>=1.2"``.
 
 .. _`Pre Release Versions`:
 
