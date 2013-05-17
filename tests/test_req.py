@@ -23,12 +23,13 @@ class TestRequirementSet(object):
         logger.consumers = []
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self):
+    def basic_reqset(self, skip_reqs={}):
         return RequirementSet(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             download_cache=os.path.join(self.tempdir, 'download_cache'),
+            skip_reqs=skip_reqs
             )
 
     def test_no_reuse_existing_build_dir(self):
@@ -48,3 +49,22 @@ class TestRequirementSet(object):
             finder
             )
 
+    def test_skip_reqs(self):
+        """Test the skip_reqs list works"""
+
+        reqset = self.basic_reqset(skip_reqs={'simple':''})
+        req = InstallRequirement.from_line('simple')
+        reqset.add_requirement(req)
+        assert not reqset.has_requirements
+        finder = PackageFinder([find_links], [])
+        reqset.prepare_files(finder)
+        assert not reqset.has_requirements
+
+    def test_add_requirement_returns_true_false(self):
+        """Test add_requirement returns true of false"""
+
+        req = InstallRequirement.from_line('simple')
+        reqset = self.basic_reqset()
+        assert True == reqset.add_requirement(req)
+        reqset = self.basic_reqset(skip_reqs={'simple':''})
+        assert False == reqset.add_requirement(req)

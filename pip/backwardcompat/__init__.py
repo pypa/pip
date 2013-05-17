@@ -61,6 +61,12 @@ if sys.version_info >= (3,):
     def get_http_message_param(http_message, param, default_value):
         return http_message.get_param(param, default_value)
 
+    install_skip_reqs = {
+        'distribute' : 'Can not install distribute due to bootstrap issues'
+        }
+    wheel_skip_reqs = {
+        'distribute' : 'Can not build wheels for distribute due to bootstrap issues'
+        }
     bytes = bytes
     string_types = (str,)
     raw_input = input
@@ -93,6 +99,8 @@ else:
         result = http_message.getparam(param)
         return result or default_value
 
+    install_skip_reqs = {}
+    wheel_skip_reqs = {}
     bytes = str
     string_types = (basestring,)
     reduce = reduce

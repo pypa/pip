@@ -6,6 +6,7 @@ import sys
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
+from pip.backwardcompat import wheel_skip_reqs
 from pip.exceptions import CommandError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
@@ -107,7 +108,8 @@ class WheelCommand(Command):
             download_dir=None,
             download_cache=options.download_cache,
             ignore_dependencies=options.ignore_dependencies,
-            ignore_installed=True)
+            ignore_installed=True,
+            skip_reqs=wheel_skip_reqs)
 
         #parse args and/or requirements files
         for name in args:
