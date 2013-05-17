@@ -6,6 +6,7 @@ import sys
 from os.path import abspath, join, curdir, pardir
 
 from nose.tools import assert_raises
+from nose import SkipTest
 from mock import patch
 
 from pip.util import rmtree, find_command
@@ -348,7 +349,6 @@ def test_install_from_wheel_with_extras():
     """
     Test installing from a wheel.
     """
-    from nose import SkipTest
     try:
         import ast
     except ImportError:
@@ -650,3 +650,14 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
 
+
+def test_dont_install_distribute_in_py3():
+    """
+    Test we skip distribute in py3
+    """
+    if sys.version_info < (3, 0):
+        raise SkipTest()
+    env = reset_env()
+    result = run_pip('install', 'distribute')
+    assert "Skipping distribute: Can not install distribute due to bootstrap issues" in result.stdout
+    assert not result.files_updated

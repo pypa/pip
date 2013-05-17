@@ -5,6 +5,7 @@ import shutil
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
+from pip.backwardcompat import install_skip_reqs
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
@@ -207,7 +208,8 @@ class InstallCommand(Command):
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
             use_user_site=options.use_user_site,
-            target_dir=temp_target_dir)
+            target_dir=temp_target_dir,
+            skip_reqs=install_skip_reqs)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None, prereleases=options.pre))
