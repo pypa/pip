@@ -10,7 +10,8 @@ import textwrap
 import zipfile
 
 from distutils.util import change_root
-from pip.locations import bin_py, running_under_virtualenv
+from pip.locations import (bin_py, running_under_virtualenv,PIP_DELETE_MARKER_FILENAME,
+                           write_delete_marker_file)
 from pip.exceptions import (InstallationError, UninstallationError,
                             BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
@@ -32,10 +33,6 @@ from pip.download import (get_file_content, is_url, url_to_path,
                           unpack_file_url, unpack_http_url)
 import pip.wheel
 from pip.wheel import move_wheel_files
-
-
-PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
-
 
 class InstallRequirement(object):
 
@@ -801,15 +798,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         return os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)
 
 
-DELETE_MARKER_MESSAGE = '''\
-This file is placed here by pip to indicate the source was put
-here by pip.
-
-Once this package is successfully installed this source code will be
-deleted (unless you remove this file).
-'''
-
-
 class Requirements(object):
 
     def __init__(self):
@@ -1220,7 +1208,7 @@ class RequirementSet(object):
                 self.download_cache = os.path.expanduser(self.download_cache)
             retval = unpack_http_url(link, location, self.download_cache, self.download_dir)
             if only_download:
-                _write_delete_marker_message(os.path.join(location, PIP_DELETE_MARKER_FILENAME))
+                write_delete_marker_file(location)
             return retval
 
     def install(self, install_options, global_options=(), *args, **kwargs):
@@ -1335,13 +1323,7 @@ class RequirementSet(object):
 
 def _make_build_dir(build_dir):
     os.makedirs(build_dir)
-    _write_delete_marker_message(os.path.join(build_dir, PIP_DELETE_MARKER_FILENAME))
-
-
-def _write_delete_marker_message(filepath):
-    marker_fp = open(filepath, 'w')
-    marker_fp.write(DELETE_MARKER_MESSAGE)
-    marker_fp.close()
+    write_delete_marker_file(build_dir)
 
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
