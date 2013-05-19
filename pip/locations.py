@@ -11,6 +11,25 @@ import pip.exceptions
 
 default_cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
 
+DELETE_MARKER_MESSAGE = '''\
+This file is placed here by pip to indicate the source was put
+here by pip.
+
+Once this package is successfully installed this source code will be
+deleted (unless you remove this file).
+'''
+PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
+
+def write_delete_marker_file(directory):
+    """
+    Write the pip delete marker file into this directory.
+    """
+    filepath = os.path.join(directory, PIP_DELETE_MARKER_FILENAME)
+    marker_fp = open(filepath, 'w')
+    marker_fp.write(DELETE_MARKER_MESSAGE)
+    marker_fp.close()
+
+
 def running_under_virtualenv():
     """
     Return True if we're running inside a virtualenv, False otherwise.
@@ -38,6 +57,7 @@ def _get_build_prefix():
         return path
     try:
         os.mkdir(path)
+        write_delete_marker_file(path)
     except OSError:
         file_uid = None
         try:
