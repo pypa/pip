@@ -1,11 +1,13 @@
+# coding: utf-8
 import os
-from pip.backwardcompat import urllib
+from pip.backwardcompat import urllib, get_http_message_param
 from tests.path import Path
+from pip.download import urlopen
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from pip.index import PackageFinder, Link, InfLink
 from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
 from string import ascii_lowercase
-from mock import patch
+from mock import patch, Mock
 
 
 def test_package_name_should_be_converted_to_requirement():
@@ -126,4 +128,89 @@ def test_mirror_url_formats():
             assert url == result, str([url, result])
 
 
+def test_non_html_page_should_not_be_scraped():
+    """
+    Test that a url whose content-type is not text/html
+    will never be scraped as an html page.
+    """
+    # Content-type is already set
+    # no need to monkeypatch on response headers
+    url = path_to_url(os.path.join(here, 'indexes', 'empty_with_pkg', 'simple-1.0.tar.gz'))
+    page = HTMLPage.get_page(Link(url), None, cache=None)
+    assert page == None
 
+
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_page_charset_encoded(get_http_message_param_mock, urlopen_mock):
+    """
+    Test that pages that have charset specified in content-type are decoded
+    """
+    if pyversion >= '3':
+        utf16_content_before = 'á'
+    else:
+        utf16_content_before = 'á'.decode('utf-8')
+    utf16_content = utf16_content_before.encode('utf-16')
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf16_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html; charset=utf-16'}
+
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = 'utf-16' # easier to mock charset here
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == utf16_content_before
+
+
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_get_page_fallbacks_to_utf8_if_no_charset_is_given(get_http_message_param_mock, urlopen_mock):
+    """
+    Test that pages that have no charset specified in content-type are decoded with utf-8
+    """
+    if pyversion >= '3':
+        utf8_content_before = 'á'
+    else:
+        utf8_content_before = 'á'.decode('utf-8')
+    utf8_content = utf8_content_before.encode('latin-1')
+
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf8_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html'}
+
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = None # no charset given
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == utf8_content_before
+
+@patch("pip.index.urlopen")
+@patch("pip.util.get_http_message_param")
+def test_get_page_fallbacks_to_latin1_if_utf8_fails(get_http_message_param_mock, urlopen_mock):
+    """
+    Test that pages that have no charset specified in content-type are decoded with utf-8
+    """
+    if pyversion >= '3':
+        latin1_content_before = 'á'
+    else:
+        latin1_content_before = 'á'.decode('utf-8')
+    latin1_content = latin1_content_before.encode('latin-1')
+
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: latin1_content
+    mocked_response.geturl = lambda: fake_url
+    mocked_response.info = lambda: {'Content-Type': 'text/html'}
+
+    urlopen_mock.return_value = mocked_response
+    get_http_message_param_mock.return_value = None # no charset given
+
+    page = HTMLPage.get_page(Link(fake_url), None, cache=None)
+
+    assert page.content == latin1_content_before

@@ -10,8 +10,9 @@ import tarfile
 import subprocess
 import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
-from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site, PermissionError)
+from pip.backwardcompat import (WindowsError, string_types, raw_input,
+                                console_to_str, user_site, PermissionError,
+                                get_http_message_param)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 from pip.vendor.distlib import version
@@ -25,7 +26,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'cache_download', 'unpack_file', 'call_subprocess',
+           'get_unicode_content']
 
 
 def get_prog():
@@ -691,3 +693,15 @@ def is_prerelease(vers):
 
     parsed = version.normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
+
+
+def get_unicode_content(headers, content):
+    encoding = get_http_message_param(headers, 'charset', None)
+    if encoding is None:
+        try:
+            result = content.decode('utf-8')
+        except UnicodeDecodeError:
+            result = content.decode('latin-1')
+    else:
+        result = content.decode(encoding)
+    return result

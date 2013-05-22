@@ -19,14 +19,15 @@ except ImportError:
     import dummy_threading as threading
 
 from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
+from pip.util import Inf, normalize_name, splitext, is_prerelease, get_unicode_content
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
     InstallationError
 from pip.backwardcompat import (WindowsError, BytesIO,
                                 Queue, urlparse,
                                 URLError, HTTPError, u,
                                 product, url2pathname,
-                                Empty as QueueEmpty)
+                                Empty as QueueEmpty,
+                                get_http_message_param)
 from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
@@ -492,7 +493,7 @@ class HTMLPage(object):
     def get_page(cls, link, req, cache=None, skip_archives=True):
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
+        if cache is not None and cache.too_many_failures(url):
             return None
 
         # Check for VCS schemes that do not support lookup as web pages.
@@ -507,22 +508,6 @@ class HTMLPage(object):
             if inst is not None:
                 return inst
         try:
-            if skip_archives:
-                if cache is not None:
-                    if cache.is_archive(url):
-                        return None
-                filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url)
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
-            logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
@@ -533,10 +518,21 @@ class HTMLPage(object):
                 url = urlparse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s' % url)
 
+            logger.debug('Getting page %s' % url)
             resp = urlopen(url)
-
             real_url = geturl(resp)
             headers = resp.info()
+            content_type = headers.get('Content-Type', '')
+            if skip_archives:
+                if cache is not None:
+                    if cache.is_archive(url):
+                        return None
+                if not (content_type.lower().startswith('text/html') or
+                        content_type.lower().startswith('text/plain')):
+                    logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                    if cache is not None:
+                        cache.set_is_archive(url)
+                    return None
             contents = resp.read()
             encoding = headers.get('Content-Encoding', None)
             #XXX need to handle exceptions and add testing for this
@@ -545,7 +541,10 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
-            inst = cls(u(contents), real_url, headers)
+
+            unicode_content = get_unicode_content(resp.headers, contents)
+            inst = cls(unicode_content, real_url, headers)
+
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -580,24 +579,6 @@ class HTMLPage(object):
         if cache is not None:
             cache.add_page([url, real_url], inst)
         return inst
-
-    @staticmethod
-    def _get_content_type(url):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
-            return ''
-        req = Urllib2HeadRequest(url, headers={'Host': netloc})
-        resp = urlopen(req)
-        try:
-            if hasattr(resp, 'code') and resp.code != 200 and scheme not in ('ftp', 'ftps'):
-                ## FIXME: doesn't handle redirects
-                return ''
-            return resp.info().get('content-type', '')
-        finally:
-            resp.close()
 
     @property
     def base_url(self):

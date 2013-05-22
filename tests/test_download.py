@@ -1,15 +1,17 @@
+# coding: utf-8
 import os
 import textwrap
 
 import pip
 
 from pip.download import _get_response_from_url as _get_response_from_url_original
-from mock import patch
+from pip.download import get_file_content
+from mock import patch, Mock
 from shutil import rmtree
 from tempfile import mkdtemp
 from pip.download import path_to_url2, unpack_http_url
 from pip.index import Link
-from tests.test_pip import reset_env, run_pip, write_file, here
+from tests.test_pip import reset_env, run_pip, write_file, here, pyversion
 from tests.path import Path
 from pip.download import URLOpener
 
@@ -104,3 +106,46 @@ def test_user_agent():
     opener = URLOpener().get_opener()
     user_agent = [x for x in opener.addheaders if x[0].lower() == "user-agent"][0]
     assert user_agent[1].startswith("pip/%s" % pip.__version__)
+
+
+def get_http_message_param_mock(headers, param, default):
+    return default
+
+
+@patch("pip.download.urlopen")
+@patch("pip.util.get_http_message_param", get_http_message_param_mock)
+def test_get_file_content_fallbacks_to_utf8_when_no_charset_exists(urlopen_mock):
+    if pyversion >= '3':
+        utf8_content_before = 'á'
+    else:
+        utf8_content_before = 'á'.decode('utf-8')
+    utf8_content = utf8_content_before.encode('latin-1')
+
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: utf8_content
+    mocked_response.geturl = lambda: fake_url
+    urlopen_mock.return_value = mocked_response
+
+    url, content = get_file_content(fake_url)
+    assert content == utf8_content_before
+
+
+@patch("pip.download.urlopen")
+@patch("pip.util.get_http_message_param", get_http_message_param_mock)
+def test_get_file_content_fallbacks_to_latin1_when_no_charset_exists_and_utf8_fails(urlopen_mock):
+    if pyversion >= '3':
+        latin1_content_before = 'á'
+    else:
+        latin1_content_before = 'á'.decode('utf-8')
+    latin1_content = latin1_content_before.encode('latin-1')
+
+    fake_url = 'http://example.com'
+    mocked_response = Mock()
+    mocked_response.read = lambda: latin1_content
+    mocked_response.geturl = lambda: fake_url
+
+    urlopen_mock.return_value = mocked_response
+
+    url, content = get_file_content(fake_url)
+    assert content == latin1_content_before
