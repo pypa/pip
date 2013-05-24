@@ -140,15 +140,16 @@ class WheelCommand(Command):
             requirement_set.prepare_files(finder)
             return
 
-        #build wheels
-        wb = WheelBuilder(
-            requirement_set,
-            finder,
-            options.wheel_dir,
-            build_options = options.build_options or [],
-            global_options = options.global_options or []
-            )
-        wb.build()
-
-        requirement_set.cleanup_files()
+        try:
+            #build wheels
+            wb = WheelBuilder(
+                requirement_set,
+                finder,
+                options.wheel_dir,
+                build_options = options.build_options or [],
+                global_options = options.global_options or []
+                )
+            wb.build()
+        finally:
+            requirement_set.cleanup_files()
 
