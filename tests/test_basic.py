@@ -375,9 +375,9 @@ def test_install_from_wheel_file():
     env = reset_env(use_distribute=True)
     package = abspath(join(here,
                            'packages',
-                           'simple.dist-0.1-py2.py3-none-any.whl'))
+                           'headers.dist-0.1-py2.py3-none-any.whl'))
     result = run_pip('install', package, '--no-index', expect_error=False)
-    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    dist_info_folder = env.site_packages/'headers.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
