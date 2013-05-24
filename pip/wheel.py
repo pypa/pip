@@ -121,6 +121,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
             changed.add(destfile)
 
     def clobber(source, dest, is_base, fixer=None):
+        if not os.path.exists(dest): # common for the 'include' path
+            os.makedirs(dest)
+
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
