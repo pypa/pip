@@ -51,12 +51,6 @@ class WheelCommand(Command):
             help="Build wheels into <dir>, where the default is '<cwd>/wheelhouse'.")
         cmd_opts.add_option(cmdoptions.use_wheel)
         cmd_opts.add_option(
-            '--unpack-only',
-            dest='unpack_only',
-            action='store_true',
-            default=False,
-            help="Only unpack packages into the build dir. Don't build wheels.")
-        cmd_opts.add_option(
             '--build-option',
             dest='build_options',
             metavar='options',
@@ -132,12 +126,6 @@ class WheelCommand(Command):
             msg = ('You must give at least one requirement '
                    'to %(name)s (see "pip help %(name)s")' % opts)
             logger.error(msg)
-            return
-
-        #if unpack-only, just prepare and return
-        #'pip wheel' probably shouldn't be offering this? 'pip unpack'?
-        if options.unpack_only:
-            requirement_set.prepare_files(finder)
             return
 
         try:

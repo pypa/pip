@@ -121,19 +121,6 @@ class TestPipWheel:
         assert ignore_editable in result.stdout, result.stdout
 
 
-    def test_pip_wheel_unpack_only(self):
-        """
-        Test 'pip wheel' unpack only.
-        """
-        env = reset_env(use_distribute=True)
-        run_pip('install', 'wheel')
-        result = run_pip('wheel', '--unpack-only', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
-        wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
-        wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
-        assert wheel_file_path not in result.files_created, (wheel_file_path, result.files_created)
-        assert env.venv/'build'/'simple'/'setup.py' in result.files_created, result.files_created
-
-
 class TestWheelSupported(object):
 
     def raise_not_found(self, dist):
