@@ -127,9 +127,10 @@ inside the package.
 
 Rather than representing all possible compatibility information in the
 wheel itself, the wheel design suggests distribution-specific build
-services. This is the same solution taken by Linux distributions which
-all re-compile their own packages instead of installing each other's
-binary packages.
+services (e.g. a separate index for Fedora Linux binary wheels, compiled
+by the index maintainer). This is the same solution taken by Linux 
+distributions which all re-compile their own packages instead of installing 
+each other's binary packages.
 
 Some kinds of precompiled C extension modules can make sense on PyPI, even
 for Linux. Good examples include things that can be sensibly statically
@@ -144,7 +145,9 @@ On Windows the case for binary wheels on pypi is stronger both because
 Windows machines are much more uniform than Linux and because it's harder
 for the end user to compile their own. Windows-compatible wheels uploaded
 to pypi should be compatible with the Python distributions downloaded
-from http://python.org/.
+from http://python.org/.  If you already upload other binary formats to
+pypi, upload wheels as well.  Unlike the older formats, wheels are
+compatible with virtual environments.
 
 .. _Setuptools: http://pypi.python.org/pypi/setuptools/
 .. _Distribute: http://pypi.python.org/pypi/distribute/
