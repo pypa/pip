@@ -489,6 +489,9 @@ def run_pip(*args, **kw):
         del result.files_updated[path]
     return result
 
+def pip_install_local(*args, **kw):
+    """Run 'pip install' using --find-links against our local test packages"""
+    run_pip('install', '--no-index', '--find-links=%s' % find_links, *args, **kw)
 
 def write_file(filename, text, dest=None):
     """Write a file in the dest (default=env.scratch_path)

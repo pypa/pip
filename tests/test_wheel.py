@@ -12,7 +12,7 @@ from pip.index import PackageFinder
 from pip import wheel
 from pip.download import path_to_url as path_to_url_d
 from tests.test_pip import (here, reset_env, run_pip, pyversion_nodot, write_file,
-                            path_to_url, assert_raises_regexp, find_links)
+                            path_to_url, assert_raises_regexp, find_links, pip_install_local)
 
 
 
@@ -61,7 +61,7 @@ class TestPipWheel:
             # virtualenv installs distribute in py3
             raise SkipTest()
         env = reset_env(use_distribute=False)
-        run_pip('install', 'wheel')
+        pip_install_local('wheel')
         result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
         assert "'pip wheel' requires %s" % wheel.distribute_requirement in result.stdout, result.stdout
 
@@ -70,7 +70,7 @@ class TestPipWheel:
         Test 'pip wheel' success.
         """
         env = reset_env(use_distribute=True)
-        run_pip('install', 'wheel')
+        pip_install_local('wheel')
         result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -83,7 +83,7 @@ class TestPipWheel:
         Test 'pip wheel' failure.
         """
         env = reset_env(use_distribute=True)
-        run_pip('install', 'wheel')
+        pip_install_local('wheel')
         result = run_pip('wheel', '--no-index', '-f', find_links, 'wheelbroken==0.1')
         wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
@@ -97,7 +97,7 @@ class TestPipWheel:
         Test 'pip wheel' ignores editables and *.whl files in requirements
         """
         env = reset_env(use_distribute=True)
-        run_pip('install', 'wheel')
+        pip_install_local('wheel')
 
         local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % find_links
         local_editable = os.path.abspath(os.path.join(here, 'packages', 'FSPkg'))

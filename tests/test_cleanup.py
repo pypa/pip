@@ -1,7 +1,7 @@
 import os
 import textwrap
 from os.path import abspath, exists, join
-from tests.test_pip import (here, reset_env, run_pip,
+from tests.test_pip import (here, reset_env, run_pip, pip_install_local,
                             write_file, mkdir, path_to_url, find_links)
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -34,7 +34,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel():
     Test --no-clean option blocks cleaning after wheel build
     """
     env = reset_env(use_distribute=True)
-    run_pip('install', 'wheel')
+    pip_install_local('wheel')
     result = run_pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
     build = env.venv_path/'build'/'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)

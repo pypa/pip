@@ -12,7 +12,7 @@ from mock import patch
 from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
 
-from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
+from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir, pip_install_local,
                             src_folder, write_file, path_to_url, find_links)
 from tests.local_repos import local_checkout
 from tests.path import Path
@@ -551,7 +551,7 @@ def test_install_wheel_with_target():
     Test installing a wheel using pip install --target
     """
     env = reset_env(use_distribute=True)
-    run_pip('install', 'wheel')
+    pip_install_local('wheel')
     target_dir = env.scratch_path/'target'
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
                      '--no-index', '--find-links='+find_links)
