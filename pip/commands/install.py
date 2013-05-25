@@ -145,11 +145,7 @@ class InstallCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
-        cmd_opts.add_option(
-            '--no-clean',
-            action='store_true',
-            default=False,
-            help="Don't delete build directories after installs or errors.")
+        cmd_opts.add_option(cmdoptions.no_clean)
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 

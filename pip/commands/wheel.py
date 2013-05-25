@@ -69,6 +69,8 @@ class WheelCommand(Command):
             help="Extra global options to be supplied to the setup.py "
             "call before the 'bdist_wheel' command.")
 
+        cmd_opts.add_option(cmdoptions.no_clean)
+
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -139,5 +141,6 @@ class WheelCommand(Command):
                 )
             wb.build()
         finally:
-            requirement_set.cleanup_files()
+            if not options.no_clean:
+                requirement_set.cleanup_files()
 

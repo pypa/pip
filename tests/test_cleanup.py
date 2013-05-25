@@ -20,14 +20,26 @@ def test_cleanup_after_install():
     assert not exists(src), "unexpected src/ dir exists: %s" % src
     env.assert_no_temp()
 
-def test_no_clean_option_blocks_cleaning():
+def test_no_clean_option_blocks_cleaning_after_install():
     """
-    Test --no-clean option blocks cleaning.
+    Test --no-clean option blocks cleaning after install
     """
     env = reset_env()
     result = run_pip('install', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
     build = env.venv_path/'build'/'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
+
+
+def test_no_clean_option_blocks_cleaning_after_wheel():
+    """
+    Test --no-clean option blocks cleaning after wheel build
+    """
+    env = reset_env(use_distribute=True)
+    run_pip('install', 'wheel')
+    result = run_pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
+    build = env.venv_path/'build'/'simple'
+    assert exists(build), "build/simple should still exist %s" % str(result)
+
 
 def test_cleanup_after_install_editable_from_hg():
     """
