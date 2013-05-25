@@ -12,10 +12,9 @@ from pip.index import PackageFinder
 from pip import wheel
 from pip.download import path_to_url as path_to_url_d
 from tests.test_pip import (here, reset_env, run_pip, pyversion_nodot, write_file,
-                            path_to_url, assert_raises_regexp)
+                            path_to_url, assert_raises_regexp, find_links)
 
 
-FIND_LINKS = path_to_url(os.path.join(here, 'packages'))
 
 def test_uninstallation_paths():
     class dist(object):
@@ -51,7 +50,7 @@ class TestPipWheel:
         Test 'pip wheel' fails without wheel
         """
         env = reset_env(use_distribute=True)
-        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0', expect_error=True)
+        result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
         assert "'pip wheel' requires bdist_wheel" in result.stdout
 
     def test_pip_wheel_setuptools_fails(self):
@@ -63,7 +62,7 @@ class TestPipWheel:
             raise SkipTest()
         env = reset_env(use_distribute=False)
         run_pip('install', 'wheel')
-        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0', expect_error=True)
+        result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
         assert "'pip wheel' requires %s" % wheel.distribute_requirement in result.stdout, result.stdout
 
     def test_pip_wheel_success(self):
@@ -72,7 +71,7 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'simple==3.0')
+        result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
         assert wheel_file_path in result.files_created, result.stdout
@@ -85,7 +84,7 @@ class TestPipWheel:
         """
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
-        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, 'wheelbroken==0.1')
+        result = run_pip('wheel', '--no-index', '-f', find_links, 'wheelbroken==0.1')
         wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
         assert wheel_file_path not in result.files_created, (wheel_file_path, result.files_created)
@@ -100,14 +99,14 @@ class TestPipWheel:
         env = reset_env(use_distribute=True)
         run_pip('install', 'wheel')
 
-        local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % FIND_LINKS
+        local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % find_links
         local_editable = os.path.abspath(os.path.join(here, 'packages', 'FSPkg'))
         write_file('reqs.txt', textwrap.dedent("""\
             %s
             -e %s
             simple
             """ % (local_wheel, local_editable)))
-        result = run_pip('wheel', '--no-index', '-f', FIND_LINKS, '-r', env.scratch_path / 'reqs.txt')
+        result = run_pip('wheel', '--no-index', '-f', find_links, '-r', env.scratch_path / 'reqs.txt')
         wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
         wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
         assert wheel_file_path in result.files_created, (wheel_file_path, result.files_created)

@@ -13,7 +13,7 @@ from pip.util import rmtree, find_command
 from pip.exceptions import BadCommand
 
 from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file, path_to_url)
+                            src_folder, write_file, path_to_url, find_links)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -335,7 +335,6 @@ def test_install_from_wheel():
     Test installing from a wheel.
     """
     env = reset_env(use_distribute=True)
-    find_links = 'file://'+abspath(join(here, 'packages'))
     result = run_pip('install', 'simple.dist', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
                      expect_error=False)
@@ -354,7 +353,6 @@ def test_install_from_wheel_with_extras():
     except ImportError:
         raise SkipTest("Need ast module to interpret wheel extras")
     env = reset_env(use_distribute=True)
-    find_links = 'file://'+abspath(join(here, 'packages'))
     result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
                      expect_error=False)
@@ -555,7 +553,6 @@ def test_install_wheel_with_target():
     env = reset_env(use_distribute=True)
     run_pip('install', 'wheel')
     target_dir = env.scratch_path/'target'
-    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
                      '--no-index', '--find-links='+find_links)
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
@@ -567,7 +564,6 @@ def test_install_package_with_root():
     """
     env = reset_env()
     root_dir = env.scratch_path/'root'
-    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', '--root', root_dir, '-f', find_links, '--no-index', 'simple==1.0')
     normal_install_path = env.root_path / env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
     #use distutils to change the root exactly how the --root option does it

@@ -3,7 +3,7 @@ from pip.backwardcompat import urllib
 from tests.path import Path
 from pip.index import package_to_requirement, HTMLPage, get_mirrors, DEFAULT_MIRROR_HOSTNAME
 from pip.index import PackageFinder, Link, InfLink
-from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url
+from tests.test_pip import reset_env, run_pip, pyversion, here, path_to_url, find_links
 from string import ascii_lowercase
 from mock import patch
 
@@ -63,11 +63,9 @@ def test_sort_locations_file_find_link():
     """
     Test that a file:// find-link dir gets listdir run
     """
-    find_links_url = path_to_url(os.path.join(here, 'packages'))
-    find_links = [find_links_url]
-    finder = PackageFinder(find_links, [])
-    files, urls = finder._sort_locations(find_links)
-    assert files and not urls, "files and not urls should have been found at find-links url: %s" % find_links_url
+    finder = PackageFinder([find_links], [])
+    files, urls = finder._sort_locations([find_links])
+    assert files and not urls, "files and not urls should have been found at find-links url: %s" % find_links
 
 
 def test_sort_locations_file_not_find_link():

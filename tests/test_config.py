@@ -1,7 +1,8 @@
 import os
 import tempfile
 import textwrap
-from tests.test_pip import reset_env, run_pip, clear_environ, write_file, path_to_url, here
+from tests.test_pip import (reset_env, run_pip, clear_environ, write_file, path_to_url,
+                            here, find_links)
 
 
 def test_options_from_env_vars():
@@ -79,7 +80,6 @@ def test_command_line_append_flags():
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
     reset_env(environ)
-    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', '-vvv', '--find-links', find_links, 'INITools', expect_error=True)
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
     assert "Skipping link %s" % find_links in result.stdout
@@ -91,7 +91,6 @@ def test_command_line_appends_correctly():
 
     """
     environ = clear_environ(os.environ.copy())
-    find_links = path_to_url(os.path.join(here, 'packages'))
     environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com %s' % find_links
     reset_env(environ)
     result = run_pip('install', '-vvv', 'INITools', expect_error=True)

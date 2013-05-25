@@ -2,11 +2,10 @@ import os
 import textwrap
 from os.path import abspath, exists, join
 from tests.test_pip import (here, reset_env, run_pip,
-                            write_file, mkdir, path_to_url)
+                            write_file, mkdir, path_to_url, find_links)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
-find_links = path_to_url(os.path.join(here, 'packages'))
 
 def test_cleanup_after_install():
     """

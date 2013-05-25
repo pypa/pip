@@ -1,10 +1,10 @@
 import os
 import re
 import textwrap
-from tests.test_pip import pyversion, reset_env, run_pip, write_file, path_to_url, here
+from tests.test_pip import (pyversion, reset_env, run_pip, write_file, path_to_url,
+                            here, find_links)
 from tests.local_repos import local_checkout
 
-find_links = path_to_url(os.path.join(here, 'packages'))
 
 def test_list_command():
     """

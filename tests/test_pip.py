@@ -40,6 +40,8 @@ def path_to_url(path):
         return 'file:///' + drive + url
     return 'file://' +url
 
+find_links = path_to_url(os.path.join(here, 'packages'))
+find_links2 = path_to_url(os.path.join(here, 'packages2'))
 
 def demand_dirs(path):
     if not os.path.exists(path):

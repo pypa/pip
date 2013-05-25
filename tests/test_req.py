@@ -7,10 +7,8 @@ from pip.exceptions import PreviousBuildDirError
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import InstallRequirement, RequirementSet
-from tests.test_pip import here, path_to_url, assert_raises_regexp
+from tests.test_pip import here, path_to_url, assert_raises_regexp, find_links
 
-
-find_links = path_to_url(os.path.join(here, 'packages'))
 
 class TestRequirementSet(object):
     """RequirementSet tests"""

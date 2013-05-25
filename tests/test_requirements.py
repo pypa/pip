@@ -4,7 +4,8 @@ from nose.tools import assert_equal, assert_raises
 from mock import patch
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
-from tests.test_pip import reset_env, run_pip, write_file, pyversion, here, path_to_url
+from tests.test_pip import (reset_env, run_pip, write_file, pyversion, here,
+                            path_to_url, find_links)
 from tests.local_repos import local_checkout
 from tests.path import Path
 
@@ -93,7 +94,6 @@ def test_respect_order_in_requirements_file():
         simple
         """))
 
-    find_links = 'file://' + os.path.join(here, 'packages')
     result = run_pip('install', '--no-index', '-f', find_links, '-r', env.scratch_path / 'frameworks-req.txt')
 
     downloaded = [line for line in result.stdout.split('\n')
@@ -203,7 +203,6 @@ def test_url_req_case_mismatch():
     'requiresupper' has install_requires = ['upper']
     """
     env = reset_env()
-    find_links = 'file://' + os.path.join(here, 'packages')
     Upper = os.path.join(find_links, 'Upper-1.0.tar.gz')
     result = run_pip('install', '--no-index', '-f', find_links, Upper, 'requiresupper')
 

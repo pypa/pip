@@ -4,7 +4,7 @@ from os.path import join
 from nose.tools import nottest
 from tests.test_pip import (here, reset_env, run_pip, assert_all_changes,
                             write_file, pyversion, _create_test_package,
-                            _change_test_package_version, path_to_url)
+                            _change_test_package_version, path_to_url, find_links)
 from tests.local_repos import local_checkout
 
 
@@ -50,7 +50,6 @@ def test_upgrade_with_newest_already_installed():
     not be reinstalled and the user should be informed.
     """
 
-    find_links = path_to_url(os.path.join(here, 'packages'))
     env = reset_env()
     run_pip('install', '-f', find_links, '--no-index', 'simple')
     result =  run_pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
@@ -145,7 +144,6 @@ def test_uninstall_rollback():
 
     """
     env = reset_env()
-    find_links = path_to_url(os.path.join(here, 'packages'))
     result = run_pip('install', '-f', find_links, '--no-index', 'broken==0.1')
     assert env.site_packages / 'broken.py' in result.files_created, list(result.files_created.keys())
     result2 = run_pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)

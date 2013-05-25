@@ -6,12 +6,9 @@ from pip.index import PackageFinder, Link
 from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.util import Inf
 from tests.path import Path
-from tests.test_pip import here, path_to_url
+from tests.test_pip import here, path_to_url, find_links, find_links2
 from nose.tools import assert_raises
 from mock import Mock, patch
-
-find_links = path_to_url(os.path.join(here, 'packages'))
-find_links2 = path_to_url(os.path.join(here, 'packages2'))
 
 
 def test_no_mpkg():
@@ -83,10 +80,8 @@ def test_not_find_wheel_not_supported():
     """
     Test not finding an unsupported wheel.
     """
-    find_links_url = 'file://' + os.path.join(here, 'packages')
-    find_links = [find_links_url]
     req = InstallRequirement.from_line("simple.dist")
-    finder = PackageFinder(find_links, [], use_wheel=True)
+    finder = PackageFinder([find_links], [], use_wheel=True)
     assert_raises(DistributionNotFound, finder.find_requirement, req, True)
 
 
@@ -95,10 +90,8 @@ def test_find_wheel_supported():
     """
     Test finding supported wheel.
     """
-    find_links_url = 'file://' + os.path.join(here, 'packages')
-    find_links = [find_links_url]
     req = InstallRequirement.from_line("simple.dist")
-    finder = PackageFinder(find_links, [], use_wheel=True)
+    finder = PackageFinder([find_links], [], use_wheel=True)
     found = finder.find_requirement(req, True)
     assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
 
