@@ -119,6 +119,12 @@ global_options = make_option(
     help="Extra global options to be supplied to the setup.py "
     "call before the install command.")
 
+no_clean = make_option(
+    '--no-clean',
+    action='store_true',
+    default=False,
+    help="Don't clean up build directories.")
+
 
 ##########
 # groups #
