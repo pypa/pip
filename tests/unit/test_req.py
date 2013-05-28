@@ -2,11 +2,13 @@ import os
 import shutil
 import tempfile
 
-from mock import Mock
+from mock import Mock, patch
+from nose.tools import assert_equal, assert_raises
 from pip.exceptions import PreviousBuildDirError
 from pip.index import PackageFinder
 from pip.log import logger
-from pip.req import InstallRequirement, RequirementSet
+from pip.req import (InstallRequirement, RequirementSet, parse_editable,
+                     Requirements, parse_requirements)
 from tests.lib import path_to_url, assert_raises_regexp, find_links
 
 
@@ -66,3 +68,100 @@ class TestRequirementSet(object):
         assert True == reqset.add_requirement(req)
         reqset = self.basic_reqset(skip_reqs={'simple':''})
         assert False == reqset.add_requirement(req)
+
+
+def test_url_with_query():
+    """InstallRequirement should strip the fragment, but not the query."""
+    url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+    fragment = '#egg=bar'
+    req = InstallRequirement.from_line(url + fragment)
+
+    assert req.url == url, req.url
+
+
+def test_requirements_data_structure_keeps_order():
+    requirements = Requirements()
+    requirements['pip'] = 'pip'
+    requirements['nose'] = 'nose'
+    requirements['coverage'] = 'coverage'
+
+    assert ['pip', 'nose', 'coverage'] == list(requirements.values())
+    assert ['pip', 'nose', 'coverage'] == list(requirements.keys())
+
+
+def test_requirements_data_structure_implements__repr__():
+    requirements = Requirements()
+    requirements['pip'] = 'pip'
+    requirements['nose'] = 'nose'
+
+    assert "Requirements({'pip': 'pip', 'nose': 'nose'})" == repr(requirements)
+
+
+def test_requirements_data_structure_implements__contains__():
+    requirements = Requirements()
+    requirements['pip'] = 'pip'
+
+    assert 'pip' in requirements
+    assert 'nose' not in requirements
+
+@patch('os.path.normcase')
+@patch('pip.req.os.getcwd')
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    # mocks needed to support path operations on windows tests
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    assert_equal(
+        parse_editable('.', 'git'),
+        (None, 'file:///some/path', None)
+    )
+    normcase_mock.return_value = "/some/path/foo"
+    assert_equal(
+        parse_editable('foo', 'git'),
+        (None, 'file:///some/path/foo', None)
+    )
+
+def test_parse_editable_default_vcs():
+    assert_equal(
+        parse_editable('https://foo#egg=foo', 'git'),
+        ('foo', 'git+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_explicit_vcs():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo', 'git'),
+        ('foo', 'svn+https://foo#egg=foo', None)
+    )
+
+def test_parse_editable_vcs_extras():
+    assert_equal(
+        parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
+        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
+    )
+
+@patch('os.path.normcase')
+@patch('pip.req.os.getcwd')
+@patch('pip.req.os.path.exists')
+@patch('pip.req.os.path.isdir')
+def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+    exists_mock.return_value = isdir_mock.return_value = True
+    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    assert_equal(
+        parse_editable('.[extras]', 'git'),
+        (None, 'file://' + "/some/path", ('extras',))
+    )
+    normcase_mock.return_value = "/some/path/foo"
+    assert_equal(
+        parse_editable('foo[bar,baz]', 'git'),
+        (None, 'file:///some/path/foo', ('bar', 'baz'))
+    )
+
+def test_remote_reqs_parse():
+    """
+    Test parsing a simple remote requirements file
+    """
+    # this requirements file just contains a comment
+    # previously this has failed in py3 (https://github.com/pypa/pip/issues/760)
+    for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
+        pass

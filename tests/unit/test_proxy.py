@@ -28,7 +28,6 @@ def test_correct_pip_version():
     Check we are importing pip from the right place.
 
     """
-    base = os.path.dirname(tests_data)
     assert pip.__file__.startswith(src_folder), pip.__file__
 
 

@@ -29,14 +29,6 @@ def test_requirements_file():
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[env.site_packages/fn].dir
 
-def test_remote_reqs_parse():
-    """
-    Test parsing a simple remote requirements file
-    """
-    # this requirements file just contains a comment
-    # previously this has failed in py3 (https://github.com/pypa/pip/issues/760)
-    for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
-        pass
 
 def test_schema_check_in_requirements_file():
     """
@@ -107,83 +99,6 @@ def test_respect_order_in_requirements_file():
             'be "simple" but was "%s"' % downloaded[2]
 
 
-def test_requirements_data_structure_keeps_order():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-    requirements['coverage'] = 'coverage'
-
-    assert ['pip', 'nose', 'coverage'] == list(requirements.values())
-    assert ['pip', 'nose', 'coverage'] == list(requirements.keys())
-
-
-def test_requirements_data_structure_implements__repr__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-
-    assert "Requirements({'pip': 'pip', 'nose': 'nose'})" == repr(requirements)
-
-
-def test_requirements_data_structure_implements__contains__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-
-    assert 'pip' in requirements
-    assert 'nose' not in requirements
-
-@patch('os.path.normcase')
-@patch('pip.req.os.getcwd')
-@patch('pip.req.os.path.exists')
-@patch('pip.req.os.path.isdir')
-def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
-    exists_mock.return_value = isdir_mock.return_value = True
-    # mocks needed to support path operations on windows tests
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert_equal(
-        parse_editable('.', 'git'),
-        (None, 'file:///some/path', None)
-    )
-    normcase_mock.return_value = "/some/path/foo"
-    assert_equal(
-        parse_editable('foo', 'git'),
-        (None, 'file:///some/path/foo', None)
-    )
-
-def test_parse_editable_default_vcs():
-    assert_equal(
-        parse_editable('https://foo#egg=foo', 'git'),
-        ('foo', 'git+https://foo#egg=foo', None)
-    )
-
-def test_parse_editable_explicit_vcs():
-    assert_equal(
-        parse_editable('svn+https://foo#egg=foo', 'git'),
-        ('foo', 'svn+https://foo#egg=foo', None)
-    )
-
-def test_parse_editable_vcs_extras():
-    assert_equal(
-        parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
-        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
-    )
-
-@patch('os.path.normcase')
-@patch('pip.req.os.getcwd')
-@patch('pip.req.os.path.exists')
-@patch('pip.req.os.path.isdir')
-def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
-    exists_mock.return_value = isdir_mock.return_value = True
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert_equal(
-        parse_editable('.[extras]', 'git'),
-        (None, 'file://' + "/some/path", ('extras',))
-    )
-    normcase_mock.return_value = "/some/path/foo"
-    assert_equal(
-        parse_editable('foo[bar,baz]', 'git'),
-        (None, 'file:///some/path/foo', ('bar', 'baz'))
-    )
 
 def test_install_local_editable_with_extras():
     env = reset_env()
@@ -193,24 +108,6 @@ def test_install_local_editable_with_extras():
     assert env.site_packages/'LocalExtras.egg-link' in res.files_created, str(result)
     assert env.site_packages/'simple' in res.files_created, str(result)
 
-
-def test_url_req_case_mismatch():
-    """
-    tar ball url requirements (with no egg fragment), that happen to have upper case project names,
-    should be considered equal to later requirements that reference the project name using lower case.
-
-    tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
-    'requiresupper' has install_requires = ['upper']
-    """
-    env = reset_env()
-    Upper = os.path.join(find_links, 'Upper-1.0.tar.gz')
-    result = run_pip('install', '--no-index', '-f', find_links, Upper, 'requiresupper')
-
-    #only Upper-1.0.tar.gz should get installed.
-    egg_folder = env.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
-    assert egg_folder in result.files_created, str(result)
-    egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
-    assert egg_folder not in result.files_created, str(result)
 
 
 

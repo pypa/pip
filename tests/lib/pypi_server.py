@@ -1,7 +1,6 @@
 import os
 import pip.backwardcompat
 from pip.backwardcompat import urllib, string_types, b, u, emailmessage
-from tests.lib import tests_cache
 
 urlopen_original = pip.backwardcompat.urllib2.urlopen
 
@@ -86,6 +85,8 @@ class CachedResponse(object):
 
 class PyPIProxy(object):
 
+    CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tests_cache')
+
     @classmethod
     def setup(cls):
         instance = cls()
@@ -94,12 +95,12 @@ class PyPIProxy(object):
 
     def _monkey_patch_urllib2_to_cache_everything(self):
         def urlopen(url):
-            return CachedResponse(url, self.tests_cache)
+            return CachedResponse(url, self.CACHE_PATH)
         pip.backwardcompat.urllib2.urlopen = urlopen
 
     def _create_cache_folder(self):
-        if not os.path.exists(self.tests_cache):
-            os.mkdir(self.tests_cache)
+        if not os.path.exists(self.CACHE_PATH):
+            os.mkdir(self.CACHE_PATH)
 
 
 def assert_equal(a, b):

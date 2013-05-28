@@ -1,13 +1,14 @@
 """Test the test support."""
-
+import filecmp
 import imp
-import sys
 import os
-from os.path import abspath, join, curdir, isdir, isfile
+import re
+import sys
+from os.path import join, isdir
+
 from nose import SkipTest
-from tests.lib.local_repos import local_checkout
-from tests.lib import tests_lib, reset_env, run_pip, pyversion
 from pip.backwardcompat import uses_pycache
+from tests.lib import tests_lib, reset_env, run_pip, src_folder
 
 
 patch_urlopen = """
@@ -106,7 +107,7 @@ def test_add_patch_to_sitecustomize():
         src_mtime = os.stat(env.lib_path / 'sitecustomize.py').st_mtime
         cache_mtime = os.stat(cache_path).st_mtime
         debug_content += "src mtime: %s, cache mtime: %s" % (src_mtime, cache_mtime)
-    assert "sitecustomize" == result.stdout.strip(), debug_content
+    assert "sitecustomize" == result.stdout.strip(), result.stdout
 
 
 def test_sitecustomize_not_growing_in_fast_environment():
@@ -145,3 +146,30 @@ def test_tmp_dir_exists_in_fast_env():
     env.assert_no_temp() #this fails if env.tmp_path doesn't exist
     assert env.environ['TMPDIR'] == env.temp_path
     assert isdir(env.temp_path)
+
+
+def test_correct_pip_version():
+    """
+    Check we are running proper version of pip in run_pip.
+    """
+    reset_env()
+
+    # output is like:
+    # pip PIPVERSION from PIPDIRECTORY (python PYVERSION)
+    result = run_pip('--version')
+
+    # compare the directory tree of the invoked pip with that of this source distribution
+    dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
+                   result.stdout).group(4)
+    pip_folder = join(src_folder, 'pip')
+    pip_folder_outputed = join(dir, 'pip')
+
+    diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
+
+    # If any non-matching .py files exist, we have a problem: run_pip
+    # is picking up some other version!  N.B. if this project acquires
+    # primary resources other than .py files, this code will need
+    # maintenance
+    mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
+    assert not mismatch_py, 'mismatched source files in %r and %r: %r'% (pip_folder, pip_folder_outputed, mismatch_py)
+

@@ -1,77 +1,13 @@
-import re
 import os
-import filecmp
-import textwrap
 import sys
+import textwrap
 from os.path import abspath, join, curdir, pardir
 
-from nose.tools import assert_raises
 from nose import SkipTest
-from mock import patch
-
-from pip.util import rmtree, find_command
-from pip.exceptions import BadCommand
-
-from tests.lib import (tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local,
-                            src_folder, write_file, path_to_url, find_links)
+from pip.util import rmtree
+from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
-
-
-def test_correct_pip_version():
-    """
-    Check we are running proper version of pip in run_pip.
-    """
-    reset_env()
-
-    # output is like:
-    # pip PIPVERSION from PIPDIRECTORY (python PYVERSION)
-    result = run_pip('--version')
-
-    # compare the directory tree of the invoked pip with that of this source distribution
-    dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
-                   result.stdout).group(4)
-    pip_folder = join(src_folder, 'pip')
-    pip_folder_outputed = join(dir, 'pip')
-
-    diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
-
-    # If any non-matching .py files exist, we have a problem: run_pip
-    # is picking up some other version!  N.B. if this project acquires
-    # primary resources other than .py files, this code will need
-    # maintenance
-    mismatch_py = [x for x in diffs.left_only + diffs.right_only + diffs.diff_files if x.endswith('.py')]
-    assert not mismatch_py, 'mismatched source files in %r and %r: %r'% (pip_folder, pip_folder_outputed, mismatch_py)
-
-
-def test_pip_second_command_line_interface_works():
-    """
-    Check if ``pip-<PYVERSION>`` commands behaves equally
-    """
-    e = reset_env()
-
-    args = ['pip-%s' % pyversion]
-    args.extend(['install', 'INITools==0.2'])
-    result = e.run(*args)
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
-
-#def test_distutils_configuration_setting():
-#    """
-#    Test the distutils-configuration-setting command (which is distinct from other commands).
-#    """
-    #print run_pip('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
-    #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
-    #-- stdout: --------------------
-    #Distutils config .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg is writable
-    #Replaced setting index_url
-    #Updated .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg
-    #<BLANKLINE>
-    #-- updated: -------------------
-    #  lib/python2.4/distutils/distutils.cfg  (346 bytes)
 
 
 def test_install_from_pypi():
@@ -80,30 +16,6 @@ def test_install_from_pypi():
     """
     e = reset_env()
     result = run_pip('install', '-vvv', 'INITools==0.2')
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
-
-def test_install_from_mirrors():
-    """
-    Test installing a package from the PyPI mirrors.
-    """
-    e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--no-index', 'INITools==0.2')
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
-
-def test_install_from_mirrors_with_specific_mirrors():
-    """
-    Test installing a package from a specific PyPI mirror.
-    """
-    e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     initools_folder = e.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -330,56 +242,6 @@ def test_install_as_egg():
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
-def test_install_from_wheel():
-    """
-    Test installing from a wheel.
-    """
-    env = reset_env(use_distribute=True)
-    result = run_pip('install', 'simple.dist', '--use-wheel',
-                     '--no-index', '--find-links='+find_links,
-                     expect_error=False)
-    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
-
-
-def test_install_from_wheel_with_extras():
-    """
-    Test installing from a wheel.
-    """
-    try:
-        import ast
-    except ImportError:
-        raise SkipTest("Need ast module to interpret wheel extras")
-    env = reset_env(use_distribute=True)
-    result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
-                     '--no-index', '--find-links='+find_links,
-                     expect_error=False)
-    dist_info_folder = env.site_packages/'complex_dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
-    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
-
-
-def test_install_from_wheel_file():
-    """
-    Test installing directly from a wheel file.
-    """
-    env = reset_env(use_distribute=True)
-    package = abspath(join(tests_data,
-                           'packages',
-                           'headers.dist-0.1-py2.py3-none-any.whl'))
-    result = run_pip('install', package, '--no-index', expect_error=False)
-    dist_info_folder = env.site_packages/'headers.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
-
 
 def test_install_curdir():
     """
@@ -546,18 +408,6 @@ def test_install_package_with_target():
     assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
 
 
-def test_install_wheel_with_target():
-    """
-    Test installing a wheel using pip install --target
-    """
-    env = reset_env(use_distribute=True)
-    pip_install_local('wheel')
-    target_dir = env.scratch_path/'target'
-    result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
-                     '--no-index', '--find-links='+find_links)
-    assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
-
-
 def test_install_package_with_root():
     """
     Test installing a package using pip install --root
@@ -572,79 +422,50 @@ def test_install_package_with_root():
     assert root_path in result.files_created, str(result)
 
 
-def test_find_command_folder_in_path():
+def test_install_package_that_emits_unicode():
     """
-    If a folder named e.g. 'git' is in PATH, and find_command is looking for
-    the 'git' executable, it should not match the folder, but rather keep
-    looking.
+    Install a package with a setup.py that emits UTF-8 output and then fails.
+    This works fine in Python 2, but fails in Python 3 with:
+
+    Traceback (most recent call last):
+      ...
+      File "/Users/marc/python/virtualenvs/py3.1-phpserialize/lib/python3.2/site-packages/pip-1.0.2-py3.2.egg/pip/__init__.py", line 230, in call_subprocess
+        line = console_to_str(stdout.readline())
+      File "/Users/marc/python/virtualenvs/py3.1-phpserialize/lib/python3.2/site-packages/pip-1.0.2-py3.2.egg/pip/backwardcompat.py", line 60, in console_to_str
+        return s.decode(console_encoding)
+    UnicodeDecodeError: 'ascii' codec can't decode byte 0xe2 in position 17: ordinal not in range(128)
+
+    Refs https://github.com/pypa/pip/issues/326
+    """
+
+    #skip on win/py3 for now, see issue #782
+    if sys.platform == 'win32' and sys.version_info >= (3,):
+        raise SkipTest()
+
+    env = reset_env()
+    to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'BrokenEmitsUTF8'))
+    result = run_pip('install', to_install, expect_error=True, expect_temp=True, quiet=True)
+    assert 'FakeError: this package designed to fail on install' in result.stdout
+    assert 'UnicodeDecodeError' not in result.stdout
+
+
+def test_url_req_case_mismatch():
+    """
+    tar ball url requirements (with no egg fragment), that happen to have upper case project names,
+    should be considered equal to later requirements that reference the project name using lower case.
+
+    tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
+    'requiresupper' has install_requires = ['upper']
     """
     env = reset_env()
-    mkdir('path_one')
-    path_one = env.scratch_path/'path_one'
-    mkdir(path_one/'foo')
-    mkdir('path_two')
-    path_two = env.scratch_path/'path_two'
-    write_file(path_two/'foo', '# nothing')
-    found_path = find_command('foo', map(str, [path_one, path_two]))
-    assert found_path == path_two/'foo'
+    Upper = os.path.join(find_links, 'Upper-1.0.tar.gz')
+    result = run_pip('install', '--no-index', '-f', find_links, Upper, 'requiresupper')
 
-
-def test_does_not_find_command_because_there_is_no_path():
-    """
-    Test calling `pip.utils.find_command` when there is no PATH env variable
-    """
-    environ_before = os.environ
-    os.environ = {}
-    try:
-        try:
-            find_command('anycommand')
-        except BadCommand:
-            e = sys.exc_info()[1]
-            assert e.args == ("Cannot find command 'anycommand'",)
-        else:
-            raise AssertionError("`find_command` should raise `BadCommand`")
-    finally:
-        os.environ = environ_before
-
-
-@patch('os.pathsep', ':')
-@patch('pip.util.get_pathext')
-@patch('os.path.isfile')
-def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
-    """
-    If no pathext should check default list of extensions, if file does not
-    exist.
-    """
-    mock_isfile.return_value = False
-
-    getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
-
-    paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
-    expected = [((p,),) for p in paths]
-
-    assert_raises(BadCommand, find_command, 'foo', 'path_one')
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert getpath_mock.called, "Should call get_pathext"
-
-
-@patch('os.pathsep', ':')
-@patch('pip.util.get_pathext')
-@patch('os.path.isfile')
-def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
-    """
-    If pathext supplied find_command should use all of its list of extensions to find file.
-    """
-    mock_isfile.return_value = False
-    getpath_mock.return_value = ".FOO"
-
-    pathext = os.pathsep.join([".RUN", ".CMD"])
-
-    paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
-    expected = [((p,),) for p in paths]
-
-    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert not getpath_mock.called, "Should not call get_pathext"
+    #only Upper-1.0.tar.gz should get installed.
+    egg_folder = env.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+    egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
+    assert egg_folder not in result.files_created, str(result)
 
 
 def test_dont_install_distribute_in_py3():
@@ -657,3 +478,20 @@ def test_dont_install_distribute_in_py3():
     result = run_pip('install', 'distribute')
     assert "Skipping distribute: Can not install distribute due to bootstrap issues" in result.stdout
     assert not result.files_updated
+
+
+def test_pip_second_command_line_interface_works():
+    """
+    Check if ``pip-<PYVERSION>`` commands behaves equally
+    """
+    e = reset_env()
+
+    args = ['pip-%s' % pyversion]
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
+    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+    initools_folder = e.site_packages / 'initools'
+    assert egg_info_folder in result.files_created, str(result)
+    assert initools_folder in result.files_created, str(result)
+
+

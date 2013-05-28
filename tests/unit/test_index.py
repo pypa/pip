@@ -78,28 +78,6 @@ def test_sort_locations_file_not_find_link():
     assert urls and not files, "urls, but not files should have been found"
 
 
-def test_install_from_file_index_hash_link():
-    """
-    Test that a pkg can be installed from a file:// index using a link with a hash
-    """
-    env = reset_env()
-    index_url = path_to_url(os.path.join(tests_data, 'indexes', 'simple'))
-    result = run_pip('install', '-i', index_url, 'simple==1.0')
-    egg_info_folder = env.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
-    assert egg_info_folder in result.files_created, str(result)
-
-
-def test_file_index_url_quoting():
-    """
-    Test url quoting of file index url with a space
-    """
-    index_url = path_to_url(os.path.join(tests_data, 'indexes', urllib.quote('in dex')))
-    env = reset_env()
-    result = run_pip('install', '-vvv', '--index-url', index_url, 'simple', expect_error=False)
-    assert (env.site_packages/'simple') in result.files_created, str(result.stdout)
-    assert (env.site_packages/'simple-1.0-py%s.egg-info' % pyversion) in result.files_created, str(result)
-
-
 def test_inflink_greater():
     """Test InfLink compares greater."""
     assert InfLink > Link("some link")

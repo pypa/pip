@@ -3,11 +3,12 @@ util tests
 
 """
 import os
-import pkg_resources
+import sys
+
 from mock import Mock, patch
-from nose.tools import eq_
-from tests.lib.path import Path
-from pip.util import egg_link_path, Inf, get_installed_distributions, dist_is_editable
+from nose.tools import eq_, assert_raises
+from pip.exceptions import BadCommand
+from pip.util import egg_link_path, Inf, get_installed_distributions, find_command
 
 
 class Tests_EgglinkPath:
@@ -194,6 +195,64 @@ class Tests_get_installed_distributions:
         mock_dist_is_local.side_effect = self.dist_is_local
         dists = get_installed_distributions(local_only=False)
         assert len(dists) == 3
+
+
+def test_does_not_find_command_because_there_is_no_path():
+    """
+    Test calling `pip.utils.find_command` when there is no PATH env variable
+    """
+    environ_before = os.environ
+    os.environ = {}
+    try:
+        try:
+            find_command('anycommand')
+        except BadCommand:
+            e = sys.exc_info()[1]
+            assert e.args == ("Cannot find command 'anycommand'",)
+        else:
+            raise AssertionError("`find_command` should raise `BadCommand`")
+    finally:
+        os.environ = environ_before
+
+
+@patch('os.pathsep', ':')
+@patch('pip.util.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
+    """
+    If no pathext should check default list of extensions, if file does not
+    exist.
+    """
+    mock_isfile.return_value = False
+
+    getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
+
+    paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
+    expected = [((p,),) for p in paths]
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one')
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert getpath_mock.called, "Should call get_pathext"
+
+
+@patch('os.pathsep', ':')
+@patch('pip.util.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
+    """
+    If pathext supplied find_command should use all of its list of extensions to find file.
+    """
+    mock_isfile.return_value = False
+    getpath_mock.return_value = ".FOO"
+
+    pathext = os.pathsep.join([".RUN", ".CMD"])
+
+    paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
+    expected = [((p,),) for p in paths]
+
+    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert not getpath_mock.called, "Should not call get_pathext"
 
 
 

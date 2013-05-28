@@ -29,17 +29,6 @@ def test_no_clean_option_blocks_cleaning_after_install():
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
-def test_no_clean_option_blocks_cleaning_after_wheel():
-    """
-    Test --no-clean option blocks cleaning after wheel build
-    """
-    env = reset_env(use_distribute=True)
-    pip_install_local('wheel')
-    result = run_pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
-    build = env.venv_path/'build'/'simple'
-    assert exists(build), "build/simple should still exist %s" % str(result)
-
-
 def test_cleanup_after_install_editable_from_hg():
     """
     Test clean up after cloning from Mercurial.
@@ -71,41 +60,6 @@ def test_cleanup_after_install_from_local_directory():
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     assert not exists(src), "unexpected src/ dir exist: %s" % src
     env.assert_no_temp()
-
-
-def test_cleanup_after_create_bundle():
-    """
-    Test clean up after making a bundle. Make sure (build|src)-bundle/ dirs are removed but not src/.
-
-    """
-    env = reset_env()
-    # Install an editable to create a src/ dir.
-    args = ['install']
-    args.extend(['-e',
-                 '%s#egg=pip-test-package' %
-                    local_checkout('git+http://github.com/pypa/pip-test-package.git')])
-    run_pip(*args)
-    build = env.venv_path/"build"
-    src = env.venv_path/"src"
-    assert not exists(build), "build/ dir still exists: %s" % build
-    assert exists(src), "expected src/ dir doesn't exist: %s" % src
-
-    # Make the bundle.
-    fspkg = 'file://%s/FSPkg' %join(tests_data, 'packages')
-    pkg_lines = textwrap.dedent('''\
-            -e %s
-            -e %s#egg=initools-dev
-            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
-    write_file('bundle-req.txt', pkg_lines)
-    run_pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
-    build_bundle = env.scratch_path/"build-bundle"
-    src_bundle = env.scratch_path/"src-bundle"
-    assert not exists(build_bundle), "build-bundle/ dir still exists: %s" % build_bundle
-    assert not exists(src_bundle), "src-bundle/ dir still exists: %s" % src_bundle
-    env.assert_no_temp()
-
-    # Make sure previously created src/ from editable still exists
-    assert exists(src), "expected src dir doesn't exist: %s" % src
 
 
 def test_no_install_and_download_should_not_leave_build_dir():
