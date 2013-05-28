@@ -9,6 +9,7 @@ from mock import Mock, patch
 from nose.tools import eq_, assert_raises
 from pip.exceptions import BadCommand
 from pip.util import egg_link_path, Inf, get_installed_distributions, find_command
+from tests.lib import reset_env, mkdir, write_file
 
 
 class Tests_EgglinkPath:
@@ -195,6 +196,23 @@ class Tests_get_installed_distributions:
         mock_dist_is_local.side_effect = self.dist_is_local
         dists = get_installed_distributions(local_only=False)
         assert len(dists) == 3
+
+
+def test_find_command_folder_in_path():
+    """
+    If a folder named e.g. 'git' is in PATH, and find_command is looking for
+    the 'git' executable, it should not match the folder, but rather keep
+    looking.
+    """
+    env = reset_env()
+    mkdir('path_one')
+    path_one = env.scratch_path/'path_one'
+    mkdir(path_one/'foo')
+    mkdir('path_two')
+    path_two = env.scratch_path/'path_two'
+    write_file(path_two/'foo', '# nothing')
+    found_path = find_command('foo', map(str, [path_one, path_two]))
+    assert found_path == path_two/'foo'
 
 
 def test_does_not_find_command_because_there_is_no_path():
