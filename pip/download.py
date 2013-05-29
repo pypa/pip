@@ -24,13 +24,10 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.locations import default_cert_path
 
-__all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
+__all__ = ['get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
-
-
-xmlrpclib_transport = xmlrpclib.Transport()
 
 
 def build_user_agent():
