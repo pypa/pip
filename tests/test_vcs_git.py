@@ -31,7 +31,7 @@ def test_get_branch_revs_should_return_branch_name_and_commit_pair():
                      cwd=version_pkg_path).stdout.strip()
     git = Git()
     result = git.get_branch_revs(version_pkg_path)
-    assert result == {'master': commit, 'branch0.1': commit}
+    assert result == {'master': commit, 'branch0.1': commit}, result
 
 
 def test_get_branch_revs_should_ignore_no_branch():
@@ -45,7 +45,7 @@ def test_get_branch_revs_should_ignore_no_branch():
             cwd=version_pkg_path, expect_stderr=True)
     git = Git()
     result = git.get_branch_revs(version_pkg_path)
-    assert result == {'master': commit, 'branch0.1': commit}
+    assert result == {'master': commit, 'branch0.1': commit}, result
 
 
 @patch('pip.vcs.git.Git.get_tag_revs')
