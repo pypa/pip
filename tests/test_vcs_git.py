@@ -11,7 +11,7 @@ from tests.git_submodule_helpers import (
     )
 
 
-def test_get_tag_revs_should_return_tag_name_and_commit_pair():
+def test_get_refs_should_return_tag_name_and_commit_pair():
     env = reset_env()
     version_pkg_path = _create_test_package(env)
     env.run('git', 'tag', '0.1', cwd=version_pkg_path)
@@ -19,22 +19,24 @@ def test_get_tag_revs_should_return_tag_name_and_commit_pair():
     commit = env.run('git', 'rev-parse', 'HEAD',
                      cwd=version_pkg_path).stdout.strip()
     git = Git()
-    result = git.get_tag_revs(version_pkg_path)
-    assert result == {'0.1': commit, '0.2': commit}, result
+    result = git.get_refs(version_pkg_path)
+    assert result['0.1'] == commit, result
+    assert result['0.2'] == commit, result
 
 
-def test_get_branch_revs_should_return_branch_name_and_commit_pair():
+def test_get_refs_should_return_branch_name_and_commit_pair():
     env = reset_env()
     version_pkg_path = _create_test_package(env)
     env.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
     commit = env.run('git', 'rev-parse', 'HEAD',
                      cwd=version_pkg_path).stdout.strip()
     git = Git()
-    result = git.get_branch_revs(version_pkg_path)
-    assert result == {'master': commit, 'branch0.1': commit}, result
+    result = git.get_refs(version_pkg_path)
+    assert result['master'] == commit, result
+    assert result['branch0.1'] == commit, result
 
 
-def test_get_branch_revs_should_ignore_no_branch():
+def test_get_refs_should_ignore_no_branch():
     env = reset_env()
     version_pkg_path = _create_test_package(env)
     env.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
@@ -44,40 +46,32 @@ def test_get_branch_revs_should_ignore_no_branch():
     env.run('git', 'checkout', commit,
             cwd=version_pkg_path, expect_stderr=True)
     git = Git()
-    result = git.get_branch_revs(version_pkg_path)
-    assert result == {'master': commit, 'branch0.1': commit}, result
+    result = git.get_refs(version_pkg_path)
+    assert result['master'] == commit, result
+    assert result['branch0.1'] == commit, result
 
 
-@patch('pip.vcs.git.Git.get_tag_revs')
-@patch('pip.vcs.git.Git.get_branch_revs')
-def test_check_rev_options_should_handle_branch_name(branches_revs_mock,
-                                                     tags_revs_mock):
-    branches_revs_mock.return_value = {'master': '123456'}
-    tags_revs_mock.return_value = {'0.1': '123456'}
+@patch('pip.vcs.git.Git.get_refs')
+def test_check_rev_options_should_handle_branch_name(get_refs_mock):
+    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
 
     result = git.check_rev_options('master', '.', [])
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_tag_revs')
-@patch('pip.vcs.git.Git.get_branch_revs')
-def test_check_rev_options_should_handle_tag_name(branches_revs_mock,
-                                                  tags_revs_mock):
-    branches_revs_mock.return_value = {'master': '123456'}
-    tags_revs_mock.return_value = {'0.1': '123456'}
+@patch('pip.vcs.git.Git.get_refs')
+def test_check_rev_options_should_handle_tag_name(get_refs_mock):
+    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
 
     result = git.check_rev_options('0.1', '.', [])
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_tag_revs')
-@patch('pip.vcs.git.Git.get_branch_revs')
-def test_check_rev_options_should_handle_ambiguous_commit(branches_revs_mock,
-                                                          tags_revs_mock):
-    branches_revs_mock.return_value = {'master': '123456'}
-    tags_revs_mock.return_value = {'0.1': '123456'}
+@patch('pip.vcs.git.Git.get_refs')
+def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
+    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
 
     result = git.check_rev_options('0.1', '.', [])
