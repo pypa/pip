@@ -139,17 +139,13 @@ class Git(VersionControl):
         return tag_revs
 
     def get_branch_revs(self, location):
-        branches = self._get_all_branch_names(location)
+        rev_names = call_subprocess([self.cmd, 'show-ref'],
+                                    show_stdout=False, cwd=location)
         branch_revs = {}
-        for line in branches.splitlines():
-            if '(no branch)' in line or '(detached from ' in line:
-                continue
-            line = line.split('->')[0].strip()
-            # actual branch case
-            branch = "".join(b for b in line.split() if b != '*')
-            rev = self._get_revision_from_rev_parse(branch, location)
-            branch_revs[branch] = rev.strip()
-        return branch_revs
+        for line in rev_names.strip().splitlines():
+            rev, branch = line.split(' ', 1)
+            branch_revs[branch.strip()] = rev.strip()
+        return branch_revs    
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
@@ -199,13 +195,6 @@ class Git(VersionControl):
                                show_stdout=False,
                                raise_on_returncode=False,
                                cwd=location)
-
-    def _get_all_branch_names(self, location):
-        remote_branches = call_subprocess([self.cmd, 'branch', '-r'],
-                                          show_stdout=False, cwd=location)
-        local_branches = call_subprocess([self.cmd, 'branch', '-l'],
-                                         show_stdout=False, cwd=location)
-        return remote_branches + local_branches
 
     def _get_revision_from_rev_parse(self, name, location):
         return call_subprocess([self.cmd, 'rev-parse', name],
