@@ -142,7 +142,7 @@ class Git(VersionControl):
         branches = self._get_all_branch_names(location)
         branch_revs = {}
         for line in branches.splitlines():
-            if '(no branch)' in line:
+            if '(no branch)' in line or '(detached from ' in line:
                 continue
             line = line.split('->')[0].strip()
             # actual branch case
