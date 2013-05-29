@@ -18,6 +18,7 @@ David (d1b)
 Dmitry Gladkov
 Donald Stufft
 Francesco
+Gabriel de Perthuis
 Geoffrey Lehée
 Georgi Valkov
 Hugo Lopes Tavares
