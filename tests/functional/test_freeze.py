@@ -107,7 +107,7 @@ def test_freeze_git_clone():
         Script result: pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
         -f %(repo)s#egg=pip_test_package...
-        -e %(repo)s@...#egg=pip_test_package-dev
+        -e %(repo)s@...#egg=pip_test_package-0.1.1
         ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git')})
     _check_output(result, expected)
 

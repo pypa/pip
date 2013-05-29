@@ -67,8 +67,7 @@ class Git(VersionControl):
         and branches may need origin/ as a prefix.
         Returns the SHA1 of the branch or tag if found.
         """
-        revisions = self.get_tag_revs(dest)
-        revisions.update(self.get_branch_revs(dest))
+        revisions = self.get_refs(dest)
 
         origin_rev = 'origin/%s' % rev
         if origin_rev in revisions:
@@ -129,27 +128,24 @@ class Git(VersionControl):
             [self.cmd, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_tag_revs(self, location):
-        tags = self._get_all_tag_names(location)
-        tag_revs = {}
-        for line in tags.splitlines():
-            tag = line.strip()
-            rev = self._get_revision_from_rev_parse(tag, location)
-            tag_revs[tag] = rev.strip()
-        return tag_revs
-
-    def get_branch_revs(self, location):
-        branches = self._get_all_branch_names(location)
-        branch_revs = {}
-        for line in branches.splitlines():
-            if '(no branch)' in line:
-                continue
-            line = line.split('->')[0].strip()
-            # actual branch case
-            branch = "".join(b for b in line.split() if b != '*')
-            rev = self._get_revision_from_rev_parse(branch, location)
-            branch_revs[branch] = rev.strip()
-        return branch_revs
+    def get_refs(self, location):
+        """Return map of named refs (branches or tags) to commit hashes."""
+        output = call_subprocess([self.cmd, 'show-ref'],
+                                 show_stdout=False, cwd=location)
+        rv = {}
+        for line in output.strip().splitlines():
+            commit, ref = line.split(' ', 1)
+            ref = ref.strip()
+            ref_name = None
+            if ref.startswith('refs/remotes/'):
+                ref_name = ref[len('refs/remotes/'):]
+            elif ref.startswith('refs/heads/'):
+                ref_name = ref[len('refs/heads/'):]
+            elif ref.startswith('refs/tags/'):
+                ref_name = ref[len('refs/tags/'):]
+            if ref_name is not None:
+                rv[ref_name] = commit.strip()
+        return rv
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
@@ -159,19 +155,14 @@ class Git(VersionControl):
         if not repo:
             return None
         current_rev = self.get_revision(location)
-        tag_revs = self.get_tag_revs(location)
-        branch_revs = self.get_branch_revs(location)
+        refs = self.get_refs(location)
+        # refs maps names to commit hashes; we need the inverse
+        # if multiple names map to a single commit, this arbitrarily picks one
+        names_by_commit = dict((commit, ref) for ref, commit in refs.items())
 
-        if current_rev in tag_revs:
+        if current_rev in names_by_commit:
             # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
-        elif (current_rev in branch_revs and
-              branch_revs[current_rev] != 'origin/master'):
-            # It's the head of a branch
-            full_egg_name = '%s-%s' % (
-                egg_project_name,
-                branch_revs[current_rev].replace('origin/', '')
-            )
+            full_egg_name = '%s-%s' % (egg_project_name, names_by_commit[current_rev])
         else:
             full_egg_name = '%s-dev' % egg_project_name
 
@@ -193,23 +184,6 @@ class Git(VersionControl):
             url, rev = super(Git, self).get_url_rev()
 
         return url, rev
-
-    def _get_all_tag_names(self, location):
-        return call_subprocess([self.cmd, 'tag', '-l'],
-                               show_stdout=False,
-                               raise_on_returncode=False,
-                               cwd=location)
-
-    def _get_all_branch_names(self, location):
-        remote_branches = call_subprocess([self.cmd, 'branch', '-r'],
-                                          show_stdout=False, cwd=location)
-        local_branches = call_subprocess([self.cmd, 'branch', '-l'],
-                                         show_stdout=False, cwd=location)
-        return remote_branches + local_branches
-
-    def _get_revision_from_rev_parse(self, name, location):
-        return call_subprocess([self.cmd, 'rev-parse', name],
-                               show_stdout=False, cwd=location)
 
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
