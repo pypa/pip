@@ -560,37 +560,44 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         if not os.path.exists(already_downloaded):
             already_downloaded = None
 
-    if already_cached:
-        with open(cache_content_type_file) as fp:
-            content_type = fp.read().strip()
-        if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(cache_file, link)
-        temp_location = cache_file
-        logger.notify('Using download cache from %s' % cache_file)
-    elif already_downloaded:
+    if already_downloaded:
         temp_location = already_downloaded
         content_type = mimetypes.guess_type(already_downloaded)
+        logger.notify('File was already downloaded %s' % already_downloaded)
         if link.hash:
             download_hash = _get_hash_from_file(temp_location, link)
-        logger.notify('File was already downloaded %s' % already_downloaded)
-
-    if download_hash:
-        try:
-            _check_hash(download_hash, link)
-        except HashMismatch:
-            logger.warn(
-                'Cached or previously-downloaded file %s has bad hash, '
-                're-downloading.' % temp_location
-                )
-            temp_location = None
-            if already_downloaded:
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warn(
+                    'Previously-downloaded file %s has bad hash, '
+                    're-downloading.' % temp_location
+                    )
+                temp_location = None
                 os.unlink(already_downloaded)
-            already_downloaded = None
-            if already_cached:
+                already_downloaded = None
+
+    # We have a cached file, and we haven't already found a good downloaded copy
+    if already_cached and not temp_location:
+        with open(cache_content_type_file) as fp:
+            content_type = fp.read().strip()
+        temp_location = cache_file
+        logger.notify('Using download cache from %s' % cache_file)
+        if link.hash and link.hash_name:
+            download_hash = _get_hash_from_file(cache_file, link)
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warn(
+                    'Cached file %s has bad hash, '
+                    're-downloading.' % temp_location
+                    )
+                temp_location = None
                 os.unlink(cache_file)
                 os.unlink(cache_content_type_file)
                 already_cached = False
 
+    # We don't have either a cached or a downloaded copy
     if not temp_location:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info().get('content-type', '')
@@ -613,9 +620,9 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
                 filename += ext
         temp_location = os.path.join(temp_dir, filename)
         download_hash = _download_url(resp, link, temp_location)
+        if link.hash and link.hash_name:
+            _check_hash(download_hash, link)
 
-    if link.hash and link.hash_name:
-        _check_hash(download_hash, link)
     if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
