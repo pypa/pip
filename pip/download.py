@@ -573,7 +573,25 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         if link.hash:
             download_hash = _get_hash_from_file(temp_location, link)
         logger.notify('File was already downloaded %s' % already_downloaded)
-    else:
+
+    if download_hash:
+        try:
+            _check_hash(download_hash, link)
+        except HashMismatch:
+            logger.warn(
+                'Cached or previously-downloaded file %s has bad hash, '
+                're-downloading.' % temp_location
+                )
+            temp_location = None
+            if already_downloaded:
+                os.unlink(already_downloaded)
+            already_downloaded = None
+            if already_cached:
+                os.unlink(cache_file)
+                os.unlink(cache_content_type_file)
+                already_cached = False
+
+    if not temp_location:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info().get('content-type', '')
         filename = link.filename  # fallback
@@ -595,6 +613,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
                 filename += ext
         temp_location = os.path.join(temp_dir, filename)
         download_hash = _download_url(resp, link, temp_location)
+
     if link.hash and link.hash_name:
         _check_hash(download_hash, link)
     if download_dir and not already_downloaded:
@@ -602,7 +621,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     unpack_file(temp_location, location, content_type, link)
     if cache_file and cache_file != temp_location:
         cache_download(cache_file, temp_location, content_type)
-    if cache_file is None and not already_downloaded:
+    if not (already_cached or already_downloaded):
         os.unlink(temp_location)
     os.rmdir(temp_dir)
 
