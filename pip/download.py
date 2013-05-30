@@ -13,10 +13,10 @@ import tempfile
 
 import pip
 
-from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
+from pip.backwardcompat import (urllib, urllib2, httplib,
                                 urlparse, string_types, get_http_message_param,
                                 match_hostname, CertificateError)
-from pip.exceptions import InstallationError, PipError
+from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
@@ -441,11 +441,11 @@ def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
         logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
                     % (download_hash.digest_size, link, link.hash_name))
-        raise InstallationError('Hash name mismatch for package %s' % link)
+        raise HashMismatch('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
                      % (link, download_hash, link.hash))
-        raise InstallationError('Bad %s hash for package %s' % (link.hash_name, link))
+        raise HashMismatch('Bad %s hash for package %s' % (link.hash_name, link))
 
 
 def _get_hash_from_file(target_file, link):
@@ -536,12 +536,21 @@ def _copy_file(filename, location, content_type, link):
 
 def unpack_http_url(link, location, download_cache, download_dir=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
+    temp_location = None
     target_url = link.url.split('#', 1)[0]
-    target_file = None
+
+    already_cached = False
+    cache_file = None
+    cache_content_type_file = None
     download_hash = None
     if download_cache:
-        target_file = os.path.join(download_cache,
+        cache_file = os.path.join(download_cache,
                                    urllib.quote(target_url, ''))
+        cache_content_type_file = cache_file + '.content-type'
+        already_cached = (
+            os.path.exists(cache_file) and
+            os.path.exists(cache_content_type_file)
+            )
         if not os.path.isdir(download_cache):
             create_download_cache_folder(download_cache)
 
@@ -551,16 +560,13 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         if not os.path.exists(already_downloaded):
             already_downloaded = None
 
-    if (target_file
-        and os.path.exists(target_file)
-        and os.path.exists(target_file + '.content-type')):
-        fp = open(target_file+'.content-type')
-        content_type = fp.read().strip()
-        fp.close()
+    if already_cached:
+        with open(cache_content_type_file) as fp:
+            content_type = fp.read().strip()
         if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(target_file, link)
-        temp_location = target_file
-        logger.notify('Using download cache from %s' % target_file)
+            download_hash = _get_hash_from_file(cache_file, link)
+        temp_location = cache_file
+        logger.notify('Using download cache from %s' % cache_file)
     elif already_downloaded:
         temp_location = already_downloaded
         content_type = mimetypes.guess_type(already_downloaded)
@@ -594,9 +600,9 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
-    if target_file and target_file != temp_location:
-        cache_download(target_file, temp_location, content_type)
-    if target_file is None and not already_downloaded:
+    if cache_file and cache_file != temp_location:
+        cache_download(cache_file, temp_location, content_type)
+    if cache_file is None and not already_downloaded:
         os.unlink(temp_location)
     os.rmdir(temp_dir)
 

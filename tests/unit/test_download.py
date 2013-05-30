@@ -34,3 +34,15 @@ def test_user_agent():
     opener = URLOpener().get_opener()
     user_agent = [x for x in opener.addheaders if x[0].lower() == "user-agent"][0]
     assert user_agent[1].startswith("pip/%s" % pip.__version__)
+
+
+def test_bad_cache_checksum():
+    """
+    If cached download has bad checksum, re-download.
+    """
+
+
+def test_bad_already_downloaded_checksum():
+    """
+    If already-downloaded file has bad checksum, re-download.
+    """
