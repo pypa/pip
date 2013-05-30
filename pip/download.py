@@ -626,7 +626,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
-    if cache_file and cache_file != temp_location:
+    if cache_file and not already_cached:
         cache_download(cache_file, temp_location, content_type)
     if not (already_cached or already_downloaded):
         os.unlink(temp_location)
