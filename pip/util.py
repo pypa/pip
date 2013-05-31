@@ -582,7 +582,6 @@ def cache_download(target_file, temp_location, content_type):
     fp = open(target_file+'.content-type', 'w')
     fp.write(content_type)
     fp.close()
-    os.unlink(temp_location)
 
 
 def unpack_file(filename, location, content_type, link):
