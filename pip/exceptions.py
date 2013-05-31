@@ -1,6 +1,5 @@
 """Exceptions used throughout package"""
 
-import textwrap
 
 class PipError(Exception):
     """Base pip exception"""
@@ -34,3 +33,6 @@ class CommandError(PipError):
 class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
+
+class HashMismatch(InstallationError):
+    """Distribution file hash values don't match."""
