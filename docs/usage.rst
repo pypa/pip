@@ -333,7 +333,7 @@ Description
 Options
 *******
 
-**Seach Options:**
+**Search Options:**
 
 .. pip-command-options:: search
 
