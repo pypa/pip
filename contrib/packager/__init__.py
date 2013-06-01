@@ -6,6 +6,7 @@ import pickle
 import bz2
 import base64
 import os
+import quopri
 
 
 def find_toplevel(name):
@@ -36,7 +37,8 @@ def pkg_to_mapping(name):
                 pkg = pkgname(name, toplevel, os.path.join(root, pyfile))
                 f = open(os.path.join(root, pyfile))
                 try:
-                    name2src[pkg] = f.read().encode('quoted-printable')
+                    name2src[pkg] = quopri.encodestring(
+                        f.read().encode('utf-8'))
                 finally:
                     f.close()
     return name2src

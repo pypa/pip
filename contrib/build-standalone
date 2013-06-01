@@ -29,8 +29,8 @@ def main():
         f.close()
     sys.stdout.write('done.\n')
     if hasattr(os, 'chmod'):
-        oldmode = os.stat(file_name).st_mode & 07777
-        newmode = (oldmode | 0555) & 07777
+        oldmode = os.stat(file_name).st_mode & 0o7777
+        newmode = (oldmode | 0o555) & 0o7777
         os.chmod(file_name, newmode)
         sys.stdout.write('Made resulting file %s executable.\n\n' % file_name)
 
