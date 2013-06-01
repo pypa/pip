@@ -31,7 +31,7 @@ for installing from the file system
 
 gmpy-1.15.tar.gz
 ----------------
-hash testing (altough this pkg isn't needed explicitly)
+hash testing (although this pkg isn't needed explicitly)
 
 gmpy2-2.0.tar.gz
 ----------------
