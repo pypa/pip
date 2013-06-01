@@ -13,7 +13,7 @@ try:
     import setuptools
     import pkg_resources
 except ImportError:
-    raise SystemExit("An error occured while trying to run %s. Make sure "
+    raise SystemExit("An error occurred while trying to run %s. Make sure "
                      "you have setuptools or distribute installed." % __file__)
 import pip
 pip.main()
