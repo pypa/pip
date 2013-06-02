@@ -164,6 +164,7 @@ class InstallCommand(Command):
                              mirrors=options.mirrors,
                              use_wheel=options.use_wheel,
                              allow_external=options.allow_external,
+                             allow_unsafe=options.allow_unsafe,
                             )
 
     def run(self, options, args):

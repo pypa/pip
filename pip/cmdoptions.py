@@ -79,6 +79,16 @@ no_allow_external = make_option(
     help="Disallow the installation of externally hosted files",
 )
 
+allow_unsafe = make_option(
+    "--allow-unsafe",
+    dest="allow_unsafe",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of unsafe and unverifiable files for a "
+         "package",
+)
+
 requirements = make_option(
     '-r', '--requirement',
     dest='requirements',
@@ -157,5 +167,6 @@ index_group = {
         mirrors,
         allow_external,
         no_allow_external,
+        allow_unsafe,
         ]
     }

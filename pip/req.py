@@ -21,7 +21,7 @@ from pip.util import (display_path, rmtree, ask, ask_path_exists, backup_dir,
                       is_installable_dir, is_local, dist_is_local,
                       dist_in_usersite, dist_in_site_packages, renames,
                       normalize_path, egg_link_path, make_path_relative,
-                      call_subprocess, is_prerelease)
+                      call_subprocess, is_prerelease, normalize_name)
 from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 ConfigParser, string_types, HTTPError,
                                 get_python_version, b)
@@ -1399,6 +1399,9 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             finder.allow_external = True
         elif line.startswith("--no-allow-external"):
             finder.allow_external = False
+        elif line.startswith("--allow-unsafe"):
+            line = line[len("--allow-unsafe"):].strip().lstrip("=")
+            finder.allow_unsafe |= set([normalize_name(line).lower()])
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
