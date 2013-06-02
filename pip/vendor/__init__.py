@@ -5,3 +5,13 @@ depend on something external.
 Files inside of pip.vendor should be considered immutable and should only be
 updated to versions from upstream.
 """
+from __future__ import absolute_import
+
+# Monkeypatch pip.vendor.six into just six
+try:
+    import six
+except ImportError:
+    import sys
+    from . import six
+
+    sys.modules["six"] = six
