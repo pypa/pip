@@ -165,6 +165,7 @@ class InstallCommand(Command):
                              use_wheel=options.use_wheel,
                              allow_external=options.allow_external,
                              allow_unsafe=options.allow_unsafe,
+                             allow_all_unsafe=options.allow_all_unsafe,
                             )
 
     def run(self, options, args):

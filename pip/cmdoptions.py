@@ -85,8 +85,15 @@ allow_unsafe = make_option(
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of unsafe and unverifiable files for a "
-         "package",
+    help="Allow the installation of unsafe and unverifiable files",
+)
+
+no_allow_unsafe = make_option(
+    "--no-allow-unsafe",
+    dest="allow_all_unsafe",
+    action="store_false",
+    default=True,
+    help="Disallow the installation of unsafe and unverifiable files"
 )
 
 requirements = make_option(
@@ -168,5 +175,6 @@ index_group = {
         allow_external,
         no_allow_external,
         allow_unsafe,
+        no_allow_unsafe,
         ]
     }

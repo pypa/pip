@@ -48,7 +48,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False, allow_external=False, allow_unsafe=[]):
+            use_wheel=False, allow_external=False, allow_unsafe=[],
+            allow_all_unsafe=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -69,7 +70,7 @@ class PackageFinder(object):
         self.allow_unsafe = set(normalize_name(n) for n in allow_unsafe)
 
         # Do we allow unsafe and unverifiable files?
-        self.allow_all_unsafe = False
+        self.allow_all_unsafe = allow_all_unsafe
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
