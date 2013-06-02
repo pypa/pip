@@ -63,6 +63,30 @@ mirrors = make_option(
     default=[],
     help='Specific mirror URLs to query when --use-mirrors is used.')
 
+allow_external = make_option(
+    "--allow-external",
+    dest="allow_external",
+    action="store_true",
+    default=True,  # Default to allowing external links
+    help="Allow installation of externally hosted, but checksummed packages."
+)
+
+no_allow_external = make_option(
+    "--no-allow-external",
+    dest="allow_external",
+    action="store_false",
+    help="Disallow installation of externally hosted, but checksummed packages.")
+
+allow_unsafe = make_option(
+    "--allow-unsafe",
+    dest="allow_unsafe",
+    metavar="PACKAGE",
+    action="append",
+    default=[],
+    help="Specific packages to allow fetching packages from unsafe urls."
+)
+
+
 requirements = make_option(
     '-r', '--requirement',
     dest='requirements',
@@ -138,6 +162,9 @@ index_group = {
         no_index,
         find_links,
         use_mirrors,
-        mirrors
+        mirrors,
+        allow_external,
+        no_allow_external,
+        allow_unsafe,
         ]
     }

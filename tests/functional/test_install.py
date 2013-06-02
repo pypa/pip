@@ -128,7 +128,7 @@ def test_install_dev_version_from_pypi():
     Test using package==dev.
     """
     e = reset_env()
-    result = run_pip('install', 'INITools==dev', expect_error=True)
+    result = run_pip('install', 'INITools==dev', '--allow-unsafe', 'INITools', expect_error=True)
     assert (e.site_packages / 'initools') in result.files_created, str(result.stdout)
 
 
