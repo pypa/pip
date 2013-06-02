@@ -63,6 +63,14 @@ mirrors = make_option(
     default=[],
     help='Specific mirror URLs to query when --use-mirrors is used.')
 
+allow_external = make_option(
+    "--allow-external",
+    dest="allow_external",
+    action="store_true",
+    default=False,
+    help="Allow the installation of externally hosted files",
+)
+
 requirements = make_option(
     '-r', '--requirement',
     dest='requirements',
@@ -138,6 +146,7 @@ index_group = {
         no_index,
         find_links,
         use_mirrors,
-        mirrors
+        mirrors,
+        allow_external,
         ]
     }

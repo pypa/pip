@@ -1395,6 +1395,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
             finder.use_wheel = True
         elif line.startswith('--no-index'):
             finder.index_urls = []
+        elif line.startswith("--allow-external"):
+            finder.allow_external = True
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):

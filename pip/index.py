@@ -48,7 +48,7 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False):
+            use_wheel=False, allow_external=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -61,6 +61,12 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
+
+        self.allow_external = allow_external
+
+        # Stores if we ignored any external links so that we can instruct
+        #   end users how to install them if no distributions are available
+        self.need_warn_external = False
 
     @property
     def use_wheel(self):
@@ -219,6 +225,11 @@ class PackageFinder(object):
                 [Link(url) for url in file_locations], req.name.lower()))
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+
+            if self.need_warn_external:
+                logger.warn("Some externally hosted files were ignored (use "
+                            "--allow-external to allow).")
+
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
         if req.satisfied_by is not None:
@@ -251,6 +262,11 @@ class PackageFinder(object):
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in all_versions])))
+
+            if self.need_warn_external:
+                logger.warn("Some externally hosted files were ignored (use "
+                            "--allow-external to allow).")
+
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
@@ -388,6 +404,16 @@ class PackageFinder(object):
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
+
+        if (link.internal is not None
+                and not link.internal
+                and not self.allow_external):
+            # We have a link that we are sure is external, so we should skip
+            #   it unless we are allowing externals
+            logger.debug("Skipping %s because it is externally hosted." % link)
+            self.need_warn_external = True
+            return []
+
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
@@ -614,6 +640,21 @@ class HTMLPage(object):
             resp.close()
 
     @property
+    def api_version(self):
+        if not hasattr(self, "_api_version"):
+            _api_version = None
+
+            metas = [x for x in self.parsed.findall(".//meta")
+                        if x.get("name", "").lower() == "api-version"]
+            if metas:
+                try:
+                    _api_version = int(metas[0].get("value", None))
+                except (TypeError, ValueError):
+                    _api_version = None
+            self._api_version = _api_version
+        return self._api_version
+
+    @property
     def base_url(self):
         if not hasattr(self, "_base_url"):
             base = self.parsed.find(".//base")
@@ -630,7 +671,18 @@ class HTMLPage(object):
             if anchor.get("href"):
                 href = anchor.get("href")
                 url = self.clean_link(urlparse.urljoin(self.base_url, href))
-                yield Link(url, self)
+
+                # Determine if this link is internal. If that distinction
+                #   doesn't make sense in this context, then we don't make
+                #   any distinction.
+                internal = None
+                if self.api_version and self.api_version >= 2:
+                    # Only api_versions >= 2 have a distinction between
+                    #   external and internal links
+                    internal = bool(anchor.get("rel")
+                                and "internal" in anchor.get("rel").split())
+
+                yield Link(url, self, internal=internal)
 
     def rel_links(self):
         for url in self.explicit_rel_links():
@@ -679,9 +731,10 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None):
+    def __init__(self, url, comes_from=None, internal=None):
         self.url = url
         self.comes_from = comes_from
+        self.internal = internal
 
         # Set whether it's a wheel
         self.wheel = None
