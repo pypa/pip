@@ -31,6 +31,7 @@ from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
 from pip.pep425tags import supported_tags
+from pip.vendor import html5lib
 
 __all__ = ['PackageFinder']
 
@@ -47,7 +48,7 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False):
+            use_wheel=False, allow_external=None, unsafe_allowed=[]):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -60,6 +61,11 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
+        self.allow_external = allow_external
+        self.unsafe_allowed = [pkg_resources.safe_name(x).lower() for x in unsafe_allowed]
+        self.unsafe_warned = set()
+        self.need_warn_external = False
+        self.need_warn_unsafe = False
 
     @property
     def use_wheel(self):
@@ -218,6 +224,10 @@ class PackageFinder(object):
                 [Link(url) for url in file_locations], req.name.lower()))
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+            if self.need_warn_unsafe:
+                logger.warn('Unsafe urls were ignored, use --allow-unsafe=%s to enable unsafe urls' % req.name)
+            if self.need_warn_external:
+                logger.warn('External urls were ignored, use --allow-external to enable external urls')
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
         if req.satisfied_by is not None:
@@ -259,7 +269,13 @@ class PackageFinder(object):
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
-        return applicable_versions[0][1]
+
+        found_version_link = applicable_versions[0][1]
+
+        if not found_version_link.internal:
+            logger.warn("Using an external link. In the future external links will require the flag --allow-external in order to install.")
+
+        return found_version_link
 
 
     def _find_url_name(self, index_url, url_name, req):
@@ -315,7 +331,13 @@ class PackageFinder(object):
                 continue
             done.append(page)
             for link in page.rel_links():
-                pending_queue.put(link)
+                if pkg_resources.safe_name(req.name).lower() not in self.unsafe_allowed:
+                    if link.url not in self.unsafe_warned:
+                        logger.debug('Skipping %s because it is an unsafe link and unsafe links are disallowed' % link)
+                        self.unsafe_warned.add(link.url)
+                        self.need_warn_unsafe = True
+                else:
+                    pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
@@ -387,6 +409,19 @@ class PackageFinder(object):
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
+
+        if link.comes_from:
+            if getattr(link.comes_from, "api_version", 1) >= 2 and not link.internal:
+                normalized_name = pkg_resources.safe_name(search_name).lower()
+                if link.hash and not self.allow_external:
+                    logger.debug('Skipping %s because it is an external link and external links are disallowed' % link)
+                    self.need_warn_external = True
+                    return []
+                elif link.hash is None and normalized_name not in self.unsafe_allowed:
+                    logger.debug('Skipping %s because it is an external link without a hash.' % link)
+                    self.need_warn_unsafe = True
+                    return []
+
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
@@ -482,6 +517,7 @@ class HTMLPage(object):
 
     def __init__(self, content, url, headers=None):
         self.content = content
+        self.parsed_content = html5lib.parse(self.content, namespaceHTMLElements=False)
         self.url = url
         self.headers = headers
 
@@ -610,12 +646,40 @@ class HTMLPage(object):
         return self._base_url
 
     @property
+    def api_version(self):
+        metas = [m for m in self.parsed_content.findall(".//meta") if m.get("name", "").lower() == "api-version"]
+
+        if not metas:
+            return 1
+
+        meta = metas[0]
+        value = meta.get("value", 1)
+
+        try:
+            value = int(value)
+        except ValueError:
+            value = 1
+
+        return value
+
+    @property
     def links(self):
         """Yields all links in the page"""
-        for match in self._href_re.finditer(self.content):
-            url = match.group(1) or match.group(2) or match.group(3)
+        for anchor in self.parsed_content.findall(".//a"):
+            url = anchor.get("href")
+            if not url:
+                continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
-            yield Link(url, self)
+
+            # Assume all links are internal until told otherwise
+            internal = True
+            if self.api_version >= 2:
+                # If the api-version is version 2 or higher than look for
+                #   internal urls
+                rel = anchor.get("rel", "")
+                internal = "internal" in rel
+
+            yield Link(url, self, internal=internal)
 
     def rel_links(self):
         for url in self.explicit_rel_links():
@@ -665,9 +729,10 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None):
+    def __init__(self, url, comes_from=None, internal=None):
         self.url = url
         self.comes_from = comes_from
+        self.internal = internal
 
         # Set whether it's a wheel
         self.wheel = None
