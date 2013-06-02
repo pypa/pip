@@ -67,8 +67,16 @@ allow_external = make_option(
     "--allow-external",
     dest="allow_external",
     action="store_true",
-    default=False,
+    default=True,  # TODO: Change to False after 1.4 has been released
     help="Allow the installation of externally hosted files",
+)
+
+# TODO: NOOP after 1.4 has been released
+no_allow_external = make_option(
+    "--no-allow-external",
+    dest="allow_external",
+    action="store_false",
+    help="Disallow the installation of externally hosted files",
 )
 
 requirements = make_option(
@@ -148,5 +156,6 @@ index_group = {
         use_mirrors,
         mirrors,
         allow_external,
+        no_allow_external,
         ]
     }

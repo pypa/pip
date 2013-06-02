@@ -276,7 +276,17 @@ class PackageFinder(object):
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
-        return applicable_versions[0][1]
+
+        selected_version = applicable_versions[0][1]
+
+        # TODO: Remove after 1.4 has been released
+        if (selected_version.internal is not None
+                and not selected_version.internal):
+            logger.warn("You are installing an externally hosted file. Future "
+                        "versions of pip will default to disallowing "
+                        "externally hosted files.")
+
+        return selected_version
 
 
     def _find_url_name(self, index_url, url_name, req):
