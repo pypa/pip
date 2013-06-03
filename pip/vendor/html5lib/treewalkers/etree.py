@@ -5,7 +5,7 @@ _ = gettext.gettext
 
 import re
 
-from six import text_type
+from pip.vendor.six import text_type
 
 from . import _base
 from ..utils import moduleFactoryFactory

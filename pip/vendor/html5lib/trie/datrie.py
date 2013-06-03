@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
 from datrie import Trie as DATrie
-from six import text_type
+from pip.vendor.six import text_type
 
 from ._base import Trie as ABCTrie
 
