@@ -5,3 +5,4 @@ depend on something external.
 Files inside of pip.vendor should be considered immutable and should only be
 updated to versions from upstream.
 """
+from __future__ import absolute_import
