@@ -31,6 +31,7 @@ from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
 from pip.pep425tags import supported_tags
+from pip.vendor import html5lib
 
 __all__ = ['PackageFinder']
 
@@ -475,13 +476,11 @@ class HTMLPage(object):
     ## FIXME: these regexes are horrible hacks:
     _homepage_re = re.compile(r'<th>\s*home\s*page', re.I)
     _download_re = re.compile(r'<th>\s*download\s+url', re.I)
-    ## These aren't so aweful:
-    _rel_re = re.compile("""<[^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*>""", re.I)
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
-    _base_re = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I)
 
     def __init__(self, content, url, headers=None):
         self.content = content
+        self.parsed = html5lib.parse(self.content, namespaceHTMLElements=False)
         self.url = url
         self.headers = headers
 
@@ -602,9 +601,9 @@ class HTMLPage(object):
     @property
     def base_url(self):
         if not hasattr(self, "_base_url"):
-            match = self._base_re.search(self.content)
-            if match:
-                self._base_url = match.group(1)
+            base = self.parsed.find(".//base")
+            if base is not None and base.get("href"):
+                self._base_url = base.get("href")
             else:
                 self._base_url = self.url
         return self._base_url
@@ -612,10 +611,11 @@ class HTMLPage(object):
     @property
     def links(self):
         """Yields all links in the page"""
-        for match in self._href_re.finditer(self.content):
-            url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.base_url, url))
-            yield Link(url, self)
+        for anchor in self.parsed.findall(".//a"):
+            if anchor.get("href"):
+                href = anchor.get("href")
+                url = self.clean_link(urlparse.urljoin(self.base_url, href))
+                yield Link(url, self)
 
     def rel_links(self):
         for url in self.explicit_rel_links():
@@ -625,21 +625,20 @@ class HTMLPage(object):
 
     def explicit_rel_links(self, rels=('homepage', 'download')):
         """Yields all links with the given relations"""
-        for match in self._rel_re.finditer(self.content):
-            found_rels = match.group(1).lower().split()
-            for rel in rels:
-                if rel in found_rels:
-                    break
-            else:
-                continue
-            match = self._href_re.search(match.group(0))
-            if not match:
-                continue
-            url = match.group(1) or match.group(2) or match.group(3)
-            url = self.clean_link(urlparse.urljoin(self.base_url, url))
-            yield Link(url, self)
+        rels = set(rels)
+
+        for anchor in self.parsed.findall(".//a"):
+            if anchor.get("rel") and anchor.get("href"):
+                found_rels = set(anchor.get("rel").split())
+                # Determine the intersection between what rels were found and
+                #   what rels were being looked for
+                if found_rels & rels:
+                    href = anchor.get("href")
+                    url = self.clean_link(urlparse.urljoin(self.base_url, href))
+                    yield Link(url, self)
 
     def scraped_rel_links(self):
+        # Can we get rid of this horrible horrible method?
         for regex in (self._homepage_re, self._download_re):
             match = regex.search(self.content)
             if not match:
