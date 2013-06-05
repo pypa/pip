@@ -267,13 +267,16 @@ def create_main_parser():
 
 
 standard_options = [
-    optparse.make_option(
+    # We use 'CustomOption' instead of 'make_option' (which is actually an alias for Option).
+    # This allows our custom 'path' argument.
+
+    CustomOption(
         '-h', '--help',
         dest='help',
         action='help',
         help='Show help.'),
 
-    optparse.make_option(
+    CustomOption(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
         dest='require_venv',
@@ -281,34 +284,34 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         '-v', '--verbose',
         dest='verbose',
         action='count',
         default=0,
         help='Give more output. Option is additive, and can be used up to 3 times.'),
 
-    optparse.make_option(
+    CustomOption(
         '-V', '--version',
         dest='version',
         action='store_true',
         help='Show version and exit.'),
 
-    optparse.make_option(
+    CustomOption(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
         help='Give less output.'),
 
-    optparse.make_option(
+    CustomOption(
         '--log',
         dest='log',
         metavar='file',
         type='path',
         help='Log file where a complete (maximum verbosity) record will be kept.'),
 
-    optparse.make_option(
+    CustomOption(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
         dest='log_explicit_levels',
@@ -316,7 +319,7 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
@@ -325,7 +328,7 @@ standard_options = [
         default=default_log_file,
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         # Don't ask for input
         '--no-input',
         dest='no_input',
@@ -333,14 +336,14 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         '--proxy',
         dest='proxy',
         type='str',
         default='',
         help="Specify a proxy in the form [user:passwd@]proxy.server:port."),
 
-    optparse.make_option(
+    CustomOption(
         '--timeout', '--default-timeout',
         metavar='sec',
         dest='timeout',
@@ -348,7 +351,7 @@ standard_options = [
         default=15,
         help='Set the socket timeout (default %default seconds).'),
 
-    optparse.make_option(
+    CustomOption(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
         dest='default_vcs',
@@ -356,7 +359,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
         dest='skip_requirements_regex',
@@ -364,7 +367,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    optparse.make_option(
+    CustomOption(
         # Option when path already exist
         '--exists-action',
         dest='exists_action',
@@ -376,7 +379,7 @@ standard_options = [
         help="Default action when a path already exists: "
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
 
-    optparse.make_option(
+    CustomOption(
         '--cert',
         dest='cert',
         type='path',

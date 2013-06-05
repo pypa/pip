@@ -1,5 +1,6 @@
 """shared options and groups"""
-from optparse import make_option, OptionGroup
+from optparse import OptionGroup
+from pip.baseparser import CustomOption
 from pip.locations import build_prefix
 
 
@@ -18,14 +19,18 @@ def make_option_group(group, parser):
 # options #
 ###########
 
-index_url = make_option(
+# We use 'CustomOption' instead of 'make_option' (which is actually an alias for Option).
+# This allows our custom 'path' argument.
+
+
+index_url = CustomOption(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
     default='https://pypi.python.org/simple/',
     help='Base URL of Python Package Index (default %default).')
 
-extra_index_url = make_option(
+extra_index_url = CustomOption(
     '--extra-index-url',
     dest='extra_index_urls',
     metavar='URL',
@@ -33,14 +38,14 @@ extra_index_url = make_option(
     default=[],
     help='Extra URLs of package indexes to use in addition to --index-url.')
 
-no_index = make_option(
+no_index = CustomOption(
     '--no-index',
     dest='no_index',
     action='store_true',
     default=False,
     help='Ignore package index (only looking at --find-links URLs instead).')
 
-find_links =  make_option(
+find_links =  CustomOption(
     '-f', '--find-links',
     dest='find_links',
     action='append',
@@ -48,14 +53,14 @@ find_links =  make_option(
     metavar='url',
     help="If a url or path to an html file, then parse for links to archives. If a local path or file:// url that's a directory, then look for archives in the directory listing.")
 
-use_mirrors = make_option(
+use_mirrors = CustomOption(
     '-M', '--use-mirrors',
     dest='use_mirrors',
     action='store_true',
     default=False,
     help='Use the PyPI mirrors as a fallback in case the main index is down.')
 
-mirrors = make_option(
+mirrors = CustomOption(
     '--mirrors',
     dest='mirrors',
     metavar='URL',
@@ -63,7 +68,7 @@ mirrors = make_option(
     default=[],
     help='Specific mirror URLs to query when --use-mirrors is used.')
 
-requirements = make_option(
+requirements = CustomOption(
     '-r', '--requirement',
     dest='requirements',
     action='append',
@@ -73,13 +78,13 @@ requirements = make_option(
     help='Install from the given requirements file. '
     'This option can be used multiple times.')
 
-use_wheel = make_option(
+use_wheel = CustomOption(
     '--use-wheel',
     dest='use_wheel',
     action='store_true',
     help='Find and prefer wheel archives when searching indexes and find-links locations. Default to accepting source archives.')
 
-download_cache = make_option(
+download_cache = CustomOption(
     '--download-cache',
     dest='download_cache',
     metavar='dir',
@@ -87,14 +92,14 @@ download_cache = make_option(
     default=None,
     help='Cache downloaded packages in <dir>.')
 
-no_deps = make_option(
+no_deps = CustomOption(
     '--no-deps', '--no-dependencies',
     dest='ignore_dependencies',
     action='store_true',
     default=False,
     help="Don't install package dependencies.")
 
-build_dir = make_option(
+build_dir = CustomOption(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
@@ -104,7 +109,7 @@ build_dir = make_option(
     'The default in a virtualenv is "<venv path>/build". '
     'The default for global installs is "<OS temp dir>/pip-build-<username>".')
 
-install_options = make_option(
+install_options = CustomOption(
     '--install-option',
     dest='install_options',
     action='append',
@@ -114,7 +119,7 @@ install_options = make_option(
     "Use multiple --install-option options to pass multiple options to setup.py install. "
     "If you are using an option with a directory path, be sure to use absolute path.")
 
-global_options = make_option(
+global_options = CustomOption(
     '--global-option',
     dest='global_options',
     action='append',
@@ -122,7 +127,7 @@ global_options = make_option(
     help="Extra global options to be supplied to the setup.py "
     "call before the install command.")
 
-no_clean = make_option(
+no_clean = CustomOption(
     '--no-clean',
     action='store_true',
     default=False,
