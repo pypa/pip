@@ -106,7 +106,7 @@ def check_path(option, opt, value):
     return normalize_path(value)
 
 
-class CustomOption(optparse.Option):
+class PathAwareOption(optparse.Option):
     """optparse.Option subclass handling 'path' type.
 
     See: http://docs.python.org/2/library/optparse#adding-new-types"""
@@ -115,7 +115,7 @@ class CustomOption(optparse.Option):
     TYPE_CHECKER['path'] = check_path
 
 
-class CustomOptionParser(optparse.OptionParser):
+class PathAwareOptionParser(optparse.OptionParser):
     def insert_option_group(self, idx, *args, **kwargs):
         """Insert an OptionGroup at a given position."""
         group = self.add_option_group(*args, **kwargs)
@@ -135,11 +135,11 @@ class CustomOptionParser(optparse.OptionParser):
         return res
 
 
-class ConfigOptionParser(CustomOptionParser):
+class ConfigOptionParser(PathAwareOptionParser):
     """Custom option parser which updates its defaults by by checking the
     configuration files and environmental variables.
 
-    Also handles custom types defined in CustomOption."""
+    Also handles custom types defined in PathAwareOption."""
 
     def __init__(self, *args, **kwargs):
         self.config = ConfigParser.RawConfigParser()
@@ -147,7 +147,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.files = self.get_config_files()
         self.config.read(self.files)
         assert self.name
-        kwargs['option_class'] = CustomOption
+        kwargs['option_class'] = PathAwareOption
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
@@ -267,16 +267,16 @@ def create_main_parser():
 
 
 standard_options = [
-    # We use 'CustomOption' instead of 'make_option' (which is actually an alias for Option).
+    # We use 'PathAwareOption' instead of 'make_option' (which is actually an alias for Option).
     # This allows our custom 'path' argument.
 
-    CustomOption(
+    PathAwareOption(
         '-h', '--help',
         dest='help',
         action='help',
         help='Show help.'),
 
-    CustomOption(
+    PathAwareOption(
         # Run only if inside a virtualenv, bail if not.
         '--require-virtualenv', '--require-venv',
         dest='require_venv',
@@ -284,34 +284,34 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         '-v', '--verbose',
         dest='verbose',
         action='count',
         default=0,
         help='Give more output. Option is additive, and can be used up to 3 times.'),
 
-    CustomOption(
+    PathAwareOption(
         '-V', '--version',
         dest='version',
         action='store_true',
         help='Show version and exit.'),
 
-    CustomOption(
+    PathAwareOption(
         '-q', '--quiet',
         dest='quiet',
         action='count',
         default=0,
         help='Give less output.'),
 
-    CustomOption(
+    PathAwareOption(
         '--log',
         dest='log',
         metavar='file',
         type='path',
         help='Log file where a complete (maximum verbosity) record will be kept.'),
 
-    CustomOption(
+    PathAwareOption(
         # Writes the log levels explicitely to the log'
         '--log-explicit-levels',
         dest='log_explicit_levels',
@@ -319,7 +319,7 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         # The default log file
         '--local-log', '--log-file',
         dest='log_file',
@@ -328,7 +328,7 @@ standard_options = [
         default=default_log_file,
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         # Don't ask for input
         '--no-input',
         dest='no_input',
@@ -336,14 +336,14 @@ standard_options = [
         default=False,
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         '--proxy',
         dest='proxy',
         type='str',
         default='',
         help="Specify a proxy in the form [user:passwd@]proxy.server:port."),
 
-    CustomOption(
+    PathAwareOption(
         '--timeout', '--default-timeout',
         metavar='sec',
         dest='timeout',
@@ -351,7 +351,7 @@ standard_options = [
         default=15,
         help='Set the socket timeout (default %default seconds).'),
 
-    CustomOption(
+    PathAwareOption(
         # The default version control system for editables, e.g. 'svn'
         '--default-vcs',
         dest='default_vcs',
@@ -359,7 +359,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         # A regex to be used to skip requirements
         '--skip-requirements-regex',
         dest='skip_requirements_regex',
@@ -367,7 +367,7 @@ standard_options = [
         default='',
         help=optparse.SUPPRESS_HELP),
 
-    CustomOption(
+    PathAwareOption(
         # Option when path already exist
         '--exists-action',
         dest='exists_action',
@@ -379,7 +379,7 @@ standard_options = [
         help="Default action when a path already exists: "
              "(s)witch, (i)gnore, (w)ipe, (b)ackup."),
 
-    CustomOption(
+    PathAwareOption(
         '--cert',
         dest='cert',
         type='path',
