@@ -272,7 +272,7 @@ def normalize_path(path):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    return os.path.normcase(os.path.realpath(path))
+    return os.path.normcase(os.path.realpath(os.path.expanduser(path)))
 
 
 def splitext(path):

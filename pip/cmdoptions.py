@@ -69,6 +69,7 @@ requirements = make_option(
     action='append',
     default=[],
     metavar='file',
+    type='path',
     help='Install from the given requirements file. '
     'This option can be used multiple times.')
 
@@ -82,6 +83,7 @@ download_cache = make_option(
     '--download-cache',
     dest='download_cache',
     metavar='dir',
+    type='path',
     default=None,
     help='Cache downloaded packages in <dir>.')
 
@@ -96,6 +98,7 @@ build_dir = make_option(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
+    type='path',
     default=build_prefix,
     help='Directory to unpack packages into and build in. '
     'The default in a virtualenv is "<venv path>/build". '

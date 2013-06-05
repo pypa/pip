@@ -8,7 +8,7 @@ import textwrap
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file, default_log_file
-from pip.util import get_terminal_size, get_prog
+from pip.util import get_terminal_size, get_prog, normalize_path
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -101,6 +101,20 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         return optparse.IndentedHelpFormatter.expand_default(self, option)
 
 
+def check_path(option, opt, value):
+    """Check a 'path' value: normalize it."""
+    return normalize_path(value)
+
+
+class CustomOption(optparse.Option):
+    """optparse.Option subclass handling 'path' type.
+
+    See: http://docs.python.org/2/library/optparse#adding-new-types"""
+    TYPES = optparse.Option + ('path',)
+    TYPE_CHECKER = dict(optparse.Option.TYPE_CHECKER)
+    TYPE_CHECKER['path'] = check_path
+
+
 class CustomOptionParser(optparse.OptionParser):
     def insert_option_group(self, idx, *args, **kwargs):
         """Insert an OptionGroup at a given position."""
@@ -123,7 +137,9 @@ class CustomOptionParser(optparse.OptionParser):
 
 class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by by checking the
-    configuration files and environmental variables"""
+    configuration files and environmental variables.
+
+    Also handles custom types defined in CustomOption."""
 
     def __init__(self, *args, **kwargs):
         self.config = ConfigParser.RawConfigParser()
@@ -131,6 +147,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.files = self.get_config_files()
         self.config.read(self.files)
         assert self.name
+        kwargs['option_class'] = CustomOption
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
@@ -288,6 +305,7 @@ standard_options = [
         '--log',
         dest='log',
         metavar='file',
+        type='path',
         help='Log file where a complete (maximum verbosity) record will be kept.'),
 
     optparse.make_option(
@@ -303,6 +321,7 @@ standard_options = [
         '--local-log', '--log-file',
         dest='log_file',
         metavar='file',
+        type='path',
         default=default_log_file,
         help=optparse.SUPPRESS_HELP),
 
@@ -360,7 +379,7 @@ standard_options = [
     optparse.make_option(
         '--cert',
         dest='cert',
-        type='str',
+        type='path',
         default='',
         metavar='path',
         help = "Path to alternate CA bundle."),
