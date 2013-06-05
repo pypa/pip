@@ -110,7 +110,7 @@ class CustomOption(optparse.Option):
     """optparse.Option subclass handling 'path' type.
 
     See: http://docs.python.org/2/library/optparse#adding-new-types"""
-    TYPES = optparse.Option + ('path',)
+    TYPES = optparse.Option.TYPES + ('path',)
     TYPE_CHECKER = dict(optparse.Option.TYPE_CHECKER)
     TYPE_CHECKER['path'] = check_path
 
