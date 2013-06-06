@@ -80,20 +80,20 @@ no_allow_external = make_option(
 )
 
 allow_unsafe = make_option(
-    "--allow-unsafe",
-    dest="allow_unsafe",
+    "--allow-insecure",
+    dest="allow_insecure",
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of unsafe and unverifiable files",
+    help="Allow the installation of insecure and unverifiable files",
 )
 
 no_allow_unsafe = make_option(
-    "--no-allow-unsafe",
-    dest="allow_all_unsafe",
+    "--no-allow-insecure",
+    dest="allow_all_insecure",
     action="store_false",
     default=True,
-    help="Disallow the installation of unsafe and unverifiable files"
+    help="Disallow the installation of insecure and unverifiable files"
 )
 
 requirements = make_option(

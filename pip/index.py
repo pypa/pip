@@ -48,8 +48,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False, allow_external=False, allow_unsafe=[],
-            allow_all_unsafe=False):
+            use_wheel=False, allow_external=False, allow_insecure=[],
+            allow_all_insecure=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -66,11 +66,11 @@ class PackageFinder(object):
         # Do we allow (safe and verifiable) externally hosted files?
         self.allow_external = allow_external
 
-        # Which names are allowed to install unsafe and unverifiable files?
-        self.allow_unsafe = set(normalize_name(n) for n in allow_unsafe)
+        # Which names are allowed to install insecure and unverifiable files?
+        self.allow_insecure = set(normalize_name(n) for n in allow_insecure)
 
         # Do we allow unsafe and unverifiable files?
-        self.allow_all_unsafe = allow_all_unsafe
+        self.allow_all_insecure = allow_all_insecure
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
@@ -78,7 +78,7 @@ class PackageFinder(object):
 
         # Stores if we ignored any unsafe links so that we can instruct
         #   end users how to install them if no distributions are available
-        self.need_warn_unsafe = False
+        self.need_warn_insecure = False
 
     @property
     def use_wheel(self):
@@ -251,9 +251,9 @@ class PackageFinder(object):
                 logger.warn("Some externally hosted files were ignored (use "
                             "--allow-external to allow).")
 
-            if self.need_warn_unsafe:
-                logger.warn("Some unsafe and unverifiable files were ignored "
-                            "(use --allow-unsafe %s to allow)." % req.name)
+            if self.need_warn_insecure:
+                logger.warn("Some insecure and unverifiable files were ignored"
+                            " (use --allow-insecure %s to allow)." % req.name)
 
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
@@ -292,9 +292,9 @@ class PackageFinder(object):
                 logger.warn("Some externally hosted files were ignored (use "
                             "--allow-external to allow).")
 
-            if self.need_warn_unsafe:
-                logger.warn("Some unsafe and unverifiable files were ignored "
-                            "(use --allow-unsafe %s to allow)." % req.name)
+            if self.need_warn_insecure:
+                logger.warn("Some insecure and unverifiable files were ignored"
+                            " (use --allow-insecure %s to allow)." % req.name)
 
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
@@ -317,9 +317,9 @@ class PackageFinder(object):
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
-            logger.warn("You are installing a potentially unsafe and "
+            logger.warn("You are installing a potentially insecure and "
                         "unverifiable file. Future versions of pip will "
-                        "default to disallowing unsafe files.")
+                        "default to disallowing insecure files.")
 
         return selected_version
 
@@ -385,12 +385,12 @@ class PackageFinder(object):
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalize_name(req.name).lower() in self.allow_unsafe
-                        and not self.allow_all_unsafe):  # TODO: Remove after release
+                        and not normalize_name(req.name).lower() in self.allow_insecure
+                        and not self.allow_all_insecure):  # TODO: Remove after release
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
                                 "verifiable files." % link)
-                    self.need_warn_unsafe = True
+                    self.need_warn_insecure = True
                     continue
 
                 pending_queue.put(link)
@@ -477,14 +477,14 @@ class PackageFinder(object):
 
         if (link.verifiable is not None
                 and not link.verifiable
-                and not normalize_name(search_name).lower() in self.allow_unsafe
-                and not self.allow_all_unsafe):  # TODO: Remove after release
+                and not normalize_name(search_name).lower() in self.allow_insecure
+                and not self.allow_all_insecure):  # TODO: Remove after release
             # We have a link that we are sure we cannot verify it's integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
-            logger.debug("Skipping %s because it is an unsafe and unverifiable"
-                         " file." % link)
-            self.need_warn_unsafe = True
+            logger.debug("Skipping %s because it is an insecure and "
+                         "unverifiable file." % link)
+            self.need_warn_insecure = True
             return []
 
         match = self._py_version_re.search(version)
