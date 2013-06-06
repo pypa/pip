@@ -101,44 +101,50 @@ The url suffix "egg=<project name>" is used by pip in it's dependency logic to i
 Git
 ~~~
 
-pip currently supports cloning over ``git``, ``git+http`` and ``git+ssh``::
+pip currently supports cloning over ``git``, ``git+https`` and ``git+ssh``:
 
-    git+git://git.myproject.org/MyProject#egg=MyProject
-    git+http://git.myproject.org/MyProject#egg=MyProject
-    git+ssh://git.myproject.org/MyProject#egg=MyProject
+Here are the supported forms::
 
-Passing branch names, a commit hash or a tag name is also possible::
+    [-e] git+git://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+https://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+ssh://git.myproject.org/MyProject#egg=MyProject
+    -e git+git@git.myproject.org:MyProject#egg=MyProject
 
-    git://git.myproject.org/MyProject.git@master#egg=MyProject
-    git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
-    git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+Passing branch names, a commit hash or a tag name is possible like so::
+
+    [-e] git://git.myproject.org/MyProject.git@master#egg=MyProject
+    [-e] git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
+    [-e] git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 Mercurial
 ~~~~~~~~~
 
 The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``::
+``hg+static-http`` and ``hg+ssh``.
 
-    hg+http://hg.myproject.org/MyProject#egg=MyProject
-    hg+https://hg.myproject.org/MyProject#egg=MyProject
-    hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+Here are the supported forms::
+
+    [-e] hg+http://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+https://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+ssh://hg.myproject.org/MyProject#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
-branch name::
+branch name like so::
 
-    hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
 
 Subversion
 ~~~~~~~~~~
 
 pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
-You can also give specific revisions to an SVN URL, like::
 
-    svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
-    svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+You can also give specific revisions to an SVN URL, like so::
+
+    [-e] svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
+    [-e] svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check
 out the revision from 2008-01-01. You can only check out specific
@@ -148,18 +154,20 @@ Bazaar
 ~~~~~~
 
 pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
-``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes::
+``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes.
 
-    bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
-    bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+lp:MyProject#egg=MyProject
+Here are the supported forms::
 
-Tags or revisions can be installed like this::
+    [-e] bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+lp:MyProject#egg=MyProject
 
-    bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
-    bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
+Tags or revisions can be installed like so::
+
+    [-e] bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
+    [-e] bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
 
 
 Finding Packages
