@@ -21,7 +21,7 @@ def test_install_from_wheel():
 
 def test_install_from_wheel_with_extras():
     """
-    Test installing from a wheel.
+    Test installing from a wheel with extras.
     """
     try:
         import ast
@@ -66,3 +66,33 @@ def test_install_wheel_with_target():
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
                      '--no-index', '--find-links='+find_links)
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
+
+
+def test_install_from_wheel_installs_deps():
+    """
+    Test can install dependencies of wheels
+    """
+    # 'requires_source' depends on the 'source' project
+    env = reset_env(use_distribute=True)
+    package = abspath(join(tests_data,
+                           'packages',
+                           'requires_source-1.0-py2.py3-none-any.whl'))
+    result = run_pip('install', '--no-index', '--find-links', find_links, package)
+    result.assert_installed('source', editable=False)
+
+
+def test_install_from_wheel_no_deps():
+    """
+    Test --no-deps works with wheel installs
+    """
+    # 'requires_source' depends on the 'source' project
+    env = reset_env(use_distribute=True)
+    package = abspath(join(tests_data,
+                           'packages',
+                           'requires_source-1.0-py2.py3-none-any.whl'))
+    result = run_pip('install', '--no-index', '--find-links', find_links, '--no-deps', package)
+    pkg_folder = env.site_packages/'source'
+    assert pkg_folder not in result.files_created
+
+
+

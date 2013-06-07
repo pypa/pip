@@ -94,3 +94,19 @@ def test_no_clean_option_blocks_cleaning_after_wheel():
     result = run_pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
     build = env.venv_path/'build'/'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
+
+
+def test_pip_wheel_source_deps():
+    """
+    Test 'pip wheel --use-wheel' finds and builds source archive dependencies of wheels
+    """
+    # 'requires_source' is a wheel that depends on the 'source' project
+    env = reset_env(use_distribute=True)
+    pip_install_local('wheel')
+    result = run_pip('wheel', '--use-wheel', '--no-index', '-f', find_links, 'requires_source')
+    wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot
+    wheel_file_path = env.scratch/'wheelhouse'/wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built source" in result.stdout, result.stdout
+
+

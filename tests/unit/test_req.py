@@ -9,7 +9,7 @@ from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet, parse_editable,
                      Requirements, parse_requirements)
-from tests.lib import path_to_url, assert_raises_regexp, find_links
+from tests.lib import path_to_url, assert_raises_regexp, find_links, tests_data
 
 
 class TestRequirementSet(object):
@@ -165,3 +165,14 @@ def test_remote_reqs_parse():
     # previously this has failed in py3 (https://github.com/pypa/pip/issues/760)
     for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
         pass
+
+
+def test_req_file_parse_use_wheel():
+    """
+    Test parsing --use-wheel from a req file
+    """
+    reqfile = os.path.join(tests_data, 'reqfiles', 'supported_options.txt')
+    finder = PackageFinder([], [])
+    for req in parse_requirements(reqfile, finder):
+        pass
+    assert finder.use_wheel
