@@ -81,6 +81,33 @@ installing pre-releases and development releases.
 
 .. _PEP426: http://www.python.org/dev/peps/pep-0426
 
+.. _`Externally Hosted Files`:
+
+Externally Hosted Files
+=======================
+
+Starting with v1.4, pip will warn about installing any file that does not come
+from the primary index. In future versions pip will default to ignoring these
+files unless asked to consider them.
+
+The ``pip install`` command supports a
+:ref:`--allow-external PROJECT <--allow-external>` option that will enable
+installing links that are linked directly from the simple index but to an
+external host that also have a supported hash fragment. Externally hosted
+files for all projects may be enabled using the
+:ref:`--allow-all-external <--allow-all-external>` flag to the ``pip install``
+command.
+
+The ``pip install`` command also supports a
+:ref:`--allow-insecure PROJECT <--allow-insecure>` option that will enable
+installing insecurely linked files. These are either directly linked (as above)
+files without a hash, or files that are linked from either the home page or the
+download url of a package.
+
+In order to get the future behavior in v1.4 the ``pip install`` command
+supports a :ref:`--no-allow-external <--no-allow-external>` and
+:ref:`--no-allow-insecure <--no-allow-external>` flags.
+
 .. _`VCS Support`:
 
 VCS Support

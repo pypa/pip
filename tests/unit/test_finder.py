@@ -259,3 +259,176 @@ def test_link_sorting():
     results2 = finder._sort_versions(sorted(links, reverse=True))
 
     assert links == results == results2, results2
+
+
+def test_finder_ignores_external_links():
+    """
+    Tests that PackageFinder ignores external links, with or without hashes.
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url])
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-1.0.tar.gz"
+
+
+def test_finder_finds_external_links_with_hashes_per_project():
+    """
+    Tests that PackageFinder finds external links but only if they have a hash
+    using the per project configuration.
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url], allow_external=["bar"])
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-2.0.tar.gz"
+
+
+def test_finder_finds_external_links_with_hashes_all():
+    """
+    Tests that PackageFinder finds external links but only if they have a hash
+    using the all externals flag.
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url], allow_all_external=True)
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-2.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_per_project():
+    """
+    Tests that PackageFinder finds external links if they do not have a hash
+    """
+    req = InstallRequirement.from_line("bar==3.0", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_external=["bar"],
+                allow_insecure=["bar"],
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-3.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_all():
+    """
+    Tests that PackageFinder finds external links if they do not have a hash
+    using the all external flag
+    """
+    req = InstallRequirement.from_line("bar==3.0", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_all_external=True,
+                allow_insecure=["bar"],
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-3.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_scraped_per_project():
+    """
+    Tests that PackageFinder finds externally scraped links
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_external=["bar"],
+                allow_insecure=["bar"],
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-4.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_scraped_all():
+    """
+    Tests that PackageFinder finds externally scraped links using the all
+    external flag.
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_all_external=True,
+                allow_insecure=["bar"],
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-4.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_per_project_all_insecure():
+    """
+    Tests that PackageFinder finds external links if they do not have a hash
+    """
+    req = InstallRequirement.from_line("bar==3.0", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_external=["bar"],
+                allow_all_insecure=True,
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-3.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_all_all_insecure():
+    """
+    Tests that PackageFinder finds external links if they do not have a hash
+    using the all external flag
+    """
+    req = InstallRequirement.from_line("bar==3.0", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_all_external=True,
+                allow_all_insecure=True,
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-3.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_scraped_per_project_all_insecure():
+    """
+    Tests that PackageFinder finds externally scraped links
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_external=["bar"],
+                allow_all_insecure=True,
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-4.0.tar.gz"
+
+
+def test_finder_finds_external_links_without_hashes_scraped_all_all_insecure():
+    """
+    Tests that PackageFinder finds externally scraped links using the all
+    external flag.
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
+    finder = PackageFinder([], [index_url],
+                allow_all_external=True,
+                allow_all_insecure=True,
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-4.0.tar.gz"
