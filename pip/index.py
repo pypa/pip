@@ -544,6 +544,21 @@ class HTMLPage(object):
                     contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
                 if encoding == 'deflate':
                     contents = zlib.decompress(contents)
+
+            # The check for archives above only works if the url ends with
+            #   something that looks like an archive. However that is not a
+            #   requirement. For instance http://sourceforge.net/projects/docutils/files/docutils/0.8.1/docutils-0.8.1.tar.gz/download
+            #   redirects to http://superb-dca3.dl.sourceforge.net/project/docutils/docutils/0.8.1/docutils-0.8.1.tar.gz
+            #   Unless we issue a HEAD request on every url we cannot know
+            #   ahead of time for sure if something is HTML or not. However we
+            #   can check after we've downloaded it.
+            if not headers["Content-Type"].lower().startswith("text/html"):
+                logger.debug('Skipping page %s because of Content-Type: %s' %
+                                            (link, headers["Content-Type"]))
+                if cache is not None:
+                    cache.set_is_archive(url)
+                return None
+
             inst = cls(u(contents), real_url, headers)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
