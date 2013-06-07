@@ -1396,7 +1396,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
         elif line.startswith('--no-index'):
             finder.index_urls = []
         elif line.startswith("--allow-external"):
-            finder.allow_external = True
+            line = line[len("--allow-external"):].strip().lstrip("=")
+            finder.allow_external |= set([normalize_name(line).lower()])
+        elif line.startswith("--allow-all-external"):
+            finder.allow_all_external = True
         elif line.startswith("--no-allow-external"):
             finder.allow_external = False
         elif line.startswith("--allow-insecure"):

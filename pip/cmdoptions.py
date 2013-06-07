@@ -66,17 +66,26 @@ mirrors = make_option(
 allow_external = make_option(
     "--allow-external",
     dest="allow_external",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of externally hosted files",
+)
+
+allow_all_external = make_option(
+    "--allow-all-external",
+    dest="allow_all_external",
     action="store_true",
     default=True,  # TODO: Change to False after 1.4 has been released
-    help="Allow the installation of externally hosted files",
+    help="Allow the installation of all externally hosted files",
 )
 
 # TODO: NOOP after 1.4 has been released
 no_allow_external = make_option(
     "--no-allow-external",
-    dest="allow_external",
+    dest="allow_all_external",
     action="store_false",
-    help="Disallow the installation of externally hosted files",
+    help="Disallow the installation of all externally hosted files",
 )
 
 allow_unsafe = make_option(
@@ -173,6 +182,7 @@ index_group = {
         use_mirrors,
         mirrors,
         allow_external,
+        allow_all_external,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,

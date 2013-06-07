@@ -165,6 +165,7 @@ class InstallCommand(Command):
                              use_wheel=options.use_wheel,
                              allow_external=options.allow_external,
                              allow_insecure=options.allow_insecure,
+                             allow_all_external=options.allow_all_external,
                              allow_all_insecure=options.allow_all_insecure,
                             )
 

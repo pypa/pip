@@ -283,7 +283,7 @@ def test_finder_finds_external_links_with_hashes_per_project():
 
     # using a local index
     index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
-    finder = PackageFinder([], [index_url], allow_external=True)
+    finder = PackageFinder([], [index_url], allow_external=["bar"])
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-2.0.tar.gz"
 
@@ -311,7 +311,7 @@ def test_finder_finds_external_links_without_hashes_per_project():
     # using a local index
     index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
     finder = PackageFinder([], [index_url],
-                allow_external=True,
+                allow_external=["bar"],
                 allow_insecure=["bar"],
             )
     link = finder.find_requirement(req, False)
@@ -344,7 +344,7 @@ def test_finder_finds_external_links_without_hashes_scraped_per_project():
     # using a local index
     index_url = path_to_url(os.path.join(tests_data, "indexes", "externals"))
     finder = PackageFinder([], [index_url],
-                allow_external=True,
+                allow_external=["bar"],
                 allow_insecure=["bar"],
             )
     link = finder.find_requirement(req, False)

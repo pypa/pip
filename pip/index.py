@@ -48,8 +48,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False, allow_external=False, allow_insecure=[],
-            allow_all_insecure=False):
+            use_wheel=False, allow_external=[], allow_insecure=[],
+            allow_all_external=False, allow_all_insecure=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -64,10 +64,13 @@ class PackageFinder(object):
         self.use_wheel = use_wheel
 
         # Do we allow (safe and verifiable) externally hosted files?
-        self.allow_external = allow_external
+        self.allow_external = set(normalize_name(n) for n in allow_external)
 
         # Which names are allowed to install insecure and unverifiable files?
         self.allow_insecure = set(normalize_name(n) for n in allow_insecure)
+
+        # Do we allow all (safe and verifiable) externally hosted files?
+        self.allow_all_external = allow_all_external
 
         # Do we allow unsafe and unverifiable files?
         self.allow_all_insecure = allow_all_insecure
@@ -249,7 +252,7 @@ class PackageFinder(object):
 
             if self.need_warn_external:
                 logger.warn("Some externally hosted files were ignored (use "
-                            "--allow-external to allow).")
+                            "--allow-external %s to allow)." % req.name)
 
             if self.need_warn_insecure:
                 logger.warn("Some insecure and unverifiable files were ignored"
@@ -377,7 +380,10 @@ class PackageFinder(object):
                 continue
             done.append(page)
             for link in page.rel_links():
-                if not self.allow_external:
+                normalized = normalize_name(req.name).lower()
+
+                if (not normalized in self.allow_external
+                        and not self.allow_all_external):
                     self.need_warn_external = True
                     logger.debug("Not searching %s for files because external "
                                  "urls are disallowed." % link)
@@ -385,7 +391,7 @@ class PackageFinder(object):
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalize_name(req.name).lower() in self.allow_insecure
+                        and not normalized in self.allow_insecure
                         and not self.allow_all_insecure):  # TODO: Remove after release
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
@@ -468,7 +474,8 @@ class PackageFinder(object):
 
         if (link.internal is not None
                 and not link.internal
-                and not self.allow_external):
+                and not normalize_name(search_name).lower() in self.allow_external
+                and not self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
             logger.debug("Skipping %s because it is externally hosted." % link)
