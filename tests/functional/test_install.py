@@ -5,7 +5,7 @@ from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
 from pip.util import rmtree
-from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
+from tests.lib import tests_data, reset_env, run_pip, pyversion, pyversion_major, mkdir, pip_install_local, write_file, find_links
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -482,11 +482,11 @@ def test_dont_install_distribute_in_py3():
 
 def test_pip_second_command_line_interface_works():
     """
-    Check if ``pip-<PYVERSION>`` commands behaves equally
+    Check if ``pip<PYVERSION>`` commands behaves equally
     """
     e = reset_env()
 
-    args = ['pip-%s' % pyversion]
+    args = ['pip%s' % pyversion_major]
     args.extend(['install', 'INITools==0.2'])
     result = e.run(*args)
     egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion

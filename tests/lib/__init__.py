@@ -16,6 +16,7 @@ from pip.util import rmtree
 from pip.backwardcompat import uses_pycache
 
 pyversion = sys.version[:3]
+pyversion_major = sys.version_info[0]
 pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
 tests_lib = Path(__file__).abspath.folder # pip/tests/lib
 tests_root = tests_lib.folder # pip/tests
