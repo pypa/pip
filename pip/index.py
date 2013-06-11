@@ -48,7 +48,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
-            use_wheel=False):
+            use_wheel=False, allow_external=[], allow_insecure=[],
+            allow_all_external=False, allow_all_insecure=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -61,6 +62,26 @@ class PackageFinder(object):
         else:
             self.mirror_urls = []
         self.use_wheel = use_wheel
+
+        # Do we allow (safe and verifiable) externally hosted files?
+        self.allow_external = set(normalize_name(n) for n in allow_external)
+
+        # Which names are allowed to install insecure and unverifiable files?
+        self.allow_insecure = set(normalize_name(n) for n in allow_insecure)
+
+        # Do we allow all (safe and verifiable) externally hosted files?
+        self.allow_all_external = allow_all_external
+
+        # Do we allow unsafe and unverifiable files?
+        self.allow_all_insecure = allow_all_insecure
+
+        # Stores if we ignored any external links so that we can instruct
+        #   end users how to install them if no distributions are available
+        self.need_warn_external = False
+
+        # Stores if we ignored any unsafe links so that we can instruct
+        #   end users how to install them if no distributions are available
+        self.need_warn_insecure = False
 
     @property
     def use_wheel(self):
@@ -171,11 +192,11 @@ class PackageFinder(object):
         main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
-            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
+            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]), trusted=True)
             # This will also cache the page, so it's okay that we get it again later:
             page = self._get_page(main_index_url, req)
             if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req) or req.url_name
+                url_name = self._find_url_name(Link(self.index_urls[0], trusted=True), url_name, req) or req.url_name
 
         # Combine index URLs with mirror URLs here to allow
         # adding more index URLs from requirements files
@@ -187,22 +208,31 @@ class PackageFinder(object):
                 for url in all_index_urls] + self.find_links
         else:
             locations = list(self.find_links)
-        locations.extend(self.dependency_links)
         for version in req.absolute_versions:
             if url_name is not None and main_index_url is not None:
                 locations = [
                     posixpath.join(main_index_url.url, version)] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
+        _flocations, _ulocations = self._sort_locations(self.dependency_links)
+        file_locations.extend(_flocations)
 
-        locations = [Link(url) for url in url_locations]
+        # We trust every url that the user has given us whether it was given
+        #   via --index-url, --user-mirrors/--mirror, or --find-links or a
+        #   default option thereof
+        locations = [Link(url, trusted=True) for url in url_locations]
+
+        # We explicitly do not trust links that came from dependency_links
+        locations.extend([Link(url) for url in _ulocations])
+
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
         found_versions = []
         found_versions.extend(
             self._package_versions(
-                [Link(url, '-f') for url in self.find_links], req.name.lower()))
+                # We trust every directly linked archive in find_links
+                [Link(url, '-f', trusted=True) for url in self.find_links], req.name.lower()))
         page_versions = []
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s' % page.url)
@@ -219,6 +249,15 @@ class PackageFinder(object):
                 [Link(url) for url in file_locations], req.name.lower()))
         if not found_versions and not page_versions and not dependency_versions and not file_versions:
             logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+
+            if self.need_warn_external:
+                logger.warn("Some externally hosted files were ignored (use "
+                            "--allow-external %s to allow)." % req.name)
+
+            if self.need_warn_insecure:
+                logger.warn("Some insecure and unverifiable files were ignored"
+                            " (use --allow-insecure %s to allow)." % req.name)
+
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
         if req.satisfied_by is not None:
@@ -251,6 +290,15 @@ class PackageFinder(object):
         if not applicable_versions:
             logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
                          % (req, ', '.join([version for parsed_version, link, version in all_versions])))
+
+            if self.need_warn_external:
+                logger.warn("Some externally hosted files were ignored (use "
+                            "--allow-external to allow).")
+
+            if self.need_warn_insecure:
+                logger.warn("Some insecure and unverifiable files were ignored"
+                            " (use --allow-insecure %s to allow)." % req.name)
+
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
@@ -260,7 +308,23 @@ class PackageFinder(object):
         if len(applicable_versions) > 1:
             logger.info('Using version %s (newest of versions: %s)' %
                         (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
-        return applicable_versions[0][1]
+
+        selected_version = applicable_versions[0][1]
+
+        # TODO: Remove after 1.4 has been released
+        if (selected_version.internal is not None
+                and not selected_version.internal):
+            logger.warn("You are installing an externally hosted file. Future "
+                        "versions of pip will default to disallowing "
+                        "externally hosted files.")
+
+        if (selected_version.verifiable is not None
+                and not selected_version.verifiable):
+            logger.warn("You are installing a potentially insecure and "
+                        "unverifiable file. Future versions of pip will "
+                        "default to disallowing insecure files.")
+
+        return selected_version
 
 
     def _find_url_name(self, index_url, url_name, req):
@@ -316,6 +380,25 @@ class PackageFinder(object):
                 continue
             done.append(page)
             for link in page.rel_links():
+                normalized = normalize_name(req.name).lower()
+
+                if (not normalized in self.allow_external
+                        and not self.allow_all_external):
+                    self.need_warn_external = True
+                    logger.debug("Not searching %s for files because external "
+                                 "urls are disallowed." % link)
+                    continue
+
+                if (link.trusted is not None
+                        and not link.trusted
+                        and not normalized in self.allow_insecure
+                        and not self.allow_all_insecure):  # TODO: Remove after release
+                    logger.debug("Not searching %s for urls, it is an "
+                                "untrusted link and cannot produce safe or "
+                                "verifiable files." % link)
+                    self.need_warn_insecure = True
+                    continue
+
                 pending_queue.put(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
@@ -388,6 +471,29 @@ class PackageFinder(object):
         if version is None:
             logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
             return []
+
+        if (link.internal is not None
+                and not link.internal
+                and not normalize_name(search_name).lower() in self.allow_external
+                and not self.allow_all_external):
+            # We have a link that we are sure is external, so we should skip
+            #   it unless we are allowing externals
+            logger.debug("Skipping %s because it is externally hosted." % link)
+            self.need_warn_external = True
+            return []
+
+        if (link.verifiable is not None
+                and not link.verifiable
+                and not normalize_name(search_name).lower() in self.allow_insecure
+                and not self.allow_all_insecure):  # TODO: Remove after release
+            # We have a link that we are sure we cannot verify it's integrity,
+            #   so we should skip it unless we are allowing unsafe installs
+            #   for this requirement.
+            logger.debug("Skipping %s because it is an insecure and "
+                         "unverifiable file." % link)
+            self.need_warn_insecure = True
+            return []
+
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
@@ -478,11 +584,12 @@ class HTMLPage(object):
     _download_re = re.compile(r'<th>\s*download\s+url', re.I)
     _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
 
-    def __init__(self, content, url, headers=None):
+    def __init__(self, content, url, headers=None, trusted=None):
         self.content = content
         self.parsed = html5lib.parse(self.content, namespaceHTMLElements=False)
         self.url = url
         self.headers = headers
+        self.trusted = trusted
 
     def __str__(self):
         return self.url
@@ -559,7 +666,7 @@ class HTMLPage(object):
                     cache.set_is_archive(url)
                 return None
 
-            inst = cls(u(contents), real_url, headers)
+            inst = cls(u(contents), real_url, headers, trusted=link.trusted)
         except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -614,6 +721,21 @@ class HTMLPage(object):
             resp.close()
 
     @property
+    def api_version(self):
+        if not hasattr(self, "_api_version"):
+            _api_version = None
+
+            metas = [x for x in self.parsed.findall(".//meta")
+                        if x.get("name", "").lower() == "api-version"]
+            if metas:
+                try:
+                    _api_version = int(metas[0].get("value", None))
+                except (TypeError, ValueError):
+                    _api_version = None
+            self._api_version = _api_version
+        return self._api_version
+
+    @property
     def base_url(self):
         if not hasattr(self, "_base_url"):
             base = self.parsed.find(".//base")
@@ -630,7 +752,18 @@ class HTMLPage(object):
             if anchor.get("href"):
                 href = anchor.get("href")
                 url = self.clean_link(urlparse.urljoin(self.base_url, href))
-                yield Link(url, self)
+
+                # Determine if this link is internal. If that distinction
+                #   doesn't make sense in this context, then we don't make
+                #   any distinction.
+                internal = None
+                if self.api_version and self.api_version >= 2:
+                    # Only api_versions >= 2 have a distinction between
+                    #   external and internal links
+                    internal = bool(anchor.get("rel")
+                                and "internal" in anchor.get("rel").split())
+
+                yield Link(url, self, internal=internal)
 
     def rel_links(self):
         for url in self.explicit_rel_links():
@@ -650,7 +783,7 @@ class HTMLPage(object):
                 if found_rels & rels:
                     href = anchor.get("href")
                     url = self.clean_link(urlparse.urljoin(self.base_url, href))
-                    yield Link(url, self)
+                    yield Link(url, self, trusted=False)
 
     def scraped_rel_links(self):
         # Can we get rid of this horrible horrible method?
@@ -665,7 +798,7 @@ class HTMLPage(object):
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
-            yield Link(url, self)
+            yield Link(url, self, trusted=False)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
@@ -679,9 +812,11 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None):
+    def __init__(self, url, comes_from=None, internal=None, trusted=None):
         self.url = url
         self.comes_from = comes_from
+        self.internal = internal
+        self.trusted = trusted
 
         # Set whether it's a wheel
         self.wheel = None
@@ -769,6 +904,41 @@ class Link(object):
     @property
     def show_url(self):
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
+
+    @property
+    def verifiable(self):
+        """
+        Returns True if this link can be verified after download, False if it
+        cannot, and None if we cannot determine.
+        """
+        trusted = self.trusted or getattr(self.comes_from, "trusted", None)
+        if trusted is not None and trusted:
+            # This link came from a trusted source. It *may* be verifiable but
+            #   first we need to see if this page is operating under the new
+            #   API version.
+            try:
+                api_version = getattr(self.comes_from, "api_version", None)
+                api_version = int(api_version)
+            except (ValueError, TypeError):
+                api_version = None
+
+            if api_version is None or api_version <= 1:
+                # This link is either trusted, or it came from a trusted,
+                #   however it is not operating under the API version 2 so
+                #   we can't make any claims about if it's safe or not
+                return
+
+            if self.hash:
+                # This link came from a trusted source and it has a hash, so we
+                #   can consider it safe.
+                return True
+            else:
+                # This link came from a trusted source, using the new API
+                #   version, and it does not have a hash. It is NOT verifiable
+                return False
+        elif trusted is not None:
+            # This link came from an untrusted source and we cannot trust it
+            return False
 
 #An "Infinite Link" that compares greater than other links
 InfLink = Link(Inf) #this object is not currently used as a sortable

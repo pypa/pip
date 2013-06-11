@@ -162,7 +162,12 @@ class InstallCommand(Command):
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors,
-                             use_wheel=options.use_wheel)
+                             use_wheel=options.use_wheel,
+                             allow_external=options.allow_external,
+                             allow_insecure=options.allow_insecure,
+                             allow_all_external=options.allow_all_external,
+                             allow_all_insecure=options.allow_all_insecure,
+                            )
 
     def run(self, options, args):
         if options.download_dir:

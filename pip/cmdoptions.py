@@ -63,6 +63,48 @@ mirrors = make_option(
     default=[],
     help='Specific mirror URLs to query when --use-mirrors is used.')
 
+allow_external = make_option(
+    "--allow-external",
+    dest="allow_external",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of externally hosted files",
+)
+
+allow_all_external = make_option(
+    "--allow-all-external",
+    dest="allow_all_external",
+    action="store_true",
+    default=True,  # TODO: Change to False after 1.4 has been released
+    help="Allow the installation of all externally hosted files",
+)
+
+# TODO: NOOP after 1.4 has been released
+no_allow_external = make_option(
+    "--no-allow-external",
+    dest="allow_all_external",
+    action="store_false",
+    help="Disallow the installation of all externally hosted files",
+)
+
+allow_unsafe = make_option(
+    "--allow-insecure",
+    dest="allow_insecure",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of insecure and unverifiable files",
+)
+
+no_allow_unsafe = make_option(
+    "--no-allow-insecure",
+    dest="allow_all_insecure",
+    action="store_false",
+    default=True,
+    help="Disallow the installation of insecure and unverifiable files"
+)
+
 requirements = make_option(
     '-r', '--requirement',
     dest='requirements',
@@ -138,6 +180,11 @@ index_group = {
         no_index,
         find_links,
         use_mirrors,
-        mirrors
+        mirrors,
+        allow_external,
+        allow_all_external,
+        no_allow_external,
+        allow_unsafe,
+        no_allow_unsafe,
         ]
     }
