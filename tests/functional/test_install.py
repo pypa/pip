@@ -4,10 +4,46 @@ import textwrap
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
-from pip.util import rmtree
-from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
-from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
+from nose.tools import assert_raises
+from mock import patch
+
+from pip.util import rmtree, find_command
+from pip.exceptions import BadCommand
+
+from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
+                            src_folder, write_file, path_to_url)
+from tests.local_repos import local_checkout
+from tests.path import Path
+
+
+def test_pip_second_command_line_interface_works():
+    """
+    Check if ``pip-<PYVERSION>`` commands behaves equally
+    """
+    e = reset_env()
+
+    args = ['pip-%s' % pyversion]
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
+    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+    initools_folder = e.site_packages / 'initools'
+    assert egg_info_folder in result.files_created, str(result)
+    assert initools_folder in result.files_created, str(result)
+
+
+#def test_distutils_configuration_setting():
+#    """
+#    Test the distutils-configuration-setting command (which is distinct from other commands).
+#    """
+    #print run_pip('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
+    #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
+    #-- stdout: --------------------
+    #Distutils config .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg is writable
+    #Replaced setting index_url
+    #Updated .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg
+    #<BLANKLINE>
+    #-- updated: -------------------
+    #  lib/python2.4/distutils/distutils.cfg  (346 bytes)
 
 
 def test_install_from_pypi():
@@ -242,7 +278,6 @@ def test_install_as_egg():
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
-
 def test_install_curdir():
     """
     Test installing current directory ('.').
@@ -466,32 +501,4 @@ def test_url_req_case_mismatch():
     assert egg_folder in result.files_created, str(result)
     egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
-
-
-def test_dont_install_distribute_in_py3():
-    """
-    Test we skip distribute in py3
-    """
-    if sys.version_info < (3, 0):
-        raise SkipTest()
-    env = reset_env()
-    result = run_pip('install', 'distribute')
-    assert "Skipping distribute: Can not install distribute due to bootstrap issues" in result.stdout
-    assert not result.files_updated
-
-
-def test_pip_second_command_line_interface_works():
-    """
-    Check if ``pip-<PYVERSION>`` commands behaves equally
-    """
-    e = reset_env()
-
-    args = ['pip-%s' % pyversion]
-    args.extend(['install', 'INITools==0.2'])
-    result = e.run(*args)
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
 

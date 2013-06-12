@@ -863,8 +863,7 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
-                 skip_reqs={}):
+                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -882,10 +881,7 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
-        # Set from --target option
-        self.target_dir = target_dir
-        # Requirements (by project name) to be skipped
-        self.skip_reqs = skip_reqs
+        self.target_dir = target_dir #set from --target option
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -895,9 +891,6 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         name = install_req.name
-        if name and name.lower() in self.skip_reqs:
-            logger.notify("Skipping %s: %s" %( name, self.skip_reqs[name.lower()]))
-            return False
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
@@ -913,7 +906,6 @@ class RequirementSet(object):
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
                 self.requirement_aliases[name.lower()] = name
-        return True
 
     def has_requirement(self, project_name):
         for name in project_name, project_name.lower():
@@ -1119,8 +1111,8 @@ class RequirementSet(object):
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
-                                if self.add_requirement(subreq):
-                                    reqs.append(subreq)
+                                reqs.append(subreq)
+                                self.add_requirement(subreq)
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
@@ -1134,8 +1126,8 @@ class RequirementSet(object):
                                         continue
                                     subreq = InstallRequirement(str(subreq),
                                                                 req_to_install)
-                                    if self.add_requirement(subreq):
-                                        reqs.append(subreq)
+                                    reqs.append(subreq)
+                                    self.add_requirement(subreq)
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1182,8 +1174,8 @@ class RequirementSet(object):
                                 ## FIXME: check for conflict
                                 continue
                             subreq = InstallRequirement(req, req_to_install)
-                            if self.add_requirement(subreq):
-                                reqs.append(subreq)
+                            reqs.append(subreq)
+                            self.add_requirement(subreq)
                     if not self.has_requirement(req_to_install.name):
                         #'unnamed' requirements will get added here
                         self.add_requirement(req_to_install)
