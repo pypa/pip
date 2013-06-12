@@ -226,9 +226,31 @@ class InstallRequirement(object):
             logger.notify('Running setup.py egg_info for package from %s' % self.url)
         logger.indent += 2
         try:
-            script = self._run_setup_py
-            script = script.replace('__SETUP_PY__', repr(self.setup_py))
-            script = script.replace('__PKG_NAME__', repr(self.name))
+
+            # if it's distribute>=0.7, it won't contain an importable
+            # setuptools, and having an egg-info dir blocks the ability of
+            # setup.py to find setuptools plugins, so delete the egg-info dir if
+            # no setuptools. it will get recreated by the run of egg_info
+            # NOTE: this self.name check only works when installing from a specifier
+            #       (not archive path/urls)
+            # TODO: take this out later
+            if self.name == 'distribute' and not os.path.isdir(os.path.join(self.source_dir, 'setuptools')):
+                rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
+
+            # setuptools-0.7.2 is not 2/3 compatible and requires 2to3.  the use
+            # of self._run_setup.py makes it impossible for 2to3 to get run on
+            # the setuptools that needs to be imported, so we work with
+            # "setup.py" directly.  just for setuptools
+            # NOTE: this self.name check only works when installing from a specifier
+            #       (not archive path/urls)
+            # TODO: take this out later
+            if self.name in ['setuptools']:
+                egg_info_cmd = [sys.executable, 'setup.py', 'egg_info']
+            else:
+                script = self._run_setup_py
+                script = script.replace('__SETUP_PY__', repr(self.setup_py))
+                script = script.replace('__PKG_NAME__', repr(self.name))
+                egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
             # for an installed egg, causing problems
             if self.editable or force_root_egg_info:
@@ -239,7 +261,7 @@ class InstallRequirement(object):
                     os.makedirs(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             call_subprocess(
-                [sys.executable, '-c', script, 'egg_info'] + egg_base_option,
+                egg_info_cmd + egg_base_option,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False,
                 command_level=logger.VERBOSE_DEBUG,
                 command_desc='python setup.py egg_info')
@@ -584,13 +606,24 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [
-                sys.executable, '-c',
+            install_args = [sys.executable]
+
+            # setuptools-0.7.2 is not 2/3 compatible and requires 2to3.  the use
+            # of the "import setuptools" override makes it impossible for 2to3
+            # to get run on the setuptools that needs to be imported, so we work
+            # with "setup.py" directly just for setuptools
+            # NOTE: this self.name check only works when installing from a specifier
+            #       (not archive path/urls)
+            # TODO: take this out later
+            if self.name in ['setuptools']:
+                install_args.append('setup.py')
+            else:
+                install_args.append('-c')
+                install_args.append(
                 "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
-                list(global_options) + [
-                'install',
-                '--record', record_filename]
+                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
+
+            install_args += list(global_options) + ['install','--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -1223,6 +1256,17 @@ class RequirementSet(object):
         """Install everything in this set (after having downloaded and unpacked the packages)"""
         to_install = [r for r in self.requirements.values()
                       if not r.satisfied_by]
+
+        # move distribute>=0.7 to the end because it does not contain an
+        # importable setuptools. by moving it to the end, we ensure it's
+        # setuptools dependency is handled first, which will provide an
+        # importable setuptools package
+        # TODO: take this out later
+        for req in to_install:
+            version = pkg_resources.parse_version('0.7')
+            if req.name == 'distribute' and pkg_resources.parse_version(req.installed_version) >= version:
+                to_install.remove(req)
+                to_install.append(req)
 
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
