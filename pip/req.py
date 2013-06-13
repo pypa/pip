@@ -735,7 +735,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(self.req)
+            # if we've already set distribute as a conflict to setuptools
+            # then this check has already run before.  we don't want it to
+            # run again, and return False, since it would block the uninstall
+            if (self.req.project_name == 'setuptools'
+                and self.conflicts_with
+                and self.conflicts_with.project_name == 'distribute'):
+                return True
+            else:
+                self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
@@ -1254,9 +1262,9 @@ class RequirementSet(object):
         # setuptools dependency is handled first, which will provide an
         # importable setuptools package
         # TODO: take this out later
+        distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
         for req in to_install:
-            version = pkg_resources.parse_version('0.7')
-            if req.name == 'distribute' and pkg_resources.parse_version(req.installed_version) >= version:
+            if req.name == 'distribute' and req.installed_version in distribute_req:
                 to_install.remove(req)
                 to_install.append(req)
 
@@ -1265,6 +1273,20 @@ class RequirementSet(object):
         logger.indent += 2
         try:
             for requirement in to_install:
+
+                # when installing setuptools>=0.7.2 in py2, we need to force setuptools
+                # to uninstall distribute. In py3, which is always using distribute, this
+                # conversion is already happening in distribute's pkg_resources.
+                # TODO: remove this later
+                setuptools_req = pkg_resources.Requirement.parse("setuptools>=0.7.2")
+                if requirement.name == 'setuptools' and requirement.installed_version in setuptools_req:
+                    try:
+                        existing_distribute = pkg_resources.get_distribution("distribute")
+                        requirement.conflicts_with = existing_distribute
+                    except:
+                        # distribute wasn't installed
+                        pass
+
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
                                   % requirement.conflicts_with)
