@@ -4,16 +4,10 @@ import textwrap
 from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
-from nose.tools import assert_raises
-from mock import patch
-
-from pip.util import rmtree, find_command
-from pip.exceptions import BadCommand
-
-from tests.test_pip import (here, reset_env, run_pip, pyversion, mkdir,
-                            src_folder, write_file, path_to_url)
-from tests.local_repos import local_checkout
-from tests.path import Path
+from pip.util import rmtree
+from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
+from tests.lib.local_repos import local_checkout
+from tests.lib.path import Path
 
 
 def test_pip_second_command_line_interface_works():
