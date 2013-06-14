@@ -210,7 +210,7 @@ class Tests_UserSite:
         """
         Test uninstall editable local user install
         """
-        env = reset_env(, system_site_packages=True)
+        env = reset_env(system_site_packages=True)
 
         #install
         to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
