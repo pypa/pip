@@ -27,7 +27,7 @@ def test_find_links_requirements_file_relative_path():
     e = reset_env()
     write_file('test-req.txt', textwrap.dedent("""
         --no-index
-        --find-links=../../../../data/packages/
+        --find-links=../../../data/packages/
         parent==0.1
         """))
     result = run_pip(

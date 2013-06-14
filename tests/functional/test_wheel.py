@@ -14,27 +14,15 @@ def test_pip_wheel_fails_without_wheel():
     """
     Test 'pip wheel' fails without wheel
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
     assert "'pip wheel' requires bdist_wheel" in result.stdout
-
-def test_pip_wheel_setuptools_fails():
-    """
-    Test 'pip wheel' fails with setuptools
-    """
-    if sys.version_info >= (3, 0):
-        # virtualenv installs distribute in py3
-        raise SkipTest()
-    env = reset_env(use_distribute=False)
-    pip_install_local('wheel')
-    result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
-    assert "'pip wheel' requires %s" % wheel.distribute_requirement in result.stdout, result.stdout
 
 def test_pip_wheel_success():
     """
     Test 'pip wheel' success.
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
     result = run_pip('wheel', '--no-index', '-f', find_links, 'simple==3.0')
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
@@ -47,7 +35,7 @@ def test_pip_wheel_fail():
     """
     Test 'pip wheel' failure.
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
     result = run_pip('wheel', '--no-index', '-f', find_links, 'wheelbroken==0.1')
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
@@ -61,7 +49,7 @@ def test_pip_wheel_ignore_wheels_editables():
     """
     Test 'pip wheel' ignores editables and *.whl files in requirements
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
 
     local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % find_links
@@ -89,7 +77,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel():
     """
     Test --no-clean option blocks cleaning after wheel build
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
     result = run_pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
     build = env.venv_path/'build'/'simple'
@@ -101,7 +89,7 @@ def test_pip_wheel_source_deps():
     Test 'pip wheel --use-wheel' finds and builds source archive dependencies of wheels
     """
     # 'requires_source' is a wheel that depends on the 'source' project
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
     result = run_pip('wheel', '--use-wheel', '--no-index', '-f', find_links, 'requires_source')
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot

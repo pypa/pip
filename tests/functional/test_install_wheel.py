@@ -9,7 +9,7 @@ def test_install_from_wheel():
     """
     Test installing from a wheel.
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('install', 'simple.dist', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
                      expect_error=False)
@@ -27,7 +27,7 @@ def test_install_from_wheel_with_extras():
         import ast
     except ImportError:
         raise SkipTest("Need ast module to interpret wheel extras")
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
                      expect_error=False)
@@ -45,7 +45,7 @@ def test_install_from_wheel_file():
     """
     Test installing directly from a wheel file.
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     package = abspath(join(tests_data,
                            'packages',
                            'headers.dist-0.1-py2.py3-none-any.whl'))
@@ -60,7 +60,7 @@ def test_install_wheel_with_target():
     """
     Test installing a wheel using pip install --target
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     pip_install_local('wheel')
     target_dir = env.scratch_path/'target'
     result = run_pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
@@ -73,7 +73,7 @@ def test_install_from_wheel_installs_deps():
     Test can install dependencies of wheels
     """
     # 'requires_source' depends on the 'source' project
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     package = abspath(join(tests_data,
                            'packages',
                            'requires_source-1.0-py2.py3-none-any.whl'))
@@ -86,7 +86,7 @@ def test_install_from_wheel_no_deps():
     Test --no-deps works with wheel installs
     """
     # 'requires_source' depends on the 'source' project
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     package = abspath(join(tests_data,
                            'packages',
                            'requires_source-1.0-py2.py3-none-any.whl'))

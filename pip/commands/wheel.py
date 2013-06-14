@@ -22,7 +22,7 @@ class WheelCommand(Command):
     Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
     For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
 
-    Requirements: distribute>=0.6.34 (not setuptools), and wheel.
+    Requirements: distribute>=0.6.34 or setuptools>=0.7.2, and wheel.
 
     'pip wheel' uses the bdist_wheel setuptools extension from the wheel package to build individual wheels.
 
@@ -78,7 +78,7 @@ class WheelCommand(Command):
 
     def run(self, options, args):
 
-        # requirements: wheel, and distribute
+        # confirm requirements
         try:
             import wheel.bdist_wheel
         except ImportError:
