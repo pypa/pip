@@ -10,7 +10,7 @@ from pip.backwardcompat import wheel_skip_reqs
 from pip.exceptions import CommandError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
-from pip.wheel import WheelBuilder, wheel_distribute_support, distribute_requirement
+from pip.wheel import WheelBuilder, wheel_setuptools_support, distribute_requirement, setuptools_requirement
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -83,8 +83,8 @@ class WheelCommand(Command):
             import wheel.bdist_wheel
         except ImportError:
             raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
-        if not wheel_distribute_support():
-            raise CommandError("'pip wheel' requires %s." % distribute_requirement)
+        if not wheel_setuptools_support():
+            raise CommandError("'pip wheel' requires %s or %s." % (distribute_requirement, setuptools_requirement))
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

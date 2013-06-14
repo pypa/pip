@@ -232,12 +232,12 @@ class InstallCommand(Command):
             logger.warn(msg)
             return
 
-        import setuptools
-        if (options.use_user_site and
-            requirement_set.has_editables and
-            not getattr(setuptools, '_distribute', False)):
+        # import setuptools
+        # if (options.use_user_site and
+        #     requirement_set.has_editables and
+        #     not getattr(setuptools, '_distribute', False)):
 
-            raise InstallationError('--user --editable not supported with setuptools, use distribute')
+        #     raise InstallationError('--user --editable not supported with setuptools, use distribute')
 
         try:
             if not options.no_download:
