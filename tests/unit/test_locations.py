@@ -26,7 +26,6 @@ class TestLocations:
     def patch(self):
         """ first store and then patch python methods pythons """
         self.tempfile_gettempdir = tempfile.gettempdir
-        self.old_os_fstat = os.fstat
         if sys.platform != 'win32':
             # os.getuid not implemented on windows
             self.old_os_getuid = os.getuid
@@ -36,7 +35,6 @@ class TestLocations:
         tempfile.gettempdir = lambda : self.tempdir
         getpass.getuser = lambda : self.username
         os.getuid = lambda : self.st_uid
-        os.fstat = lambda fd : self.get_mock_fstat(fd)
 
     def revert_patch(self):
         """ revert the patches to python methods """
@@ -45,10 +43,9 @@ class TestLocations:
         if sys.platform != 'win32':
             # os.getuid not implemented on windows
             os.getuid = self.old_os_getuid
-        os.fstat = self.old_os_fstat
 
-    def get_mock_fstat(self, fd):
-        """ returns a basic mock fstat call result.
+    def get_mock_stat(self, path):
+        """ returns a basic mock stat call result.
             Currently only the st_uid attribute has been set.
         """
         result = Mock()
@@ -61,11 +58,21 @@ class TestLocations:
         """
         return os.path.join(self.tempdir, 'pip-build-%s' % self.username)
 
+    def _get_build_prefix(self):
+        try:
+          # Patching `os.stat()` during just calling `locations._get_build_prefix()`.
+          # Since `os.stat()` is broadly used, patching while whole tests is problematic.
+          self.old_os_stat = os.stat
+          os.stat = lambda path : self.get_mock_stat(path)
+          from pip import locations
+          return locations._get_build_prefix()
+        finally:
+          os.stat = self.old_os_stat
+
     def test_dir_path(self):
         """ test the path name for the build_prefix
         """
-        from pip import locations
-        assert locations._get_build_prefix() == self.get_build_dir_location()
+        assert self._get_build_prefix() == self.get_build_dir_location()
 
     def test_dir_created(self):
         """ test that the build_prefix directory is generated when
@@ -76,8 +83,7 @@ class TestLocations:
             raise SkipTest()
         assert not os.path.exists(self.get_build_dir_location() ), \
             "the build_prefix directory should not exist yet!"
-        from pip import locations
-        locations._get_build_prefix()
+        self._get_build_prefix()
         assert os.path.exists(self.get_build_dir_location() ), \
             "the build_prefix directory should now exist!"
 
@@ -91,7 +97,7 @@ class TestLocations:
         from pip import locations
         os.getuid = lambda : 1111
         os.mkdir(self.get_build_dir_location() )
-        assert_raises(pip.exceptions.InstallationError, locations._get_build_prefix)
+        assert_raises(pip.exceptions.InstallationError, self._get_build_prefix)
 
     def test_no_error_raised_when_owned_by_you(self):
         """ test calling _get_build_prefix when there is a temporary
@@ -99,4 +105,4 @@ class TestLocations:
         """
         from pip import locations
         os.mkdir(self.get_build_dir_location())
-        locations._get_build_prefix()
+        self._get_build_prefix()
