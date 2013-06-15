@@ -120,6 +120,7 @@ def test_freeze_mercurial_clone():
     """
     reset_env()
     env = get_env()
+    env.environ['HOME'] = env.venv_path
     result = env.run('hg', 'clone',
                      '-r', '7bc186caa7dc',
                      local_repo('hg+http://bitbucket.org/jezdez/django-authority'),
