@@ -1,3 +1,4 @@
+import os
 import sys
 import re
 import textwrap
@@ -155,6 +156,7 @@ def test_freeze_bazaar_clone():
     #bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
+    os.environ['LC_TIME'] = 'nl_NL.UTF-8'  # inject an unsupported locale
     reset_env()
     env = get_env()
     result = env.run('bzr', 'checkout', '-r', '174',
