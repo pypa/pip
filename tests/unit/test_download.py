@@ -7,7 +7,8 @@ from mock import patch
 import pip
 from pip.backwardcompat import urllib, BytesIO, b
 from pip.download import (_get_response_from_url as _get_response_from_url_original,
-                          path_to_url2, unpack_http_url, URLOpener)
+                          path_to_url2, unpack_http_url, URLOpener,
+                          guess_filename)
 from pip.index import Link
 from tests.lib import tests_data
 
@@ -44,11 +45,15 @@ def _write_file(fn, contents):
 
 
 class MockResponse(object):
-    def __init__(self, contents):
+    def __init__(self, contents, info=dict()):
         self._io = BytesIO(contents)
+        self._info = info
 
     def read(self, *a, **kw):
         return self._io.read(*a, **kw)
+
+    def info(self):
+        return self._info
 
 
 @patch('pip.download.unpack_file')
@@ -113,3 +118,32 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_get_response, mock_unpack_
 
     finally:
         rmtree(download_dir)
+
+
+class guess_filename_test:
+    def test_defaults_to_link_filename(self):
+        link = Link('https://www.example.com/package.zip')
+        response = MockResponse('')
+        filename = guess_filename(link, response)
+        assert filename == 'package.zip'
+
+    def test_handles_content_disposition(self):
+        link = Link('https://www.example.com/eggs.zip')
+        response = MockResponse(
+            '',
+            info={'content-disposition':
+                  'attachment; filename=somethingcompletelydifferent.zip'},
+        )
+        filename = guess_filename(link, response)
+        assert filename == 'somethingcompletelydifferent.zip'
+
+    def test_should_not_respect_any_directory_path_information(self):
+        # http://tools.ietf.org/html/rfc2183#section-2.3
+        link = Link('https://www.example.com/and/now')
+        response = MockResponse(
+            '',
+            info={'content-disposition':
+                  'attachment; filename=something/completely/different.zip'},
+        )
+        filename = guess_filename(link, response)
+        assert filename == 'something_completely_different.zip'

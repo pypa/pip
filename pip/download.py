@@ -601,14 +601,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
     if not temp_location:
         resp = _get_response_from_url(target_url, link)
         content_type = resp.info().get('content-type', '')
-        filename = link.filename  # fallback
-        # Have a look at the Content-Disposition header for a better guess
-        content_disposition = resp.info().get('content-disposition')
-        if content_disposition:
-            type, params = cgi.parse_header(content_disposition)
-            # We use ``or`` here because we don't want to use an "empty" value
-            # from the filename param.
-            filename = params.get('filename') or filename
+        filename = guess_filename(link, resp)
         ext = splitext(filename)[1]
         if not ext:
             ext = mimetypes.guess_extension(content_type)
@@ -646,6 +639,18 @@ def _get_response_from_url(target_url, link):
         logger.fatal("Error %s while getting %s" % (e, link))
         raise
     return resp
+
+
+def guess_filename(link, response):
+    filename = link.filename
+    # Follow suggestion in Content-Disposition header
+    content_disposition = response.info().get('content-disposition')
+    if content_disposition:
+        type, params = cgi.parse_header(content_disposition)
+        filename = params.get('filename', filename)
+    # but not too closely... sanitize for security
+    filename = filename.replace(os.sep, '_')
+    return filename
 
 
 class Urllib2HeadRequest(urllib2.Request):
