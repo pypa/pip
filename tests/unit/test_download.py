@@ -123,14 +123,14 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_get_response, mock_unpack_
 class guess_filename_test:
     def test_defaults_to_link_filename(self):
         link = Link('https://www.example.com/package.zip')
-        response = MockResponse('')
+        response = MockResponse(b'')
         filename = guess_filename(link, response)
         assert filename == 'package.zip'
 
     def test_handles_content_disposition(self):
         link = Link('https://www.example.com/eggs.zip')
         response = MockResponse(
-            '',
+            b'',
             info={'content-disposition':
                   'attachment; filename=somethingcompletelydifferent.zip'},
         )
@@ -141,7 +141,7 @@ class guess_filename_test:
         # http://tools.ietf.org/html/rfc2183#section-2.3
         link = Link('https://www.example.com/and/now')
         response = MockResponse(
-            '',
+            b'',
             info={'content-disposition':
                   'attachment; filename=something/completely/different.zip'},
         )
