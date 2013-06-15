@@ -95,12 +95,11 @@ def fix_script(path):
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
-
     scheme = distutils_scheme(name, user=user, home=home)
 
     if scheme['purelib'] != scheme['platlib']:
         # XXX check *.dist-info/WHEEL to deal with this obscurity
-        raise NotImplemented("purelib != platlib")
+        raise NotImplementedError("purelib != platlib")
 
     info_dir = []
     data_dirs = []
