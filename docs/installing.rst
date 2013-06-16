@@ -67,11 +67,6 @@ See the `Distribute Install Instructions <https://pypi.python.org/pypi/distribut
 
 If installing pip using a linux package manager, these requirements will be installed for you.
 
-.. warning::
-
-    If you are using Python 3.X you **must** use distribute; setuptools doesn't
-    support Python 3.X.
-
 
 Using get-pip
 +++++++++++++
