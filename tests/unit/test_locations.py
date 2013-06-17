@@ -9,8 +9,14 @@ import tempfile
 import getpass
 from mock import Mock
 from nose import SkipTest
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 import pip
+
+if sys.platform == 'win32':
+   pwd = Mock()
+else:
+    import pwd
+
 
 class TestLocations:
     def setup(self):
@@ -28,23 +34,28 @@ class TestLocations:
         self.tempfile_gettempdir = tempfile.gettempdir
         self.old_os_fstat = os.fstat
         if sys.platform != 'win32':
-            # os.getuid not implemented on windows
-            self.old_os_getuid = os.getuid
+            # os.geteuid and pwd.getpwuid are not implemented on windows
+            self.old_os_geteuid = os.geteuid
+            self.old_pwd_getpwuid = pwd.getpwuid
         self.old_getpass_getuser = getpass.getuser
 
         # now patch
         tempfile.gettempdir = lambda : self.tempdir
         getpass.getuser = lambda : self.username
-        os.getuid = lambda : self.st_uid
+        os.geteuid = lambda : self.st_uid
         os.fstat = lambda fd : self.get_mock_fstat(fd)
+
+        if sys.platform != 'win32':
+            pwd.getpwuid = lambda uid: self.get_mock_getpwuid(uid)
 
     def revert_patch(self):
         """ revert the patches to python methods """
         tempfile.gettempdir = self.tempfile_gettempdir
         getpass.getuser = self.old_getpass_getuser
         if sys.platform != 'win32':
-            # os.getuid not implemented on windows
-            os.getuid = self.old_os_getuid
+            # os.geteuid and pwd.getpwuid are not implemented on windows
+            os.geteuid = self.old_os_geteuid
+            pwd.getpwuid = self.old_pwd_getpwuid
         os.fstat = self.old_os_fstat
 
     def get_mock_fstat(self, fd):
@@ -53,6 +64,14 @@ class TestLocations:
         """
         result = Mock()
         result.st_uid = self.st_uid
+        return result
+
+    def get_mock_getpwuid(self, uid):
+        """ returns a basic mock pwd.getpwuid call result.
+            Currently only the pw_name attribute has been set.
+        """
+        result = Mock()
+        result.pw_name = self.username
         return result
 
     def get_build_dir_location(self):
@@ -65,7 +84,8 @@ class TestLocations:
         """ test the path name for the build_prefix
         """
         from pip import locations
-        assert locations._get_build_prefix() == self.get_build_dir_location()
+        assert_equal(locations._get_build_prefix(),
+            self.get_build_dir_location())
 
     def test_dir_created(self):
         """ test that the build_prefix directory is generated when
@@ -89,7 +109,7 @@ class TestLocations:
         if sys.platform == 'win32':
             raise SkipTest()
         from pip import locations
-        os.getuid = lambda : 1111
+        os.geteuid = lambda : 1111
         os.mkdir(self.get_build_dir_location() )
         assert_raises(pip.exceptions.InstallationError, locations._get_build_prefix)
 

@@ -48,10 +48,17 @@ def virtualenv_no_global():
     if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
 
+def __get_username():
+    """ Returns the effective username of the current process. """
+    if sys.platform == 'win32':
+        return getpass.getuser()
+    import pwd
+    return pwd.getpwuid(os.geteuid()).pw_name
+
 def _get_build_prefix():
     """ Returns a safe build_prefix """
-    path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' % \
-        getpass.getuser())
+    path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' %
+        __get_username())
     if sys.platform == 'win32':
         """ on windows(tested on 7) temp dirs are isolated """
         return path
@@ -66,7 +73,7 @@ def _get_build_prefix():
             os.close(fd)
         except OSError:
             file_uid = None
-        if file_uid != os.getuid():
+        if file_uid != os.geteuid():
             msg = "The temporary folder for building (%s) is not owned by your user!" \
                 % path
             print (msg)
