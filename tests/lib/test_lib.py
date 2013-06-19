@@ -44,17 +44,9 @@ class Test_reset_env:
         f = open(self.test_file, 'w')
         f.close()
 
-        # create a TestPipEnvironmentD env and add a file to the backup
-        self.envD = reset_env(use_distribute=True)
-        self.test_fileD = self.envD.backup_path / self.envD.venv / 'test_fileD'
-        f = open(self.test_fileD, 'w')
-        f.close()
-
     def teardown(self):
         if os.path.isfile(self.test_file):
             self.test_file.rm()
-        if os.path.isfile(self.test_fileD):
-            self.test_fileD.rm()
 
     def test_cache_venv(self):
         """
@@ -62,18 +54,7 @@ class Test_reset_env:
         """
         env = reset_env()
         assert os.path.isfile(self.test_file)
-        env = reset_env(use_distribute=True)
-        assert os.path.isfile(self.test_fileD)
 
-    def test_reset_env_seperate(self):
-        """
-        Test TestPipEnvironment and TestPipEnvironmentD classes maintain seperate caches in py2
-        """
-        # skip for py3 because both classes use the distribute cache
-        if sys.version_info > (3, 0):
-            raise SkipTest()
-        assert not os.path.isfile(self.env.backup_path / self.env.venv / 'test_fileD')
-        assert not os.path.isfile(self.envD.backup_path / self.envD.venv / 'test_file')
 
     def test_reset_env_system_site_packages(self):
         """
@@ -127,17 +108,6 @@ def test_sitecustomize_not_growing_in_fast_environment():
 
 
 def test_tmp_dir_exists_in_env():
-    """
-    Test that $TMPDIR == env.temp_path and path exists, and env.assert_no_temp() passes
-    """
-    #need these tests to ensure the assert_no_temp feature of scripttest is working
-    env = reset_env(use_distribute=True)
-    env.assert_no_temp() #this fails if env.tmp_path doesn't exist
-    assert env.environ['TMPDIR'] == env.temp_path
-    assert isdir(env.temp_path)
-
-
-def test_tmp_dir_exists_in_fast_env():
     """
     Test that $TMPDIR == env.temp_path and path exists and env.assert_no_temp() passes (in fast env)
     """

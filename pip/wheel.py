@@ -20,20 +20,27 @@ from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
 distribute_requirement = pkg_resources.Requirement.parse("distribute>=0.6.34")
+setuptools_requirement = pkg_resources.Requirement.parse("setuptools>=0.7.2")
 
-def wheel_distribute_support(distribute_req=distribute_requirement):
+def wheel_setuptools_support():
     """
     Return True if we have a distribute that supports wheel.
 
     distribute_req: a pkg_resources.Requirement for distribute
     """
+
+    installed_distribute = installed_setuptools = ''
     try:
-        installed_dist = pkg_resources.get_distribution('distribute')
-        supported = installed_dist in distribute_req
+        installed_distribute = pkg_resources.get_distribution('distribute')
     except pkg_resources.DistributionNotFound:
-        supported = False
+        pass
+    try:
+        installed_setuptools = pkg_resources.get_distribution('setuptools')
+    except pkg_resources.DistributionNotFound:
+        pass
+    supported = (installed_distribute in distribute_requirement) or (installed_setuptools in setuptools_requirement)
     if not supported:
-        logger.warn("%s is required for wheel installs.", distribute_req)
+        logger.warn("%s or %s is required for wheel installs." % (setuptools_requirement, distribute_requirement))
     return supported
 
 

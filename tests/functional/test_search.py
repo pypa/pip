@@ -80,7 +80,7 @@ def test_search_missing_argument():
     """
     Test missing required argument for search
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('search', expect_error=True)
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
@@ -111,7 +111,7 @@ def test_search_should_exit_status_code_zero_when_find_packages():
     """
     Test search exit status code for package found
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('search', 'pip')
     assert result.returncode == SUCCESS
 
@@ -120,6 +120,6 @@ def test_search_exit_status_code_when_finds_no_package():
     """
     Test search exit status code for no matches
     """
-    env = reset_env(use_distribute=True)
+    env = reset_env()
     result = run_pip('search', 'non-existant-package', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
