@@ -29,7 +29,7 @@ def wheel_setuptools_support():
     distribute_req: a pkg_resources.Requirement for distribute
     """
 
-    installed_distribute = installed_setuptools = None
+    installed_distribute = installed_setuptools = ''
     try:
         installed_distribute = pkg_resources.get_distribution('distribute')
     except pkg_resources.DistributionNotFound:
