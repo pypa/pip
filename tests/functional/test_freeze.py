@@ -53,7 +53,7 @@ def test_freeze_basic():
     expected = textwrap.dedent("""\
         Script result: pip freeze
         -- stdout: --------------------
-        simple==2.0
+        ...simple==2.0
         simple2==3.0...
         <BLANKLINE>""")
     _check_output(result, expected)
