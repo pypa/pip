@@ -38,26 +38,11 @@ class Tests_UserSite:
         assert 'INITools'== project_name, "'%s' should be 'INITools'" %project_name
 
 
-    def test_install_subversion_usersite_editable_with_setuptools_fails(self):
-        """
-        Test installing current directory ('.') into usersite using setuptools fails
-        """
-        # We don't try to use setuptools for 3.X.
-        if sys.version_info >= (3,):
-            raise SkipTest()
-        env = reset_env(use_distribute=False, system_site_packages=True)
-        result = run_pip('install', '--user', '-e',
-                         '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
-                         expect_error=True)
-        assert '--user --editable not supported with setuptools, use distribute' in result.stdout
-
-
     def test_install_subversion_usersite_editable_with_distribute(self):
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
-        env = reset_env(use_distribute=True, system_site_packages=True)
+        env = reset_env(system_site_packages=True)
         result = run_pip('install', '--user', '-e',
                          '%s#egg=initools-dev' %
                          local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
@@ -68,7 +53,7 @@ class Tests_UserSite:
         """
         Test installing current directory ('.') into usersite
         """
-        env = reset_env(use_distribute=True, system_site_packages=True)
+        env = reset_env(system_site_packages=True)
         run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
         result = run_pip('install', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = env.user_site/'fspkg'
@@ -225,7 +210,7 @@ class Tests_UserSite:
         """
         Test uninstall editable local user install
         """
-        env = reset_env(use_distribute=True, system_site_packages=True)
+        env = reset_env(system_site_packages=True)
 
         #install
         to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
@@ -245,7 +230,7 @@ class Tests_UserSite:
         """
         Test user install from wheel
         """
-        env = reset_env(system_site_packages=True, use_distribute=True)
+        env = reset_env(system_site_packages=True)
         pip_install_local('wheel')
         result = run_pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
                      '--no-index', '--find-links='+find_links)

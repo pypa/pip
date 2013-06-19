@@ -48,7 +48,7 @@ class TestWheelSupported(object):
         Test wheel_supported returns true, when distribute is installed and requirement is met
         """
         mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.34')
-        assert wheel.wheel_distribute_support()
+        assert wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_wheel_supported_false_no_install(self, mock_get_distribution):
@@ -56,7 +56,7 @@ class TestWheelSupported(object):
         Test wheel_supported returns false, when distribute not installed
         """
         mock_get_distribution.side_effect = self.raise_not_found
-        assert not wheel.wheel_distribute_support()
+        assert not wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_wheel_supported_false_req_fail(self, mock_get_distribution):
@@ -64,7 +64,7 @@ class TestWheelSupported(object):
         Test wheel_supported returns false, when distribute is installed, but req is not met
         """
         mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.28')
-        assert not wheel.wheel_distribute_support()
+        assert not wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_finder_raises_error(self, mock_get_distribution):

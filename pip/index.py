@@ -29,7 +29,7 @@ from pip.backwardcompat import (WindowsError, BytesIO,
                                 Empty as QueueEmpty)
 from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
-from pip.wheel import Wheel, wheel_ext, wheel_distribute_support, distribute_requirement
+from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, distribute_requirement
 from pip.pep425tags import supported_tags
 from pip.vendor import html5lib
 
@@ -90,7 +90,7 @@ class PackageFinder(object):
     @use_wheel.setter
     def use_wheel(self, value):
         self._use_wheel = value
-        if self._use_wheel and not wheel_distribute_support():
+        if self._use_wheel and not wheel_setuptools_support():
             raise InstallationError("pip's wheel support requires %s." % distribute_requirement)
 
     def add_dependency_links(self, links):

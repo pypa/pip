@@ -10,7 +10,7 @@ before_install:
     - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
     - git config --global user.email "python-virtualenv@googlegroups.com"
     - git config --global user.name "Pip"
-install: pip install nose virtualenv>=1.9.1 scripttest mock
+install: pip install nose git+https://github.com/pypa/virtualenv@develop#egg=virtualenv scripttest mock
 script: nosetests
 notifications:
   irc: "irc.freenode.org#pip"

@@ -55,12 +55,10 @@ def demand_dirs(path):
 sys.path = [src_folder] + sys.path
 
 
-def create_virtualenv(where, distribute=False):
+def create_virtualenv(where):
     import virtualenv
-    if sys.version_info[0] > 2:
-        distribute = True
     virtualenv.create_environment(
-        where, use_distribute=distribute, unzip_setuptools=True)
+        where, unzip_setuptools=True)
 
     return virtualenv.path_locations(where)
 
@@ -90,26 +88,9 @@ def clear_environ(environ):
     return dict(((k, v) for k, v in environ.items()
                 if not k.lower().startswith('pip_')))
 
-
-def install_setuptools(env):
-    easy_install = os.path.join(env.bin_path, 'easy_install')
-    version = 'setuptools==0.6c11'
-    if sys.platform != 'win32':
-        return env.run(easy_install, version)
-
-    tempdir = tempfile.mkdtemp()
-    try:
-        for f in glob.glob(easy_install+'*'):
-            shutil.copy2(f, tempdir)
-        return env.run(os.path.join(tempdir, 'easy_install'), version)
-    finally:
-        rmtree(tempdir)
-
-
 env = None
 
 def reset_env(environ=None,
-              use_distribute=False,
               system_site_packages=False,
               sitecustomize=None,
               insecure=True):
@@ -117,24 +98,15 @@ def reset_env(environ=None,
 
     Keyword arguments:
     environ: an environ object to use.
-    use_distribute: use distribute, not setuptools.
     system_site_packages: create a virtualenv that simulates --system-site-packages.
     sitecustomize: a string containing python code to add to sitecustomize.py.
     insecure: how to set the --insecure option for py25 tests.
     """
 
-    if sys.version_info >= (3,):
-        use_distribute = True
-
     global env
 
-    if use_distribute:
-        test_class = TestPipEnvironmentD
-    else:
-        test_class = TestPipEnvironment
-
-    env = test_class(environ, sitecustomize=sitecustomize)
-    test_class.rebuild_venv = False
+    env = TestPipEnvironment(environ, sitecustomize=sitecustomize)
+    TestPipEnvironment.rebuild_venv = False
 
     if system_site_packages:
         #testing often occurs starting from a private virtualenv (e.g. with tox)
@@ -142,7 +114,7 @@ def reset_env(environ=None,
         #to create a 'system-site-packages' virtualenv
         #hence, this workaround
         (env.lib_path/'no-global-site-packages.txt').rm()
-        test_class.rebuild_venv = True
+        TestPipEnvironment.rebuild_venv = True
 
     return env
 
@@ -303,16 +275,13 @@ class TestPipEnvironment(TestFileEnvironment):
 
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
-    use_distribute = False
-    # Keep short to undercut windows path length issues
-    setuptools = 's'
     rebuild_venv = True
 
     def __init__(self, environ=None, sitecustomize=None):
         import virtualenv
 
-        self.root_path = fast_test_env_root / self.setuptools
-        self.backup_path = fast_test_env_backup / self.setuptools
+        self.root_path = fast_test_env_root
+        self.backup_path = fast_test_env_backup
 
         self.scratch_path = self.root_path / self.scratch
 
@@ -366,7 +335,7 @@ class TestPipEnvironment(TestFileEnvironment):
             demand_dirs(self.scratch_path)
 
             # Create a virtualenv and remember where it's putting things.
-            create_virtualenv(self.venv_path, distribute=self.use_distribute)
+            create_virtualenv(self.venv_path)
 
             demand_dirs(self.user_site_path)
 
@@ -381,10 +350,6 @@ class TestPipEnvironment(TestFileEnvironment):
                 raise RuntimeError(
                     "Oops! 'python' in our test environment runs %r"
                     " rather than expected %r" % (pythonbin, self.bin_path/'python'))
-
-            # make sure we have current setuptools to avoid svn incompatibilities
-            if not self.use_distribute:
-                install_setuptools(self)
 
             # Uninstall whatever version of pip came with the virtualenv.
             # Earlier versions of pip were incapable of
@@ -467,16 +432,6 @@ class TestPipEnvironment(TestFileEnvironment):
             cache_path = imp.cache_from_source(sitecustomize_path)
             if os.path.isfile(cache_path):
                 os.remove(cache_path)
-
-
-
-class TestPipEnvironmentD(TestPipEnvironment):
-    """A specialized TestFileEnvironment that contains distribute"""
-
-    use_distribute = True
-    # Keep short to undercut windows path length issues
-    setuptools = 'd'
-    rebuild_venv = True
 
 
 def run_pip(*args, **kw):
