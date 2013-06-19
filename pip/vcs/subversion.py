@@ -264,7 +264,7 @@ def get_rev_options(url, rev):
 
     if username:
         rev_options += ['--username', username]
-    if password:
+    if password is not None:
         rev_options += ['--password', password]
     return rev_options
 
