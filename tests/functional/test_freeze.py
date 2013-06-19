@@ -2,7 +2,7 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from tests.lib import reset_env, run_pip, write_file, get_env, pyversion
+from tests.lib import reset_env, run_pip, write_file, get_env, pyversion, pip_install_local
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -44,17 +44,17 @@ def test_freeze_basic():
     """
     env = reset_env()
     write_file('initools-req.txt', textwrap.dedent("""\
-        INITools==0.2
+        simple==2.0
         # and something else to test out:
-        MarkupSafe<=0.12
+        simple2<=3.0
         """))
-    result = run_pip('install', '-r', env.scratch_path/'initools-req.txt')
+    result = pip_install_local('-r', env.scratch_path/'initools-req.txt')
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze
         -- stdout: --------------------
-        INITools==0.2
-        MarkupSafe==0.12...
+        simple==2.0
+        simple2==3.0...
         <BLANKLINE>""")
     _check_output(result, expected)
 
@@ -236,7 +236,7 @@ def test_freeze_with_requirement_option():
         NoExist==4.2
         """) + ignores)
     result = run_pip('install', 'initools==0.2')
-    result = run_pip('install', 'MarkupSafe')
+    result = pip_install_local('simple')
     result = run_pip('freeze', '--requirement', 'hint.txt', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze --requirement hint.txt
