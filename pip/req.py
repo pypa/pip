@@ -237,20 +237,10 @@ class InstallRequirement(object):
             if self.name == 'distribute' and not os.path.isdir(os.path.join(self.source_dir, 'setuptools')):
                 rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
 
-            # setuptools-0.7.2 is not 2/3 compatible and requires 2to3.  the use
-            # of self._run_setup.py makes it impossible for 2to3 to get run on
-            # the setuptools that needs to be imported, so we work with
-            # "setup.py" directly.  just for setuptools
-            # NOTE: this self.name check only works when installing from a specifier
-            #       (not archive path/urls)
-            # TODO: take this out later
-            if self.name in ['setuptools']:
-                egg_info_cmd = [sys.executable, 'setup.py', 'egg_info']
-            else:
-                script = self._run_setup_py
-                script = script.replace('__SETUP_PY__', repr(self.setup_py))
-                script = script.replace('__PKG_NAME__', repr(self.name))
-                egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
+            script = self._run_setup_py
+            script = script.replace('__SETUP_PY__', repr(self.setup_py))
+            script = script.replace('__PKG_NAME__', repr(self.name))
+            egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
             # for an installed egg, causing problems
             if self.editable or force_root_egg_info:
@@ -607,22 +597,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
             install_args = [sys.executable]
-
-            # setuptools-0.7.2 is not 2/3 compatible and requires 2to3.  the use
-            # of the "import setuptools" override makes it impossible for 2to3
-            # to get run on the setuptools that needs to be imported, so we work
-            # with "setup.py" directly just for setuptools
-            # NOTE: this self.name check only works when installing from a specifier
-            #       (not archive path/urls)
-            # TODO: take this out later
-            if self.name in ['setuptools']:
-                install_args.append('setup.py')
-            else:
-                install_args.append('-c')
-                install_args.append(
-                "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
-
+            install_args.append('-c')
+            install_args.append(
+            "import setuptools;__file__=%r;"\
+            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
             install_args += list(global_options) + ['install','--record', record_filename]
 
             if not self.as_egg:
