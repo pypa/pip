@@ -226,9 +226,21 @@ class InstallRequirement(object):
             logger.notify('Running setup.py egg_info for package from %s' % self.url)
         logger.indent += 2
         try:
+
+            # if it's distribute>=0.7, it won't contain an importable
+            # setuptools, and having an egg-info dir blocks the ability of
+            # setup.py to find setuptools plugins, so delete the egg-info dir if
+            # no setuptools. it will get recreated by the run of egg_info
+            # NOTE: this self.name check only works when installing from a specifier
+            #       (not archive path/urls)
+            # TODO: take this out later
+            if self.name == 'distribute' and not os.path.isdir(os.path.join(self.source_dir, 'setuptools')):
+                rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
+
             script = self._run_setup_py
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
+            egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
             # We can't put the .egg-info files at the root, because then the source code will be mistaken
             # for an installed egg, causing problems
             if self.editable or force_root_egg_info:
@@ -239,7 +251,7 @@ class InstallRequirement(object):
                     os.makedirs(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             call_subprocess(
-                [sys.executable, '-c', script, 'egg_info'] + egg_base_option,
+                egg_info_cmd + egg_base_option,
                 cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False,
                 command_level=logger.VERBOSE_DEBUG,
                 command_desc='python setup.py egg_info')
@@ -584,13 +596,12 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [
-                sys.executable, '-c',
-                "import setuptools;__file__=%r;"\
-                "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py] +\
-                list(global_options) + [
-                'install',
-                '--record', record_filename]
+            install_args = [sys.executable]
+            install_args.append('-c')
+            install_args.append(
+            "import setuptools;__file__=%r;"\
+            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
+            install_args += list(global_options) + ['install','--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -702,7 +713,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(self.req)
+            # if we've already set distribute as a conflict to setuptools
+            # then this check has already run before.  we don't want it to
+            # run again, and return False, since it would block the uninstall
+            if (self.req.project_name == 'setuptools'
+                and self.conflicts_with
+                and self.conflicts_with.project_name == 'distribute'):
+                return True
+            else:
+                self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
@@ -830,8 +849,7 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
-                 skip_reqs={}):
+                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -849,10 +867,7 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
-        # Set from --target option
-        self.target_dir = target_dir
-        # Requirements (by project name) to be skipped
-        self.skip_reqs = skip_reqs
+        self.target_dir = target_dir #set from --target option
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -862,9 +877,6 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         name = install_req.name
-        if name and name.lower() in self.skip_reqs:
-            logger.notify("Skipping %s: %s" %( name, self.skip_reqs[name.lower()]))
-            return False
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
@@ -880,7 +892,6 @@ class RequirementSet(object):
             ## FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
                 self.requirement_aliases[name.lower()] = name
-        return True
 
     def has_requirement(self, project_name):
         for name in project_name, project_name.lower():
@@ -1086,8 +1097,8 @@ class RequirementSet(object):
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
-                                if self.add_requirement(subreq):
-                                    reqs.append(subreq)
+                                reqs.append(subreq)
+                                self.add_requirement(subreq)
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
@@ -1101,8 +1112,8 @@ class RequirementSet(object):
                                         continue
                                     subreq = InstallRequirement(str(subreq),
                                                                 req_to_install)
-                                    if self.add_requirement(subreq):
-                                        reqs.append(subreq)
+                                    reqs.append(subreq)
+                                    self.add_requirement(subreq)
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1149,8 +1160,8 @@ class RequirementSet(object):
                                 ## FIXME: check for conflict
                                 continue
                             subreq = InstallRequirement(req, req_to_install)
-                            if self.add_requirement(subreq):
-                                reqs.append(subreq)
+                            reqs.append(subreq)
+                            self.add_requirement(subreq)
                     if not self.has_requirement(req_to_install.name):
                         #'unnamed' requirements will get added here
                         self.add_requirement(req_to_install)
@@ -1224,11 +1235,36 @@ class RequirementSet(object):
         to_install = [r for r in self.requirements.values()
                       if not r.satisfied_by]
 
+        # move distribute>=0.7 to the end because it does not contain an
+        # importable setuptools. by moving it to the end, we ensure it's
+        # setuptools dependency is handled first, which will provide an
+        # importable setuptools package
+        # TODO: take this out later
+        distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
+        for req in to_install:
+            if req.name == 'distribute' and req.installed_version in distribute_req:
+                to_install.remove(req)
+                to_install.append(req)
+
         if to_install:
             logger.notify('Installing collected packages: %s' % ', '.join([req.name for req in to_install]))
         logger.indent += 2
         try:
             for requirement in to_install:
+
+                # when installing setuptools>=0.7.2 in py2, we need to force setuptools
+                # to uninstall distribute. In py3, which is always using distribute, this
+                # conversion is already happening in distribute's pkg_resources.
+                # TODO: remove this later
+                setuptools_req = pkg_resources.Requirement.parse("setuptools>=0.7.2")
+                if requirement.name == 'setuptools' and requirement.installed_version in setuptools_req:
+                    try:
+                        existing_distribute = pkg_resources.get_distribution("distribute")
+                        requirement.conflicts_with = existing_distribute
+                    except:
+                        # distribute wasn't installed
+                        pass
+
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
                                   % requirement.conflicts_with)

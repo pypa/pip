@@ -10,6 +10,21 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
+def test_pip_second_command_line_interface_works():
+    """
+    Check if ``pip-<PYVERSION>`` commands behaves equally
+    """
+    e = reset_env()
+
+    args = ['pip-%s' % pyversion]
+    args.extend(['install', 'INITools==0.2'])
+    result = e.run(*args)
+    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+    initools_folder = e.site_packages / 'initools'
+    assert egg_info_folder in result.files_created, str(result)
+    assert initools_folder in result.files_created, str(result)
+
+
 def test_install_from_pypi():
     """
     Test installing a package from PyPI.
@@ -242,7 +257,6 @@ def test_install_as_egg():
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
-
 def test_install_curdir():
     """
     Test installing current directory ('.').
@@ -466,32 +480,4 @@ def test_url_req_case_mismatch():
     assert egg_folder in result.files_created, str(result)
     egg_folder = env.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
-
-
-def test_dont_install_distribute_in_py3():
-    """
-    Test we skip distribute in py3
-    """
-    if sys.version_info < (3, 0):
-        raise SkipTest()
-    env = reset_env()
-    result = run_pip('install', 'distribute')
-    assert "Skipping distribute: Can not install distribute due to bootstrap issues" in result.stdout
-    assert not result.files_updated
-
-
-def test_pip_second_command_line_interface_works():
-    """
-    Check if ``pip-<PYVERSION>`` commands behaves equally
-    """
-    e = reset_env()
-
-    args = ['pip-%s' % pyversion]
-    args.extend(['install', 'INITools==0.2'])
-    result = e.run(*args)
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
 
