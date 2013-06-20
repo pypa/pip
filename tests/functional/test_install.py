@@ -25,21 +25,6 @@ def test_pip_second_command_line_interface_works():
     assert initools_folder in result.files_created, str(result)
 
 
-#def test_distutils_configuration_setting():
-#    """
-#    Test the distutils-configuration-setting command (which is distinct from other commands).
-#    """
-    #print run_pip('-vv', '--distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/', expect_error=True)
-    #Script result: python ../../poacheggs.py -E .../poacheggs-tests/test-scratch -vv --distutils-cfg=easy_install:index_url:http://download.zope.org/ppix/
-    #-- stdout: --------------------
-    #Distutils config .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg is writable
-    #Replaced setting index_url
-    #Updated .../poacheggs-tests/test-scratch/lib/python.../distutils/distutils.cfg
-    #<BLANKLINE>
-    #-- updated: -------------------
-    #  lib/python2.4/distutils/distutils.cfg  (346 bytes)
-
-
 def test_install_from_pypi():
     """
     Test installing a package from PyPI.
