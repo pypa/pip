@@ -74,10 +74,11 @@ to building and installing from source archives. For more information, see the
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
-pip's support for wheels currently requires `Distribute`_ >=0.6.29, not `Setuptools`_.
+pip's support for wheels currently requires `Distribute`_ >=0.6.29, or `Setuptools`_ >=0.7.0 not earlier versions of `Setuptools`_.
 
 To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
 If no satisfactory wheels are found, pip will default to finding source archives.
+If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL`` or set ``use-wheel`` in your ``pip.ini`` file.
 
 To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
 
