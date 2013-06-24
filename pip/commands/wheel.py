@@ -94,7 +94,12 @@ class WheelCommand(Command):
                                index_urls=index_urls,
                                use_mirrors=options.use_mirrors,
                                mirrors=options.mirrors,
-                               use_wheel=options.use_wheel)
+                               use_wheel=options.use_wheel,
+                               allow_external=options.allow_external,
+                               allow_insecure=options.allow_insecure,
+                               allow_all_external=options.allow_all_external,
+                               allow_all_insecure=options.allow_all_insecure,
+                            )
 
         options.build_dir = os.path.abspath(options.build_dir)
         requirement_set = RequirementSet(
