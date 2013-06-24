@@ -40,6 +40,12 @@ class ListCommand(Command):
             default=False,
             help='If in a virtualenv that has global access, do not list globally-installed packages.')
 
+        cmd_opts.add_option(
+            '--pre',
+            action='store_true',
+            default=False,
+            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -93,7 +99,7 @@ class ListCommand(Command):
 
         installed_packages = get_installed_distributions(local_only=options.local, include_editables=False)
         for dist in installed_packages:
-            req = InstallRequirement.from_line(dist.key, None)
+            req = InstallRequirement.from_line(dist.key, None, prereleases=options.pre)
             try:
                 link = finder.find_requirement(req, True)
 

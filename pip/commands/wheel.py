@@ -68,6 +68,12 @@ class WheelCommand(Command):
             help="Extra global options to be supplied to the setup.py "
             "call before the 'bdist_wheel' command.")
 
+        cmd_opts.add_option(
+            '--pre',
+            action='store_true',
+            default=False,
+            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+
         cmd_opts.add_option(cmdoptions.no_clean)
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
@@ -116,7 +122,7 @@ class WheelCommand(Command):
                 logger.notify("ignoring %s" % name)
                 continue
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
+                InstallRequirement.from_line(name, None, prereleases=options.pre))
 
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):
