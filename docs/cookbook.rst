@@ -129,8 +129,8 @@ inside the package.
 Rather than representing all possible compatibility information in the
 wheel itself, the wheel design suggests distribution-specific build
 services (e.g. a separate index for Fedora Linux binary wheels, compiled
-by the index maintainer). This is the same solution taken by Linux 
-distributions which all re-compile their own packages instead of installing 
+by the index maintainer). This is the same solution taken by Linux
+distributions which all re-compile their own packages instead of installing
 each other's binary packages.
 
 Some kinds of precompiled C extension modules can make sense on PyPI, even
@@ -244,7 +244,7 @@ Controlling setup_requires
 **************************
 
 Setuptools offers the ``setup_requires``
-`setup() keyword <http://pythonhosted.org/distribute/setuptools.html#new-and-changed-setup-keywords>`_
+`setup() keyword <http://pythonhosted.org/setuptools/setuptools.html#new-and-changed-setup-keywords>`_
 for specifying dependencies that need to be present in order for the `setup.py` script to run.
 Internally, Setuptools uses ``easy_install`` to fulfill these dependencies.
 

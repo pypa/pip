@@ -47,7 +47,7 @@ Requirement Specifiers
 ======================
 
 pip supports installing from "requirement specifiers" as implemented in
-`pkg_resources Requirements <http://packages.python.org/distribute/pkg_resources.html#requirement-objects>`_
+`pkg_resources Requirements <http://packages.python.org/setuptools/pkg_resources.html#requirement-objects>`_
 
 Some Examples:
 
@@ -202,7 +202,7 @@ Finding Packages
 
 pip searches for packages on `PyPI <http://pypi.python.org>`_ using the
 `http simple interface <http://pypi.python.org/simple>`_,
-which is documented `here <http://packages.python.org/distribute/easy_install.html#package-index-api>`_
+which is documented `here <http://packages.python.org/setuptools/easy_install.html#package-index-api>`_
 and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a set of :ref:`Package Index Options <Package Index Options>` for modifying how packages are found.
@@ -254,7 +254,7 @@ See the :ref:`Configuration` section.
 "Editable" Installs
 ===================
 
-"Editable" installs are fundamentally `"setuptools develop mode" <http://packages.python.org/distribute/setuptools.html#development-mode>`_ installs.
+"Editable" installs are fundamentally `"setuptools develop mode" <http://packages.python.org/setuptools/setuptools.html#development-mode>`_ installs.
 
 You can install local projects or VCS projects in "editable" mode::
 
@@ -268,9 +268,7 @@ This is one advantage over just using ``setup.py develop``, which creates the "e
 setuptools & pkg_resources
 ==========================
 
-Internally, pip uses the `setuptools` package, and the `pkg_resources` module, which are available from the project, `Setuptools`_, or it's fork `Distribute`_.
-
-pip can work with either `Setuptools`_ or `Distribute`_, although for Python 3, `Distribute`_ is required.
+Internally, pip uses the `setuptools` package, and the `pkg_resources` module, which are available from the project, `Setuptools`_.
 
 Here are some examples of how pip uses `setuptools` and `pkg_resources`:
 
@@ -280,4 +278,3 @@ Here are some examples of how pip uses `setuptools` and `pkg_resources`:
 
 
 .. _Setuptools: http://pypi.python.org/pypi/setuptools/
-.. _Distribute: http://pypi.python.org/pypi/distribute/

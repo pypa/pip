@@ -50,33 +50,40 @@ Often this requires the installation to be performed as root.
 
 .. warning::
 
-    We advise against using `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ to install pip, because easy_install
+    We advise against using `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ to install pip, because easy_install
     does not download from PyPI over SSL, so the installation might be insecure.
-    Since pip can then be used to install packages (which execute code on
-    your computer), it is better to go through a trusted path.
-
 
 Requirements
 ++++++++++++
 
-pip requires either `setuptools <https://pypi.python.org/pypi/setuptools>`_
-or `distribute <https://pypi.python.org/pypi/distribute>`_.
+pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
+`distribute`_ (the fork of setuptools). `setuptools`_ and `distribute`_ are now
+merged back together as "setuptools".
 
-See the `Distribute Install Instructions <https://pypi.python.org/pypi/distribute/>`_ or the
-`Setuptools Install Instructions <https://pypi.python.org/pypi/setuptools#installation-instructions>`_
+For details on installing setuptools from scratch, see the install instructions
+on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
 
-If installing pip using a linux package manager, these requirements will be installed for you.
+If you already have `setuptools`_ or `distribute`_, then you can use pip to upgrade
+it, but you'll need to upgrade pip first to v1.4 using one of the methods
+below. Older versions of pip are *not* capable of performing the upgrade to the
+latest setuptools.
 
-.. warning::
+You can upgrade to the latest setuptools in one of two ways, depending on what
+you have currently. To determine what you have currently, run ``pip show
+distribute``. If it returns results, then you have distribute.
 
-    If you are using Python 3.X you **must** use distribute; setuptools doesn't
-    support Python 3.X.
+If you currently have distribute, run ``pip install -U distribute``. This will
+upgrade to you distribute-0.7, which is just a wrapper, that depends on
+setuptools. The end result will be that you have distribute-0.7 (which does
+nothing) *and* the latest setuptools installed. If you currently have
+setuptools, just run ``pip install -U setuptools``.
+
+.. _setuptools: https://pypi.python.org/pypi/setuptools
+.. _distribute: https://pypi.python.org/pypi/distribute
 
 
 Using get-pip
 +++++++++++++
-
-After installing the requirements:
 
 ::
 
@@ -86,8 +93,6 @@ After installing the requirements:
 
 Installing from source
 ++++++++++++++++++++++
-
-After installing the requirements:
 
 ::
 

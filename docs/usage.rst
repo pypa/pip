@@ -133,7 +133,7 @@ Examples
 
 
 .. _PyPI: http://pypi.python.org/pypi
-.. _setuptools extras: http://packages.python.org/distribute/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+.. _setuptools extras: http://packages.python.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 
 pip uninstall

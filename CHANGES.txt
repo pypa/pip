@@ -4,13 +4,15 @@ Changelog
 1.4.dev1 (unreleased)
 ---------------------
 
+* To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
+  not distribute. setuptools and distribute are now merged into one project called
+  'setuptools'. (Pull #1003)
+
 * If an already-downloaded or cached file has a bad hash, re-download it rather
   than erroring out. (Issue #963).
 
 * Fixed a number of issues (#413, #709, #634, #602, and #939) related to cleaning up and
   not reusing build directories. (Pull #865, #948)
-
-* pip will no longer try to install or upgrade Distribute in Python 3. (Pull #937)
 
 * Added a User Agent so that pip is identifiable in logs. (Pull #901)
 

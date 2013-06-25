@@ -61,9 +61,9 @@ This process includes virtualenv, since pip releases necessitate a virtualenv re
 
 As an example, the instructions assume we're releasing pip-1.4, and virtualenv-1.10.
 
-1. Upgrade distribute, if needed:
+1. Upgrade setuptools, if needed:
 
- #. Upgrade distribute in ``virtualenv/develop`` using the :ref:`Refresh virtualenv` process.
+ #. Upgrade setuptools in ``virtualenv/develop`` using the :ref:`Refresh virtualenv` process.
  #. Create a pull request against ``pip/develop`` with a modified ``.travis.yml`` file that installs virtualenv from ``virtualenv/develop``, to confirm the travis builds are still passing.
 
 2. Create Release branches:
@@ -103,10 +103,7 @@ As an example, the instructions assume we're releasing pip-1.4, and virtualenv-1
 Refresh virtualenv
 ++++++++++++++++++
 
-#. Set the embedded versions of pip, distribute and setuptools in ``bin/refresh-support-files.py``
-#. Additionally, set the version of distribute in ``virtualenv_embedded/distribute_setup.py``, and setuptools in ``virtualenv_embedded/ez_setup.py``
-#. Run ``bin/refresh-support-files.py`` to download the latest versions.
-   When specifying a beta of pip not on pypi, the last part of this script will fail. In this case, the pip sdist needs to be placed manually into ``virtualenv_support``.
+#. Update the embedded versions of pip and setuptools in ``virtualenv_support``.
 #. Run ``bin/rebuild-script.py`` to rebuild virtualenv based on the latest versions.
 
 
