@@ -120,28 +120,28 @@ def test_freeze_mercurial_clone():
     reset_env()
     env = get_env()
     result = env.run('hg', 'clone',
-                     '-r', '7bc186caa7dc',
-                     local_repo('hg+http://bitbucket.org/jezdez/django-authority'),
-                     'django-authority')
+                     '-r', 'c9963c111e7c',
+                     local_repo('hg+http://bitbucket.org/pypa/pip-test-package'),
+                     'pip-test-package')
     result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'django-authority', expect_stderr=True)
+            cwd=env.scratch_path/'pip-test-package', expect_stderr=True)
     result = run_pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        ...-e %s@...#egg=django_authority-...
-        ...""" % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'))
+        ...-e %s@...#egg=pip_test_package-...
+        ...""" % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'))
     _check_output(result, expected)
 
     result = run_pip('freeze', '-f',
-                     '%s#egg=django_authority' % local_checkout('hg+http://bitbucket.org/jezdez/django-authority'),
+                     '%s#egg=pip_test_package' % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s#egg=django_authority
+        Script result: ...pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
-        -f %(repo)s#egg=django_authority
-        ...-e %(repo)s@...#egg=django_authority-dev
-        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/jezdez/django-authority')})
+        -f %(repo)s#egg=pip_test_package
+        ...-e %(repo)s@...#egg=pip_test_package-dev
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/pypa/pip-test-package')})
     _check_output(result, expected)
 
 
