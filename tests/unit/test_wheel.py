@@ -137,3 +137,20 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert w.support_index_min() == None
 
+    def test_unpack_wheel_no_flatten(self):
+        from pip import util
+        from tempfile import mkdtemp
+        from shutil import rmtree
+        import os
+        from nose import SkipTest
+
+        filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
+        if not os.path.exists(filepath):
+            raise SkipTest
+        try:
+            tmpdir = mkdtemp()
+            util.unpack_file(filepath, tmpdir, 'application/zip', None )
+            assert os.path.isdir(os.path.join(tmpdir,'meta-1.0.dist-info'))
+        finally:
+            rmtree(tmpdir)
+            pass

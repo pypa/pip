@@ -589,8 +589,9 @@ def unpack_file(filename, location, content_type, link):
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
+        or filename.endswith('.whl')
         or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+        unzip_file(filename, location, flatten=not filename.endswith(('.pybundle', 'whl')))
     elif (content_type == 'application/x-gzip'
           or tarfile.is_tarfile(filename)
           or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):

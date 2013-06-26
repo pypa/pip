@@ -79,8 +79,9 @@ Upper-[12].0.tar.gz and requiresuppper-1.0.tar.gz
 'requiresupper' requires 'upper'
 used for testing case mismatch case for url requirements
 
-
-
+meta-1.0-py2.py3-none-any.whl
+--------------------------------------------------
+Is an empty package which install_requires the simple and simple2 packages.
 
 
 
