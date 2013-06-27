@@ -45,15 +45,15 @@ class TestWheelSupported(object):
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_wheel_supported_true(self, mock_get_distribution):
         """
-        Test wheel_supported returns true, when distribute is installed and requirement is met
+        Test wheel_supported returns true, when setuptools is installed and requirement is met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.34')
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
         assert wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_wheel_supported_false_no_install(self, mock_get_distribution):
         """
-        Test wheel_supported returns false, when distribute not installed
+        Test wheel_supported returns false, when setuptools not installed
         """
         mock_get_distribution.side_effect = self.raise_not_found
         assert not wheel.wheel_setuptools_support()
@@ -61,9 +61,9 @@ class TestWheelSupported(object):
     @patch("pip.wheel.pkg_resources.get_distribution")
     def test_wheel_supported_false_req_fail(self, mock_get_distribution):
         """
-        Test wheel_supported returns false, when distribute is installed, but req is not met
+        Test wheel_supported returns false, when setuptools is installed, but req is not met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.28')
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
         assert not wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
@@ -83,7 +83,7 @@ class TestWheelSupported(object):
         """
         Test the PackageFinder doesn't raises an error when use_wheel is False, and wheel is supported
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='distribute', version='0.6.34')
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
