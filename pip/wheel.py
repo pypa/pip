@@ -99,7 +99,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
 
     scheme = distutils_scheme(name, user=user, home=home)
 
-    if scheme['purelib'] != scheme['platlib']:
+    if normalize_path(scheme['purelib']) != normalize_path(scheme['platlib']):
         # XXX check *.dist-info/WHEEL to deal with this obscurity
         raise NotImplementedError("purelib != platlib")
 
