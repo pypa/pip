@@ -25,7 +25,7 @@ long_description = "\n" + "\n".join([
         read('docs', 'quickstart.rst'),
         read('CHANGES.txt')])
 
-tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
+tests_require = ['nose>=1.3.0', 'virtualenv>=1.10', 'scripttest>=1.1.1', 'mock']
 
 setup(name="pip",
       version=find_version('pip', '__init__.py'),

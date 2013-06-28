@@ -19,30 +19,24 @@ from pip.pep425tags import supported_tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
-distribute_requirement = pkg_resources.Requirement.parse("distribute>=0.6.34")
-setuptools_requirement = pkg_resources.Requirement.parse("setuptools>=0.7.2")
+# don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
+# that converts 'setuptools' to 'distribute'
+setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2"))[0]
 
 def wheel_setuptools_support():
     """
-    Return True if we have a distribute that supports wheel.
-
-    distribute_req: a pkg_resources.Requirement for distribute
+    Return True if we have a setuptools that supports wheel.
     """
-
-    installed_distribute = installed_setuptools = ''
-    try:
-        installed_distribute = pkg_resources.get_distribution('distribute')
-    except pkg_resources.DistributionNotFound:
-        pass
+    fulfilled = False
     try:
         installed_setuptools = pkg_resources.get_distribution('setuptools')
+        if installed_setuptools in setuptools_requirement:
+            fulfilled = True
     except pkg_resources.DistributionNotFound:
         pass
-    supported = (installed_distribute in distribute_requirement) or (installed_setuptools in setuptools_requirement)
-    if not supported:
-        logger.warn("%s or %s is required for wheel installs." % (setuptools_requirement, distribute_requirement))
-    return supported
-
+    if not fulfilled:
+        logger.warn("%s is required for wheel installs." % setuptools_requirement)
+    return fulfilled
 
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
