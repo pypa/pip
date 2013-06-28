@@ -56,6 +56,10 @@ Often this requires the installation to be performed as root.
 Requirements
 ++++++++++++
 
+.. note::
+
+  setuptools-0.8 final is not released to pypi yet. Betas can be found here: https://bitbucket.org/pypa/setuptools/downloads
+
 pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
 `distribute`_ (the fork of setuptools). `setuptools`_ and `distribute`_ are now
 merged back together as "setuptools".
