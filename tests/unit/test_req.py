@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+from pkg_resources import Distribution
 from mock import Mock, patch
 from nose.tools import assert_equal, assert_raises
 from pip.exceptions import PreviousBuildDirError
@@ -145,7 +146,8 @@ def test_remote_reqs_parse():
     for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
         pass
 
-
+# patch this for travis which has distribute in it's base env for now
+@patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
 def test_req_file_parse_use_wheel():
     """
     Test parsing --use-wheel from a req file

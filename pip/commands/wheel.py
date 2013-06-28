@@ -9,7 +9,7 @@ from pip.log import logger
 from pip.exceptions import CommandError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
-from pip.wheel import WheelBuilder, wheel_setuptools_support, distribute_requirement, setuptools_requirement
+from pip.wheel import WheelBuilder, wheel_setuptools_support, setuptools_requirement
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -21,7 +21,7 @@ class WheelCommand(Command):
     Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
     For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
 
-    Requirements: distribute>=0.6.34 or setuptools>=0.7.2, and wheel.
+    Requirements: setuptools>=0.8, and wheel.
 
     'pip wheel' uses the bdist_wheel setuptools extension from the wheel package to build individual wheels.
 
@@ -89,7 +89,7 @@ class WheelCommand(Command):
         except ImportError:
             raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
         if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires %s or %s." % (distribute_requirement, setuptools_requirement))
+            raise CommandError("'pip wheel' requires %s." % setuptools_requirement)
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

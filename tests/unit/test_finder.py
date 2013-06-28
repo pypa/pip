@@ -1,5 +1,5 @@
 import os
-from pkg_resources import parse_version
+from pkg_resources import parse_version, Distribution
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder, Link
@@ -75,25 +75,85 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
     assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
-@patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
-def test_not_find_wheel_not_supported():
-    """
-    Test not finding an unsupported wheel.
-    """
-    req = InstallRequirement.from_line("simple.dist")
-    finder = PackageFinder([find_links], [], use_wheel=True)
-    assert_raises(DistributionNotFound, finder.find_requirement, req, True)
+
+# patch this for travis which has distribute in it's base env for now
+@patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
+class TestWheel(object):
+
+    @patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
+    def test_not_find_wheel_not_supported(self):
+        """
+        Test not finding an unsupported wheel.
+        """
+        req = InstallRequirement.from_line("simple.dist")
+        finder = PackageFinder([find_links], [], use_wheel=True)
+        assert_raises(DistributionNotFound, finder.find_requirement, req, True)
 
 
-@patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
-def test_find_wheel_supported():
-    """
-    Test finding supported wheel.
-    """
-    req = InstallRequirement.from_line("simple.dist")
-    finder = PackageFinder([find_links], [], use_wheel=True)
-    found = finder.find_requirement(req, True)
-    assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+    @patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
+    def test_find_wheel_supported(self):
+        """
+        Test finding supported wheel.
+        """
+        req = InstallRequirement.from_line("simple.dist")
+        finder = PackageFinder([find_links], [], use_wheel=True)
+        found = finder.find_requirement(req, True)
+        assert found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
+
+
+    def test_wheel_over_sdist_priority(self):
+        """
+        Test wheels have priority over sdists.
+        `test_link_sorting` also covers this at lower level
+        """
+        req = InstallRequirement.from_line("priority")
+        finder = PackageFinder([find_links], [], use_wheel=True)
+        found = finder.find_requirement(req, True)
+        assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
+
+
+    def test_existing_over_wheel_priority(self):
+        """
+        Test existing install has priority over wheels.
+        `test_link_sorting` also covers this at a lower level
+        """
+        req = InstallRequirement.from_line('priority', None)
+        latest_version = "1.0"
+        satisfied_by = Mock(
+            location = "/path",
+            parsed_version = parse_version(latest_version),
+            version = latest_version
+            )
+        req.satisfied_by = satisfied_by
+        finder = PackageFinder([find_links], [], use_wheel=True)
+        assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+
+    @patch('pip.wheel.supported_tags', [
+            ('pyT', 'none', 'TEST'),
+            ('pyT', 'TEST', 'any'),
+            ('pyT', 'none', 'any'),
+            ])
+    def test_link_sorting(self):
+        """
+        Test link sorting
+        """
+        links = [
+            (parse_version('2.0'), Link(Inf), '2.0'),
+            (parse_version('2.0'), Link('simple-2.0.tar.gz'), '2.0'),
+            (parse_version('1.0'), Link('simple-1.0-pyT-none-TEST.whl'), '1.0'),
+            (parse_version('1.0'), Link('simple-1.0-pyT-TEST-any.whl'), '1.0'),
+            (parse_version('1.0'), Link('simple-1.0-pyT-none-any.whl'), '1.0'),
+            (parse_version('1.0'), Link('simple-1.0.tar.gz'), '1.0'),
+            ]
+
+        finder = PackageFinder([], [])
+        finder.use_wheel = True
+
+        results = finder._sort_versions(links)
+        results2 = finder._sort_versions(sorted(links, reverse=True))
+
+        assert links == results == results2, results2
 
 
 def test_finder_priority_file_over_page():
@@ -126,33 +186,6 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url.endswith('tar.gz')
-
-
-def test_wheel_over_sdist_priority():
-    """
-    Test wheels have priority over sdists.
-    `test_link_sorting` also covers this at lower level
-    """
-    req = InstallRequirement.from_line("priority")
-    finder = PackageFinder([find_links], [], use_wheel=True)
-    found = finder.find_requirement(req, True)
-    assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
-
-def test_existing_over_wheel_priority():
-    """
-    Test existing install has priority over wheels.
-    `test_link_sorting` also covers this at a lower level
-    """
-    req = InstallRequirement.from_line('priority', None)
-    latest_version = "1.0"
-    satisfied_by = Mock(
-        location = "/path",
-        parsed_version = parse_version(latest_version),
-        version = latest_version
-        )
-    req.satisfied_by = satisfied_by
-    finder = PackageFinder([find_links], [], use_wheel=True)
-    assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
 
 def test_finder_only_installs_stable_releases():
@@ -232,33 +265,6 @@ def test_finder_installs_pre_releases_with_version_spec():
     finder = PackageFinder(links, [])
     link = finder.find_requirement(req, False)
     assert link.url == "https://foo/bar-2.0b1.tar.gz"
-
-
-@patch('pip.wheel.supported_tags', [
-        ('pyT', 'none', 'TEST'),
-        ('pyT', 'TEST', 'any'),
-        ('pyT', 'none', 'any'),
-        ])
-def test_link_sorting():
-    """
-    Test link sorting
-    """
-    links = [
-        (parse_version('2.0'), Link(Inf), '2.0'),
-        (parse_version('2.0'), Link('simple-2.0.tar.gz'), '2.0'),
-        (parse_version('1.0'), Link('simple-1.0-pyT-none-TEST.whl'), '1.0'),
-        (parse_version('1.0'), Link('simple-1.0-pyT-TEST-any.whl'), '1.0'),
-        (parse_version('1.0'), Link('simple-1.0-pyT-none-any.whl'), '1.0'),
-        (parse_version('1.0'), Link('simple-1.0.tar.gz'), '1.0'),
-        ]
-
-    finder = PackageFinder([], [])
-    finder.use_wheel = True
-
-    results = finder._sort_versions(links)
-    results2 = finder._sort_versions(sorted(links, reverse=True))
-
-    assert links == results == results2, results2
 
 
 def test_finder_ignores_external_links():
