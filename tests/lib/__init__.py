@@ -86,7 +86,9 @@ except NameError:
 
 def clear_environ(environ):
     return dict(((k, v) for k, v in environ.items()
-                if not k.lower().startswith('pip_')))
+                if not k.lower().startswith('pip_')
+                   and not k.lower().startswith('lc_')
+                ))
 
 env = None
 

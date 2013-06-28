@@ -5,7 +5,10 @@ from os.path import abspath, join, curdir, pardir
 
 from nose import SkipTest
 from pip.util import rmtree
-from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
+from tests.lib import (
+    tests_data, reset_env, run_pip, pyversion, mkdir,
+    pip_install_local, write_file, find_links, get_env,
+    )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -336,6 +339,8 @@ def test_install_global_option_using_editable():
     Test using global distutils options, but in an editable installation
     """
     reset_env()
+    env = get_env()
+    env.environ['HOME'] = env.venv_path
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = run_pip('install', '--global-option=--version',
                      '-e', '%s@0.2.5#egg=anyjson' %

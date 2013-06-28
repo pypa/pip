@@ -96,7 +96,6 @@ def fix_script(path):
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
-
     scheme = distutils_scheme(name, user=user, home=home)
 
     if normalize_path(scheme['purelib']) != normalize_path(scheme['platlib']):
