@@ -1,11 +1,11 @@
 """Tests for wheel binary packages and .dist-info."""
 import pkg_resources
-from mock import patch
+from mock import patch, Mock
 from pip import wheel
 from pip.exceptions import InstallationError
 from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
-
+from nose.tools import assert_raises
 
 def test_uninstallation_paths():
     class dist(object):
@@ -32,6 +32,14 @@ def test_uninstallation_paths():
     paths2 = list(wheel.uninstallation_paths(d))
 
     assert paths2 == paths
+
+
+@patch("pip.wheel.distutils_scheme", Mock(return_value={'purelib': 'pure', 'platlib': 'plat'}))
+def test_platlib_purelib_diff_raises():
+    """
+    Test that NotImplementedError is raised when platlib != purelib
+    """
+    assert_raises(NotImplementedError, wheel.move_wheel_files, '', '', '')
 
 
 class TestWheelSupported(object):
