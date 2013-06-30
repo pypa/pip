@@ -122,9 +122,9 @@ class TestWheelFile(object):
         ('py2', 'none', 'any'),
         ]
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.support_index_min() == 2
+        assert w.support_index_min(tags=tags) == 2
         w = wheel.Wheel('simple-0.1-py2-none-TEST.whl')
-        assert w.support_index_min() == 0
+        assert w.support_index_min(tags=tags) == 0
 
     def test_support_index_min_none(self):
         """
