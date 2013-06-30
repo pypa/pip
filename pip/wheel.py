@@ -21,7 +21,7 @@ from pip.util import call_subprocess, normalize_path, make_path_relative
 wheel_ext = '.whl'
 # don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
 # that converts 'setuptools' to 'distribute'
-setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2"))[0]
+setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2,==0.8dev"))[0]
 
 def wheel_setuptools_support():
     """
@@ -93,20 +93,38 @@ def fix_script(path):
         finally:
             script.close()
         return True
+    
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                                \.dist-info$""", re.VERBOSE)
+
+def root_is_purelib(name, wheeldir):
+    """
+    Return True if the extracted wheel in wheeldir should go into purelib.
+    """
+    name_folded = name.replace("-", "_")
+    for item in os.listdir(wheeldir):
+        match = dist_info_re.match(item)
+        if match and match.group('name') == name_folded:
+            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
+                for line in wheel:
+                    line = line.lower().rstrip()
+                    if line == "root-is-purelib: true":
+                        return True
+    return False
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home)
-
-    if normalize_path(scheme['purelib']) != normalize_path(scheme['platlib']):
-        # XXX check *.dist-info/WHEEL to deal with this obscurity
-        raise NotImplementedError("purelib != platlib")
+    
+    if root_is_purelib(name, wheeldir):
+        lib_dir = scheme['purelib']
+    else:
+        lib_dir = scheme['platlib']
 
     info_dir = []
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    location = dest = scheme['platlib']
     installed = {}
     changed = set()
 
@@ -116,7 +134,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
     def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = normpath(srcfile, wheeldir)
-        newpath = normpath(destfile, location)
+        newpath = normpath(destfile, lib_dir)
         installed[oldpath] = newpath
         if modified:
             changed.add(destfile)
@@ -151,7 +169,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    clobber(source, dest, True)
+    clobber(source, lib_dir, True)
 
     assert info_dir, "%s .dist-info directory not found" % req
 
