@@ -30,7 +30,7 @@ from pip.backwardcompat import (WindowsError, BytesIO,
 from pip.backwardcompat import CertificateError
 from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, setuptools_requirement
-from pip.pep425tags import supported_tags
+from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip.vendor import html5lib
 
 __all__ = ['PackageFinder']
@@ -437,6 +437,8 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        platform = get_platform()
+        
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -475,14 +477,14 @@ class PackageFinder(object):
                 #   inherent problems of binary distribution this can be
                 #   removed.
                 comes_from = getattr(link, "comes_from", None)
-                if (comes_from is not None
-                        and urlparse(comes_from.url).netloc.endswith(
+                if (not platform.startswith('win')
+                    and comes_from is not None
+                    and urlparse(comes_from.url).netloc.endswith(
                                                         "pypi.python.org")):
-                    bsupport = set(["any", "win32", "win-amd64", "win-ia64"])
-                    if set(link.wheel.plats) - bsupport:
+                    if not link.wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
-                            "Skipping %s because it is a binary Wheel on an "
-                            "unsupported platform" % link
+                            "Skipping %s because it is a pypi-hosted binary "
+                            "Wheel on an unsupported platform" % link
                         )
                         return []
 

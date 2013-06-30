@@ -34,14 +34,6 @@ def test_uninstallation_paths():
     assert paths2 == paths
 
 
-@patch("pip.wheel.distutils_scheme", Mock(return_value={'purelib': 'pure', 'platlib': 'plat'}))
-def test_platlib_purelib_diff_raises():
-    """
-    Test that NotImplementedError is raised when platlib != purelib
-    """
-    assert_raises(NotImplementedError, wheel.move_wheel_files, '', '', '')
-
-
 class TestWheelSupported(object):
 
     def raise_not_found(self, dist):
@@ -99,51 +91,47 @@ class TestWheelSupported(object):
 
 class TestWheelFile(object):
 
-    @patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
     def test_supported_single_version(self):
         """
         Test single-version wheel is known to be supported
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.supported()
+        assert w.supported(tags=[('py2', 'none', 'any')])
 
-    @patch('pip.wheel.supported_tags', [('py3', 'none', 'any')])
     def test_supported_multi_version(self):
         """
         Test multi-version wheel is known to be supported
         """
         w = wheel.Wheel('simple-0.1-py2.py3-none-any.whl')
-        assert w.supported()
+        assert w.supported(tags=[('py3', 'none', 'any')])
 
-    @patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
     def test_not_supported_version(self):
         """
         Test unsupported wheel is known to be unsupported
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert not w.supported()
+        assert not w.supported(tags=[('py1', 'none', 'any')])
 
-    @patch('pip.wheel.supported_tags', [
-        ('py2', 'none', 'TEST'),
-        ('py2', 'TEST', 'any'),
-        ('py2', 'none', 'any'),
-        ])
     def test_support_index_min(self):
         """
         Test results from `support_index_min`
         """
+        tags = [
+        ('py2', 'none', 'TEST'),
+        ('py2', 'TEST', 'any'),
+        ('py2', 'none', 'any'),
+        ]
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.support_index_min() == 2
+        assert w.support_index_min(tags=tags) == 2
         w = wheel.Wheel('simple-0.1-py2-none-TEST.whl')
-        assert w.support_index_min() == 0
+        assert w.support_index_min(tags=tags) == 0
 
-    @patch('pip.wheel.supported_tags', [])
     def test_support_index_min_none(self):
         """
         Test `support_index_min` returns None, when wheel not supported
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.support_index_min() == None
+        assert w.support_index_min(tags=[]) == None
 
     def test_unpack_wheel_no_flatten(self):
         from pip import util
