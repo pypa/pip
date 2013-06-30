@@ -20,7 +20,7 @@ from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
 # don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
-# that converts 'setuptools' to 'distribute'
+# that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2,==0.8dev"))[0]
 
 def wheel_setuptools_support():
@@ -264,9 +264,9 @@ class Wheel(object):
         indexes = [supported_tags.index(c) for c in self.file_tags if c in supported_tags]
         return min(indexes) if indexes else None
 
-    def supported(self):
+    def supported(self, tags=supported_tags):
         """Is this wheel supported on this system?"""
-        return bool(set(supported_tags).intersection(self.file_tags))
+        return bool(set(tags).intersection(self.file_tags))
 
 
 class WheelBuilder(object):
