@@ -15,7 +15,7 @@ from base64 import urlsafe_b64encode
 
 from pip.locations import distutils_scheme
 from pip.log import logger
-from pip.pep425tags import supported_tags
+from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
@@ -255,17 +255,21 @@ class Wheel(object):
         self.file_tags = set((x, y, z) for x in self.pyversions for y
                             in self.abis for z in self.plats)
 
-    def support_index_min(self, tags=supported_tags):
+    def support_index_min(self, tags=None):
         """
         Return the lowest index that a file_tag achieves in the supported_tags list
         e.g. if there are 8 supported tags, and one of the file tags is first in the
         list, then return 0.
         """
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
         indexes = [tags.index(c) for c in self.file_tags if c in tags]
         return min(indexes) if indexes else None
 
-    def supported(self, tags=supported_tags):
+    def supported(self, tags=None):
         """Is this wheel supported on this system?"""
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
         return bool(set(tags).intersection(self.file_tags))
 
 
