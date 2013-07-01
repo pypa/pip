@@ -80,7 +80,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
 @patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
 class TestWheel(object):
 
-    @patch('pip.wheel.supported_tags', [('py1', 'none', 'any')])
+    @patch('pip.pep425tags.supported_tags', [('py1', 'none', 'any')])
     def test_not_find_wheel_not_supported(self):
         """
         Test not finding an unsupported wheel.
@@ -90,7 +90,7 @@ class TestWheel(object):
         assert_raises(DistributionNotFound, finder.find_requirement, req, True)
 
 
-    @patch('pip.wheel.supported_tags', [('py2', 'none', 'any')])
+    @patch('pip.pep425tags.supported_tags', [('py2', 'none', 'any')])
     def test_find_wheel_supported(self):
         """
         Test finding supported wheel.
@@ -129,7 +129,7 @@ class TestWheel(object):
         assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
 
-    @patch('pip.wheel.supported_tags', [
+    @patch('pip.pep425tags.supported_tags', [
             ('pyT', 'none', 'TEST'),
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
