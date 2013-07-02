@@ -1451,7 +1451,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 else:
                     line = line[len('--editable'):].strip().lstrip('=')
                 req = InstallRequirement.from_editable(
-                    line, comes_from=comes_from, default_vcs=options.default_vcs)
+                    line, comes_from=comes_from, default_vcs=options.default_vcs if options else None)
             else:
                 req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
             yield req
