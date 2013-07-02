@@ -37,7 +37,7 @@ def get_platform():
     return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
 
-def get_supported(versions=None):
+def get_supported(versions=None, noarch=False):
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -72,11 +72,12 @@ def get_supported(versions=None):
 
     abis.append('none')
 
-    arch = get_platform()
-
-    # Current version, current API (built specifically for our Python):
-    for abi in abis:
-        supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+    if not noarch:
+        arch = get_platform()
+    
+        # Current version, current API (built specifically for our Python):
+        for abi in abis:
+            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):
@@ -95,4 +96,4 @@ def get_supported(versions=None):
     return supported
 
 supported_tags = get_supported()
-
+supported_tags_noarch = get_supported(noarch=True)

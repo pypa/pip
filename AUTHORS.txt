@@ -37,6 +37,7 @@ Josh Bronson
 Kamal Bin Mustafa
 Kelsey Hightower
 Kenneth Belitzky
+Kevin Frommelt
 Kumar McMillan
 Luke Macken
 Masklinn

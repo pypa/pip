@@ -15,13 +15,13 @@ from base64 import urlsafe_b64encode
 
 from pip.locations import distutils_scheme
 from pip.log import logger
-from pip.pep425tags import supported_tags
+from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
 # don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
-# that converts 'setuptools' to 'distribute'
-setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2"))[0]
+# that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
+setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2,==0.8dev"))[0]
 
 def wheel_setuptools_support():
     """
@@ -93,20 +93,38 @@ def fix_script(path):
         finally:
             script.close()
         return True
+    
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                                \.dist-info$""", re.VERBOSE)
+
+def root_is_purelib(name, wheeldir):
+    """
+    Return True if the extracted wheel in wheeldir should go into purelib.
+    """
+    name_folded = name.replace("-", "_")
+    for item in os.listdir(wheeldir):
+        match = dist_info_re.match(item)
+        if match and match.group('name') == name_folded:
+            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
+                for line in wheel:
+                    line = line.lower().rstrip()
+                    if line == "root-is-purelib: true":
+                        return True
+    return False
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home)
-
-    if normalize_path(scheme['purelib']) != normalize_path(scheme['platlib']):
-        # XXX check *.dist-info/WHEEL to deal with this obscurity
-        raise NotImplementedError("purelib != platlib")
+    
+    if root_is_purelib(name, wheeldir):
+        lib_dir = scheme['purelib']
+    else:
+        lib_dir = scheme['platlib']
 
     info_dir = []
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    location = dest = scheme['platlib']
     installed = {}
     changed = set()
 
@@ -116,7 +134,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
     def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = normpath(srcfile, wheeldir)
-        newpath = normpath(destfile, location)
+        newpath = normpath(destfile, lib_dir)
         installed[oldpath] = newpath
         if modified:
             changed.add(destfile)
@@ -151,7 +169,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    clobber(source, dest, True)
+    clobber(source, lib_dir, True)
 
     assert info_dir, "%s .dist-info directory not found" % req
 
@@ -237,18 +255,22 @@ class Wheel(object):
         self.file_tags = set((x, y, z) for x in self.pyversions for y
                             in self.abis for z in self.plats)
 
-    def support_index_min(self):
+    def support_index_min(self, tags=None):
         """
         Return the lowest index that a file_tag achieves in the supported_tags list
         e.g. if there are 8 supported tags, and one of the file tags is first in the
         list, then return 0.
         """
-        indexes = [supported_tags.index(c) for c in self.file_tags if c in supported_tags]
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
+        indexes = [tags.index(c) for c in self.file_tags if c in tags]
         return min(indexes) if indexes else None
 
-    def supported(self):
+    def supported(self, tags=None):
         """Is this wheel supported on this system?"""
-        return bool(set(supported_tags).intersection(self.file_tags))
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
+        return bool(set(tags).intersection(self.file_tags))
 
 
 class WheelBuilder(object):
