@@ -29,6 +29,11 @@ Changelog
 * pip now only installs stable versions by default, and offers a new ``--pre`` option
   to also find pre-release and development versions.  Thanks Donald Stufft.  (Pull #834)
 
+* pip will now warn when installing a file that is either hosted externally to
+  the index or cannot be verified with a hash. In the future pip will default
+  to not installing them and will require the flags --allow-external NAME, and
+  --allow-insecure NAME respectively. (Pull #985)
+
 * Dropped support for Python 2.5. The minimum supported Python version for pip-1.4
   is Python 2.6.
 
