@@ -61,26 +61,27 @@ Requirements
   setuptools-0.8 final is not released to pypi yet. Betas can be found here: https://bitbucket.org/pypa/setuptools/downloads
 
 pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
-`distribute`_ (the fork of setuptools). `setuptools`_ and `distribute`_ are now
-merged back together as "setuptools".
+`distribute`_ (the fork of setuptools) and the wheel support *requires*
+`setuptools`_ >=0.8. `setuptools`_ and `distribute`_ are now merged back together as
+"setuptools".
 
 For details on installing setuptools from scratch, see the install instructions
 on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
 
-If you already have `setuptools`_ or `distribute`_, then you can use pip to upgrade
-it, but you'll need to upgrade pip first to v1.4 using one of the methods
-below. Older versions of pip are *not* capable of performing the upgrade to the
-latest setuptools.
+If you already have `setuptools`_ or `distribute`_, you can upgrade using pip in
+one of two ways, depending on what you have. If ``python -c "import setuptools;
+print(setuptools._distribute)"`` returns True, then you have distribute,
+otherwise you have setuptools.
 
-You can upgrade to the latest setuptools in one of two ways, depending on what
-you have currently. To determine what you have currently, run ``pip show
-distribute``. If it returns results, then you have distribute.
+If you have setuptools, just run ``pip install -U setuptools``.
 
-If you currently have distribute, run ``pip install -U distribute``. This will
-upgrade to you distribute-0.7, which is just a wrapper, that depends on
-setuptools. The end result will be that you have distribute-0.7 (which does
-nothing) *and* the latest setuptools installed. If you currently have
-setuptools, just run ``pip install -U setuptools``.
+If you have distribute, until distribute-0.7.3 is released on PyPI, you'll need
+to upgrade pip first to v1.4 using one of the methods below.  Then run ``pip
+install -U distribute``. This will upgrade to you distribute-0.7.X, which is
+just a wrapper, that depends on setuptools. The end result will be that you have
+distribute-0.7.X (which does nothing) *and* the latest setuptools installed.
+
+
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
