@@ -58,29 +58,36 @@ Requirements
 
 .. note::
 
-  setuptools-0.8 final is not released to pypi yet. Betas can be found here: https://bitbucket.org/pypa/setuptools/downloads
+  These instructions will change after setuptools-0.8 and distribute-0.7.3 are released to pypi on ~July 7th.
 
-pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
+pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8b2, not
 `distribute`_ (the fork of setuptools) and the wheel support *requires*
-`setuptools`_ >=0.8. `setuptools`_ and `distribute`_ are now merged back together as
+`setuptools`_ >=0.8b2. `setuptools`_ and `distribute`_ are now merged back together as
 "setuptools".
+
+setuptools-0.8 beta downloads can be found here: https://bitbucket.org/pypa/setuptools/downloads
 
 For details on installing setuptools from scratch, see the install instructions
 on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
 
-If you already have `setuptools`_ or `distribute`_, you can upgrade using pip in
-one of two ways, depending on what you have. If ``python -c "import setuptools;
+If you already have `setuptools`_ or `distribute`_, you can upgrade using pip
+depending on what you have. If ``python -c "import setuptools;
 print(setuptools._distribute)"`` returns True, then you have distribute,
 otherwise you have setuptools.
 
-If you have setuptools, just run ``pip install -U setuptools``.
+If you have setuptools::
 
-If you have distribute, until distribute-0.7.3 is released on PyPI, you'll need
-to upgrade pip first to v1.4 using one of the methods below.  Then run ``pip
-install -U distribute``. This will upgrade to you distribute-0.7.X, which is
-just a wrapper, that depends on setuptools. The end result will be that you have
-distribute-0.7.X (which does nothing) *and* the latest setuptools installed.
+  pip install --find-links=https://bitbucket.org/pypa/setuptools/downloads -U setuptools
 
+If you have distribute::
+
+  pip install --find-links=https://bitbucket.org/pypa/setuptools/downloads -U distribute
+
+This will upgrade to you distribute-0.7.X, which is just a wrapper, that depends
+on setuptools. The end result will be that you have distribute-0.7.X (which does
+nothing) *and* the latest setuptools installed.
+
+If you already have pip-1.4, add "--pre" to the commands above so pip can find the setuptools-0.8 betas.
 
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
