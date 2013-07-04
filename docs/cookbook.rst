@@ -86,6 +86,10 @@ To install from wheels on PyPI, if they were to exist (which is not likely for t
 
  pip install --use-wheel SomePackage
 
+.. note::
+
+  pip currently disallows non-windows platform-specific wheels from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
+
 
 To install directly from a wheel archive:
 
@@ -94,8 +98,8 @@ To install directly from a wheel archive:
  pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
-Since wheels won't be pervasive on PyPI for awhile, pip additionally offers :ref:`pip wheel` as
-a convenience, to build wheels for your requirements and dependencies.
+pip additionally offers :ref:`pip wheel` as a convenience, to build wheels for
+your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package <https://pypi.python.org/pypi/wheel>`_ to be installed,
 which provides the "bdist_wheel" setuptools extension that it uses.
@@ -114,8 +118,11 @@ And *then* to install those requirements just using your local directory of whee
 
  pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
 
-Aside: Should you upload wheels to the cheeseshop?
---------------------------------------------------
+
+.. _`Should you upload wheels to PyPI`:
+
+Should you upload wheels to PyPI?
+---------------------------------
 
 The wheel format can eliminate a lot of redundant compilation but, alas,
 it's not generally advisable to upload your pre-compiled linux-x86-64

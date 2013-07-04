@@ -16,7 +16,6 @@ from pip.commands import commands, get_similar_commands, get_summaries
 # The version as used in the setup.py and the docs conf.py
 __version__ = "1.5.dev1"
 
-
 def autocomplete():
     """Command and option completion for the main option parser (and options)
     and its subcommands (and options).
