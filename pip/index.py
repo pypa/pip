@@ -470,7 +470,7 @@ class PackageFinder(object):
                     return []
 
                 # This is a dirty hack to prevent installing Binary Wheels from
-                #   PyPI or one of it's mirrors unless it is a Windows Binary
+                #   PyPI or one of its mirrors unless it is a Windows Binary
                 #   Wheel. This is paired with a change to PyPI disabling
                 #   uploads for the same. Once we have a mechanism for enabling
                 #   support for binary wheels on linux that deals with the
@@ -479,7 +479,7 @@ class PackageFinder(object):
                 comes_from = getattr(link, "comes_from", None)
                 if (not platform.startswith('win')
                     and comes_from is not None
-                    and urlparse(comes_from.url).netloc.endswith(
+                    and urlparse.urlparse(comes_from.url).netloc.endswith(
                                                         "pypi.python.org")):
                     if not link.wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
