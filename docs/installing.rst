@@ -53,6 +53,8 @@ Often this requires the installation to be performed as root.
     We advise against using `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ to install pip, because easy_install
     does not download from PyPI over SSL, so the installation might be insecure.
 
+.. _`Installation Requirements`:
+
 Requirements
 ++++++++++++
 
