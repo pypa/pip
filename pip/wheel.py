@@ -21,7 +21,7 @@ from pip.util import call_subprocess, normalize_path, make_path_relative
 wheel_ext = '.whl'
 # don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
 # that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
-setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8b2,==0.8dev"))[0]
+setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
 def wheel_setuptools_support():
     """
@@ -93,7 +93,7 @@ def fix_script(path):
         finally:
             script.close()
         return True
-    
+
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
                                 \.dist-info$""", re.VERBOSE)
 
@@ -116,7 +116,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home)
-    
+
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
     else:
