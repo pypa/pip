@@ -418,6 +418,16 @@ def unpack_file_url(link, location):
         if os.path.isdir(location):
             rmtree(location)
         shutil.copytree(source, location)
+
+        # Ensure the build directory has the correct permissions
+        # required to build. If e.g. copytree copies the mode from a
+        # readonly source the target will not have the correct
+        # permmissions set.
+        for root, _, filenames in os.walk(location):
+            os.chmod(root, 0700)
+            for filename in filenames:
+                os.chmod(os.path.join(root, filename), 0700)
+
     else:
         unpack_file(source, location, content_type, link)
 
