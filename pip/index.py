@@ -49,7 +49,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
             use_mirrors=False, mirrors=None, main_mirror_url=None,
             use_wheel=False, allow_external=[], allow_insecure=[],
-            allow_all_external=False, allow_all_insecure=False):
+            allow_all_external=False, allow_all_insecure=False,
+            allow_all_prereleases=False):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -82,6 +83,9 @@ class PackageFinder(object):
         # Stores if we ignored any unsafe links so that we can instruct
         #   end users how to install them if no distributions are available
         self.need_warn_insecure = False
+
+        # Do we want to allow _all_ pre-releases?
+        self.allow_all_prereleases = allow_all_prereleases
 
     @property
     def use_wheel(self):
@@ -273,7 +277,7 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            elif is_prerelease(version) and not req.prereleases:
+            elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
                 logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
                 continue
             applicable_versions.append((parsed_version, link, version))
@@ -438,7 +442,7 @@ class PackageFinder(object):
         Meant to be overridden by subclasses, not called by clients.
         """
         platform = get_platform()
-        
+
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment

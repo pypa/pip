@@ -105,6 +105,7 @@ class WheelCommand(Command):
                                allow_insecure=options.allow_insecure,
                                allow_all_external=options.allow_all_external,
                                allow_all_insecure=options.allow_all_insecure,
+                               allow_all_prereleases=options.pre,
                             )
 
         options.build_dir = os.path.abspath(options.build_dir)
@@ -122,7 +123,7 @@ class WheelCommand(Command):
                 logger.notify("ignoring %s" % name)
                 continue
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None, prereleases=options.pre))
+                InstallRequirement.from_line(name, None))
 
         for filename in options.requirements:
             for req in parse_requirements(filename, finder=finder, options=options):

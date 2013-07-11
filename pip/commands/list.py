@@ -66,6 +66,7 @@ class ListCommand(Command):
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
                              allow_all_insecure=options.allow_all_insecure,
+                             allow_all_prereleases=options.pre,
                         )
 
     def run(self, options, args):
@@ -102,7 +103,7 @@ class ListCommand(Command):
 
         installed_packages = get_installed_distributions(local_only=options.local, include_editables=False, skip=self.skip)
         for dist in installed_packages:
-            req = InstallRequirement.from_line(dist.key, None, prereleases=options.pre)
+            req = InstallRequirement.from_line(dist.key, None)
             try:
                 link = finder.find_requirement(req, True)
 
