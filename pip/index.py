@@ -907,6 +907,18 @@ class Link(object):
             return None
         return match.group(1)
 
+    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
+
+    @property
+    def egg_fragment_name(self):
+        egg_fragment = self.egg_fragment
+        if not egg_fragment:
+            return None
+        match = self._egg_info_re.search(self.egg_fragment)
+        if not match:
+            return egg_fragment
+        return match.group(1)
+
     _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
