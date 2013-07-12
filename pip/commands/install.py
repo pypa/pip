@@ -166,6 +166,7 @@ class InstallCommand(Command):
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
                              allow_all_insecure=options.allow_all_insecure,
+                             allow_all_prereleases=options.pre,
                             )
 
     def run(self, options, args):
@@ -211,7 +212,7 @@ class InstallCommand(Command):
             target_dir=temp_target_dir)
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None, prereleases=options.pre))
+                InstallRequirement.from_line(name, None))
         for name in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
