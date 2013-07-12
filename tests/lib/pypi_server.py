@@ -1,4 +1,5 @@
 import os
+import sys
 import pip.backwardcompat
 from pip.backwardcompat import urllib, string_types, b, u, emailmessage
 
@@ -16,6 +17,15 @@ class CachedResponse(object):
 
     def __init__(self, url, folder):
         self.headers = emailmessage.Message()
+
+        # patch due to setuptools>=0.7 header processing
+        # easy_install fails w/o this on windows/py2
+        # https://github.com/pypa/pip/issues/946#issuecomment-20860320
+        if sys.version_info < (3,):
+            def getheaders(key):
+                return self.headers.get_all(key)
+            self.headers.getheaders = getheaders
+
         self.code = 500
         self.msg = 'Internal Server Error'
         # url can be a simple string, or a urllib2.Request object
