@@ -44,7 +44,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir),
+            "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
             finder
             )
