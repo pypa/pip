@@ -19,6 +19,9 @@ Changelog
 * If an already-downloaded or cached file has a bad hash, re-download it rather
   than erroring out. (Issue #963).
 
+* 'pip bundle' and support for installing from pybundle files is now considered
+  deprecated and will be removed in pip v1.5.
+
 * Fixed a number of issues (#413, #709, #634, #602, and #939) related to cleaning up and
   not reusing build directories. (Pull #865, #948)
 
