@@ -65,7 +65,6 @@ class ListCommand(Command):
                              allow_external=options.allow_external,
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
-                             allow_all_insecure=options.allow_all_insecure,
                              allow_all_prereleases=options.pre,
                         )
 
