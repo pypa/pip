@@ -315,18 +315,15 @@ class PackageFinder(object):
 
         selected_version = applicable_versions[0][1]
 
-        # TODO: Remove after 1.4 has been released
         if (selected_version.internal is not None
                 and not selected_version.internal):
-            logger.warn("You are installing an externally hosted file. Future "
-                        "versions of pip will default to disallowing "
-                        "externally hosted files.")
+            logger.warn("%s an externally hosted file and may be "
+                        "unreliable" % req.name)
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
-            logger.warn("You are installing a potentially insecure and "
-                        "unverifiable file. Future versions of pip will "
-                        "default to disallowing insecure files.")
+            logger.warn("%s is potentially insecure and "
+                        "unverifiable." % req.name)
 
         return selected_version
 
@@ -396,7 +393,7 @@ class PackageFinder(object):
                 if (link.trusted is not None
                         and not link.trusted
                         and not normalized in self.allow_insecure
-                        and not self.allow_all_insecure):  # TODO: Remove after release
+                        and not self.allow_all_insecure):
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
                                 "verifiable files." % link)
@@ -511,7 +508,7 @@ class PackageFinder(object):
         if (link.verifiable is not None
                 and not link.verifiable
                 and not normalize_name(search_name).lower() in self.allow_insecure
-                and not self.allow_all_insecure):  # TODO: Remove after release
+                and not self.allow_all_insecure):
             # We have a link that we are sure we cannot verify it's integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.

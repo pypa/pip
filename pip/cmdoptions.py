@@ -1,5 +1,5 @@
 """shared options and groups"""
-from optparse import make_option, OptionGroup
+from optparse import make_option, OptionGroup, SUPPRESS_HELP
 from pip.locations import build_prefix
 
 
@@ -76,16 +76,16 @@ allow_all_external = make_option(
     "--allow-all-external",
     dest="allow_all_external",
     action="store_true",
-    default=True,  # TODO: Change to False after 1.4 has been released
+    default=False,
     help="Allow the installation of all externally hosted files",
 )
 
-# TODO: NOOP after 1.4 has been released
 no_allow_external = make_option(
     "--no-allow-external",
     dest="allow_all_external",
     action="store_false",
-    help="Disallow the installation of all externally hosted files",
+    default=False,
+    help=SUPPRESS_HELP,
 )
 
 allow_unsafe = make_option(
@@ -101,8 +101,8 @@ no_allow_unsafe = make_option(
     "--no-allow-insecure",
     dest="allow_all_insecure",
     action="store_false",
-    default=True,
-    help="Disallow the installation of insecure and unverifiable files"
+    default=False,
+    help=SUPPRESS_HELP
 )
 
 requirements = make_option(
