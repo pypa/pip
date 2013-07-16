@@ -15,24 +15,8 @@ class Mercurial(VersionControl):
     dirname = '.hg'
     repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
-    bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
-
-    def parse_vcs_bundle_file(self, content):
-        url = rev = None
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            url_match = re.search(r'hg\s*pull\s*(.*)\s*', line)
-            if url_match:
-                url = url_match.group(1).strip()
-            rev_match = re.search(r'^hg\s*update\s*-r\s*(.*)\s*', line)
-            if rev_match:
-                rev = rev_match.group(1).strip()
-            if url and rev:
-                return url, rev
-        return None, None
 
     def export(self, location):
         """Export the Hg repository at the url to the destination location"""

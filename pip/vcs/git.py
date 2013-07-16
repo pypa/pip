@@ -15,7 +15,6 @@ class Git(VersionControl):
     dirname = '.git'
     repo_name = 'clone'
     schemes = ('git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file')
-    bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
         'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
 
@@ -33,21 +32,6 @@ class Git(VersionControl):
                 url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
 
         super(Git, self).__init__(url, *args, **kwargs)
-
-    def parse_vcs_bundle_file(self, content):
-        url = rev = None
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            url_match = re.search(r'git\s*remote\s*add\s*origin(.*)\s*-f', line)
-            if url_match:
-                url = url_match.group(1).strip()
-            rev_match = re.search(r'^git\s*checkout\s*-q\s*(.*)\s*', line)
-            if rev_match:
-                rev = rev_match.group(1).strip()
-            if url and rev:
-                return url, rev
-        return None, None
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
