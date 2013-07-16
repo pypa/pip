@@ -4,6 +4,9 @@ Changelog
 1.4 (unreleased)
 ---------------------
 
+* Applied security patch to pip's ssl support related to certificate DNS
+  wildcard matching (http://bugs.python.org/issue17980).
+
 * To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
   not distribute. setuptools and distribute are now merged into one project called
   'setuptools'. (Pull #1003)
