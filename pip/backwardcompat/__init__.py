@@ -64,8 +64,10 @@ if sys.version_info >= (3,):
     bytes = bytes
     string_types = (str,)
     raw_input = input
+    StringIOTypes = (StringIO,)
+
 else:
-    from cStringIO import StringIO
+    from cStringIO import StringIO, InputType, OutputType
     from urllib2 import URLError, HTTPError
     from Queue import Queue, Empty
     from urllib import url2pathname, urlretrieve
@@ -99,6 +101,7 @@ else:
     cmp = cmp
     raw_input = raw_input
     BytesIO = StringIO
+    StringIOTypes = (InputType, OutputType)
 
 
 from distutils.sysconfig import get_python_lib, get_python_version
