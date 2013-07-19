@@ -1,0 +1,6 @@
+LocalExtras.egg-info/PKG-INFO
+LocalExtras.egg-info/SOURCES.txt
+LocalExtras.egg-info/dependency_links.txt
+LocalExtras.egg-info/requires.txt
+LocalExtras.egg-info/top_level.txt
+localextras/__init__.py

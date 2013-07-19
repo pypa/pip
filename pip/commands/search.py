@@ -48,7 +48,7 @@ class SearchCommand(Command):
         return NO_MATCHES_FOUND
 
     def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(index_url, pip.download.xmlrpclib_transport)
+        pypi = xmlrpclib.ServerProxy(index_url)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 

@@ -11,7 +11,7 @@ import subprocess
 import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site)
+                                console_to_str, user_site, PermissionError)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 from pip.vendor.distlib import version
@@ -272,7 +272,7 @@ def normalize_path(path):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    return os.path.normcase(os.path.realpath(path))
+    return os.path.normcase(os.path.realpath(os.path.expanduser(path)))
 
 
 def splitext(path):
@@ -582,7 +582,6 @@ def cache_download(target_file, temp_location, content_type):
     fp = open(target_file+'.content-type', 'w')
     fp.write(content_type)
     fp.close()
-    os.unlink(temp_location)
 
 
 def unpack_file(filename, location, content_type, link):
@@ -590,8 +589,9 @@ def unpack_file(filename, location, content_type, link):
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
+        or filename.endswith('.whl')
         or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+        unzip_file(filename, location, flatten=not filename.endswith(('.pybundle', '.whl')))
     elif (content_type == 'application/x-gzip'
           or tarfile.is_tarfile(filename)
           or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
@@ -680,14 +680,14 @@ def is_prerelease(vers):
     """
     Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
 
-    Will return True if it is a pre-release, False is not, and None if we cannot
-    determine.
+    Will return True if it is a pre-release and False if not. Versions are
+    assumed to be a pre-release if they cannot be parsed.
     """
-    normalized = version.suggest_normalized_version(vers)
+    normalized = version._suggest_normalized_version(vers)
 
     if normalized is None:
-        # Cannot normalize
-        return
+        # Cannot normalize, assume it is a pre-release
+        return True
 
-    parsed = version.normalized_key(normalized)
+    parsed = version._normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])

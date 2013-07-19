@@ -21,7 +21,7 @@ and to bail if not, use::
 easy_install
 ------------
 
-pip was originally written to improve on `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ in the following ways:
+pip was originally written to improve on `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ in the following ways:
 
 * All packages are downloaded before installation.  Partially-completed
   installation doesn't occur as a result.

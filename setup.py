@@ -25,7 +25,7 @@ long_description = "\n" + "\n".join([
         read('docs', 'quickstart.rst'),
         read('CHANGES.txt')])
 
-tests_require = ['nose', 'virtualenv>=1.7', 'scripttest>=1.1.1', 'mock']
+tests_require = ['nose>=1.3.0', 'virtualenv>=1.10', 'scripttest>=1.1.1', 'mock']
 
 setup(name="pip",
       version=find_version('pip', '__init__.py'),
@@ -43,6 +43,7 @@ setup(name="pip",
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.1',
         'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
       ],
       keywords='easy_install distutils setuptools egg virtualenv',
       author='The pip developers',
@@ -51,7 +52,8 @@ setup(name="pip",
       license='MIT',
       packages=find_packages(exclude=["contrib", "docs", "tests"]),
       package_data={'pip': ['*.pem']},
-      entry_points=dict(console_scripts=['pip=pip:main', 'pip-%s=pip:main' % sys.version[:3]]),
+      entry_points=dict(console_scripts=['pip=pip:main', 'pip%s=pip:main' % sys.version[:1],
+          'pip%s=pip:main' % sys.version[:3]]),
       test_suite='nose.collector',
       tests_require=tests_require,
       zip_safe=False,

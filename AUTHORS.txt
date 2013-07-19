@@ -2,6 +2,7 @@ Alex Grönholm
 Alex Morega
 Alexandre Conrad
 Andrey Bulgakov
+Anrs Hu
 Antti Kaihola
 Armin Ronacher
 Aziz Köksal
@@ -18,6 +19,7 @@ David (d1b)
 Dmitry Gladkov
 Donald Stufft
 Francesco
+Gabriel de Perthuis
 Geoffrey Lehée
 Georgi Valkov
 Hugo Lopes Tavares
@@ -35,6 +37,7 @@ Josh Bronson
 Kamal Bin Mustafa
 Kelsey Hightower
 Kenneth Belitzky
+Kevin Frommelt
 Kumar McMillan
 Luke Macken
 Masklinn

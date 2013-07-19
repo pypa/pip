@@ -74,16 +74,21 @@ to building and installing from source archives. For more information, see the
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
-pip's support for wheels currently requires `Distribute`_ >=0.6.29, not `Setuptools`_.
+pip's support for wheels currently requires `Setuptools`_ >=0.8.
 
 To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
 If no satisfactory wheels are found, pip will default to finding source archives.
+If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL`` or set ``use-wheel`` in your ``pip.ini`` file.
 
 To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
 
 ::
 
  pip install --use-wheel SomePackage
+
+.. note::
+
+  pip currently disallows non-windows platform-specific wheels from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
 
 
 To install directly from a wheel archive:
@@ -93,8 +98,8 @@ To install directly from a wheel archive:
  pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
-Since wheels won't be pervasive on PyPI for awhile, pip additionally offers :ref:`pip wheel` as
-a convenience, to build wheels for your requirements and dependencies.
+pip additionally offers :ref:`pip wheel` as a convenience, to build wheels for
+your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package <https://pypi.python.org/pypi/wheel>`_ to be installed,
 which provides the "bdist_wheel" setuptools extension that it uses.
@@ -113,6 +118,44 @@ And *then* to install those requirements just using your local directory of whee
 
  pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
 
+
+.. _`Should you upload wheels to PyPI`:
+
+Should you upload wheels to PyPI?
+---------------------------------
+
+The wheel format can eliminate a lot of redundant compilation but, alas,
+it's not generally advisable to upload your pre-compiled linux-x86-64
+library binding to pypi. Wheel's tags are only designed to express
+the most important *Python*-specific compatibility concerns (Python
+version, ABI, and architecture) but do not represent other important
+binary compatibility factors such as the OS release, patch level, and
+the versions of all the shared library dependencies of any extensions
+inside the package.
+
+Rather than representing all possible compatibility information in the
+wheel itself, the wheel design suggests distribution-specific build
+services (e.g. a separate index for Fedora Linux binary wheels, compiled
+by the index maintainer). This is the same solution taken by Linux
+distributions which all re-compile their own packages instead of installing
+each other's binary packages.
+
+Some kinds of precompiled C extension modules can make sense on PyPI, even
+for Linux. Good examples include things that can be sensibly statically
+linked (a cryptographic hash function; an accelerator module that is
+not a binding for an external library); the best example of something
+that shouldn't be statically linked is a library like openssl that needs
+to be constantly kept up-to-date for security. Regardless of whether a
+compatible pre-build package is available, many Linux users will prefer
+to always compile their own anyway.
+
+On Windows the case for binary wheels on pypi is stronger both because
+Windows machines are much more uniform than Linux and because it's harder
+for the end user to compile their own. Windows-compatible wheels uploaded
+to pypi should be compatible with the Python distributions downloaded
+from http://python.org/.  If you already upload other binary formats to
+pypi, upload wheels as well.  Unlike the older formats, wheels are
+compatible with virtual environments.
 
 .. _Setuptools: http://pypi.python.org/pypi/setuptools/
 .. _Distribute: http://pypi.python.org/pypi/distribute/
@@ -208,7 +251,7 @@ Controlling setup_requires
 **************************
 
 Setuptools offers the ``setup_requires``
-`setup() keyword <http://pythonhosted.org/distribute/setuptools.html#new-and-changed-setup-keywords>`_
+`setup() keyword <http://pythonhosted.org/setuptools/setuptools.html#new-and-changed-setup-keywords>`_
 for specifying dependencies that need to be present in order for the `setup.py` script to run.
 Internally, Setuptools uses ``easy_install`` to fulfill these dependencies.
 

@@ -5,20 +5,22 @@
 #
 """Implementation of the Metadata for Python packages PEPs.
 
-Supports all metadata formats (1.0, 1.1, 1.2, and 1.3 experimental).
+Supports all metadata formats (1.0, 1.1, 1.2, and 2.0 experimental).
 """
 from __future__ import unicode_literals
 
 import codecs
 from email import message_from_file
+import json
 import logging
 import re
 
 
-from . import DistlibException
+from . import DistlibException, __version__
 from .compat import StringIO, string_types
 from .markers import interpret
-from .version import get_scheme
+from .util import extract_by_key
+from .version import get_scheme, PEP426_VERSION_RE
 
 logger = logging.getLogger(__name__)
 
@@ -35,31 +37,8 @@ class MetadataUnrecognizedVersionError(DistlibException):
     """Unknown metadata version number."""
 
 
-try:
-    # docutils is installed
-    from docutils.utils import Reporter
-    from docutils.parsers.rst import Parser
-    from docutils import frontend
-    from docutils import nodes
-
-    class SilentReporter(Reporter, object):
-
-        def __init__(self, source, report_level, halt_level, stream=None,
-                     debug=0, encoding='ascii', error_handler='replace'):
-            self.messages = []
-            super(SilentReporter, self).__init__(
-                source, report_level, halt_level, stream,
-                debug, encoding, error_handler)
-
-        def system_message(self, level, message, *children, **kwargs):
-            self.messages.append((level, message, children, kwargs))
-            return nodes.system_message(message, level=level, type=self.
-                                        levels[level], *children, **kwargs)
-
-    _HAS_DOCUTILS = True
-except ImportError:
-    # docutils is not installed
-    _HAS_DOCUTILS = False
+class MetadataInvalidError(DistlibException):
+    """A metadata value is invalid"""
 
 # public API of this module
 __all__ = ['Metadata', 'PKG_INFO_ENCODING', 'PKG_INFO_PREFERRED_VERSION']
@@ -119,6 +98,7 @@ _ALL_FIELDS.update(_426_FIELDS)
 
 EXTRA_RE = re.compile(r'''extra\s*==\s*("([^"]+)"|'([^']+)')''')
 
+
 def _version2fieldlist(version):
     if version == '1.0':
         return _241_FIELDS
@@ -126,7 +106,7 @@ def _version2fieldlist(version):
         return _314_FIELDS
     elif version == '1.2':
         return _345_FIELDS
-    elif version == '1.3':
+    elif version == '2.0':
         return _426_FIELDS
     raise MetadataUnrecognizedVersionError(version)
 
@@ -145,7 +125,7 @@ def _best_version(fields):
             continue
         keys.append(key)
 
-    possible_versions = ['1.0', '1.1', '1.2', '1.3']
+    possible_versions = ['1.0', '1.1', '1.2', '2.0']
 
     # first let's try to see if a field is not part of one of the version
     for key in keys:
@@ -155,8 +135,8 @@ def _best_version(fields):
             possible_versions.remove('1.1')
         if key not in _345_FIELDS and '1.2' in possible_versions:
             possible_versions.remove('1.2')
-        if key not in _426_FIELDS and '1.3' in possible_versions:
-            possible_versions.remove('1.3')
+        if key not in _426_FIELDS and '2.0' in possible_versions:
+            possible_versions.remove('2.0')
 
     # possible_version contains qualified versions
     if len(possible_versions) == 1:
@@ -167,16 +147,16 @@ def _best_version(fields):
     # let's see if one unique marker is found
     is_1_1 = '1.1' in possible_versions and _has_marker(keys, _314_MARKERS)
     is_1_2 = '1.2' in possible_versions and _has_marker(keys, _345_MARKERS)
-    is_1_3 = '1.3' in possible_versions and _has_marker(keys, _426_MARKERS)
-    if int(is_1_1) + int(is_1_2) + int(is_1_3) > 1:
-        raise MetadataConflictError('You used incompatible 1.1/1.2/1.3 fields')
+    is_2_0 = '2.0' in possible_versions and _has_marker(keys, _426_MARKERS)
+    if int(is_1_1) + int(is_1_2) + int(is_2_0) > 1:
+        raise MetadataConflictError('You used incompatible 1.1/1.2/2.0 fields')
 
-    # we have the choice, 1.0, or 1.2, or 1.3
+    # we have the choice, 1.0, or 1.2, or 2.0
     #   - 1.0 has a broken Summary field but works with all tools
     #   - 1.1 is to avoid
     #   - 1.2 fixes Summary but has little adoption
-    #   - 1.3 adds more features and is very new
-    if not is_1_1 and not is_1_2 and not is_1_3:
+    #   - 2.0 adds more features and is very new
+    if not is_1_1 and not is_1_2 and not is_2_0:
         # we couldn't find any specific marker
         if PKG_INFO_PREFERRED_VERSION in possible_versions:
             return PKG_INFO_PREFERRED_VERSION
@@ -185,7 +165,7 @@ def _best_version(fields):
     if is_1_2:
         return '1.2'
 
-    return '1.3'
+    return '2.0'
 
 _ATTR2FIELD = {
     'metadata_version': 'Metadata-Version',
@@ -239,32 +219,38 @@ _MISSING = object()
 _FILESAFE = re.compile('[^A-Za-z0-9.]+')
 
 
-class Metadata(object):
-    """The metadata of a release.
+def _get_name_and_version(name, version, for_filename=False):
+    """Return the distribution name with version.
+
+    If for_filename is true, return a filename-escaped form."""
+    if for_filename:
+        # For both name and version any runs of non-alphanumeric or '.'
+        # characters are replaced with a single '-'.  Additionally any
+        # spaces in the version string become '.'
+        name = _FILESAFE.sub('-', name)
+        version = _FILESAFE.sub('-', version.replace(' ', '.'))
+    return '%s-%s' % (name, version)
+
+class LegacyMetadata(object):
+    """The legacy metadata of a release.
 
     Supports versions 1.0, 1.1 and 1.2 (auto-detected). You can
     instantiate the class with one of these arguments (or none):
-    - *path*, the path to a METADATA file
-    - *fileobj* give a file-like object with METADATA as content
+    - *path*, the path to a metadata file
+    - *fileobj* give a file-like object with metadata as content
     - *mapping* is a dict-like object
     - *scheme* is a version scheme name
     """
-    # TODO document that execution_context and platform_dependent are used
-    # to filter on query, not when setting a key
-    # also document the mapping API and UNKNOWN default key
+    # TODO document the mapping API and UNKNOWN default key
 
-    def __init__(self, path=None, platform_dependent=False,
-                 execution_context=None, fileobj=None, mapping=None,
+    def __init__(self, path=None, fileobj=None, mapping=None,
                  scheme='default'):
-        self._fields = {}
-        self.requires_files = []
-        self.docutils_support = _HAS_DOCUTILS
-        self.platform_dependent = platform_dependent
-        self.execution_context = execution_context
-        self._dependencies = None
-        self.scheme = scheme
         if [path, fileobj, mapping].count(None) < 2:
             raise TypeError('path, fileobj and mapping are exclusive')
+        self._fields = {}
+        self.requires_files = []
+        self._dependencies = None
+        self.scheme = scheme
         if path is not None:
             self.read(path)
         elif fileobj is not None:
@@ -307,38 +293,6 @@ class Metadata(object):
             return []
         return 'UNKNOWN'
 
-    def _check_rst_data(self, data):
-        """Return warnings when the provided data has syntax errors."""
-        source_path = StringIO()
-        parser = Parser()
-        settings = frontend.OptionParser().get_default_values()
-        settings.tab_width = 4
-        settings.pep_references = None
-        settings.rfc_references = None
-        reporter = SilentReporter(source_path,
-                          settings.report_level,
-                          settings.halt_level,
-                          stream=settings.warning_stream,
-                          debug=settings.debug,
-                          encoding=settings.error_encoding,
-                          error_handler=settings.error_encoding_error_handler)
-
-        document = nodes.document(settings, reporter, source=source_path)
-        document.note_source(source_path, -1)
-        try:
-            parser.parse(data, document)
-        except AttributeError:
-            reporter.messages.append((-1, 'Could not finish the parsing.',
-                                      '', {}))
-
-        return reporter.messages
-
-    def _platform(self, value):
-        if not self.platform_dependent or ';' not in value:
-            return True, value
-        value, marker = value.split(';')
-        return interpret(marker, self.execution_context), value
-
     def _remove_line_prefix(self, value):
         return _LINE_PREFIX.sub('\n', value)
 
@@ -347,69 +301,62 @@ class Metadata(object):
             return self[name]
         raise AttributeError(name)
 
-    def _get_dependencies(self):
-        def handle_req(req, rlist, extras):
-            if ';' not in req:
-                rlist.append(req)
-            else:
-                r, marker = req.split(';')
-                m = EXTRA_RE.search(marker)
-                if m:
-                    extra = m.groups()[0][1:-1]
-                    extras.setdefault(extra, []).append(r)
+#    def _get_dependencies(self):
+#        def handle_req(req, rlist, extras):
+#            if ';' not in req:
+#                rlist.append(req)
+#            else:
+#                r, marker = req.split(';')
+#                m = EXTRA_RE.search(marker)
+#                if m:
+#                    extra = m.groups()[0][1:-1]
+#                    extras.setdefault(extra, []).append(r)
 
-        result = self._dependencies
-        if result is None:
-            self._dependencies = result = {}
-            extras = {}
-            setup_reqs = self['Setup-Requires-Dist']
-            if setup_reqs:
-                result['setup'] = setup_reqs
-            install_reqs = []
-            for req in self['Requires-Dist']:
-                handle_req(req, install_reqs, extras)
-            if install_reqs:
-                result['install'] = install_reqs
-            if extras:
-                result['extras'] = extras
-        return result
+#        result = self._dependencies
+#        if result is None:
+#            self._dependencies = result = {}
+#            extras = {}
+#            setup_reqs = self['Setup-Requires-Dist']
+#            if setup_reqs:
+#                result['setup'] = setup_reqs
+#            install_reqs = []
+#            for req in self['Requires-Dist']:
+#                handle_req(req, install_reqs, extras)
+#            if install_reqs:
+#                result['install'] = install_reqs
+#            if extras:
+#                result['extras'] = extras
+#        return result
 
-    def _set_dependencies(self, value):
-        if 'test' in value:
-            value = dict(value) # don't change value passed in
-            value.setdefault('extras', {})['test'] = value.pop('test')
-        self._dependencies = value
-        setup_reqs = value.get('setup', [])
-        install_reqs = value.get('install', [])
-        klist = []
-        for k, rlist in value.get('extras', {}).items():
-            klist.append(k)
-            for r in rlist:
-                install_reqs.append('%s; extra == "%s"' % (r, k))
-        if setup_reqs:
-            self['Setup-Requires-Dist'] = setup_reqs
-        if install_reqs:
-            self['Requires-Dist'] = install_reqs
-        if klist:
-            self['Provides-Extra'] = klist
+#    def _set_dependencies(self, value):
+#        if 'test' in value:
+#            value = dict(value)     # don't change value passed in
+#            value.setdefault('extras', {})['test'] = value.pop('test')
+#        self._dependencies = value
+#        setup_reqs = value.get('setup', [])
+#        install_reqs = value.get('install', [])
+#        klist = []
+#        for k, rlist in value.get('extras', {}).items():
+#            klist.append(k)
+#            for r in rlist:
+#                install_reqs.append('%s; extra == "%s"' % (r, k))
+#        if setup_reqs:
+#            self['Setup-Requires-Dist'] = setup_reqs
+#        if install_reqs:
+#            self['Requires-Dist'] = install_reqs
+#        if klist:
+#            self['Provides-Extra'] = klist
     #
     # Public API
     #
 
-    dependencies = property(_get_dependencies, _set_dependencies)
+#    dependencies = property(_get_dependencies, _set_dependencies)
 
     def get_fullname(self, filesafe=False):
         """Return the distribution name with version.
 
         If filesafe is true, return a filename-escaped form."""
-        name, version = self['Name'], self['Version']
-        if filesafe:
-            # For both name and version any runs of non-alphanumeric or '.'
-            # characters are replaced with a single '-'.  Additionally any
-            # spaces in the version string become '.'
-            name = _FILESAFE.sub('-', name)
-            version = _FILESAFE.sub('-', version.replace(' ', '.'))
-        return '%s-%s' % (name, version)
+        return _get_name_and_version(self['Name'], self['Version'], filesafe)
 
     def is_field(self, name):
         """return True if name is a valid metadata key"""
@@ -433,7 +380,10 @@ class Metadata(object):
         msg = message_from_file(fileob)
         self._fields['Metadata-Version'] = msg['metadata-version']
 
-        for field in _version2fieldlist(self['Metadata-Version']):
+        # When reading, get all the fields we can
+        for field in _ALL_FIELDS:
+            if field not in msg:
+                continue
             if field in _LISTFIELDS:
                 # we can have multiple lines
                 values = msg.get_all(field)
@@ -565,9 +515,6 @@ class Metadata(object):
                 return []
             res = []
             for val in value:
-                valid, val = self._platform(val)
-                if not valid:
-                    continue
                 if name not in _LISTTUPLEFIELDS:
                     res.append(val)
                 else:
@@ -576,17 +523,12 @@ class Metadata(object):
             return res
 
         elif name in _ELEMENTSFIELD:
-            valid, value = self._platform(self._fields[name])
-            if not valid:
-                return []
+            value = self._fields[name]
             if isinstance(value, string_types):
                 return value.split(',')
-        valid, value = self._platform(self._fields[name])
-        if not valid:
-            return None
-        return value
+        return self._fields[name]
 
-    def check(self, strict=False, restructuredtext=False):
+    def check(self, strict=False):
         """Check if the metadata is compliant. If strict is True then raise if
         no Name or Version are provided"""
         self.set_metadata_version()
@@ -605,9 +547,6 @@ class Metadata(object):
         for attr in ('Home-page', 'Author'):
             if attr not in self:
                 missing.append(attr)
-
-        if _HAS_DOCUTILS and restructuredtext:
-            warnings.extend(self._check_rst_data(self['Description']))
 
         # checking metadata 1.2 (XXX needs to check 1.1, 1.0)
         if self['Metadata-Version'] != '1.2':
@@ -670,6 +609,8 @@ class Metadata(object):
                 ('provides_dist', 'Provides-Dist'),
                 ('obsoletes_dist', 'Obsoletes-Dist'),
                 ('project_url', 'Project-URL'),
+                ('maintainer', 'Maintainer'),
+                ('maintainer_email', 'Maintainer-email'),
             )
             for key, field_name in mapping_1_2:
                 if not skip_missing or field_name in self._fields:
@@ -684,10 +625,19 @@ class Metadata(object):
                 ('requires', 'Requires'),
                 ('obsoletes', 'Obsoletes'),
             )
-            if not skip_missing or field_name in self._fields:
-                data[key] = self[field_name]
+            for key, field_name in mapping_1_1:
+                if not skip_missing or field_name in self._fields:
+                    data[key] = self[field_name]
 
         return data
+
+    def add_requirements(self, requirements):
+        if self['Metadata-Version'] == '1.1':
+            # we can't have 1.1 metadata *and* Setuptools requires
+            for field in ('Obsoletes', 'Requires', 'Provides'):
+                if field in self:
+                    del self[field]
+        self['Requires-Dist'] += requirements
 
     # Mapping API
     # TODO could add iter* variants
@@ -706,4 +656,353 @@ class Metadata(object):
         return [(key, self[key]) for key in self.keys()]
 
     def __repr__(self):
-        return '<Metadata %s %s>' % (self.name, self.version)
+        return '<%s %s %s>' % (self.__class__.__name__, self.name,
+                               self.version)
+
+
+METADATA_FILENAME = 'pydist.json'
+
+
+class Metadata(object):
+    """
+    The metadata of a release. This implementation uses 2.0 (JSON)
+    metadata where possible. If not possible, it wraps a LegacyMetadata
+    instance which handles the key-value metadata format.
+    """
+
+    METADATA_VERSION_MATCHER = re.compile('^\d+(\.\d+)*$')
+
+    NAME_MATCHER = re.compile('^[0-9A-Z]([0-9A-Z_.-]*[0-9A-Z])?$', re.I)
+
+    VERSION_MATCHER = PEP426_VERSION_RE
+
+    SUMMARY_MATCHER = re.compile('.{1,2047}')
+
+    METADATA_VERSION = '2.0'
+
+    GENERATOR = 'distlib (%s)' % __version__
+
+    MANDATORY_KEYS = {
+        'name': (),
+        'version': (),
+        'summary': ('legacy',),
+    }
+
+    INDEX_KEYS = 'name version license summary description'
+
+    DEPENDENCY_KEYS = ('extras run_requires test_requires build_requires '
+                       'dev_requires provides meta_requires obsoleted_by '
+                       'supports_environments')
+
+    SYNTAX_VALIDATORS = {
+        'metadata_version': (METADATA_VERSION_MATCHER, ()),
+        'name': (NAME_MATCHER, ('legacy',)),
+        'version': (VERSION_MATCHER, ('legacy',)),
+        'summary': (SUMMARY_MATCHER, ('legacy',)),
+    }
+
+    __slots__ = ('_legacy', '_data', 'scheme')
+
+    def __init__(self, path=None, fileobj=None, mapping=None,
+                 scheme='default'):
+        if [path, fileobj, mapping].count(None) < 2:
+            raise TypeError('path, fileobj and mapping are exclusive')
+        self._legacy = None
+        self._data = None
+        self.scheme = scheme
+        #import pdb; pdb.set_trace()
+        if mapping is not None:
+            try:
+                self._validate_mapping(mapping, scheme)
+                self._data = mapping
+            except MetadataUnrecognizedVersionError:
+                self._legacy = LegacyMetadata(mapping=mapping, scheme=scheme)
+                self.validate()
+        else:
+            data = None
+            if path:
+                with codecs.open(path, 'r', 'utf-8') as f:
+                    data = f.read()
+            elif fileobj:
+                data = fileobj.read()
+            if data is None:
+                # Initialised with no args - to be added
+                self._data = {
+                    'metadata_version': self.METADATA_VERSION,
+                    'generator': self.GENERATOR,
+                }
+            else:
+                try:
+                    self._data = json.loads(data)
+                    self._validate_mapping(self._data, scheme)
+                except ValueError:
+                    # Note: MetadataUnrecognizedVersionError does not
+                    # inherit from ValueError (it's a DistlibException,
+                    # which should not inherit from ValueError).
+                    # The ValueError comes from the json.load - if that
+                    # succeeds and we get a validation error, we want
+                    # that to propagate
+                    self._legacy = LegacyMetadata(fileobj=StringIO(data),
+                                                  scheme=scheme)
+                    self.validate()
+
+    common_keys = set(('name', 'version', 'license', 'keywords', 'summary'))
+
+    mapped_keys = {
+        'run_requires': ('Requires-Dist', list),
+        'build_requires': ('Setup-Requires-Dist', list),
+        'dev_requires': (None, list),
+        'test_requires': (None, list),
+        'meta_requires': (None, list),
+        'classifiers': ('Classifier', list),
+        'source_url': ('Download-URL', None),
+        'metadata_version': ('Metadata-Version', None),
+    }
+
+    def __getattribute__(self, key):
+        common = object.__getattribute__(self, 'common_keys')
+        mapped = object.__getattribute__(self, 'mapped_keys')
+        if key in mapped:
+            lk, maker = mapped[key]
+            if self._legacy:
+                if lk is None:
+                    result = None if maker is None else maker()
+                else:
+                    result = self._legacy.get(lk)
+            else:
+                value = None if maker is None else maker()
+                result = self._data.setdefault(key, value)
+        elif key not in common:
+            result = object.__getattribute__(self, key)
+        elif self._legacy:
+            result = self._legacy.get(key)
+        else:
+            result = self._data.get(key)
+        return result
+
+    def _validate_value(self, key, value, scheme=None):
+        if key in self.SYNTAX_VALIDATORS:
+            pattern, exclusions = self.SYNTAX_VALIDATORS[key]
+            if (scheme or self.scheme) not in exclusions:
+                m = pattern.match(value)
+                if not m:
+                    raise MetadataInvalidError('%r is an invalid value for '
+                                               'the %r property' % (value,
+                                                                    key))
+
+    def __setattr__(self, key, value):
+        self._validate_value(key, value)
+        common = object.__getattribute__(self, 'common_keys')
+        mapped = object.__getattribute__(self, 'mapped_keys')
+        if key in mapped:
+            lk, _ = mapped[key]
+            if self._legacy:
+                if lk is None:
+                    raise NotImplementedError
+                self._legacy[lk] = value
+            else:
+                self._data[key] = value
+        elif key not in common:
+            object.__setattr__(self, key, value)
+        else:
+            if key == 'keywords':
+                if isinstance(value, string_types):
+                    value = value.strip()
+                    if value:
+                        value = value.split()
+                    else:
+                        value = []
+            if self._legacy:
+                self._legacy[key] = value
+            else:
+                self._data[key] = value
+
+    @property
+    def name_and_version(self):
+        return _get_name_and_version(self.name, self.version, True)
+
+    @property
+    def provides(self):
+        if self._legacy:
+            result = self._legacy['Provides-Dist']
+        else:
+            result = self._data.setdefault('provides', [])
+        s = '%s (%s)' % (self.name, self.version)
+        if s not in result:
+            result.append(s)
+        return result
+
+    @provides.setter
+    def provides(self, value):
+        if self._legacy:
+            self._legacy['Provides-Dist'] = value
+        else:
+            self._data['provides'] = value
+
+    def get_requirements(self, reqts, extras=None, env=None):
+        """
+        Base method to get dependencies, given a set of extras
+        to satisfy and an optional environment context.
+        :param reqts: A list of sometimes-wanted dependencies,
+                      perhaps dependent on extras and environment.
+        :param extras: A list of optional components being requested.
+        :param env: An optional environment for marker evaluation.
+        """
+        if self._legacy:
+            result = reqts
+        else:
+            result = []
+            extras = set(extras or [])
+            for d in reqts:
+                if 'extra' not in d and 'environment' not in d:
+                    # unconditional
+                    include = True
+                else:
+                    if 'extra' not in d:
+                        # Not extra-dependent - only environment-dependent
+                        include = True
+                    else:
+                        include = d.get('extra') in extras
+                    if include:
+                        # Not excluded because of extras, check environment
+                        marker = d.get('environment')
+                        if marker:
+                            include = interpret(marker, env)
+                if include:
+                    result.extend(d['requires'])
+            for key in ('build', 'dev', 'test'):
+                e = ':%s:' % key
+                if e in extras:
+                    extras.remove(e)
+                    # A recursive call, but it should terminate since 'test'
+                    # has been removed from the extras
+                    reqts = self._data.get('%s_requires' % key, [])
+                    result.extend(self.get_requirements(reqts, extras=extras,
+                                                        env=env))
+        return result
+
+    @property
+    def dictionary(self):
+        if self._legacy:
+            return self._from_legacy()
+        return self._data
+
+    @property
+    def dependencies(self):
+        if self._legacy:
+            raise NotImplementedError
+        else:
+            return extract_by_key(self._data, self.DEPENDENCY_KEYS)
+
+    @dependencies.setter
+    def dependencies(self, value):
+        if self._legacy:
+            raise NotImplementedError
+        else:
+            self._data.update(value)
+
+    def _validate_mapping(self, mapping, scheme):
+        if mapping.get('metadata_version') != self.METADATA_VERSION:
+            raise MetadataUnrecognizedVersionError()
+        missing = []
+        for key, exclusions in self.MANDATORY_KEYS.items():
+            if key not in mapping:
+                if scheme not in exclusions:
+                    missing.append(key)
+        if missing:
+            msg = 'Missing metadata items: %s' % ', '.join(missing)
+            raise MetadataMissingError(msg)
+        for k, v in mapping.items():
+            self._validate_value(k, v, scheme)
+
+    def validate(self):
+        if self._legacy:
+            missing, warnings = self._legacy.check(True)
+            if missing or warnings:
+                logger.warning('Metadata: missing: %s, warnings: %s',
+                               missing, warnings)
+        else:
+            self._validate_mapping(self._data, self.scheme)
+
+    def todict(self):
+        if self._legacy:
+            return self._legacy.todict(True)
+        else:
+            result = extract_by_key(self._data, self.INDEX_KEYS)
+            return result
+
+    def _from_legacy(self):
+        assert self._legacy and not self._data
+        result = {
+            'metadata_version': self.METADATA_VERSION,
+            'generator': self.GENERATOR,
+        }
+        lmd = self._legacy.todict(True) # skip missing ones
+        for k in ('name', 'version', 'license', 'summary', 'description',
+                  'classifier'):
+            if k in lmd:
+                if k == 'classifier':
+                    nk = 'classifiers'
+                else:
+                    nk = k
+                result[nk] = lmd[k]
+        kw = lmd.get('Keywords', [])
+        if kw == ['']:
+            kw = []
+        result['keywords'] = kw
+        keys = (('requires_dist', 'run_requires'),
+                ('setup_requires_dist', 'build_requires'))
+        for ok, nk in keys:
+            if ok in lmd and lmd[ok]:
+                result[nk] = [{'requires': lmd[ok]}]
+        result['provides'] = self.provides
+        author = {}
+        maintainer = {}
+        return result
+
+    def _to_legacy(self):
+        assert self._data and not self._legacy
+        result = LegacyMetadata()
+        nmd = self._data
+        for nk, ok in self.LEGACY_MAPPING.items():
+            result[ok] = nmd[nk]
+        result['Requires-Dist'] = self.requires + self.meta_requires
+        result['Setup-Requires-Dist'] = self.build_requires + self.dev_requires
+        # TODO: other fields such as contacts
+        return result
+
+    def write(self, path=None, fileobj=None, legacy=False, skip_unknown=True):
+        if [path, fileobj].count(None) != 1:
+            raise ValueError('Exactly one of path and fileobj is needed')
+        self.validate()
+        if legacy:
+            if self._legacy:
+                legacy_md = self._legacy
+            else:
+                legacy_md = self._to_legacy()
+            if path:
+                self._legacy.write(path, skip_unknown=skip_unknown)
+            else:
+                self._legacy.write_file(fileobj, skip_unknown=skip_unknown)
+        else:
+            if self._legacy:
+                d = self._from_legacy()
+            else:
+                d = self._data
+            if fileobj:
+                json.dump(d, fileobj, ensure_ascii=True, indent=2)
+            else:
+                with codecs.open(path, 'w', 'utf-8') as f:
+                    json.dump(d, f, ensure_ascii=True, indent=2)
+
+    def add_requirements(self, requirements):
+        if self._legacy:
+            self._legacy.add_requirements(requirements)
+        else:
+            self._data.setdefault('run_requires', []).extend(requirements)
+
+    def __repr__(self):
+        name = self.name or '(no name)'
+        version = self.version or 'no version'
+        return '<%s %s %s (%s)>' % (self.__class__.__name__,
+                                    self.metadata_version, name, version)

@@ -23,10 +23,10 @@ import sys
 import tempfile
 import zipfile
 
-from . import DistlibException
+from . import __version__, DistlibException
 from .compat import sysconfig, ZipFile, fsdecode, text_type, filter
 from .database import DistributionPath, InstalledDistribution
-from .metadata import Metadata
+from .metadata import Metadata, METADATA_FILENAME
 from .scripts import ScriptMaker
 from .util import (FileOperator, convert_path, CSVReader, CSVWriter,
                    cached_property, get_cache_base)
@@ -112,7 +112,9 @@ class Mounter(object):
                 raise ImportError('unable to find extension for %s' % fullname)
             result = imp.load_dynamic(fullname, self.libs[fullname])
             result.__loader__ = self
-            result.__package__, _ = fullname.rsplit('.', 1)
+            parts = fullname.rsplit('.', 1)
+            if len(parts) > 1:
+                result.__package__ = parts[0]
         return result
 
 _hook = Mounter()
@@ -193,13 +195,16 @@ class Wheel(object):
         pathname = os.path.join(self.dirname, self.filename)
         name_ver = '%s-%s' % (self.name, self.version)
         info_dir = '%s.dist-info' % name_ver
-        metadata_filename = posixpath.join(info_dir, 'METADATA')
         wrapper = codecs.getreader('utf-8')
+        metadata_filename = posixpath.join(info_dir, METADATA_FILENAME)
         with ZipFile(pathname, 'r') as zf:
-            with zf.open(metadata_filename) as bf:
-                wf = wrapper(bf)
-                result = Metadata()
-                result.read_file(wf)
+            try:
+                with zf.open(metadata_filename) as bf:
+                    wf = wrapper(bf)
+                    result = Metadata(fileobj=wf)
+            except KeyError:
+                raise ValueError('Invalid wheel, because %s is '
+                                 'missing' % METADATA_FILENAME)
         return result
 
     @cached_property
@@ -334,11 +339,9 @@ class Wheel(object):
                 ap = to_posix(os.path.join(info_dir, fn))
                 archive_paths.append((ap, p))
 
-        import distlib
-
         wheel_metadata = [
             'Wheel-Version: %d.%d' % self.wheel_version,
-            'Generator: distlib %s' % distlib.__version__,
+            'Generator: distlib %s' % __version__,
             'Root-Is-Purelib: %s' % is_pure,
         ]
         for pyver, abi, arch in self.tags:
@@ -372,7 +375,8 @@ class Wheel(object):
                 zf.write(p, ap)
         return pathname
 
-    def install(self, paths, dry_run=False, executable=None, warner=None):
+    def install(self, paths, dry_run=False, executable=None, warner=None,
+                lib_only=False):
         """
         Install a wheel to the specified paths. If ``executable`` is specified,
         it should be the Unicode absolute path the to the executable written
@@ -381,6 +385,11 @@ class Wheel(object):
         tuples indicating the wheel version of this software and the wheel
         version in the file, if there is a discrepancy in the versions.
         This can be used to issue any warnings to raise any exceptions.
+        If ``lib_only`` is True, only the purelib/platlib files are installed,
+        and the headers, scripts, data and dist-info metadata are not written.
+
+        The return value is a :class:`InstalledDistribution` instance unless
+        ``lib_only`` is True, in which case the return value is ``None``.
         """
         pathname = os.path.join(self.dirname, self.filename)
         name_ver = '%s-%s' % (self.name, self.version)
@@ -413,6 +422,7 @@ class Wheel(object):
                         records[p] = row
 
             data_pfx = posixpath.join(data_dir, '')
+            info_pfx = posixpath.join(info_dir, '')
             script_pfx = posixpath.join(data_dir, 'scripts', '')
 
             fileop = FileOperator(dry_run=dry_run)
@@ -437,6 +447,10 @@ class Wheel(object):
                         u_arcname = arcname
                     else:
                         u_arcname = arcname.decode('utf-8')
+                    # The signature file won't be in RECORD,
+                    # and we  don't currently don't do anything with it
+                    if u_arcname.endswith('/RECORD.jws'):
+                        continue
                     row = records[u_arcname]
                     if row[2] and str(zinfo.file_size) != row[2]:
                         raise DistlibException('size mismatch for '
@@ -450,6 +464,9 @@ class Wheel(object):
                             raise DistlibException('digest mismatch for '
                                                    '%s' % arcname)
 
+                    if lib_only and u_arcname.startswith((info_pfx, data_pfx)):
+                        logger.debug('lib_only: skipping %s', u_arcname)
+                        continue
                     is_script = (u_arcname.startswith(script_pfx)
                                  and not u_arcname.endswith('.exe'))
 
@@ -495,20 +512,25 @@ class Wheel(object):
                         fileop.set_executable_mode(filenames)
                         outfiles.extend(filenames)
 
-                p = os.path.join(libdir, info_dir)
-                dist = InstalledDistribution(p)
+                if lib_only:
+                    logger.debug('lib_only: returning None')
+                    dist = None
+                else:
+                    p = os.path.join(libdir, info_dir)
+                    dist = InstalledDistribution(p)
 
-                # Write SHARED
-                paths = dict(paths) # don't change passed in dict
-                del paths['purelib']
-                del paths['platlib']
-                paths['lib'] = libdir
-                p = dist.write_shared_locations(paths, dry_run)
-                outfiles.append(p)
+                    # Write SHARED
+                    paths = dict(paths) # don't change passed in dict
+                    del paths['purelib']
+                    del paths['platlib']
+                    paths['lib'] = libdir
+                    p = dist.write_shared_locations(paths, dry_run)
+                    if p:
+                        outfiles.append(p)
 
-                # Write RECORD
-                dist.write_installed_files(outfiles, paths['prefix'],
-                                           dry_run)
+                    # Write RECORD
+                    dist.write_installed_files(outfiles, paths['prefix'],
+                                               dry_run)
                 return dist
             except Exception as e:  # pragma: no cover
                 logger.exception('installation failed.')
@@ -518,7 +540,7 @@ class Wheel(object):
                 shutil.rmtree(workdir)
 
     def _get_dylib_cache(self):
-        result = os.path.join(get_cache_base(), 'dylib-cache')
+        result = os.path.join(get_cache_base(), 'dylib-cache', sys.version[:3])
         if not os.path.isdir(result):
             os.makedirs(result)
         return result

@@ -20,22 +20,15 @@ import sys
 import tarfile
 import tempfile
 import time
-import zipfile
 
 from . import DistlibException
 from .compat import (string_types, text_type, shutil, raw_input,
                      cache_from_source, urlopen, httplib, xmlrpclib, splittype,
                      HTTPHandler, HTTPSHandler as BaseHTTPSHandler,
-                     URLError, match_hostname, CertificateError)
+                     BaseConfigurator, valid_ident, Container, configparser,
+                     URLError, match_hostname, CertificateError, ZipFile)
 
 logger = logging.getLogger(__name__)
-
-class Container(object):
-    """
-    A generic container for when multiple values need to be returned
-    """
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
 
 #
 # Requirement parsing code for name + optional constraints + optional extras
@@ -50,21 +43,26 @@ COMMA = r'\s*,\s*'
 COMMA_RE = re.compile(COMMA)
 
 IDENT = r'(\w|[.-])+'
-RELOP = '([<>=!]=)|[<>]'
+EXTRA_IDENT = r'(\*|:(\*|\w+):|' + IDENT + ')'
+VERSPEC = IDENT + r'\*?'
+
+RELOP = '([<>=!~]=)|[<>]'
 
 #
-# The first relop is optional - if absent, will be taken as '=='
+# The first relop is optional - if absent, will be taken as '~='
 #
-BARE_CONSTRAINTS = ('(' + RELOP + r')?\s*(' + IDENT + ')(' + COMMA + '(' +
-                    RELOP + r')\s*(' + IDENT + '))*')
+BARE_CONSTRAINTS = ('(' + RELOP + r')?\s*(' + VERSPEC + ')(' + COMMA + '(' +
+                    RELOP + r')\s*(' + VERSPEC + '))*')
+
+DIRECT_REF = '(from\s+(?P<diref>.*))'
 
 #
 # Either the bare constraints or the bare constraints in parentheses
 #
-CONSTRAINTS = (r'\(\s*(?P<c1>' + BARE_CONSTRAINTS + r')\s*\)|(?P<c2>' +
-               BARE_CONSTRAINTS + '\s*)')
+CONSTRAINTS = (r'\(\s*(?P<c1>' + BARE_CONSTRAINTS + '|' + DIRECT_REF +
+               r')\s*\)|(?P<c2>' + BARE_CONSTRAINTS + '\s*)')
 
-EXTRA_LIST = IDENT + '(' + COMMA + IDENT + ')*'
+EXTRA_LIST = EXTRA_IDENT + '(' + COMMA + EXTRA_IDENT + ')*'
 EXTRAS = r'\[\s*(?P<ex>' + EXTRA_LIST + r')?\s*\]'
 REQUIREMENT = ('(?P<dn>'  + IDENT + r')\s*(' + EXTRAS + r'\s*)?(\s*' +
                CONSTRAINTS + ')?$')
@@ -73,7 +71,7 @@ REQUIREMENT_RE = re.compile(REQUIREMENT)
 #
 # Used to scan through the constraints
 #
-RELOP_IDENT = '(?P<op>' + RELOP + r')\s*(?P<vn>' + IDENT + ')'
+RELOP_IDENT = '(?P<op>' + RELOP + r')\s*(?P<vn>' + VERSPEC + ')'
 RELOP_IDENT_RE = re.compile(RELOP_IDENT)
 
 def parse_requirement(s):
@@ -88,13 +86,19 @@ def parse_requirement(s):
         d = m.groupdict()
         name = d['dn']
         cons = d['c1'] or d['c2']
+        if not d['diref']:
+            url = None
+        else:
+            # direct reference
+            cons = None
+            url = d['diref'].strip()
         if not cons:
             cons = None
             constr = ''
             rs = d['dn']
         else:
             if cons[0] not in '<>!=':
-                cons = '==' + cons
+                cons = '~=' + cons
             iterator = RELOP_IDENT_RE.finditer(cons)
             cons = [get_constraint(m) for m in iterator]
             rs = '%s (%s)' % (name, ', '.join(['%s %s' % con for con in cons]))
@@ -103,7 +107,7 @@ def parse_requirement(s):
         else:
             extras = COMMA_RE.split(d['ex'])
         result = Container(name=name, constraints=cons, extras=extras,
-                           requirement=rs, source=s)
+                           requirement=rs, source=s, url=url)
     return result
 
 
@@ -167,6 +171,50 @@ def proceed(prompt, allowed_chars, error_prompt=None, default=None):
             if error_prompt:
                 p = '%c: %s\n%s' % (c, error_prompt, prompt)
     return c
+
+
+def extract_by_key(d, keys):
+    if isinstance(keys, string_types):
+        keys = keys.split()
+    result = {}
+    for key in keys:
+        if key in d:
+            result[key] = d[key]
+    return result
+
+def read_exports(stream):
+    cp = configparser.ConfigParser()
+    if hasattr(cp, 'read_file'):
+        cp.read_file(stream)
+    else:
+        cp.readfp(stream)
+    result = {}
+    for key in cp.sections():
+        result[key] = entries = {}
+        for name, value in cp.items(key):
+            s = '%s = %s' % (name, value)
+            entry = get_export_entry(s)
+            assert entry is not None
+            #entry.dist = self
+            entries[name] = entry
+    return result
+
+
+def write_exports(exports, stream):
+    cp = configparser.ConfigParser()
+    for k, v in exports.items():
+        # TODO check k, v for valid values
+        cp.add_section(k)
+        for entry in v.values():
+            if entry.suffix is None:
+                s = entry.prefix
+            else:
+                s = '%s:%s' % (entry.prefix, entry.suffix)
+            if entry.flags:
+                s = '%s [%s]' % (s, ', '.join(entry.flags))
+            cp.set(k, entry.name, s)
+    cp.write(stream)
+
 
 @contextlib.contextmanager
 def tempdir():
@@ -280,8 +328,7 @@ class FileOperator(object):
         logger.info('Copying %s to %s', infile, outfile)
         if not self.dry_run:
             shutil.copyfile(infile, outfile)
-        if self.record:
-            self.files_written.add(outfile)
+        self.record_as_written(outfile)
 
     def copy_stream(self, instream, outfile, encoding=None):
         assert not os.path.isdir(outfile)
@@ -296,24 +343,21 @@ class FileOperator(object):
                 shutil.copyfileobj(instream, outstream)
             finally:
                 outstream.close()
-        if self.record:
-            self.files_written.add(outfile)
+        self.record_as_written(outfile)
 
     def write_binary_file(self, path, data):
         self.ensure_dir(os.path.dirname(path))
         if not self.dry_run:
             with open(path, 'wb') as f:
                 f.write(data)
-        if self.record:
-            self.files_written.add(path)
+        self.record_as_written(path)
 
     def write_text_file(self, path, data, encoding):
         self.ensure_dir(os.path.dirname(path))
         if not self.dry_run:
             with open(path, 'wb') as f:
                 f.write(data.encode(encoding))
-        if self.record:
-            self.files_written.add(path)
+        self.record_as_written(path)
 
     def set_mode(self, bits, mask, files):
         if os.name == 'posix':
@@ -352,8 +396,7 @@ class FileOperator(object):
                     assert path.startswith(prefix)
                     diagpath = path[len(prefix):]
             py_compile.compile(path, dpath, diagpath, True) # raise on error
-        if self.record:
-            self.files_written.add(dpath)
+        self.record_as_written(dpath)
         return dpath
 
     def ensure_removed(self, path):
@@ -604,6 +647,25 @@ def split_filename(filename, project_name=None):
             result = m.group(1), m.group(3), pyver
     return result
 
+# Allow spaces in name because of legacy dists like "Twisted Core"
+NAME_VERSION_RE = re.compile(r'(?P<name>[\w .-]+)\s*'
+                             r'\(\s*(?P<ver>[^\s)]+)\)$')
+
+def parse_name_and_version(p):
+    """
+    A utility method used to get name and version from a string.
+
+    From e.g. a Provides-Dist value.
+
+    :param p: A value in a form 'foo (1.0)'
+    :return: The name and version as a tuple.
+    """
+    m = NAME_VERSION_RE.match(p)
+    if not m:
+        raise DistlibException('Ill-formed name/version string: \'%s\'' % p)
+    d = m.groupdict()
+    return d['name'].strip().lower(), d['ver']
+
 #
 # Extended metadata functionality
 #
@@ -634,35 +696,10 @@ def get_project_data(name):
     result = _get_external_data(url)
     return result
 
-def get_package_data(dist):
-    name, version = dist.name, dist.version
+def get_package_data(name, version):
     url = ('https://www.red-dove.com/pypi/projects/'
            '%s/%s/package-%s.json' % (name[0].upper(), name, version))
-    result = _get_external_data(url)
-    if 'metadata' in result and dist.metadata:
-        update_metadata(dist.metadata, result)
-    return result
-
-RENAMES = { # Temporary
-    'classifiers': 'Classifier',
-    'use_2to3': None,
-    'use_2to3_fixers': None,
-    'test_suite': None,
-}
-
-def update_metadata(metadata, pkginfo):
-    # update dist's metadata from received package data
-    assert metadata
-    assert 'metadata' in pkginfo
-    for k, v in pkginfo['metadata'].items():
-        k = k.replace('-', '_')
-        k = RENAMES.get(k, k)
-        if k is not None:
-            metadata[k] = v
-    metadata.set_metadata_version()
-    if 'requirements' in pkginfo:
-        metadata.dependencies = pkginfo['requirements']
-
+    return _get_external_data(url)
 
 #
 # Simple event pub/sub
@@ -897,7 +934,7 @@ def unarchive(archive_filename, dest_dir, format=None, check=True):
             raise ValueError('Unknown format for %r' % archive_filename)
     try:
         if format == 'zip':
-            archive = zipfile.ZipFile(archive_filename, 'r')
+            archive = ZipFile(archive_filename, 'r')
             if check:
                 names = archive.namelist()
                 for name in names:
@@ -927,7 +964,7 @@ def zip_dir(directory):
     """zip a directory tree into a BytesIO object"""
     result = io.BytesIO()
     dlen = len(directory)
-    with zipfile.ZipFile(result, "w") as zf:
+    with ZipFile(result, "w") as zf:
         for root, dirs, files in os.walk(directory):
             for name in files:
                 full = os.path.join(root, name)
@@ -1120,6 +1157,7 @@ class HTTPSConnection(httplib.HTTPSConnection):
         if self.ca_certs and self.check_domain:
             try:
                 match_hostname(self.sock.getpeercert(), self.host)
+                logger.debug('Host verified: %s', self.host)
             except CertificateError:
                 self.sock.shutdown(socket.SHUT_RDWR)
                 self.sock.close()
@@ -1311,3 +1349,61 @@ class CSVWriter(CSVBase):
                 r.append(item)
             row = r
         self.writer.writerow(row)
+
+#
+#   Configurator functionality
+#
+
+class Configurator(BaseConfigurator):
+
+    value_converters = dict(BaseConfigurator.value_converters)
+    value_converters['inc'] = 'inc_convert'
+
+    def __init__(self, config, base=None):
+        super(Configurator, self).__init__(config)
+        self.base = base or os.getcwd()
+
+    def configure_custom(self, config):
+        def convert(o):
+            if isinstance(o, (list, tuple)):
+                result = type(o)([convert(i) for i in o])
+            elif isinstance(o, dict):
+                if '()' in o:
+                    result = self.configure_custom(o)
+                else:
+                    result = {}
+                    for k in o:
+                        result[k] = convert(o[k])
+            else:
+                result = self.convert(o)
+            return result
+
+        c = config.pop('()')
+        if not callable(c):
+            c = self.resolve(c)
+        props = config.pop('.', None)
+        # Check for valid identifiers
+        args = config.pop('[]', ())
+        if args:
+            args = tuple([convert(o) for o in args])
+        items = [(k, convert(config[k])) for k in config if valid_ident(k)]
+        kwargs = dict(items)
+        result = c(*args, **kwargs)
+        if props:
+            for n, v in props.items():
+                setattr(result, n, convert(v))
+        return result
+
+    def __getitem__(self, key):
+        result = self.config[key]
+        if isinstance(result, dict) and '()' in result:
+            self.config[key] = result = self.configure_custom(result)
+        return result
+
+    def inc_convert(self, value):
+        """Default converter for the inc:// protocol."""
+        if not os.path.isabs(value):
+            value = os.path.join(self.base, value)
+        with codecs.open(value, 'r', encoding='utf-8') as f:
+            result = json.load(f)
+        return result

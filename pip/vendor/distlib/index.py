@@ -130,10 +130,8 @@ class PackageIndex(object):
                 request.
         """
         self.check_credentials()
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
-        d = metadata.todict(True)
+        metadata.validate()
+        d = metadata.todict()
         d[':action'] = 'verify'
         request = self.encode_request(d.items(), [])
         response = self.send_request(request)
@@ -259,10 +257,8 @@ class PackageIndex(object):
         self.check_credentials()
         if not os.path.exists(filename):
             raise DistlibException('not found: %s' % filename)
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
-        d = metadata.todict(True)
+        metadata.validate()
+        d = metadata.todict()
         sig_file = None
         if signer:
             if not self.gpg:
@@ -309,9 +305,7 @@ class PackageIndex(object):
         fn = os.path.join(doc_dir, 'index.html')
         if not os.path.exists(fn):
             raise DistlibException('not found: %r' % fn)
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
+        metadata.validate()
         name, version = metadata.name, metadata.version
         zip_data = zip_dir(doc_dir).getvalue()
         fields = [(':action', 'doc_upload'),
@@ -382,12 +376,14 @@ class PackageIndex(object):
         """
         if digest is None:
             digester = None
+            logger.debug('No digest specified')
         else:
             if isinstance(digest, (list, tuple)):
                 hasher, digest = digest
             else:
                 hasher = 'md5'
             digester = getattr(hashlib, hasher)()
+            logger.debug('Digest specified: %s' % digest)
         # The following code is equivalent to urlretrieve.
         # We need to do it this way so that we can compute the
         # digest of the file as we go.
@@ -431,6 +427,7 @@ class PackageIndex(object):
                 raise DistlibException('MD5 digest mismatch for %s: expected '
                                        '%s, got %s' % (destfile, digest,
                                                        actual))
+            logger.debug('Digest verified: %s', digest)
 
     def send_request(self, req):
         """

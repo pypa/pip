@@ -1,5 +1,5 @@
 """shared options and groups"""
-from optparse import make_option, OptionGroup
+from optparse import make_option, OptionGroup, SUPPRESS_HELP
 from pip.locations import build_prefix
 
 
@@ -63,6 +63,48 @@ mirrors = make_option(
     default=[],
     help='Specific mirror URLs to query when --use-mirrors is used.')
 
+allow_external = make_option(
+    "--allow-external",
+    dest="allow_external",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of externally hosted files",
+)
+
+allow_all_external = make_option(
+    "--allow-all-external",
+    dest="allow_all_external",
+    action="store_true",
+    default=False,
+    help="Allow the installation of all externally hosted files",
+)
+
+no_allow_external = make_option(
+    "--no-allow-external",
+    dest="allow_all_external",
+    action="store_false",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+allow_unsafe = make_option(
+    "--allow-insecure",
+    dest="allow_insecure",
+    action="append",
+    default=[],
+    metavar="PACKAGE",
+    help="Allow the installation of insecure and unverifiable files",
+)
+
+no_allow_unsafe = make_option(
+    "--no-allow-insecure",
+    dest="allow_all_insecure",
+    action="store_false",
+    default=False,
+    help=SUPPRESS_HELP
+)
+
 requirements = make_option(
     '-r', '--requirement',
     dest='requirements',
@@ -119,6 +161,12 @@ global_options = make_option(
     help="Extra global options to be supplied to the setup.py "
     "call before the install command.")
 
+no_clean = make_option(
+    '--no-clean',
+    action='store_true',
+    default=False,
+    help="Don't clean up build directories.")
+
 
 ##########
 # groups #
@@ -132,6 +180,11 @@ index_group = {
         no_index,
         find_links,
         use_mirrors,
-        mirrors
+        mirrors,
+        allow_external,
+        allow_all_external,
+        no_allow_external,
+        allow_unsafe,
+        no_allow_unsafe,
         ]
     }

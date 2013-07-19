@@ -50,33 +50,39 @@ Often this requires the installation to be performed as root.
 
 .. warning::
 
-    We advise against using `easy_install <http://pythonhosted.org/distribute/easy_install.html>`_ to install pip, because easy_install
+    We advise against using `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ to install pip, because easy_install
     does not download from PyPI over SSL, so the installation might be insecure.
-    Since pip can then be used to install packages (which execute code on
-    your computer), it is better to go through a trusted path.
 
+.. _`Installation Requirements`:
 
 Requirements
 ++++++++++++
 
-pip requires either `setuptools <https://pypi.python.org/pypi/setuptools>`_
-or `distribute <https://pypi.python.org/pypi/distribute>`_.
+pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
+`distribute`_ (the fork of setuptools) and the wheel support *requires*
+`setuptools`_ >=0.8. `setuptools`_ and `distribute`_ are now merged back together as
+"setuptools".
 
-See the `Distribute Install Instructions <https://pypi.python.org/pypi/distribute/>`_ or the
-`Setuptools Install Instructions <https://pypi.python.org/pypi/setuptools#installation-instructions>`_
+For details on installing setuptools from scratch, see the install instructions
+on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
 
-If installing pip using a linux package manager, these requirements will be installed for you.
+If you already have `setuptools`_ or `distribute`_ (and pip), you can upgrade
+like so::
 
-.. warning::
+  pip install --upgrade setuptools
 
-    If you are using Python 3.X you **must** use distribute; setuptools doesn't
-    support Python 3.X.
+If you had distribute before, this will upgrade to you distribute-0.7.X, which
+is just a wrapper, that depends on setuptools. The end result will be that you
+have distribute-0.7.X (which does nothing) *and* the latest setuptools
+installed.
+
+
+.. _setuptools: https://pypi.python.org/pypi/setuptools
+.. _distribute: https://pypi.python.org/pypi/distribute
 
 
 Using get-pip
 +++++++++++++
-
-After installing the requirements:
 
 ::
 
@@ -86,8 +92,6 @@ After installing the requirements:
 
 Installing from source
 ++++++++++++++++++++++
-
-After installing the requirements:
 
 ::
 

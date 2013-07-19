@@ -12,7 +12,7 @@ from pip.vendor.distlib.database import (DistributionPath,
                                          EggInfoDistribution)
 from pip.vendor.distlib.markers import interpret
 from pip.vendor.distlib.util import parse_requirement
-from pip.vendor.distlib.version import legacy_key as parse_version
+from pip.vendor.distlib.version import _legacy_key as parse_version
 
 logger = logging.getLogger(__name__)
 
