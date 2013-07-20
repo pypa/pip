@@ -754,6 +754,7 @@ class Metadata(object):
         'dev_requires': (None, list),
         'test_requires': (None, list),
         'meta_requires': (None, list),
+        'extras': ('Provides-Extra', list),
         'classifiers': ('Classifier', list),
         'source_url': ('Download-URL', None),
         'metadata_version': ('Metadata-Version', None),
@@ -960,14 +961,50 @@ class Metadata(object):
         maintainer = {}
         return result
 
+    LEGACY_MAPPING = {
+        'name': 'Name',
+        'version': 'Version',
+        'license': 'License',
+        'summary': 'Summary',
+        'description': 'Description',
+        'classifiers': 'Classifier',
+    }
+
     def _to_legacy(self):
+        def process_entries(entries):
+            reqts = set()
+            for e in entries:
+                extra = e.get('extra')
+                env = e.get('environment')
+                rlist = e['requires']
+                for r in rlist:
+                    if not env and not extra:
+                        reqts.add(r)
+                    else:
+                        marker = ''
+                        if extra:
+                            marker = 'extra == %r' % extra
+                        if env:
+                            if marker:
+                                marker = '(%s) and %s' % (env, marker)
+                            else:
+                                marker = env
+                        reqts.add(';'.join((r, marker)))
+            return reqts
+
         assert self._data and not self._legacy
         result = LegacyMetadata()
         nmd = self._data
         for nk, ok in self.LEGACY_MAPPING.items():
             result[ok] = nmd[nk]
-        result['Requires-Dist'] = self.requires + self.meta_requires
-        result['Setup-Requires-Dist'] = self.build_requires + self.dev_requires
+        extras = set()
+        rlist = set()
+        r1 = process_entries(self.run_requires + self.meta_requires)
+        r2 = process_entries(self.build_requires + self.dev_requires)
+        if self.extras:
+            result['Provides-Extra'] = sorted(self.extras)
+        result['Requires-Dist'] = sorted(r1)
+        result['Setup-Requires-Dist'] = sorted(r2)
         # TODO: other fields such as contacts
         return result
 
@@ -981,9 +1018,9 @@ class Metadata(object):
             else:
                 legacy_md = self._to_legacy()
             if path:
-                self._legacy.write(path, skip_unknown=skip_unknown)
+                legacy_md.write(path, skip_unknown=skip_unknown)
             else:
-                self._legacy.write_file(fileobj, skip_unknown=skip_unknown)
+                legacy_md.write_file(fileobj, skip_unknown=skip_unknown)
         else:
             if self._legacy:
                 d = self._from_legacy()
