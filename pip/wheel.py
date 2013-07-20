@@ -7,7 +7,7 @@ import csv
 import functools
 import hashlib
 import os
-import pkg_resources
+import pip.pkg_resources as pkg_resources
 import re
 import shutil
 import sys
@@ -27,6 +27,12 @@ def wheel_setuptools_support():
     """
     Return True if we have a setuptools that supports wheel.
     """
+    # pip will be able to handle it with a vendored pkg_resourcs,
+    # although a global pkg_resources may be needful for other packages.
+    return True
+
+    # XXX
+
     fulfilled = False
     try:
         installed_setuptools = pkg_resources.get_distribution('setuptools')
