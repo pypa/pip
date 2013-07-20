@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 
-from pkg_resources import Distribution
+from pip.compat.pkg_resources import Distribution
 from mock import Mock, patch
 from nose.tools import assert_equal, assert_raises
 from pip.exceptions import PreviousBuildDirError

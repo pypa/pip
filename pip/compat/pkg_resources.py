@@ -101,6 +101,11 @@ class Requirement(object):
         logger.debug('%s %s', item, last)
         return last
 
+def parse_requirements(slist):
+    if isinstance(slist, string_types):
+        slist = [slist]
+    return [Requirement.parse(s) for s in slist]
+
 class Common(object):
     def as_requirement(self):
         init_logging()
@@ -177,7 +182,7 @@ class Distribution(EggInfoDistribution, Common):
     def requires(self, extras=None):
         init_logging()
         try:
-            reqs = EggInfoDistribution.requires.__get__(self, None)
+            reqs = EggInfoDistribution.run_requires.__get__(self, None)
             logger.debug('%s', reqs)
             if 'requires' in self.__dict__:
                 del self.__dict__['requires']
@@ -202,7 +207,7 @@ class NewDistribution(DistInfoDistribution, Common):
     def requires(self, extras=None):
         init_logging()
         try:
-            reqs = set(self.metadata['Requires-Dist'])
+            reqs = set(self.run_requires)
             result = []
             logger.debug('requires(%s): %s -> %s', extras, self, reqs)
             marked = []
