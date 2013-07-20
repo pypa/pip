@@ -1,6 +1,6 @@
 import sys
 import textwrap
-import pkg_resources
+import pip.pkg_resources as pkg_resources
 import pip.download
 from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size

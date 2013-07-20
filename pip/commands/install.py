@@ -2,7 +2,8 @@ import os
 import sys
 import tempfile
 import shutil
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import InstallRequirement, RequirementSet, parse_requirements,\
+    NeedSetuptools
 from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
@@ -249,7 +250,7 @@ class InstallCommand(Command):
                     logger.notify('Successfully downloaded %s' % downloaded)
             elif self.bundle:
                 requirement_set.create_bundle(self.bundle_filename)
-                logger.notify('Created bundle in %s' % self.bundle_filename)
+                logger.notify('Created bundle in %s' % self.bundle_filename)        
         finally:
             # Clean up
             if (not options.no_clean) and ((not options.no_install) or options.download_dir):
