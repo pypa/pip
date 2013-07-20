@@ -16,6 +16,7 @@ from pip.backwardcompat import StringIO
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
 from pip.util import get_prog
+from pip.req import NeedSetuptools
 
 
 __all__ = ['Command']
@@ -136,12 +137,16 @@ class Command(object):
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 exit = status
+        except NeedSetuptools:
+            # XXX assume we are in the install command
+            self.run(options, ['setuptools'])
+            return self.run(options, args)
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = ERROR
+            exit = ERROR            
         except BadCommand:
             e = sys.exc_info()[1]
             logger.fatal(str(e))
