@@ -498,6 +498,9 @@ class InstalledDistribution(BaseInstalledDistribution):
             metadata = env._cache.path[path].metadata
         elif metadata is None:
             metadata_path = os.path.join(path, METADATA_FILENAME)
+            # Temporary - for legacy support
+            if not os.path.exists(metadata_path):
+                metadata_path = os.path.join(path, 'METADATA')
             if not os.path.exists(metadata_path):
                 raise ValueError('no %s found in %s' % (METADATA_FILENAME,
                                                         path))
