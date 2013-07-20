@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import os
-import sys
+
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
@@ -82,14 +82,17 @@ class WheelCommand(Command):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
-
+        
+        missing_requirements = []
         # confirm requirements
+        if not wheel_setuptools_support(check=True):
+            missing_requirements.append("'pip wheel' requires %s." % setuptools_requirement)
         try:
-            import wheel.bdist_wheel
+            import wheel
         except ImportError:
-            raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
-        if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires %s." % setuptools_requirement)
+            missing_requirements.append("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
+        if missing_requirements:
+            raise CommandError("; ".join(missing_requirements))
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

@@ -23,15 +23,16 @@ wheel_ext = '.whl'
 # that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
-def wheel_setuptools_support():
+def wheel_setuptools_support(check=False):
     """
     Return True if we have a setuptools that supports wheel.
+    :param check: actually perform the check? we can sometimes install 
+        setuptools automatically now.
     """
-    # pip will be able to handle it with a vendored pkg_resourcs,
+    # pip will be able to handle it with a vendored pkg_resources,
     # although a global pkg_resources may be needful for other packages.
-    return True
-
-    # XXX
+    if not check:
+        return True
 
     fulfilled = False
     try:
