@@ -218,8 +218,6 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-        if not self.source_dir:
-            import pdb; pdb.set_trace()
         return os.path.join(self.source_dir, 'setup.py')
 
     def run_egg_info(self, force_root_egg_info=False):
@@ -1127,11 +1125,9 @@ class RequirementSet(object):
                                                                 req_to_install)
                                     reqs.append(subreq)
                                     self.add_requirement(subreq)
-
                         # Currently anything below this line requires setuptools:
-                        if not self.has_setuptools and req_to_install.name != 'setuptools':
-                            raise NeedSetuptools()
-                            
+                        elif not self.has_setuptools and req_to_install.name != 'setuptools':
+                            raise NeedSetuptools()                            
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
