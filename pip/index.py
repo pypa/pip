@@ -682,9 +682,10 @@ class HTMLPage(object):
             #   Unless we issue a HEAD request on every url we cannot know
             #   ahead of time for sure if something is HTML or not. However we
             #   can check after we've downloaded it.
-            if not headers["Content-Type"].lower().startswith("text/html"):
+            content_type = headers.get('Content-Type', 'unknown')
+            if not content_type.lower().startswith("text/html"):
                 logger.debug('Skipping page %s because of Content-Type: %s' %
-                                            (link, headers["Content-Type"]))
+                                            (link, content_type))
                 if cache is not None:
                     cache.set_is_archive(url)
                 return None

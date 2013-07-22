@@ -4,20 +4,18 @@ Changelog
 1.4 (unreleased)
 ---------------------
 
+* Applied security patch to pip's ssl support related to certificate DNS
+  wildcard matching (http://bugs.python.org/issue17980).
+
 * To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
   not distribute. setuptools and distribute are now merged into one project called
   'setuptools'. (Pull #1003)
 
-  .. note::
-
-    Although older pip versions can successfully :ref:`upgrade distribute or
-    setuptools to the new merged setuptools <Installation Requirements>`, there
-    `are cases where the upgrade can fail
-    <https://github.com/pypa/pip/issues/1033#issuecomment-20546202>`_ if it
-    occurs in the context of package upgrade that depends on distribute.
-
 * If an already-downloaded or cached file has a bad hash, re-download it rather
   than erroring out. (Issue #963).
+
+* 'pip bundle' and support for installing from pybundle files is now considered
+  deprecated and will be removed in pip v1.5.
 
 * Fixed a number of issues (#413, #709, #634, #602, and #939) related to cleaning up and
   not reusing build directories. (Pull #865, #948)

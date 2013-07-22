@@ -1,3 +1,4 @@
+import textwrap
 from pip.locations import build_prefix, src_prefix
 from pip.util import display_path, backup_dir
 from pip.log import logger
@@ -26,6 +27,21 @@ class BundleCommand(InstallCommand):
                 })
 
     def run(self, options, args):
+
+        deprecation = textwrap.dedent("""
+
+            ###############################################
+            ##                                           ##
+            ##  Due to lack of interest and maintenance, ##
+            ##  'pip bundle' and support for installing  ##
+            ##  from *.pybundle files is now deprecated, ##
+            ##  and will be removed in pip v1.5.         ##
+            ##                                           ##
+            ###############################################
+
+        """)
+        logger.notify(deprecation)
+
         if not args:
             raise InstallationError('You must give a bundle filename')
         # We have to get everything when creating a bundle:
