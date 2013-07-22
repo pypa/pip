@@ -11,14 +11,6 @@ Changelog
   not distribute. setuptools and distribute are now merged into one project called
   'setuptools'. (Pull #1003)
 
-  .. note::
-
-    Although older pip versions can successfully :ref:`upgrade distribute or
-    setuptools to the new merged setuptools <Installation Requirements>`, there
-    `are cases where the upgrade can fail
-    <https://github.com/pypa/pip/issues/1033#issuecomment-20546202>`_ if it
-    occurs in the context of package upgrade that depends on distribute.
-
 * If an already-downloaded or cached file has a bad hash, re-download it rather
   than erroring out. (Issue #963).
 
