@@ -1,6 +1,6 @@
-===================
+===========
 Other tools
-===================
+===========
 
 virtualenv
 ----------
@@ -16,7 +16,6 @@ To tell pip to only run if there is a virtualenv currently activated,
 and to bail if not, use::
 
     export PIP_REQUIRE_VIRTUALENV=true
-
 
 easy_install
 ------------

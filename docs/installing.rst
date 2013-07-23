@@ -58,10 +58,14 @@ Often this requires the installation to be performed as root.
 Requirements
 ++++++++++++
 
-pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
-`distribute`_ (the fork of setuptools) and the wheel support *requires*
-`setuptools`_ >=0.8. `setuptools`_ and `distribute`_ are now merged back together as
-"setuptools".
+pip requires `setuptools`_.
+
+.. warning::
+
+    As of pip 1.4, pip recommends `setuptools`_ >=0.8, not `distribute`_ (a
+    fork of setuptools) and the wheel support *requires* `setuptools`_ >=0.8.
+    `setuptools`_ and `distribute`_ are now merged back together as
+    "setuptools".
 
 For details on installing setuptools from scratch, see the install instructions
 on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
@@ -69,7 +73,7 @@ on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
 If you already have `setuptools`_ or `distribute`_ (and pip), you can upgrade
 like so::
 
-  pip install --upgrade setuptools
+    pip install --upgrade setuptools
 
 If you had distribute before, this will upgrade to you distribute-0.7.X, which
 is just a wrapper, that depends on setuptools. The end result will be that you
