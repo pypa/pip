@@ -1,8 +1,8 @@
 Changelog
 =========
 
-1.4 (unreleased)
----------------------
+1.4 (2013-07-23)
+----------------
 
 * *BACKWARDS INCOMPATIBLE* pip now only installs stable versions by default,
   and offers a new ``--pre`` option to also find pre-release and development
