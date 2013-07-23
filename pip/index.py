@@ -278,8 +278,11 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
-                logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
-                continue
+                # If this version isn't the already installed one, then
+                #   ignore it if it's a pre-release.
+                if link is not InfLink:
+                    logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
+                    continue
             applicable_versions.append((parsed_version, link, version))
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
