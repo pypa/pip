@@ -4,11 +4,11 @@ Changelog
 1.4 (2013-07-23)
 ----------------
 
-* *BACKWARDS INCOMPATIBLE* pip now only installs stable versions by default,
+* **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
   and offers a new ``--pre`` option to also find pre-release and development
   versions. (Pull #834)
 
-* *BACKWARDS INCOMPATIBLE* Dropped support for Python 2.5. The minimum
+* **BACKWARD INCOMPATIBLE** Dropped support for Python 2.5. The minimum
   supported Python version for pip 1.4 is Python 2.6.
 
 * Added support for installing and building wheel archives.
