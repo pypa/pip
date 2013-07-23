@@ -1,27 +1,44 @@
+Alex Gaynor
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
 Andrey Bulgakov
 Anrs Hu
+Anton Patrushev
 Antti Kaihola
 Armin Ronacher
 Aziz Köksal
 Ben Rosser
+Bernardo B. Marques
+Bradley Ayers
 Brian Rosner
 Carl Meyer
 Chris McDonough
 Christian Oudard
 Clay McClure
 Cody Soyland
+Craig Kerstiens
+Cristian Sorinel
+Dan Sully
 Daniel Holth
 Dave Abrahams
 David (d1b)
+David Aguilar
+David Evans
+dengzhp
 Dmitry Gladkov
 Donald Stufft
+Endoh Takanao
+enoch
+Erik M. Bray
 Francesco
 Gabriel de Perthuis
+Garry Polley
 Geoffrey Lehée
+George Song
 Georgi Valkov
+Herbert Pfennig
+hetmankp
 Hugo Lopes Tavares
 Ian Bicking
 Igor Sobreira
@@ -29,34 +46,44 @@ Ionel Maries Cristian
 Jakub Vysoky
 James Cleveland
 Jannis Leidel
+Jakub Stasiak
 Jay Graves
+Jeff Dairiki
 John-Scott Atlakson
 Jon Parise
 Jonas Nockert
 Josh Bronson
+Josh Hansen
 Kamal Bin Mustafa
 Kelsey Hightower
 Kenneth Belitzky
+Kenneth Reitz
 Kevin Frommelt
 Kumar McMillan
+Lev Givon
 Luke Macken
 Masklinn
 Marc Abramowitz
+Marc Tamlyn
 Marcus Smith
 Markus Hametner
 Matt Maker
-Maxime R.
-Miguel Araujo
+Maxime Rouyrre
+Miguel Araujo Perez
 Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
 Olivier Girardot
+Ollie Rutherfurd
+Oren Held
 Patrick Jenkins
+Patrick Dubroy
 Paul Moore
 Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Peter Waller
+Phil Freo
 Phil Whelan
 Piet Delport
 Przemek Wrzos
@@ -66,12 +93,19 @@ Rene Dudfield
 Roey Berman
 Ronny Pfannschmidt
 Rory McCann
+Ross Brattain
+Sergey Vasilyev
+Seth Woodworth
 Simon Cross
 Stavros Korokithakis
+Stéphane Klein
+Steven Myint
 Thomas Fenzl
 Thomas Johansson
+Toshio Kuratomi
+Travis Swicegood
 Vinay Sajip
 Vitaly Babiy
-W Trevor King
+W. Trevor King
 Wil Tan
 Hsiaoming Yang
