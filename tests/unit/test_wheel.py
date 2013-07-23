@@ -2,9 +2,7 @@
 import pip.pkg_resources as pkg_resources
 from mock import patch
 from pip import wheel
-from pip.exceptions import InstallationError
 from pip.index import PackageFinder
-from tests.lib import assert_raises_regexp
 from nose.tools import assert_raises
 
 def test_uninstallation_paths():
