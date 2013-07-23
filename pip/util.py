@@ -11,9 +11,10 @@ import subprocess
 import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site, ssl)
+                                console_to_str, user_site, PermissionError)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
+from pip.vendor.distlib import version
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -475,7 +476,8 @@ def unzip_file(filename, location, flatten=True):
     try:
         zip = zipfile.ZipFile(zipfp)
         leading = has_leading_dir(zip.namelist()) and flatten
-        for name in zip.namelist():
+        for info in zip.infolist():
+            name = info.filename
             data = zip.read(name)
             fn = name
             if leading:
@@ -494,6 +496,11 @@ def unzip_file(filename, location, flatten=True):
                     fp.write(data)
                 finally:
                     fp.close()
+                    unix_attributes = info.external_attr >> 16
+                    if unix_attributes:
+                        os.chmod(fn, unix_attributes)
+
+
     finally:
         zipfp.close()
 
@@ -575,7 +582,6 @@ def cache_download(target_file, temp_location, content_type):
     fp = open(target_file+'.content-type', 'w')
     fp.write(content_type)
     fp.close()
-    os.unlink(temp_location)
 
 
 def unpack_file(filename, location, content_type, link):
@@ -583,8 +589,9 @@ def unpack_file(filename, location, content_type, link):
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
+        or filename.endswith('.whl')
         or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+        unzip_file(filename, location, flatten=not filename.endswith(('.pybundle', '.whl')))
     elif (content_type == 'application/x-gzip'
           or tarfile.is_tarfile(filename)
           or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
@@ -667,3 +674,20 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+
+def is_prerelease(vers):
+    """
+    Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
+
+    Will return True if it is a pre-release and False if not. Versions are
+    assumed to be a pre-release if they cannot be parsed.
+    """
+    normalized = version.suggest_normalized_version(vers)
+
+    if normalized is None:
+        # Cannot normalize, assume it is a pre-release
+        return True
+
+    parsed = version.normalized_key(normalized)
+    return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])

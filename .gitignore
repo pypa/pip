@@ -1,7 +1,7 @@
 MANIFEST
 tests/test-scratch/*
 tests/test-cache/*
-tests/packages/FSPkg/FSPkg.egg-info
+FSPkg.egg-info
 testenv
 pip.egg-info/*
 ScriptTest-*.egg
@@ -17,7 +17,7 @@ dist/*
 docs/_build/*
 build/*
 *.pyc
-*.pyo 
+*.pyo
 pip-log.txt
 pip.log
 *.~

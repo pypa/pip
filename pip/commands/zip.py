@@ -138,7 +138,8 @@ class ZipCommand(Command):
             ## FIXME: this should be undoable:
             zip = zipfile.ZipFile(zip_filename)
             to_save = []
-            for name in zip.namelist():
+            for info in zip.infolist():
+                name = info.filename
                 if name.startswith(module_name + os.path.sep):
                     content = zip.read(name)
                     dest = os.path.join(package_path, name)

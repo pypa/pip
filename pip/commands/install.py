@@ -4,12 +4,11 @@ import tempfile
 import shutil
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
-from pip.locations import build_prefix, src_prefix, virtualenv_no_global
+from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError
-from pip.backwardcompat import home_lib
-from pip.cmdoptions import make_option_group, index_group
+from pip import cmdoptions
 
 
 class InstallCommand(Command):
@@ -52,23 +51,8 @@ class InstallCommand(Command):
             metavar='path/url',
             help='Install a project in editable mode (i.e. setuptools "develop mode") from a local project path or a VCS url.')
 
-        cmd_opts.add_option(
-            '-r', '--requirement',
-            dest='requirements',
-            action='append',
-            default=[],
-            metavar='file',
-            help='Install from the given requirements file. '
-            'This option can be used multiple times.')
-
-        cmd_opts.add_option(
-            '-b', '--build', '--build-dir', '--build-directory',
-            dest='build_dir',
-            metavar='dir',
-            default=build_prefix,
-            help='Directory to unpack packages into and build in. '
-            'The default in a virtualenv is "<venv path>/build". '
-            'The default for global installs is "<OS temp dir>/pip-build-<username>".')
+        cmd_opts.add_option(cmdoptions.requirements)
+        cmd_opts.add_option(cmdoptions.build_dir)
 
         cmd_opts.add_option(
             '-t', '--target',
@@ -82,14 +66,9 @@ class InstallCommand(Command):
             dest='download_dir',
             metavar='dir',
             default=None,
-            help="Download packages into <dir> instead of installing them, irregardless of what's already installed.")
+            help="Download packages into <dir> instead of installing them, regardless of what's already installed.")
 
-        cmd_opts.add_option(
-            '--download-cache',
-            dest='download_cache',
-            metavar='dir',
-            default=None,
-            help='Cache downloaded packages in <dir>.')
+        cmd_opts.add_option(cmdoptions.download_cache)
 
         cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
@@ -105,7 +84,7 @@ class InstallCommand(Command):
             dest='upgrade',
             action='store_true',
             help='Upgrade all packages to the newest available version. '
-            'This process is recursive irregardless of whether a dependency is already satisfied.')
+            'This process is recursive regardless of whether a dependency is already satisfied.')
 
         cmd_opts.add_option(
             '--force-reinstall',
@@ -120,12 +99,7 @@ class InstallCommand(Command):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
-        cmd_opts.add_option(
-            '--no-deps', '--no-dependencies',
-            dest='ignore_dependencies',
-            action='store_true',
-            default=False,
-            help="Don't install package dependencies.")
+        cmd_opts.add_option(cmdoptions.no_deps)
 
         cmd_opts.add_option(
             '--no-install',
@@ -140,23 +114,8 @@ class InstallCommand(Command):
             help="Don't download any packages, just install the ones already downloaded "
             "(completes an install run with --no-install).")
 
-        cmd_opts.add_option(
-            '--install-option',
-            dest='install_options',
-            action='append',
-            metavar='options',
-            help="Extra arguments to be supplied to the setup.py install "
-            "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
-            "Use multiple --install-option options to pass multiple options to setup.py install. "
-            "If you are using an option with a directory path, be sure to use absolute path.")
-
-        cmd_opts.add_option(
-            '--global-option',
-            dest='global_options',
-            action='append',
-            metavar='options',
-            help="Extra global options to be supplied to the setup.py "
-            "call before the install command.")
+        cmd_opts.add_option(cmdoptions.install_options)
+        cmd_opts.add_option(cmdoptions.global_options)
 
         cmd_opts.add_option(
             '--user',
@@ -177,7 +136,17 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory.")
 
-        index_opts = make_option_group(index_group, self.parser)
+        cmd_opts.add_option(cmdoptions.use_wheel)
+
+        cmd_opts.add_option(
+            '--pre',
+            action='store_true',
+            default=False,
+            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+
+        cmd_opts.add_option(cmdoptions.no_clean)
+
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -191,7 +160,14 @@ class InstallCommand(Command):
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
                              use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors)
+                             mirrors=options.mirrors,
+                             use_wheel=options.use_wheel,
+                             allow_external=options.allow_external,
+                             allow_insecure=options.allow_insecure,
+                             allow_all_external=options.allow_all_external,
+                             allow_all_insecure=options.allow_all_insecure,
+                             allow_all_prereleases=options.pre,
+                            )
 
     def run(self, options, args):
         if options.download_dir:
@@ -204,6 +180,8 @@ class InstallCommand(Command):
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
+
+        temp_target_dir = None
         if options.target_dir:
             options.ignore_installed = True
             temp_target_dir = tempfile.mkdtemp()
@@ -211,6 +189,7 @@ class InstallCommand(Command):
             if os.path.exists(options.target_dir) and not os.path.isdir(options.target_dir):
                 raise CommandError("Target path exists but is not a directory, will not continue.")
             install_options.append('--home=' + temp_target_dir)
+
         global_options = options.global_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -229,7 +208,8 @@ class InstallCommand(Command):
             ignore_installed=options.ignore_installed,
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
-            use_user_site=options.use_user_site)
+            use_user_site=options.use_user_site,
+            target_dir=temp_target_dir)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -251,43 +231,35 @@ class InstallCommand(Command):
             logger.warn(msg)
             return
 
-        if (options.use_user_site and
-            sys.version_info < (2, 6)):
-            raise InstallationError('--user is only supported in Python version 2.6 and newer')
+        try:
+            if not options.no_download:
+                requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
+            else:
+                requirement_set.locate_files()
 
-        import setuptools
-        if (options.use_user_site and
-            requirement_set.has_editables and
-            not getattr(setuptools, '_distribute', False)):
+            if not options.no_install and not self.bundle:
+                requirement_set.install(install_options, global_options, root=options.root_path)
+                installed = ' '.join([req.name for req in
+                                      requirement_set.successfully_installed])
+                if installed:
+                    logger.notify('Successfully installed %s' % installed)
+            elif not self.bundle:
+                downloaded = ' '.join([req.name for req in
+                                       requirement_set.successfully_downloaded])
+                if downloaded:
+                    logger.notify('Successfully downloaded %s' % downloaded)
+            elif self.bundle:
+                requirement_set.create_bundle(self.bundle_filename)
+                logger.notify('Created bundle in %s' % self.bundle_filename)
+        finally:
+            # Clean up
+            if (not options.no_clean) and ((not options.no_install) or options.download_dir):
+                requirement_set.cleanup_files(bundle=self.bundle)
 
-            raise InstallationError('--user --editable not supported with setuptools, use distribute')
-
-        if not options.no_download:
-            requirement_set.prepare_files(finder, force_root_egg_info=self.bundle, bundle=self.bundle)
-        else:
-            requirement_set.locate_files()
-
-        if not options.no_install and not self.bundle:
-            requirement_set.install(install_options, global_options, root=options.root_path)
-            installed = ' '.join([req.name for req in
-                                  requirement_set.successfully_installed])
-            if installed:
-                logger.notify('Successfully installed %s' % installed)
-        elif not self.bundle:
-            downloaded = ' '.join([req.name for req in
-                                   requirement_set.successfully_downloaded])
-            if downloaded:
-                logger.notify('Successfully downloaded %s' % downloaded)
-        elif self.bundle:
-            requirement_set.create_bundle(self.bundle_filename)
-            logger.notify('Created bundle in %s' % self.bundle_filename)
-        # Clean up
-        if not options.no_install or options.download_dir:
-            requirement_set.cleanup_files(bundle=self.bundle)
         if options.target_dir:
             if not os.path.exists(options.target_dir):
                 os.makedirs(options.target_dir)
-            lib_dir = home_lib(temp_target_dir)
+            lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),
