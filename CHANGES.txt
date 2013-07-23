@@ -1,56 +1,54 @@
 Changelog
 =========
 
-1.4 (unreleased)
----------------------
+1.4 (2013-07-23)
+----------------
+
+* **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
+  and offers a new ``--pre`` option to also find pre-release and development
+  versions. (Pull #834)
+
+* **BACKWARD INCOMPATIBLE** Dropped support for Python 2.5. The minimum
+  supported Python version for pip 1.4 is Python 2.6.
+
+* Added support for installing and building wheel archives.
+  Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia
+  (Pull #845)
 
 * Applied security patch to pip's ssl support related to certificate DNS
   wildcard matching (http://bugs.python.org/issue17980).
 
 * To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
-  not distribute. setuptools and distribute are now merged into one project called
-  'setuptools'. (Pull #1003)
-
-* If an already-downloaded or cached file has a bad hash, re-download it rather
-  than erroring out. (Issue #963).
-
-* 'pip bundle' and support for installing from pybundle files is now considered
-  deprecated and will be removed in pip v1.5.
-
-* Fixed a number of issues (#413, #709, #634, #602, and #939) related to cleaning up and
-  not reusing build directories. (Pull #865, #948)
-
-* Added a User Agent so that pip is identifiable in logs. (Pull #901)
-
-* Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis. (Pull #895)
-
-* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
-
-* Fixed issue #32 - pip fails when server does not send content-type header.
-  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
-
-* Added support for installing and building wheel archives.
-  Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia (Pull #845)
-
-* pip now only installs stable versions by default, and offers a new ``--pre`` option
-  to also find pre-release and development versions.  Thanks Donald Stufft.  (Pull #834)
+  not distribute. setuptools and distribute are now merged into one project
+  called 'setuptools'. (Pull #1003)
 
 * pip will now warn when installing a file that is either hosted externally to
   the index or cannot be verified with a hash. In the future pip will default
   to not installing them and will require the flags --allow-external NAME, and
   --allow-insecure NAME respectively. (Pull #985)
 
-* Dropped support for Python 2.5. The minimum supported Python version for pip-1.4
-  is Python 2.6.
+* If an already-downloaded or cached file has a bad hash, re-download it rather
+  than erroring out. (Issue #963).
 
-* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org).
+* ``pip bundle`` and support for installing from pybundle files is now
+  considered deprecated and will be removed in pip v1.5.
 
-1.3.2 (unreleased)
-------------------
+* Fixed a number of issues (#413, #709, #634, #602, and #939) related to
+  cleaning up and not reusing build directories. (Pull #865, #948)
 
-* Fixed git backend with git 1.8.3. (Pull #996)
+* Added a User Agent so that pip is identifiable in logs. (Pull #901)
 
-* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
+* Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis.
+  (Pull #895)
+
+* Fixed the proxy support, which was broken in pip 1.3.x (Pull #840)
+
+* Fixed issue #32 - pip fails when server does not send content-type header.
+  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
+
+* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org/).
+
+* Fixed git VCS backend with git 1.8.3. (Pull #967)
 
 1.3.1 (2013-03-08)
 ------------------
