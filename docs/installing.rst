@@ -40,8 +40,13 @@ installation. For instance::
 
 When used in this manner, pip will only affect the active virtual environment.
 
-The `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_ suggest
-using pip to install it if you don't already have it, though, so if the first command above doesn't work
+To ensure the virtual environment includes the latest version of pip, run::
+
+    $ pip install --upgrade pip
+
+The only beginner (and Windows) friendly
+`virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_
+suggest using pip to install it if you don't already have it, though, so if the first command above doesn't work
 try the next section.
 
 
@@ -52,8 +57,9 @@ Linux
 ~~~~~
 
 On Linux, pip and virtualenv will generally be available through the system package manager.
-For global installation into the system Python, it is recommended to use the system package
-manager versions, and then use virtualenv as described above.
+Recent versions of common desktop Linux distributions include suitably recent versions of
+both, so for global installation into the system Python, it is recommended to use the
+system package manager versions, and then use virtualenv as described above.
 
 On Debian and Ubuntu::
 
@@ -63,8 +69,10 @@ On Fedora::
 
    $ sudo yum install python-pip python-virtualenv
 
-While these may not always be the most up to date versions of ``pip``, virtualenv should still install a
-recent version into the individual virtual environments.
+While these may not always be the most up to date versions of ``pip``, the instructions
+above will ensure that the latest version is installed into virtual environments without
+risking any adverse effects for the system Python.
+
 
 Other operating systems (including Windows and Mac OS X)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
