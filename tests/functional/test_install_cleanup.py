@@ -131,3 +131,15 @@ def test_cleanup_after_egg_info_exception():
     build = env.venv_path/'build'
     assert not exists(build), "build/ dir still exists: %s" % result.stdout
     env.assert_no_temp()
+
+def test_cleanup_prevented_upon_build_dir_exception():
+    """
+    Test no cleanup occurs after a PreviousBuildDirError
+    """
+    env = reset_env()
+    build = env.venv_path/'build'/'simple'
+    os.makedirs(build)
+    write_file("setup.py", "#", dest=build)
+    result = run_pip('install', '-f', find_links, '--no-index', 'simple', expect_error=True)
+    assert "pip can't proceed" in result.stdout, result.stdout
+    assert exists(build)
