@@ -27,8 +27,8 @@ pip works on Unix/Linux, OS X, and Windows.
 Using virtualenv
 ----------------
 
-The easiest way to install and use pip is with `virtualenv
-<http://www.virtualenv.org>`_, since every virtualenv has pip (and it's dependencies) installed into it
+If you already have virtualenv installed, then the easiest way to use pip is through `virtualenv
+<http://www.virtualenv.org>`_, since every virtualenv has pip (and its dependencies) installed into it
 automatically.
 
 This does not require root access or modify your system Python
@@ -40,18 +40,66 @@ installation. For instance::
 
 When used in this manner, pip will only affect the active virtual environment.
 
-See the `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_.
+The `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_ suggest
+using pip to install it if you don't already have it, though, so if the first command above doesn't work
+try the next section.
 
-Installing Globally
--------------------
+
+Bootstrapping pip and virtualenv
+--------------------------------
+
+Linux
+~~~~~
+
+On Linux, pip and virtualenv will generally be available through the system package manager.
+For global installation into the system Python, it is recommended to use the system package
+manager versions, and then use virtualenv as described above.
+
+On Debian and Ubuntu::
+
+   $ sudo apt-get install python-pip python-virtualenv
+
+On Fedora::
+
+   $ sudo yum install python-pip python-virtualenv
+
+While these may not always be the most up to date versions of ``pip``, virtualenv should still install a
+recent version into the individual virtual environments.
+
+Other operating systems (including Windows and Mac OS X)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On other operating systems, the following commands should install pip for the current user::
+
+   $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+   $ python get-pip.py --user
+
+If you don't have ``curl`` installed (for example, on Windows) you can download ``get-pip.py``
+from the given URL and run it as shown in the second command.
+
+Once you have pip installed, you can use it to retrieve virtualenv::
+
+   $ pip install --user virtualenv
+
+And then proceed to use virtualenv as shown above.
+
+
+Installing pip for all users
+----------------------------
 
 pip can be installed globally in order to manage global packages.
-Often this requires the installation to be performed as root.
+As this typically requires the installation to be performed with administrator
+privileges, and (on Linux systems) may conflict with packages provided through
+the system package manager, it is *not* the recommended approach.
 
-.. warning::
+The simplest way to perform a global installation is to use the bootstrapping
+instruction above, but running the get-pip.py script with additional privileges.
+However, since running a script you downloaded from the internet with that level
+of access to your system should worry you, here are some more detailed instructions
+on the steps involved.
 
-    We advise against using `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ to install pip, because easy_install
-    does not download from PyPI over SSL, so the installation might be insecure.
+Note: the instructions below won't work on Windows. Windows users are strongly encouraged
+to use the per user bootstrapping described above.
 
 .. _`Installation Requirements`:
 
@@ -75,7 +123,7 @@ like so::
 
     pip install --upgrade setuptools
 
-If you had distribute before, this will upgrade to you distribute-0.7.X, which
+If you had distribute before, this will upgrade you to distribute-0.7.X, which
 is just a wrapper, that depends on setuptools. The end result will be that you
 have distribute-0.7.X (which does nothing) *and* the latest setuptools
 installed.
@@ -84,23 +132,14 @@ installed.
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
 
-
-Using get-pip
-+++++++++++++
-
-::
-
- $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
- $ [sudo] python get-pip.py
-
-
-Installing from source
-++++++++++++++++++++++
-
-::
+Once a suitable version of setuptools is available, pip can be installed
+from source::
 
  $ curl -O https://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
  $ tar xvfz pip-X.X.tar.gz
  $ cd pip-X.X
- $ [sudo] python setup.py install
+ $ sudo python setup.py install
 
+Since even these more explicit instructions still involve running an arbitrary
+script from the internet with elevated privileges, the user level bootstrapping
+described above is *strongly* recommended.
