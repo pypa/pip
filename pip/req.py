@@ -38,7 +38,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options={}):
+                 editable_options=None):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -47,6 +47,10 @@ class InstallRequirement(object):
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
+
+        if editable_options is None:
+            editable_options = {}
+
         self.editable_options = editable_options
         self.url = url
         self.as_egg = as_egg
