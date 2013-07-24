@@ -7,7 +7,7 @@ import csv
 import functools
 import hashlib
 import os
-import pkg_resources
+import pip.pkg_resources as pkg_resources
 import re
 import shutil
 import sys
@@ -23,10 +23,17 @@ wheel_ext = '.whl'
 # that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
-def wheel_setuptools_support():
+def wheel_setuptools_support(check=False):
     """
     Return True if we have a setuptools that supports wheel.
+    :param check: actually perform the check? we can sometimes install 
+        setuptools automatically now.
     """
+    # pip will be able to handle it with a vendored pkg_resources,
+    # although a global pkg_resources may be needful for other packages.
+    if not check:
+        return True
+
     fulfilled = False
     try:
         installed_setuptools = pkg_resources.get_distribution('setuptools')

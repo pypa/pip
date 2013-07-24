@@ -1,7 +1,7 @@
 from email.parser import FeedParser
 import os
 import imp
-import pkg_resources
+import pip.pkg_resources as pkg_resources
 import re
 import sys
 import shutil
@@ -33,6 +33,8 @@ from pip.download import (get_file_content, is_url, url_to_path,
                           unpack_file_url, unpack_http_url)
 import pip.wheel
 from pip.wheel import move_wheel_files
+
+class NeedSetuptools(Exception): pass
 
 class InstallRequirement(object):
 
@@ -868,6 +870,11 @@ class RequirementSet(object):
         self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir #set from --target option
+        
+        try:
+            self.has_setuptools = pkg_resources.get_distribution('setuptools')
+        except pkg_resources.DistributionNotFound:
+            self.has_setuptools = False 
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1040,6 +1047,10 @@ class RequirementSet(object):
                     if not os.path.exists(self.build_dir):
                         _make_build_dir(self.build_dir)
                     req_to_install.update_editable(not self.is_download)
+                    
+                    if not self.has_setuptools and req_to_install.name != 'setuptools':
+                        raise NeedSetuptools()
+                        
                     if self.is_download:
                         req_to_install.run_egg_info()
                         req_to_install.archive(self.download_dir)
@@ -1094,12 +1105,12 @@ class RequirementSet(object):
                     if unpack:
                         is_bundle = req_to_install.is_bundle
                         is_wheel = url and url.filename.endswith('.whl')
-                        if is_bundle:
+                        if is_bundle: # XXX remove
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
-                        elif is_wheel:
+                        if is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
                             dist = list(pkg_resources.find_distributions(location))[0]
@@ -1114,6 +1125,9 @@ class RequirementSet(object):
                                                                 req_to_install)
                                     reqs.append(subreq)
                                     self.add_requirement(subreq)
+                        # Currently anything below this line requires setuptools:
+                        elif not self.has_setuptools and req_to_install.name != 'setuptools':
+                            raise NeedSetuptools()                            
                         elif self.is_download:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()

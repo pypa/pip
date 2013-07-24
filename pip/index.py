@@ -6,7 +6,7 @@ import re
 import gzip
 import mimetypes
 import posixpath
-import pkg_resources
+import pip.pkg_resources as pkg_resources
 import random
 import socket
 import ssl
