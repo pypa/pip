@@ -105,19 +105,19 @@ def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_moc
 def test_parse_editable_default_vcs():
     assert_equal(
         parse_editable('https://foo#egg=foo', 'git'),
-        ('foo', 'git+https://foo#egg=foo', None)
+        ('foo', 'git+https://foo#egg=foo', { 'egg': 'foo' })
     )
 
 def test_parse_editable_explicit_vcs():
     assert_equal(
         parse_editable('svn+https://foo#egg=foo', 'git'),
-        ('foo', 'svn+https://foo#egg=foo', None)
+        ('foo', 'svn+https://foo#egg=foo', {'egg': 'foo'})
     )
 
 def test_parse_editable_vcs_extras():
     assert_equal(
         parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
-        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
+        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', {'egg': 'foo[extras]'} )
     )
 
 @patch('os.path.normcase')

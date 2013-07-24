@@ -456,6 +456,8 @@ def write_file(filename, text, dest=None):
     """
     env = get_env()
     if dest:
+        if not os.path.exists(dest):
+            os.mkdir(dest)
         complete_path = dest/ filename
     else:
         complete_path = env.scratch_path/ filename
@@ -550,6 +552,46 @@ def assert_all_changes(start_state, end_state, expected_changes):
     # Don't throw away this potentially useful information
     return diff
 
+def _create_test_package_with_subdirectory(env, subdirectory):
+    mkdir('version_pkg')
+    version_pkg_path = env.scratch_path/'version_pkg'
+    write_file('version_pkg.py', textwrap.dedent('''\
+                                def main():
+                                    print('0.1')
+                                '''), version_pkg_path)
+    write_file('setup.py', textwrap.dedent('''\
+                        from setuptools import setup, find_packages
+                        setup(name='version_pkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_pkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
+                        '''), version_pkg_path)
+
+    subdirectory_path = os.path.join(version_pkg_path, subdirectory)
+
+    write_file('version_subpkg.py', textwrap.dedent('''\
+                                def main():
+                                    print('0.1')
+                                '''), subdirectory_path)
+
+    write_file('setup.py', textwrap.dedent('''\
+                        from setuptools import setup, find_packages
+                        setup(name='version_subpkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_subpkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
+                        '''), subdirectory_path)
+
+    env.run('git', 'init', cwd=version_pkg_path)
+    env.run('git', 'add', '.', cwd=version_pkg_path)
+    env.run('git', 'commit', '-q',
+            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path)
+
+    return version_pkg_path
+
 
 def _create_test_package(env):
     mkdir('version_pkg')
@@ -566,6 +608,7 @@ def _create_test_package(env):
                               py_modules=['version_pkg'],
                               entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
                         '''), version_pkg_path)
+
     env.run('git', 'init', cwd=version_pkg_path)
     env.run('git', 'add', '.', cwd=version_pkg_path)
     env.run('git', 'commit', '-q',
