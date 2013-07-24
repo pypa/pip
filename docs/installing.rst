@@ -44,10 +44,9 @@ To ensure the virtual environment includes the latest version of pip, run::
 
     $ pip install --upgrade pip
 
-The only beginner (and Windows) friendly
+Since the only beginner (and Windows) friendly
 `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_
-suggest using pip to install it if you don't already have it, though, so if the first command above doesn't work
-try the next section.
+suggest using pip to install it, if the first command above doesn't work try the next section.
 
 
 Bootstrapping pip and virtualenv
@@ -71,7 +70,7 @@ On Fedora::
 
 While these may not always be the most up to date versions of ``pip``, the instructions
 above will ensure that the latest version is installed into virtual environments without
-risking any adverse effects for the system Python.
+risking any adverse effects on the system installation of Python.
 
 
 Other operating systems (including Windows and Mac OS X)
