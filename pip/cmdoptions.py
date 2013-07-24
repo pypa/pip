@@ -141,7 +141,7 @@ build_dir = make_option(
     default=build_prefix,
     help='Directory to unpack packages into and build in. '
     'The default in a virtualenv is "<venv path>/build". '
-    'The default for global installs is "<OS temp dir>/pip-build-<username>".')
+    'The default for global installs is "<OS temp dir>/pip_build_<username>".')
 
 install_options = make_option(
     '--install-option',
