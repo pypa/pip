@@ -60,8 +60,6 @@ class ListCommand(Command):
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
-                             use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors,
                              allow_external=options.allow_external,
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,

@@ -159,8 +159,6 @@ class InstallCommand(Command):
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
-                             use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors,
                              use_wheel=options.use_wheel,
                              allow_external=options.allow_external,
                              allow_insecure=options.allow_insecure,

@@ -41,29 +41,6 @@ def test_find_links_requirements_file_relative_path():
     assert initools_folder in result.files_created, str(result)
 
 
-def test_install_from_mirrors():
-    """
-    Test installing a package from the PyPI mirrors.
-    """
-    e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--no-index', 'INITools==0.2')
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
-
-def test_install_from_mirrors_with_specific_mirrors():
-    """
-    Test installing a package from a specific PyPI mirror.
-    """
-    e = reset_env()
-    result = run_pip('install', '-vvv', '--use-mirrors', '--mirrors', "http://a.pypi.python.org/", '--no-index', 'INITools==0.2')
-    egg_info_folder = e.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    initools_folder = e.site_packages / 'initools'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
-
 
 def test_install_from_file_index_hash_link():
     """
