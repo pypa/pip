@@ -591,6 +591,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             return
         if self.is_wheel:
             self.move_wheel_files(self.source_dir)
+            self.install_succeeded = True
             return
 
         temp_location = tempfile.mkdtemp('-record', 'pip-')
