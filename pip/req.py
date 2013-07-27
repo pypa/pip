@@ -591,6 +591,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             return
         if self.is_wheel:
             self.move_wheel_files(self.source_dir)
+            self.install_succeeded = True
             return
 
         temp_location = tempfile.mkdtemp('-record', 'pip-')
@@ -713,9 +714,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if self.req is None:
             return False
         try:
+            # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
             # if we've already set distribute as a conflict to setuptools
             # then this check has already run before.  we don't want it to
             # run again, and return False, since it would block the uninstall
+            # TODO: remove this later
             if (self.req.project_name == 'setuptools'
                 and self.conflicts_with
                 and self.conflicts_with.project_name == 'distribute'):
@@ -1235,10 +1238,11 @@ class RequirementSet(object):
         to_install = [r for r in self.requirements.values()
                       if not r.satisfied_by]
 
-        # move distribute>=0.7 to the end because it does not contain an
-        # importable setuptools. by moving it to the end, we ensure it's
-        # setuptools dependency is handled first, which will provide an
-        # importable setuptools package
+        # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
+        # move the distribute-0.7.X wrapper to the end because it does not
+        # install a setuptools package. by moving it to the end, we ensure it's
+        # setuptools dependency is handled first, which will provide the
+        # setuptools package
         # TODO: take this out later
         distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
         for req in to_install:
@@ -1252,17 +1256,27 @@ class RequirementSet(object):
         try:
             for requirement in to_install:
 
-                # when installing setuptools>=0.7.2 in py2, we need to force setuptools
-                # to uninstall distribute. In py3, which is always using distribute, this
+                # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
+                # when upgrading from distribute-0.6.X to the new merged
+                # setuptools in py2, we need to force setuptools to uninstall
+                # distribute. In py3, which is always using distribute, this
                 # conversion is already happening in distribute's pkg_resources.
+                # It's ok *not* to check if setuptools>=0.7 because if someone
+                # were actually trying to ugrade from distribute to setuptools
+                # 0.6.X, then all this could do is actually help, although that
+                # upgade path was certainly never "supported"
                 # TODO: remove this later
-                setuptools_req = pkg_resources.Requirement.parse("setuptools>=0.7.2")
-                if requirement.name == 'setuptools' and requirement.installed_version in setuptools_req:
+                if requirement.name == 'setuptools':
                     try:
+                        # only uninstall distribute<0.7. For >=0.7, setuptools
+                        # will also be present, and that's what we need to
+                        # uninstall
+                        distribute_requirement = pkg_resources.Requirement.parse("distribute<0.7")
                         existing_distribute = pkg_resources.get_distribution("distribute")
-                        requirement.conflicts_with = existing_distribute
-                    except:
-                        # distribute wasn't installed
+                        if existing_distribute in distribute_requirement:
+                            requirement.conflicts_with = existing_distribute
+                    except pkg_resources.DistributionNotFound:
+                        # distribute wasn't installed, so nothing to do
                         pass
 
                 if requirement.conflicts_with:
