@@ -1,10 +1,12 @@
 import os
+import sys
 import textwrap
 from os.path import join
 from nose.tools import nottest
-from tests.lib import (reset_env, run_pip, assert_all_changes,
-                            write_file, pyversion, _create_test_package,
-                            _change_test_package_version, path_to_url, find_links)
+from nose import SkipTest
+from tests.lib import (reset_env, run_pip, assert_all_changes, src_folder,
+                       write_file, pyversion, _create_test_package, pip_install_local,
+                       _change_test_package_version, path_to_url, find_links)
 from tests.lib.local_repos import local_checkout
 
 
@@ -212,3 +214,68 @@ def test_upgrade_vcs_req_with_dist_found():
     run_pip("install", req)
     result = run_pip("install", "-U", req)
     assert not "pypi.python.org" in result.stdout, result.stdout
+
+
+class TestUpgradeSetuptools(object):
+    """
+    Tests for upgrading to setuptools (using pip from src tree)
+    The tests use a *fixed* set of packages from our test packages dir
+    note: virtualenv-1.9.1 contains distribute-0.6.34
+    note: virtualenv-1.10 contains setuptools-0.9.7
+    """
+
+    def prep_ve(self, version, distribute=False):
+        self.env = reset_env(pypi_cache=False)
+        pip_install_local('virtualenv==%s' %version)
+        args = ['virtualenv', self.env.scratch_path/'VE']
+        if distribute:
+            args.insert(1, '--distribute')
+        self.env.run(*args)
+        self.ve_bin = self.env.scratch_path/'VE'/'bin'
+        self.env.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
+        self.env.run(self.ve_bin/'python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
+
+    def test_py2_from_setuptools_6_to_setuptools_7(self):
+        if sys.version_info >= (3,):
+            raise SkipTest()
+        self.prep_ve('1.9.1')
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        assert "Found existing installation: setuptools 0.6c11" in result.stdout
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.8)" in result.stdout
+
+    def test_py2_py3_from_distribute_6_to_setuptools_7(self):
+        self.prep_ve('1.9.1', distribute=True)
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        assert "Found existing installation: distribute 0.6.34" in result.stdout
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.8)" in result.stdout
+        "distribute (0.7.3)" in result.stdout
+
+    def test_from_setuptools_7_to_setuptools_7(self):
+        self.prep_ve('1.10')
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        assert "Found existing installation: setuptools 0.9.7" in result.stdout
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.8)" in result.stdout
+
+    def test_from_setuptools_7_to_setuptools_7_using_wheel(self):
+        self.prep_ve('1.10')
+        result = self.env.run(self.ve_bin/'pip', 'install', '--use-wheel', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        assert "Found existing installation: setuptools 0.9.7" in result.stdout
+        assert 'setuptools-0.9.8.dist-info' in str(result.files_created) #only wheels use dist-info
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.8)" in result.stdout
+
+    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self):
+        self.prep_ve('1.9.1', distribute=True)
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, 'setuptools==0.9.6')
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.6)" in result.stdout
+        "distribute (0.7.3)" in result.stdout
+        result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        assert "Found existing installation: setuptools 0.9.6" in result.stdout
+        result = self.env.run(self.ve_bin/'pip', 'list')
+        "setuptools (0.9.8)" in result.stdout
+        "distribute (0.7.3)" in result.stdout

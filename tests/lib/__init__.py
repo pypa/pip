@@ -93,19 +93,21 @@ env = None
 def reset_env(environ=None,
               system_site_packages=False,
               sitecustomize=None,
+              pypi_cache=True,
               insecure=True):
     """Return a test environment.
 
     Keyword arguments:
     environ: an environ object to use.
     system_site_packages: create a virtualenv that simulates --system-site-packages.
+    pypi_cache: use pip's internal pypi cache
     sitecustomize: a string containing python code to add to sitecustomize.py.
     insecure: how to set the --insecure option for py25 tests.
     """
 
     global env
 
-    env = TestPipEnvironment(environ, sitecustomize=sitecustomize)
+    env = TestPipEnvironment(environ, sitecustomize=sitecustomize, pypi_cache=pypi_cache)
     TestPipEnvironment.rebuild_venv = False
 
     if system_site_packages:
@@ -277,7 +279,7 @@ class TestPipEnvironment(TestFileEnvironment):
     verbose = False
     rebuild_venv = True
 
-    def __init__(self, environ=None, sitecustomize=None):
+    def __init__(self, environ=None, sitecustomize=None, pypi_cache=True):
         import virtualenv
 
         self.root_path = fast_test_env_root
@@ -368,7 +370,8 @@ class TestPipEnvironment(TestFileEnvironment):
 
         #create sitecustomize.py and add patches
         self._create_empty_sitecustomize()
-        self._use_cached_pypi_server()
+        if pypi_cache:
+            self._use_cached_pypi_server()
         if sitecustomize:
             self._add_to_sitecustomize(sitecustomize)
 
