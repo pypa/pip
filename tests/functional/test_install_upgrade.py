@@ -263,6 +263,7 @@ class TestUpgradeSetuptools(object):
         self.prep_ve('1.10')
         result = self.env.run(self.ve_bin/'pip', 'install', '--use-wheel', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
+        assert 'setuptools-0.9.8.dist-info' in str(result.files_created) #only wheels use dist-info
         result = self.env.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
