@@ -6,7 +6,7 @@ import sys
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
-from pip.exceptions import CommandError
+from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
 from pip.wheel import WheelBuilder, wheel_setuptools_support, setuptools_requirement
@@ -150,6 +150,8 @@ class WheelCommand(Command):
                 global_options = options.global_options or []
                 )
             wb.build()
+        except PreviousBuildDirError:
+            return
         finally:
             if not options.no_clean:
                 requirement_set.cleanup_files()

@@ -7,7 +7,7 @@ from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
-from pip.exceptions import InstallationError, CommandError
+from pip.exceptions import InstallationError, CommandError, PreviousBuildDirError
 from pip import cmdoptions
 
 
@@ -251,6 +251,8 @@ class InstallCommand(Command):
             elif self.bundle:
                 requirement_set.create_bundle(self.bundle_filename)
                 logger.notify('Created bundle in %s' % self.bundle_filename)
+        except PreviousBuildDirError:
+            return
         finally:
             # Clean up
             if (not options.no_clean) and ((not options.no_install) or options.download_dir):
