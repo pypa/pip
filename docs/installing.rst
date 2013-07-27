@@ -31,6 +31,11 @@ The easiest way to install and use pip is with `virtualenv
 <http://www.virtualenv.org>`_, since every virtualenv has pip (and it's dependencies) installed into it
 automatically.
 
+.. note:: 
+    
+    If you do not have virtualenv installed, you can :ref:`install pip globally <Installing Globally>`
+    using :ref:`get-pip <Using get-pip>`.
+
 This does not require root access or modify your system Python
 installation. For instance::
 
