@@ -55,11 +55,11 @@ def get_supported(versions=None, noarch=False):
     impl = get_abbr_impl()
 
     abis = []
-    
+
     try:
         soabi = sysconfig.get_config_var('SOABI')
     except IOError as e: # Issue #1074
-        warnings.warn("{0}".format(e.message), RuntimeWarning)
+        warnings.warn("{0}".format(e), RuntimeWarning)
         soabi = None
 
     if soabi and soabi.startswith('cpython-'):
@@ -77,7 +77,7 @@ def get_supported(versions=None, noarch=False):
 
     if not noarch:
         arch = get_platform()
-    
+
         # Current version, current API (built specifically for our Python):
         for abi in abis:
             supported.append(('%s%s' % (impl, versions[0]), abi, arch))
