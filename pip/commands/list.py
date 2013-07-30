@@ -88,6 +88,17 @@ class ListCommand(Command):
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
 
+        if options.use_mirrors:
+            logger.warn("--use-mirrors has been deprecated and will be removed"
+                        " in the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+
+        if options.mirrors:
+            logger.warn("--mirrors has been deprecated and will be removed in "
+                        " the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+            index_urls += options.mirrors
+
         dependency_links = []
         for dist in get_installed_distributions(local_only=options.local, skip=self.skip):
             if dist.has_metadata('dependency_links.txt'):

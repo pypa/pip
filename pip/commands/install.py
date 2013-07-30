@@ -193,6 +193,17 @@ class InstallCommand(Command):
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
 
+        if options.use_mirrors:
+            logger.warn("--use-mirrors has been deprecated and will be removed"
+                        " in the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+
+        if options.mirrors:
+            logger.warn("--mirrors has been deprecated and will be removed in "
+                        " the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+            index_urls += options.mirrors
+
         finder = self._build_package_finder(options, index_urls)
 
         requirement_set = RequirementSet(
