@@ -5,6 +5,8 @@ import sys
 import os
 import logging
 
+import pkg_resources
+
 from pip import backwardcompat
 from pip.vendor import colorama
 
@@ -84,6 +86,31 @@ class Logger(object):
 
     def fatal(self, msg, *args, **kw):
         self.log(self.FATAL, msg, *args, **kw)
+
+    def deprecated(self, version, msg, *args, **kwargs):
+        """
+        Logs deprecation message which is log level WARN if the ``version``
+        is > 1 minor release away and log level ERROR otherwise.
+        """
+        from pip import __version__
+
+        # Pull from kwargs to make testing simpler
+        current_version = kwargs.get("_current_version", __version__)
+
+        # We only consider Major.Minor for deprecation schedules
+        current_version = ".".join(current_version.split(".")[:2])
+        version = ".".join(version.split(".")[:2])
+
+        # Determine our threshold for "ERROR" level logging.
+        pieces = version.split(".")
+        minor = str(int(pieces[1]) - 1)
+        threshold_version = ".".join(pieces[:1] + [minor] + pieces[2:])
+
+        if (pkg_resources.parse_version(current_version)
+                < pkg_resources.parse_version(threshold_version)):
+            self.warn(msg, *args, **kwargs)
+        else:
+            self.error(msg, *args, **kwargs)
 
     def log(self, level, msg, *args, **kw):
         if args:
