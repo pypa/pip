@@ -18,12 +18,15 @@ def _color_wrap(*colors):
 
 
 def should_color(consumer, environ, std=(sys.stdout, sys.stderr)):
+    real_consumer = (consumer if not isinstance(consumer, colorama.AnsiToWin32)
+                        else consumer.wrapped)
+
     # If consumer isn't stdout or stderr we shouldn't colorize it
-    if consumer not in std:
+    if real_consumer not in std:
         return False
 
     # If consumer is a tty we should color it
-    if hasattr(consumer, "isatty") and consumer.isatty():
+    if hasattr(real_consumer, "isatty") and real_consumer.isatty():
         return True
 
     # If we have an ASNI term we should color it
@@ -81,8 +84,13 @@ class Logger(object):
 
     def add_consumers(self, *consumers):
         if sys.platform.startswith("win"):
-            self.consumers.extend([colorama.AnsiToWin32(x).stream
-                                        for x in consumers])
+            for level, consumer in consumers:
+                if hasattr(consumer, "write"):
+                    self.consumers.append(
+                        (level, colorama.AnsiToWin32(consumer)),
+                    )
+                else:
+                    self.consumers.append((level, consumer))
         else:
             self.consumers.extend(consumers)
 
@@ -152,7 +160,11 @@ class Logger(object):
                         rendered = colorizer(rendered)
 
                     rendered += '\n'
-                    backwardcompat.fwrite(consumer, rendered)
+
+                    if isinstance(consumer, colorama.AnsiToWin32):
+                        consumer.write(rendered)
+                    else:
+                        backwardcompat.fwrite(consumer, rendered)
                 else:
                     consumer(rendered)
 
