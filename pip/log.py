@@ -34,6 +34,23 @@ def should_color(consumer):
     return False
 
 
+def should_warn(current_version, removal_version):
+    # Our Significant digits on versions is 2, so remove everything but the
+    #   first two places.
+    current_version = ".".join(current_version.split(".")[:2])
+    removal_version = ".".join(removal_version.split(".")[:2])
+
+    # Our warning threshold is one minor version before removal, so we
+    #   decrement the minor version by one
+    major, minor = removal_version.split(".")
+    minor = str(int(minor) - 1)
+    warn_version = ".".join([major, minor])
+
+    # Test if our current_version should be a warn
+    return (pkg_resources.parse_version(current_version)
+                < pkg_resources.parse_version(warn_version))
+
+
 class Logger(object):
     """
     Logging object for use in command-line script.  Allows ranges of
@@ -87,27 +104,19 @@ class Logger(object):
     def fatal(self, msg, *args, **kw):
         self.log(self.FATAL, msg, *args, **kw)
 
-    def deprecated(self, version, msg, *args, **kwargs):
+    def deprecated(self, removal_version, msg, *args, **kwargs):
         """
-        Logs deprecation message which is log level WARN if the ``version``
-        is > 1 minor release away and log level ERROR otherwise.
+        Logs deprecation message which is log level WARN if the
+        ``removal_version`` is > 1 minor release away and log level ERROR
+        otherwise.
+
+        removal_version should be the version that the deprecated feature is
+        expected to be removed in, so something that will not exist in
+        version 1.7, but will in 1.6 would have a removal_version of 1.7.
         """
         from pip import __version__
 
-        # Pull from kwargs to make testing simpler
-        current_version = kwargs.get("_current_version", __version__)
-
-        # We only consider Major.Minor for deprecation schedules
-        current_version = ".".join(current_version.split(".")[:2])
-        version = ".".join(version.split(".")[:2])
-
-        # Determine our threshold for "ERROR" level logging.
-        pieces = version.split(".")
-        minor = str(int(pieces[1]) - 1)
-        threshold_version = ".".join(pieces[:1] + [minor] + pieces[2:])
-
-        if (pkg_resources.parse_version(current_version)
-                < pkg_resources.parse_version(threshold_version)):
+        if should_warn(__version__, removal_version):
             self.warn(msg, *args, **kwargs)
         else:
             self.error(msg, *args, **kwargs)
