@@ -17,7 +17,7 @@ def _color_wrap(*colors):
     return wrapped
 
 
-def should_color(consumer):
+def should_color(consumer, environ):
     # If consumer isn't stdout or stderr we shouldn't colorize it
     if consumer not in [sys.stdout, sys.stderr]:
         return False
@@ -27,7 +27,7 @@ def should_color(consumer):
         return True
 
     # If we have an ASNI term we should color it
-    if os.environ.get("TERM") == "ANSI":
+    if environ.get("TERM") == "ANSI":
         return True
 
     # If anything else we should not color it
@@ -145,7 +145,7 @@ class Logger(object):
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
-                    if should_color(consumer):
+                    if should_color(consumer, os.environ):
                         # We are printing to stdout or stderr and it supports
                         #   colors so render our text colored
                         colorizer = self.COLORS.get(level, lambda x: x)
