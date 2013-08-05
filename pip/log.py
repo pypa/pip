@@ -17,9 +17,9 @@ def _color_wrap(*colors):
     return wrapped
 
 
-def should_color(consumer, environ):
+def should_color(consumer, environ, std=(sys.stdout, sys.stderr)):
     # If consumer isn't stdout or stderr we shouldn't colorize it
-    if consumer not in [sys.stdout, sys.stderr]:
+    if consumer not in std:
         return False
 
     # If consumer is a tty we should color it
