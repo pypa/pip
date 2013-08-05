@@ -2,9 +2,34 @@
 """
 
 import sys
+import os
 import logging
 
 from pip import backwardcompat
+from pip.vendor import colorama
+
+
+def _color_wrap(*colors):
+    def wrapped(inp):
+        return "".join(list(colors) + [inp, colorama.Style.RESET_ALL])
+    return wrapped
+
+
+def should_color(consumer):
+    # If consumer isn't stdout or stderr we shouldn't colorize it
+    if consumer not in [sys.stdout, sys.stderr]:
+        return False
+
+    # If consumer is a tty we should color it
+    if hasattr(consumer, "isatty") and consumer.isatty():
+        return True
+
+    # If we have an ASNI term we should color it
+    if os.environ.get("TERM") == "ANSI":
+        return True
+
+    # If anything else we should not color it
+    return False
 
 
 class Logger(object):
@@ -22,12 +47,25 @@ class Logger(object):
 
     LEVELS = [VERBOSE_DEBUG, DEBUG, INFO, NOTIFY, WARN, ERROR, FATAL]
 
+    COLORS = {
+        WARN: _color_wrap(colorama.Fore.YELLOW),
+        ERROR: _color_wrap(colorama.Fore.RED),
+        FATAL: _color_wrap(colorama.Fore.RED),
+    }
+
     def __init__(self):
         self.consumers = []
         self.indent = 0
         self.explicit_levels = False
         self.in_progress = None
         self.in_progress_hanging = False
+
+    def add_consumers(self, *consumers):
+        if sys.platform.startswith("win"):
+            self.consumers.extend([colorama.AnsiToWin32(x).stream
+                                        for x in consumers])
+        else:
+            self.consumers.extend(consumers)
 
     def debug(self, msg, *args, **kw):
         self.log(self.DEBUG, msg, *args, **kw)
@@ -71,6 +109,12 @@ class Logger(object):
                         ## FIXME: should this be a name, not a level number?
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
+                    if should_color(consumer):
+                        # We are printing to stdout or stderr and it supports
+                        #   colors so render our text colored
+                        colorizer = self.COLORS.get(level, lambda x: x)
+                        rendered = colorizer(rendered)
+
                     rendered += '\n'
                     backwardcompat.fwrite(consumer, rendered)
                 else:

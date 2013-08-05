@@ -92,9 +92,10 @@ class Command(object):
         level -= options.quiet
         level = logger.level_for_integer(4 - level)
         complete_log = []
-        logger.consumers.extend(
-            [(level, sys.stdout),
-             (logger.DEBUG, complete_log.append)])
+        logger.add_consumers(
+            (level, sys.stdout),
+            (logger.DEBUG, complete_log.append),
+        )
         if options.log_explicit_levels:
             logger.explicit_levels = True
 
@@ -120,7 +121,7 @@ class Command(object):
 
         if options.log:
             log_fp = open_logfile(options.log, 'a')
-            logger.consumers.append((logger.DEBUG, log_fp))
+            logger.add_consumers((logger.DEBUG, log_fp))
         else:
             log_fp = None
 
