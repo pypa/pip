@@ -1102,6 +1102,13 @@ class RequirementSet(object):
                             for subreq in req_to_install.bundle_requirements():
                                 reqs.append(subreq)
                                 self.add_requirement(subreq)
+                        elif self.is_download:
+                            req_to_install.source_dir = location
+                            if not is_wheel:
+                                # FIXME: see https://github.com/pypa/pip/issues/1112
+                                req_to_install.run_egg_info()
+                            if url and url.scheme in vcs.all_schemes:
+                                req_to_install.archive(self.download_dir)
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
@@ -1117,11 +1124,6 @@ class RequirementSet(object):
                                                                 req_to_install)
                                     reqs.append(subreq)
                                     self.add_requirement(subreq)
-                        elif self.is_download:
-                            req_to_install.source_dir = location
-                            req_to_install.run_egg_info()
-                            if url and url.scheme in vcs.all_schemes:
-                                req_to_install.archive(self.download_dir)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
