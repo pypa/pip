@@ -15,6 +15,21 @@ def test_download_if_requested():
     assert env.site_packages/ 'initools' not in result.files_created
 
 
+def test_download_wheel():
+    """
+    Test using "pip install --download" to download a *.whl archive.
+    FIXME: this test could use a local --find-links dir, but -d with local
+           --find-links has a bug https://github.com/pypa/pip/issues/1111
+    """
+
+    env = reset_env()
+    result = run_pip('install', '--use-wheel',
+                     '-f', 'https://bitbucket.org/pypa/pip-test-package/downloads',
+                     '-d', '.', 'pip-test-package')
+    assert Path('scratch')/ 'pip_test_package-0.1.1-py2.py3-none-any.whl' in result.files_created
+    assert env.site_packages/ 'piptestpackage' not in result.files_created
+
+
 def test_single_download_from_requirements_file():
     """
     It should support download (in the scratch path) from PyPi from a requirements file
