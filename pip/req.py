@@ -37,7 +37,8 @@ from pip.wheel import move_wheel_files
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True, prereleases=None):
+                 url=None, as_egg=False, update=True, prereleases=None,
+                 from_bundle=False):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -65,6 +66,7 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
+        self.from_bundle = from_bundle
 
         # True if pre-releases are acceptable
         if prereleases:
@@ -776,12 +778,10 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 url = None
             yield InstallRequirement(
                 package, self, editable=True, url=url,
-                update=False, source_dir=dest_dir)
+                update=False, source_dir=dest_dir, from_bundle=True)
         for dest_dir in self._bundle_build_dirs:
             package = os.path.basename(dest_dir)
-            yield InstallRequirement(
-                package, self,
-                source_dir=dest_dir)
+            yield InstallRequirement(package, self,source_dir=dest_dir, from_bundle=True)
 
     def move_bundle_files(self, dest_build_dir, dest_src_dir):
         base = self._temp_build_dir
@@ -1059,9 +1059,14 @@ class RequirementSet(object):
                     unpack = True
                     url = None
 
-                    # If a checkout exists, it's unwise to keep going.
-                    # Version inconsistencies are logged later, but do not fail the installation.
-                    if os.path.exists(os.path.join(location, 'setup.py')):
+                    # In the case where the req comes from a bundle, we should
+                    # assume a build dir exists and move on
+                    if req_to_install.from_bundle:
+                        pass
+                    # If a checkout exists, it's unwise to keep going.  version
+                    # inconsistencies are logged later, but do not fail the
+                    # installation.
+                    elif os.path.exists(os.path.join(location, 'setup.py')):
                         msg = textwrap.dedent("""
                           pip can't proceed with requirement '%s' due to a pre-existing build directory.
                            location: %s
