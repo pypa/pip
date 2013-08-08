@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.4.1 (unreleased)
+1.4.1 (2013-08-07)
 ------------------
 
 * **New Signing Key** Release 1.4.1 is using a different key than normal with fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
