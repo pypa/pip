@@ -57,7 +57,7 @@ def __get_username():
 
 def _get_build_prefix():
     """ Returns a safe build_prefix """
-    path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' %
+    path = os.path.join(tempfile.gettempdir(), 'pip_build_%s' %
         __get_username())
     if sys.platform == 'win32':
         """ on windows(tested on 7) temp dirs are isolated """

@@ -78,7 +78,7 @@ class TestLocations:
         """ returns a string pointing to the
             current build_prefix.
         """
-        return os.path.join(self.tempdir, 'pip-build-%s' % self.username)
+        return os.path.join(self.tempdir, 'pip_build_%s' % self.username)
 
     def test_dir_path(self):
         """ test the path name for the build_prefix

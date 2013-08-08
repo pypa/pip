@@ -1,6 +1,17 @@
 Changelog
 =========
 
+1.4.1 (2013-08-07)
+------------------
+
+* **New Signing Key** Release 1.4.1 is using a different key than normal with fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
+* Fixed issues with installing from pybundle files (Pull #1116).
+* Fixed error when sysconfig module throws an exception (Pull #1095).
+* Don't ignore already installed pre-releases (Pull #1076).
+* Fixes related to upgrading setuptools (Pull #1092).
+* Fixes so that --download works with wheel archives (Pull #1113).
+* Fixes related to recognizing and cleaning global build dirs (Pull #1080).
+
 1.4 (2013-07-23)
 ----------------
 
