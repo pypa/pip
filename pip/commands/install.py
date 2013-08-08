@@ -194,12 +194,14 @@ class InstallCommand(Command):
             index_urls = []
 
         if options.use_mirrors:
-            logger.warn("--use-mirrors has been deprecated and will be removed"
+            logger.deprecated("1.7",
+                        "--use-mirrors has been deprecated and will be removed"
                         " in the future. Explicit uses of --index-url and/or "
                         "--extra-index-url is suggested.")
 
         if options.mirrors:
-            logger.warn("--mirrors has been deprecated and will be removed in "
+            logger.deprecated("1.7",
+                        "--mirrors has been deprecated and will be removed in "
                         " the future. Explicit uses of --index-url and/or "
                         "--extra-index-url is suggested.")
             index_urls += options.mirrors
