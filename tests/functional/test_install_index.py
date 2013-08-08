@@ -41,7 +41,6 @@ def test_find_links_requirements_file_relative_path():
     assert initools_folder in result.files_created, str(result)
 
 
-
 def test_install_from_file_index_hash_link():
     """
     Test that a pkg can be installed from a file:// index using a link with a hash

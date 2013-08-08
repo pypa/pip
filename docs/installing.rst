@@ -85,6 +85,8 @@ installed.
 .. _distribute: https://pypi.python.org/pypi/distribute
 
 
+.. _`get-pip`:
+
 Using get-pip
 +++++++++++++
 

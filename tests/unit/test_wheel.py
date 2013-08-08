@@ -150,12 +150,27 @@ class TestWheelFile(object):
         finally:
             rmtree(tmpdir)
             pass
-        
+
     def test_purelib_platlib(self):
         """
         Test the "wheel is purelib/platlib" code.
         """
         packages =  [("pure_wheel", "data/packages/pure_wheel-1.7", True),
-                     ("plat_wheel", "data/packages/plat_wheel-1.7", False)]        
+                     ("plat_wheel", "data/packages/plat_wheel-1.7", False)]
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
+
+class TestPEP425Tags(object):
+
+    def test_broken_sysconfig(self):
+        """
+        Test that pep425tags still works when sysconfig is broken.
+        Can be a problem on Python 2.7
+        Issue #1074.
+        """
+        import pip.pep425tags
+        def raises_ioerror(var):
+            raise IOError("I have the wrong path!")
+        with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
+            assert len(pip.pep425tags.get_supported())
+
