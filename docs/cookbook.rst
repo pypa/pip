@@ -320,11 +320,11 @@ Cause
 ~~~~~
 
 distribute-0.7.3 is just an empty wrapper that only serves to require the new
-setuptools (setuptools>=0.7) so that it will be installed. (if you don't know
+setuptools (setuptools>=0.7) so that it will be installed. (If you don't know
 yet, the "new setuptools" is a merge of distribute and setuptools back into one
-project)
+project).
 
-distribute-0.7.3 does it's job well, when the upgrade is done in isolation.
+distribute-0.7.3 does its job well, when the upgrade is done in isolation.
 E.g. if you're currently on distribute-0.6.X, then running `pip install -U
 setuptools` works fine to upgrade you to setuptools>=0.7.
 
@@ -341,7 +341,7 @@ separated by other dependencies in the list, so what can happen is this:
 1.  pip uninstalls the existing distribute
 2.  pip installs distribute-0.7.3 (which has no importable setuptools, that pip
     *needs* internally to function)
-3.  pip moves onto install another dependency (before setuptools>=0.7) and is
+3.  pip moves on to install another dependency (before setuptools>=0.7) and is
     unable to proceed without the setuptools package
 
 Note that pip v1.4 has fixes to prevent this.  distribute-0.7.3 (or
