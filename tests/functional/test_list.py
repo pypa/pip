@@ -1,9 +1,5 @@
 import os
-import re
-import textwrap
-from tests.lib import (pyversion, reset_env, run_pip, write_file, path_to_url,
-                            tests_data, find_links)
-from tests.lib.local_repos import local_checkout
+from tests.lib import (reset_env, run_pip, find_links)
 
 
 def test_list_command():
