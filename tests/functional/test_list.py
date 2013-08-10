@@ -74,4 +74,4 @@ def test_format_flag():
     reset_env()
     run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
     result = run_pip('list', '--output=json')
-    assert '{"version": "1.0", "location": null, "package": "simple"}' in result.stdout, str(result)
+    assert '{"location": null, "package": "simple", "version": "1.0"}' in result.stdout, str(result)

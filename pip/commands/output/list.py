@@ -64,7 +64,7 @@ class JsonFormat(ListCommand):
       self.package_list_with_location(project_name, version, None)
 
     def output_end(self):
-        self.output(json.dumps(self.items))
+        self.output(json.dumps(self.items, sort_keys=True))
 
 
 class CsvFormat(ListCommand):

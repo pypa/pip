@@ -53,7 +53,7 @@ def test_package_list_item_format_with_location_for_json_format():
     json_formatter.package_list_item('pip', '1.2.3', '/some/path/here')
     json_formatter.output_end()
 
-    json_formatter.output.assert_called_with("""[{"version": "1.2.3", "location": "/some/path/here", "package": "pip"}]""")
+    json_formatter.output.assert_called_with("""[{"location": "/some/path/here", "package": "pip", "version": "1.2.3"}]""")
 
 
 def test_package_list_item_format_without_location_for_json_format():
@@ -63,7 +63,7 @@ def test_package_list_item_format_without_location_for_json_format():
     json_formatter.package_list_item('pip', '1.2.3')
     json_formatter.output_end()
 
-    json_formatter.output.assert_called_with("""[{"version": "1.2.3", "location": null, "package": "pip"}]""")
+    json_formatter.output.assert_called_with("""[{"location": null, "package": "pip", "version": "1.2.3"}]""")
 
 
 def test_outdated_output_for_csv_format():
