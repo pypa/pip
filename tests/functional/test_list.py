@@ -56,6 +56,7 @@ def test_outdated_flag():
 def test_editables_flag():
     """
     Test the behavior of --editables flag in the list command
+
     """
     reset_env()
     run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
@@ -64,3 +65,13 @@ def test_editables_flag():
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, str(result)
 
+
+def test_format_flag():
+    """
+    Test the behavior of --output flag in the list command
+
+    """
+    reset_env()
+    run_pip('install', '-f', find_links, '--no-index', 'simple==1.0')
+    result = run_pip('list', '--output=json')
+    assert '{"version": "1.0", "location": null, "package": "simple"}' in result.stdout, str(result)

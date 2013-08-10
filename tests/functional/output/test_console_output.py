@@ -6,20 +6,25 @@ from pip.commands.output import ConsoleOutput
 def test_initialization_of_command_options():
     cmd_opts = MagicMock()
 
+    fake_text_formatter = Mock()
+    fake_text_formatter.format_type = 'text'
+
     fake_json_formatter = Mock()
     fake_json_formatter.format_type = 'json'
 
     fake_csv_formatter = Mock()
     fake_csv_formatter.format_type = 'csv'
 
-    console = ConsoleOutput(cmd_opts, [fake_json_formatter, fake_csv_formatter])
+    console = ConsoleOutput(cmd_opts, [fake_text_formatter, fake_json_formatter, fake_csv_formatter])
 
-    assert ['json', 'csv'] == console.formats_available()
+    assert ['text', 'json', 'csv'] == console.formats_available()
 
     cmd_opts.add_option.assert_called_with('--output',
             action='store',
-            choices=['json', 'csv'],
-            help='Output type to render: json, csv.')
+            default='text',
+            choices=['text', 'json', 'csv'],
+            help='Output type to render: text, json, csv.')
+
 
 def test_output_format_choice():
     cmd_opts = MagicMock()

@@ -5,6 +5,8 @@ from pip.log import logger
 from pip.req import InstallRequirement
 from pip.util import get_installed_distributions, dist_is_editable
 from pip.cmdoptions import make_option_group, index_group
+from pip.commands.output import ConsoleOutput
+from pip.commands.output.list import TextFormat, JsonFormat
 
 
 class ListCommand(Command):
@@ -49,6 +51,8 @@ class ListCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
+        self.console = ConsoleOutput(cmd_opts, output_formatters=[TextFormat(), JsonFormat()])
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -67,6 +71,7 @@ class ListCommand(Command):
                         )
 
     def run(self, options, args):
+        self.console.set_output_type_based_on(options)
         if options.outdated:
             self.run_outdated(options)
         elif options.uptodate:
@@ -79,8 +84,9 @@ class ListCommand(Command):
     def run_outdated(self, options):
         for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
-                logger.notify('%s (Current: %s Latest: %s)' % (dist.project_name,
-                    dist.version, remote_version_raw))
+                self.console.notify_outdated_item(project_name=dist.project_name,
+                  current_version=dist.version, latest_version=remote_version_raw)
+        self.console.notify_output_end()
 
     def find_packages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
@@ -143,11 +149,13 @@ class ListCommand(Command):
     def output_package_listing(self, installed_packages):
         installed_packages = sorted(installed_packages, key=lambda dist: dist.project_name.lower())
         for dist in installed_packages:
+            location = None
             if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
-            else:
-                line = '%s (%s)' % (dist.project_name, dist.version)
-            logger.notify(line)
+                location = dist.location
+            self.console.notify_package_list_item(project_name=dist.project_name,
+                    version=dist.version, location=location)
+
+        self.console.notify_output_end()
 
     def run_uptodate(self, options):
         uptodate = []
