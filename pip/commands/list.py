@@ -6,7 +6,7 @@ from pip.req import InstallRequirement
 from pip.util import get_installed_distributions, dist_is_editable
 from pip.cmdoptions import make_option_group, index_group
 from pip.commands.output import ConsoleOutput
-from pip.commands.output.list import TextFormat, JsonFormat
+from pip.commands.output.list import TextFormat, JsonFormat, CsvFormat
 
 
 class ListCommand(Command):
@@ -51,7 +51,7 @@ class ListCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
-        self.console = ConsoleOutput(cmd_opts, output_formatters=[TextFormat(), JsonFormat()])
+        self.console = ConsoleOutput(cmd_opts, output_formatters=[TextFormat(), JsonFormat(), CsvFormat()])
 
         index_opts = make_option_group(index_group, self.parser)
 

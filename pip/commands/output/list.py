@@ -65,3 +65,28 @@ class JsonFormat(ListCommand):
 
     def output_end(self):
         self.output(json.dumps(self.items))
+
+
+class CsvFormat(ListCommand):
+    format_type = 'csv'
+
+    def __init__(self):
+        self.printed_header = False
+
+    def outdated_item(self, project_name, current_version, latest_version):
+        if not self.printed_header:
+            self.output('Package,CurrentVersion,LatestVersion')
+            self.printed_header = True
+        self.output(','.join([project_name, current_version, latest_version]))
+
+    def package_list_with_location(self, project_name, version, location):
+        self._print_header_for_package_listing()
+        self.output(','.join([project_name, version, location]))
+
+    def package_list_without_location(self, project_name, version):
+        self.package_list_with_location(project_name, version, '')
+
+    def _print_header_for_package_listing(self):
+        if not self.printed_header:
+            self.output('Package,Version,Location')
+            self.printed_header = True

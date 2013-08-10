@@ -1,7 +1,7 @@
 import json
 from mock import MagicMock
 
-from pip.commands.output.list import TextFormat, JsonFormat
+from pip.commands.output.list import TextFormat, JsonFormat, CsvFormat
 
 
 def test_outdated_output_for_text_format():
@@ -64,3 +64,26 @@ def test_package_list_item_format_without_location_for_json_format():
     json_formatter.output_end()
 
     json_formatter.output.assert_called_with("""[{"version": "1.2.3", "location": null, "package": "pip"}]""")
+
+
+def test_outdated_output_for_csv_format():
+    csv_formatter = CsvFormat()
+    csv_formatter.output = MagicMock()
+
+    csv_formatter.outdated_item(project_name="pip",
+        current_version="1.3.1", latest_version='2.3.1')
+    csv_formatter.output_end()
+
+    csv_formatter.output.assert_called_with('pip,1.3.1,2.3.1')
+
+
+def test_package_list_item_format_for_csv_format():
+    csv_formatter = CsvFormat()
+    csv_formatter.output = MagicMock()
+
+    csv_formatter.package_list_item('pip', '1.2.3', '/some/path/here')
+    csv_formatter.output_end()
+
+    csv_formatter.output.assert_called_with('pip,1.2.3,/some/path/here')
+
+
