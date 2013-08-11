@@ -9,6 +9,7 @@ from pip.backwardcompat import xmlrpclib, reduce, cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 from distutils.version import StrictVersion, LooseVersion
+from xml.parsers.expat import ExpatError
 
 
 class SearchCommand(Command):
@@ -49,8 +50,12 @@ class SearchCommand(Command):
 
     def search(self, query, index_url):
         pypi = xmlrpclib.ServerProxy(index_url)
-        hits = pypi.search({'name': query, 'summary': query}, 'or')
-        return hits
+        try: 
+          hits = pypi.search({'name': query, 'summary': query}, 'or')
+          return hits
+        except (xmlrpclib.Error, ExpatError):
+          e = sys.exc_info()[1]
+          raise CommandError("Error calling %s: %s" % (index_url, e))
 
 
 def transform_hits(hits):

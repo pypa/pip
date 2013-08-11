@@ -3,12 +3,15 @@ from pip.commands.search import (compare_versions,
                                  highest_version,
                                  transform_hits,
                                  SearchCommand)
+from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
 from pip.baseparser import create_main_parser
-from mock import Mock
+from mock import Mock, patch
+from nose.tools import assert_raises
 from tests.lib import run_pip, reset_env, pyversion
 from tests.lib.pypi_server import assert_equal
+from xml.parsers.expat import ExpatError
 
 
 if pyversion >= '3':
@@ -123,3 +126,17 @@ def test_search_exit_status_code_when_finds_no_package():
     env = reset_env()
     result = run_pip('search', 'non-existant-package', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
+
+@patch.object(xmlrpclib._Method, '__call__')
+def test_search_raises_command_errors_with_rpc_errors(mock_method):
+  """
+  Test search propagates CommandErrors when xmlrpc fails.
+  """
+  mock_method.side_effect = (ExpatError, xmlrpclib.Error)
+  search_cmd = SearchCommand(create_main_parser())
+  assert_raises(CommandError,
+      search_cmd.search,
+      ('pip',), 'http://pypi.python.org/pypi')
+  assert_raises(CommandError,
+      search_cmd.search,
+      ('pip',), 'http://pypi.python.org/pypi')
