@@ -60,8 +60,6 @@ class ListCommand(Command):
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
-                             use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors,
                              allow_external=options.allow_external,
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
@@ -89,6 +87,19 @@ class ListCommand(Command):
         if options.no_index:
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
+
+        if options.use_mirrors:
+            logger.deprecated("1.7",
+                        "--use-mirrors has been deprecated and will be removed"
+                        " in the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+
+        if options.mirrors:
+            logger.deprecated("1.7",
+                        "--mirrors has been deprecated and will be removed in "
+                        " the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+            index_urls += options.mirrors
 
         dependency_links = []
         for dist in get_installed_distributions(local_only=options.local, skip=self.skip):
