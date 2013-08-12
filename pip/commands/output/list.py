@@ -1,4 +1,4 @@
-import json
+from pip.backwardcompat import json
 from pip.log import logger
 
 

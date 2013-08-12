@@ -118,6 +118,14 @@ def product(*args, **kwds):
         yield tuple(prod)
 
 
+try:
+    # new in python 2.6
+    import json
+except:
+    # try importing from simplejson package
+    import simplejson as json
+
+
 ## only >=py32 has ssl.match_hostname and ssl.CertificateError
 try:
     from ssl import match_hostname, CertificateError

@@ -1,4 +1,3 @@
-import json
 from mock import MagicMock
 
 from pip.commands.output.list import TextFormat, JsonFormat, CsvFormat
@@ -85,5 +84,3 @@ def test_package_list_item_format_for_csv_format():
     csv_formatter.output_end()
 
     csv_formatter.output.assert_called_with('pip,1.2.3,/some/path/here')
-
-

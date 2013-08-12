@@ -1,4 +1,10 @@
 class ConsoleOutput:
+    """
+    Interface to all output formats available for a command. Provide
+    command flag to choose from different output formats available.
+    """
+    # delegate all the methods calls begining with 'notify_' to the class
+    # responsible to handle the chosen format.
     delegation_marker = 'notify_'
 
     def __init__(self, cmd_opts, output_formatters=[]):
