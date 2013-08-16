@@ -1,3 +1,6 @@
+Policy
+======
+
 Vendored libraries should not be modified except as required to actually
 successfully vendor them.
 
