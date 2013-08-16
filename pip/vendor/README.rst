@@ -19,6 +19,6 @@ end users from needing to manually install packages if they accidently remove
 something that pip depends on.
 
 All bundled packages exist in the ``pip.vendor`` namespace, and the versions
-(fetched from PyPI) that we use are located in vendor.txt. After removing
+(fetched from PyPI) that we use are located in vendor.txt. If you remove
 ``pip.vendor.*`` you'll also need to update the import statements that import
 these packages.
