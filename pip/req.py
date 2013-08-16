@@ -27,12 +27,13 @@ from pip.backwardcompat import (urlparse, urllib, uses_pycache,
                                 get_python_version, b)
 from pip.index import Link
 from pip.locations import build_prefix
-from pip.download import (get_file_content, is_url, url_to_path,
+from pip.download import (PipSession, get_file_content, is_url, url_to_path,
                           path_to_url, is_archive_file,
                           unpack_vcs_link, is_vcs_url, is_file_url,
                           unpack_file_url, unpack_http_url)
 import pip.wheel
 from pip.wheel import move_wheel_files
+
 
 class InstallRequirement(object):
 
@@ -852,7 +853,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
+                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
+                 session=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -871,6 +873,7 @@ class RequirementSet(object):
         self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir #set from --target option
+        self.session = session or PipSession()
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1232,7 +1235,7 @@ class RequirementSet(object):
         else:
             if self.download_cache:
                 self.download_cache = os.path.expanduser(self.download_cache)
-            retval = unpack_http_url(link, location, self.download_cache, self.download_dir)
+            retval = unpack_http_url(link, location, self.download_cache, self.download_dir, self.session)
             if only_download:
                 write_delete_marker_file(location)
             return retval
@@ -1391,13 +1394,20 @@ def _make_build_dir(build_dir):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 
 
-def parse_requirements(filename, finder=None, comes_from=None, options=None):
+def parse_requirements(filename, finder=None, comes_from=None, options=None,
+                       session=None):
+    if session is None:
+        session = PipSession()
+
     skip_match = None
     skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
         skip_match = re.compile(skip_regex)
     reqs_file_dir = os.path.dirname(os.path.abspath(filename))
-    filename, content = get_file_content(filename, comes_from=comes_from)
+    filename, content = get_file_content(filename,
+        comes_from=comes_from,
+        session=session,
+    )
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
         line = line.strip()
@@ -1415,7 +1425,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req_url = urlparse.urljoin(filename, req_url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
-            for item in parse_requirements(req_url, finder, comes_from=filename, options=options):
+            for item in parse_requirements(req_url, finder, comes_from=filename, options=options, session=session):
                 yield item
         elif line.startswith('-Z') or line.startswith('--always-unzip'):
             # No longer used, but previously these were used in

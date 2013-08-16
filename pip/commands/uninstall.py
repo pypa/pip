@@ -38,6 +38,8 @@ class UninstallCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        session = self._build_session(options)
+
         requirement_set = RequirementSet(
             build_dir=None,
             src_dir=None,
@@ -46,7 +48,8 @@ class UninstallCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
         for filename in options.requirements:
-            for req in parse_requirements(filename, options=options):
+            for req in parse_requirements(filename,
+                    options=options, session=session):
                 requirement_set.add_requirement(req)
         if not requirement_set.has_requirements:
             raise InstallationError('You must give at least one requirement '

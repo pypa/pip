@@ -109,6 +109,8 @@ class WheelCommand(Command):
                         "--extra-index-url is suggested.")
             index_urls += options.mirrors
 
+        session = self._build_session(options)
+
         finder = PackageFinder(find_links=options.find_links,
                                index_urls=index_urls,
                                use_wheel=options.use_wheel,
@@ -116,6 +118,7 @@ class WheelCommand(Command):
                                allow_insecure=options.allow_insecure,
                                allow_all_external=options.allow_all_external,
                                allow_all_prereleases=options.pre,
+                               session=session,
                             )
 
         options.build_dir = os.path.abspath(options.build_dir)
@@ -136,7 +139,7 @@ class WheelCommand(Command):
                 InstallRequirement.from_line(name, None))
 
         for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder, options=options):
+            for req in parse_requirements(filename, finder=finder, options=options, session=session):
                 if req.editable or (req.name is None and req.url.endswith(".whl")):
                     logger.notify("ignoring %s" % req.url)
                     continue
