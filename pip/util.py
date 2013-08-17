@@ -467,9 +467,22 @@ def get_terminal_size():
     return int(cr[1]), int(cr[0])
 
 
+def current_umask():
+    """Get the current umask which involves having to set it temporarily."""
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
+
+
 def unzip_file(filename, location, flatten=True):
-    """Unzip the file (zip file located at filename) to the destination
-    location"""
+    """
+    Unzip the file (with path `filename`) to the destination `location`.  All
+    files are written based on system defaults and umask (i.e. permissions are
+    not preserved), except that regular file members with any execute
+    permissions (user, group, or world) have "chmod +x" applied after being
+    written. Note that for windows, any execute changes using os.chmod are
+    no-ops per the python docs.
+    """
     if not os.path.exists(location):
         os.makedirs(location)
     zipfp = open(filename, 'rb')
@@ -496,17 +509,25 @@ def unzip_file(filename, location, flatten=True):
                     fp.write(data)
                 finally:
                     fp.close()
-                    unix_attributes = info.external_attr >> 16
-                    if unix_attributes:
-                        os.chmod(fn, unix_attributes)
-
-
+                    mode = info.external_attr >> 16
+                    # if mode and regular file and any execute permissions for user/group/world?
+                    if mode and stat.S_ISREG(mode) and  mode & 0o111:
+                        # make dest file have execute for user/group/world (chmod +x)
+                        # no-op on windows per python docs
+                        os.chmod(fn, (0o777-current_umask() | 0o111))
     finally:
         zipfp.close()
 
 
 def untar_file(filename, location):
-    """Untar the file (tar file located at filename) to the destination location"""
+    """
+    Untar the file (with path `filename`) to the destination `location`.
+    All files are written based on system defaults and umask (i.e. permissions
+    are not preserved), except that regular file members with any execute
+    permissions (user, group, or world) have "chmod +x" applied after being
+    written.  Note that for windows, any execute changes using os.chmod are
+    no-ops per the python docs.
+    """
     if not os.path.exists(location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
@@ -565,6 +586,11 @@ def untar_file(filename, location):
                 finally:
                     destfp.close()
                 fp.close()
+                # member have any execute permissions for user/group/world?
+                if member.mode & 0o111:
+                    # make dest file have execute for user/group/world
+                    # no-op on windows per python docs
+                    os.chmod(path, (0o777-current_umask() | 0o111))
     finally:
         tar.close()
 

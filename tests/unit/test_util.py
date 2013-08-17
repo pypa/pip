@@ -3,13 +3,17 @@ util tests
 
 """
 import os
+import stat
 import sys
+import shutil
+import tempfile
 
 from mock import Mock, patch
 from nose.tools import eq_, assert_raises
 from pip.exceptions import BadCommand
-from pip.util import egg_link_path, Inf, get_installed_distributions, find_command
-from tests.lib import reset_env, mkdir, write_file
+from pip.util import (egg_link_path, Inf, get_installed_distributions, find_command,
+                      untar_file, unzip_file)
+from tests.lib import reset_env, mkdir, write_file, tests_data
 
 
 class Tests_EgglinkPath:
@@ -273,6 +277,71 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
+class TestUnpackArchives(object):
+    """
+    test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3 things:
+     1) confirm that reg files, dirs, and symlinks get unpacked
+     2) permissions are not preserved (and go by the 022 umask)
+     3) reg files with *any* execute perms, get chmod +x
 
+       file.txt         600 regular file
+       symlink.txt      777 symlink to file.txt
+       script_owner.sh  700 script where owner can execute
+       script_group.sh  610 script where group can execute
+       script_world.sh  601 script where world can execute
+       dir              744 directory
+       dir/dirfile      622 regular file
 
+    """
 
+    def setup(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.old_mask = os.umask(0o022)
+        self.symlink_expected_mode = None
+
+    def teardown(self):
+        os.umask(self.old_mask)
+        shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def mode(self, path):
+        return stat.S_IMODE(os.stat(path).st_mode)
+
+    def confirm_files(self):
+        # expections based on 022 umask set above and the unpack logic that sets
+        # execute permissions, not preservation
+        for fname, expected_mode, test in [
+            ('file.txt', 0o644, os.path.isfile),
+            ('symlink.txt', 0o644, os.path.isfile),
+            ('script_owner.sh', 0o755, os.path.isfile),
+            ('script_group.sh', 0o755, os.path.isfile),
+            ('script_world.sh', 0o755, os.path.isfile),
+            ('dir', 0o755, os.path.isdir),
+            (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
+            ]:
+            path = os.path.join(self.tempdir, fname)
+            if path.endswith('symlink.txt') and sys.platform == 'win32':
+                # no symlinks created on windows
+                continue
+            assert test(path), path
+            if sys.platform == 'win32':
+                # the permissions tests below don't apply in windows
+                # due to os.chmod being a noop
+                continue
+            mode = self.mode(path)
+            assert mode == expected_mode, "mode: %s, expected mode: %s" % (mode, expected_mode)
+
+    def test_unpack_tgz(self):
+        """
+        Test unpacking a *.tgz, and setting execute permissions
+        """
+        test_file =  os.path.join(tests_data, 'packages', 'test_tar.tgz')
+        untar_file(test_file, self.tempdir)
+        self.confirm_files()
+
+    def test_unpack_zip(self):
+        """
+        Test unpacking a *.zip, and setting execute permissions
+        """
+        test_file =  os.path.join(tests_data, 'packages', 'test_zip.zip')
+        unzip_file(test_file, self.tempdir)
+        self.confirm_files()
