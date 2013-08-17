@@ -9,11 +9,6 @@ import pkg_resources
 import socket
 import ssl
 
-try:
-    import threading
-except ImportError:
-    import dummy_threading as threading
-
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
@@ -368,38 +363,25 @@ class PackageFinder(object):
         return None
 
     def _get_pages(self, locations, req):
-        """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
-        pending_queue = Queue()
-        for location in locations:
-            pending_queue.put(location)
-        done = []
+        """
+        Yields (page, page_url) from the given locations, skipping
+        locations that have errors, and adding download/homepage links
+        """
+        all_locations = list(locations)
         seen = set()
-        threads = []
-        for i in range(min(10, len(locations))):
-            t = threading.Thread(target=self._get_queued_page, args=(req, pending_queue, done, seen))
-            t.setDaemon(True)
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
-        return done
 
-    _log_lock = threading.Lock()
-
-    def _get_queued_page(self, req, pending_queue, done, seen):
-        while 1:
-            try:
-                location = pending_queue.get(False)
-            except QueueEmpty:
-                return
+        while all_locations:
+            location = all_locations.pop(0)
             if location in seen:
                 continue
             seen.add(location)
+
             page = self._get_page(location, req)
             if page is None:
                 continue
-            done.append(page)
+
+            yield page
+
             for link in page.rel_links():
                 normalized = normalize_name(req.name).lower()
 
@@ -420,7 +402,7 @@ class PackageFinder(object):
                     self.need_warn_insecure = True
                     continue
 
-                pending_queue.put(link)
+                all_locations.append(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
