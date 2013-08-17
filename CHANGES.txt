@@ -10,6 +10,16 @@ Changelog
   order to use a mirror specify it as the primary index with ``-i`` or
   ``--index-url``, or as an additional index with ``--extra-index-url``. (Pull #1098, CVE-2013-5123)
 
+* **BACKWARD INCOMPATIBLE** pip no longer will scrape insecure external urls by
+  default nor will it install externally hosted files by default. Users may opt
+  into installing externally hosted or insecure files or urls using
+  ``--allow-external PROJECT`` and ``--allow-insecure PROJECT``. (Pull #1055)
+
+* Added colors to the logging output in order to draw attention to important
+  warnings and errors. (Pull #1109)
+
+* Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
+
 
 1.4.1 (2013-08-07)
 ------------------
