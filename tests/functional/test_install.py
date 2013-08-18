@@ -1,9 +1,11 @@
 import os
 import sys
 import textwrap
+
 from os.path import abspath, join, curdir, pardir
 
-from nose import SkipTest
+import pytest
+
 from pip.util import rmtree
 from tests.lib import tests_data, reset_env, run_pip, pyversion, mkdir, pip_install_local, write_file, find_links
 from tests.lib.local_repos import local_checkout
@@ -439,6 +441,8 @@ def test_install_package_with_root():
     assert root_path in result.files_created, str(result)
 
 
+# skip on win/py3 for now, see issue #782
+@pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
 def test_install_package_that_emits_unicode():
     """
     Install a package with a setup.py that emits UTF-8 output and then fails.
@@ -454,11 +458,6 @@ def test_install_package_that_emits_unicode():
 
     Refs https://github.com/pypa/pip/issues/326
     """
-
-    #skip on win/py3 for now, see issue #782
-    if sys.platform == 'win32' and sys.version_info >= (3,):
-        raise SkipTest()
-
     env = reset_env()
     to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'BrokenEmitsUTF8'))
     result = run_pip('install', to_install, expect_error=True, expect_temp=True, quiet=True)

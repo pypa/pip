@@ -1,11 +1,15 @@
 """Tests for wheel binary packages and .dist-info."""
+import os
+
+import pytest
+
 import pkg_resources
 from mock import patch, Mock
 from pip import wheel
 from pip.exceptions import InstallationError
 from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
-from nose.tools import assert_raises
+
 
 def test_uninstallation_paths():
     class dist(object):
@@ -138,11 +142,10 @@ class TestWheelFile(object):
         from tempfile import mkdtemp
         from shutil import rmtree
         import os
-        from nose import SkipTest
 
         filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
         if not os.path.exists(filepath):
-            raise SkipTest
+            pytest.skip("%s does not exist" % filepath)
         try:
             tmpdir = mkdtemp()
             util.unpack_file(filepath, tmpdir, 'application/zip', None )
@@ -155,8 +158,8 @@ class TestWheelFile(object):
         """
         Test the "wheel is purelib/platlib" code.
         """
-        packages =  [("pure_wheel", "data/packages/pure_wheel-1.7", True),
-                     ("plat_wheel", "data/packages/plat_wheel-1.7", False)]
+        packages =  [("pure_wheel", os.path.join(os.path.dirname(__file__), os.pardir, "data/packages/pure_wheel-1.7"), True),
+                     ("plat_wheel", os.path.join(os.path.dirname(__file__), os.pardir, "data/packages/plat_wheel-1.7"), False)]
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
 

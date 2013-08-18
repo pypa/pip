@@ -9,6 +9,7 @@ import glob
 import atexit
 import textwrap
 import site
+import shutil
 
 from scripttest import TestFileEnvironment, FoundDir
 from tests.lib.path import Path, curdir, u
@@ -329,7 +330,10 @@ class TestPipEnvironment(TestFileEnvironment):
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         if self.root_path.exists:
-            rmtree(self.root_path)
+            _path = self.root_path
+            while os.path.islink(_path):
+                _path = os.path.realpath(_path)
+            shutil.rmtree(_path)
         if self.backup_path.exists and not self.rebuild_venv:
             shutil.copytree(self.backup_path, self.root_path, True)
         else:
@@ -600,5 +604,5 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
+    sys.stderr.write("Run pip's tests using py.test. Requires virtualenv, ScriptTest, mock, and pytest.\n")
     sys.exit(1)

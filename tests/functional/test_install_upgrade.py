@@ -1,9 +1,11 @@
 import os
 import sys
 import textwrap
+
 from os.path import join
-from nose.tools import nottest
-from nose import SkipTest
+
+import pytest
+
 from tests.lib import (reset_env, run_pip, assert_all_changes, src_folder,
                        write_file, pyversion, _create_test_package, pip_install_local,
                        _change_test_package_version, path_to_url, find_links)
@@ -154,7 +156,7 @@ def test_uninstall_rollback():
     assert_all_changes(result.files_after, result2, [env.venv/'build', 'pip-log.txt'])
 
 # Issue #530 - temporarily disable flaky test
-@nottest
+@pytest.mark.skipif
 def test_editable_git_upgrade():
     """
     Test installing an editable git package from a repository, upgrading the repository,
@@ -235,9 +237,8 @@ class TestUpgradeSetuptools(object):
         self.env.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
         self.env.run(self.ve_bin/'python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
 
+    @pytest.mark.skipif("sys.version_info >= (3,0)")
     def test_py2_from_setuptools_6_to_setuptools_7(self):
-        if sys.version_info >= (3,):
-            raise SkipTest()
         self.prep_ve('1.9.1')
         result = self.env.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.6c11" in result.stdout

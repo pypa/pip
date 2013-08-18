@@ -5,8 +5,9 @@ util tests
 import os
 import sys
 
+import pytest
+
 from mock import Mock, patch
-from nose.tools import eq_, assert_raises
 from pip.exceptions import BadCommand
 from pip.util import egg_link_path, Inf, get_installed_distributions, find_command
 from tests.lib import reset_env, mkdir, write_file
@@ -63,19 +64,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     def test_egglink_in_usersite_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_egglink_in_usersite_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     #########################
     ## egglink in sitepkgs ##
@@ -84,19 +85,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     ####################################
     ## egglink in usersite & sitepkgs ##
@@ -105,19 +106,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     def test_egglink_in_both_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_both_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     ################
     ## no egglink ##
@@ -126,19 +127,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_noegglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_noegglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
 def test_Inf_greater():
     """Test Inf compares greater."""
@@ -248,7 +249,9 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
     expected = [((p,),) for p in paths]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one')
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one")
+
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert getpath_mock.called, "Should call get_pathext"
 
@@ -268,7 +271,9 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
     expected = [((p,),) for p in paths]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one", pathext)
+
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
 
