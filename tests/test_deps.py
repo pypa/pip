@@ -54,5 +54,7 @@ class TestDepsCommandWithNonExistentPackage(TestCase):
         reset_env()
         cls.result = _run_deps('non-existent', expect_error=True)
 
+    def test_exits_with_error(self):
+        self.assertEqual(self.result.returncode, ERROR)
     def test_exits_with_success(self):
         self.assertEqual(self.result.returncode, ERROR)
