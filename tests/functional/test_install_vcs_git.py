@@ -1,6 +1,9 @@
 import sys
+
+import pytest
+
 from mock import patch
-from nose import SkipTest
+
 from pip.vcs.git import Git
 from tests.lib import (reset_env, run_pip,
                             _create_test_package,)
@@ -78,14 +81,13 @@ def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
     assert result == ['123456'], result
 
 
+# TODO(pnasrat) fix all helpers to do right things with paths on windows.
+@pytest.mark.skipif("sys.platform == 'win32'")
 def test_check_submodule_addition():
     """
     Submodules are pulled in on install and updated on upgrade.
 
     """
-    # TODO(pnasrat) fix all helpers to do right things with paths on windows.
-    if sys.platform == 'win32':
-      raise SkipTest()
     env = reset_env()
     module_path, submodule_path = _create_test_package_with_submodule(env)
 

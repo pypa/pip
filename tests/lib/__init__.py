@@ -9,6 +9,7 @@ import glob
 import atexit
 import textwrap
 import site
+import shutil
 
 from scripttest import TestFileEnvironment, FoundDir
 from tests.lib.path import Path, curdir, u
@@ -600,5 +601,5 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
+    sys.stderr.write("Run pip's tests using py.test. Requires virtualenv, ScriptTest, mock, and pytest.\n")
     sys.exit(1)
