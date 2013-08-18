@@ -199,21 +199,21 @@ class Tests_get_installed_distributions:
         assert len(dists) == 3
 
 
-def test_find_command_folder_in_path():
+def test_find_command_folder_in_path(tmpdir):
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
     the 'git' executable, it should not match the folder, but rather keep
     looking.
     """
-    env = reset_env()
-    mkdir('path_one')
-    path_one = env.scratch_path/'path_one'
-    mkdir(path_one/'foo')
-    mkdir('path_two')
-    path_two = env.scratch_path/'path_two'
-    write_file(path_two/'foo', '# nothing')
-    found_path = find_command('foo', map(str, [path_one, path_two]))
-    assert found_path == path_two/'foo'
+    path_one = tmpdir.mkdir("path_one")
+    path_two = tmpdir.mkdir("path_two")
+
+    path_one.mkdir("foo")
+    path_two.join("foo").write("# nothing")
+
+    found_path = find_command("foo", [str(path_one), str(path_two)])
+
+    assert found_path == path_two.join("foo")
 
 
 def test_does_not_find_command_because_there_is_no_path():
