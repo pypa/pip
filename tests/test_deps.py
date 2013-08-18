@@ -75,3 +75,18 @@ class TestDepsWithURL(TestCase):
 
     def test_exits_with_success(self):
         self.assertEqual(self.result.returncode, SUCCESS)
+
+
+class TestDepsWithDependencyLinks(TestCase):
+
+    @classmethod
+    def setupClass(cls):
+        reset_env()
+        cls.result = _run_local_deps('dependency-links')
+
+    def test_returns_dependency_links(self):
+        assert 'dependency-links==1.0' in self.result.stdout
+        assert '--find-links http://pypi.python.org/simple' in self.result.stdout
+
+    def test_exits_with_success(self):
+        self.assertEqual(self.result.returncode, SUCCESS)
