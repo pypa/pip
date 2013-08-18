@@ -1,7 +1,10 @@
 import os.path
 import textwrap
-from nose.tools import assert_equal, assert_raises
+
+import pytest
+
 from mock import patch
+
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
 from tests.lib import (reset_env, run_pip, write_file, pyversion, tests_data,
@@ -39,7 +42,9 @@ def test_schema_check_in_requirements_file():
     write_file('file-egg-req.txt', textwrap.dedent("""\
         git://github.com/alex/django-fixture-generator.git#egg=fixture_generator
         """))
-    assert_raises(AssertionError, run_pip, 'install', '-vvv', '-r', env.scratch_path / 'file-egg-req.txt')
+
+    with pytest.raises(AssertionError):
+        run_pip("install", "-vvv", "-r", env.scratch_path / "file-egg-req.txt")
 
 
 def test_relative_requirements_file():

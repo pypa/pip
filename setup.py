@@ -2,9 +2,26 @@ import codecs
 import os
 import re
 import sys
+
 from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+
+class PyTest(TestCommand):
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+
+        sys.exit(pytest.main(self.test_args))
 
 
 def read(*parts):
@@ -24,7 +41,7 @@ def find_version(*file_paths):
 long_description = "\n" + "\n".join([read('PROJECT.txt'),
                                      read('docs', 'quickstart.rst')])
 
-tests_require = ['nose>=1.3.0', 'virtualenv>=1.10', 'scripttest>=1.1.1', 'mock']
+tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.1.1', 'mock']
 
 setup(name="pip",
       version=find_version('pip', '__init__.py'),
@@ -52,9 +69,10 @@ setup(name="pip",
       package_data={'pip': ['*.pem']},
       entry_points=dict(console_scripts=['pip=pip:main', 'pip%s=pip:main' % sys.version[:1],
           'pip%s=pip:main' % sys.version[:3]]),
-      test_suite='nose.collector',
       tests_require=tests_require,
       zip_safe=False,
       extras_require={
           'testing': tests_require,
-      })
+      },
+      cmdclass = {'test': PyTest},
+)

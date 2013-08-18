@@ -1,4 +1,7 @@
 import os
+
+import pytest
+
 from pkg_resources import parse_version, Distribution
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
@@ -7,7 +10,6 @@ from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.util import Inf
 from tests.lib.path import Path
 from tests.lib import tests_data, path_to_url, find_links, find_links2
-from nose.tools import assert_raises
 from mock import Mock, patch
 
 
@@ -58,7 +60,9 @@ def test_finder_detects_latest_already_satisfied_find_links():
         )
     req.satisfied_by = satisfied_by
     finder = PackageFinder([find_links], [])
-    assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+    with pytest.raises(BestVersionAlreadyInstalled):
+        finder.find_requirement(req, True)
 
 
 def test_finder_detects_latest_already_satisfied_pypi_links():
@@ -73,7 +77,9 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
         )
     req.satisfied_by = satisfied_by
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
-    assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
+
+    with pytest.raises(BestVersionAlreadyInstalled):
+        finder.find_requirement(req, True)
 
 
 # patch this for travis which has distribute in it's base env for now
@@ -87,7 +93,9 @@ class TestWheel(object):
         """
         req = InstallRequirement.from_line("simple.dist")
         finder = PackageFinder([find_links], [], use_wheel=True)
-        assert_raises(DistributionNotFound, finder.find_requirement, req, True)
+
+        with pytest.raises(DistributionNotFound):
+            finder.find_requirement(req, True)
 
 
     @patch('pip.pep425tags.supported_tags', [('py2', 'none', 'any')])
@@ -126,8 +134,9 @@ class TestWheel(object):
             )
         req.satisfied_by = satisfied_by
         finder = PackageFinder([find_links], [], use_wheel=True)
-        assert_raises(BestVersionAlreadyInstalled, finder.find_requirement, req, True)
 
+        with pytest.raises(BestVersionAlreadyInstalled):
+            finder.find_requirement(req, True)
 
     @patch('pip.pep425tags.supported_tags', [
             ('pyT', 'none', 'TEST'),

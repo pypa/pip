@@ -9,6 +9,7 @@ import glob
 import atexit
 import textwrap
 import site
+import shutil
 
 from scripttest import TestFileEnvironment, FoundDir
 from tests.lib.path import Path, curdir, u
@@ -329,7 +330,19 @@ class TestPipEnvironment(TestFileEnvironment):
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         if self.root_path.exists:
-            rmtree(self.root_path)
+            # There's something strange going on here, Python 3.3 introduced
+            #   a new version of shutil.rmtree which is safe against symlink
+            #   attacks causing arbitrary things from being deleted. However
+            #   this seemingly fails on Travis for unknown reasons. The problem
+            #   seems to stem from os.path.samestat(orig_st, os.fstat(dirfd))
+            #   returning False even when the directory is *not* a symlink. By
+            #   switching to shutil._rmtree_unsafe we use a version of rmtree
+            #   that is slightly vulnerable to a race condition that shouldn't
+            #   matter for our uses.
+            def _onerror(*args, **kwargs):
+                raise
+            _rmtree = getattr(shutil, "_rmtree_unsafe", shutil.rmtree)
+            _rmtree(self.root_path, onerror=_onerror)
         if self.backup_path.exists and not self.rebuild_venv:
             shutil.copytree(self.backup_path, self.root_path, True)
         else:
@@ -600,5 +613,5 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    sys.stderr.write("Run pip's tests using nosetests. Requires virtualenv, ScriptTest, mock, and nose.\n")
+    sys.stderr.write("Run pip's tests using py.test. Requires virtualenv, ScriptTest, mock, and pytest.\n")
     sys.exit(1)

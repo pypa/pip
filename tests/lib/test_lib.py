@@ -6,7 +6,6 @@ import re
 import sys
 from os.path import join, isdir
 
-from nose import SkipTest
 from pip.backwardcompat import uses_pycache
 from tests.lib import tests_lib, reset_env, run_pip, src_folder
 
