@@ -22,8 +22,8 @@ from pip.backwardcompat import CertificateError
 from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, setuptools_requirement
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip.vendor import html5lib
-from pip.vendor.requests import HTTPError
+from pip.vendor import html5lib, requests
+
 
 __all__ = ['PackageFinder']
 
@@ -669,14 +669,14 @@ class HTMLPage(object):
                 return None
 
             inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
-        except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
+        except requests.Timeout:
+            logger.info("Could not fetch URL %s: timed out", link)
+            if cache is not None:
+                cache.add_page_failure(url, 1)
+        except (requests.HTTPError, URLError, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
-            if isinstance(e, socket.timeout):
-                log_meth = logger.info
-                level = 1
-                desc = 'timed out'
-            elif isinstance(e, URLError):
+            if isinstance(e, URLError):
                 #ssl/certificate error
                 if hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
                     desc = 'There was a problem confirming the ssl certificate: %s' % e
@@ -688,7 +688,7 @@ class HTMLPage(object):
                     level = 1
                 else:
                     level = 2
-            elif isinstance(e, HTTPError) and e.response.status_code == 404:
+            elif isinstance(e, requests.HTTPError) and e.response.status_code == 404:
                 ## FIXME: notify?
                 log_meth = logger.info
                 level = 2
@@ -700,9 +700,10 @@ class HTMLPage(object):
             if cache is not None:
                 cache.add_page_failure(url, level)
             return None
-        if cache is not None:
-            cache.add_page([url, resp.url], inst)
-        return inst
+        else:
+            if cache is not None:
+                cache.add_page([url, resp.url], inst)
+            return inst
 
     @staticmethod
     def _get_content_type(url, session=None):

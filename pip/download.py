@@ -147,14 +147,11 @@ class PipSession(requests.Session):
         if parsed.scheme == "file":
             url = urlparse.urlunparse(parsed[:1] + ("localhost",) + parsed[2:])
 
-        # Dispatch the actual request
-        return super(PipSession, self).request(method, url, *args, **kwargs)
-
-    def send(self, *args, **kwargs):
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 
-        return super(PipSession, self).send(*args, **kwargs)
+        # Dispatch the actual request
+        return super(PipSession, self).request(method, url, *args, **kwargs)
 
 
 def get_file_content(url, comes_from=None, session=None):
