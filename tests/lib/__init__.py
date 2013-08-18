@@ -330,10 +330,7 @@ class TestPipEnvironment(TestFileEnvironment):
         self.environ['PATH'] = Path.pathsep.join((self.bin_path, self.environ['PATH']))
 
         if self.root_path.exists:
-            _path = self.root_path
-            while os.path.islink(_path):
-                _path = os.path.realpath(_path)
-            shutil.rmtree(_path)
+            rmtree(self.root_path)
         if self.backup_path.exists and not self.rebuild_venv:
             shutil.copytree(self.backup_path, self.root_path, True)
         else:
