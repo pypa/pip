@@ -43,7 +43,9 @@ class UninstallCommand(Command):
         requirement_set = RequirementSet(
             build_dir=None,
             src_dir=None,
-            download_dir=None)
+            download_dir=None,
+            session=session,
+        )
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))

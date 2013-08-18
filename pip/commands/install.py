@@ -222,7 +222,9 @@ class InstallCommand(Command):
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
             use_user_site=options.use_user_site,
-            target_dir=temp_target_dir)
+            target_dir=temp_target_dir,
+            session=session,
+        )
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))

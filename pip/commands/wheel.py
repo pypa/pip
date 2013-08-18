@@ -128,7 +128,9 @@ class WheelCommand(Command):
             download_dir=None,
             download_cache=options.download_cache,
             ignore_dependencies=options.ignore_dependencies,
-            ignore_installed=True)
+            ignore_installed=True,
+            session=session,
+        )
 
         #parse args and/or requirements files
         for name in args:
