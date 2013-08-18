@@ -73,6 +73,19 @@ class DependenciesCommand(Command):
                              use_mirrors=options.use_mirrors,
                              mirrors=options.mirrors)
 
+    def _requirement_line(self, req):
+        line = ''
+
+        if req.editable:
+            line += '-e '
+
+        if req.url:
+            line += req.url
+        else:
+            line += '%s==%s' % (req.name, req.installed_version)
+
+        return line
+
     def run(self, options, args):
         options.no_install = True
 
@@ -117,7 +130,7 @@ class DependenciesCommand(Command):
         requirement_set.prepare_files(finder)
 
         requirements = '\n'.join(
-            ['%s==%s' % (req.name, req.installed_version) for req in
+            [self._requirement_line(req) for req in
                 requirement_set.successfully_downloaded])
 
         if requirements:
