@@ -218,9 +218,9 @@ class TestPipResult(object):
                         egg_link_file.bytes))))
 
         if use_user_site:
-            pth_file = Path.string(e.user_site / 'easy-install.pth')
+            pth_file = e.user_site/'easy-install.pth'
         else:
-            pth_file = Path.string(e.site_packages / 'easy-install.pth')
+            pth_file = e.site_packages/'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
             raise TestFailure('%r unexpectedly %supdated by install' % (
@@ -232,7 +232,7 @@ class TestPipResult(object):
             actually created:
             %s
             ''') % (
-                Path.string(pkg_dir),
+                pkg_dir,
                 (curdir in without_files and 'not ' or ''),
                 sorted(self.files_created.keys())))
 
@@ -408,8 +408,7 @@ class TestPipEnvironment(TestFileEnvironment):
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
-        cwd = Path.string(cwd or run_from or self.cwd)
-        assert not isinstance(cwd, Path)
+        cwd = cwd or run_from or self.cwd
         return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def _use_cached_pypi_server(self):
