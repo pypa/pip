@@ -4,8 +4,9 @@ from nose.tools import assert_equal, assert_raises
 from mock import patch
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
-from tests.lib import (reset_env, run_pip, write_file, pyversion, tests_data,
-                            path_to_url, find_links)
+from tests.lib import (reset_env, run_pip, write_file, pyversion,
+                       tests_data, path_to_url, find_links,
+                       _create_test_package_with_subdirectory)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -109,5 +110,12 @@ def test_install_local_editable_with_extras():
     assert env.site_packages/'simple' in res.files_created, str(result)
 
 
+def test_install_local_editable_with_subdirectory():
+    env = reset_env()
+    version_pkg_path = _create_test_package_with_subdirectory(env,
+                                                              'version_subpkg')
+    result = run_pip('install', '-e',
+                    '%s#egg=version_subpkg&subdirectory=version_subpkg' %
+                    ('git+file://%s' % version_pkg_path,))
 
-
+    result.assert_installed('version-subpkg')

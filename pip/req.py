@@ -38,7 +38,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 from_bundle=False):
+                 editable_options=None, from_bundle=False):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -47,6 +47,11 @@ class InstallRequirement(object):
         self.comes_from = comes_from
         self.source_dir = source_dir
         self.editable = editable
+
+        if editable_options is None:
+            editable_options = {}
+
+        self.editable_options = editable_options
         self.url = url
         self.as_egg = as_egg
         self._egg_info_path = None
@@ -84,7 +89,11 @@ class InstallRequirement(object):
         else:
             source_dir = None
 
-        res = cls(name, comes_from, source_dir=source_dir, editable=True, url=url, prereleases=True)
+        res = cls(name, comes_from, source_dir=source_dir,
+                  editable=True,
+                  url=url,
+                  editable_options=extras_override,
+                  prereleases=True)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -218,14 +227,24 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-        return os.path.join(self.source_dir, 'setup.py')
+        setup_file = 'setup.py'
+
+        if self.editable_options and 'subdirectory' in self.editable_options:
+            setup_py = os.path.join(self.source_dir,
+                                    self.editable_options['subdirectory'],
+                                    setup_file)
+
+        else:
+            setup_py = os.path.join(self.source_dir, setup_file)
+
+        return setup_py
 
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
         if self.name:
-            logger.notify('Running setup.py egg_info for package %s' % self.name)
+            logger.notify('Running setup.py (path:%s) egg_info for package %s' % (self.setup_py, self.name))
         else:
-            logger.notify('Running setup.py egg_info for package from %s' % self.url)
+            logger.notify('Running setup.py (path:%s) egg_info for package from %s' % (self.setup_py, self.url))
         logger.indent += 2
         try:
 
@@ -1477,6 +1496,47 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None):
                 req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
             yield req
 
+def _strip_postfix(req):
+    """
+        Strip req postfix ( -dev, 0.2, etc )
+    """
+    ## FIXME: use package_to_requirement?
+    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
+    if match:
+        # Strip off -dev, -0.2, etc.
+        req = match.group(1)
+    return req
+
+def _build_req_from_url(url):
+
+    parts = [p for p in url.split('#', 1)[0].split('/') if p]
+
+    req = None
+    if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
+        req = parts[-3]
+    elif parts[-1] == 'trunk':
+        req = parts[-2]
+    return req
+
+def _build_editable_options(req):
+
+    """
+        This method generates a dictionary of the query string
+        parameters contained in a given editable URL.
+    """
+    regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
+    matched = regexp.findall(req)
+
+    if matched:
+        ret = dict()
+        for option in matched:
+            (name, value) = option
+            if name in ret:
+                raise Exception("%s option already defined" % name)
+            ret[name] = value
+        return ret
+    return None
+
 
 def parse_editable(editable_req, default_vcs=None):
     """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
@@ -1508,37 +1568,39 @@ def parse_editable(editable_req, default_vcs=None):
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
             url = '%s+%s' % (version_control, url)
+            break
+
     if '+' not in url:
         if default_vcs:
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
                 '%s should either by a path to a local project or a VCS url beginning with svn+, git+, hg+, or bzr+' % editable_req)
+
     vc_type = url.split('+', 1)[0].lower()
+
     if not vcs.get_backend(vc_type):
         error_message = 'For --editable=%s only ' % editable_req + \
             ', '.join([backend.name + '+URL' for backend in vcs.backends]) + \
             ' is currently supported'
         raise InstallationError(error_message)
-    match = re.search(r'(?:#|#.*?&)egg=([^&]*)', editable_req)
-    if (not match or not match.group(1)) and vcs.get_backend(vc_type):
-        parts = [p for p in editable_req.split('#', 1)[0].split('/') if p]
-        if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
-            req = parts[-3]
-        elif parts[-1] == 'trunk':
-            req = parts[-2]
-        else:
-            raise InstallationError(
-                '--editable=%s is not the right format; it must have #egg=Package'
-                % editable_req)
+
+    try:
+        options = _build_editable_options(editable_req)
+    except Exception:
+        message = sys.exc_info()[1]
+        raise InstallationError(
+            '--editable=%s error in editable options:%s' % (editable_req, message))
+
+    if not options or 'egg' not in options:
+        req = _build_req_from_url(editable_req)
+        if not req:
+            raise InstallationError('--editable=%s is not the right format; it must have #egg=Package' % editable_req)
     else:
-        req = match.group(1)
-    ## FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        req = match.group(1)
-    return req, url, None
+        req = options['egg']
+
+    package = _strip_postfix(req)
+    return package, url, options
 
 
 class UninstallPathSet(object):

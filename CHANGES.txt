@@ -28,6 +28,8 @@ Changelog
   files with any execute permissions have the equivalent of "chmod +x" applied
   after being written (Pull #1146).
 
+* Added support for installing packages from a subdirectory using the ``subdirectory``
+  editable option. ( Pull request #1082 )
 
 1.4.1 (2013-08-07)
 ------------------

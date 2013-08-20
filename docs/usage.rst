@@ -88,7 +88,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-
+  $ pip install -e git+https://git.repo/some_repo.git@egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 
@@ -414,4 +414,3 @@ Options
 **Other Options:**
 
 * :ref:`General Options <General Options>`
-
