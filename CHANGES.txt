@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.4.2 (unreleased)
+------------------
+
+* Fixed #1133 and #317. Archive contents are now written based on system
+  defaults and umask (i.e. permissions are not preserved), except that regular
+  files with any execute permissions have the equivalent of "chmod +x" applied
+  after being written (Pull #1146).
+
 1.4.1 (2013-08-07)
 ------------------
 
