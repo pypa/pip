@@ -10,6 +10,8 @@ Changelog
   order to use a mirror specify it as the primary index with ``-i`` or
   ``--index-url``, or as an additional index with ``--extra-index-url``. (Pull #1098)
 
+* Added support for installing packages from a subdirectory using the ``subdirectory``
+  editable option. ( Pull request #1082 )
 
 1.4.1 (2013-08-07)
 ------------------
