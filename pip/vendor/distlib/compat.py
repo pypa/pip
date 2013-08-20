@@ -137,7 +137,11 @@ else:
     from itertools import filterfalse
     filter = filter
 
-    from ssl import match_hostname, CertificateError
+    try:
+        from ssl import match_hostname, CertificateError
+    except ImportError:
+        # For Python 3.1 default to local compat versions.
+        pass
 
 # ZipFile is a context manager in 2.7, but not in 2.6
 
