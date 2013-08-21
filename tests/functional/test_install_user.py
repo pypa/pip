@@ -1,11 +1,13 @@
 """
 tests specific to "--user" option
 """
-
 import sys
 import os
+
 from os.path import abspath, join, curdir, isdir, isfile
-from nose import SkipTest
+
+import pytest
+
 from tests.lib.local_repos import local_checkout
 from tests.lib import (tests_data, reset_env, run_pip, pyversion, assert_all_changes,
                             path_to_url, find_links, pip_install_local)
@@ -19,13 +21,9 @@ patch_dist_in_site_packages = """
 """
 
 
+# --user option is broken in pypy
+@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 class Tests_UserSite:
-
-    def setup(self):
-        # --user option is broken in pypy
-        if hasattr(sys, "pypy_version_info"):
-            raise SkipTest()
-
 
     def test_reset_env_system_site_packages_usersite(self):
         """

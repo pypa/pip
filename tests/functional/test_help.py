@@ -1,10 +1,11 @@
+import pytest
+
 from pip.exceptions import CommandError
 from pip.baseparser import create_main_parser
 from pip.basecommand import ERROR, SUCCESS
 from pip.commands.help import HelpCommand
 from pip.commands import commands
 from mock import Mock
-from nose.tools import assert_raises
 from tests.lib import run_pip, reset_env
 
 
@@ -37,7 +38,9 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     options_mock = Mock()
     args = ('mycommand',)
     help_cmd = HelpCommand(create_main_parser())
-    assert_raises(CommandError, help_cmd.run, options_mock, args)
+
+    with pytest.raises(CommandError):
+        help_cmd.run(options_mock, args)
 
 
 def test_help_command_should_exit_status_ok_when_command_exists():
