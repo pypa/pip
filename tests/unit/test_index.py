@@ -3,7 +3,7 @@ from pip.backwardcompat import urllib
 from tests.lib.path import Path
 from pip.index import package_to_requirement, HTMLPage
 from pip.index import PackageFinder, Link, InfLink
-from tests.lib import reset_env, run_pip, pyversion, tests_data, path_to_url, find_links
+from tests.lib import tests_data, path_to_url, find_links
 from string import ascii_lowercase
 from mock import patch
 

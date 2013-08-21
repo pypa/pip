@@ -3,13 +3,15 @@ import subprocess
 from pip.vcs import subversion, git, bazaar, mercurial
 from pip.backwardcompat import urlretrieve
 from tests.lib import path_to_url
-from tests.lib.pypi_server import PyPIProxy
 
 
 if hasattr(subprocess, "check_call"):
     subprocess_call = subprocess.check_call
 else:
     subprocess_call = subprocess.call
+
+
+CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tests_cache')
 
 
 def _create_initools_repository():
@@ -35,10 +37,9 @@ def _create_svn_repository_for_initools():
 
 
 def _get_vcs_folder():
-    folder_name = PyPIProxy.CACHE_PATH
-    if not os.path.exists(folder_name):
-        os.mkdir(folder_name)
-    return folder_name
+    if not os.path.exists(CACHE_PATH):
+        os.mkdir(CACHE_PATH)
+    return CACHE_PATH
 
 
 def _get_vcs_and_checkout_url(remote_repository):

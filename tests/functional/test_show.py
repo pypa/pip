@@ -1,7 +1,7 @@
 import re
 from pip import __version__
 from pip.commands.show import search_packages_info
-from tests.lib import reset_env, run_pip
+from tests.lib import reset_env
 
 
 def test_show():
@@ -9,8 +9,8 @@ def test_show():
     Test end to end test for show command.
 
     """
-    reset_env()
-    result = run_pip('show', 'pip')
+    script = reset_env()
+    result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 6
     assert lines[0] == '---', lines[0]
@@ -26,8 +26,8 @@ def test_show_with_files_not_found():
     installed-files.txt not found.
 
     """
-    reset_env()
-    result = run_pip('show', '-f', 'pip')
+    script = reset_env()
+    result = script.pip('show', '-f', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 8
     assert lines[0] == '---', lines[0]
@@ -44,9 +44,9 @@ def test_show_with_all_files():
     Test listing all files in the show command.
 
     """
-    reset_env()
-    result = run_pip('install', 'initools==0.2')
-    result = run_pip('show', '--files', 'initools')
+    script = reset_env()
+    result = script.pip('install', 'initools==0.2')
+    result = script.pip('show', '--files', 'initools')
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
@@ -55,8 +55,8 @@ def test_missing_argument():
     Test show command with no arguments.
 
     """
-    reset_env()
-    result = run_pip('show')
+    script = reset_env()
+    result = script.pip('show')
     assert 'ERROR: Please provide a package name or names.' in result.stdout
 
 
