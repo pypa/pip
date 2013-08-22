@@ -283,7 +283,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
             real_name = "%s_path" % name
             setattr(self, name, getattr(self, real_name) - self.base_path)
 
-        # Ensure the tmp dir exists
+        # Ensure the tmp dir exists, things break horribly if it doesn't
         self.temp_path.mkdir()
 
         # create easy-install.pth in user_site, so we always have it updated
