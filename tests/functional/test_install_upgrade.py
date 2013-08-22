@@ -232,6 +232,9 @@ class TestUpgradeSetuptools(object):
         args = ['virtualenv', self.script.scratch_path/'VE']
         if distribute:
             args.insert(1, '--distribute')
+        if version == "1.9.1" and not distribute:
+            # setuptools 0.6 didn't support PYTHONDONTWRITEBYTECODE
+            del self.script.environ["PYTHONDONTWRITEBYTECODE"]
         self.script.run(*args)
         self.ve_bin = self.script.scratch_path/'VE'/'bin'
         self.script.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
