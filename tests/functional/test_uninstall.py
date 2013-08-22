@@ -34,8 +34,8 @@ def test_uninstall_with_scripts(script):
     easy_install_pth = script.site_packages/ 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
-    result2 = script.pip('uninstall', 'pylogo', '-y', expect_error=True)
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    result2 = script.pip('uninstall', 'pylogo', '-y')
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', easy_install_pth])
 
 
 def test_uninstall_easy_install_after_import(script):
@@ -47,7 +47,7 @@ def test_uninstall_easy_install_after_import(script):
     #the import forces the generation of __pycache__ if the version of python supports it
     script.run('python', '-c', "import initools")
     result2 = script.pip('uninstall', 'INITools', '-y')
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
 def test_uninstall_namespace_package(script):
@@ -110,7 +110,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     result = script.run(*args, **{"expect_stderr": True})
     assert script.bin/'discover'+script.exe in result.files_created, sorted(result.files_created.keys())
     result2 = script.pip('uninstall', 'discover', '-y')
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
 def test_uninstall_editable_from_svn(script, tmpdir):
@@ -122,7 +122,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     result.assert_installed('INITools')
     result2 = script.pip('uninstall', '-y', 'initools')
     assert (script.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert_all_changes(result, result2, [script.venv/'src', script.venv/'build'])
+    assert_all_changes(result, result2, [script.venv/'src', script.venv/'build', script.site_packages/'easy-install.pth'])
 
 
 def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
@@ -145,7 +145,7 @@ def _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir)
     result2 = script.pip('install', '-e', tmpdir)
     assert (join(script.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
     result3 = script.pip('uninstall', '-y', 'virtualenv', expect_error=True)
-    assert_all_changes(result, result3, [script.venv/'build'])
+    assert_all_changes(result, result3, [script.venv/'build', script.site_packages/'easy-install.pth'])
 
 
 def test_uninstall_from_reqs_file(script, tmpdir):
@@ -171,7 +171,8 @@ def test_uninstall_from_reqs_file(script, tmpdir):
         """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
-        result, result2, [script.venv/'build', script.venv/'src', script.scratch/'test-req.txt'])
+        result, result2, [script.venv/'build', script.venv/'src', script.scratch/'test-req.txt',
+        script.site_packages/'easy-install.pth'])
 
 
 def test_uninstall_as_egg(script):
@@ -187,7 +188,7 @@ def test_uninstall_as_egg(script):
     assert egg_folder in result.files_created, str(result)
 
     result2 = script.pip('uninstall', 'FSPkg', '-y', expect_error=True)
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
 @patch('pip.req.logger')
