@@ -319,6 +319,8 @@ def assert_all_changes(start_state, end_state, expected_changes):
     Note: listing a directory means anything below
     that directory can be expected to have changed.
     """
+    __tracebackhide__ = True
+
     start_files = start_state
     end_files = end_state
     if isinstance(start_state, TestPipResult):
