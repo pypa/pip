@@ -1,3 +1,5 @@
+import shutil
+
 import py
 import pytest
 
@@ -23,14 +25,20 @@ def tmpdir(request):
 
 
 @pytest.fixture
-def virtualenv(tmpdir):
+def virtualenv(tmpdir, monkeypatch):
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    return VirtualEnvironment.create(tmpdir.join(".venv"))
+    # Force shutil to use the older method of rmtree that didn't use the fd
+    # functions. These seem to fail on Travis (and only on Travis).
+    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
+    venv = VirtualEnvironment.create(tmpdir.join(".venv"))
+    monkeypatch.undo()
+
+    return venv
 
 
 @pytest.fixture
