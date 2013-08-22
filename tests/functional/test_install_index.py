@@ -25,9 +25,9 @@ def test_find_links_requirements_file_relative_path(script):
     """Test find-links as a relative path to a reqs file."""
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
         --no-index
-        --find-links=../../../data/packages/
+        --find-links=%s
         parent==0.1
-        """))
+        """ % packages))
     result = script.pip(
         'install',
         '-r',
