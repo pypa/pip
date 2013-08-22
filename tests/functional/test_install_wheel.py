@@ -1,6 +1,5 @@
 from os.path import abspath, join
 
-from nose import SkipTest
 from tests.lib import tests_data, reset_env, run_pip, pip_install_local, find_links
 from tests.lib.path import Path
 
@@ -23,10 +22,6 @@ def test_install_from_wheel_with_extras():
     """
     Test installing from a wheel with extras.
     """
-    try:
-        import ast
-    except ImportError:
-        raise SkipTest("Need ast module to interpret wheel extras")
     env = reset_env()
     result = run_pip('install', 'complex-dist[simple]', '--use-wheel',
                      '--no-index', '--find-links='+find_links,

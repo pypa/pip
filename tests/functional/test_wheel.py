@@ -2,9 +2,9 @@
 import os
 import sys
 import textwrap
+
 from os.path import exists
 
-from nose import SkipTest
 from pip import wheel
 from pip.download import path_to_url as path_to_url_d
 from tests.lib import tests_data, reset_env, run_pip, pyversion_nodot, write_file, path_to_url, find_links, pip_install_local

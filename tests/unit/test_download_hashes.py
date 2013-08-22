@@ -1,6 +1,6 @@
 import os
 
-from nose.tools import assert_raises
+import pytest
 
 from pip.download import _get_hash_from_file, _check_hash
 from pip.exceptions import InstallationError
@@ -92,7 +92,8 @@ def test_check_hash_md5_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hash_sha1_valid():
@@ -110,7 +111,8 @@ def test_check_hash_sha1_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hash_sha224_valid():
@@ -128,7 +130,8 @@ def test_check_hash_sha224_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hash_sha384_valid():
@@ -146,7 +149,8 @@ def test_check_hash_sha384_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hash_sha256_valid():
@@ -164,7 +168,8 @@ def test_check_hash_sha256_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hash_sha512_valid():
@@ -182,7 +187,8 @@ def test_check_hash_sha512_invalid():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, file_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, file_link)
 
 
 def test_check_hasher_mismsatch():
@@ -192,4 +198,5 @@ def test_check_hasher_mismsatch():
 
     download_hash = _get_hash_from_file(file_path, file_link)
 
-    assert_raises(InstallationError, _check_hash, download_hash, other_link)
+    with pytest.raises(InstallationError):
+        _check_hash(download_hash, other_link)
