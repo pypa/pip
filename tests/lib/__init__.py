@@ -1,11 +1,12 @@
 # #!/usr/bin/env python
+from __future__ import absolute_import
+
 import os
 import sys
 import re
 import atexit
 import textwrap
 import site
-import subprocess
 
 import scripttest
 import virtualenv
@@ -43,67 +44,6 @@ def path_to_url(path):
 
 find_links = path_to_url(os.path.join(tests_data, 'packages'))
 find_links2 = path_to_url(os.path.join(tests_data, 'packages2'))
-
-
-def clear_environ(environ):
-    return dict(((k, v) for k, v in environ.items()
-                if not k.lower().startswith('pip_')))
-
-
-def reset_env(environ=None, system_site_packages=False):
-    """
-    Return a test environment.
-
-    Keyword arguments:
-    environ: an environ object to use.
-    system_site_packages: create a virtualenv that simulates
-        --system-site-packages.
-    """
-    # Clear our previous test directory
-    fast_test_env_root.rmtree()
-
-    # Create a virtual environment
-    venv_root = fast_test_env_root.join(".virtualenv")
-    virtualenv.create_environment(venv_root,
-        never_download=True,
-        no_pip=True,
-    )
-
-    # On Python < 3.3 we don't have subprocess.DEVNULL
-    try:
-        devnull = subprocess.DEVNULL
-    except AttributeError:
-        devnull = open(os.devnull, "wb")
-
-    # Install our development version of pip install the virtual environment
-    p = subprocess.Popen(
-        [venv_root.join("bin/python"), "setup.py", "develop"],
-        stderr=subprocess.STDOUT,
-        stdout=devnull,
-    )
-    p.communicate()
-
-    if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, p.args)
-
-    # Create our pip test environment
-    env = TestPipEnvironment(fast_test_env_root,
-        environ=environ,
-        virtualenv=venv_root,
-        ignore_hidden=False,
-        start_clear=False,
-        capture_temp=True,
-        assert_no_temp=True,
-    )
-
-    if system_site_packages:
-        # Testing often occurs starting from a private virtualenv (e.g. tox)
-        #   from that context, you can't successfully use
-        #   virtualenv.create_environment to create a 'system-site-packages'
-        #   virtualenv hence, this workaround
-        env.lib_path.join("no-global-site-packages.txt").rm()
-
-    return env
 
 
 class TestFailure(AssertionError):
@@ -216,7 +156,7 @@ class TestPipResult(object):
                                   'unexpected content %f' % (pkg_dir, f))
 
 
-class TestPipEnvironment(scripttest.TestFileEnvironment):
+class PipTestEnvironment(scripttest.TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
     """
@@ -277,7 +217,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         kwargs["environ"] = environ
 
         # Call the TestFileEnvironment __init__
-        super(TestPipEnvironment, self).__init__(base_path, *args, **kwargs)
+        super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "lib", "include", "bin", "site_packages",
@@ -297,7 +237,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
-            result = super(TestPipEnvironment, self)._ignore_file(fn)
+            result = super(PipTestEnvironment, self)._ignore_file(fn)
         return result
 
     def run(self, *args, **kw):
@@ -307,7 +247,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
-        return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
+        return TestPipResult(super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def pip(self, *args, **kwargs):
         return self.run("pip", *args, **kwargs)

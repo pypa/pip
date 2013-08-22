@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import subprocess
 from pip.vcs import subversion, git, bazaar, mercurial
