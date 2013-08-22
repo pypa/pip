@@ -66,7 +66,6 @@ def reset_env(environ=None, system_site_packages=False):
     # Create a virtual environment
     venv_root = fast_test_env_root.join(".virtualenv")
     virtualenv.create_environment(venv_root,
-        clear=True,
         never_download=True,
         no_pip=True,
     )
