@@ -163,6 +163,14 @@ class TestWheelFile(object):
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
 
+    def test_version_underscore_conversion(self):
+        """
+        Test that we convert '_' to '-' for versions parsed out of wheel filenames
+        """
+        w = wheel.Wheel('simple-0.1_1-py2-none-any.whl')
+        assert w.version == '0.1-1'
+
+
 class TestPEP425Tags(object):
 
     def test_broken_sysconfig(self):

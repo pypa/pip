@@ -246,7 +246,9 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
-        self.version = wheel_info.group('ver')
+        # we'll assume "_" means "-" due to wheel naming scheme
+        # (https://github.com/pypa/pip/issues/1150)
+        self.version = wheel_info.group('ver').replace('_', '-')
         self.pyversions = wheel_info.group('pyver').split('.')
         self.abis = wheel_info.group('abi').split('.')
         self.plats = wheel_info.group('plat').split('.')
