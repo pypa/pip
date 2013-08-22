@@ -1,5 +1,4 @@
 # #!/usr/bin/env python
-import imp
 import os
 import sys
 import re
@@ -273,6 +272,8 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
             [self.bin_path] + [environ.get("PATH", [])],
         )
         environ["PYTHONUSERBASE"] = self.user_base_path
+        # Writing bytecode can mess up updated file detection
+        environ["PYTHONDONTWRITEBYTECODE"] = "1"
         kwargs["environ"] = environ
 
         # Call the TestFileEnvironment __init__
