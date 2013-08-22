@@ -2,7 +2,7 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from tests.lib import reset_env, run_pip, write_file, get_env, pyversion, pip_install_local
+from tests.lib import reset_env
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -42,14 +42,14 @@ def test_freeze_basic():
     currently it is not).
 
     """
-    env = reset_env()
-    write_file('initools-req.txt', textwrap.dedent("""\
+    script = reset_env()
+    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
         simple==2.0
         # and something else to test out:
         simple2<=3.0
         """))
-    result = pip_install_local('-r', env.scratch_path/'initools-req.txt')
-    result = run_pip('freeze', expect_stderr=True)
+    result = script.pip_install_local('-r', script.scratch_path/'initools-req.txt')
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze
         -- stdout: --------------------
@@ -66,13 +66,13 @@ def test_freeze_svn():
     #svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
 
-    env = reset_env()
-    result = env.run('svn', 'co', '-r10',
+    script = reset_env()
+    result = script.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
-    result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/ 'initools-trunk', expect_stderr=True)
-    result = run_pip('freeze', expect_stderr=True)
+    result = script.run('python', 'setup.py', 'develop',
+            cwd=script.scratch_path/ 'initools-trunk', expect_stderr=True)
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
@@ -86,13 +86,13 @@ def test_freeze_git_clone():
     Test freezing a Git clone.
 
     """
-    env = reset_env()
-    result = env.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
-    result = env.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-            cwd=env.scratch_path / 'pip-test-package', expect_stderr=True)
-    result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path / 'pip-test-package')
-    result = run_pip('freeze', expect_stderr=True)
+    script = reset_env()
+    result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
+    result = script.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
+            cwd=script.scratch_path / 'pip-test-package', expect_stderr=True)
+    result = script.run('python', 'setup.py', 'develop',
+            cwd=script.scratch_path / 'pip-test-package')
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
@@ -100,7 +100,7 @@ def test_freeze_git_clone():
         ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git'))
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f',
+    result = script.pip('freeze', '-f',
                      '%s#egg=pip_test_package' % local_checkout('git+http://github.com/pypa/pip-test-package.git'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -117,15 +117,14 @@ def test_freeze_mercurial_clone():
     Test freezing a Mercurial clone.
 
     """
-    reset_env()
-    env = get_env()
-    result = env.run('hg', 'clone',
+    script = reset_env()
+    result = script.run('hg', 'clone',
                      '-r', 'c9963c111e7c',
                      local_repo('hg+http://bitbucket.org/pypa/pip-test-package'),
                      'pip-test-package')
-    result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'pip-test-package', expect_stderr=True)
-    result = run_pip('freeze', expect_stderr=True)
+    result = script.run('python', 'setup.py', 'develop',
+            cwd=script.scratch_path/'pip-test-package', expect_stderr=True)
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
@@ -133,7 +132,7 @@ def test_freeze_mercurial_clone():
         ...""" % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'))
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f',
+    result = script.pip('freeze', '-f',
                      '%s#egg=pip_test_package' % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -155,14 +154,13 @@ def test_freeze_bazaar_clone():
     #bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
-    reset_env()
-    env = get_env()
-    result = env.run('bzr', 'checkout', '-r', '174',
+    script = reset_env()
+    result = script.run('bzr', 'checkout', '-r', '174',
                      local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      'django-wikiapp')
-    result = env.run('python', 'setup.py', 'develop',
-            cwd=env.scratch_path/'django-wikiapp')
-    result = run_pip('freeze', expect_stderr=True)
+    result = script.run('python', 'setup.py', 'develop',
+            cwd=script.scratch_path/'django-wikiapp')
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
@@ -170,7 +168,7 @@ def test_freeze_bazaar_clone():
         ...""" % checkout_pathC)
     _check_output(result, expected)
 
-    result = run_pip('freeze', '-f',
+    result = script.pip('freeze', '-f',
                      '%s/#egg=django-wikiapp' % checkout_path,
                      expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -187,9 +185,9 @@ def test_freeze_with_local_option():
     Test that wsgiref (from global site-packages) is reported normally, but not with --local.
 
     """
-    reset_env()
-    result = run_pip('install', 'initools==0.2')
-    result = run_pip('freeze', expect_stderr=True)
+    script = reset_env()
+    result = script.pip('install', 'initools==0.2')
+    result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
@@ -204,7 +202,7 @@ def test_freeze_with_local_option():
 
     # _check_output(result, expected)
 
-    result = run_pip('freeze', '--local', expect_stderr=True)
+    result = script.pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze --local
         -- stdout: --------------------
@@ -218,7 +216,7 @@ def test_freeze_with_requirement_option():
     Test that new requirements are created correctly with --requirement hints
 
     """
-    reset_env()
+    script = reset_env()
     ignores = textwrap.dedent("""\
         # Unchanged requirements below this line
         -r ignore.txt
@@ -231,13 +229,13 @@ def test_freeze_with_requirement_option():
         --find-links http://ignore
         --index-url http://ignore
         """)
-    write_file('hint.txt', textwrap.dedent("""\
+    script.scratch_path.join("hint.txt").write(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2
         """) + ignores)
-    result = run_pip('install', 'initools==0.2')
-    result = pip_install_local('simple')
-    result = run_pip('freeze', '--requirement', 'hint.txt', expect_stderr=True)
+    result = script.pip('install', 'initools==0.2')
+    result = script.pip_install_local('simple')
+    result = script.pip('freeze', '--requirement', 'hint.txt', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze --requirement hint.txt
         -- stderr: --------------------
