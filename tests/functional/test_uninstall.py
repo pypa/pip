@@ -6,18 +6,17 @@ import sys
 from os.path import join, abspath, normpath
 from tempfile import mkdtemp
 from mock import patch
-from tests.lib import tests_data, reset_env, assert_all_changes, pyversion
+from tests.lib import tests_data, assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
 
 
-def test_simple_uninstall():
+def test_simple_uninstall(script):
     """
     Test simple install and uninstall.
 
     """
-    script = reset_env()
     result = script.pip('install', 'INITools==0.2')
     assert join(script.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
     #the import forces the generation of __pycache__ if the version of python supports it
@@ -26,12 +25,11 @@ def test_simple_uninstall():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_with_scripts():
+def test_uninstall_with_scripts(script):
     """
     Uninstall an easy_installed package with scripts.
 
     """
-    script = reset_env()
     result = script.run('easy_install', 'PyLogo', expect_stderr=True)
     easy_install_pth = script.site_packages/ 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
@@ -40,12 +38,11 @@ def test_uninstall_with_scripts():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_easy_install_after_import():
+def test_uninstall_easy_install_after_import(script):
     """
     Uninstall an easy_installed package after it's been imported
 
     """
-    script = reset_env()
     result = script.run('easy_install', 'INITools==0.2', expect_stderr=True)
     #the import forces the generation of __pycache__ if the version of python supports it
     script.run('python', '-c', "import initools")
@@ -53,13 +50,12 @@ def test_uninstall_easy_install_after_import():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_namespace_package():
+def test_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
     the namespace and everything in it.
 
     """
-    script = reset_env()
     result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
     assert join(script.site_packages, 'pd') in result.files_created, sorted(result.files_created.keys())
     result2 = script.pip('uninstall', 'pd.find', '-y', expect_error=True)
@@ -67,7 +63,7 @@ def test_uninstall_namespace_package():
     assert join(script.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
 
 
-def test_uninstall_overlapping_package():
+def test_uninstall_overlapping_package(script):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
     should only remove those added modules, not the rest of the existing
@@ -77,7 +73,6 @@ def test_uninstall_overlapping_package():
     """
     parent_pkg = abspath(join(tests_data, 'packages', 'parent-0.1.tar.gz'))
     child_pkg = abspath(join(tests_data, 'packages', 'child-0.1.tar.gz'))
-    script = reset_env()
     result1 = script.pip('install', parent_pkg, expect_error=False)
     assert join(script.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
     result2 = script.pip('install', child_pkg, expect_error=False)
@@ -94,12 +89,10 @@ def test_uninstall_overlapping_package():
     assert_all_changes(result2, result3, [])
 
 
-def test_uninstall_console_scripts():
+def test_uninstall_console_scripts(script):
     """
     Test uninstalling a package with more files (console_script entry points, extra directories).
-
     """
-    script = reset_env()
     args = ['install']
     args.append('discover')
     result = script.pip(*args, **{"expect_error": True})
@@ -108,12 +101,10 @@ def test_uninstall_console_scripts():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_easy_installed_console_scripts():
+def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
-
     """
-    script = reset_env()
     args = ['easy_install']
     args.append('discover')
     result = script.run(*args, **{"expect_stderr": True})
@@ -122,12 +113,10 @@ def test_uninstall_easy_installed_console_scripts():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_editable_from_svn():
+def test_uninstall_editable_from_svn(script):
     """
     Test uninstalling an editable installation from svn.
-
     """
-    script = reset_env()
     result = script.pip('install', '-e', '%s#egg=initools-dev' %
                      local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
     result.assert_installed('INITools')
@@ -136,7 +125,7 @@ def test_uninstall_editable_from_svn():
     assert_all_changes(result, result2, [script.venv/'src', script.venv/'build'])
 
 
-def test_uninstall_editable_with_source_outside_venv():
+def test_uninstall_editable_with_source_outside_venv(script):
     """
     Test uninstalling editable install from existing source outside the venv.
 
@@ -144,13 +133,12 @@ def test_uninstall_editable_with_source_outside_venv():
     try:
         temp = mkdtemp()
         tmpdir = join(temp, 'virtualenv')
-        _test_uninstall_editable_with_source_outside_venv(tmpdir)
+        _test_uninstall_editable_with_source_outside_venv(script, tmpdir)
     finally:
         rmtree(temp)
 
 
-def _test_uninstall_editable_with_source_outside_venv(tmpdir):
-    script = reset_env()
+def _test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv'), tmpdir)
     result2 = script.pip('install', '-e', tmpdir)
     assert (join(script.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
@@ -158,12 +146,11 @@ def _test_uninstall_editable_with_source_outside_venv(tmpdir):
     assert_all_changes(result, result3, [script.venv/'build'])
 
 
-def test_uninstall_from_reqs_file():
+def test_uninstall_from_reqs_file(script):
     """
     Test uninstall from a requirements file.
 
     """
-    script = reset_env()
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
         -e %s#egg=initools-dev
         # and something else to test out:
@@ -185,12 +172,11 @@ def test_uninstall_from_reqs_file():
         result, result2, [script.venv/'build', script.venv/'src', script.scratch/'test-req.txt'])
 
 
-def test_uninstall_as_egg():
+def test_uninstall_as_egg(script):
     """
     Test uninstall package installed as egg.
 
     """
-    script = reset_env()
     to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages/'fspkg'

@@ -14,7 +14,7 @@ from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.util import (egg_link_path, Inf, get_installed_distributions,
                       find_command, untar_file, unzip_file)
-from tests.lib import reset_env, tests_data
+from tests.lib import tests_data
 
 
 class Tests_EgglinkPath:
@@ -203,16 +203,12 @@ class Tests_get_installed_distributions:
         assert len(dists) == 3
 
 
-def test_find_command_folder_in_path(monkeypatch):
+def test_find_command_folder_in_path(script):
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
     the 'git' executable, it should not match the folder, but rather keep
     looking.
     """
-    # Why in the world is this needed?
-    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
-
-    script = reset_env()
     script.scratch_path.join("path_one").mkdir()
     path_one = script.scratch_path/'path_one'
     path_one.join("foo").mkdir()

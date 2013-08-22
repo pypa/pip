@@ -8,18 +8,17 @@ from mock import patch
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
 
-from tests.lib import reset_env, pyversion, tests_data, path_to_url, find_links
+from tests.lib import pyversion, tests_data, path_to_url, find_links
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-def test_requirements_file():
+def test_requirements_file(script):
     """
     Test installing from a requirements file.
 
     """
     other_lib_name, other_lib_version = 'anyjson', '0.3'
-    script = reset_env()
     script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
@@ -33,12 +32,11 @@ def test_requirements_file():
     assert result.files_created[script.site_packages/fn].dir
 
 
-def test_schema_check_in_requirements_file():
+def test_schema_check_in_requirements_file(script):
     """
     Test installing from a requirements file with an invalid vcs schema..
 
     """
-    script = reset_env()
     script.scratch_path.join("file-egg-req.txt").write(textwrap.dedent("""\
         git://github.com/alex/django-fixture-generator.git#egg=fixture_generator
         """))
@@ -47,13 +45,12 @@ def test_schema_check_in_requirements_file():
         script.pip("install", "-vvv", "-r", script.scratch_path / "file-egg-req.txt")
 
 
-def test_relative_requirements_file():
+def test_relative_requirements_file(script):
     """
     Test installing from a requirements file with a relative path with an egg= definition..
 
     """
     url = path_to_url(os.path.join(tests_data, 'packages', '..', 'packages', 'FSPkg')) + '#egg=FSPkg'
-    script = reset_env()
     script.scratch_path.join("file-egg-req.txt").write(textwrap.dedent("""\
         %s
         """ % url))
@@ -62,13 +59,12 @@ def test_relative_requirements_file():
     assert (script.site_packages/'fspkg') in result.files_created, str(result.stdout)
 
 
-def test_multiple_requirements_files():
+def test_multiple_requirements_files(script):
     """
     Test installing from multiple nested requirements files.
 
     """
     other_lib_name, other_lib_version = 'anyjson', '0.3'
-    script = reset_env()
     script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
         -e %s@10#egg=INITools-dev
         -r %s-req.txt""" % (local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
@@ -83,8 +79,7 @@ def test_multiple_requirements_files():
     assert script.venv/'src'/'initools' in result.files_created
 
 
-def test_respect_order_in_requirements_file():
-    script = reset_env()
+def test_respect_order_in_requirements_file(script):
     script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
         parent
         child
@@ -104,9 +99,7 @@ def test_respect_order_in_requirements_file():
             'be "simple" but was "%s"' % downloaded[2]
 
 
-
-def test_install_local_editable_with_extras():
-    script = reset_env()
+def test_install_local_editable_with_extras(script):
     to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'LocalExtras'))
     res = script.pip('install', '-e', to_install + '[bar]', expect_error=False)
     assert script.site_packages/'easy-install.pth' in res.files_updated, str(result)

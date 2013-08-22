@@ -1,39 +1,36 @@
 import os
 import re
 import textwrap
-from tests.lib import pyversion, reset_env, path_to_url, tests_data, find_links
+from tests.lib import find_links
 from tests.lib.local_repos import local_checkout
 
 
-def test_list_command():
+def test_list_command(script):
     """
     Test default behavior of list command.
 
     """
-    script = reset_env()
     script.pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
     result = script.pip('list')
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
-def test_local_flag():
+def test_local_flag(script):
     """
     Test the behavior of --local flag in the list command
 
     """
-    script = reset_env()
     script.pip('install', '-f', find_links, '--no-index', 'simple==1.0')
     result = script.pip('list', '--local')
     assert 'simple (1.0)' in result.stdout
 
 
-def test_uptodate_flag():
+def test_uptodate_flag(script):
     """
     Test the behavior of --uptodate flag in the list command
 
     """
-    script = reset_env()
     script.pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
     script.pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
     result = script.pip('list', '-f', find_links, '--no-index', '--uptodate')
@@ -42,12 +39,11 @@ def test_uptodate_flag():
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
-def test_outdated_flag():
+def test_outdated_flag(script):
     """
     Test the behavior of --outdated flag in the list command
 
     """
-    script = reset_env()
     script.pip('install', '-f', find_links, '--no-index', 'simple==1.0', 'simple2==3.0')
     script.pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
     result = script.pip('list', '-f', find_links, '--no-index', '--outdated')
@@ -56,11 +52,10 @@ def test_outdated_flag():
     assert 'simple2' not in result.stdout, str(result) #3.0 is latest
 
 
-def test_editables_flag():
+def test_editables_flag(script):
     """
     Test the behavior of --editables flag in the list command
     """
-    script = reset_env()
     script.pip('install', '-f', find_links, '--no-index', 'simple==1.0')
     result = script.pip('install', '-e', 'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package')
     result = script.pip('list', '--editable')

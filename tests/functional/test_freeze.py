@@ -2,7 +2,7 @@ import sys
 import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
-from tests.lib import reset_env
+
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -33,7 +33,7 @@ def _check_output(result, expected):
     assert checker.check_output(expected, actual, ELLIPSIS), banner('EXPECTED')+expected+banner('ACTUAL')+actual+banner(6*'=')
 
 
-def test_freeze_basic():
+def test_freeze_basic(script):
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -42,7 +42,6 @@ def test_freeze_basic():
     currently it is not).
 
     """
-    script = reset_env()
     script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
         simple==2.0
         # and something else to test out:
@@ -59,14 +58,13 @@ def test_freeze_basic():
     _check_output(result, expected)
 
 
-def test_freeze_svn():
+def test_freeze_svn(script):
     """Test freezing a svn checkout"""
 
     checkout_path = local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')
     #svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
 
-    script = reset_env()
     result = script.run('svn', 'co', '-r10',
                      local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
                      'initools-trunk')
@@ -81,12 +79,11 @@ def test_freeze_svn():
     _check_output(result, expected)
 
 
-def test_freeze_git_clone():
+def test_freeze_git_clone(script):
     """
     Test freezing a Git clone.
 
     """
-    script = reset_env()
     result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
     result = script.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
             cwd=script.scratch_path / 'pip-test-package', expect_stderr=True)
@@ -112,12 +109,11 @@ def test_freeze_git_clone():
     _check_output(result, expected)
 
 
-def test_freeze_mercurial_clone():
+def test_freeze_mercurial_clone(script):
     """
     Test freezing a Mercurial clone.
 
     """
-    script = reset_env()
     result = script.run('hg', 'clone',
                      '-r', 'c9963c111e7c',
                      local_repo('hg+http://bitbucket.org/pypa/pip-test-package'),
@@ -144,7 +140,7 @@ def test_freeze_mercurial_clone():
     _check_output(result, expected)
 
 
-def test_freeze_bazaar_clone():
+def test_freeze_bazaar_clone(script):
     """
     Test freezing a Bazaar clone.
 
@@ -154,7 +150,6 @@ def test_freeze_bazaar_clone():
     #bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
-    script = reset_env()
     result = script.run('bzr', 'checkout', '-r', '174',
                      local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
                      'django-wikiapp')
@@ -180,12 +175,11 @@ def test_freeze_bazaar_clone():
     _check_output(result, expected)
 
 
-def test_freeze_with_local_option():
+def test_freeze_with_local_option(script):
     """
     Test that wsgiref (from global site-packages) is reported normally, but not with --local.
 
     """
-    script = reset_env()
     result = script.pip('install', 'initools==0.2')
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -211,12 +205,11 @@ def test_freeze_with_local_option():
     _check_output(result, expected)
 
 
-def test_freeze_with_requirement_option():
+def test_freeze_with_requirement_option(script):
     """
     Test that new requirements are created correctly with --requirement hints
 
     """
-    script = reset_env()
     ignores = textwrap.dedent("""\
         # Unchanged requirements below this line
         -r ignore.txt

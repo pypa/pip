@@ -9,22 +9,21 @@ from pip import wheel
 from pip.download import path_to_url as path_to_url_d
 from pip.locations import write_delete_marker_file
 from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
-from tests.lib import tests_data, reset_env, pyversion_nodot, path_to_url, find_links
+from tests.lib import tests_data, pyversion_nodot, path_to_url, find_links
 
 
-def test_pip_wheel_fails_without_wheel():
+def test_pip_wheel_fails_without_wheel(script):
     """
     Test 'pip wheel' fails without wheel
     """
-    script = reset_env()
     result = script.pip('wheel', '--no-index', '-f', find_links, 'simple==3.0', expect_error=True)
     assert "'pip wheel' requires bdist_wheel" in result.stdout
 
-def test_pip_wheel_success():
+
+def test_pip_wheel_success(script):
     """
     Test 'pip wheel' success.
     """
-    script = reset_env()
     script.pip_install_local('wheel')
     result = script.pip('wheel', '--no-index', '-f', find_links, 'simple==3.0')
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
@@ -33,11 +32,10 @@ def test_pip_wheel_success():
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
-def test_pip_wheel_fail():
+def test_pip_wheel_fail(script):
     """
     Test 'pip wheel' failure.
     """
-    script = reset_env()
     script.pip_install_local('wheel')
     result = script.pip('wheel', '--no-index', '-f', find_links, 'wheelbroken==0.1')
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
@@ -47,11 +45,10 @@ def test_pip_wheel_fail():
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
 
 
-def test_pip_wheel_ignore_wheels_editables():
+def test_pip_wheel_ignore_wheels_editables(script):
     """
     Test 'pip wheel' ignores editables and *.whl files in requirements
     """
-    script = reset_env()
     script.pip_install_local('wheel')
 
     local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % find_links
@@ -75,23 +72,21 @@ def test_pip_wheel_ignore_wheels_editables():
     assert ignore_editable in result.stdout, result.stdout
 
 
-def test_no_clean_option_blocks_cleaning_after_wheel():
+def test_no_clean_option_blocks_cleaning_after_wheel(script):
     """
     Test --no-clean option blocks cleaning after wheel build
     """
-    script = reset_env()
     script.pip_install_local('wheel')
     result = script.pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % find_links, 'simple')
     build = script.venv_path/'build'/'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
-def test_pip_wheel_source_deps():
+def test_pip_wheel_source_deps(script):
     """
     Test 'pip wheel --use-wheel' finds and builds source archive dependencies of wheels
     """
     # 'requires_source' is a wheel that depends on the 'source' project
-    script = reset_env()
     script.pip_install_local('wheel')
     result = script.pip('wheel', '--use-wheel', '--no-index', '-f', find_links, 'requires_source')
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot
@@ -100,10 +95,9 @@ def test_pip_wheel_source_deps():
     assert "Successfully built source" in result.stdout, result.stdout
 
 
-def test_pip_wheel_fail_cause_of_previous_build_dir():
+def test_pip_wheel_fail_cause_of_previous_build_dir(script):
     """Test when 'pip wheel' tries to install a package that has a previous build directory"""
 
-    script = reset_env()
     script.pip_install_local('wheel')
 
     # Given that I have a previous build dir of the `simple` package

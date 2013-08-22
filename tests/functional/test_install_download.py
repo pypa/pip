@@ -1,28 +1,23 @@
 import textwrap
 
-from tests.lib import reset_env
 from tests.lib.path import Path
 
 
-def test_download_if_requested():
+def test_download_if_requested(script):
     """
     It should download (in the scratch path) and not install if requested.
     """
-
-    script = reset_env()
     result = script.pip('install', 'INITools==0.1', '-d', '.', expect_error=True)
     assert Path('scratch')/ 'INITools-0.1.tar.gz' in result.files_created
     assert script.site_packages/ 'initools' not in result.files_created
 
 
-def test_download_wheel():
+def test_download_wheel(script):
     """
     Test using "pip install --download" to download a *.whl archive.
     FIXME: this test could use a local --find-links dir, but -d with local
            --find-links has a bug https://github.com/pypa/pip/issues/1111
     """
-
-    script = reset_env()
     result = script.pip('install', '--use-wheel',
                      '-f', 'https://bitbucket.org/pypa/pip-test-package/downloads',
                      '-d', '.', 'pip-test-package')
@@ -30,12 +25,10 @@ def test_download_wheel():
     assert script.site_packages/ 'piptestpackage' not in result.files_created
 
 
-def test_single_download_from_requirements_file():
+def test_single_download_from_requirements_file(script):
     """
     It should support download (in the scratch path) from PyPi from a requirements file
     """
-
-    script = reset_env()
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
         INITools==0.1
         """))
@@ -44,12 +37,10 @@ def test_single_download_from_requirements_file():
     assert script.site_packages/ 'initools' not in result.files_created
 
 
-def test_download_should_download_dependencies():
+def test_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
     """
-
-    script = reset_env()
     result = script.pip('install', 'Paste[openid]==1.7.5.1', '-d', '.', expect_error=True)
     assert Path('scratch')/ 'Paste-1.7.5.1.tar.gz' in result.files_created
     openid_tarball_prefix = str(Path('scratch')/ 'python-openid-')
@@ -57,12 +48,10 @@ def test_download_should_download_dependencies():
     assert script.site_packages/ 'openid' not in result.files_created
 
 
-def test_download_should_skip_existing_files():
+def test_download_should_skip_existing_files(script):
     """
     It should not download files already existing in the scratch dir
     """
-    script = reset_env()
-
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
         INITools==0.1
         """))
