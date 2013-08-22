@@ -5,6 +5,8 @@ from tests.lib import (tests_data, reset_env, run_pip, pip_install_local,
                             write_file, mkdir, path_to_url, find_links)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+from pip.locations import write_delete_marker_file
+from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
 
 
 def test_cleanup_after_install():
@@ -139,7 +141,10 @@ def test_cleanup_prevented_upon_build_dir_exception():
     env = reset_env()
     build = env.venv_path/'build'/'simple'
     os.makedirs(build)
+    write_delete_marker_file(env.venv_path/'build')
     write_file("setup.py", "#", dest=build)
     result = run_pip('install', '-f', find_links, '--no-index', 'simple', expect_error=True)
+
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
     assert "pip can't proceed" in result.stdout, result.stdout
     assert exists(build)

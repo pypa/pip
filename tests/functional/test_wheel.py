@@ -7,6 +7,8 @@ from os.path import exists
 from nose import SkipTest
 from pip import wheel
 from pip.download import path_to_url as path_to_url_d
+from pip.locations import write_delete_marker_file
+from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import tests_data, reset_env, run_pip, pyversion_nodot, write_file, path_to_url, find_links, pip_install_local
 
 
@@ -97,4 +99,22 @@ def test_pip_wheel_source_deps():
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout
 
+
+def test_pip_wheel_fail_cause_of_previous_build_dir():
+    """Test when 'pip wheel' tries to install a package that has a previous build directory"""
+
+    env = reset_env()
+    pip_install_local('wheel')
+
+    # Given that I have a previous build dir of the `simple` package
+    build = env.venv_path / 'build' / 'simple'
+    os.makedirs(build)
+    write_delete_marker_file(env.venv_path / 'build')
+    write_file("setup.py", "#", dest=build)
+
+    # When I call pip trying to install things again
+    result = run_pip('wheel', '--no-index', '--find-links=%s' % find_links, 'simple==3.0', expect_error=True)
+
+    # Then I see that the error code is the right one
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
 
