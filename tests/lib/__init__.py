@@ -444,9 +444,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
 
 #
-# This cleanup routine prevents the __del__ method that cleans up the tree of
-# the last TestPipEnvironment from firing after shutil has already been
-# unloaded.  It also ensures that FastTestPipEnvironment doesn't leave an
+# This cleanup routine ensures that FastTestPipEnvironment doesn't leave an
 # environment hanging around that might confuse the next test run.
 #
 atexit.register(fast_test_env_root.rmtree)
