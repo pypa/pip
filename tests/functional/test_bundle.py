@@ -7,7 +7,7 @@ from tests.lib.path import Path
 from tests.lib.local_repos import local_checkout
 
 
-def test_create_bundle(script):
+def test_create_bundle(script, tmpdir):
     """
     Test making a bundle.  We'll grab one package from the filesystem
     (the FSPkg dummy package), one from vcs (initools) and one from an
@@ -19,7 +19,7 @@ def test_create_bundle(script):
     pkg_lines = textwrap.dedent('''\
             -e %s
             -e %s#egg=initools-dev
-            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
+            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     script.scratch_path.join("bundle-req.txt").write(pkg_lines)
     # Create a bundle in env.scratch_path/ test.pybundle
     result = script.pip('bundle', '-r', script.scratch_path/ 'bundle-req.txt', script.scratch_path/ 'test.pybundle')
@@ -32,7 +32,7 @@ def test_create_bundle(script):
     assert 'build/pip/' in files
 
 
-def test_cleanup_after_create_bundle(script):
+def test_cleanup_after_create_bundle(script, tmpdir):
     """
     Test clean up after making a bundle. Make sure (build|src)-bundle/ dirs are removed but not src/.
 
@@ -41,7 +41,7 @@ def test_cleanup_after_create_bundle(script):
     args = ['install']
     args.extend(['-e',
                  '%s#egg=pip-test-package' %
-                    local_checkout('git+http://github.com/pypa/pip-test-package.git')])
+                    local_checkout('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache"))])
     script.pip(*args)
     build = script.venv_path/"build"
     src = script.venv_path/"src"
@@ -53,7 +53,7 @@ def test_cleanup_after_create_bundle(script):
     pkg_lines = textwrap.dedent('''\
             -e %s
             -e %s#egg=initools-dev
-            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
+            pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     script.scratch_path.join("bundle-req.txt").write(pkg_lines)
     script.pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
     build_bundle = script.scratch_path/"build-bundle"

@@ -29,7 +29,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script):
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
-def test_cleanup_after_install_editable_from_hg(script):
+def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.
 
@@ -37,7 +37,7 @@ def test_cleanup_after_install_editable_from_hg(script):
     script.pip('install',
             '-e',
             '%s#egg=ScriptTest' %
-            local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
+            local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir.join("cache")),
             expect_error=True)
     build = script.venv_path/'build'
     src = script.venv_path/'src'

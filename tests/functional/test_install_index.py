@@ -3,7 +3,7 @@ import textwrap
 
 from pip.backwardcompat import urllib
 
-from tests.lib import pyversion, tests_data, path_to_url
+from tests.lib import pyversion, tests_data, path_to_url, packages
 
 
 def test_find_links_relative_path(script):

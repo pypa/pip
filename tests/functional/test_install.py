@@ -46,18 +46,18 @@ def test_editable_install(script):
     assert not result.files_updated, result.files_updated
 
 
-def test_install_editable_from_svn(script):
+def test_install_editable_from_svn(script, tmpdir):
     """
     Test checking out from svn.
     """
     result = script.pip('install',
                      '-e',
                      '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")))
     result.assert_installed('INITools', with_files=['.svn'])
 
 
-def test_download_editable_to_custom_path(script):
+def test_download_editable_to_custom_path(script, tmpdir):
     """
     Test downloading an editable using a relative custom src folder.
     """
@@ -65,7 +65,7 @@ def test_download_editable_to_custom_path(script):
     result = script.pip('install',
                      '-e',
                      '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")),
                      '--src',
                      'customsrc',
                      '--download',
@@ -80,21 +80,21 @@ def test_download_editable_to_custom_path(script):
     assert customdl_files_created
 
 
-def test_editable_no_install_followed_by_no_download(script):
+def test_editable_no_install_followed_by_no_download(script, tmpdir):
     """
     Test installing an editable in two steps (first with --no-install, then with --no-download).
     """
     result = script.pip('install',
                      '-e',
                      '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")),
                      '--no-install', expect_error=True)
     result.assert_installed('INITools', without_egg_link=True, with_files=['.svn'])
 
     result = script.pip('install',
                      '-e',
                      '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")),
                      '--no-download', expect_error=True)
     result.assert_installed('INITools', without_files=[curdir, '.svn'])
 
@@ -140,58 +140,58 @@ def test_install_dev_version_from_pypi(script):
     assert (script.site_packages / 'initools') in result.files_created, str(result.stdout)
 
 
-def test_install_editable_from_git(script):
+def test_install_editable_from_git(script, tmpdir):
     """
     Test cloning from Git.
     """
     args = ['install']
     args.extend(['-e',
                  '%s#egg=pip-test-package' %
-                 local_checkout('git+http://github.com/pypa/pip-test-package.git')])
+                 local_checkout('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache"))])
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
-def test_install_editable_from_hg(script):
+def test_install_editable_from_hg(script, tmpdir):
     """
     Test cloning from Mercurial.
     """
     result = script.pip('install', '-e',
                      '%s#egg=ScriptTest' %
-                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir.join("cache")),
                      expect_error=True)
     result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
-def test_vcs_url_final_slash_normalization(script):
+def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
     result = script.pip('install', '-e',
                      '%s/#egg=ScriptTest' %
-                     local_checkout('hg+https://bitbucket.org/ianb/scripttest'),
+                     local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir.join("cache")),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
 
-def test_install_editable_from_bazaar(script):
+def test_install_editable_from_bazaar(script, tmpdir):
     """
     Test checking out from Bazaar.
     """
     result = script.pip('install', '-e',
                      '%s/@174#egg=django-wikiapp' %
-                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
+                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1', tmpdir.join("cache")),
                      expect_error=True)
     result.assert_installed('django-wikiapp', with_files=['.bzr'])
 
 
-def test_vcs_url_urlquote_normalization(script):
+def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
     result = script.pip('install', '-e',
                      '%s/#egg=django-wikiapp' %
-                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
+                     local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1', tmpdir.join("cache")),
                      expect_error=True)
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
@@ -295,7 +295,7 @@ def test_install_with_hacked_egg_info(script):
     assert 'Successfully installed hackedegginfo\n' in result.stdout
 
 
-def test_install_using_install_option_and_editable(script):
+def test_install_using_install_option_and_editable(script, tmpdir):
     """
     Test installing a tool using -e and --install-option
     """
@@ -303,20 +303,20 @@ def test_install_using_install_option_and_editable(script):
     script.scratch_path.join(folder).mkdir()
     url = 'git+git://github.com/pypa/virtualenv'
     result = script.pip('install', '-e', '%s#egg=virtualenv' %
-                      local_checkout(url),
+                      local_checkout(url, tmpdir.join("cache")),
                      '--install-option=--script-dir=%s' % folder)
     virtualenv_bin = script.venv/'src'/'virtualenv'/folder/'virtualenv'+script.exe
     assert virtualenv_bin in result.files_created
 
 
-def test_install_global_option_using_editable(script):
+def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
     """
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip('install', '--global-option=--version',
                      '-e', '%s@0.2.5#egg=anyjson' %
-                      local_checkout(url))
+                      local_checkout(url, tmpdir.join("cache")))
     assert '0.2.5\n' in result.stdout
 
 

@@ -59,7 +59,7 @@ def test_relative_requirements_file(script):
     assert (script.site_packages/'fspkg') in result.files_created, str(result.stdout)
 
 
-def test_multiple_requirements_files(script):
+def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
 
@@ -67,7 +67,7 @@ def test_multiple_requirements_files(script):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
         -e %s@10#egg=INITools-dev
-        -r %s-req.txt""" % (local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'),
+        -r %s-req.txt""" % (local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")),
                             other_lib_name)))
     script.scratch_path.join("%s-req.txt" % other_lib_name).write(textwrap.dedent("""\
         %s<=%s

@@ -58,15 +58,15 @@ def test_freeze_basic(script):
     _check_output(result, expected)
 
 
-def test_freeze_svn(script):
+def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 
-    checkout_path = local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')
+    checkout_path = local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))
     #svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
 
     result = script.run('svn', 'co', '-r10',
-                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk'),
+                     local_repo('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")),
                      'initools-trunk')
     result = script.run('python', 'setup.py', 'develop',
             cwd=script.scratch_path/ 'initools-trunk', expect_stderr=True)
@@ -79,12 +79,12 @@ def test_freeze_svn(script):
     _check_output(result, expected)
 
 
-def test_freeze_git_clone(script):
+def test_freeze_git_clone(script, tmpdir):
     """
     Test freezing a Git clone.
 
     """
-    result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git'), 'pip-test-package')
+    result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache")), 'pip-test-package')
     result = script.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
             cwd=script.scratch_path / 'pip-test-package', expect_stderr=True)
     result = script.run('python', 'setup.py', 'develop',
@@ -94,29 +94,29 @@ def test_freeze_git_clone(script):
         Script result: ...pip freeze
         -- stdout: --------------------
         ...-e %s@...#egg=pip_test_package-...
-        ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git'))
+        ...""" % local_checkout('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache")))
     _check_output(result, expected)
 
     result = script.pip('freeze', '-f',
-                     '%s#egg=pip_test_package' % local_checkout('git+http://github.com/pypa/pip-test-package.git'),
+                     '%s#egg=pip_test_package' % local_checkout('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache")),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
         -f %(repo)s#egg=pip_test_package...
         -e %(repo)s@...#egg=pip_test_package-0.1.1
-        ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git')})
+        ...""" % {'repo': local_checkout('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache"))})
     _check_output(result, expected)
 
 
-def test_freeze_mercurial_clone(script):
+def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.
 
     """
     result = script.run('hg', 'clone',
                      '-r', 'c9963c111e7c',
-                     local_repo('hg+http://bitbucket.org/pypa/pip-test-package'),
+                     local_repo('hg+http://bitbucket.org/pypa/pip-test-package', tmpdir.join("cache")),
                      'pip-test-package')
     result = script.run('python', 'setup.py', 'develop',
             cwd=script.scratch_path/'pip-test-package', expect_stderr=True)
@@ -125,33 +125,33 @@ def test_freeze_mercurial_clone(script):
         Script result: ...pip freeze
         -- stdout: --------------------
         ...-e %s@...#egg=pip_test_package-...
-        ...""" % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'))
+        ...""" % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package', tmpdir.join("cache")))
     _check_output(result, expected)
 
     result = script.pip('freeze', '-f',
-                     '%s#egg=pip_test_package' % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package'),
+                     '%s#egg=pip_test_package' % local_checkout('hg+http://bitbucket.org/pypa/pip-test-package', tmpdir.join("cache")),
                      expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze -f %(repo)s#egg=pip_test_package
         -- stdout: --------------------
         -f %(repo)s#egg=pip_test_package
         ...-e %(repo)s@...#egg=pip_test_package-dev
-        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/pypa/pip-test-package')})
+        ...""" % {'repo': local_checkout('hg+http://bitbucket.org/pypa/pip-test-package', tmpdir.join("cache"))})
     _check_output(result, expected)
 
 
-def test_freeze_bazaar_clone(script):
+def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.
 
     """
 
-    checkout_path = local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1')
+    checkout_path = local_checkout('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1', tmpdir.join("cache"))
     #bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
     result = script.run('bzr', 'checkout', '-r', '174',
-                     local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1'),
+                     local_repo('bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/release-0.1', tmpdir.join("cache")),
                      'django-wikiapp')
     result = script.run('python', 'setup.py', 'develop',
             cwd=script.scratch_path/'django-wikiapp')

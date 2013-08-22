@@ -183,10 +183,10 @@ def test_install_with_ignoreinstalled_requested(script):
     assert script.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
 
-def test_upgrade_vcs_req_with_no_dists_found(script):
+def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
-        "git+http://github.com/pypa/pip-test-package.git")
+        "git+http://github.com/pypa/pip-test-package.git", tmpdir.join("cache"))
     script.pip("install", req)
     result = script.pip("install", "-U", req)
     assert not result.returncode

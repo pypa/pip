@@ -113,40 +113,42 @@ def test_uninstall_easy_installed_console_scripts(script):
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_editable_from_svn(script):
+def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.
     """
     result = script.pip('install', '-e', '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")))
     result.assert_installed('INITools')
     result2 = script.pip('uninstall', '-y', 'initools')
     assert (script.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
     assert_all_changes(result, result2, [script.venv/'src', script.venv/'build'])
 
 
-def test_uninstall_editable_with_source_outside_venv(script):
+def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     """
     Test uninstalling editable install from existing source outside the venv.
 
     """
+    cache_dir = tmpdir.join("cache")
+
     try:
         temp = mkdtemp()
         tmpdir = join(temp, 'virtualenv')
-        _test_uninstall_editable_with_source_outside_venv(script, tmpdir)
+        _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir)
     finally:
         rmtree(temp)
 
 
-def _test_uninstall_editable_with_source_outside_venv(script, tmpdir):
-    result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv'), tmpdir)
+def _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir):
+    result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv', cache_dir), tmpdir)
     result2 = script.pip('install', '-e', tmpdir)
     assert (join(script.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
     result3 = script.pip('uninstall', '-y', 'virtualenv', expect_error=True)
     assert_all_changes(result, result3, [script.venv/'build'])
 
 
-def test_uninstall_from_reqs_file(script):
+def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.
 
@@ -155,7 +157,7 @@ def test_uninstall_from_reqs_file(script):
         -e %s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
+        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     result = script.pip('install', '-r', 'test-req.txt')
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
         # -f, -i, and --extra-index-url should all be ignored by uninstall
@@ -166,7 +168,7 @@ def test_uninstall_from_reqs_file(script):
         -e %s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
+        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
         result, result2, [script.venv/'build', script.venv/'src', script.scratch/'test-req.txt'])

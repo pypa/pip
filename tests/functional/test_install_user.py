@@ -52,14 +52,14 @@ class Tests_UserSite:
         assert 'INITools'== project_name, "'%s' should be 'INITools'" %project_name
 
 
-    def test_install_subversion_usersite_editable_with_distribute(self, script, virtualenv):
+    def test_install_subversion_usersite_editable_with_distribute(self, script, virtualenv, tmpdir):
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
         virtualenv.system_site_packages = True
         result = script.pip('install', '--user', '-e',
                          '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")))
         result.assert_installed('INITools', use_user_site=True)
 
 
