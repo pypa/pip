@@ -9,7 +9,7 @@ import site
 import subprocess
 
 import scripttest
-import virtualenv as _virtualenv
+import virtualenv
 
 from pip.backwardcompat import uses_pycache
 
@@ -65,7 +65,7 @@ def reset_env(environ=None, system_site_packages=False):
 
     # Create a virtual environment
     venv_root = fast_test_env_root.join(".virtualenv")
-    _virtualenv.create_environment(venv_root,
+    virtualenv.create_environment(venv_root,
         never_download=True,
         no_pip=True,
     )
@@ -234,12 +234,13 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
 
-    def __init__(self, base_path, *args, virtualenv=None, **kwargs):
+    def __init__(self, base_path, *args, **kwargs):
         # Make our base_path a test.lib.path.Path object
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        venv, lib, include, bin = _virtualenv.path_locations(virtualenv)
+        _virtualenv = kwargs.pop("virtualenv")
+        venv, lib, include, bin = virtualenv.path_locations(_virtualenv)
         self.venv_path = venv
         self.lib_path = lib
         self.include_path = include
