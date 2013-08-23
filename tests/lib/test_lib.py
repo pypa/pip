@@ -5,7 +5,7 @@ import filecmp
 import re
 from os.path import join, isdir
 
-from tests.lib import src_folder
+from tests.lib.path import Path
 
 
 def test_tmp_dir_exists_in_env(script):
@@ -27,6 +27,7 @@ def test_correct_pip_version(script):
     result = script.pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
+    src_folder = Path(__file__).folder.fodler.folder.abspath
     dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
                    result.stdout).group(4)
     pip_folder = join(src_folder, 'pip')

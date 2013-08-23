@@ -15,7 +15,8 @@ import getpass
 from pip.basecommand import get_proxy
 from pip.backwardcompat import urllib2
 from pip.download import urlopen, VerifiedHTTPSHandler
-from tests.lib import src_folder
+
+from tests.lib.path import Path
 
 
 def new_getpass(prompt, answer='passwd'):
@@ -28,7 +29,8 @@ def test_correct_pip_version():
     Check we are importing pip from the right place.
 
     """
-    assert pip.__file__.startswith(src_folder), pip.__file__
+    src_folder = Path(__file__).folder.fodler.folder.abspath
+    assert Path(pip.__file__).folder.abspath == src_folder
 
 
 def test_remove_proxy():
