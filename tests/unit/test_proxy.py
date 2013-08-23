@@ -16,6 +16,7 @@ from pip.basecommand import get_proxy
 from pip.backwardcompat import urllib2
 from pip.download import urlopen, VerifiedHTTPSHandler
 
+from tests.lib import SRC_DIR
 from tests.lib.path import Path
 
 
@@ -29,8 +30,7 @@ def test_correct_pip_version():
     Check we are importing pip from the right place.
 
     """
-    src_folder = Path(__file__).folder.fodler.folder.abspath
-    assert Path(pip.__file__).folder.abspath == src_folder
+    assert Path(pip.__file__).folder.folder.abspath == SRC_DIR
 
 
 def test_remove_proxy():

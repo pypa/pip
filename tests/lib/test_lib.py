@@ -5,6 +5,7 @@ import filecmp
 import re
 from os.path import join, isdir
 
+from tests.lib import SRC_DIR
 from tests.lib.path import Path
 
 
@@ -27,10 +28,9 @@ def test_correct_pip_version(script):
     result = script.pip('--version')
 
     # compare the directory tree of the invoked pip with that of this source distribution
-    src_folder = Path(__file__).folder.fodler.folder.abspath
     dir = re.match(r'pip \d(\.[\d])+(\.?(rc|dev|pre|post)\d+)? from (.*) \(python \d(.[\d])+\)$',
                    result.stdout).group(4)
-    pip_folder = join(src_folder, 'pip')
+    pip_folder = join(SRC_DIR, 'pip')
     pip_folder_outputed = join(dir, 'pip')
 
     diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)

@@ -6,6 +6,7 @@ from os.path import join
 
 import pytest
 
+from tests.lib import SRC_DIR
 from tests.lib import (assert_all_changes, pyversion,
                        _create_test_package, _change_test_package_version)
 from tests.lib.local_repos import local_checkout
@@ -220,6 +221,8 @@ class TestUpgradeSetuptools(object):
             del self.script.environ["PYTHONDONTWRITEBYTECODE"]
         self.script.run(*args)
         self.ve_bin = self.script.scratch_path/'VE'/'bin'
+        self.script.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
+        self.script.run(self.ve_bin/'python', 'setup.py', 'develop', cwd=SRC_DIR, expect_stderr=True)
 
     @pytest.mark.skipif("sys.version_info >= (3,0)")
     def test_py2_from_setuptools_6_to_setuptools_7(self, script, data):
