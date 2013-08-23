@@ -93,7 +93,6 @@ class TestWheel:
         """
         Test not finding an unsupported wheel.
         """
-        monkeypatch.setattr(pip.wheel.pkg_resources, "get_distribution", lambda x: Distribution(project_name='setuptools', version='0.9'))
         monkeypatch.setattr(pip.pep425tags, "supported_tags", [('py1', 'none', 'any')])
 
         req = InstallRequirement.from_line("simple.dist")
@@ -106,7 +105,6 @@ class TestWheel:
         """
         Test finding supported wheel.
         """
-        monkeypatch.setattr(pip.wheel.pkg_resources, "get_distribution", lambda x: Distribution(project_name='setuptools', version='0.9'))
         monkeypatch.setattr(pip.pep425tags, "supported_tags", [('py2', 'none', 'any')])
 
         req = InstallRequirement.from_line("simple.dist")
