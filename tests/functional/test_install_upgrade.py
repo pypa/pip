@@ -6,7 +6,7 @@ from os.path import join
 
 import pytest
 
-from tests.lib import (assert_all_changes, src_folder, pyversion, find_links,
+from tests.lib import (assert_all_changes, src_folder, pyversion,
                        _create_test_package, _change_test_package_version)
 from tests.lib.local_repos import local_checkout
 
@@ -44,13 +44,13 @@ def test_upgrade_if_requested(script):
     assert script.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
 
 
-def test_upgrade_with_newest_already_installed(script):
+def test_upgrade_with_newest_already_installed(script, data):
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
     """
-    script.pip('install', '-f', find_links, '--no-index', 'simple')
-    result = script.pip('install', '--upgrade', '-f', find_links, '--no-index', 'simple')
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple')
+    result = script.pip('install', '--upgrade', '-f', data.find_links, '--no-index', 'simple')
     assert not result.files_created, 'simple upgraded when it should not have'
     assert 'already up-to-date' in result.stdout, result.stdout
 
@@ -129,15 +129,15 @@ def test_upgrade_from_reqs_file(script):
     assert_all_changes(install_result, uninstall_result, [script.venv/'build', 'cache', script.scratch/'test-req.txt'])
 
 
-def test_uninstall_rollback(script):
+def test_uninstall_rollback(script, data):
     """
     Test uninstall-rollback (using test package with a setup.py
     crafted to fail on install).
 
     """
-    result = script.pip('install', '-f', find_links, '--no-index', 'broken==0.1')
+    result = script.pip('install', '-f', data.find_links, '--no-index', 'broken==0.1')
     assert script.site_packages / 'broken.py' in result.files_created, list(result.files_created.keys())
-    result2 = script.pip('install', '-f', find_links, '--no-index', 'broken==0.2broken', expect_error=True)
+    result2 = script.pip('install', '-f', data.find_links, '--no-index', 'broken==0.2broken', expect_error=True)
     assert result2.returncode == 1, str(result2)
     assert script.run('python', '-c', "import broken; print(broken.VERSION)").stdout == '0.1\n'
     assert_all_changes(result.files_after, result2, [script.venv/'build', 'pip-log.txt'])
@@ -224,44 +224,44 @@ class TestUpgradeSetuptools(object):
         self.script.run(self.ve_bin/'python', 'setup.py', 'install', cwd=src_folder, expect_stderr=True)
 
     @pytest.mark.skipif("sys.version_info >= (3,0)")
-    def test_py2_from_setuptools_6_to_setuptools_7(self, script):
+    def test_py2_from_setuptools_6_to_setuptools_7(self, script, data):
         self.prep_ve(script, '1.9.1')
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.6c11" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_py2_py3_from_distribute_6_to_setuptools_7(self, script):
+    def test_py2_py3_from_distribute_6_to_setuptools_7(self, script, data):
         self.prep_ve(script, '1.9.1', distribute=True)
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: distribute 0.6.34" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
         "distribute (0.7.3)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7(self, script):
+    def test_from_setuptools_7_to_setuptools_7(self, script, data):
         self.prep_ve(script, '1.10')
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7_using_wheel(self, script):
+    def test_from_setuptools_7_to_setuptools_7_using_wheel(self, script, data):
         self.prep_ve(script, '1.10')
-        result = self.script.run(self.ve_bin/'pip', 'install', '--use-wheel', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--use-wheel', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         assert 'setuptools-0.9.8.dist-info' in str(result.files_created) #only wheels use dist-info
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self, script):
+    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self, script, data):
         self.prep_ve(script, '1.9.1', distribute=True)
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, 'setuptools==0.9.6')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, 'setuptools==0.9.6')
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.6)" in result.stdout
         "distribute (0.7.3)" in result.stdout
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.6" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout

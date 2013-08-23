@@ -6,7 +6,7 @@ import sys
 from os.path import join, abspath, normpath
 from tempfile import mkdtemp
 from mock import patch
-from tests.lib import tests_data, assert_all_changes, pyversion
+from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
@@ -63,7 +63,7 @@ def test_uninstall_namespace_package(script):
     assert join(script.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
 
 
-def test_uninstall_overlapping_package(script):
+def test_uninstall_overlapping_package(script, data):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
     should only remove those added modules, not the rest of the existing
@@ -71,8 +71,9 @@ def test_uninstall_overlapping_package(script):
 
     See: GitHub issue #355 (pip uninstall removes things it didn't install)
     """
-    parent_pkg = abspath(join(tests_data, 'packages', 'parent-0.1.tar.gz'))
-    child_pkg = abspath(join(tests_data, 'packages', 'child-0.1.tar.gz'))
+    parent_pkg = data.packages.join("parent-0.1.tar.gz")
+    child_pkg = data.packages.join("child-0.1.tar.gz")
+
     result1 = script.pip('install', parent_pkg, expect_error=False)
     assert join(script.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
     result2 = script.pip('install', child_pkg, expect_error=False)
@@ -175,12 +176,12 @@ def test_uninstall_from_reqs_file(script, tmpdir):
         script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_as_egg(script):
+def test_uninstall_as_egg(script, data):
     """
     Test uninstall package installed as egg.
 
     """
-    to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
+    to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages/'fspkg'
     egg_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion

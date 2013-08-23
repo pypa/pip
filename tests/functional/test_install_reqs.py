@@ -8,7 +8,7 @@ from mock import patch
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
 
-from tests.lib import pyversion, tests_data, path_to_url, find_links
+from tests.lib import pyversion, path_to_url
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -45,12 +45,12 @@ def test_schema_check_in_requirements_file(script):
         script.pip("install", "-vvv", "-r", script.scratch_path / "file-egg-req.txt")
 
 
-def test_relative_requirements_file(script):
+def test_relative_requirements_file(script, data):
     """
     Test installing from a requirements file with a relative path with an egg= definition..
 
     """
-    url = path_to_url(os.path.join(tests_data, 'packages', '..', 'packages', 'FSPkg')) + '#egg=FSPkg'
+    url = path_to_url(os.path.join(data.root, "packages", "..", "packages", "FSPkg")) + '#egg=FSPkg'
     script.scratch_path.join("file-egg-req.txt").write(textwrap.dedent("""\
         %s
         """ % url))
@@ -79,14 +79,14 @@ def test_multiple_requirements_files(script, tmpdir):
     assert script.venv/'src'/'initools' in result.files_created
 
 
-def test_respect_order_in_requirements_file(script):
+def test_respect_order_in_requirements_file(script, data):
     script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
         parent
         child
         simple
         """))
 
-    result = script.pip('install', '--no-index', '-f', find_links, '-r', script.scratch_path / 'frameworks-req.txt')
+    result = script.pip('install', '--no-index', '-f', data.find_links, '-r', script.scratch_path / 'frameworks-req.txt')
 
     downloaded = [line for line in result.stdout.split('\n')
                   if 'Downloading/unpacking' in line]
@@ -99,8 +99,8 @@ def test_respect_order_in_requirements_file(script):
             'be "simple" but was "%s"' % downloaded[2]
 
 
-def test_install_local_editable_with_extras(script):
-    to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'LocalExtras'))
+def test_install_local_editable_with_extras(script, data):
+    to_install = data.packages.join("LocalExtras")
     res = script.pip('install', '-e', to_install + '[bar]', expect_error=False)
     assert script.site_packages/'easy-install.pth' in res.files_updated, str(result)
     assert script.site_packages/'LocalExtras.egg-link' in res.files_created, str(result)

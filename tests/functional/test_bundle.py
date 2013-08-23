@@ -2,19 +2,17 @@ import zipfile
 import textwrap
 from os.path import abspath, exists, join
 from pip.download import path_to_url2
-from tests.lib import tests_data
-from tests.lib.path import Path
 from tests.lib.local_repos import local_checkout
 
 
-def test_create_bundle(script, tmpdir):
+def test_create_bundle(script, tmpdir, data):
     """
     Test making a bundle.  We'll grab one package from the filesystem
     (the FSPkg dummy package), one from vcs (initools) and one from an
     index (pip itself).
 
     """
-    fspkg = path_to_url2(Path(tests_data)/'packages'/'FSPkg')
+    fspkg = path_to_url2(data.packages/'FSPkg')
     script.pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s
@@ -32,7 +30,7 @@ def test_create_bundle(script, tmpdir):
     assert 'build/pip/' in files
 
 
-def test_cleanup_after_create_bundle(script, tmpdir):
+def test_cleanup_after_create_bundle(script, tmpdir, data):
     """
     Test clean up after making a bundle. Make sure (build|src)-bundle/ dirs are removed but not src/.
 
@@ -49,7 +47,7 @@ def test_cleanup_after_create_bundle(script, tmpdir):
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
 
     # Make the bundle.
-    fspkg = 'file://%s/FSPkg' %join(tests_data, 'packages')
+    fspkg = path_to_url2(data.packages/'FSPkg')
     pkg_lines = textwrap.dedent('''\
             -e %s
             -e %s#egg=initools-dev

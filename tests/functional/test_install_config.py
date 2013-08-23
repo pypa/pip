@@ -2,8 +2,6 @@ import os
 import tempfile
 import textwrap
 
-from tests.lib import find_links
-
 
 def test_options_from_env_vars(script):
     """

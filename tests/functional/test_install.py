@@ -7,7 +7,7 @@ from os.path import abspath, join, curdir, pardir
 import pytest
 
 from pip.util import rmtree
-from tests.lib import tests_data, pyversion, find_links
+from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -196,11 +196,11 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     assert 'pip-log.txt' not in result.files_created, result.files_created['pip-log.txt'].bytes
 
 
-def test_install_from_local_directory(script):
+def test_install_from_local_directory(script, data):
     """
     Test installing from a local directory.
     """
-    to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
+    to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, expect_error=False)
     fspkg_folder = script.site_packages/'fspkg'
     egg_info_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
@@ -208,31 +208,31 @@ def test_install_from_local_directory(script):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_from_local_directory_with_no_setup_py(script):
+def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     Test installing from a local directory with no 'setup.py'.
     """
-    result = script.pip('install', tests_data, expect_error=True)
+    result = script.pip('install', data.root, expect_error=True)
     assert len(result.files_created) == 1, result.files_created
     assert 'pip-log.txt' in result.files_created, result.files_created
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
-def test_editable_install_from_local_directory_with_no_setup_py(script):
+def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     """
     Test installing from a local directory with no 'setup.py'.
     """
-    result = script.pip('install', '-e', tests_data, expect_error=True)
+    result = script.pip('install', '-e', data.root, expect_error=True)
     assert len(result.files_created) == 1, result.files_created
     assert 'pip-log.txt' in result.files_created, result.files_created
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
-def test_install_as_egg(script):
+def test_install_as_egg(script, data):
     """
     Test installing as egg, instead of flat install.
     """
-    to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
+    to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages/'fspkg'
     egg_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
@@ -241,11 +241,11 @@ def test_install_as_egg(script):
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
-def test_install_curdir(script):
+def test_install_curdir(script, data):
     """
     Test installing current directory ('.').
     """
-    run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
+    run_from = data.packages.join("FSPkg")
     # Python 2.4 Windows balks if this exists already
     egg_info = join(run_from, "FSPkg.egg-info")
     if os.path.isdir(egg_info):
@@ -257,11 +257,11 @@ def test_install_curdir(script):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_pardir(script):
+def test_install_pardir(script, data):
     """
     Test installing parent directory ('..').
     """
-    run_from = abspath(join(tests_data, 'packages', 'FSPkg', 'fspkg'))
+    run_from = data.packages.join("FSPkg", "fspkg")
     result = script.pip('install', pardir, cwd=run_from, expect_error=False)
     fspkg_folder = script.site_packages/'fspkg'
     egg_info_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
@@ -278,19 +278,18 @@ def test_install_global_option(script):
     assert '0.1\n' in result.stdout
 
 
-def test_install_with_pax_header(script):
+def test_install_with_pax_header(script, data):
     """
     test installing from a tarball with pax header for python<2.6
     """
-    run_from = abspath(join(tests_data, 'packages'))
-    script.pip('install', 'paxpkg.tar.bz2', cwd=run_from)
+    script.pip('install', 'paxpkg.tar.bz2', cwd=data.packages)
 
 
-def test_install_with_hacked_egg_info(script):
+def test_install_with_hacked_egg_info(script, data):
     """
     test installing a package which defines its own egg_info class
     """
-    run_from = abspath(join(tests_data, 'packages', 'HackedEggInfo'))
+    run_from = data.packages.join("HackedEggInfo")
     result = script.pip('install', '.', cwd=run_from)
     assert 'Successfully installed hackedegginfo\n' in result.stdout
 
@@ -393,12 +392,12 @@ def test_install_package_with_target(script):
     assert Path('scratch')/'target'/'initools' in result.files_created, str(result)
 
 
-def test_install_package_with_root(script):
+def test_install_package_with_root(script, data):
     """
     Test installing a package using pip install --root
     """
     root_dir = script.scratch_path/'root'
-    result = script.pip('install', '--root', root_dir, '-f', find_links, '--no-index', 'simple==1.0')
+    result = script.pip('install', '--root', root_dir, '-f', data.find_links, '--no-index', 'simple==1.0')
     normal_install_path = script.base_path / script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
     #use distutils to change the root exactly how the --root option does it
     from distutils.util import change_root
@@ -408,7 +407,7 @@ def test_install_package_with_root(script):
 
 # skip on win/py3 for now, see issue #782
 @pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
-def test_install_package_that_emits_unicode(script):
+def test_install_package_that_emits_unicode(script, data):
     """
     Install a package with a setup.py that emits UTF-8 output and then fails.
     This works fine in Python 2, but fails in Python 3 with:
@@ -423,13 +422,13 @@ def test_install_package_that_emits_unicode(script):
 
     Refs https://github.com/pypa/pip/issues/326
     """
-    to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'BrokenEmitsUTF8'))
+    to_install = data.packages.join("BrokenEmitsUTF8")
     result = script.pip('install', to_install, expect_error=True, expect_temp=True, quiet=True)
     assert 'FakeError: this package designed to fail on install' in result.stdout
     assert 'UnicodeDecodeError' not in result.stdout
 
 
-def test_url_req_case_mismatch(script):
+def test_url_req_case_mismatch(script, data):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper case project names,
     should be considered equal to later requirements that reference the project name using lower case.
@@ -437,8 +436,8 @@ def test_url_req_case_mismatch(script):
     tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
     'requiresupper' has install_requires = ['upper']
     """
-    Upper = os.path.join(find_links, 'Upper-1.0.tar.gz')
-    result = script.pip('install', '--no-index', '-f', find_links, Upper, 'requiresupper')
+    Upper = os.path.join(data.find_links, 'Upper-1.0.tar.gz')
+    result = script.pip('install', '--no-index', '-f', data.find_links, Upper, 'requiresupper')
 
     #only Upper-1.0.tar.gz should get installed.
     egg_folder = script.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion

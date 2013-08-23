@@ -13,7 +13,7 @@ import pytest
 from pip.backwardcompat import uses_pycache
 
 from tests.lib.local_repos import local_checkout
-from tests.lib import tests_data, pyversion, assert_all_changes, find_links
+from tests.lib import pyversion, assert_all_changes
 
 
 def _patch_dist_in_site_packages(script):
@@ -63,24 +63,24 @@ class Tests_UserSite:
         result.assert_installed('INITools', use_user_site=True)
 
 
-    def test_install_curdir_usersite(self, script, virtualenv):
+    def test_install_curdir_usersite(self, script, virtualenv, data):
         """
         Test installing current directory ('.') into usersite
         """
         virtualenv.system_site_packages = True
-        run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
-        result = script.pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+        run_from = data.packages.join("FSPkg")
+        result = script.pip('install', '-vvv', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = script.user_site/'fspkg'
         egg_info_folder = script.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-        assert fspkg_folder in result.files_created, str(result.stdout)
+        assert fspkg_folder in result.files_created, result.stdout
 
-        assert egg_info_folder in result.files_created, str(result)
+        assert egg_info_folder in result.files_created
 
-    def test_install_user_venv_nositepkgs_fails(self, script):
+    def test_install_user_venv_nositepkgs_fails(self, script, data):
         """
         user install in virtualenv (with no system packages) fails with message
         """
-        run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
+        run_from = data.packages.join("FSPkg")
         result = script.pip('install', '--user', curdir, cwd=run_from, expect_error=True)
         assert "Can not perform a '--user' install. User site-packages are not visible in this virtualenv." in result.stdout
 
@@ -210,7 +210,7 @@ class Tests_UserSite:
         result2 = script.pip('uninstall', '-y', 'INITools')
         assert_all_changes(result1, result2, [script.venv/'build', 'cache'])
 
-    def test_uninstall_editable_from_usersite(self, script, virtualenv):
+    def test_uninstall_editable_from_usersite(self, script, virtualenv, data):
         """
         Test uninstall editable local user install
         """
@@ -218,7 +218,7 @@ class Tests_UserSite:
         script.user_site_path.makedirs()
 
         #install
-        to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
+        to_install = data.packages.join("FSPkg")
         result1 = script.pip('install', '--user', '-e', to_install, expect_error=False)
         egg_link = script.user_site/'FSPkg.egg-link'
         assert egg_link in result1.files_created, str(result1.stdout)
@@ -230,13 +230,13 @@ class Tests_UserSite:
         assert_all_changes(result1, result2,
                            [script.venv/'build', 'cache', script.user_site/'easy-install.pth'])
 
-    def test_install_user_wheel(self, script, virtualenv):
+    def test_install_user_wheel(self, script, virtualenv, data):
         """
         Test user install from wheel
         """
         virtualenv.system_site_packages = True
         script.pip_install_local('wheel')
         result = script.pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
-                     '--no-index', '--find-links='+find_links)
+                     '--no-index', '--find-links='+data.find_links)
         egg_info_folder = script.user_site / 'simple.dist-0.1.dist-info'
         assert egg_info_folder in result.files_created, str(result)

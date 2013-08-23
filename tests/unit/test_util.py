@@ -14,7 +14,6 @@ from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.util import (egg_link_path, Inf, get_installed_distributions,
                       find_command, untar_file, unzip_file)
-from tests.lib import tests_data
 
 
 class Tests_EgglinkPath:
@@ -334,18 +333,18 @@ class TestUnpackArchives(object):
             mode = self.mode(path)
             assert mode == expected_mode, "mode: %s, expected mode: %s" % (mode, expected_mode)
 
-    def test_unpack_tgz(self):
+    def test_unpack_tgz(self, data):
         """
         Test unpacking a *.tgz, and setting execute permissions
         """
-        test_file =  os.path.join(tests_data, 'packages', 'test_tar.tgz')
+        test_file = data.packages.join("test_tar.tgz")
         untar_file(test_file, self.tempdir)
         self.confirm_files()
 
-    def test_unpack_zip(self):
+    def test_unpack_zip(self, data):
         """
         Test unpacking a *.zip, and setting execute permissions
         """
-        test_file =  os.path.join(tests_data, 'packages', 'test_zip.zip')
+        test_file = data.packages.join("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()

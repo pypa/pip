@@ -9,10 +9,9 @@ from pip.backwardcompat import urllib, BytesIO, b
 from pip.download import (_get_response_from_url as _get_response_from_url_original,
                           path_to_url2, unpack_http_url, URLOpener)
 from pip.index import Link
-from tests.lib import tests_data
 
 
-def test_unpack_http_url_with_urllib_response_without_content_type():
+def test_unpack_http_url_with_urllib_response_without_content_type(data):
     """
     It should download and unpack files even if no Content-Type header exists
     """
@@ -22,7 +21,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type():
         return resp
 
     with patch('pip.download._get_response_from_url', _get_response_from_url_mock) as mocked:
-        uri = path_to_url2(os.path.join(tests_data, 'packages', 'simple-1.0.tar.gz'))
+        uri = path_to_url2(data.packages.join("simple-1.0.tar.gz"))
         link = Link(uri)
         temp_dir = mkdtemp()
         try:
