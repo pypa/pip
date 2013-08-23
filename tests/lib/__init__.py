@@ -4,28 +4,18 @@ from __future__ import absolute_import
 import os
 import sys
 import re
-import atexit
 import textwrap
 import site
 
 import scripttest
 import virtualenv
 
-from pip.backwardcompat import uses_pycache
-
 from tests.lib.path import Path, curdir, u
 
+DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 
 pyversion = sys.version[:3]
 pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
-tests_lib = Path(__file__).abspath.folder  # pip/tests/lib
-tests_root = tests_lib.folder  # pip/tests
-tests_cache = os.path.join(tests_root, 'tests_cache')  # pip/tests/tests_cache
-src_folder = tests_root.folder  # pip/
-tests_data = os.path.join(tests_root, 'data')  # pip/tests/data
-packages = os.path.join(tests_data, 'packages')  # pip/tests/data/packages
-
-fast_test_env_root = tests_cache / 'test_ws'
 
 
 def path_to_url(path):
@@ -42,8 +32,59 @@ def path_to_url(path):
         return 'file:///' + drive + url
     return 'file://' + url
 
-find_links = path_to_url(os.path.join(tests_data, 'packages'))
-find_links2 = path_to_url(os.path.join(tests_data, 'packages2'))
+
+class TestData(object):
+    """
+    Represents a bundle of pre-created test data.
+
+    This copies a pristine set of test data into a root location that is
+    designed to be test specific. The reason for this is when running the tests
+    concurrently errors can be generated because the related tooling uses
+    the directory as a work space. This leads to two concurrent processes
+    trampling over each other. This class gets around that by copying all
+    data into a directory and operating on the copied data.
+    """
+
+    def __init__(self, root, source=None):
+        self.source = source or DATA_DIR
+        self.root = Path(root).abspath
+
+    @classmethod
+    def copy(cls, root):
+        obj = cls(root)
+        obj.reset()
+        return obj
+
+    def reset(self):
+        self.root.rmtree()
+        self.source.copytree(self.root)
+
+    @property
+    def packages(self):
+        return self.root.join("packages")
+
+    @property
+    def packages2(self):
+        return self.root.join("packages2")
+
+    @property
+    def indexes(self):
+        return self.root.join("indexes")
+
+    @property
+    def reqfiles(self):
+        return self.root.join("reqfiles")
+
+    @property
+    def find_links(self):
+        return path_to_url(self.packages)
+
+    @property
+    def find_links2(self):
+        return path_to_url(self.packages2)
+
+    def index_url(self, index="simple"):
+        return path_to_url(self.root.join("indexes", index))
 
 
 class TestFailure(AssertionError):
@@ -253,7 +294,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         return self.run("pip", *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
-        return self.pip("install", "--no-index", "--find-links", find_links,
+        return self.pip(
+            "install", "--no-index",
+            "--find-links", path_to_url(os.path.join(DATA_DIR, "packages")),
             *args, **kwargs
         )
 
@@ -385,10 +428,3 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
         e = sys.exc_info()[1]
         p = re.compile(reg)
         assert p.search(str(e)), str(e)
-
-
-#
-# This cleanup routine ensures that FastTestPipEnvironment doesn't leave an
-# environment hanging around that might confuse the next test run.
-#
-atexit.register(fast_test_env_root.rmtree)

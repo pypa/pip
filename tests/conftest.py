@@ -3,6 +3,7 @@ import shutil
 import py
 import pytest
 
+from tests.lib import TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
@@ -67,3 +68,8 @@ def script(tmpdir, virtualenv):
         capture_temp=True,
         assert_no_temp=True,
     )
+
+
+@pytest.fixture
+def data(tmpdir):
+    return TestData.copy(tmpdir.join("data"))
