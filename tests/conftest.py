@@ -35,7 +35,7 @@ def virtualenv(tmpdir, monkeypatch):
     # Force shutil to use the older method of rmtree that didn't use the fd
     # functions. These seem to fail on Travis (and only on Travis).
     monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
-    venv = VirtualEnvironment.create(tmpdir.join(".venv"))
+    venv = VirtualEnvironment.create(tmpdir.join("workspace", "venv"))
     monkeypatch.undo()
 
     return venv
@@ -51,7 +51,7 @@ def script(tmpdir, virtualenv):
     """
     return PipTestEnvironment(
         # The base location for our test environment
-        tmpdir,
+        tmpdir.join("workspace"),
 
         # Tell the Test Environment where our virtualenv is located
         virtualenv=virtualenv.location,
