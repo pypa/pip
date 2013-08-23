@@ -35,7 +35,7 @@ class TestRequirementSet(object):
             download_cache=os.path.join(self.tempdir, 'download_cache')
             )
 
-    def test_no_reuse_existing_build_dir(self):
+    def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
 
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
@@ -44,7 +44,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
-        finder = PackageFinder([find_links], [])
+        finder = PackageFinder([data.find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
             "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir.replace('\\', '\\\\')),

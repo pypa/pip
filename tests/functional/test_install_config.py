@@ -62,7 +62,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     assert "Successfully installed INITools" in result.stdout
 
 
-def test_command_line_append_flags(script, virtualenv):
+def test_command_line_append_flags(script, virtualenv, data):
     """
     Test command line flags that append to defaults set by environmental variables.
 
@@ -71,21 +71,21 @@ def test_command_line_append_flags(script, virtualenv):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
     virtualenv.clear()
-    result = script.pip('install', '-vvv', '--find-links', find_links, 'INITools', expect_error=True)
+    result = script.pip('install', '-vvv', '--find-links', data.find_links, 'INITools', expect_error=True)
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout
-    assert "Skipping link %s" % find_links in result.stdout
+    assert "Skipping link %s" % data.find_links in result.stdout
 
 
-def test_command_line_appends_correctly(script):
+def test_command_line_appends_correctly(script, data):
     """
     Test multiple appending options set by environmental variables.
 
     """
-    script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com %s' % find_links
+    script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com %s' % data.find_links
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
 
     assert "Analyzing links from page http://pypi.pinaxproject.com" in result.stdout, result.stdout
-    assert "Skipping link %s" % find_links in result.stdout
+    assert "Skipping link %s" % data.find_links in result.stdout
 
 
 def test_config_file_override_stack(script, virtualenv):
