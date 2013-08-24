@@ -23,4 +23,4 @@ branches:
     - 1.3.X
     - 1.4.X
 env:
-  - PYTHONHASHSEED=1
+  - PYTHONHASHSEED=0
