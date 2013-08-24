@@ -14,7 +14,9 @@ install:
   - pip install --upgrade setuptools
   - pip install pytest pytest-xdist git+https://github.com/pypa/virtualenv@develop#egg=virtualenv scripttest>=1.3 mock
 # Using -n 8because multiprocessing says a travis box has 16 CPUs (8 is half)
-script: py.test -n 8
+script:
+  - "if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]]; then py.test; fi"
+  - "if [[ $TRAVIS_PYTHON_VERSION != '3.2' ]]; then py.test -n 8; fi"
 notifications:
   irc: "irc.freenode.org#pip"
 branches:
