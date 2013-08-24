@@ -88,4 +88,6 @@ class TestsSSL:
         bad_cert = data.packages.join("README.txt")
         os.environ['PIP_CERT'] = bad_cert
         o = urlopen.get_opener(scheme='https')
-        assert_raises_regexp(URLError, '[sS][sS][lL]', o.open, pypi_https)
+
+        with pytest.raises(URLError):
+            o.open(pypi_https)
