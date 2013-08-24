@@ -6,7 +6,11 @@ python:
   - 3.3
   - pypy
 before_install:
-    - sudo apt-get install subversion bzr mercurial
+    - sudo add-apt-repository -y ppa:pypy/ppa
+    - sudo apt-get update
+    - sudo apt-get install subversion bzr mercurial pypy=2.0.2+dfsg-1~ppa1
+    - virtualenv -p `/usr/local/bin/pypy` ~/virtualenv/pypy2.0
+    - source ~/virtualenv/pypy2.0/bin/activate
     - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
     - git config --global user.email "python-virtualenv@googlegroups.com"
     - git config --global user.name "Pip"
