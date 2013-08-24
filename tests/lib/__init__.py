@@ -422,6 +422,8 @@ def _change_test_package_version(script, version_pkg_path):
 
 def assert_raises_regexp(exception, reg, run, *args, **kwargs):
     """Like assertRaisesRegexp in unittest"""
+    __tracebackhide__ = True
+
     try:
         run(*args, **kwargs)
         assert False, "%s should have been thrown" % exception
