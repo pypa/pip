@@ -1218,7 +1218,7 @@ class RequirementSet(object):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
         logger.info("Copying %s to %s" % (req_to_install.name, target_dir))
         dest = os.path.join(target_dir, req_to_install.name)
-        shutil.copytree(req_to_install.source_dir, dest)
+        shutil.copytree(req_to_install.source_dir, dest, symlinks=True)
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
                         command_desc='python setup.py clean')
 
