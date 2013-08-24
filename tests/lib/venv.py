@@ -23,6 +23,7 @@ class VirtualEnvironment(object):
 
     def __init__(self, location, *args, **kwargs):
         self.location = Path(location)
+        self.pip_source_dir = kwargs.pop("pip_source_dir")
         self._system_site_packages = kwargs.pop("system_site_packages", False)
 
         super(VirtualEnvironment, self).__init__(*args, **kwargs)
@@ -31,8 +32,8 @@ class VirtualEnvironment(object):
         return "<VirtualEnvironment {}>".format(self.location)
 
     @classmethod
-    def create(cls, location, clear=False):
-        obj = cls(location)
+    def create(cls, location, clear=False, pip_source_dir=None):
+        obj = cls(location, pip_source_dir=pip_source_dir)
         obj._create(clear=clear)
         return obj
 
@@ -49,6 +50,7 @@ class VirtualEnvironment(object):
         # environment
         p = subprocess.Popen(
             [self.location.join("bin", "python"), "setup.py", "develop"],
+            cwd=self.pip_source_dir,
             stderr=subprocess.STDOUT,
             stdout=DEVNULL,
         )

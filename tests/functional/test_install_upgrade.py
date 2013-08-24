@@ -210,7 +210,7 @@ class TestUpgradeSetuptools(object):
     note: virtualenv-1.10 contains setuptools-0.9.7
     """
 
-    def prep_ve(self, script, version, distribute=False):
+    def prep_ve(self, script, version, pip_src, distribute=False):
         self.script = script
         self.script.pip_install_local('virtualenv==%s' %version)
         args = ['virtualenv', self.script.scratch_path/'VE']
@@ -222,41 +222,44 @@ class TestUpgradeSetuptools(object):
         self.script.run(*args)
         self.ve_bin = self.script.scratch_path/'VE'/'bin'
         self.script.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
-        self.script.run(self.ve_bin/'python', 'setup.py', 'develop', cwd=SRC_DIR, expect_stderr=True)
+        self.script.run(self.ve_bin/'python', 'setup.py', 'install',
+            cwd=pip_src,
+            expect_stderr=True,
+        )
 
     @pytest.mark.skipif("sys.version_info >= (3,0)")
-    def test_py2_from_setuptools_6_to_setuptools_7(self, script, data):
-        self.prep_ve(script, '1.9.1')
+    def test_py2_from_setuptools_6_to_setuptools_7(self, script, data, virtualenv):
+        self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.6c11" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_py2_py3_from_distribute_6_to_setuptools_7(self, script, data):
-        self.prep_ve(script, '1.9.1', distribute=True)
+    def test_py2_py3_from_distribute_6_to_setuptools_7(self, script, data, virtualenv):
+        self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir, distribute=True)
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: distribute 0.6.34" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
         "distribute (0.7.3)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7(self, script, data):
-        self.prep_ve(script, '1.10')
+    def test_from_setuptools_7_to_setuptools_7(self, script, data, virtualenv):
+        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7_using_wheel(self, script, data):
-        self.prep_ve(script, '1.10')
+    def test_from_setuptools_7_to_setuptools_7_using_wheel(self, script, data, virtualenv):
+        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
         result = self.script.run(self.ve_bin/'pip', 'install', '--use-wheel', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         assert 'setuptools-0.9.8.dist-info' in str(result.files_created) #only wheels use dist-info
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
-    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self, script, data):
-        self.prep_ve(script, '1.9.1', distribute=True)
+    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self, script, data, virtualenv):
+        self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir, distribute=True)
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, 'setuptools==0.9.6')
         result = self.script.run(self.ve_bin/'pip', 'list')

@@ -3,7 +3,7 @@ import shutil
 import py
 import pytest
 
-from tests.lib import TestData
+from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
@@ -36,7 +36,23 @@ def virtualenv(tmpdir, monkeypatch):
     # Force shutil to use the older method of rmtree that didn't use the fd
     # functions. These seem to fail on Travis (and only on Travis).
     monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
-    venv = VirtualEnvironment.create(tmpdir.join("workspace", "venv"))
+
+    # Copy over our source tree so that each virtual environment is self
+    # contained
+    pip_src = tmpdir.join("pip_src").abspath
+    shutil.copytree(SRC_DIR, pip_src,
+        ignore=shutil.ignore_patterns(
+            "*.pyc", "docs/", "tests/", "pip.egg-info",
+        ),
+    )
+
+    # Create the virtual environment
+    venv = VirtualEnvironment.create(
+        tmpdir.join("workspace", "venv"),
+        pip_source_dir=pip_src,
+    )
+
+    # Undo our monkeypatching of shutil
     monkeypatch.undo()
 
     return venv
