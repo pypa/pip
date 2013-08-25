@@ -1067,16 +1067,13 @@ class RequirementSet(object):
                     # inconsistencies are logged later, but do not fail the
                     # installation.
                     elif os.path.exists(os.path.join(location, 'setup.py')):
-                        msg = textwrap.dedent("""
+                        raise PreviousBuildDirError(textwrap.dedent("""
                           pip can't proceed with requirement '%s' due to a pre-existing build directory.
                            location: %s
                           This is likely due to a previous installation that failed.
                           pip is being responsible and not assuming it can delete this.
                           Please delete it and try again.
-                        """ % (req_to_install, location))
-                        e = PreviousBuildDirError(msg)
-                        logger.fatal(msg)
-                        raise e
+                        """ % (req_to_install, location)))
                     else:
                         ## FIXME: this won't upgrade when there's an existing package unpacked in `location`
                         if req_to_install.url is None:

@@ -7,6 +7,8 @@ from os.path import exists
 
 from pip import wheel
 from pip.download import path_to_url as path_to_url_d
+from pip.locations import write_delete_marker_file
+from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import tests_data, reset_env, pyversion_nodot, path_to_url, find_links
 
 
@@ -96,3 +98,22 @@ def test_pip_wheel_source_deps():
     wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout
+
+
+def test_pip_wheel_fail_cause_of_previous_build_dir():
+    """Test when 'pip wheel' tries to install a package that has a previous build directory"""
+
+    script = reset_env()
+    script.pip_install_local('wheel')
+
+    # Given that I have a previous build dir of the `simple` package
+    build = script.venv_path / 'build' / 'simple'
+    os.makedirs(build)
+    write_delete_marker_file(script.venv_path / 'build')
+    build.join('setup.py').write('#')
+
+    # When I call pip trying to install things again
+    result = script.pip('wheel', '--no-index', '--find-links=%s' % find_links, 'simple==3.0', expect_error=True)
+
+    # Then I see that the error code is the right one
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
