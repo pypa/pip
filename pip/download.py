@@ -7,9 +7,16 @@ import platform
 import re
 import shutil
 import socket
-import ssl
 import sys
 import tempfile
+
+try:
+    import ssl
+    from ssl import wrap_socket
+except ImportError:
+    def wrap_socket(*args, **kwargs):
+        raise InstallationError("Unable to download anything without the ssl module")
+
 
 import pip
 
@@ -101,7 +108,16 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
-class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+class HTTPSConnection:
+    def __init__(self, *args, **kwargs):
+        raise InstallationError("Unable to download anything without the ssl module")
+
+        
+if hasattr(httplib, "HTTPSConnection"):
+    HTTPSConnection = httplib.HTTPSConnection
+
+
+class VerifiedHTTPSConnection(HTTPSConnection):
     """
     A connection that wraps connections with ssl certificate verification.
     """
@@ -129,7 +145,7 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
         # get alternate bundle or use our included bundle
         cert_path = os.environ.get('PIP_CERT', '') or default_cert_path
 
-        self.sock = ssl.wrap_socket(sock,
+        self.sock = wrap_socket(sock,
                                 self.key_file,
                                 self.cert_file,
                                 cert_reqs=ssl.CERT_REQUIRED,
@@ -143,14 +159,22 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
             raise
 
 
+class HTTPSHandler:
+    def __init__(self, *args, **kwargs):
+        raise InstallationError("Unable to download anything without the ssl module")
 
-class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+        
+if hasattr(urllib2, "HTTPSHandler"):
+    HTTPSHandler = urllib2.HTTPSHandler
+
+
+class VerifiedHTTPSHandler(HTTPSHandler):
     """
     A HTTPSHandler that uses our own VerifiedHTTPSConnection.
     """
     def __init__(self, connection_class = VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
-        urllib2.HTTPSHandler.__init__(self)
+        HTTPSHandler.__init__(self)
     def https_open(self, req):
         return self.do_open(self.specialized_conn_class, req)
 

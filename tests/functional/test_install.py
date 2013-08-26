@@ -482,3 +482,43 @@ def test_url_req_case_mismatch():
     assert egg_folder in result.files_created, str(result)
     egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
+
+
+nosslpth_py = '''# turn off the ssl module for pip tests
+import sys; sys.modules["ssl"] = None
+'''
+def test_pip_should_not_download_without_ssl():
+    """
+    Make sure pip does not work for downloading files whenever the ssl
+    module is not present.
+    """
+    script = reset_env()
+
+    # turn off the ssl module in this virtualenv
+    sslpth_path = script.site_packages_path.join("ssl.pth")
+    with open(sslpth_path, 'w') as sslpth:
+        sslpth.write(nosslpth_py)
+
+    result = script.pip('install', '-vvv', 'INITools==0.2', expect_error=True)
+    egg_info_folder = script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+    initools_folder = script.site_packages / 'initools'
+    assert egg_info_folder not in result.files_created, str(result)
+    assert initools_folder not in result.files_created, str(result)
+
+    assert "Unable to download anything without the ssl module" in result.stdout
+
+def test_pip_install_tarball_without_ssl():
+    """
+    Check that pip is still usable for local installation without an
+    ssl module.
+    """
+    script = reset_env()
+
+    # turn off the ssl module in this virtualenv
+    sslpth_path = script.site_packages_path.join("ssl.pth")
+    with open(sslpth_path, 'w') as sslpth:
+        sslpth.write(nosslpth_py)
+
+    simple = os.path.join(find_links, 'simple-1.0.tar.gz')
+    result = script.pip('install', simple)
+    result.assert_installed('simple', editable=False)

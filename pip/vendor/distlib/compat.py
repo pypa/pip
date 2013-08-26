@@ -10,6 +10,12 @@ import os
 import re
 import sys
 
+from . import DistlibException
+
+class HTTPSNotAvailableHandler:
+    def __init__(self, *args, **kwargs):
+        raise DistlibException("Unable to download anything without the ssl module")
+
 if sys.version_info[0] < 3:
     from StringIO import StringIO
     string_types = basestring,
@@ -30,8 +36,13 @@ if sys.version_info[0] < 3:
     import urllib2
     from urllib2 import (Request, urlopen, URLError, HTTPError,
                          HTTPBasicAuthHandler, HTTPPasswordMgr,
-                         HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
+                         HTTPHandler, HTTPRedirectHandler,
                          build_opener)
+    try:
+        from urllib2 import HTTPSHandler
+    except ImportError:
+        HTTPSHandler = HTTPSNotAvailableHandler
+    
     import httplib
     import xmlrpclib
     import Queue as queue
@@ -126,6 +137,11 @@ else:
                                 HTTPBasicAuthHandler, HTTPPasswordMgr,
                                 HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
                                 build_opener)
+    try:
+        from urllib.request import HTTPSHandler
+    except ImportError:
+        HTTPSHandler = HTTPSNotAvailableHandler
+
     from urllib.error import HTTPError, URLError, ContentTooShortError
     import http.client as httplib
     import urllib.request as urllib2

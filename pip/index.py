@@ -9,7 +9,13 @@ import posixpath
 import pkg_resources
 import random
 import socket
-import ssl
+
+try:
+    from ssl import SSLError
+except ImportError:
+    class SSLError(Exception):
+        pass
+    
 import string
 import zlib
 
@@ -698,7 +704,7 @@ class HTMLPage(object):
                 desc = 'timed out'
             elif isinstance(e, URLError):
                 #ssl/certificate error
-                if hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
+                if hasattr(e, 'reason') and (isinstance(e.reason, SSLError) or isinstance(e.reason, CertificateError)):
                     desc = 'There was a problem confirming the ssl certificate: %s' % e
                     log_meth = logger.notify
                 else:
