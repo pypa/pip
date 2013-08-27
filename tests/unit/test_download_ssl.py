@@ -5,7 +5,7 @@ import pytest
 from mock import patch
 
 from pip.download import urlopen, VerifiedHTTPSHandler
-from tests.lib import assert_raises_regexp, tests_data
+from tests.lib import assert_raises_regexp
 from pip.backwardcompat import urllib2, URLError
 from pip.backwardcompat import CertificateError
 
@@ -80,14 +80,14 @@ class TestsSSL:
         with pytest.raises(CertificateError):
             opener.open(pypi_https)
 
-
-    def test_bad_pem_fails(self):
+    def test_bad_pem_fails(self, data):
         """
         Test ssl verification fails with bad pem file.
         Also confirms alternate --cert-path option works
         """
-        bad_cert = os.path.join(tests_data, 'packages', 'README.txt')
+        bad_cert = data.packages.join("README.txt")
         os.environ['PIP_CERT'] = bad_cert
         o = urlopen.get_opener(scheme='https')
-        assert_raises_regexp(URLError, '[sS][sS][lL]', o.open, pypi_https)
 
+        with pytest.raises(URLError):
+            o.open(pypi_https)

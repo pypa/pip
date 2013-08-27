@@ -3,10 +3,10 @@ Tests for compatibility workarounds.
 
 """
 import os
-from tests.lib import tests_data, reset_env, pyversion, assert_all_changes
+from tests.lib import pyversion, assert_all_changes
 
 
-def test_debian_egg_name_workaround():
+def test_debian_egg_name_workaround(script):
     """
     We can uninstall packages installed with the pyversion removed from the
     egg-info metadata directory name.
@@ -17,7 +17,6 @@ def test_debian_egg_name_workaround():
     https://bitbucket.org/ianb/pip/issue/104/pip-uninstall-on-ubuntu-linux
 
     """
-    script = reset_env()
     result = script.pip('install', 'INITools==0.2', expect_error=True)
 
     egg_info = os.path.join(
@@ -44,12 +43,11 @@ def test_debian_egg_name_workaround():
     assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_setup_py_with_dos_line_endings():
+def test_setup_py_with_dos_line_endings(script, data):
     """
     It doesn't choke on a setup.py file that uses DOS line endings (\\r\\n).
 
     Refs https://github.com/pypa/pip/issues/237
     """
-    script = reset_env()
-    to_install = os.path.abspath(os.path.join(tests_data, 'packages', 'LineEndings'))
+    to_install = data.packages.join("LineEndings")
     script.pip('install', to_install, expect_error=False)

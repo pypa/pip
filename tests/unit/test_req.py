@@ -4,6 +4,8 @@ import tempfile
 
 import pytest
 
+import pip.wheel
+
 from pkg_resources import Distribution
 from mock import Mock, patch
 from pip.exceptions import PreviousBuildDirError
@@ -11,7 +13,7 @@ from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet, parse_editable,
                      Requirements, parse_requirements)
-from tests.lib import path_to_url, assert_raises_regexp, find_links, tests_data
+from tests.lib import assert_raises_regexp
 
 
 class TestRequirementSet(object):
@@ -33,7 +35,7 @@ class TestRequirementSet(object):
             download_cache=os.path.join(self.tempdir, 'download_cache')
             )
 
-    def test_no_reuse_existing_build_dir(self):
+    def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
 
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
@@ -42,7 +44,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
-        finder = PackageFinder([find_links], [])
+        finder = PackageFinder([data.find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
             "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir.replace('\\', '\\\\')),
@@ -126,14 +128,14 @@ def test_remote_reqs_parse():
     for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
         pass
 
-# patch this for travis which has distribute in it's base env for now
-@patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
-def test_req_file_parse_use_wheel():
+def test_req_file_parse_use_wheel(data, monkeypatch):
     """
     Test parsing --use-wheel from a req file
     """
-    reqfile = os.path.join(tests_data, 'reqfiles', 'supported_options.txt')
+    # patch this for travis which has distribute in it's base env for now
+    monkeypatch.setattr(pip.wheel.pkg_resources, "get_distribution", lambda x: Distribution(project_name='setuptools', version='0.9'))
+
     finder = PackageFinder([], [])
-    for req in parse_requirements(reqfile, finder):
+    for req in parse_requirements(data.reqfiles.join("supported_options.txt"), finder):
         pass
     assert finder.use_wheel

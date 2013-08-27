@@ -7,7 +7,7 @@ from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
 from pip.baseparser import create_main_parser
 from mock import Mock
-from tests.lib import reset_env, pyversion
+from tests.lib import pyversion
 
 
 if pyversion >= '3':
@@ -54,32 +54,29 @@ def test_invalid_pypi_transformation():
     assert transform_hits(pypi_hits) == expected
 
 
-def test_search():
+def test_search(script):
     """
     End to end test of search command.
 
     """
-    script = reset_env()
     output = script.pip('search', 'pip')
     assert 'A tool for installing and managing Python packages' in output.stdout
 
 
-def test_multiple_search():
+def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
 
     """
-    script = reset_env()
     output = script.pip('search', 'pip', 'INITools')
     assert 'A tool for installing and managing Python packages' in output.stdout
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
 
-def test_search_missing_argument():
+def test_search_missing_argument(script):
     """
     Test missing required argument for search
     """
-    script = reset_env()
     result = script.pip('search', expect_error=True)
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
@@ -106,19 +103,17 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     assert status == NO_MATCHES_FOUND, status
 
 
-def test_search_should_exit_status_code_zero_when_find_packages():
+def test_search_should_exit_status_code_zero_when_find_packages(script):
     """
     Test search exit status code for package found
     """
-    script = reset_env()
     result = script.pip('search', 'pip')
     assert result.returncode == SUCCESS
 
 
-def test_search_exit_status_code_when_finds_no_package():
+def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
     """
-    script = reset_env()
     result = script.pip('search', 'non-existant-package', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
