@@ -1,30 +1,22 @@
 # #!/usr/bin/env python
+from __future__ import absolute_import
+
 import os
 import sys
 import re
-import atexit
 import textwrap
 import site
-import subprocess
 
 import scripttest
 import virtualenv
 
-from pip.backwardcompat import uses_pycache
-
 from tests.lib.path import Path, curdir, u
 
+DATA_DIR = Path(__file__).folder.folder.join("data").abspath
+SRC_DIR = Path(__file__).abspath.folder.folder.folder
 
 pyversion = sys.version[:3]
 pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
-tests_lib = Path(__file__).abspath.folder  # pip/tests/lib
-tests_root = tests_lib.folder  # pip/tests
-tests_cache = os.path.join(tests_root, 'tests_cache')  # pip/tests/tests_cache
-src_folder = tests_root.folder  # pip/
-tests_data = os.path.join(tests_root, 'data')  # pip/tests/data
-packages = os.path.join(tests_data, 'packages')  # pip/tests/data/packages
-
-fast_test_env_root = tests_cache / 'test_ws'
 
 
 def path_to_url(path):
@@ -41,69 +33,59 @@ def path_to_url(path):
         return 'file:///' + drive + url
     return 'file://' + url
 
-find_links = path_to_url(os.path.join(tests_data, 'packages'))
-find_links2 = path_to_url(os.path.join(tests_data, 'packages2'))
 
-
-def clear_environ(environ):
-    return dict(((k, v) for k, v in environ.items()
-                if not k.lower().startswith('pip_')))
-
-
-def reset_env(environ=None, system_site_packages=False):
+class TestData(object):
     """
-    Return a test environment.
+    Represents a bundle of pre-created test data.
 
-    Keyword arguments:
-    environ: an environ object to use.
-    system_site_packages: create a virtualenv that simulates
-        --system-site-packages.
+    This copies a pristine set of test data into a root location that is
+    designed to be test specific. The reason for this is when running the tests
+    concurrently errors can be generated because the related tooling uses
+    the directory as a work space. This leads to two concurrent processes
+    trampling over each other. This class gets around that by copying all
+    data into a directory and operating on the copied data.
     """
-    # Clear our previous test directory
-    fast_test_env_root.rmtree()
 
-    # Create a virtual environment
-    venv_root = fast_test_env_root.join(".virtualenv")
-    virtualenv.create_environment(venv_root,
-        never_download=True,
-        no_pip=True,
-    )
+    def __init__(self, root, source=None):
+        self.source = source or DATA_DIR
+        self.root = Path(root).abspath
 
-    # On Python < 3.3 we don't have subprocess.DEVNULL
-    try:
-        devnull = subprocess.DEVNULL
-    except AttributeError:
-        devnull = open(os.devnull, "wb")
+    @classmethod
+    def copy(cls, root):
+        obj = cls(root)
+        obj.reset()
+        return obj
 
-    # Install our development version of pip install the virtual environment
-    p = subprocess.Popen(
-        [venv_root.join("bin/python"), "setup.py", "develop"],
-        stderr=subprocess.STDOUT,
-        stdout=devnull,
-    )
-    p.communicate()
+    def reset(self):
+        self.root.rmtree()
+        self.source.copytree(self.root)
 
-    if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, p.args)
+    @property
+    def packages(self):
+        return self.root.join("packages")
 
-    # Create our pip test environment
-    env = TestPipEnvironment(fast_test_env_root,
-        environ=environ,
-        virtualenv=venv_root,
-        ignore_hidden=False,
-        start_clear=False,
-        capture_temp=True,
-        assert_no_temp=True,
-    )
+    @property
+    def packages2(self):
+        return self.root.join("packages2")
 
-    if system_site_packages:
-        # Testing often occurs starting from a private virtualenv (e.g. tox)
-        #   from that context, you can't successfully use
-        #   virtualenv.create_environment to create a 'system-site-packages'
-        #   virtualenv hence, this workaround
-        env.lib_path.join("no-global-site-packages.txt").rm()
+    @property
+    def indexes(self):
+        return self.root.join("indexes")
 
-    return env
+    @property
+    def reqfiles(self):
+        return self.root.join("reqfiles")
+
+    @property
+    def find_links(self):
+        return path_to_url(self.packages)
+
+    @property
+    def find_links2(self):
+        return path_to_url(self.packages2)
+
+    def index_url(self, index="simple"):
+        return path_to_url(self.root.join("indexes", index))
 
 
 class TestFailure(AssertionError):
@@ -216,7 +198,7 @@ class TestPipResult(object):
                                   'unexpected content %f' % (pkg_dir, f))
 
 
-class TestPipEnvironment(scripttest.TestFileEnvironment):
+class PipTestEnvironment(scripttest.TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
     """
@@ -277,7 +259,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         kwargs["environ"] = environ
 
         # Call the TestFileEnvironment __init__
-        super(TestPipEnvironment, self).__init__(base_path, *args, **kwargs)
+        super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "lib", "include", "bin", "site_packages",
@@ -297,7 +279,7 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
-            result = super(TestPipEnvironment, self)._ignore_file(fn)
+            result = super(PipTestEnvironment, self)._ignore_file(fn)
         return result
 
     def run(self, *args, **kw):
@@ -307,13 +289,15 @@ class TestPipEnvironment(scripttest.TestFileEnvironment):
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
-        return TestPipResult(super(TestPipEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
+        return TestPipResult(super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
 
     def pip(self, *args, **kwargs):
         return self.run("pip", *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
-        return self.pip("install", "--no-index", "--find-links", find_links,
+        return self.pip(
+            "install", "--no-index",
+            "--find-links", path_to_url(os.path.join(DATA_DIR, "packages")),
             *args, **kwargs
         )
 
@@ -379,6 +363,8 @@ def assert_all_changes(start_state, end_state, expected_changes):
     Note: listing a directory means anything below
     that directory can be expected to have changed.
     """
+    __tracebackhide__ = True
+
     start_files = start_state
     end_files = end_state
     if isinstance(start_state, TestPipResult):
@@ -436,6 +422,8 @@ def _change_test_package_version(script, version_pkg_path):
 
 def assert_raises_regexp(exception, reg, run, *args, **kwargs):
     """Like assertRaisesRegexp in unittest"""
+    __tracebackhide__ = True
+
     try:
         run(*args, **kwargs)
         assert False, "%s should have been thrown" % exception
@@ -443,10 +431,3 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
         e = sys.exc_info()[1]
         p = re.compile(reg)
         assert p.search(str(e)), str(e)
-
-
-#
-# This cleanup routine ensures that FastTestPipEnvironment doesn't leave an
-# environment hanging around that might confuse the next test run.
-#
-atexit.register(fast_test_env_root.rmtree)

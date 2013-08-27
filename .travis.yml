@@ -10,8 +10,12 @@ before_install:
     - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
     - git config --global user.email "python-virtualenv@googlegroups.com"
     - git config --global user.name "Pip"
-install: pip install pytest git+https://github.com/pypa/virtualenv@develop#egg=virtualenv scripttest>=1.3 mock
-script: py.test
+install:
+  - pip install --upgrade setuptools
+  - pip install pytest pytest-xdist git+https://github.com/pypa/virtualenv@develop#egg=virtualenv scripttest>=1.3 mock
+script:
+  - "if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]]; then py.test -v; fi"
+  - "if [[ $TRAVIS_PYTHON_VERSION != '3.2' ]]; then py.test -v -n 8; fi"
 notifications:
   irc: "irc.freenode.org#pip"
 branches:
@@ -20,4 +24,4 @@ branches:
     - 1.3.X
     - 1.4.X
 env:
-  - PIP_USE_MIRRORS=true
+  - PYTHONHASHSEED=0

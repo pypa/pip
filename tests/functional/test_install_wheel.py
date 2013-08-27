@@ -1,16 +1,12 @@
-from os.path import abspath, join
-
-from tests.lib import tests_data, reset_env, find_links
 from tests.lib.path import Path
 
 
-def test_install_from_wheel():
+def test_install_from_wheel(script, data):
     """
     Test installing from a wheel.
     """
-    script = reset_env()
     result = script.pip('install', 'simple.dist', '--use-wheel',
-                     '--no-index', '--find-links='+find_links,
+                     '--no-index', '--find-links='+data.find_links,
                      expect_error=False)
     dist_info_folder = script.site_packages/'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -18,13 +14,12 @@ def test_install_from_wheel():
                                                       result.stdout)
 
 
-def test_install_from_wheel_with_extras():
+def test_install_from_wheel_with_extras(script, data):
     """
     Test installing from a wheel with extras.
     """
-    script = reset_env()
     result = script.pip('install', 'complex-dist[simple]', '--use-wheel',
-                     '--no-index', '--find-links='+find_links,
+                     '--no-index', '--find-links='+data.find_links,
                      expect_error=False)
     dist_info_folder = script.site_packages/'complex_dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -36,14 +31,11 @@ def test_install_from_wheel_with_extras():
                                                       result.stdout)
 
 
-def test_install_from_wheel_file():
+def test_install_from_wheel_file(script, data):
     """
     Test installing directly from a wheel file.
     """
-    script = reset_env()
-    package = abspath(join(tests_data,
-                           'packages',
-                           'headers.dist-0.1-py2.py3-none-any.whl'))
+    package = data.packages.join("headers.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages/'headers.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -51,40 +43,33 @@ def test_install_from_wheel_file():
                                                       result.stdout)
 
 
-def test_install_wheel_with_target():
+def test_install_wheel_with_target(script, data):
     """
     Test installing a wheel using pip install --target
     """
-    script = reset_env()
     script.pip_install_local('wheel')
     target_dir = script.scratch_path/'target'
     result = script.pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
-                     '--no-index', '--find-links='+find_links)
+                     '--no-index', '--find-links='+data.find_links)
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
 
 
-def test_install_from_wheel_installs_deps():
+def test_install_from_wheel_installs_deps(script, data):
     """
     Test can install dependencies of wheels
     """
     # 'requires_source' depends on the 'source' project
-    script = reset_env()
-    package = abspath(join(tests_data,
-                           'packages',
-                           'requires_source-1.0-py2.py3-none-any.whl'))
-    result = script.pip('install', '--no-index', '--find-links', find_links, package)
+    package = data.packages.join("requires_source-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', '--no-index', '--find-links', data.find_links, package)
     result.assert_installed('source', editable=False)
 
 
-def test_install_from_wheel_no_deps():
+def test_install_from_wheel_no_deps(script, data):
     """
     Test --no-deps works with wheel installs
     """
     # 'requires_source' depends on the 'source' project
-    script = reset_env()
-    package = abspath(join(tests_data,
-                           'packages',
-                           'requires_source-1.0-py2.py3-none-any.whl'))
-    result = script.pip('install', '--no-index', '--find-links', find_links, '--no-deps', package)
+    package = data.packages.join("requires_source-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', '--no-index', '--find-links', data.find_links, '--no-deps', package)
     pkg_folder = script.site_packages/'source'
     assert pkg_folder not in result.files_created

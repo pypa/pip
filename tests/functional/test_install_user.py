@@ -13,8 +13,7 @@ import pytest
 from pip.backwardcompat import uses_pycache
 
 from tests.lib.local_repos import local_checkout
-from tests.lib import (tests_data, reset_env, pyversion, assert_all_changes,
-                       find_links)
+from tests.lib import pyversion, assert_all_changes
 
 
 def _patch_dist_in_site_packages(script):
@@ -42,58 +41,54 @@ def _patch_dist_in_site_packages(script):
 @pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 class Tests_UserSite:
 
-    def test_reset_env_system_site_packages_usersite(self):
+    def test_reset_env_system_site_packages_usersite(self, script, virtualenv):
         """
         reset_env(system_site_packages=True) produces env where a --user install can be found using pkg_resources
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.pip('install', '--user', 'INITools==0.2')
         result = script.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').project_name)")
         project_name = result.stdout.strip()
         assert 'INITools'== project_name, "'%s' should be 'INITools'" %project_name
 
 
-    def test_install_subversion_usersite_editable_with_distribute(self):
+    def test_install_subversion_usersite_editable_with_distribute(self, script, virtualenv, tmpdir):
         """
         Test installing current directory ('.') into usersite after installing distribute
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         result = script.pip('install', '--user', '-e',
                          '%s#egg=initools-dev' %
-                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+                         local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")))
         result.assert_installed('INITools', use_user_site=True)
 
 
-    def test_install_curdir_usersite(self):
+    def test_install_curdir_usersite(self, script, virtualenv, data):
         """
         Test installing current directory ('.') into usersite
         """
-        script = reset_env(system_site_packages=True)
-        run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
-        result = script.pip('install', '--user', curdir, cwd=run_from, expect_error=False)
+        virtualenv.system_site_packages = True
+        run_from = data.packages.join("FSPkg")
+        result = script.pip('install', '-vvv', '--user', curdir, cwd=run_from, expect_error=False)
         fspkg_folder = script.user_site/'fspkg'
         egg_info_folder = script.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
-        assert fspkg_folder in result.files_created, str(result.stdout)
+        assert fspkg_folder in result.files_created, result.stdout
 
-        assert egg_info_folder in result.files_created, str(result)
+        assert egg_info_folder in result.files_created
 
-
-    def test_install_user_venv_nositepkgs_fails(self):
+    def test_install_user_venv_nositepkgs_fails(self, script, data):
         """
         user install in virtualenv (with no system packages) fails with message
         """
-        script = reset_env()
-        run_from = abspath(join(tests_data, 'packages', 'FSPkg'))
+        run_from = data.packages.join("FSPkg")
         result = script.pip('install', '--user', curdir, cwd=run_from, expect_error=True)
         assert "Can not perform a '--user' install. User site-packages are not visible in this virtualenv." in result.stdout
 
-
-    def test_install_user_conflict_in_usersite(self):
+    def test_install_user_conflict_in_usersite(self, script, virtualenv):
         """
         Test user install with conflict in usersite updates usersite.
         """
-
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         result1 = script.pip('install', '--user', 'INITools==0.3')
         result2 = script.pip('install', '--user', 'INITools==0.1')
 
@@ -103,12 +98,10 @@ class Tests_UserSite:
         assert egg_info_folder in result2.files_created, str(result2)
         assert not isfile(initools_v3_file), initools_v3_file
 
-
-    def test_install_user_conflict_in_globalsite(self):
+    def test_install_user_conflict_in_globalsite(self, script, virtualenv):
         """
         Test user install with conflict in global site ignores site and installs to usersite
         """
-
         # the test framework only supports testing using virtualenvs
         # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site
         # this test will use 2 modifications to simulate the user-site/global-site relationship
@@ -116,7 +109,7 @@ class Tests_UserSite:
         #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
         # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
 
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
@@ -135,12 +128,10 @@ class Tests_UserSite:
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
-
-    def test_upgrade_user_conflict_in_globalsite(self):
+    def test_upgrade_user_conflict_in_globalsite(self, script, virtualenv):
         """
         Test user install/upgrade with conflict in global site ignores site and installs to usersite
         """
-
         # the test framework only supports testing using virtualenvs
         # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site
         # this test will use 2 modifications to simulate the user-site/global-site relationship
@@ -148,7 +139,7 @@ class Tests_UserSite:
         #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
         # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
 
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
@@ -167,12 +158,10 @@ class Tests_UserSite:
         assert isdir(egg_info_folder), result2.stdout
         assert isdir(initools_folder)
 
-
-    def test_install_user_conflict_in_globalsite_and_usersite(self):
+    def test_install_user_conflict_in_globalsite_and_usersite(self, script, virtualenv):
         """
         Test user install with conflict in globalsite and usersite ignores global site and updates usersite.
         """
-
         # the test framework only supports testing using virtualenvs.
         # the sys.path ordering for virtualenvs with --system-site-packages is this: virtualenv-site, user-site, global-site.
         # this test will use 2 modifications to simulate the user-site/global-site relationship
@@ -180,7 +169,7 @@ class Tests_UserSite:
         #    if we don't patch this, pip will return an installation error:  "Will not install to the usersite because it will lack sys.path precedence..."
         # 2) adding usersite to PYTHONPATH, so usersite as sys.path precedence over the virtualenv site
 
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
@@ -200,12 +189,11 @@ class Tests_UserSite:
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
-
-    def test_install_user_in_global_virtualenv_with_conflict_fails(self):
+    def test_install_user_in_global_virtualenv_with_conflict_fails(self, script, virtualenv):
         """
         Test user install in --system-site-packages virtualenv with conflict in site fails.
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         result1 = script.pip('install', 'INITools==0.2')
         result2 = script.pip('install', '--user', 'INITools==0.1', expect_error=True)
         resultp = script.run('python', '-c', "import pkg_resources; print(pkg_resources.get_distribution('initools').location)")
@@ -213,26 +201,24 @@ class Tests_UserSite:
         assert "Will not install to the user site because it will lack sys.path precedence to %s in %s" \
             % ('INITools', dist_location) in result2.stdout, result2.stdout
 
-
-    def test_uninstall_from_usersite(self):
+    def test_uninstall_from_usersite(self, script, virtualenv):
         """
         Test uninstall from usersite
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         result1 = script.pip('install', '--user', 'INITools==0.3')
         result2 = script.pip('uninstall', '-y', 'INITools')
         assert_all_changes(result1, result2, [script.venv/'build', 'cache'])
 
-
-    def test_uninstall_editable_from_usersite(self):
+    def test_uninstall_editable_from_usersite(self, script, virtualenv, data):
         """
         Test uninstall editable local user install
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.user_site_path.makedirs()
 
         #install
-        to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
+        to_install = data.packages.join("FSPkg")
         result1 = script.pip('install', '--user', '-e', to_install, expect_error=False)
         egg_link = script.user_site/'FSPkg.egg-link'
         assert egg_link in result1.files_created, str(result1.stdout)
@@ -244,14 +230,13 @@ class Tests_UserSite:
         assert_all_changes(result1, result2,
                            [script.venv/'build', 'cache', script.user_site/'easy-install.pth'])
 
-
-    def test_install_user_wheel(self):
+    def test_install_user_wheel(self, script, virtualenv, data):
         """
         Test user install from wheel
         """
-        script = reset_env(system_site_packages=True)
+        virtualenv.system_site_packages = True
         script.pip_install_local('wheel')
         result = script.pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
-                     '--no-index', '--find-links='+find_links)
+                     '--no-index', '--find-links='+data.find_links)
         egg_info_folder = script.user_site / 'simple.dist-0.1.dist-info'
         assert egg_info_folder in result.files_created, str(result)

@@ -3,7 +3,7 @@ from pip.backwardcompat import urllib
 from tests.lib.path import Path
 from pip.index import package_to_requirement, HTMLPage
 from pip.index import PackageFinder, Link, InfLink
-from tests.lib import tests_data, path_to_url, find_links
+from tests.lib import path_to_url
 from string import ascii_lowercase
 from mock import patch
 
@@ -34,22 +34,21 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     assert links[0].url == 'http://supervisord.org/'
 
 
-def test_sort_locations_file_find_link():
+def test_sort_locations_file_find_link(data):
     """
     Test that a file:// find-link dir gets listdir run
     """
-    finder = PackageFinder([find_links], [])
-    files, urls = finder._sort_locations([find_links])
-    assert files and not urls, "files and not urls should have been found at find-links url: %s" % find_links
+    finder = PackageFinder([data.find_links], [])
+    files, urls = finder._sort_locations([data.find_links])
+    assert files and not urls, "files and not urls should have been found at find-links url: %s" % data.find_links
 
 
-def test_sort_locations_file_not_find_link():
+def test_sort_locations_file_not_find_link(data):
     """
     Test that a file:// url dir that's not a find-link, doesn't get a listdir run
     """
-    index_url = path_to_url(os.path.join(tests_data, 'indexes', 'empty_with_pkg'))
     finder = PackageFinder([], [])
-    files, urls = finder._sort_locations([index_url])
+    files, urls = finder._sort_locations(data.index_url("empty_with_pkg"))
     assert urls and not files, "urls, but not files should have been found"
 
 

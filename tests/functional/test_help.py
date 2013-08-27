@@ -6,7 +6,6 @@ from pip.basecommand import ERROR, SUCCESS
 from pip.commands.help import HelpCommand
 from pip.commands import commands
 from mock import Mock
-from tests.lib import reset_env
 
 
 def test_run_method_should_return_sucess_when_finds_command_name():
@@ -43,38 +42,34 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
         help_cmd.run(options_mock, args)
 
 
-def test_help_command_should_exit_status_ok_when_command_exists():
+def test_help_command_should_exit_status_ok_when_command_exists(script):
     """
     Test `help` command for existing command
     """
-    script = reset_env()
     result = script.pip('help', 'freeze')
     assert result.returncode == SUCCESS
 
 
-def test_help_command_should_exit_status_ok_when_no_command_is_specified():
+def test_help_command_should_exit_status_ok_when_no_cmd_is_specified(script):
     """
     Test `help` command for no command
     """
-    script = reset_env()
     result = script.pip('help')
     assert result.returncode == SUCCESS
 
 
-def test_help_command_should_exit_status_error_when_command_does_not_exist():
+def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     """
     Test `help` command for non-existing command
     """
-    script = reset_env()
     result = script.pip('help', 'mycommand', expect_error=True)
     assert result.returncode == ERROR
 
-def test_help_commands_equally_functional():
+
+def test_help_commands_equally_functional(script):
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """
-    script = reset_env()
-
     results = list(map(script.pip, ('help', '--help')))
     results.append(script.pip())
 
