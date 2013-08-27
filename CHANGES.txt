@@ -8,6 +8,9 @@ Changelog
   defaults and umask (i.e. permissions are not preserved), except that regular
   files with any execute permissions have the equivalent of "chmod +x" applied
   after being written (Pull #1146).
+* PreviousBuildDirError now returns a non-zero exit code and prevents the
+  previous build dir from being cleaned in all cases (Pull #1162).
+
 
 1.4.1 (2013-08-07)
 ------------------
