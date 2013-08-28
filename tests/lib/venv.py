@@ -48,16 +48,18 @@ class VirtualEnvironment(object):
 
         # Install our development version of pip install the virtual
         # environment
+        cmd = [self.location.join("bin", "python"), "setup.py", "develop"]
         p = subprocess.Popen(
-            [self.location.join("bin", "python"), "setup.py", "develop"],
+            cmd,
             cwd=self.pip_source_dir,
             stderr=subprocess.STDOUT,
             stdout=DEVNULL,
         )
         p.communicate()
-
         if p.returncode != 0:
-            raise subprocess.CalledProcessError(p.returncode, p.args)
+            raise subprocess.CalledProcessError(p.returncode, cmd[0],
+                output=p.stdout,
+            )
 
     def clear(self):
         self._create(clear=True)
