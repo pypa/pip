@@ -42,7 +42,8 @@ def virtualenv(tmpdir, monkeypatch):
     pip_src = tmpdir.join("pip_src").abspath
     shutil.copytree(SRC_DIR, pip_src,
         ignore=shutil.ignore_patterns(
-            "*.pyc", "docs/", "tests/", "pip.egg-info",
+            "*.pyc", "docs/", "tests/", "pip.egg-info", "build/", "dist/",
+            ".tox/",
         ),
     )
 
