@@ -2,6 +2,7 @@ language: python
 
 env:
   - TOXENV=collect
+  - TOXENV=docs
   - TOXENV=py26
   - TOXENV=py27
   - TOXENV=py32
