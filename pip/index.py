@@ -23,6 +23,7 @@ from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, setuptools_requirement
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip.vendor import html5lib, requests
+from pip.vendor.requests.exceptions import SSLError
 
 
 __all__ = ['PackageFinder']
@@ -673,6 +674,15 @@ class HTMLPage(object):
             logger.info("Could not fetch URL %s: timed out", link)
             if cache is not None:
                 cache.add_page_failure(url, 1)
+        except SSLError as exc:
+            logger.notify("Could not fetch URL %s: There was a problem "
+                          "confirming the ssl certificate: %s" %
+                          (link, exc),
+                        )
+            logger.info("Will skip URL %s when looking for download links for "
+                        "%s" % (link.url, req))
+            if cache is not None:
+                cache.add_page_failure(url, 2)
         except (requests.HTTPError, URLError, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
