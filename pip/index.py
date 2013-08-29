@@ -679,6 +679,8 @@ class HTMLPage(object):
                 cache.add_page_failure(url, level)
         except requests.Timeout:
             logger.info("Could not fetch URL %s: timed out", link)
+            logger.info("Will skip URL %s when looking for download links for "
+                        "%s" % (link.url, req))
             if cache is not None:
                 cache.add_page_failure(url, 1)
         except SSLError as exc:
