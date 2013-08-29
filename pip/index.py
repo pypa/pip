@@ -670,6 +670,13 @@ class HTMLPage(object):
                 return None
 
             inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
+        except requests.HTTPError as exc:
+            level = 2 if exc.response.status_code == 404 else 1
+            logger.info("Could not fetch URL %s: %s" % (link, exc))
+            logger.info("Will skip URL %s when looking for download links for "
+                        "%s" % (link.url, req))
+            if cache is not None:
+                cache.add_page_failure(url, level)
         except requests.Timeout:
             logger.info("Could not fetch URL %s: timed out", link)
             if cache is not None:
@@ -683,7 +690,7 @@ class HTMLPage(object):
                         "%s" % (link.url, req))
             if cache is not None:
                 cache.add_page_failure(url, 2)
-        except (requests.HTTPError, URLError, socket.error, OSError, WindowsError):
+        except (URLError, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
             if isinstance(e, URLError):
@@ -698,10 +705,6 @@ class HTMLPage(object):
                     level = 1
                 else:
                     level = 2
-            elif isinstance(e, requests.HTTPError) and e.response.status_code == 404:
-                ## FIXME: notify?
-                log_meth = logger.info
-                level = 2
             else:
                 log_meth = logger.info
                 level = 1
