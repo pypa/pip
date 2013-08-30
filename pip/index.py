@@ -6,19 +6,12 @@ import re
 import mimetypes
 import posixpath
 import pkg_resources
-import socket
-import ssl
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
     InstallationError
-from pip.backwardcompat import (WindowsError,
-                                Queue, urlparse,
-                                URLError,
-                                url2pathname,
-                                Empty as QueueEmpty)
-from pip.backwardcompat import CertificateError
+from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, setuptools_requirement
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
