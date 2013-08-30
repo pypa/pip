@@ -683,29 +683,6 @@ class HTMLPage(object):
                 level=2,
                 meth=logger.notify,
             )
-        except (URLError, socket.error, OSError, WindowsError):
-            e = sys.exc_info()[1]
-            desc = str(e)
-            if isinstance(e, URLError):
-                #ssl/certificate error
-                if hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
-                    desc = 'There was a problem confirming the ssl certificate: %s' % e
-                    log_meth = logger.notify
-                else:
-                    log_meth = logger.info
-                if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
-                    desc = 'timed out'
-                    level = 1
-                else:
-                    level = 2
-            else:
-                log_meth = logger.info
-                level = 1
-            log_meth('Could not fetch URL %s: %s' % (link, desc))
-            log_meth('Will skip URL %s when looking for download links for %s' % (link.url, req))
-            if cache is not None:
-                cache.add_page_failure(url, level)
-            return None
         else:
             if cache is not None:
                 cache.add_page([url, resp.url], inst)
