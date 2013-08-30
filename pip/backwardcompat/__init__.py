@@ -117,10 +117,3 @@ def product(*args, **kwds):
         result = [x + [y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
-
-
-## only >=py32 has ssl.match_hostname and ssl.CertificateError
-try:
-    from ssl import match_hostname, CertificateError
-except ImportError:
-    from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
