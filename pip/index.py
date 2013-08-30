@@ -672,26 +672,17 @@ class HTMLPage(object):
             inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
-            logger.info("Could not fetch URL %s: %s" % (link, exc))
-            logger.info("Will skip URL %s when looking for download links for "
-                        "%s" % (link.url, req))
-            if cache is not None:
-                cache.add_page_failure(url, level)
+            cls._handle_fail(req, link, exc, url, cache=cache, level=level)
         except requests.Timeout:
-            logger.info("Could not fetch URL %s: timed out", link)
-            logger.info("Will skip URL %s when looking for download links for "
-                        "%s" % (link.url, req))
-            if cache is not None:
-                cache.add_page_failure(url, 1)
+            cls._handle_fail(req, link, "timed out", url, cache=cache)
         except SSLError as exc:
-            logger.notify("Could not fetch URL %s: There was a problem "
-                          "confirming the ssl certificate: %s" %
-                          (link, exc),
-                        )
-            logger.info("Will skip URL %s when looking for download links for "
-                        "%s" % (link.url, req))
-            if cache is not None:
-                cache.add_page_failure(url, 2)
+            reason = ("There was a problem confirming the ssl certificate: "
+                      "%s" % exc)
+            cls._handle_fail(req, link, reason, url,
+                cache=cache,
+                level=2,
+                meth=logger.notify,
+            )
         except (URLError, socket.error, OSError, WindowsError):
             e = sys.exc_info()[1]
             desc = str(e)
@@ -719,6 +710,18 @@ class HTMLPage(object):
             if cache is not None:
                 cache.add_page([url, resp.url], inst)
             return inst
+
+    @staticmethod
+    def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
+        if meth is None:
+            meth = logger.info
+
+        meth("Could not fetch URL %s: %s", link, reason)
+        meth("Will skip URL %s when looking for download links for %s" %
+             (link.url, req))
+
+        if cache is not None:
+            cache.add_page_failure(url, level)
 
     @staticmethod
     def _get_content_type(url, session=None):
