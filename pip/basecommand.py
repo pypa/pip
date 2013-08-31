@@ -25,6 +25,14 @@ from pip.util import get_prog
 __all__ = ['Command']
 
 
+# converts unicode objects to UTF-8, leaves bytestrings untouched
+def to_utf8(s):
+    if isinstance(s, unicode):
+        return s.encode('utf-8')
+    else:
+        return s
+
+
 class Command(object):
     name = None
     usage = None
@@ -165,7 +173,7 @@ class Command(object):
             exit = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
-            text = '\n'.join(complete_log)
+            text = '\n'.join(to_utf8(l) for l in complete_log)
             try:
                 log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:
