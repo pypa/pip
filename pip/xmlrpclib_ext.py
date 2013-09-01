@@ -1,8 +1,8 @@
-###
-# Extend xmlrpclib to use http proxy.
-# Only http proxy is supported.
-# Proxy auth is not supported
-###
+"""
+Extend xmlrpclib to use http proxy.
+Only http proxy is supported.
+Proxy auth is not supported.
+"""
 
 #coding=utf-8
 
