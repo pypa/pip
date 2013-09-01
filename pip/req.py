@@ -9,6 +9,8 @@ import tempfile
 import textwrap
 import zipfile
 
+from pip.vendor.six import iteritems
+
 from distutils.util import change_root
 from pip.locations import (bin_py, running_under_virtualenv,PIP_DELETE_MARKER_FILENAME,
                            write_delete_marker_file)
@@ -852,7 +854,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False):
+                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
+                 ignore_incompatibles=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -861,8 +864,9 @@ class RequirementSet(object):
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
-        # Mapping of alias: real_name
-        self.requirement_aliases = {}
+        self.multiple_requirements = {}
+        self.ignore_incompatibles = ignore_incompatibles
+        self.incompatibles = set()
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
         self.successfully_downloaded = []
@@ -887,20 +891,152 @@ class RequirementSet(object):
             #url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
         else:
-            if self.has_requirement(name):
-                raise InstallationError(
-                    'Double requirement given: %s (already in %s, name=%r)'
-                    % (install_req, self.get_requirement(name), name))
-            self.requirements[name] = install_req
-            ## FIXME: what about other normalizations?  E.g., _ vs. -?
-            if name.lower() != name:
-                self.requirement_aliases[name.lower()] = name
+            req_key = install_req.req.key
+            try:
+                previous_req = self.requirements[req_key]
+            except KeyError:
+                pass
+            else:
+                self.multiple_requirements.setdefault(
+                    req_key, [previous_req]).append(install_req)
+            self.requirements[req_key] = install_req
+
+    def process_multiple_requirements(self):
+        self.incompatibles = set()
+        for req_key, req_list in iteritems(self.multiple_requirements):
+            joined_req = self.aggregate_requirement(req_list)
+            self.find_conflicts(joined_req, req_list)
+            self.requirements[req_key] = joined_req
+        if self.incompatibles and not self.ignore_incompatibles:
+            raise InstallationError("Incompatible requirements found")
+
+    @staticmethod
+    def error_requirement(req):
+        logger.error("\t%s: %s" %
+                     (req.comes_from or "command line",
+                      req.url or str(req.req)))
+
+    def incompatible_requirement(self, chosen, conflicting):
+        if chosen.req.key not in self.incompatibles:
+            self.incompatibles.add(chosen.req.key)
+            logger.error("%s: incompatible requirements" % chosen.req.key)
+            if self.ignore_incompatibles:
+                logger.error("Choosing:")
+            self.error_requirement(chosen)
+            if self.ignore_incompatibles:
+                logger.error("Conflicting:")
+        self.error_requirement(conflicting)
+
+    def aggregate_requirement(self, req_list):
+        """Aggregate requirement list for one package together.
+
+        Possible returns:
+        * ==A - exact version (even when there are conflicts)
+        * >=?A,<=?B,(!=C)+ - line segment (no conflicts detected)
+        * >=?A,(!=C)+ - more than (also when conflicts detected)
+
+        :param:req_list list of pip.req.InstallRequirement
+        :return: pip.req.InstallRequirement
+        """
+        if len(req_list) == 1:
+            return req_list[0]
+        req_strict = None
+        lower_bound_str = None
+        lower_bound_version = None
+        lower_bound_req = None
+        upper_bound_str = None
+        upper_bound_version = None
+        upper_bound_req = None
+        conflicts = []
+        for req in req_list:
+            for spec in req.req.specs:
+                if spec[0] == "==":
+                    return req
+                spec_str = "%s%s"  % spec
+                if spec[0] == "!=":
+                    conflicts.append(spec_str)
+                    continue
+                version = pkg_resources.parse_version(spec[1])
+                # strict_check is < or >, not <= or >=
+                strict_check = len(spec[0]) == 1
+                if spec[0][0] == ">":
+                    if (not lower_bound_version or (version > lower_bound_version) or
+                        (strict_check and version == lower_bound_version)):
+                        lower_bound_version = version
+                        lower_bound_str = spec_str
+                        lower_bound_req = req
+                else:
+                    if (not upper_bound_version or (version < upper_bound_version) or
+                        (strict_check and version == upper_bound_version)):
+                        upper_bound_version = version
+                        upper_bound_str = spec_str
+                        upper_bound_req = req
+        req_key = req_list[0].req.key
+        if lower_bound_version and upper_bound_version:
+            bad_bounds = False
+            if lower_bound_version > upper_bound_version:
+                upper_bound_str = None
+            if lower_bound_version == upper_bound_version:
+                if lower_bound_str[1] == "=" and upper_bound_str[1] == "=":
+                    return pip.req.InstallRequirement.from_line(
+                        "%s==%s" % (req_key, upper_bound_str[2:]),
+                        "aggregated requirements")
+                else:
+                    upper_bound_str = None
+        req_specs = []
+        if lower_bound_str:
+            req_specs.append(lower_bound_str)
+        if upper_bound_str:
+            req_specs.append(upper_bound_str)
+        req_specs.extend(conflicts)
+        return pip.req.InstallRequirement.from_line(
+            "%s%s" % (req_key, ",".join(req_specs)),
+            "aggregated requirements")
+
+    def find_conflicts(self, joined_req, req_list):
+        segment_ok = False
+        lower_version = None
+        lower_strict = False
+        exact_version = None
+        conflicts = []
+        for parsed, trans, op, ver in joined_req.req.index:
+            if op[0] == ">":
+                lower_version = parsed
+                lower_strict = len(op) == 1
+            elif op[0] == "<":
+                segment_ok = True
+            elif op[0] == "=":
+                exact_version = parsed
+            else:
+                conflicts.append(parsed)
+        if exact_version:
+            for req in req_list:
+                if not exact_version in req.req:
+                    self.incompatible_requirement(joined_req, req)
+        else:
+            for req in req_list:
+                for parsed, trans, op, ver in req.req.index:
+                    if not segment_ok and op[0] == "<":
+                        # analyse lower bound: x >= A or x > A
+                        if (lower_version > parsed or (
+                                lower_version == parsed and
+                                (lower_strict or len(op) != 2))):
+                            self.incompatible_requirement(joined_req, req)
+                            break
+
+    @staticmethod
+    def canonical_name(name):
+        # make happy some tests: "distribute" is parsed as "setuptools" in
+        # test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed
+        if name.isalpha():
+            return name.lower()
+        try:
+            return pkg_resources.Requirement.parse(name).key
+        except ValueError:
+            return name
 
     def has_requirement(self, project_name):
-        for name in project_name, project_name.lower():
-            if name in self.requirements or name in self.requirement_aliases:
-                return True
-        return False
+        return self.canonical_name(project_name) in self.requirements
 
     @property
     def has_requirements(self):
@@ -928,12 +1064,10 @@ class RequirementSet(object):
         return False
 
     def get_requirement(self, project_name):
-        for name in project_name, project_name.lower():
-            if name in self.requirements:
-                return self.requirements[name]
-            if name in self.requirement_aliases:
-                return self.requirements[self.requirement_aliases[name]]
-        raise KeyError("No project with the name %r" % project_name)
+        try:
+            return self.requirements[self.canonical_name(project_name)]
+        except KeyError:
+            raise KeyError("No project with the name %r" % project_name)
 
     def uninstall(self, auto_confirm=False):
         for req in self.requirements.values():

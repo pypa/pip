@@ -1,6 +1,7 @@
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
+from pip import cmdoptions
 
 
 class UninstallCommand(Command):
@@ -34,6 +35,7 @@ class UninstallCommand(Command):
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
+        self.cmd_opts.add_option(cmdoptions.ignore_incompatibles)
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -41,7 +43,8 @@ class UninstallCommand(Command):
         requirement_set = RequirementSet(
             build_dir=None,
             src_dir=None,
-            download_dir=None)
+            download_dir=None,
+            ignore_incompatibles=options.ignore_incompatibles)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
@@ -51,4 +54,5 @@ class UninstallCommand(Command):
         if not requirement_set.has_requirements:
             raise InstallationError('You must give at least one requirement '
                 'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
+        requirement_set.process_multiple_requirements()
         requirement_set.uninstall(auto_confirm=options.yes)

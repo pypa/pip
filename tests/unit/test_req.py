@@ -6,7 +6,7 @@ import pytest
 
 import pip.wheel
 
-from pkg_resources import Distribution
+from pkg_resources import Distribution, Requirement
 from mock import Mock, patch
 from pip.exceptions import PreviousBuildDirError
 from pip.index import PackageFinder
@@ -51,6 +51,34 @@ class TestRequirementSet(object):
             reqset.prepare_files,
             finder
             )
+
+    def test_process_multiple_requirements(self):
+        test_list = [
+            (["a>1"], "a>1", None),
+            (["a<1"], "a<1", None),
+            (["a>1", "a<2"], "a>1,<2", None),
+            (["a>=1", "a>1"], "a>1", None),
+            (["a<=1", "a<1"], "a<1", None),
+            (["a<=1", "a>=1"], "a==1", None),
+            (["a>1", "a>2", "a>4.3", "a>4.0", "a>0"], "a>4.3", None),
+            (["a>1", "a!=7"], "a>1,!=7", None),
+            (["MixedCase>1", "mixedcase>2"], "mixedcase>2", None),
+            (["x>1", "x<=1"], "x>1", "x"),
+            (["x>1", "x<0"], "x>1", "x"),
+            (["x>1", "x==0"], "x==0", "x"),
+            (["x==1", "x==0"], "x==1", "x"),
+        ]
+        for (req_lines, req_result, req_incompat) in test_list:
+            reqset = self.basic_reqset()
+            reqset.ignore_incompatibles = True
+            for req in req_lines:
+                reqset.add_requirement(InstallRequirement.from_line(req))
+            reqset.process_multiple_requirements()
+            reqs = reqset.requirements.values()
+            assert len(reqs) == 1
+            assert reqs[0].req == Requirement.parse(req_result)
+            if req_incompat:
+                assert req_incompat in reqset.incompatibles
 
 
 def test_url_with_query():

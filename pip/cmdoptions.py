@@ -169,6 +169,12 @@ no_clean = make_option(
     default=False,
     help="Don't clean up build directories.")
 
+ignore_incompatibles = make_option(
+    '--ignore-incompatibles',
+    action='store_true',
+    default=False,
+    help="Ignore the incompatible requirements to the same package.")
+
 
 ##########
 # groups #

@@ -75,6 +75,7 @@ class WheelCommand(Command):
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
         cmd_opts.add_option(cmdoptions.no_clean)
+        cmd_opts.add_option(cmdoptions.ignore_incompatibles)
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
@@ -125,7 +126,8 @@ class WheelCommand(Command):
             download_dir=None,
             download_cache=options.download_cache,
             ignore_dependencies=options.ignore_dependencies,
-            ignore_installed=True)
+            ignore_installed=True,
+            ignore_incompatibles=options.ignore_incompatibles)
 
         #parse args and/or requirements files
         for name in args:
@@ -149,6 +151,7 @@ class WheelCommand(Command):
                    'to %(name)s (see "pip help %(name)s")' % opts)
             logger.error(msg)
             return
+        requirement_set.process_multiple_requirements()
 
         try:
             #build wheels

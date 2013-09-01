@@ -145,6 +145,7 @@ class InstallCommand(Command):
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
         cmd_opts.add_option(cmdoptions.no_clean)
+        cmd_opts.add_option(cmdoptions.ignore_incompatibles)
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
@@ -219,7 +220,8 @@ class InstallCommand(Command):
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
             use_user_site=options.use_user_site,
-            target_dir=temp_target_dir)
+            target_dir=temp_target_dir,
+            ignore_incompatibles=options.ignore_incompatibles)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -240,6 +242,7 @@ class InstallCommand(Command):
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warn(msg)
             return
+        requirement_set.process_multiple_requirements()
 
         try:
             if not options.no_download:
