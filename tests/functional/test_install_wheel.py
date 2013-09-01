@@ -1,8 +1,4 @@
-import os
 import pytest
-
-from pip.locations import distutils_scheme
-
 from tests.lib.path import Path
 
 
