@@ -137,14 +137,14 @@ def distutils_scheme(dist_name, user=False, home=None):
     scheme = {}
     d = Distribution({'name': dist_name})
     i = install(d)
+    # NOTE: setting user or home has the side-effect of creating the home dir or
+    # user base for installations during finalize_options()
+    # ideally, we'd prefer a scheme class that has no side-effects.
     i.user = user or i.user
     i.home = home or i.home
     i.finalize_options()
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, 'install_'+key)
-
-    #be backward-compatible with what pip has always done?
-    scheme['scripts'] = bin_py
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(sys.prefix,
