@@ -233,6 +233,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             self.site_packages_path = self.lib_path.join("site-packages")
 
         self.user_base_path = self.venv_path.join("user")
+        self.user_bin_path = self.user_base_path.join(self.bin_path - self.venv_path)
         self.user_site_path = self.venv_path.join(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
@@ -263,7 +264,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "lib", "include", "bin", "site_packages",
-                     "user_base", "user_site", "scratch"]:
+                     "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
             setattr(self, name, getattr(self, real_name) - self.base_path)
 

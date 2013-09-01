@@ -230,13 +230,3 @@ class Tests_UserSite:
         assert_all_changes(result1, result2,
                            [script.venv/'build', 'cache', script.user_site/'easy-install.pth'])
 
-    def test_install_user_wheel(self, script, virtualenv, data):
-        """
-        Test user install from wheel
-        """
-        virtualenv.system_site_packages = True
-        script.pip_install_local('wheel')
-        result = script.pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
-                     '--no-index', '--find-links='+data.find_links)
-        egg_info_folder = script.user_site / 'simple.dist-0.1.dist-info'
-        assert egg_info_folder in result.files_created, str(result)

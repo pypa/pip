@@ -1,17 +1,24 @@
+import os
+import pytest
+
+from pip.locations import distutils_scheme
+
 from tests.lib.path import Path
 
 
 def test_install_from_wheel(script, data):
     """
-    Test installing from a wheel.
+    Test installing from a wheel (that has a script)
     """
-    result = script.pip('install', 'simple.dist', '--use-wheel',
+    result = script.pip('install', 'has.script==1.0', '--use-wheel',
                      '--no-index', '--find-links='+data.find_links,
                      expect_error=False)
-    dist_info_folder = script.site_packages/'simple.dist-0.1.dist-info'
+    dist_info_folder = script.site_packages/'has.script-1.0.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
+    script_file = script.bin / 'script.py'
+    assert script_file in result.files_created
 
 
 def test_install_from_wheel_with_extras(script, data):
@@ -73,3 +80,19 @@ def test_install_from_wheel_no_deps(script, data):
     result = script.pip('install', '--no-index', '--find-links', data.find_links, '--no-deps', package)
     pkg_folder = script.site_packages/'source'
     assert pkg_folder not in result.files_created
+
+
+# --user option is broken in pypy
+@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
+def test_install_user_wheel(script, virtualenv, data):
+    """
+    Test user install from wheel (that has a script)
+    """
+    virtualenv.system_site_packages = True
+    script.pip_install_local('wheel')
+    result = script.pip('install', 'has.script==1.0', '--user', '--use-wheel',
+                 '--no-index', '--find-links='+data.find_links)
+    egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
+    assert egg_info_folder in result.files_created, str(result)
+    script_file = script.user_bin / 'script.py'
+    assert script_file in result.files_created
