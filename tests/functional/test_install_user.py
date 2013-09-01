@@ -228,13 +228,14 @@ class Tests_UserSite:
 
     def test_install_user_wheel(self):
         """
-        Test user install from wheel
+        Test user install from wheel (that has a script)
         """
         env = reset_env(system_site_packages=True)
         pip_install_local('wheel')
-        result = run_pip('install', 'simple.dist==0.1', '--user', '--use-wheel',
+        result = run_pip('install', 'has.script==1.0', '--user', '--use-wheel',
                      '--no-index', '--find-links='+find_links)
-        egg_info_folder = env.user_site / 'simple.dist-0.1.dist-info'
-        assert egg_info_folder in result.files_created, str(result)
-
+        info_folder = env.user_site / 'has.script-1.0.dist-info'
+        assert info_folder in result.files_created, str(result)
+        script_file = env.user_bin / 'script.py'
+        assert script_file in result.files_created
 

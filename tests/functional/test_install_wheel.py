@@ -7,16 +7,18 @@ from tests.lib.path import Path
 
 def test_install_from_wheel():
     """
-    Test installing from a wheel.
+    Test installing from a wheel (that has a script)
     """
     env = reset_env()
-    result = run_pip('install', 'simple.dist', '--use-wheel',
+    result = run_pip('install', 'has.script==1.0', '--use-wheel',
                      '--no-index', '--find-links='+find_links,
                      expect_error=False)
-    dist_info_folder = env.site_packages/'simple.dist-0.1.dist-info'
+    dist_info_folder = env.site_packages/'has.script-1.0.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
+    script_file = env.bin / 'script.py'
+    assert script_file in result.files_created
 
 
 def test_install_from_wheel_with_extras():
@@ -93,6 +95,4 @@ def test_install_from_wheel_no_deps():
     result = run_pip('install', '--no-index', '--find-links', find_links, '--no-deps', package)
     pkg_folder = env.site_packages/'source'
     assert pkg_folder not in result.files_created
-
-
 
