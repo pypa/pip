@@ -8,6 +8,7 @@ from pip.log import logger
 from pip.backwardcompat import xmlrpclib, reduce, cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
+from pip.xmlrpclib_ext import HttpProxyTransport
 from distutils.version import StrictVersion, LooseVersion
 
 
@@ -34,8 +35,9 @@ class SearchCommand(Command):
             raise CommandError('Missing required argument (search query).')
         query = args
         index_url = options.index
+        proxy = options.proxy
 
-        pypi_hits = self.search(query, index_url)
+        pypi_hits = self.search(query, index_url, proxy)
         hits = transform_hits(pypi_hits)
 
         terminal_width = None
@@ -47,8 +49,14 @@ class SearchCommand(Command):
             return SUCCESS
         return NO_MATCHES_FOUND
 
-    def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(index_url)
+    def search(self, query, index_url, proxy=None):
+        if proxy:
+            pypi = xmlrpclib.ServerProxy(
+                    index_url, 
+                    HttpProxyTransport(proxy=proxy)
+                    )
+        else:
+            pypi = xmlrpclib.ServerProxy(index_url)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
