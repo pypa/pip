@@ -76,7 +76,7 @@ class DependenciesCommand(Command):
 
         if req.dependency_links:
             line += '\n'.join(
-                ['--find-links {}'.format(l) for l in req.dependency_links])
+                ['--find-links {0}'.format(l) for l in req.dependency_links])
             line += '\n'
 
         if req.editable:

@@ -17,7 +17,7 @@ def assert_result_contains(result, dependencies):
 
     for dependency in dependencies:
         assert dependency in result.stdout, \
-            'Dependency "{}" should be in stdout'.format(dependency)
+            'Dependency "{0}" should be in stdout'.format(dependency)
 
     assert not result.files_created, 'Downloaded files should be removed'
 
