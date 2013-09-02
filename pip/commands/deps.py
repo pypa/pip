@@ -69,9 +69,7 @@ class DependenciesCommand(Command):
         called directly.
         """
         return PackageFinder(find_links=options.find_links,
-                             index_urls=index_urls,
-                             use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors)
+                             index_urls=index_urls)
 
     def _requirement_line(self, req):
         line = ''
