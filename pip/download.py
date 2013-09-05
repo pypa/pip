@@ -13,7 +13,7 @@ import tempfile
 
 import pip
 
-from pip.backwardcompat import (urllib, urllib2, httplib,
+from pip.backwardcompat import (xmlrpclib, urllib, urllib2, httplib,
                                 urlparse, string_types, get_http_message_param,
                                 match_hostname, CertificateError)
 from pip.exceptions import InstallationError, HashMismatch
@@ -24,10 +24,30 @@ from pip.vcs import vcs
 from pip.log import logger
 from pip.locations import default_cert_path
 
-__all__ = ['get_file_content', 'urlopen',
+__all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
+
+
+class Urllib2Transport(xmlrpclib.Transport):
+    def __init__(self, opener=None, https=False, use_datetime=0):
+        xmlrpclib.Transport.__init__(self, use_datetime)
+        self.opener = opener or urllib2.build_opener()
+        self.https = https
+
+    def request(self, host, handler, request_body, verbose=0):
+        proto = ('http', 'https')[bool(self.https)]
+        req = urllib2.Request('%s://%s%s' % (proto, host, handler), request_body)
+        req.add_header('User-agent', self.user_agent)
+        req.add_header('Content-Type', 'text/xml')
+        self.verbose = verbose
+        return self.parse_response(self.opener.open(req))
+ 
+class ProxiedTransport(Urllib2Transport):
+    def __init__(self, proxy_handler):
+        opener = proxy_handler and urllib2.build_opener(proxy_handler) or None
+        Urllib2Transport.__init__(self, opener)
 
 
 def build_user_agent():
@@ -312,6 +332,8 @@ class URLOpener(object):
             return None
 
 urlopen = URLOpener()
+
+xmlrpclib_transport = ProxiedTransport(urlopen.proxy_handler)
 
 
 def is_url(name):
