@@ -1,7 +1,6 @@
 import os
 import re
 from pip.backwardcompat import urlparse
-from pip import InstallationError
 from pip.index import Link
 from pip.util import rmtree, display_path, call_subprocess
 from pip.log import logger
@@ -156,6 +155,8 @@ class Subversion(VersionControl):
         return self._get_svn_url_rev(location)[0]
 
     def _get_svn_url_rev(self, location):
+        from pip.exceptions import InstallationError
+
         f = open(os.path.join(location, self.dirname, 'entries'))
         data = f.read()
         f.close()

@@ -47,15 +47,20 @@ Requirement Specifiers
 ======================
 
 pip supports installing from "requirement specifiers" as implemented in
-`pkg_resources Requirements <http://packages.python.org/distribute/pkg_resources.html#requirement-objects>`_
+`pkg_resources Requirements <http://packages.python.org/setuptools/pkg_resources.html#requirement-objects>`_
 
-Some Examples::
+Some Examples:
 
-  FooProject >= 1.2
+ ::
+
+  'FooProject >= 1.2'
   Fizzy [foo, bar]
-  PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1
+  'PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1'
   SomethingWhoseVersionIDontCareAbout
 
+.. note::
+
+  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being interpreted as shell redirects. e.g. ``pip install 'FooProject>=1.2'``.
 
 .. _`Pre Release Versions`:
 
@@ -75,6 +80,32 @@ installing pre-releases and development releases.
 
 
 .. _PEP426: http://www.python.org/dev/peps/pep-0426
+
+.. _`Externally Hosted Files`:
+
+Externally Hosted Files
+=======================
+
+Starting with v1.4, pip will warn about installing any file that does not come
+from the primary index. In future versions pip will default to ignoring these
+files unless asked to consider them.
+
+The ``pip install`` command supports a
+:ref:`--allow-external PROJECT <--allow-external>` option that will enable
+installing links that are linked directly from the simple index but to an
+external host that also have a supported hash fragment. Externally hosted
+files for all projects may be enabled using the
+:ref:`--allow-all-external <--allow-all-external>` flag to the ``pip install``
+command.
+
+The ``pip install`` command also supports a
+:ref:`--allow-insecure PROJECT <--allow-insecure>` option that will enable
+installing insecurely linked files. These are either directly linked (as above)
+files without a hash, or files that are linked from either the home page or the
+download url of a package.
+
+In order to get the future behavior in v1.4 the ``pip install`` command
+supports a ``--no-allow-external`` and ``--no-allow-insecure`` flags.
 
 .. _`VCS Support`:
 
@@ -96,44 +127,50 @@ The url suffix "egg=<project name>" is used by pip in it's dependency logic to i
 Git
 ~~~
 
-pip currently supports cloning over ``git``, ``git+http`` and ``git+ssh``::
+pip currently supports cloning over ``git``, ``git+https`` and ``git+ssh``:
 
-    git+git://git.myproject.org/MyProject#egg=MyProject
-    git+http://git.myproject.org/MyProject#egg=MyProject
-    git+ssh://git.myproject.org/MyProject#egg=MyProject
+Here are the supported forms::
 
-Passing branch names, a commit hash or a tag name is also possible::
+    [-e] git+git://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+https://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+ssh://git.myproject.org/MyProject#egg=MyProject
+    -e git+git@git.myproject.org:MyProject#egg=MyProject
 
-    git://git.myproject.org/MyProject.git@master#egg=MyProject
-    git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
-    git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+Passing branch names, a commit hash or a tag name is possible like so::
+
+    [-e] git://git.myproject.org/MyProject.git@master#egg=MyProject
+    [-e] git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
+    [-e] git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 Mercurial
 ~~~~~~~~~
 
 The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``::
+``hg+static-http`` and ``hg+ssh``.
 
-    hg+http://hg.myproject.org/MyProject#egg=MyProject
-    hg+https://hg.myproject.org/MyProject#egg=MyProject
-    hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+Here are the supported forms::
+
+    [-e] hg+http://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+https://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+ssh://hg.myproject.org/MyProject#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
-branch name::
+branch name like so::
 
-    hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
-    hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
+    [-e] hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
 
 Subversion
 ~~~~~~~~~~
 
 pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
-You can also give specific revisions to an SVN URL, like::
 
-    svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
-    svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+You can also give specific revisions to an SVN URL, like so::
+
+    [-e] svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
+    [-e] svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check
 out the revision from 2008-01-01. You can only check out specific
@@ -143,18 +180,20 @@ Bazaar
 ~~~~~~
 
 pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
-``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes::
+``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes.
 
-    bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
-    bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
-    bzr+lp:MyProject#egg=MyProject
+Here are the supported forms::
 
-Tags or revisions can be installed like this::
+    [-e] bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+lp:MyProject#egg=MyProject
 
-    bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
-    bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
+Tags or revisions can be installed like so::
+
+    [-e] bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
+    [-e] bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
 
 
 Finding Packages
@@ -162,7 +201,7 @@ Finding Packages
 
 pip searches for packages on `PyPI <http://pypi.python.org>`_ using the
 `http simple interface <http://pypi.python.org/simple>`_,
-which is documented `here <http://packages.python.org/distribute/easy_install.html#package-index-api>`_
+which is documented `here <http://packages.python.org/setuptools/easy_install.html#package-index-api>`_
 and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a set of :ref:`Package Index Options <Package Index Options>` for modifying how packages are found.
@@ -214,7 +253,7 @@ See the :ref:`Configuration` section.
 "Editable" Installs
 ===================
 
-"Editable" installs are fundamentally `"setuptools develop mode" <http://packages.python.org/distribute/setuptools.html#development-mode>`_ installs.
+"Editable" installs are fundamentally `"setuptools develop mode" <http://packages.python.org/setuptools/setuptools.html#development-mode>`_ installs.
 
 You can install local projects or VCS projects in "editable" mode::
 
@@ -228,9 +267,7 @@ This is one advantage over just using ``setup.py develop``, which creates the "e
 setuptools & pkg_resources
 ==========================
 
-Internally, pip uses the `setuptools` package, and the `pkg_resources` module, which are available from the project, `Setuptools`_, or it's fork `Distribute`_.
-
-pip can work with either `Setuptools`_ or `Distribute`_, although for Python 3, `Distribute`_ is required.
+Internally, pip uses the `setuptools` package, and the `pkg_resources` module, which are available from the project, `Setuptools`_.
 
 Here are some examples of how pip uses `setuptools` and `pkg_resources`:
 
@@ -240,4 +277,3 @@ Here are some examples of how pip uses `setuptools` and `pkg_resources`:
 
 
 .. _Setuptools: http://pypi.python.org/pypi/setuptools/
-.. _Distribute: http://pypi.python.org/pypi/distribute/

@@ -1,6 +1,7 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
 import sys
+import warnings
 
 try:
     import sysconfig
@@ -25,10 +26,7 @@ def get_abbr_impl():
 
 def get_impl_ver():
     """Return implementation version."""
-    impl_ver = sysconfig.get_config_var("py_version_nodot")
-    if not impl_ver:
-        impl_ver = ''.join(map(str, sys.version_info[:2]))
-    return impl_ver
+    return ''.join(map(str, sys.version_info[:2]))
 
 
 def get_platform():
@@ -37,7 +35,7 @@ def get_platform():
     return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
 
-def get_supported(versions=None):
+def get_supported(versions=None, noarch=False):
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -58,7 +56,12 @@ def get_supported(versions=None):
 
     abis = []
 
-    soabi = sysconfig.get_config_var('SOABI')
+    try:
+        soabi = sysconfig.get_config_var('SOABI')
+    except IOError as e: # Issue #1074
+        warnings.warn("{0}".format(e), RuntimeWarning)
+        soabi = None
+
     if soabi and soabi.startswith('cpython-'):
         abis[0:0] = ['cp' + soabi.split('-', 1)[-1]]
 
@@ -72,11 +75,12 @@ def get_supported(versions=None):
 
     abis.append('none')
 
-    arch = get_platform()
+    if not noarch:
+        arch = get_platform()
 
-    # Current version, current API (built specifically for our Python):
-    for abi in abis:
-        supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+        # Current version, current API (built specifically for our Python):
+        for abi in abis:
+            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):
@@ -95,4 +99,4 @@ def get_supported(versions=None):
     return supported
 
 supported_tags = get_supported()
-
+supported_tags_noarch = get_supported(noarch=True)

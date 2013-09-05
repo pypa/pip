@@ -15,27 +15,28 @@ from base64 import urlsafe_b64encode
 
 from pip.locations import distutils_scheme
 from pip.log import logger
-from pip.pep425tags import supported_tags
+from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
-distribute_requirement = pkg_resources.Requirement.parse("distribute>=0.6.34")
+# don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
+# that converts 'setuptools' to 'distribute'.
+setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
-def wheel_distribute_support(distribute_req=distribute_requirement):
+def wheel_setuptools_support():
     """
-    Return True if we have a distribute that supports wheel.
-
-    distribute_req: a pkg_resources.Requirement for distribute
+    Return True if we have a setuptools that supports wheel.
     """
+    fulfilled = False
     try:
-        installed_dist = pkg_resources.get_distribution('distribute')
-        supported = installed_dist in distribute_req
+        installed_setuptools = pkg_resources.get_distribution('setuptools')
+        if installed_setuptools in setuptools_requirement:
+            fulfilled = True
     except pkg_resources.DistributionNotFound:
-        supported = False
-    if not supported:
-        logger.warn("%s is required for wheel installs.", distribute_req)
-    return supported
-
+        pass
+    if not fulfilled:
+        logger.warn("%s is required for wheel installs." % setuptools_requirement)
+    return fulfilled
 
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
@@ -93,19 +94,37 @@ def fix_script(path):
             script.close()
         return True
 
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                                \.dist-info$""", re.VERBOSE)
+
+def root_is_purelib(name, wheeldir):
+    """
+    Return True if the extracted wheel in wheeldir should go into purelib.
+    """
+    name_folded = name.replace("-", "_")
+    for item in os.listdir(wheeldir):
+        match = dist_info_re.match(item)
+        if match and match.group('name') == name_folded:
+            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
+                for line in wheel:
+                    line = line.lower().rstrip()
+                    if line == "root-is-purelib: true":
+                        return True
+    return False
+
 def move_wheel_files(name, req, wheeldir, user=False, home=None):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home)
 
-    if scheme['purelib'] != scheme['platlib']:
-        # XXX check *.dist-info/WHEEL to deal with this obscurity
-        raise NotImplemented("purelib != platlib")
+    if root_is_purelib(name, wheeldir):
+        lib_dir = scheme['purelib']
+    else:
+        lib_dir = scheme['platlib']
 
     info_dir = []
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    location = dest = scheme['platlib']
     installed = {}
     changed = set()
 
@@ -115,12 +134,15 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
     def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = normpath(srcfile, wheeldir)
-        newpath = normpath(destfile, location)
+        newpath = normpath(destfile, lib_dir)
         installed[oldpath] = newpath
         if modified:
             changed.add(destfile)
 
     def clobber(source, dest, is_base, fixer=None):
+        if not os.path.exists(dest): # common for the 'include' path
+            os.makedirs(dest)
+
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
@@ -147,7 +169,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None):
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    clobber(source, dest, True)
+    clobber(source, lib_dir, True)
 
     assert info_dir, "%s .dist-info directory not found" % req
 
@@ -224,7 +246,9 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
-        self.version = wheel_info.group('ver')
+        # we'll assume "_" means "-" due to wheel naming scheme
+        # (https://github.com/pypa/pip/issues/1150)
+        self.version = wheel_info.group('ver').replace('_', '-')
         self.pyversions = wheel_info.group('pyver').split('.')
         self.abis = wheel_info.group('abi').split('.')
         self.plats = wheel_info.group('plat').split('.')
@@ -233,18 +257,22 @@ class Wheel(object):
         self.file_tags = set((x, y, z) for x in self.pyversions for y
                             in self.abis for z in self.plats)
 
-    def support_index_min(self):
+    def support_index_min(self, tags=None):
         """
         Return the lowest index that a file_tag achieves in the supported_tags list
         e.g. if there are 8 supported tags, and one of the file tags is first in the
         list, then return 0.
         """
-        indexes = [supported_tags.index(c) for c in self.file_tags if c in supported_tags]
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
+        indexes = [tags.index(c) for c in self.file_tags if c in tags]
         return min(indexes) if indexes else None
 
-    def supported(self):
+    def supported(self, tags=None):
         """Is this wheel supported on this system?"""
-        return bool(set(supported_tags).intersection(self.file_tags))
+        if tags is None: # for mock
+            tags = pep425tags.supported_tags
+        return bool(set(tags).intersection(self.file_tags))
 
 
 class WheelBuilder(object):
@@ -294,7 +322,7 @@ class WheelBuilder(object):
         build_success, build_failure = [], []
         for req in reqset:
             if req.is_wheel:
-                logger.notify("Skipping existing wheel: %s", req.url)
+                logger.notify("Skipping building wheel: %s", req.url)
                 continue
             if self._build_one(req):
                 build_success.append(req)

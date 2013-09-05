@@ -74,16 +74,21 @@ to building and installing from source archives. For more information, see the
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
-pip's support for wheels currently requires `Distribute`_ >=0.6.29, not `Setuptools`_.
+pip's support for wheels currently requires `Setuptools`_ >=0.8.
 
 To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
 If no satisfactory wheels are found, pip will default to finding source archives.
+If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL`` or set ``use-wheel`` in your ``pip.ini`` file.
 
 To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
 
 ::
 
  pip install --use-wheel SomePackage
+
+.. note::
+
+  pip currently disallows non-windows platform-specific wheels from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
 
 
 To install directly from a wheel archive:
@@ -93,8 +98,8 @@ To install directly from a wheel archive:
  pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
-Since wheels won't be pervasive on PyPI for awhile, pip additionally offers :ref:`pip wheel` as
-a convenience, to build wheels for your requirements and dependencies.
+pip additionally offers :ref:`pip wheel` as a convenience, to build wheels for
+your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package <https://pypi.python.org/pypi/wheel>`_ to be installed,
 which provides the "bdist_wheel" setuptools extension that it uses.
@@ -114,8 +119,43 @@ And *then* to install those requirements just using your local directory of whee
  pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
 
 
-.. _Setuptools: http://pypi.python.org/pypi/setuptools/
-.. _Distribute: http://pypi.python.org/pypi/distribute/
+.. _`Should you upload wheels to PyPI`:
+
+Should you upload wheels to PyPI?
+---------------------------------
+
+The wheel format can eliminate a lot of redundant compilation but, alas,
+it's not generally advisable to upload your pre-compiled linux-x86-64
+library binding to pypi. Wheel's tags are only designed to express
+the most important *Python*-specific compatibility concerns (Python
+version, ABI, and architecture) but do not represent other important
+binary compatibility factors such as the OS release, patch level, and
+the versions of all the shared library dependencies of any extensions
+inside the package.
+
+Rather than representing all possible compatibility information in the
+wheel itself, the wheel design suggests distribution-specific build
+services (e.g. a separate index for Fedora Linux binary wheels, compiled
+by the index maintainer). This is the same solution taken by Linux
+distributions which all re-compile their own packages instead of installing
+each other's binary packages.
+
+Some kinds of precompiled C extension modules can make sense on PyPI, even
+for Linux. Good examples include things that can be sensibly statically
+linked (a cryptographic hash function; an accelerator module that is
+not a binding for an external library); the best example of something
+that shouldn't be statically linked is a library like openssl that needs
+to be constantly kept up-to-date for security. Regardless of whether a
+compatible pre-build package is available, many Linux users will prefer
+to always compile their own anyway.
+
+On Windows the case for binary wheels on pypi is stronger both because
+Windows machines are much more uniform than Linux and because it's harder
+for the end user to compile their own. Windows-compatible wheels uploaded
+to pypi should be compatible with the Python distributions downloaded
+from http://python.org/.  If you already upload other binary formats to
+pypi, upload wheels as well.  Unlike the older formats, wheels are
+compatible with virtual environments.
 
 
 .. _`Downloading Archives`:
@@ -154,7 +194,7 @@ $ pip install --no-download SomePackage
 Non-recursive upgrades
 ************************
 
-``pip install ---upgrade`` is currently written to perform a recursive upgrade.
+``pip install --upgrade`` is currently written to perform a recursive upgrade.
 
 E.g. supposing:
 
@@ -163,7 +203,7 @@ E.g. supposing:
 * `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
-Running ``pip install ---upgrade SomePackage`` would upgrade `SomePackage` *and* `AnotherPackage`
+Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and* `AnotherPackage`
 despite `AnotherPackage` already being satisifed.
 
 If you would like to perform a non-recursive upgrade perform these 2 steps::
@@ -208,7 +248,7 @@ Controlling setup_requires
 **************************
 
 Setuptools offers the ``setup_requires``
-`setup() keyword <http://pythonhosted.org/distribute/setuptools.html#new-and-changed-setup-keywords>`_
+`setup() keyword <http://pythonhosted.org/setuptools/setuptools.html#new-and-changed-setup-keywords>`_
 for specifying dependencies that need to be present in order for the `setup.py` script to run.
 Internally, Setuptools uses ``easy_install`` to fulfill these dependencies.
 
@@ -234,3 +274,78 @@ To have the dependency located from a local directory and not crawl PyPI, add th
   allow_hosts = ''
   find_links = file:///path/to/local/archives
 
+
+Upgrading from distribute to setuptools
+***************************************
+
+`distribute`_ has now been merged into `setuptools`_, and it is recommended to upgrade to setuptools when possible.
+
+To upgrade from `distribute`_ to `setuptools`_ using pip, run::
+
+  pip install --upgrade setuptools
+
+"ImportError: No module named setuptools"
+-----------------------------------------
+
+Although using the upgrade command above works in isolation, it's possible to get
+"ImportError: No module named setuptools" when using pip<1.4 to upgrade a
+package that depends on setuptools or distribute.
+
+e.g. when running a command like this:  `pip install --upgrade pyramid`
+
+Solution
+~~~~~~~~
+
+To prevent the problem in *new* environments (that aren't broken yet):
+
+* Option 1:
+
+ * *First* run `pip install -U setuptools`,
+ * *Then* run the command to upgrade your package (e.g. `pip install --upgrade pyramid`)
+
+* Option 2:
+
+ * Upgrade pip using :ref:`get-pip <get-pip>`
+ * *Then* run the command to upgrade your package (e.g. `pip install --upgrade pyramid`)
+
+To fix the problem once it's occurred, you'll need to manually install the new
+setuptools, then rerun the upgrade that failed.
+
+1. Download `ez_setup.py` (https://bitbucket.org/pypa/setuptools/downloads/ez_setup.py)
+2. Run `python ez_setup.py`
+3. Then rerun your upgrade (e.g. `pip install --upgrade pyramid`)
+
+
+Cause
+~~~~~
+
+distribute-0.7.3 is just an empty wrapper that only serves to require the new
+setuptools (setuptools>=0.7) so that it will be installed. (If you don't know
+yet, the "new setuptools" is a merge of distribute and setuptools back into one
+project).
+
+distribute-0.7.3 does its job well, when the upgrade is done in isolation.
+E.g. if you're currently on distribute-0.6.X, then running `pip install -U
+setuptools` works fine to upgrade you to setuptools>=0.7.
+
+The problem occurs when:
+
+1. you are currently using an older distribute (i.e. 0.6.X)
+2. and you try to use pip to upgrade a package that *depends* on setuptools or
+   distribute.
+
+As part of the upgrade process, pip builds an install list that ends up
+including distribute-0.7.3 and setuptools>=0.7 , but they can end up being
+separated by other dependencies in the list, so what can happen is this:
+
+1.  pip uninstalls the existing distribute
+2.  pip installs distribute-0.7.3 (which has no importable setuptools, that pip
+    *needs* internally to function)
+3.  pip moves on to install another dependency (before setuptools>=0.7) and is
+    unable to proceed without the setuptools package
+
+Note that pip v1.4 has fixes to prevent this.  distribute-0.7.3 (or
+setuptools>=0.7) by themselves cannot prevent this kind of problem.
+
+.. _setuptools: https://pypi.python.org/pypi/setuptools
+.. _distribute: https://pypi.python.org/pypi/distribute

@@ -7,7 +7,7 @@ from pip.log import logger
 from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
-from pip.exceptions import InstallationError, CommandError
+from pip.exceptions import InstallationError, CommandError, PreviousBuildDirError
 from pip import cmdoptions
 
 
@@ -144,11 +144,7 @@ class InstallCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
-        cmd_opts.add_option(
-            '--no-clean',
-            action='store_true',
-            default=False,
-            help="Don't delete build directories after installs or errors.")
+        cmd_opts.add_option(cmdoptions.no_clean)
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
@@ -163,9 +159,12 @@ class InstallCommand(Command):
         """
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
-                             use_mirrors=options.use_mirrors,
-                             mirrors=options.mirrors,
-                             use_wheel=options.use_wheel)
+                             use_wheel=options.use_wheel,
+                             allow_external=options.allow_external,
+                             allow_insecure=options.allow_insecure,
+                             allow_all_external=options.allow_all_external,
+                             allow_all_prereleases=options.pre,
+                            )
 
     def run(self, options, args):
         if options.download_dir:
@@ -194,6 +193,19 @@ class InstallCommand(Command):
             logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
             index_urls = []
 
+        if options.use_mirrors:
+            logger.deprecated("1.7",
+                        "--use-mirrors has been deprecated and will be removed"
+                        " in the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+
+        if options.mirrors:
+            logger.deprecated("1.7",
+                        "--mirrors has been deprecated and will be removed in "
+                        " the future. Explicit uses of --index-url and/or "
+                        "--extra-index-url is suggested.")
+            index_urls += options.mirrors
+
         finder = self._build_package_finder(options, index_urls)
 
         requirement_set = RequirementSet(
@@ -210,7 +222,7 @@ class InstallCommand(Command):
             target_dir=temp_target_dir)
         for name in args:
             requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None, prereleases=options.pre))
+                InstallRequirement.from_line(name, None))
         for name in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
@@ -228,13 +240,6 @@ class InstallCommand(Command):
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warn(msg)
             return
-
-        import setuptools
-        if (options.use_user_site and
-            requirement_set.has_editables and
-            not getattr(setuptools, '_distribute', False)):
-
-            raise InstallationError('--user --editable not supported with setuptools, use distribute')
 
         try:
             if not options.no_download:
@@ -256,6 +261,9 @@ class InstallCommand(Command):
             elif self.bundle:
                 requirement_set.create_bundle(self.bundle_filename)
                 logger.notify('Created bundle in %s' % self.bundle_filename)
+        except PreviousBuildDirError:
+            options.no_clean = True
+            raise
         finally:
             # Clean up
             if (not options.no_clean) and ((not options.no_install) or options.download_dir):
