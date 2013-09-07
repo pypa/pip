@@ -78,7 +78,8 @@ pip's support for wheels currently requires `Setuptools`_ >=0.8.
 
 To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
 If no satisfactory wheels are found, pip will default to finding source archives.
-If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL`` or set ``use-wheel`` in your ``pip.ini`` file.
+If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL``
+or set ``use-wheel`` in your :ref:`configuration file<config-file>`.
 
 To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
 
