@@ -449,13 +449,11 @@ def test_url_req_case_mismatch(script, data):
 nosslpth_py = '''# turn off the ssl module for pip tests
 import sys; sys.modules["ssl"] = None
 '''
-def test_pip_should_not_download_without_ssl():
+def test_pip_should_not_download_without_ssl(script, data):
     """
     Make sure pip does not work for downloading files whenever the ssl
     module is not present.
     """
-    script = reset_env()
-
     # turn off the ssl module in this virtualenv
     sslpth_path = script.site_packages_path.join("ssl.pth")
     with open(sslpth_path, 'w') as sslpth:
@@ -469,13 +467,11 @@ def test_pip_should_not_download_without_ssl():
 
     assert "Unable to download anything without the ssl module" in result.stdout
 
-def test_pip_install_tarball_without_ssl():
+def test_pip_install_tarball_without_ssl(script, data):
     """
     Check that pip is still usable for local installation without an
     ssl module.
     """
-    script = reset_env()
-
     # turn off the ssl module in this virtualenv
     sslpth_path = script.site_packages_path.join("ssl.pth")
     with open(sslpth_path, 'w') as sslpth:
