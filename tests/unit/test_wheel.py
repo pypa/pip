@@ -154,12 +154,15 @@ class TestWheelFile(object):
             rmtree(tmpdir)
             pass
 
-    def test_purelib_platlib(self):
+    def test_purelib_platlib(self, data):
         """
         Test the "wheel is purelib/platlib" code.
         """
-        packages =  [("pure_wheel", os.path.join(os.path.dirname(__file__), os.pardir, "data/packages/pure_wheel-1.7"), True),
-                     ("plat_wheel", os.path.join(os.path.dirname(__file__), os.pardir, "data/packages/plat_wheel-1.7"), False)]
+        packages = [
+            ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
+            ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+        ]
+
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
 

@@ -161,8 +161,8 @@ class WheelCommand(Command):
                 )
             wb.build()
         except PreviousBuildDirError:
-            return
+            options.no_clean = True
+            raise
         finally:
             if not options.no_clean:
                 requirement_set.cleanup_files()
-

@@ -61,6 +61,7 @@ Kenneth Reitz
 Kevin Frommelt
 Kumar McMillan
 Lev Givon
+Lincoln de Sousa
 Luke Macken
 Masklinn
 Marc Abramowitz

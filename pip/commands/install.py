@@ -262,7 +262,8 @@ class InstallCommand(Command):
                 requirement_set.create_bundle(self.bundle_filename)
                 logger.notify('Created bundle in %s' % self.bundle_filename)
         except PreviousBuildDirError:
-            return
+            options.no_clean = True
+            raise
         finally:
             # Clean up
             if (not options.no_clean) and ((not options.no_install) or options.download_dir):
