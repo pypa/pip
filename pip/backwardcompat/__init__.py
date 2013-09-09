@@ -122,4 +122,4 @@ def product(*args, **kwds):
 try:
     from ssl import match_hostname, CertificateError
 except ImportError:
-    from ssl_match_hostname import match_hostname, CertificateError
+    from .ssl_match_hostname import match_hostname, CertificateError
