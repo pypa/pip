@@ -477,6 +477,6 @@ def test_pip_install_tarball_without_ssl(script, data):
     with open(sslpth_path, 'w') as sslpth:
         sslpth.write(nosslpth_py)
 
-    simple = os.path.join(find_links, 'simple-1.0.tar.gz')
+    simple = os.path.join(data.find_links, 'simple-1.0.tar.gz')
     result = script.pip('install', simple)
     result.assert_installed('simple', editable=False)
