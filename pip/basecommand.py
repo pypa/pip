@@ -71,7 +71,7 @@ class Command(object):
     def setup_logging(self):
         pass
 
-    def main(self, args, initial_options):
+    def main(self, args):
         options, args = self.parser.parse_args(args)
 
         level = 1  # Notify

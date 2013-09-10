@@ -121,7 +121,7 @@ def parseopts(args):
         raise CommandError(msg)
 
     command = cmd_args[0].lower()  # install
-    args.remove(cmd_args[0])  
+    args.remove(cmd_args[0])
     cmd_args = args  # --timeout=5 --user INITools
 
     if command not in commands:
@@ -133,7 +133,7 @@ def parseopts(args):
 
         raise CommandError(' - '.join(msg))
 
-    return command, options, cmd_args, parser
+    return command, cmd_args, parser
 
 
 def main(initial_args=None):
@@ -143,7 +143,7 @@ def main(initial_args=None):
     autocomplete()
 
     try:
-        cmd_name, options, cmd_args, parser = parseopts(initial_args)
+        cmd_name, cmd_args, parser = parseopts(initial_args)
     except PipError:
         e = sys.exc_info()[1]
         sys.stderr.write("ERROR: %s" % e)
@@ -151,7 +151,7 @@ def main(initial_args=None):
         sys.exit(1)
 
     command = commands[cmd_name](parser)  # see baseparser.Command
-    return command.main(cmd_args, options)
+    return command.main(cmd_args)
 
 
 def bootstrap():
