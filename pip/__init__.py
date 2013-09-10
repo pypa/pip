@@ -112,11 +112,6 @@ def parseopts(args):
         parser.print_help()
         sys.exit()
 
-    if not args:
-        msg = ('You must give a command '
-               '(use "pip --help" to see a list of commands)')
-        raise CommandError(msg)
-
     command = args[0].lower()
 
     if command not in commands:
