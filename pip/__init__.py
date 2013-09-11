@@ -9,9 +9,9 @@ from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip.baseparser import create_main_parser
-from pip.commands import commands, get_similar_commands, get_summaries
-
+from pip.baseparser import (ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+                            version, standard_options)
+from pip.commands import commands, get_summaries, get_similar_commands
 
 # The version as used in the setup.py and the docs conf.py
 __version__ = "1.5.dev1"
@@ -90,50 +90,76 @@ def autocomplete():
     sys.exit(1)
 
 
-def parseopts(args):
-    parser = create_main_parser()
+def create_main_parser():
+    parser_kw = {
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
+    }
+
+    parser = ConfigOptionParser(**parser_kw)
+    genopt = optparse.OptionGroup(parser, 'General Options')
+    parser.disable_interspersed_args()
+
+    # having a default version action just causes trouble
+    parser.version = version
+
+    for opt in standard_options:
+        genopt.add_option(opt)
+    parser.add_option_group(genopt)
+
     parser.main = True # so the help formatter knows
 
-    # create command listing
+    # create command listing for description
     command_summaries = get_summaries()
-
     description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
     parser.description = '\n'.join(description)
 
-    options, cmd_args = parser.parse_args(args)
-    # args:     ['--timeout=5', 'install', '--user', 'INITools']
-    # cmd_args: ['install', '--user', 'INITools']
-    # note: parser calls disable_interspersed_args()
+    return parser
 
-    if options.version:
+
+def parseopts(args):
+    parser = create_main_parser()
+
+    # Note: parser calls disable_interspersed_args(), so the result of this call
+    # is to split the initial args into the general options before the
+    # subcommand and everything else.
+    # For example:
+    #  args: ['--timeout=5', 'install', '--user', 'INITools']
+    #  general_options: ['--timeout==5']
+    #  args_else: ['install', '--user', 'INITools']
+    general_options, args_else = parser.parse_args(args)
+
+    # --version
+    if general_options.version:
         sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
 
-    # pip || pip help || pip --help -> print_help()
-    if not cmd_args or (cmd_args[0] == 'help' and len(cmd_args) == 1):
+    # pip || pip help -> print_help()
+    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
         parser.print_help()
         sys.exit()
 
-    if not cmd_args:
-        msg = ('You must give a command '
-               '(use "pip --help" to see a list of commands)')
-        raise CommandError(msg)
+    # the subcommand name
+    cmd_name = args_else[0].lower()
 
-    command = cmd_args[0].lower()  # install
-    args.remove(cmd_args[0])
-    cmd_args = args  # --timeout=5 --user INITools
+    #all the args without the subcommand
+    cmd_args = args[:]
+    cmd_args.remove(args_else[0].lower())
 
-    if command not in commands:
-        guess = get_similar_commands(command)
+    if cmd_name not in commands:
+        guess = get_similar_commands(cmd_name)
 
-        msg = ['unknown command "%s"' % command]
+        msg = ['unknown command "%s"' % cmd_name]
         if guess:
             msg.append('maybe you meant "%s"' % guess)
 
         raise CommandError(' - '.join(msg))
 
-    return command, cmd_args, parser
+    return cmd_name, cmd_args, parser
 
 
 def main(initial_args=None):

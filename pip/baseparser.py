@@ -229,29 +229,6 @@ except pkg_resources.DistributionNotFound:
     version = None
 
 
-def create_main_parser():
-    parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
-    }
-
-    parser = ConfigOptionParser(**parser_kw)
-    genopt = optparse.OptionGroup(parser, 'General Options')
-    parser.disable_interspersed_args()
-
-    # having a default version action just causes trouble
-    parser.version = version
-
-    for opt in standard_options:
-        genopt.add_option(opt)
-    parser.add_option_group(genopt)
-
-    return parser
-
-
 standard_options = [
     optparse.make_option(
         '-h', '--help',

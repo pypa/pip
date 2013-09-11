@@ -5,7 +5,7 @@ from pip.commands.search import (compare_versions,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
-from pip.baseparser import create_main_parser
+from pip import create_main_parser
 from mock import Mock
 from tests.lib import pyversion
 
