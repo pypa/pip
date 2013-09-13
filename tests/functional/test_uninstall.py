@@ -5,6 +5,7 @@ import os
 import sys
 from os.path import join, abspath, normpath
 from tempfile import mkdtemp
+from nose import SkipTest
 from mock import patch
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
@@ -199,7 +200,7 @@ def test_uninstallpathset_no_paths(mock_logger):
 
     """
     from pip.req import UninstallPathSet
-    from pkg_resources import get_distribution
+    from pip.compat.pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     # ensure that the distribution is "local"
     with patch("pip.req.dist_is_local") as mock_dist_is_local:
@@ -217,7 +218,7 @@ def test_uninstallpathset_non_local(mock_logger):
     """
     nonlocal_path = os.path.abspath("/nonlocal")
     from pip.req import UninstallPathSet
-    from pkg_resources import get_distribution
+    from pip.compat.pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     test_dist.location = nonlocal_path
     # ensure that the distribution is "non-local"

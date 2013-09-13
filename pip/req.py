@@ -1,7 +1,7 @@
 from email.parser import FeedParser
 import os
 import imp
-import pkg_resources
+from pip.compat import pkg_resources
 import re
 import sys
 import shutil
@@ -439,7 +439,6 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         if not self.check_if_exists():
             raise UninstallationError("Cannot uninstall requirement %s, not installed" % (self.name,))
         dist = self.satisfied_by or self.conflicts_with
-
         paths_to_remove = UninstallPathSet(dist)
 
         pip_egg_info_path = os.path.join(dist.location,
@@ -1114,7 +1113,8 @@ class RequirementSet(object):
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
-                            dist = list(pkg_resources.find_distributions(location))[0]
+                            dists = list(pkg_resources.find_distributions(location))
+                            dist = dists[0]
                             if not req_to_install.req:
                                 req_to_install.req = dist.as_requirement()
                                 self.add_requirement(req_to_install)

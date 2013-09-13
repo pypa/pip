@@ -1,5 +1,5 @@
 import os
-import pkg_resources
+from pip.compat import pkg_resources
 from pip.basecommand import Command
 from pip.log import logger
 

@@ -10,4 +10,4 @@ build/*
 *.pyo
 *.~
 .tox
-
+env/*

@@ -16,12 +16,12 @@ import sys
 import zipimport
 
 from . import DistlibException
-from .compat import StringIO, configparser, string_types
+from .compat import StringIO, string_types
 from .version import get_scheme, UnsupportedVersionError
 from .markers import interpret
-from .metadata import Metadata
-from .util import (parse_requirement, cached_property, get_export_entry,
-                   CSVReader, CSVWriter)
+from .metadata import Metadata, METADATA_FILENAME
+from .util import (parse_requirement, cached_property, parse_name_and_version,
+                   read_exports, write_exports, CSVReader, CSVWriter)
 
 
 __all__ = ['Distribution', 'BaseInstalledDistribution',
@@ -31,8 +31,10 @@ __all__ = ['Distribution', 'BaseInstalledDistribution',
 
 logger = logging.getLogger(__name__)
 
-DIST_FILES = ('INSTALLER', 'METADATA', 'RECORD', 'REQUESTED', 'RESOURCES',
-              'EXPORTS', 'SHARED')
+EXPORTS_FILENAME = 'EXPORTS'
+
+DIST_FILES = ('INSTALLER', METADATA_FILENAME, 'RECORD', 'REQUESTED',
+              'RESOURCES', EXPORTS_FILENAME, 'SHARED')
 
 DISTINFO_EXT = '.dist-info'
 
@@ -239,18 +241,12 @@ class DistributionPath(object):
             provided = dist.provides
 
             for p in provided:
-                p_components = p.rsplit(' ', 1)
-                if len(p_components) == 1 or matcher is None:
-                    if name == p_components[0]:
+                p_name, p_ver = parse_name_and_version(p)
+                if matcher is None:
+                    if p_name == name:
                         yield dist
                         break
                 else:
-                    p_name, p_ver = p_components
-                    if len(p_ver) < 2 or p_ver[0] != '(' or p_ver[-1] != ')':
-                        raise DistlibException(
-                            'distribution %r has invalid Provides field: %r' %
-                            (dist.name, p))
-                    p_ver = p_ver[1:-1]  # trim off the parenthesis
                     if p_name == name and matcher.match(p_ver):
                         yield dist
                         break
@@ -313,13 +309,16 @@ class Distribution(object):
         self.locator = None
         self.md5_digest = None
         self.extras = None  # additional features requested during installation
+        self.context = None # environment marker overrides
 
     @property
-    def download_url(self):
+    def source_url(self):
         """
-        The download URL for this distribution.
+        The source archive download URL for this distribution.
         """
-        return self.metadata.download_url
+        return self.metadata.source_url
+
+    download_url = source_url   # Backward compatibility
 
     @property
     def name_and_version(self):
@@ -334,56 +333,36 @@ class Distribution(object):
         A set of distribution names and versions provided by this distribution.
         :return: A set of "name (version)" strings.
         """
-        plist = self.metadata['Provides-Dist']
+        plist = self.metadata.provides
         s = '%s (%s)' % (self.name, self.version)
         if s not in plist:
             plist.append(s)
-        return self.filter_requirements(plist)
+        return plist
+
+    def _get_requirements(self, req_attr):
+        reqts = getattr(self.metadata, req_attr)
+        return set(self.metadata.get_requirements(reqts, extras=self.extras,
+                                                  env=self.context))
 
     @property
-    def requires(self):
-        rlist = self.metadata['Requires-Dist']
-        return self.filter_requirements(rlist)
+    def run_requires(self):
+        return self._get_requirements('run_requires')
 
     @property
-    def setup_requires(self):
-        rlist = self.metadata['Setup-Requires-Dist']
-        return self.filter_requirements(rlist)
+    def meta_requires(self):
+        return self._get_requirements('meta_requires')
+
+    @property
+    def build_requires(self):
+        return self._get_requirements('build_requires')
 
     @property
     def test_requires(self):
-        rlist = self.metadata['Requires-Dist']
-        return self.filter_requirements(rlist, extras=['test'])
+        return self._get_requirements('test_requires')
 
     @property
-    def doc_requires(self):
-        rlist = self.metadata['Requires-Dist']
-        return self.filter_requirements(rlist, extras=['doc'])
-
-    def filter_requirements(self, rlist, context=None, extras=None):
-        result = set()
-        marked = []
-        for req in rlist:
-            if ';' not in req:
-                result.add(req)
-            else:
-                marked.append(req.split(';', 1))
-        if marked:
-            if context is None:
-                context = {}
-            if extras is None:
-                extras = self.extras
-            if not extras:
-                extras = [None]
-            else:
-                extras = list(extras)   # leave original alone
-                extras.append(None)
-            for extra in extras:
-                context['extra'] = extra
-                for r, marker in marked:
-                    if interpret(marker, context):
-                        result.add(r.strip())
-        return result
+    def dev_requires(self):
+        return self._get_requirements('dev_requires')
 
     def matches_requirement(self, req):
         """
@@ -392,9 +371,12 @@ class Distribution(object):
         :rtype req: str
         :return: True if it matches, else False.
         """
+        # Requirement may contain extras - parse to lose those
+        # from what's passed to the matcher
+        r = parse_requirement(req)
         scheme = get_scheme(self.metadata.scheme)
         try:
-            matcher = scheme.matcher(req)
+            matcher = scheme.matcher(r.requirement)
         except UnsupportedVersionError:
             # XXX compat-mode if cannot read the version
             logger.warning('could not read version %r - using name only',
@@ -405,15 +387,12 @@ class Distribution(object):
         name = matcher.key   # case-insensitive
 
         result = False
-        # Note this is similar to code in make_graph - to be refactored
         for p in self.provides:
-            vm = scheme.matcher(p)
-            if vm.key != name:
+            p_name, p_ver = parse_name_and_version(p)
+            if p_name != name:
                 continue
-            version = vm.exact_version
-            assert version
             try:
-                result = matcher.match(version)
+                result = matcher.match(p_ver)
                 break
             except UnsupportedVersionError:
                 pass
@@ -423,8 +402,8 @@ class Distribution(object):
         """
         Return a textual representation of this instance,
         """
-        if self.download_url:
-            suffix = ' [%s]' % self.download_url
+        if self.source_url:
+            suffix = ' [%s]' % self.source_url
         else:
             suffix = ''
         return '<Distribution %s (%s)%s>' % (self.name, self.version, suffix)
@@ -434,7 +413,7 @@ class Distribution(object):
         See if this distribution is the same as another.
         :param other: The distribution to compare with. To be equal to one
                       another. distributions must have the same type, name,
-                      version and download_url.
+                      version and source_url.
         :return: True if it is the same, else False.
         """
         if type(other) is not type(self):
@@ -442,14 +421,14 @@ class Distribution(object):
         else:
             result = (self.name == other.name and
                       self.version == other.version and
-                      self.download_url == other.download_url)
+                      self.source_url == other.source_url)
         return result
 
     def __hash__(self):
         """
         Compute hash in a way which matches the equality test.
         """
-        return hash(self.name) + hash(self.version) + hash(self.download_url)
+        return hash(self.name) + hash(self.version) + hash(self.source_url)
 
 
 class BaseInstalledDistribution(Distribution):
@@ -508,7 +487,7 @@ class BaseInstalledDistribution(Distribution):
 
 class InstalledDistribution(BaseInstalledDistribution):
     """Created with the *path* of the ``.dist-info`` directory provided to the
-    constructor. It reads the metadata contained in ``METADATA`` when it is
+    constructor. It reads the metadata contained in ``pydist.json`` when it is
     instantiated., or uses a passed in Metadata instance (useful for when
     dry-run mode is being used)."""
 
@@ -518,7 +497,13 @@ class InstalledDistribution(BaseInstalledDistribution):
         if env and env._cache_enabled and path in env._cache.path:
             metadata = env._cache.path[path].metadata
         elif metadata is None:
-            metadata_path = os.path.join(path, 'METADATA')
+            metadata_path = os.path.join(path, METADATA_FILENAME)
+            # Temporary - for legacy support
+            if not os.path.exists(metadata_path):
+                metadata_path = os.path.join(path, 'METADATA')
+            if not os.path.exists(metadata_path):
+                raise ValueError('no %s found in %s' % (METADATA_FILENAME,
+                                                        path))
             metadata = Metadata(path=metadata_path, scheme='legacy')
 
         super(InstalledDistribution, self).__init__(metadata, path, env)
@@ -567,7 +552,7 @@ class InstalledDistribution(BaseInstalledDistribution):
                  export entries.
         """
         result = {}
-        rf = self.get_distinfo_file('EXPORTS')
+        rf = self.get_distinfo_file(EXPORTS_FILENAME)
         if os.path.exists(rf):
             result = self.read_exports(rf)
         return result
@@ -583,18 +568,10 @@ class InstalledDistribution(BaseInstalledDistribution):
                  export entries.
         """
         result = {}
-        rf = filename or self.get_distinfo_file('EXPORTS')
+        rf = filename or self.get_distinfo_file(EXPORTS_FILENAME)
         if os.path.exists(rf):
-            cp = configparser.ConfigParser()
-            cp.read(rf)
-            for key in cp.sections():
-                result[key] = entries = {}
-                for name, value in cp.items(key):
-                    s = '%s = %s' % (name, value)
-                    entry = get_export_entry(s)
-                    assert entry is not None
-                    entry.dist = self
-                    entries[name] = entry
+            with open(rf, 'r') as f:
+                result = read_exports(f)
         return result
 
     def write_exports(self, exports, filename=None):
@@ -607,21 +584,9 @@ class InstalledDistribution(BaseInstalledDistribution):
                          specified, the EXPORTS file in the .dist-info
                          directory is written to.
         """
-        rf = filename or self.get_distinfo_file('EXPORTS')
-        cp = configparser.ConfigParser()
-        for k, v in exports.items():
-            # TODO check k, v for valid values
-            cp.add_section(k)
-            for entry in v.values():
-                if entry.suffix is None:
-                    s = entry.prefix
-                else:
-                    s = '%s:%s' % (entry.prefix, entry.suffix)
-                if entry.flags:
-                    s = '%s [%s]' % (s, ', '.join(entry.flags))
-                cp.set(k, entry.name, s)
+        rf = filename or self.get_distinfo_file(EXPORTS_FILENAME)
         with open(rf, 'w') as f:
-            cp.write(f)
+            write_exports(exports, f)
 
     def get_resource_path(self, relative_path):
         """
@@ -666,7 +631,7 @@ class InstalledDistribution(BaseInstalledDistribution):
         record_path = os.path.join(self.path, 'RECORD')
         logger.info('creating %s', record_path)
         if dry_run:
-            return
+            return None
         with CSVWriter(record_path) as writer:
             for path in paths:
                 if os.path.isdir(path) or path.endswith(('.pyc', '.pyo')):
@@ -685,6 +650,7 @@ class InstalledDistribution(BaseInstalledDistribution):
             if record_path.startswith(base):
                 record_path = os.path.relpath(record_path, base)
             writer.writerow((record_path, '', ''))
+        return record_path
 
     def check_installed_files(self):
         """
@@ -760,7 +726,7 @@ class InstalledDistribution(BaseInstalledDistribution):
         shared_path = os.path.join(self.path, 'SHARED')
         logger.info('creating %s', shared_path)
         if dry_run:
-            return
+            return None
         lines = []
         for key in ('prefix', 'lib', 'headers', 'scripts', 'data'):
             path = paths[key]
@@ -797,8 +763,8 @@ class InstalledDistribution(BaseInstalledDistribution):
 
         # The file must be relative
         if path not in DIST_FILES:
-            raise DistlibException('invalid path for a dist-info file: %r' %
-                                  path)
+            raise DistlibException('invalid path for a dist-info file: '
+                                   '%r at %r' % (path, self.path))
 
         return os.path.join(self.path, path)
 
@@ -845,12 +811,12 @@ class EggInfoDistribution(BaseInstalledDistribution):
         self.dist_path  = env
         if env and env._cache_enabled and path in env._cache_egg.path:
             metadata = env._cache_egg.path[path].metadata
-            set_name_and_version(self, metadata['Name'], metadata['Version'])
+            set_name_and_version(self, metadata.name, metadata.version)
         else:
             metadata = self._get_metadata(path)
 
             # Need to be set before caching
-            set_name_and_version(self, metadata['Name'], metadata['Version'])
+            set_name_and_version(self, metadata.name, metadata.version)
 
             if env and env._cache_enabled:
                 env._cache_egg.add(self)
@@ -859,19 +825,13 @@ class EggInfoDistribution(BaseInstalledDistribution):
     def _get_metadata(self, path):
         requires = None
 
-        def parse_requires(req_path):
+        def parse_requires_data(data):
             """Create a list of dependencies from a requires.txt file.
 
-            *req_path* must be the path to a setuptools-produced requires.txt file.
+            *data*: the contents of a setuptools-produced requires.txt file.
             """
-
             reqs = []
-            try:
-                with open(req_path, 'r') as fp:
-                    lines = fp.read().splitlines()
-            except IOError:
-                return reqs
-
+            lines = data.splitlines()
             for line in lines:
                 line = line.strip()
                 if line.startswith('['):
@@ -892,12 +852,26 @@ class EggInfoDistribution(BaseInstalledDistribution):
                     reqs.append('%s (%s)' % (r.name, cons))
             return reqs
 
+        def parse_requires_path(req_path):
+            """Create a list of dependencies from a requires.txt file.
+
+            *req_path*: the path to a setuptools-produced requires.txt file.
+            """
+
+            reqs = []
+            try:
+                with codecs.open(req_path, 'r', 'utf-8') as fp:
+                    reqs = parse_requires_data(fp.read())
+            except IOError:
+                pass
+            return reqs
+
         if path.endswith('.egg'):
             if os.path.isdir(path):
                 meta_path = os.path.join(path, 'EGG-INFO', 'PKG-INFO')
                 metadata = Metadata(path=meta_path, scheme='legacy')
                 req_path = os.path.join(path, 'EGG-INFO', 'requires.txt')
-                requires = parse_requires(req_path)
+                requires = parse_requires_path(req_path)
             else:
                 # FIXME handle the case where zipfile is not available
                 zipf = zipimport.zipimporter(path)
@@ -905,26 +879,22 @@ class EggInfoDistribution(BaseInstalledDistribution):
                     zipf.get_data('EGG-INFO/PKG-INFO').decode('utf8'))
                 metadata = Metadata(fileobj=fileobj, scheme='legacy')
                 try:
-                    requires = zipf.get_data('EGG-INFO/requires.txt')
+                    data = zipf.get_data('EGG-INFO/requires.txt')
+                    requires = parse_requires_data(data.decode('utf-8'))
                 except IOError:
                     requires = None
         elif path.endswith('.egg-info'):
             if os.path.isdir(path):
                 path = os.path.join(path, 'PKG-INFO')
                 req_path = os.path.join(path, 'requires.txt')
-                requires = parse_requires(req_path)
+                requires = parse_requires_path(req_path)
             metadata = Metadata(path=path, scheme='legacy')
         else:
             raise DistlibException('path must end with .egg-info or .egg, '
                                    'got %r' % path)
 
         if requires:
-            if metadata['Metadata-Version'] == '1.1':
-                # we can't have 1.1 metadata *and* Setuptools requires
-                for field in ('Obsoletes', 'Requires', 'Provides'):
-                    if field in metadata:
-                        del metadata[field]
-            metadata['Requires-Dist'] += requires
+            metadata.add_requirements(requires)
         return metadata
 
     def __repr__(self):
@@ -1191,28 +1161,14 @@ def make_graph(dists, scheme='default'):
         graph.add_distribution(dist)
 
         for p in dist.provides:
-            comps = p.strip().rsplit(" ", 1)
-            name = comps[0]
-            version = None
-            if len(comps) == 2:
-                version = comps[1]
-                if len(version) < 3 or version[0] != '(' or version[-1] != ')':
-                    logger.warning('distribution %r has ill-formed '
-                                   'provides field: %r', dist.name, p)
-                    continue
-                    # don't raise an exception. Legacy installed distributions
-                    # could have all manner of metadata
-                    #raise DistlibException('distribution %r has ill-formed '
-                    #                       'provides field: %r' % (dist.name, p))
-                version = version[1:-1]  # trim off parenthesis
-            # Add name in lower case for case-insensitivity
-            name = name.lower()
+            name, version = parse_name_and_version(p)
             logger.debug('Add to provided: %s, %s, %s', name, version, dist)
             provided.setdefault(name, []).append((version, dist))
 
     # now make the edges
     for dist in dists:
-        requires = (dist.requires | dist.setup_requires)
+        requires = (dist.run_requires | dist.meta_requires |
+                    dist.build_requires | dist.dev_requires)
         for req in requires:
             try:
                 matcher = scheme.matcher(req)
@@ -1295,7 +1251,9 @@ def make_dist(name, version, **kwargs):
     """
     A convenience method for making a dist given just a name and version.
     """
+    summary = kwargs.pop('summary', 'Placeholder for summary')
     md = Metadata(**kwargs)
-    md['Name'] = name
-    md['Version'] = version
+    md.name = name
+    md.version = version
+    md.summary = summary or 'Plaeholder for summary'
     return Distribution(md)

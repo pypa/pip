@@ -15,37 +15,14 @@ from .compat import string_types
 __all__ = ['NormalizedVersion', 'NormalizedMatcher',
            'LegacyVersion', 'LegacyMatcher',
            'SemanticVersion', 'SemanticMatcher',
-           'AdaptiveVersion', 'AdaptiveMatcher',
-           'UnsupportedVersionError', 'HugeMajorVersionError',
-           'suggest_normalized_version', 'suggest_semantic_version',
-           'suggest_adaptive_version',
-           'normalized_key', 'legacy_key', 'semantic_key', 'adaptive_key',
-           'get_scheme']
+           'UnsupportedVersionError', 'get_scheme']
 
-class UnsupportedVersionError(Exception):
+class UnsupportedVersionError(ValueError):
     """This is an unsupported version."""
     pass
 
 
-class HugeMajorVersionError(UnsupportedVersionError):
-    """An irrational version because the major version number is huge
-    (often because a year or date was used).
-
-    See `error_on_huge_major_num` option in `NormalizedVersion` for details.
-    This guard can be disabled by setting that option False.
-    """
-    pass
-
-
-class _Common(object):
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self._string)
-
-    def __str__(self):
-        return self._string
-
-
-class Version(_Common):
+class Version(object):
     def __init__(self, s):
         self._string = s = s.strip()
         self._parts = parts = self.parse(s)
@@ -83,30 +60,41 @@ class Version(_Common):
     def __hash__(self):
         return hash(self._parts)
 
+    def __repr__(self):
+        return "%s('%s')" % (self.__class__.__name__, self._string)
+
+    def __str__(self):
+        return self._string
+
     @property
     def is_prerelease(self):
         raise NotImplementedError('Please implement in subclasses.')
 
-class Matcher(_Common):
+
+class Matcher(object):
     version_class = None
 
-    predicate_re = re.compile(r"^(\w[\s\w'.-]*)(\((.*)\))?")
-    constraint_re = re.compile(r'^(<=|>=|<|>|!=|==)?\s*([^\s,]+)$')
+    dist_re = re.compile(r"^(\w[\s\w'.-]*)(\((.*)\))?")
+    comp_re = re.compile(r'^(<=|>=|<|>|!=|==|~=)?\s*([^\s,]+)$')
+    num_re = re.compile(r'^\d+(\.\d+)*$')
 
+    # value is either a callable or the name of a method
     _operators = {
-        "<": lambda x, y: x < y,
-        ">": lambda x, y: x > y,
-        "<=": lambda x, y: x == y or x < y,
-        ">=": lambda x, y: x == y or x > y,
-        "==": lambda x, y: x == y,
-        "!=": lambda x, y: x != y,
+        '<': lambda v, c, p: v < c,
+        '>': lambda v, c, p: v > c,
+        '<=': lambda v, c, p: v == c or v < c,
+        '>=': lambda v, c, p: v == c or v > c,
+        '==': lambda v, c, p: v == c,
+        # by default, compatible => >=.
+        '~=': lambda v, c, p: v == c or v > c,
+        '!=': lambda v, c, p: v != c,
     }
 
     def __init__(self, s):
         if self.version_class is None:
             raise ValueError('Please specify a version class')
         self._string = s = s.strip()
-        m = self.predicate_re.match(s)
+        m = self.dist_re.match(s)
         if not m:
             raise ValueError('Not valid: %r' % s)
         groups = m.groups('')
@@ -116,19 +104,42 @@ class Matcher(_Common):
         if groups[2]:
             constraints = [c.strip() for c in groups[2].split(',')]
             for c in constraints:
-                m = self.constraint_re.match(c)
+                m = self.comp_re.match(c)
                 if not m:
                     raise ValueError('Invalid %r in %r' % (c, s))
-                groups = m.groups('==')
-                clist.append((groups[0], self.version_class(groups[1])))
+                groups = m.groups()
+                op = groups[0] or '~='
+                s = groups[1]
+                if s.endswith('.*'):
+                    if op not in ('==', '!='):
+                        raise ValueError('\'.*\' not allowed for '
+                                         '%r constraints' % op)
+                    # Could be a partial version (e.g. for '2.*') which
+                    # won't parse as a version, so keep it as a string
+                    vn, prefix = s[:-2], True
+                    if not self.num_re.match(vn):
+                        # Just to check that vn is a valid version
+                        self.version_class(vn)
+                else:
+                    # Should parse as a version, so we can create an
+                    # instance for the comparison
+                    vn, prefix = self.version_class(s), False
+                clist.append((op, vn, prefix))
         self._parts = tuple(clist)
 
     def match(self, version):
         """Check if the provided version matches the constraints."""
         if isinstance(version, string_types):
             version = self.version_class(version)
-        for operator, constraint in self._parts:
-            if not self._operators[operator](version, constraint):
+        for operator, constraint, prefix in self._parts:
+            f = self._operators.get(operator)
+            if isinstance(f, string_types):
+                f = getattr(self, f)
+            if not f:
+                msg = ('%r not implemented '
+                       'for %s' % (operator, self.__class__.__name__))
+                raise NotImplementedError(msg)
+            if not f(version, constraint, prefix):
                 return False
         return True
 
@@ -153,6 +164,12 @@ class Matcher(_Common):
     # See http://docs.python.org/reference/datamodel#object.__hash__
     def __hash__(self):
         return hash(self.key) + hash(self._parts)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._string)
+
+    def __str__(self):
+        return self._string
 
 # A marker used in the second and third parts of the `parts` tuple, for
 # versions that don't have those segments, to sort properly. An example
@@ -205,7 +222,7 @@ def _parse_numdots(s, full_ver, drop_zeroes=False, min_length=0):
             result.pop()
     return result
 
-def pep386_key(s, fail_on_huge_major_ver=True):
+def _pep386_key(s):
     """Parses a string version into parts using PEP-386 logic."""
 
     match = _VERSION_RE.search(s)
@@ -242,16 +259,13 @@ def pep386_key(s, fail_on_huge_major_ver=True):
         parts.append(tuple(postdev))
     else:
         parts.append(_FINAL_MARKER)
-    if fail_on_huge_major_ver and parts[0][0] > 1980:
-        raise HugeMajorVersionError("huge major version number, %r, "
-           "which might cause future problems: %r" % (parts[0][0], s))
     return tuple(parts)
 
 
 PEP426_VERSION_RE = re.compile('^(\d+\.\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
                                '(\.(post)(\d+))?(\.(dev)(\d+))?$')
 
-def pep426_key(s, _=None):
+def _pep426_key(s):
     s = s.strip()
     m = PEP426_VERSION_RE.match(s)
     if not m:
@@ -293,7 +307,7 @@ def pep426_key(s, _=None):
     return nums, pre, post, dev
 
 
-normalized_key = pep426_key
+_normalized_key = _pep426_key
 
 class NormalizedVersion(Version):
     """A rational version.
@@ -313,7 +327,16 @@ class NormalizedVersion(Version):
         1.2a        # release level must have a release serial
         1.2.3b
     """
-    def parse(self, s): return normalized_key(s)
+    def parse(self, s):
+        result = _normalized_key(s)
+        # _normalized_key loses trailing zeroes in the release
+        # clause, since that's needed to ensure that X.Y == X.Y.0 == X.Y.0.0
+        # However, PEP 440 prefix matching needs it: for example,
+        # (~= 1.4.5.0) matches differently to (~= 1.4.5.0.0).
+        m = PEP426_VERSION_RE.match(s)      # must succeed
+        groups = m.groups()
+        self._release_clause = tuple(int(v) for v in groups[0].split('.'))
+        return result
 
     PREREL_TAGS = set(['a', 'b', 'c', 'rc', 'dev'])
 
@@ -321,16 +344,13 @@ class NormalizedVersion(Version):
     def is_prerelease(self):
         return any(t[0] in self.PREREL_TAGS for t in self._parts)
 
-class UnlimitedMajorVersion(Version):
-    def parse(self, s): return normalized_key(s, False)
-
 # We want '2.5' to match '2.5.4' but not '2.50'.
 
-def _match_at_front(x, y):
-    if x == y:
-        return True
+def _match_prefix(x, y):
     x = str(x)
     y = str(y)
+    if x == y:
+        return True
     if not x.startswith(y):
         return False
     n = len(y)
@@ -339,13 +359,61 @@ def _match_at_front(x, y):
 class NormalizedMatcher(Matcher):
     version_class = NormalizedVersion
 
-    _operators = dict(Matcher._operators)
-    _operators.update({
-        "<=": lambda x, y: _match_at_front(x, y) or x < y,
-        ">=": lambda x, y: _match_at_front(x, y) or x > y,
-        "==": lambda x, y: _match_at_front(x, y),
-        "!=": lambda x, y: not _match_at_front(x, y),
-    })
+    # value is either a callable or the name of a method
+    _operators = {
+        '~=': '_match_compatible',
+        '<': '_match_lt',
+        '>': '_match_gt',
+        '<=': '_match_le',
+        '>=': '_match_ge',
+        '==': '_match_eq',
+        '!=': '_match_ne',
+    }
+
+    def _match_lt(self, version, constraint, prefix):
+        if version >= constraint:
+            return False
+        release_clause = constraint._release_clause
+        pfx = '.'.join([str(i) for i in release_clause])
+        return not _match_prefix(version, pfx)
+
+    def _match_gt(self, version, constraint, prefix):
+        if version <= constraint:
+            return False
+        release_clause = constraint._release_clause
+        pfx = '.'.join([str(i) for i in release_clause])
+        return not _match_prefix(version, pfx)
+
+    def _match_le(self, version, constraint, prefix):
+        return version <= constraint
+
+    def _match_ge(self, version, constraint, prefix):
+        return version >= constraint
+
+    def _match_eq(self, version, constraint, prefix):
+        if not prefix:
+            result = (version == constraint)
+        else:
+            result = _match_prefix(version, constraint)
+        return result
+
+    def _match_ne(self, version, constraint, prefix):
+        if not prefix:
+            result = (version != constraint)
+        else:
+            result = not _match_prefix(version, constraint)
+        return result
+
+    def _match_compatible(self, version, constraint, prefix):
+        if version == constraint:
+            return True
+        if version < constraint:
+            return False
+        release_clause = constraint._release_clause
+        if len(release_clause) > 1:
+            release_clause = release_clause[:-1]
+        pfx = '.'.join([str(i) for i in release_clause])
+        return _match_prefix(version, pfx)
 
 _REPLACEMENTS = (
     (re.compile('[.+-]$'), ''),                     # remove trailing puncts
@@ -371,10 +439,10 @@ _SUFFIX_REPLACEMENTS = (
 
 _NUMERIC_PREFIX = re.compile(r'(\d+(\.\d+)*)')
 
-def suggest_semantic_version(s):
+def _suggest_semantic_version(s):
     """
     Try to suggest a semantic form for a version for which
-    suggest_normalized_version couldn't come up with anything.
+    _suggest_normalized_version couldn't come up with anything.
     """
     result = s.strip().lower()
     for pat, repl in _REPLACEMENTS:
@@ -417,7 +485,7 @@ def suggest_semantic_version(s):
     return result
 
 
-def suggest_normalized_version(s):
+def _suggest_normalized_version(s):
     """Suggest a normalized version close to the given version string.
 
     If you have a version string that isn't rational (i.e. NormalizedVersion
@@ -435,7 +503,7 @@ def suggest_normalized_version(s):
     @returns A rational version string, or None, if couldn't determine one.
     """
     try:
-        normalized_key(s)
+        _normalized_key(s)
         return s   # already rational
     except UnsupportedVersionError:
         pass
@@ -522,13 +590,10 @@ def suggest_normalized_version(s):
     rs = re.sub(r"p(\d+)$", r".post\1", rs)
 
     try:
-        normalized_key(rs)
+        _normalized_key(rs)
     except UnsupportedVersionError:
         rs = None
     return rs
-
-def suggest_adaptive_version(s):
-    return suggest_normalized_version(s) or suggest_semantic_version(s)
 
 #
 #   Legacy version processing (distribute-compatible)
@@ -546,7 +611,7 @@ _VERSION_REPLACE = {
 }
 
 
-def legacy_key(s):
+def _legacy_key(s):
     def get_parts(s):
         result = []
         for p in _VERSION_PART.split(s.lower()):
@@ -572,7 +637,7 @@ def legacy_key(s):
     return tuple(result)
 
 class LegacyVersion(Version):
-    def parse(self, s): return legacy_key(s)
+    def parse(self, s): return _legacy_key(s)
 
     PREREL_TAGS = set(
         ['*a', '*alpha', '*b', '*beta', '*c', '*rc', '*r', '*@', '*pre']
@@ -585,6 +650,24 @@ class LegacyVersion(Version):
 class LegacyMatcher(Matcher):
     version_class = LegacyVersion
 
+    _operators = dict(Matcher._operators)
+    _operators['~='] = '_match_compatible'
+
+    numeric_re = re.compile('^(\d+(\.\d+)*)')
+
+    def _match_compatible(self, version, constraint, prefix):
+        if version < constraint:
+            return False
+        m = self.numeric_re.match(str(constraint))
+        if not m:
+            logger.warning('Cannot compute compatible match for version %s '
+                           ' and constraint %s', version, constraint)
+            return True
+        s = m.groups()[0]
+        if '.' in s:
+            s = s.rsplit('.', 1)[0]
+        return _match_prefix(version, s)
+
 #
 #   Semantic versioning
 #
@@ -596,7 +679,7 @@ _SEMVER_RE = re.compile(r'^(\d+)\.(\d+)\.(\d+)'
 def is_semver(s):
     return _SEMVER_RE.match(s)
 
-def semantic_key(s):
+def _semantic_key(s):
     def make_tuple(s, absent):
         if s is None:
             result = (absent,)
@@ -619,7 +702,7 @@ def semantic_key(s):
 
 
 class SemanticVersion(Version):
-    def parse(self, s): return semantic_key(s)
+    def parse(self, s): return _semantic_key(s)
 
     @property
     def is_prerelease(self):
@@ -628,42 +711,6 @@ class SemanticVersion(Version):
 
 class SemanticMatcher(Matcher):
     version_class = SemanticVersion
-
-#
-# Adaptive versioning. When handed a legacy version string, tries to
-# determine a suggested normalized version, and work with that.
-#
-
-def adaptive_key(s):
-    try:
-        result = normalized_key(s, False)
-    except UnsupportedVersionError:
-        ss = suggest_normalized_version(s)
-        if ss is not None:
-            result = normalized_key(ss)     # "guaranteed" to work
-        else:
-            ss = s # suggest_semantic_version(s) or s
-            result = semantic_key(ss)       # let's hope ...
-    return result
-
-
-class AdaptiveVersion(NormalizedVersion):
-    def parse(self, s): return adaptive_key(s)
-
-    @property
-    def is_prerelease(self):
-        try:
-            normalized_key(self._string)
-            not_sem = True
-        except UnsupportedVersionError:
-            ss = suggest_normalized_version(self._string)
-            not_sem = ss is not None
-        if not_sem:
-            return any(t[0] in self.PREREL_TAGS for t in self._parts)
-        return self._parts[1][0] != '|'
-
-class AdaptiveMatcher(NormalizedMatcher):
-    version_class = AdaptiveVersion
 
 
 class VersionScheme(object):
@@ -702,16 +749,14 @@ class VersionScheme(object):
         return result
 
 _SCHEMES = {
-    'normalized': VersionScheme(normalized_key, NormalizedMatcher,
-                                suggest_normalized_version),
-    'legacy': VersionScheme(legacy_key, LegacyMatcher, lambda self, s: s),
-    'semantic': VersionScheme(semantic_key, SemanticMatcher,
-                              suggest_semantic_version),
-    'adaptive': VersionScheme(adaptive_key, AdaptiveMatcher,
-                              suggest_adaptive_version),
+    'normalized': VersionScheme(_normalized_key, NormalizedMatcher,
+                                _suggest_normalized_version),
+    'legacy': VersionScheme(_legacy_key, LegacyMatcher, lambda self, s: s),
+    'semantic': VersionScheme(_semantic_key, SemanticMatcher,
+                              _suggest_semantic_version),
 }
 
-_SCHEMES['default'] = _SCHEMES['adaptive']
+_SCHEMES['default'] = _SCHEMES['normalized']
 
 def get_scheme(name):
     if name not in _SCHEMES:

@@ -113,26 +113,26 @@ class Resource(ResourceBase):
     :class:`ResourceFinder` which manages the resource.
     """
     is_container = False # Backwards compatibility
-    
+
     def as_stream(self):
         "Get the resource as a stream. Not a property, as not idempotent."
         return self.finder.get_stream(self)
-     
+
     @cached_property
     def file_path(self):
         return cache.get(self)
-     
+
     @cached_property
     def bytes(self):
         return self.finder.get_bytes(self)
-     
+
     @cached_property
     def size(self):
         return self.finder.get_size(self)
-     
+
 class ResourceContainer(ResourceBase):
     is_container = True # Backwards compatibility
-    
+
     @cached_property
     def resources(self):
         return self.finder.get_resources(self)
@@ -186,7 +186,7 @@ class ResourceFinder(object):
 
     def is_container(self, resource):
         return self._is_directory(resource.path)
-    
+
     _is_directory = staticmethod(os.path.isdir)
 
 class ZipResourceFinder(ResourceFinder):

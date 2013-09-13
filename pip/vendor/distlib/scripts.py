@@ -17,6 +17,24 @@ from .util import FileOperator, get_export_entry, convert_path, get_executable
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_MANIFEST = '''
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+ <assemblyIdentity version="1.0.0.0"
+ processorArchitecture="X86"
+ name="%s"
+ type="win32"/>
+
+ <!-- Identify the application security requirements. -->
+ <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+ <security>
+ <requestedPrivileges>
+ <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+ </requestedPrivileges>
+ </security>
+ </trustInfo>
+</assembly>'''.strip()
+
 # check if Python is called on the first line with this expression
 FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
 SCRIPT_TEMPLATE = '''%(shebang)s
@@ -59,7 +77,9 @@ class ScriptMaker(object):
         self.target_dir = target_dir
         self.add_launchers = add_launchers
         self.force = False
+        self.clobber = False
         self.set_mode = False
+        self.variants = set(('', 'X.Y'))
         self._fileop = fileop or FileOperator(dry_run)
 
     def _get_alternate_executable(self, executable, flags):
@@ -115,27 +135,49 @@ class ScriptMaker(object):
                                            module=entry.prefix,
                                            func=entry.suffix)
 
+    manifest = _DEFAULT_MANIFEST
+
+    def get_manifest(self, exename):
+        base = os.path.basename(exename)
+        return self.manifest % base
+
     def _make_script(self, entry, filenames):
         shebang = self._get_shebang('utf-8', flags=entry.flags).decode('utf-8')
         script = self._get_script_text(shebang, entry)
-        outname = os.path.join(self.target_dir, entry.name)
-        use_launcher = self.add_launchers and os.name == 'nt'
-        if use_launcher:
-            exename = '%s.exe' % outname
-            if 'gui' in entry.flags:
-                ext = 'pyw'
-                launcher = self._get_launcher('w')
-            else:
-                ext = 'py'
-                launcher = self._get_launcher('t')
-            outname = '%s-script.%s' % (outname, ext)
-        self._fileop.write_text_file(outname, script, 'utf-8')
-        if self.set_mode:
-            self._fileop.set_executable_mode([outname])
-        filenames.append(outname)
-        if use_launcher:
-            self._fileop.write_binary_file(exename, launcher)
-            filenames.append(exename)
+        name = entry.name
+        scriptnames = set()
+        if '' in self.variants:
+            scriptnames.add(name)
+        if 'X' in self.variants:
+            scriptnames.add('%s%s' % (name, sys.version[0]))
+        if 'X.Y' in self.variants:
+            scriptnames.add('%s-%s' % (name, sys.version[:3]))
+        for name in scriptnames:
+            outname = os.path.join(self.target_dir, name)
+            use_launcher = self.add_launchers and os.name == 'nt'
+            if use_launcher:
+                exename = '%s.exe' % outname
+                if 'gui' in entry.flags:
+                    ext = 'pyw'
+                    launcher = self._get_launcher('w')
+                else:
+                    ext = 'py'
+                    launcher = self._get_launcher('t')
+                outname = '%s-script.%s' % (outname, ext)
+            if os.path.exists(outname) and not self.clobber:
+                logger.warning('Skipping existing file %s', outname)
+                continue
+            self._fileop.write_text_file(outname, script, 'utf-8')
+            if self.set_mode:
+                self._fileop.set_executable_mode([outname])
+            filenames.append(outname)
+            if use_launcher:
+                self._fileop.write_binary_file(exename, launcher)
+                filenames.append(exename)
+                manifest = self.get_manifest(exename)
+                manifestname = exename + '.manifest'
+                self._fileop.write_text_file(manifestname, manifest, 'utf-8')
+                filenames.append(manifestname)
 
     def _copy_script(self, script, filenames):
         adjust = False

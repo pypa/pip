@@ -2,7 +2,7 @@
 
 import sys
 import optparse
-import pkg_resources
+from pip.compat import pkg_resources
 import os
 import textwrap
 from distutils.util import strtobool

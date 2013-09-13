@@ -12,7 +12,7 @@ def test_show(script):
     assert len(lines) == 6
     assert lines[0] == '---', lines[0]
     assert lines[1] == 'Name: pip', lines[1]
-    assert lines[2] == 'Version: %s' % __version__, lines[2]
+    assert lines[2] == 'Version: %s' % __version__, '%r should be %r' % (lines[2], 'Version: %s' % __version__)
     assert lines[3].startswith('Location: '), lines[3]
     assert lines[4] == 'Requires: '
 
@@ -27,7 +27,7 @@ def test_show_with_files_not_found(script):
     assert len(lines) == 8
     assert lines[0] == '---', lines[0]
     assert lines[1] == 'Name: pip', lines[1]
-    assert lines[2] == 'Version: %s' % __version__, lines[2]
+    assert lines[2] == 'Version: %s' % __version__, '%r should be %r' % (lines[2], 'Version: %s' % __version__)
     assert lines[3].startswith('Location: '), lines[3]
     assert lines[4] == 'Requires: '
     assert lines[5] == 'Files:', lines[4]
