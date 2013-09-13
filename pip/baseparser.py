@@ -122,7 +122,7 @@ class CustomOptionParser(optparse.OptionParser):
 
 
 class ConfigOptionParser(CustomOptionParser):
-    """Custom option parser which updates its defaults by by checking the
+    """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
 
     def __init__(self, *args, **kwargs):

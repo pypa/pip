@@ -1,11 +1,15 @@
 """Tests for wheel binary packages and .dist-info."""
-from pip.compat import pkg_resources
+import os
+
+import pytest
+
+import pkg_resources
 from mock import patch, Mock
 from pip import wheel
 from pip.exceptions import InstallationError
 from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
-from nose.tools import assert_raises
+
 
 def test_uninstallation_paths():
     class dist(object):
@@ -138,11 +142,10 @@ class TestWheelFile(object):
         from tempfile import mkdtemp
         from shutil import rmtree
         import os
-        from nose import SkipTest
 
         filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
         if not os.path.exists(filepath):
-            raise SkipTest
+            pytest.skip("%s does not exist" % filepath)
         try:
             tmpdir = mkdtemp()
             util.unpack_file(filepath, tmpdir, 'application/zip', None )
@@ -151,11 +154,37 @@ class TestWheelFile(object):
             rmtree(tmpdir)
             pass
 
-    def test_purelib_platlib(self):
+    def test_purelib_platlib(self, data):
         """
         Test the "wheel is purelib/platlib" code.
         """
-        packages =  [("pure_wheel", "data/packages/pure_wheel-1.7", True),
-                     ("plat_wheel", "data/packages/plat_wheel-1.7", False)]
+        packages = [
+            ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
+            ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+        ]
+
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
+
+    def test_version_underscore_conversion(self):
+        """
+        Test that we convert '_' to '-' for versions parsed out of wheel filenames
+        """
+        w = wheel.Wheel('simple-0.1_1-py2-none-any.whl')
+        assert w.version == '0.1-1'
+
+
+class TestPEP425Tags(object):
+
+    def test_broken_sysconfig(self):
+        """
+        Test that pep425tags still works when sysconfig is broken.
+        Can be a problem on Python 2.7
+        Issue #1074.
+        """
+        import pip.pep425tags
+        def raises_ioerror(var):
+            raise IOError("I have the wrong path!")
+        with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
+            assert len(pip.pep425tags.get_supported())
+

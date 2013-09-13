@@ -105,8 +105,7 @@ files without a hash, or files that are linked from either the home page or the
 download url of a package.
 
 In order to get the future behavior in v1.4 the ``pip install`` command
-supports a :ref:`--no-allow-external <--no-allow-external>` and
-:ref:`--no-allow-insecure <--no-allow-external>` flags.
+supports a ``--no-allow-external`` and ``--no-allow-insecure`` flags.
 
 .. _`VCS Support`:
 

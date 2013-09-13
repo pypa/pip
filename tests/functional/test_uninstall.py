@@ -7,75 +7,64 @@ from os.path import join, abspath, normpath
 from tempfile import mkdtemp
 from nose import SkipTest
 from mock import patch
-from tests.lib import tests_data, reset_env, run_pip, assert_all_changes, write_file, pyversion
+from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
 from pip.util import rmtree
 
 
-def test_simple_uninstall():
+def test_simple_uninstall(script):
     """
     Test simple install and uninstall.
 
     """
-    env = reset_env()
-    result = run_pip('install', 'INITools==0.2')
-    assert join(env.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
+    result = script.pip('install', 'INITools==0.2')
+    assert join(script.site_packages, 'initools') in result.files_created, sorted(result.files_created.keys())
     #the import forces the generation of __pycache__ if the version of python supports it
-    env.run('python', '-c', "import initools")
-    result2 = run_pip('uninstall', 'INITools', '-y')
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    script.run('python', '-c', "import initools")
+    result2 = script.pip('uninstall', 'INITools', '-y')
+    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_with_scripts():
+def test_uninstall_with_scripts(script):
     """
     Uninstall an easy_installed package with scripts.
 
     """
-    env = reset_env()
-    result = env.run('easy_install', 'PyLogo', expect_stderr=True)
-    easy_install_pth = env.site_packages/ 'easy-install.pth'
+    result = script.run('easy_install', 'PyLogo', expect_stderr=True)
+    easy_install_pth = script.site_packages/ 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
-    result2 = run_pip('uninstall', 'pylogo', '-y', expect_error=True)
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    result2 = script.pip('uninstall', 'pylogo', '-y')
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', easy_install_pth])
 
 
-def test_uninstall_easy_install_after_import():
+def test_uninstall_easy_install_after_import(script):
     """
     Uninstall an easy_installed package after it's been imported
 
     """
-    env = reset_env()
-    result = env.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    result = script.run('easy_install', 'INITools==0.2', expect_stderr=True)
     #the import forces the generation of __pycache__ if the version of python supports it
-    env.run('python', '-c', "import initools")
-    result2 = run_pip('uninstall', 'INITools', '-y')
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    script.run('python', '-c', "import initools")
+    result2 = script.pip('uninstall', 'INITools', '-y')
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_namespace_package():
+def test_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
     the namespace and everything in it.
 
     """
-    # This test is skipped on Python 3 because the installation fails.
-    # The reason it fails is that distribute has a bug: setuptools/extension.py
-    # has the line "from dist import _get_unpatched". This should be using
-    # "from .dist" or "from setuptools.dist" under Python 3 - because it isn't,
-    # we get an "ImportError: No module named dist".
-    if sys.version_info >= (3,):
-        raise SkipTest()
-    env = reset_env()
-    result = run_pip('install', 'pd.requires==0.0.3', expect_error=True)
-    assert join(env.site_packages, 'pd') in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'pd.find', '-y', expect_error=True)
-    assert join(env.site_packages, 'pd') not in result2.files_deleted, sorted(result2.files_deleted.keys())
-    assert join(env.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
+    result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    assert join(script.site_packages, 'pd') in result.files_created, sorted(result.files_created.keys())
+    result2 = script.pip('uninstall', 'pd.find', '-y', expect_error=True)
+    assert join(script.site_packages, 'pd') not in result2.files_deleted, sorted(result2.files_deleted.keys())
+    assert join(script.site_packages, 'pd', 'find') in result2.files_deleted, sorted(result2.files_deleted.keys())
 
 
-def test_uninstall_overlapping_package():
+def test_uninstall_overlapping_package(script, data):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
     should only remove those added modules, not the rest of the existing
@@ -83,102 +72,96 @@ def test_uninstall_overlapping_package():
 
     See: GitHub issue #355 (pip uninstall removes things it didn't install)
     """
-    parent_pkg = abspath(join(tests_data, 'packages', 'parent-0.1.tar.gz'))
-    child_pkg = abspath(join(tests_data, 'packages', 'child-0.1.tar.gz'))
-    env = reset_env()
-    result1 = run_pip('install', parent_pkg, expect_error=False)
-    assert join(env.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
-    result2 = run_pip('install', child_pkg, expect_error=False)
-    assert join(env.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
-    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result2.files_created, sorted(result2.files_created.keys())
+    parent_pkg = data.packages.join("parent-0.1.tar.gz")
+    child_pkg = data.packages.join("child-0.1.tar.gz")
+
+    result1 = script.pip('install', parent_pkg, expect_error=False)
+    assert join(script.site_packages, 'parent') in result1.files_created, sorted(result1.files_created.keys())
+    result2 = script.pip('install', child_pkg, expect_error=False)
+    assert join(script.site_packages, 'child') in result2.files_created, sorted(result2.files_created.keys())
+    assert normpath(join(script.site_packages, 'parent/plugins/child_plugin.py')) in result2.files_created, sorted(result2.files_created.keys())
     #the import forces the generation of __pycache__ if the version of python supports it
-    env.run('python', '-c', "import parent.plugins.child_plugin, child")
-    result3 = run_pip('uninstall', '-y', 'child', expect_error=False)
-    assert join(env.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
-    assert normpath(join(env.site_packages, 'parent/plugins/child_plugin.py')) in result3.files_deleted, sorted(result3.files_deleted.keys())
-    assert join(env.site_packages, 'parent') not in result3.files_deleted, sorted(result3.files_deleted.keys())
+    script.run('python', '-c', "import parent.plugins.child_plugin, child")
+    result3 = script.pip('uninstall', '-y', 'child', expect_error=False)
+    assert join(script.site_packages, 'child') in result3.files_deleted, sorted(result3.files_created.keys())
+    assert normpath(join(script.site_packages, 'parent/plugins/child_plugin.py')) in result3.files_deleted, sorted(result3.files_deleted.keys())
+    assert join(script.site_packages, 'parent') not in result3.files_deleted, sorted(result3.files_deleted.keys())
     # Additional check: uninstalling 'child' should return things to the
     # previous state, without unintended side effects.
     assert_all_changes(result2, result3, [])
 
 
-def test_uninstall_console_scripts():
+def test_uninstall_console_scripts(script):
     """
     Test uninstalling a package with more files (console_script entry points, extra directories).
-
     """
-    env = reset_env()
     args = ['install']
     args.append('discover')
-    result = run_pip(*args, **{"expect_error": True})
-    assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'discover', '-y', expect_error=True)
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    result = script.pip(*args, **{"expect_error": True})
+    assert script.bin/'discover'+script.exe in result.files_created, sorted(result.files_created.keys())
+    result2 = script.pip('uninstall', 'discover', '-y', expect_error=True)
+    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
 
 
-def test_uninstall_easy_installed_console_scripts():
+def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
-
     """
-    env = reset_env()
     args = ['easy_install']
     args.append('discover')
-    result = env.run(*args, **{"expect_stderr": True})
-    assert env.bin/'discover'+env.exe in result.files_created, sorted(result.files_created.keys())
-    result2 = run_pip('uninstall', 'discover', '-y')
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    result = script.run(*args, **{"expect_stderr": True})
+    assert script.bin/'discover'+script.exe in result.files_created, sorted(result.files_created.keys())
+    result2 = script.pip('uninstall', 'discover', '-y')
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_editable_from_svn():
+def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.
-
     """
-    env = reset_env()
-    result = run_pip('install', '-e', '%s#egg=initools-dev' %
-                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk'))
+    result = script.pip('install', '-e', '%s#egg=initools-dev' %
+                     local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache")))
     result.assert_installed('INITools')
-    result2 = run_pip('uninstall', '-y', 'initools')
-    assert (env.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
-    assert_all_changes(result, result2, [env.venv/'src', env.venv/'build'])
+    result2 = script.pip('uninstall', '-y', 'initools')
+    assert (script.venv/'src'/'initools' in result2.files_after), 'oh noes, pip deleted my sources!'
+    assert_all_changes(result, result2, [script.venv/'src', script.venv/'build', script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_editable_with_source_outside_venv():
+def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     """
     Test uninstalling editable install from existing source outside the venv.
 
     """
+    cache_dir = tmpdir.join("cache")
+
     try:
         temp = mkdtemp()
         tmpdir = join(temp, 'virtualenv')
-        _test_uninstall_editable_with_source_outside_venv(tmpdir)
+        _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir)
     finally:
         rmtree(temp)
 
 
-def _test_uninstall_editable_with_source_outside_venv(tmpdir):
-    env = reset_env()
-    result = env.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv'), tmpdir)
-    result2 = run_pip('install', '-e', tmpdir)
-    assert (join(env.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
-    result3 = run_pip('uninstall', '-y', 'virtualenv', expect_error=True)
-    assert_all_changes(result, result3, [env.venv/'build'])
+def _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir):
+    result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv', cache_dir), tmpdir)
+    result2 = script.pip('install', '-e', tmpdir)
+    assert (join(script.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
+    result3 = script.pip('uninstall', '-y', 'virtualenv', expect_error=True)
+    assert_all_changes(result, result3, [script.venv/'build', script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_from_reqs_file():
+def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.
 
     """
-    env = reset_env()
-    write_file('test-req.txt', textwrap.dedent("""\
+    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
         -e %s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
-    result = run_pip('install', '-r', 'test-req.txt')
-    write_file('test-req.txt', textwrap.dedent("""\
+        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
+    result = script.pip('install', '-r', 'test-req.txt')
+    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
         # -f, -i, and --extra-index-url should all be ignored by uninstall
         -f http://www.example.com
         -i http://www.example.com
@@ -187,27 +170,27 @@ def test_uninstall_from_reqs_file():
         -e %s#egg=initools-dev
         # and something else to test out:
         PyLogo<0.4
-        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk')))
-    result2 = run_pip('uninstall', '-r', 'test-req.txt', '-y')
+        """ % local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
+    result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
-        result, result2, [env.venv/'build', env.venv/'src', env.scratch/'test-req.txt'])
+        result, result2, [script.venv/'build', script.venv/'src', script.scratch/'test-req.txt',
+        script.site_packages/'easy-install.pth'])
 
 
-def test_uninstall_as_egg():
+def test_uninstall_as_egg(script, data):
     """
     Test uninstall package installed as egg.
 
     """
-    env = reset_env()
-    to_install = abspath(join(tests_data, 'packages', 'FSPkg'))
-    result = run_pip('install', to_install, '--egg', expect_error=False)
-    fspkg_folder = env.site_packages/'fspkg'
-    egg_folder = env.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    to_install = data.packages.join("FSPkg")
+    result = script.pip('install', to_install, '--egg', expect_error=False)
+    fspkg_folder = script.site_packages/'fspkg'
+    egg_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
 
-    result2 = run_pip('uninstall', 'FSPkg', '-y', expect_error=True)
-    assert_all_changes(result, result2, [env.venv/'build', 'cache'])
+    result2 = script.pip('uninstall', 'FSPkg', '-y', expect_error=True)
+    assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
 @patch('pip.req.logger')

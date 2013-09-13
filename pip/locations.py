@@ -57,7 +57,7 @@ def __get_username():
 
 def _get_build_prefix():
     """ Returns a safe build_prefix """
-    path = os.path.join(tempfile.gettempdir(), 'pip-build-%s' %
+    path = os.path.join(tempfile.gettempdir(), 'pip_build_%s' %
         __get_username())
     if sys.platform == 'win32':
         """ on windows(tested on 7) temp dirs are isolated """
@@ -137,14 +137,14 @@ def distutils_scheme(dist_name, user=False, home=None):
     scheme = {}
     d = Distribution({'name': dist_name})
     i = install(d)
+    # NOTE: setting user or home has the side-effect of creating the home dir or
+    # user base for installations during finalize_options()
+    # ideally, we'd prefer a scheme class that has no side-effects.
     i.user = user or i.user
     i.home = home or i.home
     i.finalize_options()
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, 'install_'+key)
-
-    #be backward-compatible with what pip has always done?
-    scheme['scripts'] = bin_py
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(sys.prefix,

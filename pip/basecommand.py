@@ -11,10 +11,11 @@ import optparse
 from pip.log import logger
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError)
+                            CommandError, PreviousBuildDirError)
 from pip.backwardcompat import StringIO
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
+from pip.status_codes import (SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
+                              PREVIOUS_BUILD_DIR_ERROR)
 from pip.util import get_prog
 
 
@@ -92,9 +93,10 @@ class Command(object):
         level -= options.quiet
         level = logger.level_for_integer(4 - level)
         complete_log = []
-        logger.consumers.extend(
-            [(level, sys.stdout),
-             (logger.DEBUG, complete_log.append)])
+        logger.add_consumers(
+            (level, sys.stdout),
+            (logger.DEBUG, complete_log.append),
+        )
         if options.log_explicit_levels:
             logger.explicit_levels = True
 
@@ -120,7 +122,7 @@ class Command(object):
 
         if options.log:
             log_fp = open_logfile(options.log, 'a')
-            logger.consumers.append((logger.DEBUG, log_fp))
+            logger.add_consumers((logger.DEBUG, log_fp))
         else:
             log_fp = None
 
@@ -136,6 +138,12 @@ class Command(object):
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 exit = status
+        except PreviousBuildDirError:
+            e = sys.exc_info()[1]
+            logger.fatal(str(e))
+            logger.info('Exception information:\n%s' % format_exc())
+            store_log = True
+            exit = PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))

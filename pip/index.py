@@ -38,6 +38,10 @@ __all__ = ['PackageFinder']
 
 DEFAULT_MIRROR_HOSTNAME = "last.pypi.python.org"
 
+INSECURE_SCHEMES = {
+    "http": ["https"],
+}
+
 
 class PackageFinder(object):
     """This finds packages.
@@ -47,7 +51,6 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_mirrors=False, mirrors=None, main_mirror_url=None,
             use_wheel=False, allow_external=[], allow_insecure=[],
             allow_all_external=False, allow_all_insecure=False,
             allow_all_prereleases=False):
@@ -57,11 +60,7 @@ class PackageFinder(object):
         self.cache = PageCache()
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
-        if use_mirrors:
-            self.mirror_urls = self._get_mirror_urls(mirrors, main_mirror_url)
-            logger.info('Using PyPI mirrors: %s' % ', '.join(self.mirror_urls))
-        else:
-            self.mirror_urls = []
+
         self.use_wheel = use_wheel
 
         # Do we allow (safe and verifiable) externally hosted files?
@@ -202,14 +201,10 @@ class PackageFinder(object):
             if page is None:
                 url_name = self._find_url_name(Link(self.index_urls[0], trusted=True), url_name, req) or req.url_name
 
-        # Combine index URLs with mirror URLs here to allow
-        # adding more index URLs from requirements files
-        all_index_urls = self.index_urls + self.mirror_urls
-
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url)
-                for url in all_index_urls] + self.find_links
+                for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
         for version in req.absolute_versions:
@@ -222,8 +217,7 @@ class PackageFinder(object):
         file_locations.extend(_flocations)
 
         # We trust every url that the user has given us whether it was given
-        #   via --index-url, --user-mirrors/--mirror, or --find-links or a
-        #   default option thereof
+        #   via --index-url or --find-links
         locations = [Link(url, trusted=True) for url in url_locations]
 
         # We explicitly do not trust links that came from dependency_links
@@ -232,6 +226,29 @@ class PackageFinder(object):
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
+
+            # Determine if this url used a secure transport mechanism
+            parsed = urlparse.urlparse(str(location))
+            if parsed.scheme in INSECURE_SCHEMES:
+                secure_schemes = INSECURE_SCHEMES[parsed.scheme]
+
+                if len(secure_schemes) == 1:
+                    ctx = (location, parsed.scheme, secure_schemes[0],
+                           parsed.netloc)
+                    logger.warn("%s uses an insecure transport scheme (%s). "
+                                "Consider using %s if %s has it available" %
+                                ctx)
+                elif len(secure_schemes) > 1:
+                    ctx = (location, parsed.scheme, ", ".join(secure_schemes),
+                                                                parsed.netloc)
+                    logger.warn("%s uses an insecure transport scheme (%s). "
+                                "Consider using one of %s if %s has any of "
+                                "them available" % ctx)
+                else:
+                    ctx = (location, parsed.scheme)
+                    logger.warn("%s uses an insecure transport scheme (%s)." %
+                                ctx)
+
         found_versions = []
         found_versions.extend(
             self._package_versions(
@@ -278,8 +295,11 @@ class PackageFinder(object):
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
             elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
-                logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
-                continue
+                # If this version isn't the already installed one, then
+                #   ignore it if it's a pre-release.
+                if link is not InfLink:
+                    logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
+                    continue
             applicable_versions.append((parsed_version, link, version))
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
@@ -471,12 +491,11 @@ class PackageFinder(object):
                     return []
 
                 # This is a dirty hack to prevent installing Binary Wheels from
-                #   PyPI or one of its mirrors unless it is a Windows Binary
-                #   Wheel. This is paired with a change to PyPI disabling
-                #   uploads for the same. Once we have a mechanism for enabling
-                #   support for binary wheels on linux that deals with the
-                #   inherent problems of binary distribution this can be
-                #   removed.
+                #   PyPI unless it is a Windows Binary Wheel. This is paired
+                #   with a change to PyPI disabling uploads for the same. Once
+                #   we have a mechanism for enabling support for binary wheels
+                #   on linux that deals with the inherent problems of binary
+                #   distribution this can be removed.
                 comes_from = getattr(link, "comes_from", None)
                 if (not platform.startswith('win')
                     and comes_from is not None
@@ -546,27 +565,6 @@ class PackageFinder(object):
 
     def _get_page(self, link, req):
         return HTMLPage.get_page(link, req, cache=self.cache)
-
-    def _get_mirror_urls(self, mirrors=None, main_mirror_url=None):
-        """Retrieves a list of URLs from the main mirror DNS entry
-        unless a list of mirror URLs are passed.
-        """
-        if not mirrors:
-            mirrors = get_mirrors(main_mirror_url)
-            # Should this be made "less random"? E.g. netselect like?
-            random.shuffle(mirrors)
-
-        mirror_urls = set()
-        for mirror_url in mirrors:
-            mirror_url = mirror_url.rstrip('/')
-            # Make sure we have a valid URL
-            if not any([mirror_url.startswith(scheme) for scheme in ["http://", "https://", "file://"]]):
-                mirror_url = "http://%s" % mirror_url
-            if not mirror_url.endswith("/simple"):
-                mirror_url = "%s/simple" % mirror_url
-            mirror_urls.add(mirror_url + '/')
-
-        return list(mirror_urls)
 
 
 class PageCache(object):
@@ -682,9 +680,10 @@ class HTMLPage(object):
             #   Unless we issue a HEAD request on every url we cannot know
             #   ahead of time for sure if something is HTML or not. However we
             #   can check after we've downloaded it.
-            if not headers["Content-Type"].lower().startswith("text/html"):
+            content_type = headers.get('Content-Type', 'unknown')
+            if not content_type.lower().startswith("text/html"):
                 logger.debug('Skipping page %s because of Content-Type: %s' %
-                                            (link, headers["Content-Type"]))
+                                            (link, content_type))
                 if cache is not None:
                     cache.set_is_archive(url)
                 return None
@@ -990,44 +989,3 @@ def package_to_requirement(package_name):
         return '%s==%s' % (name, version)
     else:
         return name
-
-
-def get_mirrors(hostname=None):
-    """Return the list of mirrors from the last record found on the DNS
-    entry::
-
-    >>> from pip.index import get_mirrors
-    >>> get_mirrors()
-    ['a.pypi.python.org', 'b.pypi.python.org', 'c.pypi.python.org',
-    'd.pypi.python.org']
-
-    Originally written for the distutils2 project by Alexis Metaireau.
-    """
-    if hostname is None:
-        hostname = DEFAULT_MIRROR_HOSTNAME
-
-    # return the last mirror registered on PyPI.
-    last_mirror_hostname = None
-    try:
-        last_mirror_hostname = socket.gethostbyname_ex(hostname)[0]
-    except socket.gaierror:
-        return []
-    if not last_mirror_hostname or last_mirror_hostname == DEFAULT_MIRROR_HOSTNAME:
-        last_mirror_hostname = "z.pypi.python.org"
-    end_letter = last_mirror_hostname.split(".", 1)
-
-    # determine the list from the last one.
-    return ["%s.%s" % (s, end_letter[1]) for s in string_range(end_letter[0])]
-
-
-def string_range(last):
-    """Compute the range of string between "a" and last.
-
-    This works for simple "a to z" lists, but also for "a to zz" lists.
-    """
-    for k in range(len(last)):
-        for x in product(string.ascii_lowercase, repeat=k+1):
-            result = ''.join(x)
-            yield result
-            if result == last:
-                return

@@ -20,7 +20,7 @@ from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
 # don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
-# that converts 'setuptools' to 'distribute'. (The ==0.8dev does function as an OR)
+# that converts 'setuptools' to 'distribute'.
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
 def wheel_setuptools_support():
@@ -246,7 +246,9 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
-        self.version = wheel_info.group('ver')
+        # we'll assume "_" means "-" due to wheel naming scheme
+        # (https://github.com/pypa/pip/issues/1150)
+        self.version = wheel_info.group('ver').replace('_', '-')
         self.pyversions = wheel_info.group('pyver').split('.')
         self.abis = wheel_info.group('abi').split('.')
         self.plats = wheel_info.group('plat').split('.')

@@ -1,58 +1,98 @@
 Changelog
 =========
 
-1.4 (unreleased)
----------------------
+1.5 (unreleased)
+----------------
 
-* To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
-  not distribute. setuptools and distribute are now merged into one project called
-  'setuptools'. (Pull #1003)
+* **BACKWARD INCOMPATIBLE** pip no longer supports the ``--use-mirrors``,
+  ``-M``, and ``--mirrors`` flags. The mirroring support has been removed. In
+  order to use a mirror specify it as the primary index with ``-i`` or
+  ``--index-url``, or as an additional index with ``--extra-index-url``. (Pull #1098, CVE-2013-5123)
 
-  .. note::
+* **BACKWARD INCOMPATIBLE** pip no longer will scrape insecure external urls by
+  default nor will it install externally hosted files by default. Users may opt
+  into installing externally hosted or insecure files or urls using
+  ``--allow-external PROJECT`` and ``--allow-insecure PROJECT``. (Pull #1055)
 
-    Although older pip versions can successfully :ref:`upgrade distribute or
-    setuptools to the new merged setuptools <Installation Requirements>`, there
-    `are cases where the upgrade can fail
-    <https://github.com/pypa/pip/issues/1033#issuecomment-20546202>`_ if it
-    occurs in the context of package upgrade that depends on distribute.
+* Added colors to the logging output in order to draw attention to important
+  warnings and errors. (Pull #1109)
 
-* If an already-downloaded or cached file has a bad hash, re-download it rather
-  than erroring out. (Issue #963).
+* Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
 
-* Fixed a number of issues (#413, #709, #634, #602, and #939) related to cleaning up and
-  not reusing build directories. (Pull #865, #948)
 
-* Added a User Agent so that pip is identifiable in logs. (Pull #901)
+1.4.2 (unreleased)
+------------------
 
-* Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis. (Pull #895)
+* Fixed #1133 and #317. Archive contents are now written based on system
+  defaults and umask (i.e. permissions are not preserved), except that regular
+  files with any execute permissions have the equivalent of "chmod +x" applied
+  after being written (Pull #1146).
+* PreviousBuildDirError now returns a non-zero exit code and prevents the
+  previous build dir from being cleaned in all cases (Pull #1162).
 
-* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
 
-* Fixed issue #32 - pip fails when server does not send content-type header.
-  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
+
+1.4.1 (2013-08-07)
+------------------
+
+* **New Signing Key** Release 1.4.1 is using a different key than normal with
+  fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
+* Fixed issues with installing from pybundle files (Pull #1116).
+* Fixed error when sysconfig module throws an exception (Pull #1095).
+* Don't ignore already installed pre-releases (Pull #1076).
+* Fixes related to upgrading setuptools (Pull #1092).
+* Fixes so that --download works with wheel archives (Pull #1113).
+* Fixes related to recognizing and cleaning global build dirs (Pull #1080).
+
+
+1.4 (2013-07-23)
+----------------
+
+* **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
+  and offers a new ``--pre`` option to also find pre-release and development
+  versions. (Pull #834)
+
+* **BACKWARD INCOMPATIBLE** Dropped support for Python 2.5. The minimum
+  supported Python version for pip 1.4 is Python 2.6.
 
 * Added support for installing and building wheel archives.
-  Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia (Pull #845)
+  Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia
+  (Pull #845)
 
-* pip now only installs stable versions by default, and offers a new ``--pre`` option
-  to also find pre-release and development versions.  Thanks Donald Stufft.  (Pull #834)
+* Applied security patch to pip's ssl support related to certificate DNS
+  wildcard matching (http://bugs.python.org/issue17980).
+
+* To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
+  not distribute. setuptools and distribute are now merged into one project
+  called 'setuptools'. (Pull #1003)
 
 * pip will now warn when installing a file that is either hosted externally to
   the index or cannot be verified with a hash. In the future pip will default
   to not installing them and will require the flags --allow-external NAME, and
   --allow-insecure NAME respectively. (Pull #985)
 
-* Dropped support for Python 2.5. The minimum supported Python version for pip-1.4
-  is Python 2.6.
+* If an already-downloaded or cached file has a bad hash, re-download it rather
+  than erroring out. (Issue #963).
 
-* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org).
+* ``pip bundle`` and support for installing from pybundle files is now
+  considered deprecated and will be removed in pip v1.5.
 
-1.3.2 (unreleased)
-------------------
+* Fixed a number of issues (#413, #709, #634, #602, and #939) related to
+  cleaning up and not reusing build directories. (Pull #865, #948)
 
-* Fixed git backend with git 1.8.3. (Pull #996)
+* Added a User Agent so that pip is identifiable in logs. (Pull #901)
 
-* Fixed the proxy support, which was broken in pip-1.3. (Pull #840)
+* Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis.
+  (Pull #895)
+
+* Fixed the proxy support, which was broken in pip 1.3.x (Pull #840)
+
+* Fixed issue #32 - pip fails when server does not send content-type header.
+  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
+
+* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org/).
+
+* Fixed git VCS backend with git 1.8.3. (Pull #967)
 
 1.3.1 (2013-03-08)
 ------------------
@@ -64,13 +104,13 @@ Changelog
 ----------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791).
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791, CVE-2013-1629).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
 
 * Fixed security issues with pip's use of temp build directories.
-  Thanks David (d1b) and Thomas Guttler. (Pull #780)
+  Thanks David (d1b) and Thomas Guttler. (Pull #780, CVE-2013-1888)
 
 * Improvements to sphinx docs and cli help. (Pull #773)
 

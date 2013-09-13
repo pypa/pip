@@ -1,12 +1,10 @@
 import os
-from tests.lib import reset_env, run_pip, get_env
 
 
-def test_completion_for_bash():
+def test_completion_for_bash(script):
     """
     Test getting completion for bash shell
     """
-    reset_env()
     bash_completion = """\
 _pip_completion()
 {
@@ -16,15 +14,14 @@ _pip_completion()
 }
 complete -o default -F _pip_completion pip"""
 
-    result = run_pip('completion', '--bash')
+    result = script.pip('completion', '--bash')
     assert bash_completion in result.stdout, 'bash completion is wrong'
 
 
-def test_completion_for_zsh():
+def test_completion_for_zsh(script):
     """
     Test getting completion for zsh shell
     """
-    reset_env()
     zsh_completion = """\
 function _pip_completion {
   local words cword
@@ -36,70 +33,66 @@ function _pip_completion {
 }
 compctl -K _pip_completion pip"""
 
-    result = run_pip('completion', '--zsh')
+    result = script.pip('completion', '--zsh')
     assert zsh_completion in result.stdout, 'zsh completion is wrong'
 
 
-def test_completion_for_unknown_shell():
+def test_completion_for_unknown_shell(script):
     """
     Test getting completion for an unknown shell
     """
-    reset_env()
     error_msg = 'no such option: --myfooshell'
-    result = run_pip('completion', '--myfooshell', expect_error=True)
+    result = script.pip('completion', '--myfooshell', expect_error=True)
     assert error_msg in result.stderr, 'tests for an unknown shell failed'
 
 
-def test_completion_alone():
+def test_completion_alone(script):
     """
     Test getting completion for none shell, just pip completion
     """
-    reset_env()
-    result = run_pip('completion', expect_error=True)
+    result = script.pip('completion', expect_error=True)
     assert 'ERROR: You must pass --bash or --zsh' in result.stderr, \
            'completion alone failed -- ' + result.stderr
 
 
-def setup_completion(words, cword):
-    environ = os.environ.copy()
-    reset_env(environ)
-    environ['PIP_AUTO_COMPLETE'] = '1'
-    environ['COMP_WORDS'] = words
-    environ['COMP_CWORD'] = cword
-    env = get_env()
+def setup_completion(script, words, cword):
+    script.environ = os.environ.copy()
+    script.environ['PIP_AUTO_COMPLETE'] = '1'
+    script.environ['COMP_WORDS'] = words
+    script.environ['COMP_CWORD'] = cword
 
     # expect_error is True because autocomplete exists with 1 status code
-    result = env.run('python', '-c', 'import pip;pip.autocomplete()',
+    result = script.run('python', '-c', 'import pip;pip.autocomplete()',
             expect_error=True)
 
-    return result, env
+    return result, script
 
 
-def test_completion_for_un_snippet():
+def test_completion_for_un_snippet(script):
     """
     Test getting completion for ``un`` should return
     uninstall and unzip
     """
 
-    res, env = setup_completion('pip un', '1')
+    res, env = setup_completion(script, 'pip un', '1')
     assert res.stdout.strip().split() == ['uninstall', 'unzip'], res.stdout
 
 
-def test_completion_for_default_parameters():
+def test_completion_for_default_parameters(script):
     """
     Test getting completion for ``--`` should contain --help
     """
 
-    res, env = setup_completion('pip --', '1')
+    res, env = setup_completion(script, 'pip --', '1')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
 
 
-def test_completion_option_for_command():
+def test_completion_option_for_command(script):
     """
     Test getting completion for ``--`` in command (eg. pip search --)
     """
 
-    res, env = setup_completion('pip search --', '2')
+    res, env = setup_completion(script, 'pip search --', '2')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"

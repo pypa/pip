@@ -3,18 +3,10 @@
 Installation
 ============
 
-.. warning::
-
-    Prior to version 1.3, pip did not use SSL for downloading packages from PyPI, and thus left
-    users more vulnerable to security threats. We advise installing at least version 1.3.
-    If you're using `virtualenv <http://www.virtualenv.org>`_ to install pip, we advise installing
-    at least version 1.9, which contains pip version 1.3.
-
-
 Python & OS Support
 -------------------
 
-pip v1.4 works with CPython versions 2.6, 2.7, 3.1, 3.2, 3.3 and also pypy.
+pip works with CPython versions 2.6, 2.7, 3.1, 3.2, 3.3 and also pypy.
 
 pip works on Unix/Linux, OS X, and Windows.
 
@@ -23,80 +15,86 @@ pip works on Unix/Linux, OS X, and Windows.
   Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through v1.1.
 
 
+Install or Upgrade Setuptools
+-----------------------------
 
-Using virtualenv
-----------------
+pip requires `setuptools`_ and it has to be installed first, before pip can run. [1]_
 
-The easiest way to install and use pip is with `virtualenv
-<http://www.virtualenv.org>`_, since every virtualenv has pip (and it's dependencies) installed into it
-automatically.
+To install setuptools from scratch:
 
-This does not require root access or modify your system Python
-installation. For instance::
+1. Securely download `ez_setup.py <https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py>`_. [2]_
 
-    $ virtualenv my_env
-    $ . my_env/bin/activate
-    (my_env)$ pip install SomePackage
+2. Then run the following (which may require administrator access)::
 
-When used in this manner, pip will only affect the active virtual environment.
+   $ python ez_setup.py
 
-See the `virtualenv installation instructions <http://www.virtualenv.org/en/latest/#installation>`_.
 
-Installing Globally
--------------------
+   .. warning::
 
-pip can be installed globally in order to manage global packages.
-Often this requires the installation to be performed as root.
+      Prior to Setuptools-1.0, `ez_setup.py` was not secure, and is currently
+      only secure when your environment contains secure versions of either
+      `curl`, `wget`, or `powershell`. [2]_  If you're not sure if you're
+      environment fulfills this requirement, then the safest approach is to
+      securely download the setuptools archive directly from `PyPI
+      <https://pypi.python.org/pypi/setuptools/>`_, unpack it, and run "python
+      setup.py install" from inside the unpacked directory.
 
-.. warning::
 
-    We advise against using `easy_install <http://pythonhosted.org/setuptools/easy_install.html>`_ to install pip, because easy_install
-    does not download from PyPI over SSL, so the installation might be insecure.
+To upgrade a previous install of `setuptools`_ or `distribute`_, there are two scenarios.
 
-.. _`Installation Requirements`:
 
-Requirements
-++++++++++++
+1. You currently have setuptools or distribute *and* some version of pip::
 
-pip requires `setuptools`_. As of v1.4, pip recommends `setuptools`_ >=0.8, not
-`distribute`_ (the fork of setuptools) and the wheel support *requires*
-`setuptools`_ >=0.8. `setuptools`_ and `distribute`_ are now merged back together as
-"setuptools".
+   $ pip install --upgrade setuptools
 
-For details on installing setuptools from scratch, see the install instructions
-on the `setuptools pypi page <https://pypi.python.org/pypi/setuptools>`_
+   If you have distribute, this will upgrade to you distribute-0.7.X, which is
+   just a wrapper, that depends on setuptools. The end result will be that you
+   have distribute-0.7.X (which does nothing) *and* the latest setuptools
+   installed.
 
-If you already have `setuptools`_ or `distribute`_ (and pip), you can upgrade
-like so::
+2. You currently have setuptools or distribute, but not pip:
 
-  pip install --upgrade setuptools
+   Follow the pip install procedure below, then come back and run::
 
-If you had distribute before, this will upgrade to you distribute-0.7.X, which
-is just a wrapper, that depends on setuptools. The end result will be that you
-have distribute-0.7.X (which does nothing) *and* the latest setuptools
-installed.
+   $ pip install --upgrade setuptools
 
+
+.. _`get-pip`:
+
+Install or Upgrade pip
+----------------------
+
+Securely download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [2]_
+
+Then run the following (which may require administrator access), to install (or upgrade to) the
+latest version of pip::
+
+ $ python get-pip.py
+
+
+Using Package Managers
+----------------------
+
+On Linux, pip will generally be available for the system install of python using the system package manager,
+although often the latest version lags behind. Installing `python-pip` will also install `python-setuptools`.
+
+On Debian and Ubuntu::
+
+   $ sudo apt-get install python-pip
+
+On Fedora::
+
+   $ sudo yum install python-pip
+
+
+.. [1] As of pip 1.4, pip started requiring `setuptools`_, not `distribute`_
+       (a fork of setuptools). `setuptools`_ and `distribute`_ are now merged
+       back together as "setuptools".
+.. [2] "Secure" in this context means using a modern browser or a
+       tool like `curl` that verifies SSL certificates when downloading from
+       https URLs.
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
 
-
-Using get-pip
-+++++++++++++
-
-::
-
- $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
- $ [sudo] python get-pip.py
-
-
-Installing from source
-++++++++++++++++++++++
-
-::
-
- $ curl -O https://pypi.python.org/packages/source/p/pip/pip-X.X.tar.gz
- $ tar xvfz pip-X.X.tar.gz
- $ cd pip-X.X
- $ [sudo] python setup.py install
 

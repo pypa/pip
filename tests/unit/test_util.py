@@ -3,13 +3,17 @@ util tests
 
 """
 import os
+import stat
 import sys
+import shutil
+import tempfile
+
+import pytest
 
 from mock import Mock, patch
-from nose.tools import eq_, assert_raises
 from pip.exceptions import BadCommand
-from pip.util import egg_link_path, Inf, get_installed_distributions, find_command
-from tests.lib import reset_env, mkdir, write_file
+from pip.util import (egg_link_path, Inf, get_installed_distributions,
+                      find_command, untar_file, unzip_file)
 
 
 class Tests_EgglinkPath:
@@ -63,19 +67,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     def test_egglink_in_usersite_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_egglink_in_usersite_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     #########################
     ## egglink in sitepkgs ##
@@ -84,19 +88,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     ####################################
     ## egglink in usersite & sitepkgs ##
@@ -105,19 +109,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.user_site_egglink)
+        assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
     def test_egglink_in_both_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     def test_egglink_in_both_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        eq_(egg_link_path(self.mock_dist), self.site_packages_egglink)
+        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
     ################
     ## no egglink ##
@@ -126,19 +130,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_noegglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
     def test_noegglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        eq_(egg_link_path(self.mock_dist), None)
+        assert egg_link_path(self.mock_dist) is None
 
 def test_Inf_greater():
     """Test Inf compares greater."""
@@ -198,19 +202,18 @@ class Tests_get_installed_distributions:
         assert len(dists) == 3
 
 
-def test_find_command_folder_in_path():
+def test_find_command_folder_in_path(script):
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
     the 'git' executable, it should not match the folder, but rather keep
     looking.
     """
-    env = reset_env()
-    mkdir('path_one')
-    path_one = env.scratch_path/'path_one'
-    mkdir(path_one/'foo')
-    mkdir('path_two')
-    path_two = env.scratch_path/'path_two'
-    write_file(path_two/'foo', '# nothing')
+    script.scratch_path.join("path_one").mkdir()
+    path_one = script.scratch_path/'path_one'
+    path_one.join("foo").mkdir()
+    script.scratch_path.join("path_two").mkdir()
+    path_two = script.scratch_path/'path_two'
+    path_two.join("foo").write("# nothing")
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two/'foo'
 
@@ -248,7 +251,9 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
     expected = [((p,),) for p in paths]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one')
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one")
+
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert getpath_mock.called, "Should call get_pathext"
 
@@ -268,11 +273,78 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
     expected = [((p,),) for p in paths]
 
-    assert_raises(BadCommand, find_command, 'foo', 'path_one', pathext)
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one", pathext)
+
     assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
+class TestUnpackArchives(object):
+    """
+    test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3 things:
+     1) confirm that reg files, dirs, and symlinks get unpacked
+     2) permissions are not preserved (and go by the 022 umask)
+     3) reg files with *any* execute perms, get chmod +x
 
+       file.txt         600 regular file
+       symlink.txt      777 symlink to file.txt
+       script_owner.sh  700 script where owner can execute
+       script_group.sh  610 script where group can execute
+       script_world.sh  601 script where world can execute
+       dir              744 directory
+       dir/dirfile      622 regular file
 
+    """
 
+    def setup(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.old_mask = os.umask(0o022)
+        self.symlink_expected_mode = None
+
+    def teardown(self):
+        os.umask(self.old_mask)
+        shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def mode(self, path):
+        return stat.S_IMODE(os.stat(path).st_mode)
+
+    def confirm_files(self):
+        # expections based on 022 umask set above and the unpack logic that sets
+        # execute permissions, not preservation
+        for fname, expected_mode, test in [
+            ('file.txt', 0o644, os.path.isfile),
+            ('symlink.txt', 0o644, os.path.isfile),
+            ('script_owner.sh', 0o755, os.path.isfile),
+            ('script_group.sh', 0o755, os.path.isfile),
+            ('script_world.sh', 0o755, os.path.isfile),
+            ('dir', 0o755, os.path.isdir),
+            (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
+            ]:
+            path = os.path.join(self.tempdir, fname)
+            if path.endswith('symlink.txt') and sys.platform == 'win32':
+                # no symlinks created on windows
+                continue
+            assert test(path), path
+            if sys.platform == 'win32':
+                # the permissions tests below don't apply in windows
+                # due to os.chmod being a noop
+                continue
+            mode = self.mode(path)
+            assert mode == expected_mode, "mode: %s, expected mode: %s" % (mode, expected_mode)
+
+    def test_unpack_tgz(self, data):
+        """
+        Test unpacking a *.tgz, and setting execute permissions
+        """
+        test_file = data.packages.join("test_tar.tgz")
+        untar_file(test_file, self.tempdir)
+        self.confirm_files()
+
+    def test_unpack_zip(self, data):
+        """
+        Test unpacking a *.zip, and setting execute permissions
+        """
+        test_file = data.packages.join("test_zip.zip")
+        unzip_file(test_file, self.tempdir)
+        self.confirm_files()

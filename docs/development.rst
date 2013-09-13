@@ -29,14 +29,17 @@ Running tests
 
 OS Requirements: subversion, bazaar, git, and mercurial.
 
-Python Requirements: nose, virtualenv, scripttest, and mock
+Python Requirements: tox or pytest, virtualenv, scripttest, and mock
 
 Ways to run the tests locally:
 
 ::
 
+ $ tox -e py33           # The preferred way to run the tests, can use pyNN to
+                         # run for a particular version or leave off the -e to
+                         # run for all versions.
  $ python setup.py test  # Using the setuptools test plugin
- $ nosetests             # Using nosetests directly
+ $ py.test               # Using py.test directly
  $ tox                   # Using tox against pip's tox.ini
 
 
