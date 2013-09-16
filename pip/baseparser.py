@@ -139,6 +139,14 @@ class ConfigOptionParser(CustomOptionParser):
             return [config_file]
         return [default_config_file]
 
+    def check_default(self, option, key, val):
+        try:
+            return option.check_value(key, val)
+        except optparse.OptionValueError:
+            e = sys.exc_info()[1]
+            print("An error occurred during configuration: %s" % e)
+            sys.exit(3)
+
     def update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
@@ -157,19 +165,14 @@ class ConfigOptionParser(CustomOptionParser):
                 # ignore empty values
                 if not val:
                     continue
-                # handle multiline configs
-                if option.action == 'append':
-                    val = val.split()
-                else:
-                    option.nargs = 1
                 if option.action in ('store_true', 'store_false', 'count'):
                     val = strtobool(val)
-                try:
-                    val = option.convert_value(key, val)
-                except optparse.OptionValueError:
-                    e = sys.exc_info()[1]
-                    print("An error occurred during configuration: %s" % e)
-                    sys.exit(3)
+                if option.action == 'append':
+                    val = val.split()
+                    val = [self.check_default(option, key, v) for v in val]
+                else:
+                    val = self.check_default(option, key, val)
+
                 defaults[option.dest] = val
         return defaults
 
