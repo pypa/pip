@@ -117,7 +117,7 @@ def get_pathext(default_pathext=None):
 
 
 def ask_path_exists(message, options):
-    for action in os.environ.get('PIP_EXISTS_ACTION', ''):
+    for action in os.environ.get('PIP_EXISTS_ACTION', '').split():
         if action in options:
             return action
     return ask(message, options)

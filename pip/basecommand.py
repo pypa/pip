@@ -109,7 +109,7 @@ class Command(object):
             os.environ['PIP_NO_INPUT'] = '1'
 
         if options.exists_action:
-            os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
+            os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
         if options.cert:
             os.environ['PIP_CERT'] = options.cert
