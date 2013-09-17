@@ -10,6 +10,12 @@ import os
 import re
 import sys
 
+from . import DistlibException
+
+class HTTPSNotAvailableHandler:
+    def __init__(self, *args, **kwargs):
+        raise DistlibException("Unable to download anything without the ssl module")
+
 if sys.version_info[0] < 3:
     from StringIO import StringIO
     string_types = basestring,
@@ -30,8 +36,13 @@ if sys.version_info[0] < 3:
     import urllib2
     from urllib2 import (Request, urlopen, URLError, HTTPError,
                          HTTPBasicAuthHandler, HTTPPasswordMgr,
-                         HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
+                         HTTPHandler, HTTPRedirectHandler,
                          build_opener)
+    try:
+        from urllib2 import HTTPSHandler
+    except ImportError:
+        HTTPSHandler = HTTPSNotAvailableHandler
+    
     import httplib
     import xmlrpclib
     import Queue as queue
@@ -53,9 +64,42 @@ if sys.version_info[0] < 3:
         if match: return match.group(1, 2)
         return None, host
 
+else:
+    from io import StringIO
+    string_types = str,
+    text_type = str
+    from io import TextIOWrapper as file_type
+    import builtins
+    import configparser
+    import shutil
+    from urllib.parse import (urlparse, urlunparse, urljoin, splituser, quote,
+                              unquote, urlsplit, urlunsplit, splittype)
+    from urllib.request import (urlopen, urlretrieve, Request, url2pathname,
+                                pathname2url,
+                                HTTPBasicAuthHandler, HTTPPasswordMgr,
+                                HTTPHandler, HTTPRedirectHandler,
+                                build_opener)
+    try:
+        from urllib.request import HTTPSHandler
+    except ImportError:
+        HTTPSHandler = HTTPSNotAvailableHandler
+
+    from urllib.error import HTTPError, URLError, ContentTooShortError
+    import http.client as httplib
+    import urllib.request as urllib2
+    import xmlrpc.client as xmlrpclib
+    import queue
+    from html.parser import HTMLParser
+    import html.entities as htmlentitydefs
+    raw_input = input
+    from itertools import filterfalse
+    filter = filter
+
+try:
+    from ssl import match_hostname, CertificateError
+except ImportError:
     class CertificateError(ValueError):
         pass
-
 
     def _dnsname_to_pat(dn):
         pats = []
@@ -111,33 +155,6 @@ if sys.version_info[0] < 3:
             raise CertificateError("no appropriate commonName or "
                 "subjectAltName fields were found")
 
-else:
-    from io import StringIO
-    string_types = str,
-    text_type = str
-    from io import TextIOWrapper as file_type
-    import builtins
-    import configparser
-    import shutil
-    from urllib.parse import (urlparse, urlunparse, urljoin, splituser, quote,
-                              unquote, urlsplit, urlunsplit, splittype)
-    from urllib.request import (urlopen, urlretrieve, Request, url2pathname,
-                                pathname2url,
-                                HTTPBasicAuthHandler, HTTPPasswordMgr,
-                                HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
-                                build_opener)
-    from urllib.error import HTTPError, URLError, ContentTooShortError
-    import http.client as httplib
-    import urllib.request as urllib2
-    import xmlrpc.client as xmlrpclib
-    import queue
-    from html.parser import HTMLParser
-    import html.entities as htmlentitydefs
-    raw_input = input
-    from itertools import filterfalse
-    filter = filter
-
-    from ssl import match_hostname, CertificateError
 
 # ZipFile is a context manager in 2.7, but not in 2.6
 
