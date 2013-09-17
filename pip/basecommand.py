@@ -8,6 +8,7 @@ import traceback
 import time
 import optparse
 
+from pip import cmdoptions
 from pip.log import logger
 from pip.download import urlopen
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
@@ -31,7 +32,7 @@ class Command(object):
     usage = None
     hidden = False
 
-    def __init__(self, main_parser):
+    def __init__(self):
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -40,39 +41,27 @@ class Command(object):
             'name': self.name,
             'description': self.__doc__,
         }
-        self.main_parser = main_parser
+
         self.parser = ConfigOptionParser(**parser_kw)
 
         # Commands should add options to this option group
         optgroup_name = '%s Options' % self.name.capitalize()
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
-        # Re-add all options and option groups.
-        for group in main_parser.option_groups:
-            self._copy_option_group(self.parser, group)
+        # Add the general options
+        gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, self.parser)
+        self.parser.add_option_group(gen_opts)
 
-        # Copies all general options from the main parser.
-        self._copy_options(self.parser, main_parser.option_list)
-
-    def _copy_options(self, parser, options):
-        """Populate an option parser or group with options."""
-        for option in options:
-            if not option.dest:
-                continue
-            parser.add_option(option)
-
-    def _copy_option_group(self, parser, group):
-        """Copy option group (including options) to another parser."""
-        new_group = optparse.OptionGroup(parser, group.title)
-        self._copy_options(new_group, group.option_list)
-
-        parser.add_option_group(new_group)
 
     def setup_logging(self):
         pass
 
+    def parse_args(self, args):
+        # factored out for testability
+        return self.parser.parse_args(args)
+
     def main(self, args):
-        options, args = self.parser.parse_args(args)
+        options, args = self.parse_args(args)
 
         level = 1  # Notify
         level += options.verbose

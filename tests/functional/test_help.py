@@ -1,7 +1,6 @@
 import pytest
 
 from pip.exceptions import CommandError
-from pip import create_main_parser
 from pip.basecommand import ERROR, SUCCESS
 from pip.commands.help import HelpCommand
 from pip.commands import commands
@@ -14,7 +13,7 @@ def test_run_method_should_return_sucess_when_finds_command_name():
     """
     options_mock = Mock()
     args = ('freeze',)
-    help_cmd = HelpCommand(create_main_parser())
+    help_cmd = HelpCommand()
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -25,7 +24,7 @@ def test_run_method_should_return_sucess_when_command_name_not_specified():
     """
     options_mock = Mock()
     args = ()
-    help_cmd = HelpCommand(create_main_parser())
+    help_cmd = HelpCommand()
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -36,7 +35,7 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     """
     options_mock = Mock()
     args = ('mycommand',)
-    help_cmd = HelpCommand(create_main_parser())
+    help_cmd = HelpCommand()
 
     with pytest.raises(CommandError):
         help_cmd.run(options_mock, args)

@@ -5,7 +5,6 @@ from pip.commands.search import (compare_versions,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
-from pip import create_main_parser
 from mock import Mock
 from tests.lib import pyversion
 
@@ -87,7 +86,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     """
     options_mock = Mock()
     options_mock.index = 'http://pypi.python.org/pypi'
-    search_cmd = SearchCommand(create_main_parser())
+    search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('pip',))
     assert status == SUCCESS
 
@@ -98,7 +97,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     """
     options_mock = Mock()
     options_mock.index = 'https://pypi.python.org/pypi'
-    search_cmd = SearchCommand(create_main_parser())
+    search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('non-existant-package',))
     assert status == NO_MATCHES_FOUND, status
 

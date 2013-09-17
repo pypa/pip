@@ -48,17 +48,17 @@ class WheelCommand(Command):
             metavar='dir',
             default=DEFAULT_WHEEL_DIR,
             help="Build wheels into <dir>, where the default is '<cwd>/wheelhouse'.")
-        cmd_opts.add_option(cmdoptions.use_wheel)
+        cmd_opts.add_option(cmdoptions.use_wheel.make())
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',
             metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
-        cmd_opts.add_option(cmdoptions.requirements)
-        cmd_opts.add_option(cmdoptions.download_cache)
-        cmd_opts.add_option(cmdoptions.no_deps)
-        cmd_opts.add_option(cmdoptions.build_dir)
+        cmd_opts.add_option(cmdoptions.requirements.make())
+        cmd_opts.add_option(cmdoptions.download_cache.make())
+        cmd_opts.add_option(cmdoptions.no_deps.make())
+        cmd_opts.add_option(cmdoptions.build_dir.make())
 
         cmd_opts.add_option(
             '--global-option',
@@ -74,7 +74,7 @@ class WheelCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
-        cmd_opts.add_option(cmdoptions.no_clean)
+        cmd_opts.add_option(cmdoptions.no_clean.make())
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 

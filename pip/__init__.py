@@ -5,12 +5,13 @@ import optparse
 import sys
 import re
 
+from pip import cmdoptions
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import (ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-                            version, standard_options)
+                            version)
 from pip.commands import commands, get_summaries, get_similar_commands
 
 # The version as used in the setup.py and the docs conf.py
@@ -60,7 +61,7 @@ def autocomplete():
                     print(dist)
                 sys.exit(1)
 
-        subcommand = commands[subcommand_name](parser)
+        subcommand = commands[subcommand_name]()
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
@@ -100,15 +101,14 @@ def create_main_parser():
     }
 
     parser = ConfigOptionParser(**parser_kw)
-    genopt = optparse.OptionGroup(parser, 'General Options')
     parser.disable_interspersed_args()
 
     # having a default version action just causes trouble
     parser.version = version
 
-    for opt in standard_options:
-        genopt.add_option(opt)
-    parser.add_option_group(genopt)
+    # add the general options
+    gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
+    parser.add_option_group(gen_opts)
 
     parser.main = True # so the help formatter knows
 
@@ -159,7 +159,7 @@ def parseopts(args):
 
         raise CommandError(' - '.join(msg))
 
-    return cmd_name, cmd_args, parser
+    return cmd_name, cmd_args
 
 
 def main(initial_args=None):
@@ -169,14 +169,14 @@ def main(initial_args=None):
     autocomplete()
 
     try:
-        cmd_name, cmd_args, parser = parseopts(initial_args)
+        cmd_name, cmd_args = parseopts(initial_args)
     except PipError:
         e = sys.exc_info()[1]
         sys.stderr.write("ERROR: %s" % e)
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    command = commands[cmd_name](parser)  # see baseparser.Command
+    command = commands[cmd_name]()
     return command.main(cmd_args)
 
 

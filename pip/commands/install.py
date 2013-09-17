@@ -51,8 +51,8 @@ class InstallCommand(Command):
             metavar='path/url',
             help='Install a project in editable mode (i.e. setuptools "develop mode") from a local project path or a VCS url.')
 
-        cmd_opts.add_option(cmdoptions.requirements)
-        cmd_opts.add_option(cmdoptions.build_dir)
+        cmd_opts.add_option(cmdoptions.requirements.make())
+        cmd_opts.add_option(cmdoptions.build_dir.make())
 
         cmd_opts.add_option(
             '-t', '--target',
@@ -68,7 +68,7 @@ class InstallCommand(Command):
             default=None,
             help="Download packages into <dir> instead of installing them, regardless of what's already installed.")
 
-        cmd_opts.add_option(cmdoptions.download_cache)
+        cmd_opts.add_option(cmdoptions.download_cache.make())
 
         cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
@@ -99,7 +99,7 @@ class InstallCommand(Command):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
-        cmd_opts.add_option(cmdoptions.no_deps)
+        cmd_opts.add_option(cmdoptions.no_deps.make())
 
         cmd_opts.add_option(
             '--no-install',
@@ -114,8 +114,8 @@ class InstallCommand(Command):
             help="Don't download any packages, just install the ones already downloaded "
             "(completes an install run with --no-install).")
 
-        cmd_opts.add_option(cmdoptions.install_options)
-        cmd_opts.add_option(cmdoptions.global_options)
+        cmd_opts.add_option(cmdoptions.install_options.make())
+        cmd_opts.add_option(cmdoptions.global_options.make())
 
         cmd_opts.add_option(
             '--user',
@@ -136,7 +136,7 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory.")
 
-        cmd_opts.add_option(cmdoptions.use_wheel)
+        cmd_opts.add_option(cmdoptions.use_wheel.make())
 
         cmd_opts.add_option(
             '--pre',
@@ -144,7 +144,7 @@ class InstallCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
-        cmd_opts.add_option(cmdoptions.no_clean)
+        cmd_opts.add_option(cmdoptions.no_clean.make())
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
