@@ -218,12 +218,3 @@ class ConfigOptionParser(CustomOptionParser):
     def error(self, msg):
         self.print_usage(sys.stderr)
         self.exit(2, "%s\n" % msg)
-
-
-try:
-    pip_dist = pkg_resources.get_distribution('pip')
-    version = '%s from %s (python %s)' % (
-        pip_dist, pip_dist.location, sys.version[:3])
-except pkg_resources.DistributionNotFound:
-    # when running pip.py without installing
-    version = None

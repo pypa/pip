@@ -10,8 +10,7 @@ from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip.baseparser import (ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-                            version)
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import commands, get_summaries, get_similar_commands
 
 # The version as used in the setup.py and the docs conf.py
@@ -103,8 +102,9 @@ def create_main_parser():
     parser = ConfigOptionParser(**parser_kw)
     parser.disable_interspersed_args()
 
-    # having a default version action just causes trouble
-    parser.version = version
+    pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    parser.version = 'pip %s from %s (python %s)' % (
+        __version__,  pip_pkg_dir, sys.version[:3])
 
     # add the general options
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
