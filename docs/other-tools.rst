@@ -47,9 +47,9 @@ pip was originally written to improve on `easy_install <http://pythonhosted.org/
 
 pip doesn't do everything that easy_install does. Specifically:
 
-* It cannot install from eggs.  It only installs from source.  (In the
-  future it would be good if it could install binaries from Windows ``.exe``
-  or ``.msi`` -- binary install on other platforms is not a priority.)
+* It cannot install from eggs.  That’s not a problem anymore though because pip
+  supports the superior binary `wheel format
+  <https://wheel.readthedocs.org/en/latest/>`_ since the 1.4 release.
 
 * It is incompatible with some packages that extensively customize distutils
   or setuptools in their ``setup.py`` files.
