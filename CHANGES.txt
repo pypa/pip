@@ -14,6 +14,10 @@ Changelog
   into installing externally hosted or insecure files or urls using
   ``--allow-external PROJECT`` and ``--allow-insecure PROJECT``. (Pull #1055)
 
+* Fixed #1163, --user wasn't being respected when installing scripts from wheels (Pull #1176).
+
+* Fixed #1150, we now assume '_' means '-' in versions from wheel filenames (Pull #1158).
+
 * Fixed #219, error when using --log with a failed install (Pull #1205).
 
 * Fixed #1131, logging was buffered and choppy in Python 3.
@@ -35,6 +39,7 @@ Changelog
   defaults and umask (i.e. permissions are not preserved), except that regular
   files with any execute permissions have the equivalent of "chmod +x" applied
   after being written (Pull #1146).
+
 * PreviousBuildDirError now returns a non-zero exit code and prevents the
   previous build dir from being cleaned in all cases (Pull #1162).
 
