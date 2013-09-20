@@ -14,6 +14,14 @@ Changelog
   into installing externally hosted or insecure files or urls using
   ``--allow-external PROJECT`` and ``--allow-insecure PROJECT``. (Pull #1055)
 
+* Fixed #219, error when using --log with a failed install (Pull #1205).
+
+* Fixed #1131, logging was buffered and choppy in Python 3.
+
+* Fixed #70,  --timeout was being ignored (Pull #1202).
+
+* Fixed #772, error when setting PIP_EXISTS_ACTION (Pull #1201).
+
 * Added colors to the logging output in order to draw attention to important
   warnings and errors. (Pull #1109)
 
