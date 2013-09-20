@@ -145,19 +145,19 @@ class Command(object):
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
             exit = UNKNOWN_ERROR
-        if log_fp is not None:
-            log_fp.close()
         if store_log:
-            log_fn = options.log_file
+            log_file_fn = options.log_file
             text = '\n'.join(complete_log)
             try:
-                log_fp = open_logfile(log_fn, 'w')
+                log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:
                 temp = tempfile.NamedTemporaryFile(delete=False)
-                log_fn = temp.name
-                log_fp = open_logfile(log_fn, 'w')
-            logger.fatal('Storing complete log in %s' % log_fn)
-            log_fp.write(text)
+                log_file_fn = temp.name
+                log_file_fp = open_logfile(log_file_fn, 'w')
+            logger.fatal('Storing complete log in %s' % log_file_fn)
+            log_file_fp.write(text)
+            log_file_fp.close()
+        if log_fp is not None:
             log_fp.close()
         return exit
 
