@@ -23,16 +23,25 @@ class Test_basecommand_logging(object):
     def teardown(self):
         logger.consumers = []
 
-    def test_log(self, tmpdir):
+    def test_log_command_success(self, tmpdir):
         """
-        Test the --log option logs.
+        Test the --log option logs when command succeeds
         """
         cmd = FakeCommand()
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         assert 'fake' == open(log_path).read().strip()[:4]
 
-    def test_log_file_success(self, tmpdir):
+    def test_log_command_error(self, tmpdir):
+        """
+        Test the --log option logs when command fails
+        """
+        cmd = FakeCommand(error=True)
+        log_path = tmpdir.join('log')
+        cmd.main(['fake', '--log', log_path])
+        assert 'fake' == open(log_path).read().strip()[:4]
+
+    def test_log_file_command_success(self, tmpdir):
         """
         Test the --log-file option *doesn't* log when command succeeds.
         (It's just the historical behavior? this just confirms it)
@@ -42,7 +51,7 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '--log-file', log_file_path])
         assert not os.path.exists(log_file_path)
 
-    def test_log_file_error(self, tmpdir):
+    def test_log_file_command_error(self, tmpdir):
         """
         Test the --log-file option logs (when there's an error).
         """
