@@ -6,11 +6,11 @@ import os
 import tempfile
 from distutils.command.install import install, SCHEME_KEYS
 import getpass
-from pkg_resources import resource_string
+from pkg_resources import resource_filename
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
-default_cert_path = resource_string(__name__, "cacert.pem")
+default_cert_path = resource_filename(__name__, "cacert.pem")
 
 DELETE_MARKER_MESSAGE = '''\
 This file is placed here by pip to indicate the source was put
