@@ -135,7 +135,17 @@ class Logger(object):
                 raise TypeError(
                     "You may give positional or keyword arguments, not both")
         args = args or kw
-        rendered = None
+
+        # render
+        if args:
+            rendered = msg % args
+        else:
+            rendered = msg
+        rendered = ' ' * self.indent + rendered
+        if self.explicit_levels:
+            ## FIXME: should this be a name, not a level number?
+            rendered = '%02i %s' % (level, rendered)
+
         for consumer_level, consumer in self.consumers:
             if self.level_matches(level, consumer_level):
                 if (self.in_progress_hanging
@@ -143,28 +153,18 @@ class Logger(object):
                     self.in_progress_hanging = False
                     sys.stdout.write('\n')
                     sys.stdout.flush()
-                if rendered is None:
-                    if args:
-                        rendered = msg % args
-                    else:
-                        rendered = msg
-                    rendered = ' ' * self.indent + rendered
-                    if self.explicit_levels:
-                        ## FIXME: should this be a name, not a level number?
-                        rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
+                    write_content = rendered + '\n'
                     if should_color(consumer, os.environ):
                         # We are printing to stdout or stderr and it supports
                         #   colors so render our text colored
                         colorizer = self.COLORS.get(level, lambda x: x)
-                        rendered = colorizer(rendered)
-
-                    rendered += '\n'
+                        write_content = colorizer(write_content)
 
                     if isinstance(consumer, colorama.AnsiToWin32):
-                        consumer.write(rendered)
+                        consumer.write(write_content)
                     else:
-                        backwardcompat.fwrite(consumer, rendered)
+                        backwardcompat.fwrite(consumer, write_content)
                 else:
                     consumer(rendered)
 
