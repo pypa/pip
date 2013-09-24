@@ -70,7 +70,7 @@ setup(name="pip",
       entry_points=dict(console_scripts=['pip=pip:main', 'pip%s=pip:main' % sys.version[:1],
           'pip%s=pip:main' % sys.version[:3]]),
       tests_require=tests_require,
-      zip_safe=False,
+      zip_safe=True,
       extras_require={
           'testing': tests_require,
       },
