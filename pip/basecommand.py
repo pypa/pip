@@ -16,7 +16,7 @@ from pip.backwardcompat import StringIO
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import (SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
                               PREVIOUS_BUILD_DIR_ERROR)
-from pip.util import get_prog
+from pip.util import get_prog, latest_version_check
 
 
 __all__ = ['Command']
@@ -114,6 +114,17 @@ class Command(object):
             logger.add_consumers((logger.DEBUG, log_fp))
         else:
             log_fp = None
+
+        # Check if we're using the latest version of pip available
+        try:
+            vers = latest_version_check(session=self._build_session(options))
+            if vers is not None:
+                logger.warn("You are using pip version %s, however version %s "
+                            "is available. You should consider upgrading."
+                            % vers)
+        except Exception as exc:
+            logger.info("There was an error checking the latest version of "
+                        "pip: %s" % str(exc))
 
         exit = SUCCESS
         store_log = False
