@@ -54,7 +54,7 @@ class ListCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls):
+    def _build_package_finder(self, options, index_urls, session):
         """
         Create a package finder appropriate to this list command.
         """
@@ -64,6 +64,7 @@ class ListCommand(Command):
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
                              allow_all_prereleases=options.pre,
+                             session=session,
                         )
 
     def run(self, options, args):
@@ -108,7 +109,9 @@ class ListCommand(Command):
                     dist.get_metadata_lines('dependency_links.txt'),
                 )
 
-        finder = self._build_package_finder(options, index_urls)
+        session = self._build_session(options)
+
+        finder = self._build_package_finder(options, index_urls, session)
         finder.add_dependency_links(dependency_links)
 
         installed_packages = get_installed_distributions(local_only=options.local, include_editables=False, skip=self.skip)

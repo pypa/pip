@@ -3,35 +3,21 @@
 import sys
 import os
 import re
-import gzip
 import mimetypes
 import posixpath
 import pkg_resources
-import random
-import socket
-import ssl
-import string
-import zlib
-
-try:
-    import threading
-except ImportError:
-    import dummy_threading as threading
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
     InstallationError
-from pip.backwardcompat import (WindowsError, BytesIO,
-                                Queue, urlparse,
-                                URLError, HTTPError, u,
-                                product, url2pathname,
-                                Empty as QueueEmpty)
-from pip.backwardcompat import CertificateError
-from pip.download import urlopen, path_to_url2, url_to_path, geturl, Urllib2HeadRequest
+from pip.backwardcompat import urlparse, url2pathname
+from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support, setuptools_requirement
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip.vendor import html5lib
+from pip.vendor import html5lib, requests
+from pip.vendor.requests.exceptions import SSLError
+
 
 __all__ = ['PackageFinder']
 
@@ -53,7 +39,7 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
             use_wheel=False, allow_external=[], allow_insecure=[],
             allow_all_external=False, allow_all_insecure=False,
-            allow_all_prereleases=False):
+            allow_all_prereleases=False, session=None):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -85,6 +71,9 @@ class PackageFinder(object):
 
         # Do we want to allow _all_ pre-releases?
         self.allow_all_prereleases = allow_all_prereleases
+
+        # The Session we'll use to make requests
+        self.session = session or PipSession()
 
     @property
     def use_wheel(self):
@@ -368,38 +357,25 @@ class PackageFinder(object):
         return None
 
     def _get_pages(self, locations, req):
-        """Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding download/homepage links"""
-        pending_queue = Queue()
-        for location in locations:
-            pending_queue.put(location)
-        done = []
+        """
+        Yields (page, page_url) from the given locations, skipping
+        locations that have errors, and adding download/homepage links
+        """
+        all_locations = list(locations)
         seen = set()
-        threads = []
-        for i in range(min(10, len(locations))):
-            t = threading.Thread(target=self._get_queued_page, args=(req, pending_queue, done, seen))
-            t.setDaemon(True)
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
-        return done
 
-    _log_lock = threading.Lock()
-
-    def _get_queued_page(self, req, pending_queue, done, seen):
-        while 1:
-            try:
-                location = pending_queue.get(False)
-            except QueueEmpty:
-                return
+        while all_locations:
+            location = all_locations.pop(0)
             if location in seen:
                 continue
             seen.add(location)
+
             page = self._get_page(location, req)
             if page is None:
                 continue
-            done.append(page)
+
+            yield page
+
             for link in page.rel_links():
                 normalized = normalize_name(req.name).lower()
 
@@ -420,7 +396,7 @@ class PackageFinder(object):
                     self.need_warn_insecure = True
                     continue
 
-                pending_queue.put(link)
+                all_locations.append(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
@@ -564,7 +540,10 @@ class PackageFinder(object):
             return None
 
     def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req, cache=self.cache)
+        return HTMLPage.get_page(link, req,
+            cache=self.cache,
+            session=self.session,
+        )
 
 
 class PageCache(object):
@@ -616,7 +595,10 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, req, cache=None, skip_archives=True):
+    def get_page(cls, link, req, cache=None, skip_archives=True, session=None):
+        if session is None:
+            session = PipSession()
+
         url = link.url
         url = url.split('#', 1)[0]
         if cache.too_many_failures(url):
@@ -641,7 +623,9 @@ class HTMLPage(object):
                 filename = link.filename
                 for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
                     if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url)
+                        content_type = cls._get_content_type(url,
+                            session=session,
+                        )
                         if content_type.lower().startswith('text/html'):
                             break
                         else:
@@ -660,18 +644,8 @@ class HTMLPage(object):
                 url = urlparse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s' % url)
 
-            resp = urlopen(url)
-
-            real_url = geturl(resp)
-            headers = resp.info()
-            contents = resp.read()
-            encoding = headers.get('Content-Encoding', None)
-            #XXX need to handle exceptions and add testing for this
-            if encoding is not None:
-                if encoding == 'gzip':
-                    contents = gzip.GzipFile(fileobj=BytesIO(contents)).read()
-                if encoding == 'deflate':
-                    contents = zlib.decompress(contents)
+            resp = session.get(url)
+            resp.raise_for_status()
 
             # The check for archives above only works if the url ends with
             #   something that looks like an archive. However that is not a
@@ -680,7 +654,7 @@ class HTMLPage(object):
             #   Unless we issue a HEAD request on every url we cannot know
             #   ahead of time for sure if something is HTML or not. However we
             #   can check after we've downloaded it.
-            content_type = headers.get('Content-Type', 'unknown')
+            content_type = resp.headers.get('Content-Type', 'unknown')
             if not content_type.lower().startswith("text/html"):
                 logger.debug('Skipping page %s because of Content-Type: %s' %
                                             (link, content_type))
@@ -688,59 +662,53 @@ class HTMLPage(object):
                     cache.set_is_archive(url)
                 return None
 
-            inst = cls(u(contents), real_url, headers, trusted=link.trusted)
-        except (HTTPError, URLError, socket.timeout, socket.error, OSError, WindowsError):
-            e = sys.exc_info()[1]
-            desc = str(e)
-            if isinstance(e, socket.timeout):
-                log_meth = logger.info
-                level =1
-                desc = 'timed out'
-            elif isinstance(e, URLError):
-                #ssl/certificate error
-                if hasattr(e, 'reason') and (isinstance(e.reason, ssl.SSLError) or isinstance(e.reason, CertificateError)):
-                    desc = 'There was a problem confirming the ssl certificate: %s' % e
-                    log_meth = logger.notify
-                else:
-                    log_meth = logger.info
-                if hasattr(e, 'reason') and isinstance(e.reason, socket.timeout):
-                    desc = 'timed out'
-                    level = 1
-                else:
-                    level = 2
-            elif isinstance(e, HTTPError) and e.code == 404:
-                ## FIXME: notify?
-                log_meth = logger.info
-                level = 2
-            else:
-                log_meth = logger.info
-                level = 1
-            log_meth('Could not fetch URL %s: %s' % (link, desc))
-            log_meth('Will skip URL %s when looking for download links for %s' % (link.url, req))
+            inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
+        except requests.HTTPError as exc:
+            level = 2 if exc.response.status_code == 404 else 1
+            cls._handle_fail(req, link, exc, url, cache=cache, level=level)
+        except requests.Timeout:
+            cls._handle_fail(req, link, "timed out", url, cache=cache)
+        except SSLError as exc:
+            reason = ("There was a problem confirming the ssl certificate: "
+                      "%s" % exc)
+            cls._handle_fail(req, link, reason, url,
+                cache=cache,
+                level=2,
+                meth=logger.notify,
+            )
+        else:
             if cache is not None:
-                cache.add_page_failure(url, level)
-            return None
-        if cache is not None:
-            cache.add_page([url, real_url], inst)
-        return inst
+                cache.add_page([url, resp.url], inst)
+            return inst
 
     @staticmethod
-    def _get_content_type(url):
+    def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
+        if meth is None:
+            meth = logger.info
+
+        meth("Could not fetch URL %s: %s", link, reason)
+        meth("Will skip URL %s when looking for download links for %s" %
+             (link.url, req))
+
+        if cache is not None:
+            cache.add_page_failure(url, level)
+
+    @staticmethod
+    def _get_content_type(url, session=None):
         """Get the Content-Type of the given url, using a HEAD request"""
+        if session is None:
+            session = PipSession()
+
         scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
         if not scheme in ('http', 'https', 'ftp', 'ftps'):
             ## FIXME: some warning or something?
             ## assertion error?
             return ''
-        req = Urllib2HeadRequest(url, headers={'Host': netloc})
-        resp = urlopen(req)
-        try:
-            if hasattr(resp, 'code') and resp.code != 200 and scheme not in ('ftp', 'ftps'):
-                ## FIXME: doesn't handle redirects
-                return ''
-            return resp.info().get('content-type', '')
-        finally:
-            resp.close()
+
+        resp = session.head(url, allow_redirects=True)
+        resp.raise_for_status()
+
+        return resp.headers.get("Content-Type", "")
 
     @property
     def api_version(self):
