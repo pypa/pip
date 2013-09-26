@@ -9,7 +9,6 @@ import getpass
 from pip.backwardcompat import get_python_lib
 import pip.exceptions
 
-default_cert_path = os.path.join(os.path.dirname(__file__), 'cacert.pem')
 
 DELETE_MARKER_MESSAGE = '''\
 This file is placed here by pip to indicate the source was put

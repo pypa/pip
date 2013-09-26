@@ -151,7 +151,7 @@ class InstallCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls):
+    def _build_package_finder(self, options, index_urls, session):
         """
         Create a package finder appropriate to this install command.
         This method is meant to be overridden by subclasses, not
@@ -164,6 +164,7 @@ class InstallCommand(Command):
                              allow_insecure=options.allow_insecure,
                              allow_all_external=options.allow_all_external,
                              allow_all_prereleases=options.pre,
+                             session=session,
                             )
 
     def run(self, options, args):
@@ -206,7 +207,9 @@ class InstallCommand(Command):
                         "--extra-index-url is suggested.")
             index_urls += options.mirrors
 
-        finder = self._build_package_finder(options, index_urls)
+        session = self._build_session(options)
+
+        finder = self._build_package_finder(options, index_urls, session)
 
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
@@ -219,7 +222,9 @@ class InstallCommand(Command):
             ignore_dependencies=options.ignore_dependencies,
             force_reinstall=options.force_reinstall,
             use_user_site=options.use_user_site,
-            target_dir=temp_target_dir)
+            target_dir=temp_target_dir,
+            session=session,
+        )
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -227,7 +232,7 @@ class InstallCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(name, default_vcs=options.default_vcs))
         for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder, options=options):
+            for req in parse_requirements(filename, finder=finder, options=options, session=session):
                 requirement_set.add_requirement(req)
         if not requirement_set.has_requirements:
             opts = {'name': self.name}

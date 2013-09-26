@@ -179,7 +179,7 @@ def test_finder_priority_page_over_deplink():
     """Test PackageFinder prefers page links over equivalent dependency links"""
     req = InstallRequirement.from_line('gmpy==1.15', None)
     finder = PackageFinder([], ["https://pypi.python.org/simple"])
-    finder.add_dependency_links(['https://c.pypi.python.org/simple/gmpy/'])
+    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
     link = finder.find_requirement(req, False)
     assert link.url.startswith("https://pypi"), link
 
@@ -190,12 +190,18 @@ def test_finder_priority_nonegg_over_eggfragments():
     links = ['http://foo/bar.py#egg=bar-1.0', 'http://foo/bar-1.0.tar.gz']
 
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+
     assert link.url.endswith('tar.gz')
 
     links.reverse()
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+
     assert link.url.endswith('tar.gz')
 
 
@@ -214,12 +220,17 @@ def test_finder_only_installs_stable_releases(data):
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-1.0.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-1.0.tar.gz"
+
     links.reverse()
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-1.0.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-1.0.tar.gz"
 
 
 def test_finder_installs_pre_releases(data):
@@ -237,12 +248,17 @@ def test_finder_installs_pre_releases(data):
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
     links.reverse()
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 def test_finder_installs_dev_releases(data):
@@ -266,13 +282,17 @@ def test_finder_installs_pre_releases_with_version_spec():
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [])
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+
+    with patch.object(finder, "_get_pages", lambda x, y: []):
+        link = finder.find_requirement(req, False)
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 def test_finder_ignores_external_links(data):

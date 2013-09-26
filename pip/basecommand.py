@@ -1,7 +1,6 @@
 """Base Command class, and related routines"""
 
 import os
-import socket
 import sys
 import tempfile
 import traceback
@@ -10,7 +9,7 @@ import optparse
 
 from pip import cmdoptions
 from pip.log import logger
-from pip.download import urlopen
+from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 from pip.backwardcompat import StringIO
@@ -21,10 +20,6 @@ from pip.util import get_prog
 
 
 __all__ = ['Command']
-
-
-# for backwards compatibiliy
-get_proxy = urlopen.get_proxy
 
 
 class Command(object):
@@ -52,6 +47,28 @@ class Command(object):
         gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, self.parser)
         self.parser.add_option_group(gen_opts)
 
+    def _build_session(self, options):
+        session = PipSession()
+
+        # Handle custom ca-bundles from the user
+        if options.cert:
+            session.verify = options.cert
+
+        # Handle timeouts
+        if options.timeout:
+            session.timeout = options.timeout
+
+        # Handle configured proxies
+        if options.proxy:
+            session.proxies = {
+                "http": options.proxy,
+                "https": options.proxy,
+            }
+
+        # Determine if we can prompt the user for authentication or not
+        session.auth.prompting = not options.no_input
+
+        return session
 
     def setup_logging(self):
         pass
@@ -86,9 +103,6 @@ class Command(object):
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
-        if options.cert:
-            os.environ['PIP_CERT'] = options.cert
-
         if options.require_venv:
             # If a venv is required check if it can really be found
             if not os.environ.get('VIRTUAL_ENV'):
@@ -100,10 +114,6 @@ class Command(object):
             logger.add_consumers((logger.DEBUG, log_fp))
         else:
             log_fp = None
-
-        socket.setdefaulttimeout(options.timeout or None)
-
-        urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
 
         exit = SUCCESS
         store_log = False
