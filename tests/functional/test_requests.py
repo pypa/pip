@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.skipif
 def test_timeout(script):
     result = script.pip("--timeout", "0.01", "install", "-vvv", "INITools",
         expect_error=True,
