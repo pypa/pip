@@ -31,6 +31,9 @@ Changelog
 
 * Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
 
+* Added support for installing packages from a subdirectory using the ``subdirectory``
+  editable option. ( Pull request #1082 )
+
 
 1.4.2 (unreleased)
 ------------------

@@ -100,13 +100,19 @@ def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_moc
     assert parse_editable('foo', 'git') == (None, 'file:///some/path/foo', None)
 
 def test_parse_editable_default_vcs():
-    assert parse_editable('https://foo#egg=foo', 'git') == ('foo', 'git+https://foo#egg=foo', None)
+    assert parse_editable('https://foo#egg=foo', 'git') == ('foo',
+                                                            'git+https://foo#egg=foo',
+                                                            {'egg': 'foo')
 
 def test_parse_editable_explicit_vcs():
-    assert parse_editable('svn+https://foo#egg=foo', 'git') == ('foo', 'svn+https://foo#egg=foo', None)
+    assert parse_editable('svn+https://foo#egg=foo', 'git') == ('foo',
+                                                                'svn+https://foo#egg=foo',
+                                                                {'egg': 'foo'})
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
+    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') ==  ('foo[extras]', 
+                                                                         'svn+https://foo#egg=foo[extras]',
+                                                                         {'egg': 'foo[extras]'})
 
 @patch('os.path.normcase')
 @patch('pip.req.os.getcwd')
