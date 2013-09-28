@@ -116,15 +116,18 @@ class Command(object):
             log_fp = None
 
         # Check if we're using the latest version of pip available
-        try:
-            vers = latest_version_check(session=self._build_session(options))
-            if vers is not None:
-                logger.warn("You are using pip version %s, however version %s "
-                            "is available. You should consider upgrading."
-                            % vers)
-        except Exception as exc:
-            logger.info("There was an error checking the latest version of "
-                        "pip: %s" % str(exc))
+        if not options.disable_version_check:
+            try:
+                vers = latest_version_check(
+                    session=self._build_session(options)
+                )
+                if vers is not None:
+                    logger.warn("You are using pip version %s, however version"
+                                " %s is available. You should consider "
+                                "upgrading." % vers)
+            except Exception as exc:
+                logger.info("There was an error checking the latest version of"
+                            " pip: %s" % str(exc))
 
         exit = SUCCESS
         store_log = False
