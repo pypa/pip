@@ -726,36 +726,48 @@ def latest_version_check(session, frequency=24 * 60 * 60):
     a small state file stored in ~/.pip/ to store when the last time we checked
     was. This enables us to only display the warning every so often.
     """
-    import pip  # imported here to prevent circular imports
-
-    storage_format = "%Y-%m-%dT%H:%M:%S"
-    statefile_path = os.path.expanduser(os.path.join("~/.pip/versioncheck"))
-    current_time = datetime.datetime.utcnow()
     try:
-        with open(statefile_path) as statefile:
-            last_check = datetime.datetime.strptime(
-                statefile.read().strip(),
-                storage_format,
-            )
+        import pip  # imported here to prevent circular imports
 
-        if (current_time - last_check).total_seconds() < frequency:
-            return
-    except (IOError, ValueError):
-        pass
+        storage_format = "%Y-%m-%dT%H:%M:%S"
+        statefile_path = os.path.expanduser(
+            os.path.join("~/.pip/versioncheck"),
+        )
+        current_time = datetime.datetime.utcnow()
+        try:
+            with open(statefile_path) as statefile:
+                last_check = datetime.datetime.strptime(
+                    statefile.read().strip(),
+                    storage_format,
+                )
 
-    # If we've made it this far it means we need to check the version
-    resp = session.get("https://pypi.python.org/pypi/pip/json",
-        headers={"Accept": "application/json"},
-    )
-    resp.raise_for_status()
-    latest_pip = resp.json()["info"]["version"]
+            if (current_time - last_check).total_seconds() < frequency:
+                return
+        except (IOError, ValueError):
+            pass
 
-    need_update = (pkg_resources.parse_version(pip.__version__)
-                        < pkg_resources.parse_version(latest_pip))
+        # If we've made it this far it means we need to check the version
+        resp = session.get("https://pypi.python.org/pypi/pip/json",
+            headers={"Accept": "application/json"},
+        )
+        resp.raise_for_status()
+        latest_pip = resp.json()["info"]["version"]
 
-    try:
-        with open(statefile_path, "w") as statefile:
-            statefile.write(current_time.strftime(storage_format))
-    finally:
-        if need_update:
-            return (pip.__version__, latest_pip)
+        need_update = (pkg_resources.parse_version(pip.__version__)
+                            < pkg_resources.parse_version(latest_pip))
+
+        try:
+            with open(statefile_path, "w") as statefile:
+                statefile.write(current_time.strftime(storage_format))
+        finally:
+            if need_update:
+                logger.warn(
+                    "You are using pip version %s, however version"
+                    " %s is available. You should consider upgrading via the "
+                    "pip install --upgrade pip command." %
+                    (pip.__version__, latest_pip))
+    except Exception:
+        logger.debug(
+            "There was an error checking the latest version of pip",
+            exc_info=True,
+        )
