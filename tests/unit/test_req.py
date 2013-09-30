@@ -102,7 +102,7 @@ def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_moc
 def test_parse_editable_default_vcs():
     assert parse_editable('https://foo#egg=foo', 'git') == ('foo',
                                                             'git+https://foo#egg=foo',
-                                                            {'egg': 'foo')
+                                                            {'egg': 'foo'})
 
 def test_parse_editable_explicit_vcs():
     assert parse_editable('svn+https://foo#egg=foo', 'git') == ('foo',
