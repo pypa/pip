@@ -67,7 +67,7 @@ class TestWheelSupported(object):
         assert wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.get_setuptools_distribution")
-    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+    def test_wheel_supported_false_no_install(self, mock_get_setuptools_distribution):
         """
         Test wheel_supported returns false, when setuptools not installed
         """
