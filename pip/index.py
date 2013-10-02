@@ -163,8 +163,10 @@ class PackageFinder(object):
             if link == InfLink: # existing install
                 pri = 1
             elif link.wheel:
-                # all wheel links are known to be supported at this stage
-                pri = -(link.wheel.support_index_min())
+                support_index = link.wheel.support_index_min()
+                if support_index is None:
+                    raise InstallationError("%s is not a supported wheel for this platform. It can't be sorted." % link.wheel.filename)
+                pri = -(support_index)
             else: # sdist
                 pri = -(support_num)
             return (parsed_version, pri)
@@ -470,7 +472,10 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-            if link.wheel and link.wheel.name.lower() == search_name.lower():
+            if link.wheel:
+                if link.wheel.name.lower() != search_name.lower():
+                    logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
+                    return []
                 version = link.wheel.version
                 if not link.wheel.supported():
                     logger.debug('Skipping %s because it is not compatible with this Python' % link)
