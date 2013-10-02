@@ -23,28 +23,34 @@ wheel_ext = '.whl'
 # that converts 'setuptools' to 'distribute'.
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
+def get_setuptools_distribution():
+    """
+    Return a Distribution object for the installed setuptools
+    """
+    try:
+        return pkg_resources.get_distribution('setuptools')
+    except pkg_resources.DistributionNotFound:
+        try:
+            # When running from a wheel, get_distribution doesn't find
+            # setuptools, so create a Distribution object directly
+            import setuptools
+            return pkg_resources.Distribution(
+                    project_name='setuptools',
+                    version=setuptools.__version__)
+        except ImportError:
+            pass
+    return None
+
 def wheel_setuptools_support():
     """
     Return True if we have a setuptools that supports wheel.
     """
-    fulfilled = False
-    try:
-        installed_setuptools = pkg_resources.get_distribution('setuptools')
-        if installed_setuptools in setuptools_requirement:
-            fulfilled = True
-    except pkg_resources.DistributionNotFound:
-        try:
-            import setuptools
-            installed_setuptools = pkg_resources.Distribution(
-                    project_name = 'setuptools',
-                    version = setuptools.__version__)
-            if installed_setuptools in setuptools_requirement:
-                fulfilled = True
-        except ImportError:
-            pass
-    if not fulfilled:
-        logger.warn("%s is required for wheel installs." % setuptools_requirement)
-    return fulfilled
+    installed_setuptools = get_setuptools_distribution()
+    if installed_setuptools and installed_setuptools in setuptools_requirement:
+        return True
+
+    logger.warn("%s is required for wheel installs." % setuptools_requirement)
+    return False
 
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
