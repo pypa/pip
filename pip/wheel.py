@@ -34,13 +34,10 @@ except ImportError:
 
 def wheel_setuptools_support():
     """
-    Return True if we have a setuptools that supports wheel.
+    Return a Distribution object for the installed setuptools
     """
-    fulfilled = False
     try:
-        installed_setuptools = pkg_resources.get_distribution('setuptools')
-        if installed_setuptools in setuptools_requirement:
-            fulfilled = True
+        return pkg_resources.get_distribution('setuptools')
     except pkg_resources.DistributionNotFound:
         try:
             ver = setuptools_version()
