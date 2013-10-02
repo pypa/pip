@@ -54,12 +54,15 @@ class TestWheelSupported(object):
         mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
         assert wheel.wheel_setuptools_support()
 
+    @patch("pip.wheel.setuptools_version")
     @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+    def test_wheel_supported_false_no_install(self, mock_get_distribution,
+            mock_setuptools_version):
         """
         Test wheel_supported returns false, when setuptools not installed
         """
         mock_get_distribution.side_effect = self.raise_not_found
+        mock_setuptools_version.return_value = None
         assert not wheel.wheel_setuptools_support()
 
     @patch("pip.wheel.pkg_resources.get_distribution")
@@ -70,12 +73,15 @@ class TestWheelSupported(object):
         mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
         assert not wheel.wheel_setuptools_support()
 
+    @patch("pip.wheel.setuptools_version")
     @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_raises_error(self, mock_get_distribution):
+    def test_finder_raises_error(self, mock_get_distribution,
+            mock_setuptools_version):
         """
         Test the PackageFinder raises an error when wheel is not supported
         """
         mock_get_distribution.side_effect = self.raise_not_found
+        mock_setuptools_version.return_value = None
         # on initialization
         assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
         # when setting property later

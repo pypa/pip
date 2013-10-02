@@ -23,6 +23,15 @@ wheel_ext = '.whl'
 # that converts 'setuptools' to 'distribute'.
 setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
+# Get setuptools version (do it this way so that we can mock it for testing)
+try:
+    import setuptools
+    def setuptools_version():
+        return setuptools.__version__
+except ImportError:
+    def setuptools_version():
+        return None
+
 def wheel_setuptools_support():
     """
     Return True if we have a setuptools that supports wheel.
@@ -34,14 +43,12 @@ def wheel_setuptools_support():
             fulfilled = True
     except pkg_resources.DistributionNotFound:
         try:
-            import setuptools
-            installed_setuptools = pkg_resources.Distribution(
-                    project_name = 'setuptools',
-                    version = setuptools.__version__)
-            if installed_setuptools in setuptools_requirement:
-                fulfilled = True
-        except ImportError:
-            pass
+            ver = setuptools_version()
+            if ver:
+                installed_setuptools = pkg_resources.Distribution(
+                    project_name='setuptools', version=ver)
+                if installed_setuptools in setuptools_requirement:
+                    fulfilled = True
     if not fulfilled:
         logger.warn("%s is required for wheel installs." % setuptools_requirement)
     return fulfilled
