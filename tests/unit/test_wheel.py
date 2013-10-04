@@ -47,47 +47,65 @@ class TestWheelSupported(object):
         finder.use_wheel = True
 
     @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_true(self, mock_get_distribution):
+    def test_wheel_get_setuptools(self, mock_get_distribution):
+        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        assert wheel.get_setuptools_distribution() is not None
+
+    # TODO: If it is possible to mock "import setuptools" to fail, do so here and add this test.
+    # As it stands, the test will succeed if setuptools>=0.8 is importable.
+    #@patch("pip.wheel.pkg_resources.get_distribution")
+    #def test_wheel_get_setuptools_no_install(self, mock_get_distribution):
+    #    mock_get_distribution.side_effect = self.raise_not_found
+    #    assert wheel.get_setuptools_distribution() is None
+
+    @patch("pip.wheel.get_setuptools_distribution")
+    def test_wheel_supported_true(self, mock_get_setuptools_distribution):
         """
         Test wheel_supported returns true, when setuptools is installed and requirement is met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        mock_get_setuptools_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
         assert wheel.wheel_setuptools_support()
 
+    @patch("pip.wheel.setuptools_version")
     @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+    def test_wheel_supported_false_no_install(self, mock_get_distribution,
+            mock_setuptools_version):
         """
         Test wheel_supported returns false, when setuptools not installed
         """
         mock_get_distribution.side_effect = self.raise_not_found
+        mock_setuptools_version.return_value = None
         assert not wheel.wheel_setuptools_support()
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_req_fail(self, mock_get_distribution):
+    @patch("pip.wheel.get_setuptools_distribution")
+    def test_wheel_supported_false_req_fail(self, mock_get_setuptools_distribution):
         """
         Test wheel_supported returns false, when setuptools is installed, but req is not met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
+        mock_get_setuptools_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
         assert not wheel.wheel_setuptools_support()
 
+    @patch("pip.wheel.setuptools_version")
     @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_raises_error(self, mock_get_distribution):
+    def test_finder_raises_error(self, mock_get_distribution,
+            mock_setuptools_version):
         """
         Test the PackageFinder raises an error when wheel is not supported
         """
         mock_get_distribution.side_effect = self.raise_not_found
+        mock_setuptools_version.return_value = None
         # on initialization
         assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
         # when setting property later
         p = PackageFinder([], [])
         assert_raises_regexp(InstallationError, 'wheel support', self.set_use_wheel_true, p)
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_no_raises_error(self, mock_get_distribution):
+    @patch("pip.wheel.wheel_setuptools_support")
+    def test_finder_no_raises_error(self, mock_setuptools_support):
         """
         Test the PackageFinder doesn't raises an error when use_wheel is False, and wheel is supported
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        mock_setuptools_support.return_value = True
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
