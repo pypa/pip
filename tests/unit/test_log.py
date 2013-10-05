@@ -1,4 +1,4 @@
-import StringIO
+from pip.backwardcompat import StringIO
 from pip.log import should_color, should_warn, Logger
 
 
@@ -49,8 +49,8 @@ def test_log_no_extra_line_break():
     """
     Confirm that multiple `.write()` consumers doesn't result in additional '\n's per write
     """
-    consumer1 = StringIO.StringIO()
-    consumer2 = StringIO.StringIO()
+    consumer1 = StringIO()
+    consumer2 = StringIO()
     logger = Logger()
     logger.add_consumers(
             (logger.NOTIFY, consumer1),
