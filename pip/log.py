@@ -161,10 +161,9 @@ class Logger(object):
                         colorizer = self.COLORS.get(level, lambda x: x)
                         write_content = colorizer(write_content)
 
-                    if isinstance(consumer, colorama.AnsiToWin32):
-                        consumer.write(write_content)
-                    else:
-                        backwardcompat.fwrite(consumer, write_content)
+                    consumer.write(write_content)
+                    if hasattr(consumer, 'flush'):
+                        consumer.flush()
                 else:
                     consumer(rendered)
 

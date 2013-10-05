@@ -55,10 +55,6 @@ if sys.version_info >= (3,):
         except UnicodeDecodeError:
             return s.decode('utf_8')
 
-    def fwrite(f, s):
-        f.buffer.write(b(s))
-        f.buffer.flush()
-
     def get_http_message_param(http_message, param, default_value):
         return http_message.get_param(param, default_value)
 
@@ -86,9 +82,6 @@ else:
 
     def console_to_str(s):
         return s
-
-    def fwrite(f, s):
-        f.write(s)
 
     def get_http_message_param(http_message, param, default_value):
         result = http_message.getparam(param)
