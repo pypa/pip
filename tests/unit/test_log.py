@@ -1,8 +1,4 @@
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
-
+from pip.backwardcompat import StringIO
 from pip.log import should_color, should_warn, Logger
 
 
