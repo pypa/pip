@@ -72,7 +72,9 @@ class Logger(object):
                         rendered = '%02i %s' % (level, rendered)
                 if hasattr(consumer, 'write'):
                     rendered += '\n'
-                    backwardcompat.fwrite(consumer, rendered)
+                    consumer.write(rendered)
+                    if hasattr(consumer, 'flush'):
+                        consumer.flush()
                 else:
                     consumer(rendered)
 
