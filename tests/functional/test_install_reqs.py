@@ -7,8 +7,8 @@ from mock import patch
 
 from pip.backwardcompat import urllib
 from pip.req import Requirements, parse_editable, parse_requirements
-
-from tests.lib import pyversion, path_to_url
+from tests.lib import (pyversion, path_to_url,
+                       _create_test_package_with_subdirectory)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -105,3 +105,13 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages/'easy-install.pth' in res.files_updated, str(result)
     assert script.site_packages/'LocalExtras.egg-link' in res.files_created, str(result)
     assert script.site_packages/'simple' in res.files_created, str(result)
+
+
+def test_install_local_editable_with_subdirectory(script):
+    version_pkg_path = _create_test_package_with_subdirectory(script,
+                                                              'version_subpkg')
+    result = script.pip('install', '-e',
+                    '%s#egg=version_subpkg&subdirectory=version_subpkg' %
+                    ('git+file://%s' % version_pkg_path,))
+
+    result.assert_installed('version-subpkg')

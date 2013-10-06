@@ -381,6 +381,45 @@ def assert_all_changes(start_state, end_state, expected_changes):
     # Don't throw away this potentially useful information
     return diff
 
+def _create_test_package_with_subdirectory(script, subdirectory):
+    script.scratch_path.join("version_pkg").mkdir()
+    version_pkg_path = script.scratch_path/'version_pkg'
+    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
+                                def main():
+                                    print('0.1')
+                                """))
+    version_pkg_path.join("setup.py").write(textwrap.dedent("""
+                        from setuptools import setup, find_packages
+                        setup(name='version_pkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_pkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
+                        """))
+
+    subdirectory_path = version_pkg_path.join(subdirectory)
+    subdirectory_path.mkdir()
+    subdirectory_path.join('version_subpkg.py').write(textwrap.dedent("""
+                                def main():
+                                    print('0.1')
+                                """))
+
+    subdirectory_path.join('setup.py').write(textwrap.dedent("""
+                        from setuptools import setup, find_packages
+                        setup(name='version_subpkg',
+                              version='0.1',
+                              packages=find_packages(),
+                              py_modules=['version_subpkg'],
+                              entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
+                        """))
+
+    script.run('git', 'init', cwd=version_pkg_path)
+    script.run('git', 'add', '.', cwd=version_pkg_path)
+    script.run('git', 'commit', '-q',
+            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path)
+
+    return version_pkg_path
 
 def _create_test_package(script):
     script.scratch_path.join("version_pkg").mkdir()
