@@ -9,7 +9,7 @@ from pip.log import logger
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
-from pip.wheel import WheelBuilder, wheel_setuptools_support, setuptools_requirement
+from pip.wheel import WheelBuilder, wheel_setuptools_support
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -89,7 +89,7 @@ class WheelCommand(Command):
         except ImportError:
             raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
         if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires %s." % setuptools_requirement)
+            raise CommandError("'pip wheel' requires setuptools with dist-info support.")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

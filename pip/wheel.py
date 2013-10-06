@@ -19,23 +19,14 @@ from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 
 wheel_ext = '.whl'
-# don't use pkg_resources.Requirement.parse, to avoid the override in distribute,
-# that converts 'setuptools' to 'distribute'.
-setuptools_requirement = list(pkg_resources.parse_requirements("setuptools>=0.8"))[0]
 
 def wheel_setuptools_support():
     """
     Return True if we have a setuptools that supports wheel.
     """
-    fulfilled = False
-    try:
-        installed_setuptools = pkg_resources.get_distribution('setuptools')
-        if installed_setuptools in setuptools_requirement:
-            fulfilled = True
-    except pkg_resources.DistributionNotFound:
-        pass
+    fulfilled = hasattr(pkg_resources, 'DistInfoDistribution')
     if not fulfilled:
-        logger.warn("%s is required for wheel installs." % setuptools_requirement)
+        logger.warn("A setuptools that supports dist-info is required for wheel installs.")
     return fulfilled
 
 def rehash(path, algo='sha256', blocksize=1<<20):
