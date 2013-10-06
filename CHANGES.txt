@@ -4,6 +4,9 @@ Changelog
 1.4.2 (unreleased)
 ------------------
 
+* Fixed #1192. "TypeError: bad operand type for unary" in some cases when
+  installing wheels using --find-links (Pull #1218).
+
 * Fixed #1133 and #317. Archive contents are now written based on system
   defaults and umask (i.e. permissions are not preserved), except that regular
   files with any execute permissions have the equivalent of "chmod +x" applied
