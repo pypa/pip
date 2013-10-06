@@ -1,9 +1,10 @@
 import os
+import pkg_resources
 from pkg_resources import parse_version, Distribution
 from pip.backwardcompat import urllib
 from pip.req import InstallRequirement
 from pip.index import PackageFinder, Link
-from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound, InstallationError
 from pip.util import Inf
 from tests.lib.path import Path
 from tests.lib import tests_data, path_to_url, find_links, find_links2
@@ -154,6 +155,13 @@ class TestWheel(object):
         results2 = finder._sort_versions(sorted(links, reverse=True))
 
         assert links == results == results2, results2
+
+
+    @patch('pip.pep425tags.supported_tags', [])
+    def test_link_sorting_raises_when_wheel_unsupported(self):
+        links = [(parse_version('1.0'), Link('simple-1.0-py2.py3-none-TEST.whl'), '1.0')]
+        finder = PackageFinder([], [], use_wheel=True)
+        assert_raises(InstallationError, finder._sort_versions, links)
 
 
 def test_finder_priority_file_over_page():
@@ -438,3 +446,45 @@ def test_finder_finds_external_links_without_hashes_scraped_all_all_insecure():
             )
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-4.0.tar.gz"
+
+class test_link_package_versions(object):
+
+    # patch this for travis which has distribute in it's base env for now
+    @patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
+    def setup(self):
+        self.version = '1.0'
+        self.parsed_version = pkg_resources.parse_version(self.version)
+        self.search_name = 'pytest'
+        self.finder = PackageFinder([], [], use_wheel=True)
+
+    def test_link_package_versions_match_wheel(self):
+        """Test that 'pytest' archives match for 'pytest'"""
+
+        # TODO: Uncomment these, when #1217 is fixed
+        # link = Link('http:/yo/pytest-1.0.tar.gz')
+        # result = self.finder._link_package_versions(link, self.search_name)
+        # assert result == [(self.parsed_version, link, self.version)], result
+
+        link = Link('http:/yo/pytest-1.0-py2.py3-none-any.whl')
+        result = self.finder._link_package_versions(link, self.search_name)
+        assert result == [(self.parsed_version, link, self.version)], result
+
+    def test_link_package_versions_substring_fails(self):
+        """Test that 'pytest<something> archives won't match for 'pytest'"""
+
+        # TODO: Uncomment these, when #1217 is fixed
+        # link = Link('http:/yo/pytest-xdist-1.0.tar.gz')
+        # result = self.finder._link_package_versions(link, self.search_name)
+        # assert result == [], result
+
+        # link = Link('http:/yo/pytest2-1.0.tar.gz')
+        # result = self.finder._link_package_versions(link, self.search_name)
+        # assert result == [], result
+
+        link = Link('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl')
+        result = self.finder._link_package_versions(link, self.search_name)
+        assert result == [], result
+
+
+
+
