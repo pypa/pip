@@ -170,7 +170,8 @@ class TestWheel:
     def test_link_sorting_raises_when_wheel_unsupported(self):
         links = [(parse_version('1.0'), Link('simple-1.0-py2.py3-none-TEST.whl'), '1.0')]
         finder = PackageFinder([], [], use_wheel=True)
-        assert_raises(InstallationError, finder._sort_versions, links)
+        with pytest.raises(InstallationError):
+            finder._sort_versions(links)
 
 
 def test_finder_priority_file_over_page(data):
