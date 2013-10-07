@@ -5,6 +5,16 @@ import optparse
 import sys
 import re
 
+try:
+    from ssl import match_hostname, CertificateError
+except ImportError:
+    # If we don't have ssl.match_hostname, monkeypatch it in, so that it's
+    # available to vendored libraries like distlib
+    from pip.backwardcompat.ssl_match_hostname import match_hostname, CertificateError
+    import ssl
+    ssl.match_hostname = match_hostname
+    ssl.CertificateError = CertificateError
+
 from pip import cmdoptions
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
