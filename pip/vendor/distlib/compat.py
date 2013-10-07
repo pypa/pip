@@ -10,6 +10,50 @@ import os
 import re
 import sys
 
+try:
+    from ssl import match_hostname
+except ImportError:
+    def match_hostname(cert, hostname):
+        """Verify that *cert* (in decoded format as returned by
+        SSLSocket.getpeercert()) matches the *hostname*.  RFC 2818 rules
+        are mostly followed, but IP addresses are not accepted for *hostname*.
+
+        CertificateError is raised on failure. On success, the function
+        returns nothing.
+        """
+        if not cert:
+            raise ValueError("empty or no certificate")
+        dnsnames = []
+        san = cert.get('subjectAltName', ())
+        for key, value in san:
+            if key == 'DNS':
+                if _dnsname_to_pat(value).match(hostname):
+                    return
+                dnsnames.append(value)
+        if not dnsnames:
+            # The subject is only checked when there is no dNSName entry
+            # in subjectAltName
+            for sub in cert.get('subject', ()):
+                for key, value in sub:
+                    # XXX according to RFC 2818, the most specific Common Name
+                    # must be used.
+                    if key == 'commonName':
+                        if _dnsname_to_pat(value).match(hostname):
+                            return
+                        dnsnames.append(value)
+        if len(dnsnames) > 1:
+            raise CertificateError("hostname %r "
+                "doesn't match either of %s"
+                % (hostname, ', '.join(map(repr, dnsnames))))
+        elif len(dnsnames) == 1:
+            raise CertificateError("hostname %r "
+                "doesn't match %r"
+                % (hostname, dnsnames[0]))
+        else:
+            raise CertificateError("no appropriate commonName or "
+                "subjectAltName fields were found")
+
+
 if sys.version_info[0] < 3:
     from StringIO import StringIO
     string_types = basestring,
@@ -70,47 +114,6 @@ if sys.version_info[0] < 3:
                 pats.append(frag.replace(r'\*', '[^.]*'))
         return re.compile(r'\A' + r'\.'.join(pats) + r'\Z', re.IGNORECASE)
 
-
-    def match_hostname(cert, hostname):
-        """Verify that *cert* (in decoded format as returned by
-        SSLSocket.getpeercert()) matches the *hostname*.  RFC 2818 rules
-        are mostly followed, but IP addresses are not accepted for *hostname*.
-
-        CertificateError is raised on failure. On success, the function
-        returns nothing.
-        """
-        if not cert:
-            raise ValueError("empty or no certificate")
-        dnsnames = []
-        san = cert.get('subjectAltName', ())
-        for key, value in san:
-            if key == 'DNS':
-                if _dnsname_to_pat(value).match(hostname):
-                    return
-                dnsnames.append(value)
-        if not dnsnames:
-            # The subject is only checked when there is no dNSName entry
-            # in subjectAltName
-            for sub in cert.get('subject', ()):
-                for key, value in sub:
-                    # XXX according to RFC 2818, the most specific Common Name
-                    # must be used.
-                    if key == 'commonName':
-                        if _dnsname_to_pat(value).match(hostname):
-                            return
-                        dnsnames.append(value)
-        if len(dnsnames) > 1:
-            raise CertificateError("hostname %r "
-                "doesn't match either of %s"
-                % (hostname, ', '.join(map(repr, dnsnames))))
-        elif len(dnsnames) == 1:
-            raise CertificateError("hostname %r "
-                "doesn't match %r"
-                % (hostname, dnsnames[0]))
-        else:
-            raise CertificateError("no appropriate commonName or "
-                "subjectAltName fields were found")
-
 else:
     from io import StringIO
     string_types = str,
@@ -136,8 +139,6 @@ else:
     raw_input = input
     from itertools import filterfalse
     filter = filter
-
-    from ssl import match_hostname, CertificateError
 
 # ZipFile is a context manager in 2.7, but not in 2.6
 
