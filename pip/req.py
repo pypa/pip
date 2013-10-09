@@ -340,7 +340,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                             or os.path.exists(os.path.join(root, dir, 'Scripts', 'Python.exe'))):
                             dirs.remove(dir)
                         # Also don't search through tests
-                        if dir == 'test' or dir == 'tests':
+                        elif dir == 'test' or dir == 'tests':
                             dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
