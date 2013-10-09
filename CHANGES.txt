@@ -7,10 +7,16 @@ Changelog
 * Fixed #1192. "TypeError: bad operand type for unary" in some cases when
   installing wheels using --find-links (Pull #1218).
 
+* Fixed #219, error when using --log with a failed install (Pull #1205).
+
+* Fixed #1163, --user wasn't being respected when installing scripts from wheels
+  (Pull #1176).
+
 * Fixed #1133 and #317. Archive contents are now written based on system
   defaults and umask (i.e. permissions are not preserved), except that regular
   files with any execute permissions have the equivalent of "chmod +x" applied
   after being written (Pull #1146).
+
 * PreviousBuildDirError now returns a non-zero exit code and prevents the
   previous build dir from being cleaned in all cases (Pull #1162).
 
