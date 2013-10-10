@@ -26,7 +26,7 @@ def wheel_setuptools_support():
     """
     fulfilled = hasattr(pkg_resources, 'DistInfoDistribution')
     if not fulfilled:
-        logger.warn("A setuptools that supports dist-info is required for wheel installs.")
+        logger.warn("Wheel installs require setuptools >= 0.8 for dist-info support.")
     return fulfilled
 
 def rehash(path, algo='sha256', blocksize=1<<20):

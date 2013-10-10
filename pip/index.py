@@ -83,7 +83,7 @@ class PackageFinder(object):
     def use_wheel(self, value):
         self._use_wheel = value
         if self._use_wheel and not wheel_setuptools_support():
-            raise InstallationError("pip's wheel support requires setuptools with dist-info support.")
+            raise InstallationError("pip's wheel support requires setuptools >= 0.8 for dist-info support.")
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only

@@ -89,7 +89,7 @@ class WheelCommand(Command):
         except ImportError:
             raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
         if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires setuptools with dist-info support.")
+            raise CommandError("'pip wheel' requires setuptools >= 0.8 for dist-info support.")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
