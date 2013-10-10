@@ -40,54 +40,39 @@ def test_uninstallation_paths():
 
 class TestWheelSupported(object):
 
-    def raise_not_found(self, dist):
-        raise pkg_resources.DistributionNotFound()
-
     def set_use_wheel_true(self, finder):
         finder.use_wheel = True
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_true(self, mock_get_distribution):
+    def test_wheel_supported_true(self, monkeypatch):
         """
         Test wheel_supported returns true, when setuptools is installed and requirement is met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        monkeypatch.setattr('pkg_resources.DistInfoDistribution', True)
         assert wheel.wheel_setuptools_support()
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+    def test_wheel_supported_false_no_install(self, monkeypatch):
         """
-        Test wheel_supported returns false, when setuptools not installed
+        Test wheel_supported returns false, when setuptools not installed or does not meet the requirement
         """
-        mock_get_distribution.side_effect = self.raise_not_found
+        monkeypatch.delattr('pkg_resources.DistInfoDistribution')
         assert not wheel.wheel_setuptools_support()
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_req_fail(self, mock_get_distribution):
-        """
-        Test wheel_supported returns false, when setuptools is installed, but req is not met
-        """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
-        assert not wheel.wheel_setuptools_support()
-
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_raises_error(self, mock_get_distribution):
+    def test_finder_raises_error(self, monkeypatch):
         """
         Test the PackageFinder raises an error when wheel is not supported
         """
-        mock_get_distribution.side_effect = self.raise_not_found
+        monkeypatch.delattr('pkg_resources.DistInfoDistribution')
         # on initialization
         assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
         # when setting property later
         p = PackageFinder([], [])
         assert_raises_regexp(InstallationError, 'wheel support', self.set_use_wheel_true, p)
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_no_raises_error(self, mock_get_distribution):
+    def test_finder_no_raises_error(self, monkeypatch):
         """
         Test the PackageFinder doesn't raises an error when use_wheel is False, and wheel is supported
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        monkeypatch.setattr('pkg_resources.DistInfoDistribution', True)
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
