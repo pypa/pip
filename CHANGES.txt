@@ -32,11 +32,7 @@ Changelog
 * Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
 
 * Added support for installing packages from a subdirectory using the ``subdirectory``
-  editable option. ( Pull request #1082 )
-
-
-1.4.2 (unreleased)
-------------------
+  editable option. ( Pull #1082 )
 
 * Fixed #1192. "TypeError: bad operand type for unary" in some cases when
   installing wheels using --find-links (Pull #1218).
@@ -48,7 +44,6 @@ Changelog
 
 * PreviousBuildDirError now returns a non-zero exit code and prevents the
   previous build dir from being cleaned in all cases (Pull #1162).
-
 
 
 1.4.1 (2013-08-07)
