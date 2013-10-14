@@ -336,6 +336,13 @@ class PackageFinder(object):
             logger.warn("%s is potentially insecure and "
                         "unverifiable." % req.name)
 
+        if selected_version._deprecated_regex:
+            logger.deprecated(
+                "1.7",
+                "%s discovered using a deprecated method of parsing, "
+                "in the future it will no longer be discovered" % req.name
+            )
+
         return selected_version
 
 
@@ -793,7 +800,7 @@ class HTMLPage(object):
             if not url:
                 continue
             url = self.clean_link(urlparse.urljoin(self.base_url, url))
-            yield Link(url, self, trusted=False)
+            yield Link(url, self, trusted=False, _deprecated_regex=True)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
@@ -807,11 +814,13 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None, internal=None, trusted=None):
+    def __init__(self, url, comes_from=None, internal=None, trusted=None,
+            _deprecated_regex=False):
         self.url = url
         self.comes_from = comes_from
         self.internal = internal
         self.trusted = trusted
+        self._deprecated_regex = _deprecated_regex
 
         # Set whether it's a wheel
         self.wheel = None
