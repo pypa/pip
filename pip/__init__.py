@@ -5,13 +5,18 @@ import optparse
 import sys
 import re
 
-from pip import cmdoptions
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.log import logger
 from pip.util import get_installed_distributions, get_prog
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import commands, get_summaries, get_similar_commands
+
+# This fixes a peculiarity when importing via __import__ - as we are
+# initialising the pip module, "from pip import cmdoptions" is recursive
+# and appears not to work properly in that situation.
+import pip.cmdoptions
+cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
 __version__ = "1.5.dev1"
