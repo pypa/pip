@@ -97,6 +97,7 @@ class Manifest(object):
         """
         Return sorted files in directory order
         """
+
         def add_dir(dirs, d):
             dirs.add(d)
             logger.debug('add_dir added %s', d)
@@ -185,7 +186,7 @@ class Manifest(object):
             if not self._exclude_pattern(None, prefix=dirpattern):
                 logger.warning('no previously-included directories found '
                                'matching %r', dirpattern)
-        else:   #pragma: no cover
+        else:   # pragma: no cover
             # This should never happen, as it should be caught in
             # _parse_template_line
             raise DistlibException(
@@ -202,9 +203,12 @@ class Manifest(object):
         :return: A tuple of action, patterns, thedir, dir_patterns
         """
         words = directive.split()
-        if len(words) == 1 and words[0] not in (
-            'include', 'exclude', 'global-include', 'global-exclude',
-            'recursive-include', 'recursive-exclude', 'graft', 'prune'):
+        if len(words) == 1 and words[0] not in ('include', 'exclude',
+                                                'global-include',
+                                                'global-exclude',
+                                                'recursive-include',
+                                                'recursive-exclude',
+                                                'graft', 'prune'):
             # no action given, let's use the default 'include'
             words.insert(0, 'include')
 
@@ -281,7 +285,7 @@ class Manifest(object):
         return found
 
     def _exclude_pattern(self, pattern, anchor=True, prefix=None,
-                        is_regex=False):
+                         is_regex=False):
         """Remove strings (presumably filenames) from 'files' that match
         'pattern'.
 
@@ -299,7 +303,6 @@ class Manifest(object):
                 self.files.remove(f)
                 found = True
         return found
-
 
     def _translate_pattern(self, pattern, anchor=True, prefix=None,
                            is_regex=False):
@@ -330,7 +333,7 @@ class Manifest(object):
             if os.sep == '\\':
                 sep = r'\\'
             pattern_re = '^' + base + sep.join((prefix_re,
-                                                  '.*' + pattern_re))
+                                                '.*' + pattern_re))
         else:                               # no prefix -- respect anchor flag
             if anchor:
                 pattern_re = '^' + base + pattern_re
