@@ -16,6 +16,7 @@ from .util import in_venv
 
 __all__ = ['interpret']
 
+
 class Evaluator(object):
     """
     A limited evaluator for Python expressions.
@@ -34,16 +35,17 @@ class Evaluator(object):
     }
 
     allowed_values = {
-        'sys.platform': sys.platform,
+        'sys_platform': sys.platform,
         'python_version': '%s.%s' % sys.version_info[:2],
         # parsing sys.platform is not reliable, but there is no other
         # way to get e.g. 2.7.2+, and the PEP is defined with sys.version
         'python_full_version': sys.version.split(' ', 1)[0],
-        'os.name': os.name,
-        'platform.in_venv': str(in_venv()),
-        'platform.version': platform.version(),
-        'platform.machine': platform.machine(),
-        'platform.python_implementation': platform.python_implementation(),
+        'os_name': os.name,
+        'platform_in_venv': str(in_venv()),
+        'platform_release': platform.release(),
+        'platform_version': platform.version(),
+        'platform_machine': platform.machine(),
+        'platform_python_implementation': python_implementation(),
     }
 
     def __init__(self, context=None):
@@ -102,7 +104,6 @@ class Evaluator(object):
         return '%s.%s' % (node.value.id, node.attr)
 
     def do_attribute(self, node):
-        valid = True
         if not isinstance(node.value, ast.Name):
             valid = False
         else:
@@ -133,11 +134,11 @@ class Evaluator(object):
             valid = True
             if isinstance(lhsnode, ast.Str) and isinstance(rhsnode, ast.Str):
                 valid = False
-            elif (isinstance(lhsnode, ast.Attribute)
-                  and isinstance(rhsnode, ast.Attribute)):
-                klhs = self.get_attr_key(lhsnode)
-                krhs = self.get_attr_key(rhsnode)
-                valid = klhs != krhs
+            #elif (isinstance(lhsnode, ast.Attribute)
+            #      and isinstance(rhsnode, ast.Attribute)):
+            #    klhs = self.get_attr_key(lhsnode)
+            #    krhs = self.get_attr_key(rhsnode)
+            #    valid = klhs != krhs
             if not valid:
                 s = self.get_fragment(node.col_offset)
                 raise SyntaxError('Invalid comparison: %s' % s)

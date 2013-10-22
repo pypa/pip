@@ -709,11 +709,11 @@ def is_prerelease(vers):
     Will return True if it is a pre-release and False if not. Versions are
     assumed to be a pre-release if they cannot be parsed.
     """
-    normalized = version.suggest_normalized_version(vers)
+    normalized = version._suggest_normalized_version(vers)
 
     if normalized is None:
         # Cannot normalize, assume it is a pre-release
         return True
 
-    parsed = version.normalized_key(normalized)
+    parsed = version._normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
