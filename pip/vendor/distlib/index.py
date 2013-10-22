@@ -5,12 +5,9 @@
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import hashlib
-import itertools
 import logging
 import os
 import shutil
-import socket
-from string import ascii_lowercase
 import subprocess
 import tempfile
 from threading import Thread
@@ -22,7 +19,6 @@ from distlib.util import cached_property, zip_dir
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MIRROR_HOST = 'last.pypi.python.org'
 DEFAULT_INDEX = 'http://pypi.python.org/pypi'
 DEFAULT_REALM = 'pypi'
 
@@ -34,23 +30,14 @@ class PackageIndex(object):
 
     boundary = b'----------ThIs_Is_tHe_distlib_index_bouNdaRY_$'
 
-    def __init__(self, url=None, mirror_host=None):
+    def __init__(self, url=None):
         """
         Initialise an instance.
 
         :param url: The URL of the index. If not specified, the URL for PyPI is
                     used.
-        :param mirror_host: If not specified, ``last.pypi.python.org`` is used.
-                            This is expected to have a canonial name which
-                            allows all mirror hostnames to be divined (e.g. if
-                            the canonical hostname for ``last.pypi.python.org``
-                            is ``g.pypi.python.org``, then the mirrors that are
-                            available would be assumed to be
-                            ``a.pypi.python.org``, ``b.pypi.python.org``, ...
-                            up to and including ``g.pypi.python.org``.
         """
         self.url = url or DEFAULT_INDEX
-        self.mirror_host = mirror_host or DEFAULT_MIRROR_HOST
         self.read_configuration()
         scheme, netloc, path, params, query, frag = urlparse(self.url)
         if params or query or frag or scheme not in ('http', 'https'):
@@ -130,10 +117,8 @@ class PackageIndex(object):
                 request.
         """
         self.check_credentials()
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
-        d = metadata.todict(True)
+        metadata.validate()
+        d = metadata.todict()
         d[':action'] = 'verify'
         request = self.encode_request(d.items(), [])
         response = self.send_request(request)
@@ -259,10 +244,8 @@ class PackageIndex(object):
         self.check_credentials()
         if not os.path.exists(filename):
             raise DistlibException('not found: %s' % filename)
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
-        d = metadata.todict(True)
+        metadata.validate()
+        d = metadata.todict()
         sig_file = None
         if signer:
             if not self.gpg:
@@ -271,13 +254,15 @@ class PackageIndex(object):
                 sig_file = self.sign_file(filename, signer, sign_password)
         with open(filename, 'rb') as f:
             file_data = f.read()
-        digest = hashlib.md5(file_data).hexdigest()
+        md5_digest = hashlib.md5(file_data).hexdigest()
+        sha256_digest = hashlib.sha256(file_data).hexdigest()
         d.update({
             ':action': 'file_upload',
             'protcol_version': '1',
             'filetype': filetype,
             'pyversion': pyversion,
-            'md5_digest': digest,
+            'md5_digest': md5_digest,
+            'sha256_digest': sha256_digest,
         })
         files = [('content', os.path.basename(filename), file_data)]
         if sig_file:
@@ -309,9 +294,7 @@ class PackageIndex(object):
         fn = os.path.join(doc_dir, 'index.html')
         if not os.path.exists(fn):
             raise DistlibException('not found: %r' % fn)
-        missing, warnings = metadata.check(True)    # strict check
-        logger.debug('result of check: missing: %s, warnings: %s',
-                     missing, warnings)
+        metadata.validate()
         name, version = metadata.name, metadata.version
         zip_data = zip_dir(doc_dir).getvalue()
         fields = [(':action', 'doc_upload'),
@@ -382,12 +365,14 @@ class PackageIndex(object):
         """
         if digest is None:
             digester = None
+            logger.debug('No digest specified')
         else:
             if isinstance(digest, (list, tuple)):
                 hasher, digest = digest
             else:
                 hasher = 'md5'
             digester = getattr(hashlib, hasher)()
+            logger.debug('Digest specified: %s' % digest)
         # The following code is equivalent to urlretrieve.
         # We need to do it this way so that we can compute the
         # digest of the file as we go.
@@ -428,9 +413,10 @@ class PackageIndex(object):
         if digester:
             actual = digester.hexdigest()
             if digest != actual:
-                raise DistlibException('MD5 digest mismatch for %s: expected '
-                                       '%s, got %s' % (destfile, digest,
-                                                       actual))
+                raise DistlibException('%s digest mismatch for %s: expected '
+                                       '%s, got %s' % (hasher, destfile,
+                                                       digest, actual))
+            logger.debug('Digest verified: %s', digest)
 
     def send_request(self, req):
         """
@@ -490,26 +476,3 @@ class PackageIndex(object):
             'Content-length': str(len(body))
         }
         return Request(self.url, body, headers)
-
-    @cached_property
-    def mirrors(self):
-        """
-        Return the list of hostnames which are mirrors for this index.
-        :return: A (possibly empty) list of hostnames of mirrors.
-        """
-        result = []
-        try:
-            host = socket.gethostbyname_ex(self.mirror_host)[0]
-        except socket.gaierror: # pragma: no cover
-            host = None
-        if host:
-            last, rest = host.split('.', 1)
-            n = len(last)
-            host_list = (''.join(w) for w in itertools.chain.from_iterable(
-                        itertools.product(ascii_lowercase, repeat=i)
-                        for i in range(1, n + 1)))
-            for s in host_list:
-                result.append('.'.join((s, rest)))
-                if s == last:
-                    break
-        return result

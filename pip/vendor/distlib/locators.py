@@ -24,13 +24,13 @@ from .database import Distribution, DistributionPath, make_dist
 from .metadata import Metadata
 from .util import (cached_property, parse_credentials, ensure_slash,
                    split_filename, get_project_data, parse_requirement,
-                   ServerProxy)
+                   parse_name_and_version, ServerProxy)
 from .version import get_scheme, UnsupportedVersionError
 from .wheel import Wheel, is_compatible
 
 logger = logging.getLogger(__name__)
 
-MD5_HASH = re.compile('^md5=([a-f0-9]+)$')
+HASHER_HASH = re.compile('^(\w+)=([a-f0-9]+)')
 CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
 HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
 DEFAULT_INDEX = 'http://python.org/pypi'
@@ -106,6 +106,10 @@ class Locator(object):
         # Because of bugs in some of the handlers on some of the platforms,
         # we use our own opener rather than just using urlopen.
         self.opener = build_opener(RedirectHandler())
+        # If get_project() is called from locate(), the matcher instance
+        # is set from the requirement passed to locate(). See issue #18 for
+        # why this can be useful to know.
+        self.matcher = None
 
     def clear_cache(self):
         self._cache.clear()
@@ -124,6 +128,9 @@ class Locator(object):
         instances.
 
         This should be implemented in subclasses.
+
+        If called from a locate() request, self.matcher will be set to a
+        matcher for the requirement to satisfy, otherwise it will be None.
         """
         raise NotImplementedError('Please implement in the subclass')
 
@@ -167,10 +174,8 @@ class Locator(object):
         The current implement favours http:// URLs over https://, archives
         from PyPI over those from other locations and then the archive name.
         """
-        if url1 == 'UNKNOWN':
-            result = url2
-        else:
-            result = url2
+        result = url2
+        if url1:
             s1 = self.score_url(url1)
             s2 = self.score_url(url2)
             if s1 > s2:
@@ -210,6 +215,11 @@ class Locator(object):
         if frag.lower().startswith('egg='):
             logger.debug('%s: version hint in fragment: %r',
                          project_name, frag)
+        m = HASHER_HASH.match(frag)
+        if m:
+            algo, digest = m.groups()
+        else:
+            algo, digest = None, None
         origpath = path
         if path and path[-1] == '/':
             path = path[:-1]
@@ -231,9 +241,6 @@ class Locator(object):
                             'python-version': ', '.join(
                                 ['.'.join(list(v[2:])) for v in wheel.pyver]),
                         }
-                        m = MD5_HASH.match(frag)
-                        if m:
-                            result['md5_digest'] = m.group(1)
             except Exception as e:
                 logger.warning('invalid path for wheel: %s', path)
         elif path.endswith(self.downloadable_extensions):
@@ -257,10 +264,25 @@ class Locator(object):
                             }
                             if pyver:
                                 result['python-version'] = pyver
-                            m = MD5_HASH.match(frag)
-                            if m:
-                                result['md5_digest'] = m.group(1)
                     break
+        if result and algo:
+            result['%s_digest' % algo] = digest
+        return result
+
+    def _get_digest(self, info):
+        """
+        Get a digest from a dictionary by looking at keys of the form
+        'algo_digest'.
+
+        Returns a 2-tuple (algo, digest) if found, else None. Currently
+        looks only for SHA256, then MD5.
+        """
+        result = None
+        for algo in ('sha256', 'md5'):
+            key = '%s_digest' % algo
+            if key in info:
+                result = (algo, info[key])
+                break
         return result
 
     def _update_version_data(self, result, info):
@@ -277,12 +299,9 @@ class Locator(object):
         else:
             dist = make_dist(name, version, scheme=self.scheme)
             md = dist.metadata
-        dist.md5_digest = info.get('md5_digest')
-        if 'python-version' in info:
-            md['Requires-Python'] = info['python-version']
-        if md['Download-URL'] != info['url']:
-            md['Download-URL'] = self.prefer_url(md['Download-URL'],
-                                                 info['url'])
+        dist.digest = self._get_digest(info)
+        if md.source_url != info['url']:
+            md.source_url = self.prefer_url(md.source_url, info['url'])
         dist.locator = self
         result[version] = dist
 
@@ -300,20 +319,17 @@ class Locator(object):
                  distribution could be located.
         """
         result = None
-        scheme = get_scheme(self.scheme)
         r = parse_requirement(requirement)
         if r is None:
             raise DistlibException('Not a valid requirement: %r' % requirement)
-        if r.extras:
-            # lose the extras part of the requirement
-            requirement = r.requirement
-        matcher = scheme.matcher(requirement)
-        vcls = matcher.version_class
+        scheme = get_scheme(self.scheme)
+        self.matcher = matcher = scheme.matcher(r.requirement)
         logger.debug('matcher: %s (%s)', matcher, type(matcher).__name__)
-        versions = self.get_project(matcher.name)
+        versions = self.get_project(r.name)
         if versions:
             # sometimes, versions are invalid
             slist = []
+            vcls = matcher.version_class
             for k in versions:
                 try:
                     if not matcher.match(k):
@@ -322,7 +338,8 @@ class Locator(object):
                         if prereleases or not vcls(k).is_prerelease:
                             slist.append(k)
                         else:
-                            logger.debug('skipping pre-release version %s', k)
+                            logger.debug('skipping pre-release '
+                                         'version %s of %s', k, matcher.name)
                 except Exception:
                     logger.warning('error matching %s with %r', matcher, k)
                     pass # slist.append(k)
@@ -333,13 +350,14 @@ class Locator(object):
                 result = versions[slist[-1]]
         if result and r.extras:
             result.extras = r.extras
+        self.matcher = None
         return result
 
 
 class PyPIRPCLocator(Locator):
     """
-    This locator uses XML-RPC to locate distributions. It therefore cannot be
-    used with simple mirrors (that only mirror file content).
+    This locator uses XML-RPC to locate distributions. It therefore
+    cannot be used with simple mirrors (that only mirror file content).
     """
     def __init__(self, url, **kwargs):
         """
@@ -365,12 +383,16 @@ class PyPIRPCLocator(Locator):
             urls = self.client.release_urls(name, v)
             data = self.client.release_data(name, v)
             metadata = Metadata(scheme=self.scheme)
-            metadata.update(data)
+            metadata.name = data['name']
+            metadata.version = data['version']
+            metadata.license = data.get('license')
+            metadata.keywords = data.get('keywords', [])
+            metadata.summary = data.get('summary')
             dist = Distribution(metadata)
             if urls:
                 info = urls[0]
-                metadata['Download-URL'] = info['url']
-                dist.md5_digest = info.get('md5_digest')
+                metadata.source_url = info['url']
+                dist.digest = self._get_digest(info)
                 dist.locator = self
                 result[v] = dist
         return result
@@ -398,13 +420,18 @@ class PyPIJSONLocator(Locator):
             data = resp.read().decode() # for now
             d = json.loads(data)
             md = Metadata(scheme=self.scheme)
-            md.update(d['info'])
+            data = d['info']
+            md.name = data['name']
+            md.version = data['version']
+            md.license = data.get('license')
+            md.keywords = data.get('keywords', [])
+            md.summary = data.get('summary')
             dist = Distribution(md)
             urls = d['urls']
             if urls:
                 info = urls[0]
-                md['Download-URL'] = info['url']
-                dist.md5_digest = info.get('md5_digest')
+                md.source_url = info['url']
+                dist.digest = self._get_digest(info)
                 dist.locator = self
                 result[md.version] = dist
         except Exception as e:
@@ -791,11 +818,18 @@ class JSONLocator(Locator):
             for info in data.get('files', []):
                 if info['ptype'] != 'sdist' or info['pyversion'] != 'source':
                     continue
+                # We don't store summary in project metadata as it makes
+                # the data bigger for no benefit during dependency
+                # resolution
                 dist = make_dist(data['name'], info['version'],
+                                 summary=data.get('summary',
+                                                  'Placeholder for summary'),
                                  scheme=self.scheme)
                 md = dist.metadata
-                md['Download-URL'] = info['url']
-                dist.md5_digest = info.get('digest')
+                md.source_url = info['url']
+                # TODO SHA256 digest
+                if 'digest' in info and info['digest']:
+                    dist.digest = ('md5', info['digest'])
                 md.dependencies = info.get('requirements', {})
                 dist.exports = info.get('exports', {})
                 result[dist.version] = dist
@@ -860,13 +894,32 @@ class AggregatingLocator(Locator):
     def _get_project(self, name):
         result = {}
         for locator in self.locators:
-            r = locator.get_project(name)
-            if r:
+            d = locator.get_project(name)
+            if d:
                 if self.merge:
-                    result.update(r)
+                    result.update(d)
                 else:
-                    result = r
-                    break
+                    # See issue #18. If any dists are found and we're looking
+                    # for specific constraints, we only return something if
+                    # a match is found. For example, if a DirectoryLocator
+                    # returns just foo (1.0) while we're looking for
+                    # foo (>= 2.0), we'll pretend there was nothing there so
+                    # that subsequent locators can be queried. Otherwise we
+                    # would just return foo (1.0) which would then lead to a
+                    # failure to find foo (>= 2.0), because other locators
+                    # weren't searched. Note that this only matters when
+                    # merge=False.
+                    if self.matcher is None:
+                        found = True
+                    else:
+                        found = False
+                        for k in d:
+                            if self.matcher.match(k):
+                                found = True
+                                break
+                    if found:
+                        result = d
+                        break
         return result
 
     def get_distribution_names(self):
@@ -882,12 +935,18 @@ class AggregatingLocator(Locator):
         return result
 
 
+# We use a legacy scheme simply because most of the dists on PyPI use legacy
+# versions which don't conform to PEP 426 / PEP 440.
 default_locator = AggregatingLocator(
                     JSONLocator(),
                     SimpleScrapingLocator('https://pypi.python.org/simple/',
-                                          timeout=3.0))
+                                          timeout=3.0),
+                    scheme='legacy')
 
 locate = default_locator.locate
+
+NAME_VERSION_RE = re.compile(r'(?P<name>[\w-]+)\s*'
+                             r'\(\s*(==\s*)?(?P<ver>[^)]+)\)$')
 
 class DependencyFinder(object):
     """
@@ -902,25 +961,6 @@ class DependencyFinder(object):
         self.locator = locator or default_locator
         self.scheme = get_scheme(self.locator.scheme)
 
-    def _get_name_and_version(self, p):
-        """
-        A utility method used to get name and version from e.g. a Provides-Dist
-        value.
-
-        :param p: A value in a form foo (1.0)
-        :return: The name and version as a tuple.
-        """
-        comps = p.strip().rsplit(' ', 1)
-        name = comps[0]
-        version = None
-        if len(comps) == 2:
-            version = comps[1]
-            if len(version) < 3 or version[0] != '(' or version[-1] != ')':
-                raise DistlibException('Ill-formed provides field: %r' % p)
-            version = version[1:-1]  # trim off parentheses
-        # Name in lower case for case-insensitivity
-        return name.lower(), version
-
     def add_distribution(self, dist):
         """
         Add a distribution to the finder. This will update internal information
@@ -932,7 +972,7 @@ class DependencyFinder(object):
         self.dists_by_name[name] = dist
         self.dists[(name, dist.version)] = dist
         for p in dist.provides:
-            name, version = self._get_name_and_version(p)
+            name, version = parse_name_and_version(p)
             logger.debug('Add to provided: %s, %s, %s', name, version, dist)
             self.provided.setdefault(name, set()).add((version, dist))
 
@@ -947,7 +987,7 @@ class DependencyFinder(object):
         del self.dists_by_name[name]
         del self.dists[(name, dist.version)]
         for p in dist.provides:
-            name, version = self._get_name_and_version(p)
+            name, version = parse_name_and_version(p)
             logger.debug('Remove from provided: %s, %s, %s', name, version, dist)
             s = self.provided[name]
             s.remove((version, dist))
@@ -1033,15 +1073,17 @@ class DependencyFinder(object):
             result = True
         return result
 
-    def find(self, requirement, tests=False, prereleases=False):
+    def find(self, requirement, meta_extras=None, prereleases=False):
         """
-        Find a distribution matching requirement and all distributions
-        it depends on. Use the ``tests`` argument to determine whether
-        distributions used only for testing should be included in the
-        results. Allow ``requirement`` to be either a :class:`Distribution`
-        instance or a string expressing a requirement. If ``prereleases``
-        is True, allow pre-release versions to be returned - otherwise,
-        don't.
+        Find a distribution and all distributions it depends on.
+
+        :param requirement: The requirement specifying the distribution to
+                            find, or a Distribution instance.
+        :param meta_extras: A list of meta extras such as :test:, :build: and
+                            so on.
+        :param prereleases: If ``True``, allow pre-release versions to be
+                            returned - otherwise, don't return prereleases
+                            unless they're all that's available.
 
         Return a set of :class:`Distribution` instances and a set of
         problems.
@@ -1062,6 +1104,12 @@ class DependencyFinder(object):
         self.dists_by_name = {}
         self.reqts = {}
 
+        meta_extras = set(meta_extras or [])
+        if ':*:' in meta_extras:
+            meta_extras.remove(':*:')
+            # :meta: and :run: are implicitly included
+            meta_extras |= set([':test:', ':build:', ':dev:'])
+
         if isinstance(requirement, Distribution):
             dist = odist = requirement
             logger.debug('passed %s as requirement', odist)
@@ -1077,7 +1125,7 @@ class DependencyFinder(object):
         install_dists = set([odist])
         while todo:
             dist = todo.pop()
-            name = dist.key # case-insensitive
+            name = dist.key     # case-insensitive
             if name not in self.dists_by_name:
                 self.add_distribution(dist)
             else:
@@ -1086,19 +1134,24 @@ class DependencyFinder(object):
                 if other != dist:
                     self.try_to_replace(dist, other, problems)
 
-            ireqts = dist.requires
-            sreqts = dist.setup_requires
+            ireqts = dist.run_requires | dist.meta_requires
+            sreqts = dist.build_requires
             ereqts = set()
-            if not tests or dist not in install_dists:
-                treqts = set()
-            else:
-                treqts = dist.test_requires
-            all_reqts = ireqts | sreqts | treqts | ereqts
+            if dist in install_dists:
+                for key in ('test', 'build', 'dev'):
+                    e = ':%s:' % key
+                    if e in meta_extras:
+                        ereqts |= getattr(dist, '%s_requires' % key)
+            all_reqts = ireqts | sreqts | ereqts
             for r in all_reqts:
                 providers = self.find_providers(r)
                 if not providers:
                     logger.debug('No providers found for %r', r)
                     provider = self.locator.locate(r, prereleases=prereleases)
+                    # If no provider is found and we didn't consider
+                    # prereleases, consider them now.
+                    if provider is None and not prereleases:
+                        provider = self.locator.locate(r, prereleases=True)
                     if provider is None:
                         logger.debug('Cannot satisfy %r', r)
                         problems.add(('unsatisfied', r))
