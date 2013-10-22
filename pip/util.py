@@ -709,7 +709,7 @@ def is_prerelease(vers):
     Will return True if it is a pre-release and False if not. Versions are
     assumed to be a pre-release if they cannot be parsed.
     """
-    normalized = version.suggest_normalized_version(vers)
+    normalized = version._suggest_normalized_version(vers)
 
     if normalized is None:
         # Cannot normalize, assume it is a pre-release

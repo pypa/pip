@@ -10,14 +10,17 @@ import bisect
 import io
 import logging
 import os
+import pkgutil
 import shutil
 import sys
+import types
 import zipimport
 
 from . import DistlibException
 from .util import cached_property, get_cache_base, path_to_cache_dir
 
 logger = logging.getLogger(__name__)
+
 
 class Cache(object):
     """
@@ -101,10 +104,12 @@ class Cache(object):
 
 cache = Cache()
 
+
 class ResourceBase(object):
     def __init__(self, finder, name):
         self.finder = finder
         self.name = name
+
 
 class Resource(ResourceBase):
     """
@@ -112,30 +117,37 @@ class Resource(ResourceBase):
     not normally instantiated by user code, but rather by a
     :class:`ResourceFinder` which manages the resource.
     """
-    is_container = False # Backwards compatibility
-    
+    is_container = False        # Backwards compatibility
+
     def as_stream(self):
-        "Get the resource as a stream. Not a property, as not idempotent."
+        """
+        Get the resource as a stream.
+
+        This is not a property to make it obvious that it returns a new stream
+        each time.
+        """
         return self.finder.get_stream(self)
-     
+
     @cached_property
     def file_path(self):
         return cache.get(self)
-     
+
     @cached_property
     def bytes(self):
         return self.finder.get_bytes(self)
-     
+
     @cached_property
     def size(self):
         return self.finder.get_size(self)
-     
+
+
 class ResourceContainer(ResourceBase):
-    is_container = True # Backwards compatibility
-    
+    is_container = True     # Backwards compatibility
+
     @cached_property
     def resources(self):
         return self.finder.get_resources(self)
+
 
 class ResourceFinder(object):
     """
@@ -149,7 +161,7 @@ class ResourceFinder(object):
     def _make_path(self, resource_name):
         parts = resource_name.split('/')
         parts.insert(0, self.base)
-        return os.path.join(*parts)
+        return os.path.realpath(os.path.join(*parts))
 
     def _find(self, path):
         return os.path.exists(path)
@@ -186,8 +198,9 @@ class ResourceFinder(object):
 
     def is_container(self, resource):
         return self._is_directory(resource.path)
-    
+
     _is_directory = staticmethod(os.path.isdir)
+
 
 class ZipResourceFinder(ResourceFinder):
     """
@@ -209,7 +222,7 @@ class ZipResourceFinder(ResourceFinder):
         if path in self._files:
             result = True
         else:
-            if path[-1] != os.sep:
+            if path and path[-1] != os.sep:
                 path = path + os.sep
             i = bisect.bisect(self.index, path)
             try:
@@ -239,7 +252,7 @@ class ZipResourceFinder(ResourceFinder):
 
     def get_resources(self, resource):
         path = resource.path[self.prefix_len:]
-        if path[-1] != os.sep:
+        if path and path[-1] != os.sep:
             path += os.sep
         plen = len(path)
         result = set()
@@ -254,7 +267,7 @@ class ZipResourceFinder(ResourceFinder):
 
     def _is_directory(self, path):
         path = path[self.prefix_len:]
-        if path[-1] != os.sep:
+        if path and path[-1] != os.sep:
             path += os.sep
         i = bisect.bisect(self.index, path)
         try:
@@ -271,13 +284,16 @@ _finder_registry = {
 try:
     import _frozen_importlib
     _finder_registry[_frozen_importlib.SourceFileLoader] = ResourceFinder
+    _finder_registry[_frozen_importlib.FileFinder] = ResourceFinder
 except (ImportError, AttributeError):
     pass
+
 
 def register_finder(loader, finder_maker):
     _finder_registry[type(loader)] = finder_maker
 
 _finder_cache = {}
+
 
 def finder(package):
     """
@@ -301,4 +317,27 @@ def finder(package):
             raise DistlibException('Unable to locate finder for %r' % package)
         result = finder_maker(module)
         _finder_cache[package] = result
+    return result
+
+
+_dummy_module = types.ModuleType(str('__dummy__'))
+
+
+def finder_for_path(path):
+    """
+    Return a resource finder for a path, which should represent a container.
+
+    :param path: The path.
+    :return: A :class:`ResourceFinder` instance for the path.
+    """
+    result = None
+    # calls any path hooks, gets importer into cache
+    pkgutil.get_importer(path)
+    loader = sys.path_importer_cache.get(path)
+    finder = _finder_registry.get(type(loader))
+    if finder:
+        module = _dummy_module
+        module.__file__ = os.path.join(path, '')
+        module.__loader__ = loader
+        result = finder(module)
     return result
