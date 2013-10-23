@@ -8,7 +8,7 @@ import logging
 import pkg_resources
 
 from pip import backwardcompat
-from pip.vendor import colorama
+from pip._vendor import colorama
 
 
 def _color_wrap(*colors):

@@ -15,8 +15,8 @@ from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip.vendor import html5lib, requests
-from pip.vendor.requests.exceptions import SSLError
+from pip._vendor import html5lib, requests
+from pip._vendor.requests.exceptions import SSLError
 
 
 __all__ = ['PackageFinder']
