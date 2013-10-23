@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import sys
 import subprocess
 
 import virtualenv as _virtualenv
@@ -48,7 +49,8 @@ class VirtualEnvironment(object):
 
         # Install our development version of pip install the virtual
         # environment
-        cmd = [self.location.join("bin", "python"), "setup.py", "develop"]
+        bindir = "Scripts" if sys.platform.startswith('win') else "bin"
+        cmd = [self.location.join(bindir, "python"), "setup.py", "develop"]
         p = subprocess.Popen(
             cmd,
             cwd=self.pip_source_dir,

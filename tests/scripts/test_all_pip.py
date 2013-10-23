@@ -50,22 +50,23 @@ def _test_packages(output, pending_fn):
     print('Creating virtualenv in %s' % dest_dir)
     create_venv(dest_dir)
     print('Uninstalling actual pip')
-    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
+    bindir = "Scripts" if sys.platform.startswith('win') else "bin"
+    code = subprocess.check_call([os.path.join(dest_dir, bindir, 'pip'),
                             'uninstall', '-y', 'pip'])
     assert not code, 'pip uninstallation failed'
     print('Installing development pip')
-    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'python'),
+    code = subprocess.check_call([os.path.join(dest_dir, bindir, 'python'),
                             'setup.py', 'install'],
                             cwd=src_folder)
     assert not code, 'pip installation failed'
     print('Trying installation of %s' % dest_dir)
-    code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'pip'),
+    code = subprocess.check_call([os.path.join(dest_dir, bindir, 'pip'),
                             'install', package])
     if code:
         print('Installation of %s failed' % package)
         print('Now checking easy_install...')
         create_venv(dest_dir)
-        code = subprocess.check_call([os.path.join(dest_dir, 'bin', 'easy_install'),
+        code = subprocess.check_call([os.path.join(dest_dir, bindir, 'easy_install'),
                                 package])
         if code:
             print('easy_install also failed')
