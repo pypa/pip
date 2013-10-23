@@ -19,12 +19,12 @@ from pip.util import (splitext, rmtree, format_size, display_path,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
-from pip.vendor import requests
-from pip.vendor.requests.adapters import BaseAdapter
-from pip.vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip.vendor.requests.exceptions import InvalidURL
-from pip.vendor.requests.models import Response
-from pip.vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor import requests
+from pip._vendor.requests.adapters import BaseAdapter
+from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.exceptions import InvalidURL
+from pip._vendor.requests.models import Response
+from pip._vendor.requests.structures import CaseInsensitiveDict
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
