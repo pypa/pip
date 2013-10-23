@@ -220,7 +220,8 @@ class TestUpgradeSetuptools(object):
             # setuptools 0.6 didn't support PYTHONDONTWRITEBYTECODE
             del self.script.environ["PYTHONDONTWRITEBYTECODE"]
         self.script.run(*args)
-        self.ve_bin = self.script.scratch_path/'VE'/'bin'
+        bindir = "Scripts" if sys.platform.startswith('win') else "bin"
+        self.ve_bin = self.script.scratch_path/'VE'/bindir
         self.script.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
         self.script.run(self.ve_bin/'python', 'setup.py', 'install',
             cwd=pip_src,
