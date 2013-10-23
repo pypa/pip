@@ -13,10 +13,12 @@ import shutil
 import sys
 from base64 import urlsafe_b64encode
 
+from pip.backwardcompat import ConfigParser
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
+from pip._vendor.distlib.scripts import ScriptMaker
 
 wheel_ext = '.whl'
 
@@ -33,7 +35,7 @@ def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
     h = hashlib.new(algo)
     length = 0
-    with open(path) as f:
+    with open(path, 'rb') as f:
         block = f.read(blocksize)
         while block:
             length += len(block)
@@ -103,6 +105,19 @@ def root_is_purelib(name, wheeldir):
                         return True
     return False
 
+def get_entrypoints(filename):
+    if not os.path.exists(filename):
+        return {}, {}
+    cp = ConfigParser.RawConfigParser()
+    cp.read(filename)
+    console = {}
+    gui = {}
+    if cp.has_section('console_scripts'):
+        console = dict(cp.items('console_scripts'))
+    if cp.has_section('gui_scripts'):
+        gui = dict(cp.items('gui_scripts'))
+    return console, gui
+
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     """Install a wheel"""
 
@@ -118,6 +133,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
     installed = {}
     changed = set()
+    generated = []
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')
@@ -130,7 +146,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
         if modified:
             changed.add(destfile)
 
-    def clobber(source, dest, is_base, fixer=None):
+    def clobber(source, dest, is_base, fixer=None, filter=None):
         if not os.path.exists(dest): # common for the 'include' path
             os.makedirs(dest)
 
@@ -152,6 +168,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
                 if not os.path.exists(destsubdir):
                     os.makedirs(destsubdir)
             for f in files:
+                # Skip unwanted files
+                if filter and filter(f):
+                    continue
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
                 shutil.move(srcfile, destfile)
@@ -164,15 +183,66 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
 
     assert info_dir, "%s .dist-info directory not found" % req
 
+    # Get the defined entry points
+    ep_file = os.path.join(info_dir[0], 'entry_points.txt')
+    console, gui = get_entrypoints(ep_file)
+
+    def is_entrypoint_wrapper(name):
+        # EP, EP.exe and EP-script.py are scripts generated for
+        # entry point EP by setuptools
+        if name.lower().endswith('.exe'):
+            matchname = name[:-4]
+        elif name.lower().endswith('-script.py'):
+            matchname = name[:-10]
+        else:
+            matchname = name
+        # Ignore setuptools-generated scripts
+        return (matchname in console or matchname in gui)
+
     for datadir in data_dirs:
         fixer = None
+        filter = None
         for subdir in os.listdir(os.path.join(wheeldir, datadir)):
             fixer = None
             if subdir == 'scripts':
                 fixer = fix_script
+                filter = is_entrypoint_wrapper
             source = os.path.join(wheeldir, datadir, subdir)
             dest = scheme[subdir]
-            clobber(source, dest, False, fixer=fixer)
+            clobber(source, dest, False, fixer=fixer, filter=filter)
+
+    maker = ScriptMaker(None, scheme['scripts'])
+    maker.variants = set(('', ))
+
+    # Special case pip and setuptools to generate versioned wrappers
+    pip_script = console.pop('pip', None)
+    if pip_script:
+        spec = 'pip = ' + pip_script
+        generated.extend(maker.make(spec))
+        spec = 'pip%s = %s' % (sys.version[:1], pip_script)
+        generated.extend(maker.make(spec))
+        spec = 'pip%s = %s' % (sys.version[:3], pip_script)
+        generated.extend(maker.make(spec))
+        # Delete any other versioned pip entry points
+        pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
+        for k in pip_ep:
+            del console[k]
+    easy_install_script = console.pop('easy_install', None)
+    if easy_install_script:
+        spec = 'easy_install = ' + easy_install_script
+        generated.extend(maker.make(spec))
+        spec = 'easy_install-%s = %s' % (sys.version[:3], easy_install_script)
+        generated.extend(maker.make(spec))
+        # Delete any other versioned easy_install entry points
+        easy_install_ep = [k for k in console
+                if re.match(r'easy_install(-\d\.\d)?$', k)]
+        for k in easy_install_ep:
+            del console[k]
+
+    if len(console) > 0:
+        generated.extend(maker.make_multiple(['%s = %s' % kv for kv in console.items()]))
+    if len(gui) > 0:
+        generated.extend(maker.make_multiple(['%s = %s' % kv for kv in gui.items()], {'gui': True}))
 
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
@@ -185,6 +255,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
                 if row[0] in changed:
                     row[1], row[2] = rehash(row[0])
                 writer.writerow(row)
+            for f in generated:
+                h, l = rehash(f)
+                writer.writerow((f, h, l))
             for f in installed:
                 writer.writerow((installed[f], '', ''))
     shutil.move(temp_record, record)
