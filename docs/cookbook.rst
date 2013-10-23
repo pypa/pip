@@ -7,41 +7,59 @@ Cookbook
 Requirements Files
 ******************
 
-A key idea in pip is that package versions listed in requirement files (or as :ref:`pip install` arguments),
-have precedence over those that are located during the normal dependency resolution process that uses "install_requires" metadata.
+"Requirements files" are files containing a list of items to be
+installed using :ref:`pip install -r <install_--requirement>` like so:
 
-This allows users to be in control of specifying an environment of packages that are known to work together.
+ ::
 
-Instead of running something like ``pip install MyApp`` and getting whatever libraries come along,
-you'd run ``pip install -r requirements.txt`` where "requirements.txt" contains something like::
+   pip install -r requirements.txt
 
-    MyApp
-    Framework==0.9.4
-    Library>=0.2
 
-Regardless of what MyApp lists in ``setup.py``, you'll get a specific version
-of Framework (0.9.4) and at least the 0.2 version of
-Library.  Additionally, you can add optional libraries and support tools that MyApp doesn't strictly
-require, giving people a set of recommended libraries.
+Details on the format of the files are here: :ref:`Requirements File Format`.
 
-Requirement files are intended to exhaust an environment and to be *flat*.
-Maybe ``MyApp`` requires ``Framework``, and ``Framework`` requires ``Library``.
-It is encouraged to still list all these in a single requirement file.
-It is the nature of Python programs that there are implicit bindings *directly*
-between MyApp and Library.  For instance, Framework might expose one
-of Library's objects, and so if Library is updated it might directly
-break MyApp.  If that happens you can update the requirements file to
-force an earlier version of Library, and you can do that without
-having to re-release MyApp at all.
 
-To create a new requirements file from a known working environment, use::
+There are 3 common use cases for requirements files:
 
-    $ pip freeze > stable-req.txt
+1. When installing many things, it's easier to use a requirements file,
+   than specifying them all on the command line.
 
-This will write a listing of *all* installed libraries to ``stable-req.txt``
-with exact versions for every library.
+2. Requirements files are often used to hold the result from :ref:`pip freeze`
+   for the purpose of achieving :ref:`repeatable installations <Repeatability>`.
+   In this case, your requirement file contains a pinned version of everything
+   that was installed when `pip freeze` was run.
 
-For more information, see:
+   ::
+
+     pip freeze > requirements.txt
+     pip install -r requirements.txt
+
+3. Requirements files can be used to force pip to properly resolve dependencies.
+   As it is now, pip `doesn't have true dependency resolution
+   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
+   specification it finds for a project. E.g if `pkg1` requires `pkg3>=1.0` and
+   `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
+   only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
+   that conflicts with the needs of `pkg2`.  To solve this problem, you can
+   place `pkg3>=1.0,<=2.0` (i.e. the correct specification) into your
+   requirements file directly along with the other top level requirements. Like
+   so:
+
+   ::
+
+     pkg1
+     pkg2
+     pkg3>=1.0,<=2.0
+
+
+It's important to be clear that pip determines package dependencies using `install_requires metadata
+<http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies>`_, not by discovering `requirements.txt`
+files embedded in projects.
+
+For a good discussion on the conceptual differences between setup.py and
+requirements, see `"setup.py vs requirements.txt" (an article by Donald Stufft)
+<https://caremad.io/blog/setup-vs-requirement/>`_
+
+See also:
 
 * :ref:`Requirements File Format`
 * :ref:`pip freeze`
@@ -215,6 +233,8 @@ If you would like to perform a non-recursive upgrade perform these 2 steps::
 The first line will upgrade `SomePackage`, but not dependencies like `AnotherPackage`.  The 2nd line will fill in new dependencies like `OneMorePackage`.
 
 
+.. _`Repeatability`:
+
 Ensuring Repeatability
 **********************
 
@@ -361,3 +381,4 @@ setuptools>=0.7) by themselves cannot prevent this kind of problem.
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
+.. _PyPI: https://pypi.python.org
