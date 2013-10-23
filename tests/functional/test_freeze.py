@@ -238,3 +238,23 @@ def test_freeze_with_requirement_option(script):
         INITools==0.2
         """) + ignores + "## The following requirements were added by pip --freeze:..."
     _check_output(result, expected)
+
+def test_freeze_user():
+    """
+    Based on test_freeze_basic. --user flag passed to install and to freeze
+    """
+    env = reset_env(system_site_packages=True)
+    write_file('initools-req.txt', textwrap.dedent("""\
+        INITools==0.2
+        # and something else to test out:
+        MarkupSafe<=0.12
+        """))
+    result = run_pip('install', '--user', '-r', env.scratch_path/'initools-req.txt')
+    result = run_pip('freeze', '--user', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze
+        -- stdout: --------------------
+        INITools==0.2
+        MarkupSafe==0.12...
+        <BLANKLINE>""")
+    _check_output(result, expected)
