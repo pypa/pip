@@ -26,6 +26,10 @@ class VirtualEnvironment(object):
         self.pip_source_dir = kwargs.pop("pip_source_dir")
         self._system_site_packages = kwargs.pop("system_site_packages", False)
 
+        home, lib, inc, bin = _virtualenv.path_locations(self.location)
+        self.lib = Path(lib)
+        self.bin = Path(bin)
+
         super(VirtualEnvironment, self).__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -48,7 +52,7 @@ class VirtualEnvironment(object):
 
         # Install our development version of pip install the virtual
         # environment
-        cmd = [self.location.join("bin", "python"), "setup.py", "develop"]
+        cmd = [self.bin.join("python"), "setup.py", "develop"]
         p = subprocess.Popen(
             cmd,
             cwd=self.pip_source_dir,
@@ -70,8 +74,7 @@ class VirtualEnvironment(object):
 
     @system_site_packages.setter
     def system_site_packages(self, value):
-        _, lib, _, _ = _virtualenv.path_locations(self.location)
-        marker = Path(lib).join("no-global-site-packages.txt")
+        marker = self.lib.join("no-global-site-packages.txt")
         if value:
             marker.rm()
         else:
