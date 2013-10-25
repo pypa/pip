@@ -53,6 +53,17 @@ class Subversion(VersionControl):
             return rest, rev
         return None, None
 
+    def extract_rev_from_path(self, path):
+        """
+        Returns (path, rev) from a string represeting the path.
+        Unlike most VCS, we need to keep the the @REV to the URL.
+        cf. http://svnbook.red-bean.com/en/1.7/svn-book.html#svn.advanced.pegrevs
+        """
+        rev = None
+        if '@' in path:
+            dont_care, rev = path.rsplit('@', 1)
+        return path, rev
+
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
