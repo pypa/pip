@@ -87,9 +87,9 @@ class WheelCommand(Command):
         try:
             import wheel.bdist_wheel
         except ImportError:
-            raise CommandError("'pip wheel' requires bdist_wheel from the 'wheel' distribution.")
+            raise CommandError("'pip wheel' requires the 'wheel' package. To fix this, run:  pip install wheel")
         if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires setuptools >= 0.8 for dist-info support.")
+            raise CommandError("'pip wheel' requires setuptools>=0.8. To fix this, run: pip install --upgrade setuptools")
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
