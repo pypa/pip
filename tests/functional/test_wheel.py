@@ -17,7 +17,7 @@ def test_pip_wheel_fails_without_wheel(script, data):
     Test 'pip wheel' fails without wheel
     """
     result = script.pip('wheel', '--no-index', '-f', data.find_links, 'simple==3.0', expect_error=True)
-    assert "'pip wheel' requires bdist_wheel" in result.stdout
+    assert "'pip wheel' requires the 'wheel' package" in result.stdout
 
 
 def test_pip_wheel_success(script, data):
