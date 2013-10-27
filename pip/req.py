@@ -670,6 +670,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
                 logger.warn('Could not find .egg-info directory in install record for %s' % self)
                 ## FIXME: put the record somewhere
                 ## FIXME: should this be an error?
+                f.close()
                 return
             f.close()
             new_lines = []
