@@ -135,7 +135,7 @@ def test_install_dev_version_from_pypi(script):
     """
     result = script.pip('install', 'INITools==dev',
                      '--allow-external', 'INITools',
-                     '--allow-insecure', 'INITools',
+                     '--allow-unverified', 'INITools',
                      expect_error=True)
     assert (script.site_packages / 'initools') in result.files_created, str(result.stdout)
 

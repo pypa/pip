@@ -349,7 +349,7 @@ def test_finder_finds_external_links_without_hashes_per_project(data):
     # using a local index
     finder = PackageFinder([], [data.index_url("externals")],
                 allow_external=["bar"],
-                allow_insecure=["bar"],
+                allow_unverified=["bar"],
             )
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-3.0.tar.gz"
@@ -365,7 +365,7 @@ def test_finder_finds_external_links_without_hashes_all(data):
     # using a local index
     finder = PackageFinder([], [data.index_url("externals")],
                 allow_all_external=True,
-                allow_insecure=["bar"],
+                allow_unverified=["bar"],
             )
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-3.0.tar.gz"
@@ -380,7 +380,7 @@ def test_finder_finds_external_links_without_hashes_scraped_per_project(data):
     # using a local index
     finder = PackageFinder([], [data.index_url("externals")],
                 allow_external=["bar"],
-                allow_insecure=["bar"],
+                allow_unverified=["bar"],
             )
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-4.0.tar.gz"
@@ -396,7 +396,7 @@ def test_finder_finds_external_links_without_hashes_scraped_all(data):
     # using a local index
     finder = PackageFinder([], [data.index_url("externals")],
                 allow_all_external=True,
-                allow_insecure=["bar"],
+                allow_unverified=["bar"],
             )
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-4.0.tar.gz"

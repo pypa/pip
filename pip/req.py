@@ -1487,9 +1487,13 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             finder.allow_external = False
         elif line.startswith("--no-allow-insecure"):
             finder.allow_all_insecure = False
+        # Remove after 1.7
         elif line.startswith("--allow-insecure"):
             line = line[len("--allow-insecure"):].strip().lstrip("=")
-            finder.allow_insecure |= set([normalize_name(line).lower()])
+            finder.allow_unverified |= set([normalize_name(line).lower()])
+        elif line.startswith("--allow-unverified"):
+            line = line[len("--allow-unverified"):].strip().lstrip("=")
+            finder.allow_unverified |= set([normalize_name(line).lower()])
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):

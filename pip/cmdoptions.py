@@ -217,6 +217,7 @@ allow_all_external = OptionMaker(
     help="Allow the installation of all externally hosted files",
 )
 
+# Remove after 1.7
 no_allow_external = OptionMaker(
     "--no-allow-external",
     dest="allow_all_external",
@@ -225,15 +226,17 @@ no_allow_external = OptionMaker(
     help=SUPPRESS_HELP,
 )
 
+# Remove --allow-insecure after 1.7
 allow_unsafe = OptionMaker(
-    "--allow-insecure",
-    dest="allow_insecure",
+    "--allow-unverified", "--allow-insecure",
+    dest="allow_unverified",
     action="append",
     default=[],
     metavar="PACKAGE",
     help="Allow the installation of insecure and unverifiable files",
 )
 
+# Remove after 1.7
 no_allow_unsafe = OptionMaker(
     "--no-allow-insecure",
     dest="allow_all_insecure",

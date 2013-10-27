@@ -61,7 +61,7 @@ class ListCommand(Command):
         return PackageFinder(find_links=options.find_links,
                              index_urls=index_urls,
                              allow_external=options.allow_external,
-                             allow_insecure=options.allow_insecure,
+                             allow_unverified=options.allow_unverified,
                              allow_all_external=options.allow_all_external,
                              allow_all_prereleases=options.pre,
                              session=session,

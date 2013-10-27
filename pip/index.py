@@ -37,7 +37,7 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_wheel=False, allow_external=[], allow_insecure=[],
+            use_wheel=False, allow_external=[], allow_unverified=[],
             allow_all_external=False, allow_all_insecure=False,
             allow_all_prereleases=False, session=None):
         self.find_links = find_links
@@ -53,7 +53,9 @@ class PackageFinder(object):
         self.allow_external = set(normalize_name(n) for n in allow_external)
 
         # Which names are allowed to install insecure and unverifiable files?
-        self.allow_insecure = set(normalize_name(n) for n in allow_insecure)
+        self.allow_unverified = set(
+            normalize_name(n) for n in allow_unverified
+        )
 
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
@@ -268,7 +270,8 @@ class PackageFinder(object):
 
             if self.need_warn_insecure:
                 logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-insecure %s to allow)." % req.name)
+                            " (use --allow-unverified %s to allow)." %
+                            req.name)
 
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
@@ -312,7 +315,8 @@ class PackageFinder(object):
 
             if self.need_warn_insecure:
                 logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-insecure %s to allow)." % req.name)
+                            " (use --allow-unverified %s to allow)." %
+                            req.name)
 
             raise DistributionNotFound('No distributions matching the version for %s' % req)
         if applicable_versions[0][1] is InfLink:
@@ -397,7 +401,7 @@ class PackageFinder(object):
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalized in self.allow_insecure
+                        and not normalized in self.allow_unverified
                         and not self.allow_all_insecure):
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
@@ -514,7 +518,8 @@ class PackageFinder(object):
 
         if (link.verifiable is not None
                 and not link.verifiable
-                and not normalize_name(search_name).lower() in self.allow_insecure
+                and not (normalize_name(search_name).lower()
+                    in self.allow_unverified)
                 and not self.allow_all_insecure):
             # We have a link that we are sure we cannot verify it's integrity,
             #   so we should skip it unless we are allowing unsafe installs
