@@ -1483,10 +1483,12 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             finder.allow_external |= set([normalize_name(line).lower()])
         elif line.startswith("--allow-all-external"):
             finder.allow_all_external = True
+        # Remove in 1.7
         elif line.startswith("--no-allow-external"):
-            finder.allow_external = False
+            pass
+        # Remove in 1.7
         elif line.startswith("--no-allow-insecure"):
-            finder.allow_all_insecure = False
+            pass
         # Remove after 1.7
         elif line.startswith("--allow-insecure"):
             line = line[len("--allow-insecure"):].strip().lstrip("=")

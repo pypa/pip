@@ -38,8 +38,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
             use_wheel=False, allow_external=[], allow_unverified=[],
-            allow_all_external=False, allow_all_insecure=False,
-            allow_all_prereleases=False, session=None):
+            allow_all_external=False, allow_all_prereleases=False,
+            session=None):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -59,9 +59,6 @@ class PackageFinder(object):
 
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
-
-        # Do we allow unsafe and unverifiable files?
-        self.allow_all_insecure = allow_all_insecure
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
@@ -401,8 +398,7 @@ class PackageFinder(object):
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalized in self.allow_unverified
-                        and not self.allow_all_insecure):
+                        and not normalized in self.allow_unverified):
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
                                 "verifiable files." % link)
@@ -519,8 +515,7 @@ class PackageFinder(object):
         if (link.verifiable is not None
                 and not link.verifiable
                 and not (normalize_name(search_name).lower()
-                    in self.allow_unverified)
-                and not self.allow_all_insecure):
+                    in self.allow_unverified)):
             # We have a link that we are sure we cannot verify it's integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
