@@ -46,7 +46,7 @@ Changelog
   previous build dir from being cleaned in all cases (Pull #1162).
 
 * Renamed --allow-insecure to --allow-unverified, however the old name will
-  continue to work for a period of time.
+  continue to work for a period of time (Pull #1257).
 
 
 1.4.1 (2013-08-07)
