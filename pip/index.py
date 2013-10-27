@@ -66,7 +66,7 @@ class PackageFinder(object):
 
         # Stores if we ignored any unsafe links so that we can instruct
         #   end users how to install them if no distributions are available
-        self.need_warn_insecure = False
+        self.need_warn_unverified = False
 
         # Do we want to allow _all_ pre-releases?
         self.allow_all_prereleases = allow_all_prereleases
@@ -265,7 +265,7 @@ class PackageFinder(object):
                 logger.warn("Some externally hosted files were ignored (use "
                             "--allow-external %s to allow)." % req.name)
 
-            if self.need_warn_insecure:
+            if self.need_warn_unverified:
                 logger.warn("Some insecure and unverifiable files were ignored"
                             " (use --allow-unverified %s to allow)." %
                             req.name)
@@ -310,7 +310,7 @@ class PackageFinder(object):
                 logger.warn("Some externally hosted files were ignored (use "
                             "--allow-external to allow).")
 
-            if self.need_warn_insecure:
+            if self.need_warn_unverified:
                 logger.warn("Some insecure and unverifiable files were ignored"
                             " (use --allow-unverified %s to allow)." %
                             req.name)
@@ -402,7 +402,7 @@ class PackageFinder(object):
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
                                 "verifiable files." % link)
-                    self.need_warn_insecure = True
+                    self.need_warn_unverified = True
                     continue
 
                 all_locations.append(link)
@@ -521,7 +521,7 @@ class PackageFinder(object):
             #   for this requirement.
             logger.debug("Skipping %s because it is an insecure and "
                          "unverifiable file." % link)
-            self.need_warn_insecure = True
+            self.need_warn_unverified = True
             return []
 
         match = self._py_version_re.search(version)
