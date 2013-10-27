@@ -285,12 +285,14 @@ class PackageFinder(object):
                 logger.info("Ignoring link %s, version %s doesn't match %s"
                             % (link, version, ','.join([''.join(s) for s in req.req.specs])))
                 continue
-            elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
-                # If this version isn't the already installed one, then
-                #   ignore it if it's a pre-release.
-                if link is not InfLink:
-                    logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
-                    continue
+            elif is_prerelease(version):
+                prerelease_versions.append(parsed_version)
+                if not (self.allow_all_prereleases or req.prereleases):
+                    # If this version isn't the already installed one, then
+                    #   ignore it if it's a pre-release.
+                    if link is not InfLink:
+                        logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
+                        continue
             applicable_versions.append((parsed_version, link, version))
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
@@ -315,7 +317,10 @@ class PackageFinder(object):
                             " (use --allow-unverified %s to allow)." %
                             req.name)
 
-            raise DistributionNotFound('No distributions matching the version for %s' % req)
+            if not prerelease_versions:
+                raise DistributionNotFound('No distributions matching the version for %s' % req)
+            else:
+                raise DistributionNotFound('No stable versions found for %s, use --pre switch to install a pre-release.' % req)
         if applicable_versions[0][1] is InfLink:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
