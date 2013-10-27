@@ -153,13 +153,10 @@ files for all projects may be enabled using the
 command.
 
 The ``pip install`` command also supports a
-:ref:`--allow-insecure PROJECT <--allow-insecure>` option that will enable
+:ref:`--allow-unverified PROJECT <--allow-unverified>` option that will enable
 installing insecurely linked files. These are either directly linked (as above)
 files without a hash, or files that are linked from either the home page or the
 download url of a package.
-
-In order to get the future behavior in v1.4 the ``pip install`` command
-supports a ``--no-allow-external`` and ``--no-allow-insecure`` flags.
 
 .. _`VCS Support`:
 
