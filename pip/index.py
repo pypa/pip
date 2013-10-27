@@ -280,6 +280,7 @@ class PackageFinder(object):
         #this is an intentional priority ordering
         all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
         applicable_versions = []
+        prerelease_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
                 logger.info("Ignoring link %s, version %s doesn't match %s"
