@@ -1,4 +1,5 @@
 import datetime
+import json
 import sys
 import shutil
 import os
@@ -724,48 +725,57 @@ def latest_version_check(session, frequency=24 * 60 * 60):
     """
     Attempt to determine if we're using the latest version of pip or not. Keeps
     a small state file stored in ~/.pip/ to store when the last time we checked
-    was. This enables us to only display the warning every so often.
+    was and what the version was.
     """
+    pypi_version = None
+
     try:
         import pip  # imported here to prevent circular imports
 
-        storage_format = "%Y-%m-%dT%H:%M:%S"
-        statefile_path = os.path.expanduser(
-            os.path.join("~/.pip/versioncheck"),
-        )
         current_time = datetime.datetime.utcnow()
+
+        fmt = "%Y-%m-%dT%H:%M:%S"
+        statefile_path = os.path.expanduser("~/.pip/versioncheck")
+
+        # Load the existing state
         try:
             with open(statefile_path) as statefile:
-                last_check = datetime.datetime.strptime(
-                    statefile.read().strip(),
-                    storage_format,
-                )
-
-            if (current_time - last_check).total_seconds() < frequency:
-                return
+                state = json.load(statefile)
         except (IOError, ValueError):
-            pass
+            state = {}
 
-        # If we've made it this far it means we need to check the version
-        resp = session.get("https://pypi.python.org/pypi/pip/json",
-            headers={"Accept": "application/json"},
-        )
-        resp.raise_for_status()
-        latest_pip = resp.json()["info"]["version"]
+        # Determine if we need to refresh the state
+        if "last-check" in state and "version" in state:
+            last_check = datetime.datetime.strptime(state["last-check"], fmt)
+            if (current_time - last_check).total_seconds() < frequency:
+                pypi_version = state["version"]
 
+        # Refresh the version if we need to
+        if pypi_version is None:
+            resp = session.get("https://pypi.python.org/pypi/pip/json",
+                headers={"Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            pypi_version = resp.json()["info"]["version"]
+
+        # Determine if our pypi_version is older
         need_update = (pkg_resources.parse_version(pip.__version__)
-                            < pkg_resources.parse_version(latest_pip))
+                            < pkg_resources.parse_version(pypi_version))
+        if need_update:
+            logger.warn(
+                "You are using pip version %s, however version %s is "
+                "available. You should consider upgrading via the pip install "
+                "--upgrade pip command." % (pip.__version__, pypi_version))
 
-        try:
-            with open(statefile_path, "w") as statefile:
-                statefile.write(current_time.strftime(storage_format))
-        finally:
-            if need_update:
-                logger.warn(
-                    "You are using pip version %s, however version"
-                    " %s is available. You should consider upgrading via the "
-                    "pip install --upgrade pip command." %
-                    (pip.__version__, latest_pip))
+        # Attempt to write out our version check file
+        with open(statefile_path, "w") as statefile:
+            json.dump(
+                {
+                    "last-check": current_time.strftime(fmt),
+                    "pypi_version": pypi_version,
+                },
+                statefile,
+            )
     except Exception:
         logger.debug(
             "There was an error checking the latest version of pip",
