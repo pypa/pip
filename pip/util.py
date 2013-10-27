@@ -721,7 +721,7 @@ def is_prerelease(vers):
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
 
 
-def latest_version_check(session, frequency=24 * 60 * 60):
+def latest_version_check(session, frequency=7 * 24 * 60 * 60):
     """
     Attempt to determine if we're using the latest version of pip or not. Keeps
     a small state file stored in ~/.pip/ to store when the last time we checked
