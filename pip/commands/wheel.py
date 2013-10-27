@@ -115,7 +115,7 @@ class WheelCommand(Command):
                                index_urls=index_urls,
                                use_wheel=options.use_wheel,
                                allow_external=options.allow_external,
-                               allow_insecure=options.allow_insecure,
+                               allow_unverified=options.allow_unverified,
                                allow_all_external=options.allow_all_external,
                                allow_all_prereleases=options.pre,
                                session=session,
