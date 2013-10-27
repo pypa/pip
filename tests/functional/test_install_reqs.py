@@ -101,7 +101,10 @@ def test_respect_order_in_requirements_file(script, data):
 
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.join("LocalExtras")
-    res = script.pip('install', '-e', to_install + '[bar]', expect_error=False)
+    res = script.pip(
+        'install', '-e', to_install + '[bar]', '--process-dependency-links',
+        expect_error=False,
+    )
     assert script.site_packages/'easy-install.pth' in res.files_updated, str(result)
     assert script.site_packages/'LocalExtras.egg-link' in res.files_created, str(result)
     assert script.site_packages/'simple' in res.files_created, str(result)

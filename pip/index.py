@@ -39,7 +39,7 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
             use_wheel=False, allow_external=[], allow_unverified=[],
             allow_all_external=False, allow_all_prereleases=False,
-            session=None):
+            process_dependency_links=False, session=None):
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
@@ -71,6 +71,9 @@ class PackageFinder(object):
         # Do we want to allow _all_ pre-releases?
         self.allow_all_prereleases = allow_all_prereleases
 
+        # Do we process dependency links?
+        self.process_dependency_links = process_dependency_links
+
         # The Session we'll use to make requests
         self.session = session or PipSession()
 
@@ -89,7 +92,8 @@ class PackageFinder(object):
         ## apply to requirements of the package that specifies the
         ## dependency_links value
         ## FIXME: also, we should track comes_from (i.e., use Link)
-        self.dependency_links.extend(links)
+        if self.process_dependency_links:
+            self.dependency_links.extend(links)
 
     def _sort_locations(self, locations):
         """
