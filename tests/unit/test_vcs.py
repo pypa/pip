@@ -30,7 +30,7 @@ def test_bazaar_simple_urls():
 
 def test_svn_extra_rev_from_url():
     svn_repo_w_rev = Subversion(url="svn+svn://example.com/path/to/project@100")
-    assert svn_repo_w_rev.get_url_rev() == ("svn://example.com/path/to/project@100", 100)
+    assert svn_repo_w_rev.get_url_rev() == ("svn://example.com/path/to/project@100", '100')
 
     svn_repo_wo_rev = Subversion(url="svn+svn://example.com/path/to/project")
-    assert svn_repo_w_rev.get_url_rev() == ("svn://example.com/path/to/project", None)
+    assert svn_repo_wo_rev.get_url_rev() == ("svn://example.com/path/to/project", None)
