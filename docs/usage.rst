@@ -2,6 +2,20 @@
 Usage
 ==========
 
+pip
+---
+
+Usage
+*****
+
+::
+
+ pip <command> [options]
+
+
+Options
+*******
+
 .. _`General Options`:
 
 **General Options:**
