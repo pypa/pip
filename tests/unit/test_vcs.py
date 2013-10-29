@@ -1,5 +1,6 @@
 from tests.lib import pyversion
 from pip.vcs.bazaar import Bazaar
+from pip.vcs.subversion import Subversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -27,3 +28,9 @@ def test_bazaar_simple_urls():
     assert sftp_bzr_repo.get_url_rev() == ('sftp://bzr.myproject.org/MyProject/trunk/', None)
     assert launchpad_bzr_repo.get_url_rev() == ('lp:MyLaunchpadProject', None)
 
+def test_svn_extra_rev_from_url():
+    svn_repo_w_rev = Subversion(url="svn+svn://example.com/path/to/project@100")
+    assert svn_repo_w_rev.get_url_rev() == ("svn://example.com/path/to/project@100", '100')
+
+    svn_repo_wo_rev = Subversion(url="svn+svn://example.com/path/to/project")
+    assert svn_repo_wo_rev.get_url_rev() == ("svn://example.com/path/to/project", None)

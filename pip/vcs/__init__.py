@@ -124,11 +124,19 @@ class VersionControl(object):
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        path, rev = self.extract_rev_from_path(path)
+        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
+        return url, rev
+
+    def extract_rev_from_path(self, path):
+        """
+        Returns (path, rev) from a string represeting the path
+        """
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
-        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
-        return url, rev
+        return path, rev
+
 
     def get_info(self, location):
         """
