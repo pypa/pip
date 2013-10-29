@@ -1,3 +1,4 @@
+import os
 import pytest
 from tests.lib.path import Path
 
@@ -102,3 +103,77 @@ def test_install_user_wheel(script, virtualenv, data):
     assert egg_info_folder in result.files_created, str(result)
     script_file = script.user_bin / 'script.py'
     assert script_file in result.files_created
+
+def test_install_from_wheel_gen_entrypoint(script, data):
+    """
+    Test installing scripts (entry points are generated)
+    """
+    result = script.pip('install', 'script.wheel1a==0.1', '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links,
+                     expect_error=False)
+    if os.name == 'nt':
+        wrapper_file = script.bin / 't1.exe'
+    else:
+        wrapper_file = script.bin / 't1'
+    assert wrapper_file in result.files_created
+
+def test_install_from_wheel_with_legacy(script, data):
+    """
+    Test installing scripts (legacy scripts are preserved)
+    """
+    result = script.pip('install', 'script.wheel2a==0.1', '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links,
+                     expect_error=False)
+
+    legacy_file1 = script.bin / 'testscript1.bat'
+    legacy_file2 = script.bin / 'testscript2'
+
+    assert legacy_file1 in result.files_created
+    assert legacy_file2 in result.files_created
+
+def test_install_from_wheel_no_setuptools_entrypoint(script, data):
+    """
+    Test installing scripts (setuptools entrypoints are omitted)
+    """
+    result = script.pip('install', 'script.wheel1==0.1', '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links,
+                     expect_error=False)
+    if os.name == 'nt':
+        wrapper_file = script.bin / 't1.exe'
+    else:
+        wrapper_file = script.bin / 't1'
+    wrapper_helper = script.bin / 't1-script.py'
+
+    assert wrapper_file in result.files_created
+    assert wrapper_helper not in result.files_created
+
+
+def test_skipping_setuptools_doesnt_skip_legacy(script, data):
+    """
+    Test installing scripts (legacy scripts are preserved even when we skip setuptools wrappers)
+    """
+    result = script.pip('install', 'script.wheel2==0.1', '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links,
+                     expect_error=False)
+
+    legacy_file1 = script.bin / 'testscript1.bat'
+    legacy_file2 = script.bin / 'testscript2'
+    wrapper_helper = script.bin / 't1-script.py'
+
+    assert legacy_file1 in result.files_created
+    assert legacy_file2 in result.files_created
+    assert wrapper_helper not in result.files_created
+
+def test_install_from_wheel_gui_entrypoint(script, data):
+    """
+    Test installing scripts (gui entry points are generated)
+    """
+    result = script.pip('install', 'script.wheel3==0.1', '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links,
+                     expect_error=False)
+    if os.name == 'nt':
+        wrapper_file = script.bin / 't1.exe'
+    else:
+        wrapper_file = script.bin / 't1'
+    assert wrapper_file in result.files_created
+
