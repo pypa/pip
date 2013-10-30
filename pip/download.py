@@ -16,7 +16,8 @@ from pip.backwardcompat import urllib, urlparse, raw_input
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download)
+                      create_download_cache_folder, cache_download,
+                      shorten_filename)
 from pip.vcs import vcs
 from pip.log import logger
 from pip._vendor import requests
@@ -483,23 +484,23 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     target_url = link.url.split('#', 1)[0]
 
     already_cached = False
-    cache_file = None
-    cache_content_type_file = None
+    cache_path = None
+    cache_content_type_path = None
     download_hash = None
     if download_cache:
-        cache_file = os.path.join(download_cache,
-                                   urllib.quote(target_url, ''))
-        cache_content_type_file = cache_file + '.content-type'
+        cache_file = urllib.quote(target_url, '')
+        cache_path = os.path.join(download_cache, shorten_filename(cache_file))
+        cache_content_type_path = os.path.join(download_cache, shorten_filename(cache_file, '.content-type'))
         already_cached = (
-            os.path.exists(cache_file) and
-            os.path.exists(cache_content_type_file)
+            os.path.exists(cache_path) and
+            os.path.exists(cache_content_type_path)
             )
         if not os.path.isdir(download_cache):
             create_download_cache_folder(download_cache)
 
     already_downloaded = None
     if download_dir:
-        already_downloaded = os.path.join(download_dir, link.filename)
+        already_downloaded = os.path.join(download_dir, shorten_filename(link.filename))
         if not os.path.exists(already_downloaded):
             already_downloaded = None
 
@@ -522,12 +523,12 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
 
     # We have a cached file, and we haven't already found a good downloaded copy
     if already_cached and not temp_location:
-        with open(cache_content_type_file) as fp:
+        with open(cache_content_type_path) as fp:
             content_type = fp.read().strip()
-        temp_location = cache_file
-        logger.notify('Using download cache from %s' % cache_file)
+        temp_location = cache_path
+        logger.notify('Using download cache from %s' % cache_path)
         if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(cache_file, link)
+            download_hash = _get_hash_from_file(cache_path, link)
             try:
                 _check_hash(download_hash, link)
             except HashMismatch:
@@ -536,8 +537,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
                     're-downloading.' % temp_location
                     )
                 temp_location = None
-                os.unlink(cache_file)
-                os.unlink(cache_content_type_file)
+                os.unlink(cache_path)
+                os.unlink(cache_content_type_path)
                 already_cached = False
 
     # We don't have either a cached or a downloaded copy
@@ -568,7 +569,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
             ext = os.path.splitext(resp.url)[1]
             if ext:
                 filename += ext
-        temp_location = os.path.join(temp_dir, filename)
+        temp_location = os.path.join(temp_dir, shorten_filename(filename))
         download_hash = _download_url(resp, link, temp_location)
         if link.hash and link.hash_name:
             _check_hash(download_hash, link)
@@ -576,8 +577,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
-    if cache_file and not already_cached:
-        cache_download(cache_file, temp_location, content_type)
+    if cache_path and not already_cached:
+        cache_download(cache_path, temp_location, content_type)
     if not (already_cached or already_downloaded):
         os.unlink(temp_location)
     os.rmdir(temp_dir)
