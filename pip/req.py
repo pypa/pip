@@ -612,7 +612,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
-            self.move_wheel_files(self.source_dir)
+            self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
 
@@ -831,8 +831,13 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         self._bundle_build_dirs = bundle_build_dirs
         self._bundle_editable_dirs = bundle_editable_dirs
 
-    def move_wheel_files(self, wheeldir):
-        move_wheel_files(self.name, self.req, wheeldir, user=self.use_user_site, home=self.target_dir)
+    def move_wheel_files(self, wheeldir, root=None):
+        move_wheel_files(
+            self.name, self.req, wheeldir,
+            user=self.use_user_site,
+            home=self.target_dir,
+            root=root,
+        )
 
     @property
     def delete_marker_filename(self):
