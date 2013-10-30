@@ -41,7 +41,7 @@ def test_editable_install(script):
     Test editable installation.
     """
     result = script.pip('install', '-e', 'INITools==0.2', expect_error=True)
-    assert "INITools==0.2 should either by a path to a local project or a VCS url" in result.stdout
+    assert "INITools==0.2 should either be a path to a local project or a VCS url" in result.stdout
     assert len(result.files_created) == 1, result.files_created
     assert not result.files_updated, result.files_updated
 
