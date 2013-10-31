@@ -276,7 +276,10 @@ class ScriptMaker(object):
             else:
                 bits = '32'
             name = '%s%s.exe' % (kind, bits)
-            result = finder('distlib').find(name).bytes
+            # Issue 31: don't hardcode an absolute package name, but
+            # determine it relative to the current package
+            distlib_package = __name__.rsplit('.', 1)[0]
+            result = finder(distlib_package).find(name).bytes
             return result
 
     # Public API follows

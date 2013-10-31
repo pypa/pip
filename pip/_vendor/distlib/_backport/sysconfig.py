@@ -69,7 +69,8 @@ def _ensure_cfg_read():
     global _cfg_read
     if not _cfg_read:
         from distlib.resources import finder
-        _finder = finder('distlib._backport')
+        backport_package = __name__.rsplit('.', 1)[0]
+        _finder = finder(backport_package)
         _cfgfile = _finder.find('sysconfig.cfg')
         assert _cfgfile, 'sysconfig.cfg exists'
         with _cfgfile.as_stream() as s:
