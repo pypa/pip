@@ -153,4 +153,10 @@ def distutils_scheme(dist_name, user=False, home=None, root=None):
                                     'python' + sys.version[:3],
                                     dist_name)
 
+        if root is not None:
+            scheme["headers"] = os.path.join(
+                root,
+                os.path.abspath(scheme["headers"])[1:],
+            )
+
     return scheme
