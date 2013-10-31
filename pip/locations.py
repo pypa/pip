@@ -127,7 +127,7 @@ else:
         default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
 
 
-def distutils_scheme(dist_name, user=False, home=None):
+def distutils_scheme(dist_name, user=False, home=None, root=None):
     """
     Return a distutils install scheme
     """
@@ -141,6 +141,7 @@ def distutils_scheme(dist_name, user=False, home=None):
     # ideally, we'd prefer a scheme class that has no side-effects.
     i.user = user or i.user
     i.home = home or i.home
+    i.root = root or i.root
     i.finalize_options()
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, 'install_'+key)
@@ -151,5 +152,11 @@ def distutils_scheme(dist_name, user=False, home=None):
                                     'site',
                                     'python' + sys.version[:3],
                                     dist_name)
+
+        if root is not None:
+            scheme["headers"] = os.path.join(
+                root,
+                os.path.abspath(scheme["headers"])[1:],
+            )
 
     return scheme

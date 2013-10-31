@@ -57,6 +57,16 @@ def test_install_wheel_with_target(script, data):
     assert Path('scratch')/'target'/'simpledist' in result.files_created, str(result)
 
 
+def test_install_wheel_with_root(script, data):
+    """
+    Test installing a wheel using pip install --root
+    """
+    root_dir = script.scratch_path/'root'
+    result = script.pip('install', 'simple.dist==0.1', '--root', root_dir, '--use-wheel',
+                     '--no-index', '--find-links='+data.find_links)
+    assert Path('scratch')/'root' in result.files_created
+
+
 def test_install_from_wheel_installs_deps(script, data):
     """
     Test can install dependencies of wheels

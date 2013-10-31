@@ -13,6 +13,8 @@ import pytest
 from mock import Mock
 import pip
 
+from pip.locations import distutils_scheme
+
 if sys.platform == 'win32':
    pwd = Mock()
 else:
@@ -120,3 +122,14 @@ class TestLocations:
         from pip import locations
         os.mkdir(self.get_build_dir_location())
         locations._get_build_prefix()
+
+
+class TestDisutilsScheme:
+
+    def test_root_modifies_appropiately(self):
+        norm_scheme = distutils_scheme("example")
+        root_scheme = distutils_scheme("example", root="/test/root/")
+
+        for key, value in norm_scheme.items():
+            expected = os.path.join("/test/root/", os.path.abspath(value)[1:])
+            assert root_scheme[key] == expected

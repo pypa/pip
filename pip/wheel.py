@@ -103,10 +103,10 @@ def root_is_purelib(name, wheeldir):
                         return True
     return False
 
-def move_wheel_files(name, req, wheeldir, user=False, home=None):
+def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     """Install a wheel"""
 
-    scheme = distutils_scheme(name, user=user, home=home)
+    scheme = distutils_scheme(name, user=user, home=home, root=root)
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
