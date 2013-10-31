@@ -70,3 +70,12 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '--log', log_path, '--log-file', log_file_path])
         assert 'fake' == open(log_path).read().strip()[:4]
         assert 'fake' == open(log_file_path).read().strip()[:4]
+
+    def test_verbose_quiet(self):
+        """
+        Test additive quality of -v and -q
+        """
+        cmd = FakeCommand()
+        cmd.main(['fake', '-vqq'])
+        console_level = logger.consumers[0][0]
+        assert console_level == logger.WARN

@@ -75,6 +75,19 @@ class TestOptionPrecedence(object):
         options, args = main(['fake'])
         assert options.exists_action == ['s', 'w']
 
+    def test_env_alias_override_default(self):
+        """
+        When an option has multiple long forms, test that the technique of using
+        the env variable, "PIP_<long form>" works for all cases.
+        (e.g. PIP_LOG_FILE and PIP_LOCAL_LOG should all work)
+        """
+        os.environ['PIP_LOG_FILE'] = 'override.log'
+        options, args = main(['fake'])
+        assert options.log_file == 'override.log'
+        os.environ['PIP_LOCAL_LOG'] = 'override.log'
+        options, args = main(['fake'])
+        assert options.log_file == 'override.log'
+
     def test_cli_override_environment(self):
         """
         Test the cli overrides and environment variable

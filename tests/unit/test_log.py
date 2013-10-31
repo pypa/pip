@@ -61,3 +61,14 @@ def test_log_no_extra_line_break():
     assert 1 == len(consumer1.getvalue().splitlines(True))
     assert 1 == len(consumer2.getvalue().splitlines(True))
 
+def test_level_for_integer():
+    logger = Logger()
+    assert logger.VERBOSE_DEBUG == logger.level_for_integer(-1000)
+    assert logger.VERBOSE_DEBUG == logger.level_for_integer(0)
+    assert logger.DEBUG == logger.level_for_integer(1)
+    assert logger.INFO == logger.level_for_integer(2)
+    assert logger.NOTIFY == logger.level_for_integer(3)
+    assert logger.WARN == logger.level_for_integer(4)
+    assert logger.ERROR == logger.level_for_integer(5)
+    assert logger.FATAL == logger.level_for_integer(6)
+    assert logger.FATAL == logger.level_for_integer(1000)
