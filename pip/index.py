@@ -489,7 +489,10 @@ class PackageFinder(object):
                 #   on linux that deals with the inherent problems of binary
                 #   distribution this can be removed.
                 comes_from = getattr(link, "comes_from", None)
-                if (not platform.startswith('win')
+                if ((
+                        not platform.startswith('win')
+                        and not platform.startswith('macosx')
+                    )
                     and comes_from is not None
                     and urlparse.urlparse(comes_from.url).netloc.endswith(
                                                         "pypi.python.org")):
