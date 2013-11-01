@@ -133,7 +133,8 @@ def test_install_from_wheel_with_legacy(script, data):
 
 def test_install_from_wheel_no_setuptools_entrypoint(script, data):
     """
-    Test installing scripts (setuptools entrypoints are omitted)
+    Test that when we generate scripts, any existing setuptools wrappers in
+    the wheel are skipped.
     """
     result = script.pip('install', 'script.wheel1==0.1', '--use-wheel',
                      '--no-index', '--find-links='+data.find_links,
@@ -144,6 +145,11 @@ def test_install_from_wheel_no_setuptools_entrypoint(script, data):
         wrapper_file = script.bin / 't1'
     wrapper_helper = script.bin / 't1-script.py'
 
+    # The wheel has t1.exe and t1-script.py. We will be generating t1 or
+    # t1.exe depending on the platform. So we check that the correct wrapper
+    # is present and that the -script.py helper has been skipped. We can't
+    # easily test that the wrapper from the wheel has been skipped /
+    # overwritten without getting very platform-dependent, so omit that.
     assert wrapper_file in result.files_created
     assert wrapper_helper not in result.files_created
 

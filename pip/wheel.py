@@ -131,6 +131,11 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     info_dir = []
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
+
+    # Record details of the files moved
+    #   installed = files copied from the wheel to the destination
+    #   changed = files changed while installing (scripts #! line typically)
+    #   generated = files newly generated during the install (script wrappers)
     installed = {}
     changed = set()
     generated = []
@@ -215,6 +220,24 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     maker.variants = set(('', ))
 
     # Special case pip and setuptools to generate versioned wrappers
+    #
+    # The issue is that some projects (specifically, pip and setuptools) use
+    # code in setup.py to create "versioned" entry points - pip2.7 on Python
+    # 2.7, pip3.3 on Python 3.3, etc. But these entry points are baked into
+    # the wheel metadata at build time, and so if the wheel is installed with
+    # a *different* version of Python the entry points will be wrong. The
+    # correct fix for this is to enhance the metadata to be able to describe
+    # such versioned entry points, but that won't happen till Metadata 2.0 is
+    # available.
+    # In the meantime, projects using versioned entry points will either have
+    # incorrect versioned entry points, or they will not be able to distribute
+    # "universal" wheels (i.e., they will need a wheel per Python version).
+    #
+    # Because setuptools and pip are bundled with _ensurepip and virtualenv,
+    # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
+    # override the versioned entry points in the wheel and generate the
+    # correct ones. This code is purely a short-term measure until Metadat 2.0
+    # is available.
     pip_script = console.pop('pip', None)
     if pip_script:
         spec = 'pip = ' + pip_script
@@ -239,6 +262,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
         for k in easy_install_ep:
             del console[k]
 
+    # Generate the console and GUI entry points specified in the wheel
     if len(console) > 0:
         generated.extend(maker.make_multiple(['%s = %s' % kv for kv in console.items()]))
     if len(gui) > 0:
