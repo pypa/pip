@@ -477,19 +477,20 @@ class PackageFinder(object):
                 if link.wheel.name.lower() != search_name.lower():
                     logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
                     return []
-                version = link.wheel.version
                 if not link.wheel.supported():
                     logger.debug('Skipping %s because it is not compatible with this Python' % link)
                     return []
-
                 # This is a dirty hack to prevent installing Binary Wheels from
-                #   PyPI unless it is a Windows Binary Wheel. This is paired
-                #   with a change to PyPI disabling uploads for the same. Once
-                #   we have a mechanism for enabling support for binary wheels
-                #   on linux that deals with the inherent problems of binary
-                #   distribution this can be removed.
+                # PyPI unless it is a Windows or Mac Binary Wheel. This is
+                # paired with a change to PyPI disabling uploads for the
+                # same. Once we have a mechanism for enabling support for binary
+                # wheels on linux that deals with the inherent problems of
+                # binary distribution this can be removed.
                 comes_from = getattr(link, "comes_from", None)
-                if (not platform.startswith('win')
+                if ((
+                        not platform.startswith('win')
+                        and not platform.startswith('macosx')
+                        )
                     and comes_from is not None
                     and urlparse.urlparse(comes_from.url).netloc.endswith(
                                                         "pypi.python.org")):
@@ -499,6 +500,7 @@ class PackageFinder(object):
                             "Wheel on an unsupported platform" % link
                         )
                         return []
+                version = link.wheel.version
 
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)

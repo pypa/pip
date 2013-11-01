@@ -107,7 +107,8 @@ To install from wheels on PyPI, if they were to exist (which is not likely for t
 
 .. note::
 
-  pip currently disallows non-windows platform-specific wheels from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
+  pip currently disallows platform-specific wheels (except for Windows and Mac)
+  from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
 
 
 To install directly from a wheel archive:
@@ -168,13 +169,12 @@ to be constantly kept up-to-date for security. Regardless of whether a
 compatible pre-build package is available, many Linux users will prefer
 to always compile their own anyway.
 
-On Windows the case for binary wheels on pypi is stronger both because
-Windows machines are much more uniform than Linux and because it's harder
-for the end user to compile their own. Windows-compatible wheels uploaded
-to pypi should be compatible with the Python distributions downloaded
-from http://python.org/.  If you already upload other binary formats to
-pypi, upload wheels as well.  Unlike the older formats, wheels are
-compatible with virtual environments.
+On Windows and Mac, the case for binary wheels on pypi is stronger due to the
+systems being much more uniform than Linux and because it's harder for the end
+user to compile their own. Windows and Mac wheels uploaded to pypi should be
+compatible with the Python distributions downloaded from http://python.org/.  If
+you already upload other binary formats to pypi, upload wheels as well.  Unlike
+the older formats, wheels are compatible with virtual environments.
 
 
 .. _`Downloading Archives`:
