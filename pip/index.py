@@ -73,6 +73,7 @@ class PackageFinder(object):
 
         # Do we process dependency links?
         self.process_dependency_links = process_dependency_links
+        self._have_warned_dependency_links = False
 
         # The Session we'll use to make requests
         self.session = session or PipSession()
@@ -93,6 +94,13 @@ class PackageFinder(object):
         ## dependency_links value
         ## FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
+            if not self._have_warned_dependency_links:
+                logger.deprecated(
+                    "1.6",
+                    "Dependency Links processing has been deprecated with an "
+                    "accelerated time schedule and will be removed in pip 1.6",
+                )
+                self._have_warned_dependency_links = True
             self.dependency_links.extend(links)
 
     def _sort_locations(self, locations):
