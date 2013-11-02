@@ -117,6 +117,9 @@ def test_install_from_wheel_gen_entrypoint(script, data):
         wrapper_file = script.bin / 't1'
     assert wrapper_file in result.files_created
 
+    if os.name != "nt":
+        assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
+
 def test_install_from_wheel_with_legacy(script, data):
     """
     Test installing scripts (legacy scripts are preserved)
