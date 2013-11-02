@@ -137,6 +137,7 @@ class InstallCommand(Command):
             help="Install everything relative to this alternate root directory.")
 
         cmd_opts.add_option(cmdoptions.use_wheel.make())
+        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
 
         cmd_opts.add_option(
             '--pre',

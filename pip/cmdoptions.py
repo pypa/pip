@@ -267,7 +267,17 @@ use_wheel = OptionMaker(
     '--use-wheel',
     dest='use_wheel',
     action='store_true',
-    help='Find and prefer wheel archives when searching indexes and find-links locations. Default to accepting source archives.')
+    help=SUPPRESS_HELP,
+)
+
+no_use_wheel = OptionMaker(
+    '--no-use-wheel',
+    dest='use_wheel',
+    action='store_false',
+    default=True,
+    help=('Do not Find and prefer wheel archives when searching indexes and '
+          'find-links locations.'),
+)
 
 download_cache = OptionMaker(
     '--download-cache',

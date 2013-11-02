@@ -37,7 +37,7 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_wheel=False, allow_external=[], allow_unverified=[],
+            use_wheel=True, allow_external=[], allow_unverified=[],
             allow_all_external=False, allow_all_prereleases=False,
             process_dependency_links=False, session=None):
         self.find_links = find_links
