@@ -199,6 +199,8 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
             matchname = name[:-4]
         elif name.lower().endswith('-script.py'):
             matchname = name[:-10]
+        elif name.lower().endswith(".pya"):
+            matchname = name[:-4]
         else:
             matchname = name
         # Ignore setuptools-generated scripts
