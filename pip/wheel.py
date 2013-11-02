@@ -219,6 +219,11 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     maker = ScriptMaker(None, scheme['scripts'])
     maker.variants = set(('', ))
 
+    # This is required because otherwise distlib creates scripts that are not
+    # executable.
+    # See https://bitbucket.org/pypa/distlib/issue/32/
+    maker.set_mode = True
+
     # Special case pip and setuptools to generate versioned wrappers
     #
     # The issue is that some projects (specifically, pip and setuptools) use
