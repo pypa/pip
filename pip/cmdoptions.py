@@ -316,6 +316,13 @@ no_clean = OptionMaker(
     default=False,
     help="Don't clean up build directories.")
 
+disable_version_check = OptionMaker(
+    "--disable-version-check",
+    dest="disable_version_check",
+    action="store_true",
+    default=False,
+    help="Don't check PyPI for new versions of pip.")
+
 
 ##########
 # groups #
@@ -339,6 +346,7 @@ general_group = {
         skip_requirements_regex,
         exists_action,
         cert,
+        disable_version_check,
         ]
     }
 

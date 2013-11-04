@@ -6,9 +6,15 @@ from pip.log import logger
 class FakeCommand(Command):
     name = 'fake'
     summary = name
+
     def __init__(self, error=False):
         self.error = error
         super(FakeCommand, self).__init__()
+
+    def main(self, args):
+        args.append("--disable-version-check")
+        return super(FakeCommand, self).main(args)
+
     def run(self, options, args):
         logger.info("fake")
         if self.error:
