@@ -219,12 +219,39 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
             clobber(source, dest, False, fixer=fixer, filter=filter)
 
     maker = ScriptMaker(None, scheme['scripts'])
+
+    # Ensure we don't generate any variants for scripts because this is almost
+    # never what somebody wants.
+    # See https://bitbucket.org/pypa/distlib/issue/35/
     maker.variants = set(('', ))
 
     # This is required because otherwise distlib creates scripts that are not
     # executable.
     # See https://bitbucket.org/pypa/distlib/issue/32/
     maker.set_mode = True
+
+    # Simplify the script and fix the fact that the default script swallows
+    # every single stack trace.
+    # See https://bitbucket.org/pypa/distlib/issue/34/
+    # See https://bitbucket.org/pypa/distlib/issue/33/
+    def _get_script_text(entry):
+        return maker.script_template % {
+            "module": entry.prefix,
+            "import_name": entry.suffix.split(".")[0],
+            "func": entry.suffix,
+        }
+
+    maker._get_script_text = _get_script_text
+    maker.script_template = """# -*- coding: utf-8 -*-
+import re
+import sys
+
+from %(module)s import %(import_name)s
+
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
+"""
 
     # Special case pip and setuptools to generate versioned wrappers
     #
