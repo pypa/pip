@@ -144,6 +144,12 @@ class InstallCommand(Command):
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
 
+        cmd_opts.add_option(
+            '--use-2to3',
+            action='store_true',
+            default=False,
+            help="Process packages with 2to3 before installing.")
+
         cmd_opts.add_option(cmdoptions.no_clean.make())
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
@@ -226,6 +232,7 @@ class InstallCommand(Command):
             use_user_site=options.use_user_site,
             target_dir=temp_target_dir,
             session=session,
+            use_2to3=options.use_2to3,
         )
         for name in args:
             requirement_set.add_requirement(

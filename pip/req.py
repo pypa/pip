@@ -873,7 +873,7 @@ class RequirementSet(object):
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False, use_user_site=False,
-                 session=None):
+                 session=None, use_2to3=False):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -893,6 +893,7 @@ class RequirementSet(object):
         self.use_user_site = use_user_site
         self.target_dir = target_dir #set from --target option
         self.session = session or PipSession()
+        self.use_2to3 = use_2to3
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1149,6 +1150,9 @@ class RequirementSet(object):
                                     reqs.append(subreq)
                                     self.add_requirement(subreq)
                         else:
+                            if self.use_2to3:
+                                import lib2to3.main
+                                lib2to3.main.main('lib2to3.fixes', args=['-w', '--no-diffs', location])
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
                             if force_root_egg_info:
