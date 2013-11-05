@@ -135,7 +135,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None):
 
     scheme = {}
     d = Distribution({'name': dist_name})
-    i = install(d)
+    d.parse_config_files()
+    i = d.get_command_obj('install', create=True)
     # NOTE: setting user or home has the side-effect of creating the home dir or
     # user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.

@@ -133,3 +133,12 @@ class TestDisutilsScheme:
         for key, value in norm_scheme.items():
             expected = os.path.join("/test/root/", os.path.abspath(value)[1:])
             assert root_scheme[key] == expected
+
+    def test_distutils_config_file_read(self, tmpdir, monkeypatch):
+       f = tmpdir.mkdir("config").join("setup.cfg")
+       f.write("[install]\ninstall-scripts=/somewhere/else")
+       from distutils.dist import Distribution
+       # patch the function that returns what config files are present
+       monkeypatch.setattr(Distribution, 'find_config_files', lambda self: [f])
+       scheme = distutils_scheme('example')
+       assert scheme['scripts'] == '/somewhere/else'
