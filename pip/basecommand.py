@@ -164,7 +164,7 @@ class Command(object):
                 temp = tempfile.NamedTemporaryFile(delete=False)
                 log_file_fn = temp.name
                 log_file_fp = open_logfile(log_file_fn, 'w')
-            logger.fatal('Storing complete log in %s' % log_file_fn)
+            logger.fatal('Storing debug log for failure in %s' % log_file_fn)
             log_file_fp.write(text)
             log_file_fp.close()
         if log_fp is not None:
