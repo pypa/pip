@@ -2,7 +2,7 @@ import os
 from pip.backwardcompat import urllib
 from tests.lib.path import Path
 from pip.index import package_to_requirement, HTMLPage
-from pip.index import PackageFinder, Link, InfLink
+from pip.index import PackageFinder, Link, INSTALLED_VERSION
 from tests.lib import path_to_url
 from string import ascii_lowercase
 from mock import patch
@@ -52,6 +52,6 @@ def test_sort_locations_file_not_find_link(data):
     assert urls and not files, "urls, but not files should have been found"
 
 
-def test_inflink_greater():
-    """Test InfLink compares greater."""
-    assert InfLink > Link("some link")
+def test_INSTALLED_VERSION_greater():
+    """Test INSTALLED_VERSION compares greater."""
+    assert INSTALLED_VERSION > Link("some link")
