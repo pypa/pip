@@ -159,7 +159,7 @@ class PackageFinder(object):
         parsed_version, link, _ = link_tuple
         if self.use_wheel:
             support_num = len(supported_tags)
-            if link == InfLink: # existing install
+            if link == INSTALLED_VERSION:
                 pri = 1
             elif link.wheel:
                 support_index = link.wheel.support_index_min()
@@ -285,7 +285,7 @@ class PackageFinder(object):
             raise DistributionNotFound('No distributions at all found for %s' % req)
         installed_version = []
         if req.satisfied_by is not None:
-            installed_version = [(req.satisfied_by.parsed_version, InfLink, req.satisfied_by.version)]
+            installed_version = [(req.satisfied_by.parsed_version, INSTALLED_VERSION, req.satisfied_by.version)]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
@@ -300,14 +300,14 @@ class PackageFinder(object):
             elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
                 # If this version isn't the already installed one, then
                 #   ignore it if it's a pre-release.
-                if link is not InfLink:
+                if link is not INSTALLED_VERSION:
                     logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
                     continue
             applicable_versions.append((parsed_version, link, version))
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is InfLink])
+        existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is INSTALLED_VERSION])
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is InfLink:
+            if applicable_versions[0][1] is INSTALLED_VERSION:
                 logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
                             % req.satisfied_by.version)
             else:
@@ -328,7 +328,7 @@ class PackageFinder(object):
                             req.name)
 
             raise DistributionNotFound('No distributions matching the version for %s' % req)
-        if applicable_versions[0][1] is InfLink:
+        if applicable_versions[0][1] is INSTALLED_VERSION:
             # We have an existing version, and its the best version
             logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
                         % (req.satisfied_by.version, ', '.join([version for parsed_version, link, version in applicable_versions[1:]]) or 'none'))
@@ -958,8 +958,10 @@ class Link(object):
             # This link came from an untrusted source and we cannot trust it
             return False
 
-#An "Infinite Link" that compares greater than other links
-InfLink = Link(Inf) #this object is not currently used as a sortable
+
+# An object to represent the "link" for the installed version of a requirement.
+# Using Inf as the url makes it sort higher.
+INSTALLED_VERSION = Link(Inf)
 
 
 def get_requirement_from_url(url):
