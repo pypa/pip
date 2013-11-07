@@ -272,12 +272,30 @@ if __name__ == '__main__':
     # override the versioned entry points in the wheel and generate the
     # correct ones. This code is purely a short-term measure until Metadat 2.0
     # is available.
+    #
+    # To add the level of hack in this section of code, in order to support
+    # ensurepip this code will look for an ``ENSUREPIP_OPTIONS`` environment
+    # variable which will control which version scripts get installed.
+    #
+    # ENSUREPIP_OPTIONS=altinstall
+    #   - Only pipX.Y and easy_install-X.Y will be generated and installed
+    # ENSUREPIP_OPTIONS=install
+    #   - pipX.Y, pipX, easy_install-X.Y will be generated and installed. Note
+    #     that this option is technically if ENSUREPIP_OPTIONS is set and is
+    #     not altinstall
+    # DEFAULT
+    #   - The default behavior is to install pip, pipX, pipX.Y, easy_install
+    #     and easy_install-X.Y.
     pip_script = console.pop('pip', None)
     if pip_script:
-        spec = 'pip = ' + pip_script
-        generated.extend(maker.make(spec))
-        spec = 'pip%s = %s' % (sys.version[:1], pip_script)
-        generated.extend(maker.make(spec))
+        if "ENSUREPIP_OPTIONS" not in os.environ:
+            spec = 'pip = ' + pip_script
+            generated.extend(maker.make(spec))
+
+        if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
+            spec = 'pip%s = %s' % (sys.version[:1], pip_script)
+            generated.extend(maker.make(spec))
+
         spec = 'pip%s = %s' % (sys.version[:3], pip_script)
         generated.extend(maker.make(spec))
         # Delete any other versioned pip entry points
@@ -286,8 +304,10 @@ if __name__ == '__main__':
             del console[k]
     easy_install_script = console.pop('easy_install', None)
     if easy_install_script:
-        spec = 'easy_install = ' + easy_install_script
-        generated.extend(maker.make(spec))
+        if "ENSUREPIP_OPTIONS" not in os.environ:
+            spec = 'easy_install = ' + easy_install_script
+            generated.extend(maker.make(spec))
+
         spec = 'easy_install-%s = %s' % (sys.version[:3], easy_install_script)
         generated.extend(maker.make(spec))
         # Delete any other versioned easy_install entry points
