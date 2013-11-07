@@ -43,6 +43,13 @@ class WheelCommand(Command):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(
+            '-e', '--editable',
+            dest='not_used',
+            action='store_true',
+            help='Ignore editable flag and treat as normal path. Useful when'
+            'building wheels from requirements.txt.')
+
+        cmd_opts.add_option(
             '-w', '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
