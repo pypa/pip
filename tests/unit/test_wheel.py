@@ -65,7 +65,7 @@ class TestWheelSupported(object):
         # on initialization
         assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
         # when setting property later
-        p = PackageFinder([], [])
+        p = PackageFinder([], [], use_wheel=False)
         assert_raises_regexp(InstallationError, 'wheel support', self.set_use_wheel_true, p)
 
     def test_finder_no_raises_error(self, monkeypatch):
