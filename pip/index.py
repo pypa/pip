@@ -499,6 +499,8 @@ class PackageFinder(object):
                             "Wheel on an unsupported platform" % link
                         )
                         return []
+                # To match the "safe" version that pkg_resources creates:
+                version = link.wheel.version.replace('_','-')
 
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
