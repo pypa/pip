@@ -234,7 +234,7 @@ class TestUpgradeSetuptools(object):
     @pytest.mark.skipif("sys.version_info >= (3,0)")
     def test_py2_from_setuptools_6_to_setuptools_7(self, script, data, virtualenv):
         self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
-        result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
+        result = self.script.run(self.ve_bin/'pip', 'install', '--no-use-wheel', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
         assert "Found existing installation: setuptools 0.6c11" in result.stdout
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
