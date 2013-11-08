@@ -49,6 +49,7 @@ class WheelCommand(Command):
             default=DEFAULT_WHEEL_DIR,
             help="Build wheels into <dir>, where the default is '<cwd>/wheelhouse'.")
         cmd_opts.add_option(cmdoptions.use_wheel.make())
+        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',

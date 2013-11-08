@@ -94,16 +94,10 @@ to building and installing from source archives. For more information, see the
 
 pip's support for wheels currently requires `Setuptools`_ >=0.8.
 
-To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
+Pip prefers Wheels where they are available, to disable this use the
+:ref:`--no-use-wheel <install_--no-use-wheel>` flag for :ref:`pip install`.
+
 If no satisfactory wheels are found, pip will default to finding source archives.
-If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL``
-or set ``use-wheel`` in your :ref:`configuration file<config-file>`.
-
-To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
-
-::
-
- pip install --use-wheel SomePackage
 
 .. note::
 
@@ -136,7 +130,7 @@ And *then* to install those requirements just using your local directory of whee
 
 ::
 
- pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
+ pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 .. _`Should you upload wheels to PyPI`:
