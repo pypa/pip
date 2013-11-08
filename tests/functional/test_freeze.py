@@ -238,3 +238,40 @@ def test_freeze_with_requirement_option(script):
         INITools==0.2
         """) + ignores + "## The following requirements were added by pip --freeze:..."
     _check_output(result, expected)
+
+
+def test_freeze_with_arguments(script):
+    """
+    Test that output is filtered if arguments are specified
+
+    """
+    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
+        simple==2.0
+        # and something else to test out:
+        simple2<=3.0
+        """))
+    result = script.pip_install_local(
+        '-r', script.scratch_path/'initools-req.txt')
+    result = script.pip('freeze', 'iMpl', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze iMpl
+        -- stdout: --------------------
+        simple==2.0
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result, expected)
+    result = script.pip('freeze', 'E2', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze E2
+        -- stdout: --------------------
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result, expected)
+    result = script.pip('freeze', 'imp', 'E2', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze imp E2
+        -- stdout: --------------------
+        simple==2.0
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result, expected)
