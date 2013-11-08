@@ -13,7 +13,7 @@ import shutil
 import sys
 from base64 import urlsafe_b64encode
 
-from pip.backwardcompat import ConfigParser
+from pip.backwardcompat import ConfigParser, StringIO
 from pip.exceptions import InvalidWheelFilename
 from pip.locations import distutils_scheme
 from pip.log import logger
@@ -106,11 +106,21 @@ def root_is_purelib(name, wheeldir):
                         return True
     return False
 
+
 def get_entrypoints(filename):
     if not os.path.exists(filename):
         return {}, {}
+
+    with open(filename) as fp:
+        data = StringIO()
+        for line in fp:
+            data.write(line.strip())
+            data.write("\n")
+        data.seek(0)
+
     cp = ConfigParser.RawConfigParser()
-    cp.read(filename)
+    cp.readfp(data)
+
     console = {}
     gui = {}
     if cp.has_section('console_scripts'):
@@ -118,6 +128,7 @@ def get_entrypoints(filename):
     if cp.has_section('gui_scripts'):
         gui = dict(cp.items('gui_scripts'))
     return console, gui
+
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     """Install a wheel"""
