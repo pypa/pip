@@ -6,7 +6,7 @@ import pytest
 import pkg_resources
 from mock import patch, Mock
 from pip import wheel
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, InvalidWheelFilename
 from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
 
@@ -79,6 +79,10 @@ class TestWheelSupported(object):
 
 
 class TestWheelFile(object):
+
+    def test_inavlid_filename_raises(self):
+        with pytest.raises(InvalidWheelFilename):
+            w = wheel.Wheel('invalid.whl')
 
     def test_supported_single_version(self):
         """

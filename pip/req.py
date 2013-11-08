@@ -12,8 +12,8 @@ import zipfile
 from distutils.util import change_root
 from pip.locations import (bin_py, running_under_virtualenv,PIP_DELETE_MARKER_FILENAME,
                            write_delete_marker_file)
-from pip.exceptions import (InstallationError, UninstallationError,
-                            BestVersionAlreadyInstalled,
+from pip.exceptions import (InstallationError, UninstallationError, UnsupportedWheel,
+                            BestVersionAlreadyInstalled, InvalidWheelFilename,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.vcs import vcs
 from pip.log import logger
@@ -132,6 +132,13 @@ class InstallRequirement(object):
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', url):
                 url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
+
+            # fail early for invalid or unsupported wheels
+            if link.invalid_wheel_filename:
+                raise InvalidWheelFilename("%s is an invalid wheel filename." % link.filename)
+            elif link.wheel and not link.wheel.supported():
+                raise UnsupportedWheel("%s is not a supported wheel on this platform." % link.wheel.filename)
+
 
         else:
             req = name

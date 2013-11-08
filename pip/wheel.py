@@ -14,6 +14,7 @@ import sys
 from base64 import urlsafe_b64encode
 
 from pip.backwardcompat import ConfigParser
+from pip.exceptions import InvalidWheelFilename
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
@@ -385,7 +386,12 @@ class Wheel(object):
                 re.VERBOSE)
 
     def __init__(self, filename):
+        """
+        :raises InvalidWheelFilename: when the filename is invalid for a wheel
+        """
         wheel_info = self.wheel_file_re.match(filename)
+        if not wheel_info:
+            raise InvalidWheelFilename("%s is not a valid wheel filename." % filename)
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
         # we'll assume "_" means "-" due to wheel naming scheme
@@ -401,9 +407,10 @@ class Wheel(object):
 
     def support_index_min(self, tags=None):
         """
-        Return the lowest index that a file_tag achieves in the supported_tags list
-        e.g. if there are 8 supported tags, and one of the file tags is first in the
-        list, then return 0.
+        Return the lowest index that one of the wheel's file_tag combinations
+        achieves in the supported_tags list e.g. if there are 8 supported tags,
+        and one of the file tags is first in the list, then return 0.  Returns
+        None is the wheel is not supported.
         """
         if tags is None: # for mock
             tags = pep425tags.supported_tags

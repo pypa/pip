@@ -9,8 +9,8 @@ import pkg_resources
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
-    InstallationError
+from pip.exceptions import (DistributionNotFound, BestVersionAlreadyInstalled,
+                            InstallationError, InvalidWheelFilename)
 from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
@@ -481,6 +481,9 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
+            if link.invalid_wheel_filename:
+                logger.debug('Skipping %s because the wheel filename is invalid' % link)
+                return []
             if link.wheel:
                 if link.wheel.name.lower() != search_name.lower():
                     logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
@@ -835,11 +838,13 @@ class Link(object):
         self.internal = internal
         self.trusted = trusted
         self._deprecated_regex = _deprecated_regex
-
-        # Set whether it's a wheel
+        self.invalid_wheel_filename = False
         self.wheel = None
         if url != Inf and self.splitext()[1] == wheel_ext:
-            self.wheel = Wheel(self.filename)
+            try:
+                self.wheel = Wheel(self.filename)
+            except InvalidWheelFilename:
+                self.invalid_wheel_filename = True
 
     def __str__(self):
         if self.comes_from:
