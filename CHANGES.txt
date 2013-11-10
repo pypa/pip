@@ -12,7 +12,7 @@ Changelog
 * **BACKWARD INCOMPATIBLE** pip no longer will scrape insecure external urls by
   default nor will it install externally hosted files by default. Users may opt
   into installing externally hosted or insecure files or urls using
-  ``--allow-external PROJECT`` and ``--allow-insecure PROJECT``. (Pull #1055)
+  ``--allow-external PROJECT`` and ``--allow-unverified PROJECT``. (Pull #1055)
 
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
