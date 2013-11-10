@@ -264,7 +264,7 @@ class Path(_base):
         """
         Copies a directory tree to another path.
         """
-        return shutil.copytree(self, to)
+        return shutil.copytree(self, to, symlinks=True)
 
     def move(self, to):
         """
