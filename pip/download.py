@@ -28,15 +28,13 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 import pip
-# For copytree as when using from an import exception is thrown.
-import pip.compat as compat
 from pip.exceptions import HashMismatch, InstallationError
 from pip.locations import write_delete_marker_file
 from pip.models import PyPI
 from pip.utils import (
     ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
-    display_path, format_size, get_installed_version, rmtree, splitext,
-    unpack_file
+    copytree, display_path, format_size, get_installed_version, rmtree,
+    splitext, unpack_file
 )
 from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
@@ -693,7 +691,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
-        compat.copytree(link_path, location)
+        copytree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
