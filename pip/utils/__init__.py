@@ -14,7 +14,9 @@ import tarfile
 import zipfile
 
 from pip.exceptions import InstallationError, BadCommand
+from pip.exceptions import CircularSymlinkException
 from pip.compat import console_to_str, stdlib_pkgs
+from pip.compat import copytree as compat_copytree
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
@@ -875,3 +877,48 @@ class cached_property(object):
             return self
         value = obj.__dict__[self.func.__name__] = self.func(obj)
         return value
+
+
+def validate_path(path):
+    """Detect circular symbolic link
+
+    @raise CircularSymlinkException: When a symlink loop was found
+    """
+    paths_seen = []
+    if not os.path.isabs(path):
+        path = os.path.abspath(path)
+    while os.path.islink(path):
+        path = os.path.normcase(os.path.normpath(path))
+        if path in paths_seen:
+            # Already seen this path, so we must have a symlink loop
+            raise CircularSymlinkException(paths_seen)
+        paths_seen.append(path)
+        # Resolve where the link points to
+        resolved = os.readlink(path)
+        if not os.path.isabs(resolved):
+            resolved = os.path.join(os.path.dirname(path), resolved)
+        path = resolved
+
+
+def copytree(source, location, symlinks=False):
+    return compat_copytree(
+        source,
+        location,
+        symlinks=symlinks,
+        ignore=copytree_ignore_callback,
+    )
+
+
+def copytree_ignore_callback(src, names):
+    """Ignore circular symbolic links
+
+    @return: set of ignores names
+    """
+    ignores = set()
+    for name in names:
+        path = os.path.join(src, name)
+        try:
+            validate_path(path)
+        except CircularSymlinkException:
+            ignores.add(name)
+    return ignores

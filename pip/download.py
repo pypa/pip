@@ -26,7 +26,7 @@ from pip.utils import (splitext, rmtree, format_size, display_path,
 from pip.utils.filesystem import check_path_owner
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
-from pip.compat import copytree
+from pip.utils import copytree
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
