@@ -237,3 +237,13 @@ class HashMismatch(HashError):
                          self.gots[hash_name].hexdigest())
             prefix = '    or'
         return '\n'.join(lines)
+
+
+class CircularSymlinkException(PipError):
+    """When a circular symbolic link is detected."""
+    def __init__(self, resources):
+        message = (
+            'Circular reference detected in "%s" ("%s" > "%s").'
+            '' % (resources[0], '" > "'.join(resources), resources[0]),
+        )
+        PipError.__init__(self, message)

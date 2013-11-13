@@ -28,6 +28,8 @@ from pip._vendor import pkg_resources
 from pip._vendor.six.moves import input
 from pip._vendor.six import PY2
 from pip._vendor.retrying import retry
+from pip.exceptions import CircularSymlinkException
+from pip.compat import copytree as compat_copytree
 
 if PY2:
     from io import BytesIO as StringIO
@@ -858,3 +860,48 @@ def get_installed_version(dist_name):
 def consume(iterator):
     """Consume an iterable at C speed."""
     deque(iterator, maxlen=0)
+
+
+def validate_path(path):
+    """Detect circular symbolic link
+
+    @raise CircularSymlinkException: When a symlink loop was found
+    """
+    paths_seen = []
+    if not os.path.isabs(path):
+        path = os.path.abspath(path)
+    while os.path.islink(path):
+        path = os.path.normcase(os.path.normpath(path))
+        if path in paths_seen:
+            # Already seen this path, so we must have a symlink loop
+            raise CircularSymlinkException(paths_seen)
+        paths_seen.append(path)
+        # Resolve where the link points to
+        resolved = os.readlink(path)
+        if not os.path.isabs(resolved):
+            resolved = os.path.join(os.path.dirname(path), resolved)
+        path = resolved
+
+
+def copytree(source, location, symlinks=False):
+    return compat_copytree(
+        source,
+        location,
+        symlinks=symlinks,
+        ignore=copytree_ignore_callback,
+    )
+
+
+def copytree_ignore_callback(src, names):
+    """Ignore circular symbolic links
+
+    @return: set of ignores names
+    """
+    ignores = set()
+    for name in names:
+        path = os.path.join(src, name)
+        try:
+            validate_path(path)
+        except CircularSymlinkException:
+            ignores.add(name)
+    return ignores

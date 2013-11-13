@@ -35,7 +35,7 @@ from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
-from pip.compat import copytree
+from pip.utils import copytree
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
