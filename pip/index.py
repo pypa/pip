@@ -566,10 +566,7 @@ class PackageFinder(object):
             return None
 
     def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req,
-            cache=self.cache,
-            session=self.session,
-        )
+        return get_page(link, req, cache=self.cache, session=self.session)
 
 
 class PageCache(object):
@@ -602,6 +599,122 @@ class PageCache(object):
             self._pages[url] = page
 
 
+def get_page(link, req, cache=None, skip_archives=True, session=None):
+    if session is None:
+        session = PipSession()
+
+    url = link.url
+    url = url.split('#', 1)[0]
+    if cache.too_many_failures(url):
+        return None
+
+    # Check for VCS schemes that do not support lookup as web pages.
+    from pip.vcs import VcsSupport
+    for scheme in VcsSupport.schemes:
+        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+            logger.debug('Cannot look at %(scheme)s URL %(link)s' % locals())
+            return None
+
+    if cache is not None:
+        inst = cache.get_page(url)
+        if inst is not None:
+            return inst
+    try:
+        if skip_archives:
+            if cache is not None:
+                if cache.is_archive(url):
+                    return None
+            filename = link.filename
+            for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                if filename.endswith(bad_ext):
+                    content_type = _get_content_type(url, session=session)
+                    if content_type.lower().startswith('text/html'):
+                        break
+                    else:
+                        logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
+                        if cache is not None:
+                            cache.set_is_archive(url)
+                        return None
+        logger.debug('Getting page %s' % url)
+
+        # Tack index.html onto file:// URLs that point to directories
+        scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+        if scheme == 'file' and os.path.isdir(url2pathname(path)):
+            # add trailing slash if not present so urljoin doesn't trim final
+            # segment
+            if not url.endswith('/'):
+                url += '/'
+            url = urlparse.urljoin(url, 'index.html')
+            logger.debug(' file: URL is directory, getting %s' % url)
+
+        resp = session.get(url)
+        resp.raise_for_status()
+
+        # The check for archives above only works if the url ends with
+        # something that looks like an archive. However that is not a
+        # requirement. For instance
+        # http://sourceforge.net/projects/docutils/files/docutils/0.8.1/docutils-0.8.1.tar.gz/download
+        # redirects to
+        # http://superb-dca3.dl.sourceforge.net/project/docutils/docutils/0.8.1/docutils-0.8.1.tar.gz
+        # Unless we issue a HEAD request on every url we cannot know ahead
+        # of time for sure if something is HTML or not. However we can check
+        # after we've downloaded it.
+        content_type = resp.headers.get('Content-Type', 'unknown')
+        if not content_type.lower().startswith("text/html"):
+            logger.debug('Skipping page %s because of Content-Type: %s' %
+                         (link, content_type))
+            if cache is not None:
+                cache.set_is_archive(url)
+            return None
+
+        inst = HTMLPage(resp.text, resp.url, resp.headers, link.trusted)
+    except requests.HTTPError as exc:
+        level = 2 if exc.response.status_code == 404 else 1
+        _handle_fail(req, link, exc, url, cache=cache, level=level)
+    except requests.Timeout:
+        _handle_fail(req, link, "timed out", url, cache=cache)
+    except SSLError as exc:
+        reason = ("There was a problem confirming the ssl certificate: "
+                  "%s" % exc)
+        _handle_fail(req, link, reason, url,
+                     cache=cache,
+                     level=2,
+                     meth=logger.notify)
+    else:
+        if cache is not None:
+            cache.add_page([url, resp.url], inst)
+        return inst
+
+
+def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
+    if meth is None:
+        meth = logger.info
+
+    meth("Could not fetch URL %s: %s", link, reason)
+    meth("Will skip URL %s when looking for download links for %s" %
+         (link.url, req))
+
+    if cache is not None:
+        cache.add_page_failure(url, level)
+
+
+def _get_content_type(url, session=None):
+    """Get the Content-Type of the given url, using a HEAD request"""
+    if session is None:
+        session = PipSession()
+
+    scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
+    if not scheme in ('http', 'https', 'ftp', 'ftps'):
+        ## FIXME: some warning or something?
+        ## assertion error?
+        return ''
+
+    resp = session.head(url, allow_redirects=True)
+    resp.raise_for_status()
+
+    return resp.headers.get("Content-Type", "")
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -619,122 +732,6 @@ class HTMLPage(object):
 
     def __str__(self):
         return self.url
-
-    @classmethod
-    def get_page(cls, link, req, cache=None, skip_archives=True, session=None):
-        if session is None:
-            session = PipSession()
-
-        url = link.url
-        url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
-            return None
-
-        # Check for VCS schemes that do not support lookup as web pages.
-        from pip.vcs import VcsSupport
-        for scheme in VcsSupport.schemes:
-            if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-                logger.debug('Cannot look at %(scheme)s URL %(link)s' % locals())
-                return None
-
-        if cache is not None:
-            inst = cache.get_page(url)
-            if inst is not None:
-                return inst
-        try:
-            if skip_archives:
-                if cache is not None:
-                    if cache.is_archive(url):
-                        return None
-                filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url,
-                            session=session,
-                        )
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
-            logger.debug('Getting page %s' % url)
-
-            # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
-            if scheme == 'file' and os.path.isdir(url2pathname(path)):
-                # add trailing slash if not present so urljoin doesn't trim final segment
-                if not url.endswith('/'):
-                    url += '/'
-                url = urlparse.urljoin(url, 'index.html')
-                logger.debug(' file: URL is directory, getting %s' % url)
-
-            resp = session.get(url)
-            resp.raise_for_status()
-
-            # The check for archives above only works if the url ends with
-            #   something that looks like an archive. However that is not a
-            #   requirement. For instance http://sourceforge.net/projects/docutils/files/docutils/0.8.1/docutils-0.8.1.tar.gz/download
-            #   redirects to http://superb-dca3.dl.sourceforge.net/project/docutils/docutils/0.8.1/docutils-0.8.1.tar.gz
-            #   Unless we issue a HEAD request on every url we cannot know
-            #   ahead of time for sure if something is HTML or not. However we
-            #   can check after we've downloaded it.
-            content_type = resp.headers.get('Content-Type', 'unknown')
-            if not content_type.lower().startswith("text/html"):
-                logger.debug('Skipping page %s because of Content-Type: %s' %
-                                            (link, content_type))
-                if cache is not None:
-                    cache.set_is_archive(url)
-                return None
-
-            inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
-        except requests.HTTPError as exc:
-            level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(req, link, exc, url, cache=cache, level=level)
-        except requests.Timeout:
-            cls._handle_fail(req, link, "timed out", url, cache=cache)
-        except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
-            cls._handle_fail(req, link, reason, url,
-                cache=cache,
-                level=2,
-                meth=logger.notify,
-            )
-        else:
-            if cache is not None:
-                cache.add_page([url, resp.url], inst)
-            return inst
-
-    @staticmethod
-    def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
-        if meth is None:
-            meth = logger.info
-
-        meth("Could not fetch URL %s: %s", link, reason)
-        meth("Will skip URL %s when looking for download links for %s" %
-             (link.url, req))
-
-        if cache is not None:
-            cache.add_page_failure(url, level)
-
-    @staticmethod
-    def _get_content_type(url, session=None):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        if session is None:
-            session = PipSession()
-
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
-            return ''
-
-        resp = session.head(url, allow_redirects=True)
-        resp.raise_for_status()
-
-        return resp.headers.get("Content-Type", "")
 
     @property
     def api_version(self):
