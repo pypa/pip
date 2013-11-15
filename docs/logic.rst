@@ -93,6 +93,9 @@ A few examples on how the parameters work to affect the level:
 The most practical use case for users is either ``-v`` or ``-vv`` to see
 additional logging to help troubleshoot an issue.
 
+
+.. _`FileLogging`:
+
 File logging
 ~~~~~~~~~~~~
 
@@ -101,13 +104,13 @@ verbosity log will be kept.  This option is empty by default. This log appends
 to previous logging.
 
 Additionally, when commands fail (i.e. return a non-zero exit code), pip writes
-a full DEBUG "failure log" for the failed command. This log overwrites previous
+a "failure log" for the failed command. This log overwrites previous
 logging. The default location is as follows:
 
 * On Unix and Mac OS X: :file:`$HOME/.pip/pip.log`
 * On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.log`
 
-The option for this  "failure log", although hidden in the help, is ``--log-file``.
+The option for the failure log, is :ref:`--log-file <--log-file>`.
 
 Both logs add a line per execution to specify the date and what pip executable wrote the log.
 

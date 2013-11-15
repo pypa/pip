@@ -75,8 +75,8 @@ quiet = OptionMaker(
 log = OptionMaker(
     '--log',
     dest='log',
-    metavar='file',
-    help='Log file where a complete (maximum verbosity) record will be kept.')
+    metavar='path',
+    help='Path to a verbose appending log. This log is inactive by default.')
 
 log_explicit_levels = OptionMaker(
     # Writes the log levels explicitely to the log'
@@ -88,11 +88,11 @@ log_explicit_levels = OptionMaker(
 
 log_file = OptionMaker(
     # The default log file
-    '--local-log', '--log-file',
+    '--log-file', '--local-log',
     dest='log_file',
-    metavar='file',
+    metavar='path',
     default=default_log_file,
-    help=SUPPRESS_HELP)
+    help='Path to a verbose non-appending log, that only logs failures. This log is active by default at %default.')
 
 no_input = OptionMaker(
     # Don't ask for input
@@ -339,9 +339,9 @@ general_group = {
         verbose,
         version,
         quiet,
+        log_file,
         log,
         log_explicit_levels,
-        log_file,
         no_input,
         proxy,
         timeout,
