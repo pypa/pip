@@ -650,6 +650,9 @@ def get_page(link, req, cache=None, skip_archives=True, session=None):
         resp = session.get(url)
         resp.raise_for_status()
 
+        if netloc == "s3.amazonaws.com":
+            return S3Page(resp.text, resp.url, resp.headers, trusted=link.trusted)
+
         # The check for archives above only works if the url ends with
         # something that looks like an archive. However that is not a
         # requirement. For instance
@@ -821,6 +824,26 @@ class HTMLPage(object):
         % or other characters)."""
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
+
+class S3Page(HTMLPage):
+    @property
+    def links(self):
+        """Yields all links in the page"""
+        for anchor in self.parsed.findall(".//key"):
+            text = anchor.text
+            url = self.clean_link(urlparse.urljoin(self.url + "/", text))
+
+            # Determine if this link is internal. If that distinction
+            #   doesn't make sense in this context, then we don't make
+            #   any distinction.
+            internal = None
+            if self.api_version and self.api_version >= 2:
+                # Only api_versions >= 2 have a distinction between
+                #   external and internal links
+                internal = bool(anchor.get("rel")
+                            and "internal" in anchor.get("rel").split())
+
+            yield Link(url, self, internal=internal)
 
 
 class Link(object):
