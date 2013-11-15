@@ -8,7 +8,7 @@ import pip.wheel
 
 from pkg_resources import Distribution
 from mock import Mock, patch
-from pip.exceptions import PreviousBuildDirError
+from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet, parse_editable,
@@ -53,13 +53,22 @@ class TestRequirementSet(object):
             )
 
 
-def test_url_with_query():
-    """InstallRequirement should strip the fragment, but not the query."""
-    url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-    fragment = '#egg=bar'
-    req = InstallRequirement.from_line(url + fragment)
+class TestInstallRequirement(object):
 
-    assert req.url == url, req.url
+    def test_url_with_query(self):
+        """InstallRequirement should strip the fragment, but not the query."""
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        fragment = '#egg=bar'
+        req = InstallRequirement.from_line(url + fragment)
+        assert req.url == url, req.url
+
+    def test_unsupported_wheel_requirement_raises(self):
+        with pytest.raises(UnsupportedWheel):
+            req = InstallRequirement.from_line('peppercorn-0.4-py2.py3-bogus-any.whl')
+
+    def test_invalid_wheel_requirement_raises(self):
+        with pytest.raises(InvalidWheelFilename):
+            req = InstallRequirement.from_line('invalid.whl')
 
 
 def test_requirements_data_structure_keeps_order():
@@ -110,7 +119,7 @@ def test_parse_editable_explicit_vcs():
                                                                 {'egg': 'foo'})
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') ==  ('foo[extras]', 
+    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') ==  ('foo[extras]',
                                                                          'svn+https://foo#egg=foo[extras]',
                                                                          {'egg': 'foo[extras]'})
 
