@@ -127,7 +127,7 @@ class InstallCommand(Command):
             '--egg',
             dest='as_egg',
             action='store_true',
-            help="Install as self contained egg file, like easy_install does.")
+            help="Install packages as eggs, not 'flat', like pip normally does. This option is not about installing *from* eggs. (WARNING: Because this option overrides pip's normal install logic, requirements files may not behave as expected.)")
 
         cmd_opts.add_option(
             '--root',
