@@ -9,8 +9,8 @@ import pkg_resources
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled,\
-    InstallationError
+from pip.exceptions import (DistributionNotFound, BestVersionAlreadyInstalled,
+                            InstallationError, InvalidWheelFilename, UnsupportedWheel)
 from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, path_to_url2, url_to_path
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
@@ -161,11 +161,11 @@ class PackageFinder(object):
             support_num = len(supported_tags)
             if link == INSTALLED_VERSION:
                 pri = 1
-            elif link.wheel:
-                support_index = link.wheel.support_index_min()
-                if support_index is None:
-                    raise InstallationError("%s is not a supported wheel for this platform. It can't be sorted." % link.wheel.filename)
-                pri = -(support_index)
+            elif link.ext == wheel_ext:
+                wheel = Wheel(link.filename) # can raise InvalidWheelFilename
+                if not wheel.supported():
+                    raise UnsupportedWheel("%s is not a supported wheel for this platform. It can't be sorted." % wheel.filename)
+                pri = -(wheel.support_index_min())
             else: # sdist
                 pri = -(support_num)
             return (parsed_version, pri)
@@ -481,11 +481,16 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; macosx10 one' % (link))
                     self.logged_links.add(link)
                 return []
-            if link.wheel:
-                if link.wheel.name.lower() != search_name.lower():
+            if ext == wheel_ext:
+                try:
+                    wheel = Wheel(link.filename)
+                except InvalidWheelFilename:
+                    logger.debug('Skipping %s because the wheel filename is invalid' % link)
+                    return []
+                if wheel.name.lower() != search_name.lower():
                     logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
                     return []
-                if not link.wheel.supported():
+                if not wheel.supported():
                     logger.debug('Skipping %s because it is not compatible with this Python' % link)
                     return []
                 # This is a dirty hack to prevent installing Binary Wheels from
@@ -502,13 +507,13 @@ class PackageFinder(object):
                     and comes_from is not None
                     and urlparse.urlparse(comes_from.url).netloc.endswith(
                                                         "pypi.python.org")):
-                    if not link.wheel.supported(tags=supported_tags_noarch):
+                    if not wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
                             "Skipping %s because it is a pypi-hosted binary "
                             "Wheel on an unsupported platform" % link
                         )
                         return []
-                version = link.wheel.version
+                version = wheel.version
 
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
@@ -836,11 +841,6 @@ class Link(object):
         self.trusted = trusted
         self._deprecated_regex = _deprecated_regex
 
-        # Set whether it's a wheel
-        self.wheel = None
-        if url != Inf and self.splitext()[1] == wheel_ext:
-            self.wheel = Wheel(self.filename)
-
     def __str__(self):
         if self.comes_from:
             return '%s (from %s)' % (self.url, self.comes_from)
@@ -888,6 +888,10 @@ class Link(object):
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))
+
+    @property
+    def ext(self):
+        return self.splitext()[1]
 
     @property
     def url_without_fragment(self):

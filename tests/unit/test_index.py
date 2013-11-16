@@ -55,3 +55,27 @@ def test_sort_locations_file_not_find_link(data):
 def test_INSTALLED_VERSION_greater():
     """Test INSTALLED_VERSION compares greater."""
     assert INSTALLED_VERSION > Link("some link")
+
+
+class TestLink(object):
+
+    def test_splitext(self):
+        assert ('wheel', '.whl') == Link('http://yo/wheel.whl').splitext()
+
+    def test_filename(self):
+        assert 'wheel.whl' == Link('http://yo/wheel.whl').filename
+        assert 'wheel' == Link('http://yo/wheel').filename
+
+    def test_no_ext(self):
+        assert '' == Link('http://yo/wheel').ext
+
+    def test_ext(self):
+        assert '.whl' == Link('http://yo/wheel.whl').ext
+
+    def test_ext_fragment(self):
+        assert '.whl' == Link('http://yo/wheel.whl#frag').ext
+
+    def test_ext_query(self):
+        assert '.whl' == Link('http://yo/wheel.whl?a=b').ext
+
+
