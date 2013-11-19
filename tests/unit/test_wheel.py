@@ -11,6 +11,19 @@ from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
 
 
+def test_get_entrypoints(tmpdir):
+    with open(str(tmpdir.join("entry_points.txt")), "w") as fp:
+        fp.write("""
+            [console_scripts]
+            pip = pip.main:pip
+        """)
+
+    assert wheel.get_entrypoints(str(tmpdir.join("entry_points.txt"))) == (
+        {"pip": "pip.main:pip"},
+        {},
+    )
+
+
 def test_uninstallation_paths():
     class dist(object):
         def get_metadata_lines(self, record):
