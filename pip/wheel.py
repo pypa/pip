@@ -111,6 +111,10 @@ def get_entrypoints(filename):
     if not os.path.exists(filename):
         return {}, {}
 
+    # This is done because you can pass a string to entry_points wrappers which
+    # means that they may or may not be valid INI files. The attempt here is to
+    # strip leading and trailing whitespace in order to make them valid INI
+    # files.
     with open(filename) as fp:
         data = StringIO()
         for line in fp:
