@@ -208,6 +208,18 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_from_local_directory_with_symlinks_to_directories(script, data):
+    """
+    Test installing from a local directory containing symlinks to directories.
+    """
+    to_install = data.packages.join("symlinks")
+    result = script.pip('install', to_install, expect_error=False)
+    pkg_folder = script.site_packages/'symlinks'
+    egg_info_folder = script.site_packages/'symlinks-0.1dev-py%s.egg-info' % pyversion
+    assert pkg_folder in result.files_created, str(result.stdout)
+    assert egg_info_folder in result.files_created, str(result)
+
+
 def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     Test installing from a local directory with no 'setup.py'.
