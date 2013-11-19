@@ -695,7 +695,7 @@ def unpack_file_url(link, location, download_dir=None):
     if os.path.isdir(link_path):
         if os.path.isdir(location):
             rmtree(location)
-        copytree(link_path, location, symlinks=True)
+        copytree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
