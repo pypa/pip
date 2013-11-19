@@ -12,7 +12,7 @@ from pip.util import Inf, normalize_name, splitext, is_prerelease
 from pip.exceptions import (DistributionNotFound, BestVersionAlreadyInstalled,
                             InstallationError, InvalidWheelFilename, UnsupportedWheel)
 from pip.backwardcompat import urlparse, url2pathname
-from pip.download import PipSession, path_to_url2, url_to_path
+from pip.download import PipSession, url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests
@@ -113,7 +113,7 @@ class PackageFinder(object):
 
         # puts the url for the given file path into the appropriate list
         def sort_path(path):
-            url = path_to_url2(path)
+            url = path_to_url(path)
             if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
                 urls.append(url)
             else:

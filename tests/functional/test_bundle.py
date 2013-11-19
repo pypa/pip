@@ -1,7 +1,7 @@
 import zipfile
 import textwrap
 from os.path import abspath, exists, join
-from pip.download import path_to_url2
+from pip.download import path_to_url
 from tests.lib.local_repos import local_checkout
 
 
@@ -12,7 +12,7 @@ def test_create_bundle(script, tmpdir, data):
     index (pip itself).
 
     """
-    fspkg = path_to_url2(data.packages/'FSPkg')
+    fspkg = path_to_url(data.packages/'FSPkg')
     script.pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent('''\
             -e %s
@@ -47,7 +47,7 @@ def test_cleanup_after_create_bundle(script, tmpdir, data):
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
 
     # Make the bundle.
-    fspkg = path_to_url2(data.packages/'FSPkg')
+    fspkg = path_to_url(data.packages/'FSPkg')
     pkg_lines = textwrap.dedent('''\
             -e %s
             -e %s#egg=initools-dev

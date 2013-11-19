@@ -27,7 +27,7 @@ from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
 __all__ = ['get_file_content',
-           'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
+           'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
@@ -308,19 +308,6 @@ _url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 def path_to_url(path):
-    """
-    Convert a path to a file: URL.  The path will be made absolute.
-    """
-    path = os.path.normcase(os.path.abspath(path))
-    if _drive_re.match(path):
-        path = path[0] + '|' + path[2:]
-    url = urllib.quote(path)
-    url = url.replace(os.path.sep, '/')
-    url = url.lstrip('/')
-    return 'file:///' + url
-
-
-def path_to_url2(path):
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.
