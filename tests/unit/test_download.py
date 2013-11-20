@@ -7,7 +7,7 @@ from mock import Mock, patch
 import pytest
 
 import pip
-from pip.backwardcompat import urllib, BytesIO, b
+from pip.backwardcompat import urllib, BytesIO, b, pathname2url
 from pip.download import PipSession, path_to_url, unpack_http_url, url_to_path
 from pip.index import Link
 
@@ -146,7 +146,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 def test_path_to_url_unix():
     assert path_to_url('/tmp/file') == 'file:///tmp/file'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + urllib.pathname2url(path)
+    assert path_to_url('file') == 'file://' + pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -159,7 +159,7 @@ def test_path_to_url_win():
     assert path_to_url('c:/tmp/file') == 'file:///c:/tmp/file'
     assert path_to_url('c:\\tmp\\file') == 'file:///c:/tmp/file'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + urllib.pathname2url(path)
+    assert path_to_url('file') == 'file:' + pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
