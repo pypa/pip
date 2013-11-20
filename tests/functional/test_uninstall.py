@@ -142,7 +142,7 @@ def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
 
 
 def _test_uninstall_editable_with_source_outside_venv(script, tmpdir, cache_dir):
-    result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv', cache_dir), tmpdir)
+    result = script.run('git', 'clone', local_repo('git+git://github.com/pypa/virtualenv', cache_dir), tmpdir, expect_stderr=True)
     result2 = script.pip('install', '-e', tmpdir)
     assert (join(script.site_packages, 'virtualenv.egg-link') in result2.files_created), list(result2.files_created.keys())
     result3 = script.pip('uninstall', '-y', 'virtualenv', expect_error=True)
