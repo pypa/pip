@@ -319,9 +319,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         filename = self.egg_info_path(filename)
         if not os.path.exists(filename):
             return None
-        fp = open(filename, 'r')
-        data = fp.read()
-        fp.close()
+        with open(filename, 'rb') as fp:
+            data = fp.read().decode('utf-8')
         return data
 
     def egg_info_path(self, filename):
