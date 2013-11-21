@@ -62,9 +62,9 @@ def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
     em.return_value = 'cp1252'
-    with patch('pip.req.open', om, create=True), \
-            patch('locale.getpreferredencoding', em):
-        ret = read_text_file('foo')
+    with patch('pip.req.open', om, create=True):
+        with patch('locale.getpreferredencoding', em):
+            ret = read_text_file('foo')
     assert ret == expected.decode('utf-8')
 
 
