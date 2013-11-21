@@ -4,9 +4,11 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 from mock import Mock, patch
+import pytest
+
 import pip
-from pip.backwardcompat import urllib, BytesIO, b
-from pip.download import PipSession, path_to_url2, unpack_http_url
+from pip.backwardcompat import urllib, BytesIO, b, pathname2url
+from pip.download import PipSession, path_to_url, unpack_http_url, url_to_path
 from pip.index import Link
 
 
@@ -24,7 +26,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     session = Mock()
     session.get = _fake_session_get
 
-    uri = path_to_url2(data.packages.join("simple-1.0.tar.gz"))
+    uri = path_to_url(data.packages.join("simple-1.0.tar.gz"))
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
@@ -138,3 +140,28 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 
     finally:
         rmtree(download_dir)
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_path_to_url_unix():
+    assert path_to_url('/tmp/file') == 'file:///tmp/file'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file://' + pathname2url(path)
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_url_to_path_unix():
+    assert url_to_path('file:///tmp/file') == '/tmp/file'
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_path_to_url_win():
+    assert path_to_url('c:/tmp/file') == 'file:///c:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///c:/tmp/file'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file:' + pathname2url(path)
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_url_to_path_win():
+    assert url_to_path('file:///c:/tmp/file') == 'c:/tmp/file'

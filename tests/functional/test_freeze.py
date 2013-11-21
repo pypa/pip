@@ -84,7 +84,7 @@ def test_freeze_git_clone(script, tmpdir):
     Test freezing a Git clone.
 
     """
-    result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache")), 'pip-test-package')
+    result = script.run('git', 'clone', local_repo('git+http://github.com/pypa/pip-test-package.git', tmpdir.join("cache")), 'pip-test-package', expect_stderr=True)
     result = script.run('git', 'checkout', '7d654e66c8fa7149c165ddeffa5b56bc06619458',
             cwd=script.scratch_path / 'pip-test-package', expect_stderr=True)
     result = script.run('python', 'setup.py', 'develop',
