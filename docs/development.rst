@@ -5,11 +5,34 @@ Development
 Pull Requests
 =============
 
-Submit Pull Requests against the `develop` branch.
+- Submit Pull Requests against the `develop` branch.
+- Provide a good description of what you're doing and why.
+- Provide tests that cover your changes and try to run the tests locally first.
 
-Provide a good description of what you're doing and why.
+**Example**. Assuming you set up GitHub account, forked pip repository from
+https://github.com/pypa/pip to your own page via web interface, and your
+fork is located at https://github.com/yourname/pip
 
-Provide tests that cover your changes and try to run the tests locally first.
+::
+
+  $ git clone git@github.com:pypa/pip.git
+  $ cd pip
+  # ...
+  $ git diff
+  $ git add <modified> ...
+  $ git status
+  $ git commit  
+
+You may reference relevant issues in commit messages (like #1259) to
+make GitHub link issues and commits together, and with phrase like
+"fixes #1259" you can even close relevant issues automatically. Now
+push the changes to your fork::
+
+  $ git push git@github.com:yourname/pip.git
+
+Open Pull Requests page at https://github.com/yourname/pip/pulls and
+click "New pull request". That's it.
+
 
 Automated Testing
 =================
