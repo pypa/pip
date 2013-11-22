@@ -3,6 +3,7 @@ Support for installing and building the "wheel" binary package format.
 """
 from __future__ import with_statement
 
+import compileall
 import csv
 import functools
 import hashlib
@@ -134,7 +135,8 @@ def get_entrypoints(filename):
     return console, gui
 
 
-def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
+def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
+        pycompile=True):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home, root=root)
@@ -155,6 +157,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None):
     installed = {}
     changed = set()
     generated = []
+
+    # Compile all of the pyc files that we're going to be installing
+    if pycompile:
+        compileall.compile_dir(source, force=True, quiet=True)
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')

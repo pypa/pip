@@ -1,6 +1,7 @@
 import os
 import sys
 import textwrap
+import glob
 
 from os.path import abspath, join, curdir, pardir
 
@@ -456,3 +457,43 @@ def test_url_req_case_mismatch(script, data):
     assert egg_folder in result.files_created, str(result)
     egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
+
+
+def test_compiles_pyc(script):
+    """
+    Test installing with --compile on
+    """
+    del script.environ["PYTHONDONTWRITEBYTECODE"]
+    script.pip("install", "--compile", "--no-use-wheel", "INITools==0.2")
+
+    # There are many locations for the __init__.pyc file so attempt to find
+    #   any of them
+    exists = [
+        os.path.exists(script.site_packages_path/"initools/__init__.pyc"),
+    ]
+
+    exists += glob.glob(
+        script.site_packages_path/"initools/__pycache__/__init__*.pyc"
+    )
+
+    assert any(exists)
+
+
+def test_no_compiles_pyc(script, data):
+    """
+    Test installing from wheel with --compile on
+    """
+    del script.environ["PYTHONDONTWRITEBYTECODE"]
+    script.pip("install", "--no-compile", "--no-use-wheel", "INITools==0.2")
+
+    # There are many locations for the __init__.pyc file so attempt to find
+    #   any of them
+    exists = [
+        os.path.exists(script.site_packages_path/"initools/__init__.pyc"),
+    ]
+
+    exists += glob.glob(
+        script.site_packages_path/"initools/__pycache__/__init__*.pyc"
+    )
+
+    assert not any(exists)

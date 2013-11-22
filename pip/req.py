@@ -39,7 +39,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options=None, from_bundle=False):
+                 editable_options=None, from_bundle=False, pycompile=True):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -73,6 +73,8 @@ class InstallRequirement(object):
         self.use_user_site = False
         self.target_dir = None
         self.from_bundle = from_bundle
+
+        self.pycompile = pycompile
 
         # True if pre-releases are acceptable
         if prereleases:
@@ -638,6 +640,11 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             if root is not None:
                 install_args += ['--root', root]
 
+            if self.pycompile:
+                install_args += ["--compile"]
+            else:
+                install_args += ["--no-compile"]
+
             if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
                 ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
@@ -843,6 +850,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             user=self.use_user_site,
             home=self.target_dir,
             root=root,
+            pycompile=self.pycompile,
         )
 
     @property
@@ -884,7 +892,7 @@ class RequirementSet(object):
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
                  upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False, use_user_site=False,
-                 session=None):
+                 session=None, pycompile=True):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -904,6 +912,7 @@ class RequirementSet(object):
         self.use_user_site = use_user_site
         self.target_dir = target_dir #set from --target option
         self.session = session or PipSession()
+        self.pycompile = pycompile
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -916,6 +925,7 @@ class RequirementSet(object):
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
+        install_req.pycompile = self.pycompile
         if not name:
             #url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)

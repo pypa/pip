@@ -136,6 +136,21 @@ class InstallCommand(Command):
             default=None,
             help="Install everything relative to this alternate root directory.")
 
+        cmd_opts.add_option(
+            "--compile",
+            action="store_true",
+            dest="compile",
+            default=True,
+            help="Compile py files to pyc",
+        )
+
+        cmd_opts.add_option(
+            "--no-compile",
+            action="store_false",
+            dest="compile",
+            help="Do not compile py files to pyc",
+        )
+
         cmd_opts.add_option(cmdoptions.use_wheel.make())
         cmd_opts.add_option(cmdoptions.no_use_wheel.make())
 
@@ -227,6 +242,7 @@ class InstallCommand(Command):
             use_user_site=options.use_user_site,
             target_dir=temp_target_dir,
             session=session,
+            pycompile=options.compile,
         )
         for name in args:
             requirement_set.add_requirement(
