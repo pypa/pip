@@ -19,7 +19,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "1.5.dev1"
+__version__ = "1.5rc1"
 
 
 def autocomplete():
