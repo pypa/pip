@@ -1,5 +1,7 @@
 import os
 import pytest
+import glob
+
 from tests.lib.path import Path
 
 
@@ -186,3 +188,44 @@ def test_install_from_wheel_gui_entrypoint(script, data):
         wrapper_file = script.bin / 't1'
     assert wrapper_file in result.files_created
 
+
+def test_wheel_compiles_pyc(script, data):
+    """
+    Test installing from wheel with --compile on
+    """
+    script.pip(
+        "install", "--compile", "simple.dist==0.1", "--no-index",
+        "--find-links=" + data.find_links
+    )
+    # There are many locations for the __init__.pyc file so attempt to find
+    #   any of them
+    exists = [
+        os.path.exists(script.site_packages_path/"simpledist/__init__.pyc"),
+    ]
+
+    exists += glob.glob(
+        script.site_packages_path/"simpledist/__pycache__/__init__*.pyc"
+    )
+
+    assert any(exists)
+
+
+def test_wheel_no_compiles_pyc(script, data):
+    """
+    Test installing from wheel with --compile on
+    """
+    script.pip(
+        "install", "--no-compile", "simple.dist==0.1", "--no-index",
+        "--find-links=" + data.find_links
+    )
+    # There are many locations for the __init__.pyc file so attempt to find
+    #   any of them
+    exists = [
+        os.path.exists(script.site_packages_path/"simpledist/__init__.pyc"),
+    ]
+
+    exists += glob.glob(
+        script.site_packages_path/"simpledist/__pycache__/__init__*.pyc"
+    )
+
+    assert not any(exists)
