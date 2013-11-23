@@ -130,10 +130,9 @@ class Logger(object):
             self.error(msg, *args, **kwargs)
 
     def log(self, level, msg, *args, **kw):
-        if args:
-            if kw:
-                raise TypeError(
-                    "You may give positional or keyword arguments, not both")
+        if args and kw:
+            raise TypeError(
+                "You may give positional or keyword arguments, not both")
         args = args or kw
 
         # render
