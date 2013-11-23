@@ -10,7 +10,7 @@ import textwrap
 import zipfile
 
 from distutils.util import change_root
-from pip.locations import (bin_py, running_under_virtualenv,PIP_DELETE_MARKER_FILENAME,
+from pip.locations import (bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME,
                            write_delete_marker_file)
 from pip.exceptions import (InstallationError, UninstallationError, UnsupportedWheel,
                             BestVersionAlreadyInstalled, InvalidWheelFilename,
