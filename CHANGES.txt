@@ -17,6 +17,14 @@ Changelog
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
 
+* pip will now install Mac OSX platform wheels from PyPI. (Pull #1278)
+
+* pip now generates the appropriate platform-specific console scripts when
+  installing wheels. (Pull #1251)
+
+* Pip now confirms a wheel is supported when installing directly from a path or
+  url. (Pull #1315)
+
 * Fixed #1163, --user wasn't being respected when installing scripts from wheels (Pull #1176).
 
 * Fixed #1150, we now assume '_' means '-' in versions from wheel filenames (Pull #1158).
@@ -50,6 +58,14 @@ Changelog
 
 * Renamed --allow-insecure to --allow-unverified, however the old name will
   continue to work for a period of time (Pull #1257).
+
+* Fixed #1006, error when installing local projects with symlinks in
+  Python 3. (Pull #1311)
+
+* The previously hidden `--log-file` otion, is now shown as a general option.
+  (Pull #1316)
+
+
 
 
 1.4.1 (2013-08-07)
