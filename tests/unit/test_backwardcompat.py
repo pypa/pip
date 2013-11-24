@@ -12,6 +12,7 @@ def test_get_path_uid_without_NOFOLLOW(monkeypatch):
     path = os.getcwd()
     assert get_path_uid(path) == os.stat(path).st_uid
 
+@pytest.mark.skipif("not hasattr(os, 'symlink')")
 def test_get_path_uid_symlink(tmpdir):
     f = tmpdir.mkdir("symlink").join("somefile")
     f.write("content")
@@ -21,6 +22,7 @@ def test_get_path_uid_symlink(tmpdir):
         get_path_uid(fs)
 
 @pytest.mark.skipif("not hasattr(os, 'O_NOFOLLOW')")
+@pytest.mark.skipif("not hasattr(os, 'symlink')")
 def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
     monkeypatch.delattr("os.O_NOFOLLOW")
     f = tmpdir.mkdir("symlink").join("somefile")
