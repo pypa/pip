@@ -18,7 +18,7 @@ from pip.locations import distutils_scheme
 if sys.platform == 'win32':
    pwd = Mock()
 else:
-    import pwd
+   import pwd
 
 
 class TestLocations:
@@ -91,6 +91,7 @@ class TestLocations:
 
     #skip on windows, build dir is not created
     @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.skipif("not hasattr(os, 'O_NOFOLLOW')")
     def test_dir_created(self):
         """ test that the build_prefix directory is generated when
             _get_build_prefix is called.
@@ -102,8 +103,25 @@ class TestLocations:
         assert os.path.exists(self.get_build_dir_location() ), \
             "the build_prefix directory should now exist!"
 
+
+    #skip on windows, build dir is not created
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_dir_created_without_NOFOLLOW(self, monkeypatch):
+        """ test that the build_prefix directory is generated when
+            os.O_NOFOLLOW doen't exist
+        """
+        if hasattr(os, 'O_NOFOLLOW'):
+           monkeypatch.delattr("os.O_NOFOLLOW")
+        assert not os.path.exists(self.get_build_dir_location() ), \
+            "the build_prefix directory should not exist yet!"
+        from pip import locations
+        locations._get_build_prefix()
+        assert os.path.exists(self.get_build_dir_location() ), \
+            "the build_prefix directory should now exist!"
+
     #skip on windows; this exception logic only runs on linux
     @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.skipif("not hasattr(os, 'O_NOFOLLOW')")
     def test_error_raised_when_owned_by_another(self):
         """ test calling _get_build_prefix when there is a temporary
             directory owned by another user raises an InstallationError.
@@ -114,6 +132,23 @@ class TestLocations:
 
         with pytest.raises(pip.exceptions.InstallationError):
             locations._get_build_prefix()
+
+    #skip on windows; this exception logic only runs on linux
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_error_raised_when_owned_by_another_without_NOFOLLOW(self, monkeypatch):
+        """ test calling _get_build_prefix when there is a temporary
+            directory owned by another user raises an InstallationError.
+            (when os.O_NOFOLLOW doesn't exist
+        """
+        if hasattr(os, 'O_NOFOLLOW'):
+           monkeypatch.delattr("os.O_NOFOLLOW")
+        from pip import locations
+        os.geteuid = lambda : 1111
+        os.mkdir(self.get_build_dir_location() )
+
+        with pytest.raises(pip.exceptions.InstallationError):
+            locations._get_build_prefix()
+
 
     def test_no_error_raised_when_owned_by_you(self):
         """ test calling _get_build_prefix when there is a temporary

@@ -1,4 +1,5 @@
-"""Stuff that differs in different Python versions"""
+"""Stuff that differs in different Python versions and platform
+distributions."""
 
 import os
 import imp
@@ -109,3 +110,29 @@ def product(*args, **kwds):
         result = [x + [y] for x in result for y in pool]
     for prod in result:
         yield tuple(prod)
+
+
+def get_path_uid(path):
+    """
+    Return path's uid.
+
+    Does not follow symlinks: https://github.com/pypa/pip/pull/935#discussion_r5307003
+
+    Placed this function in backwardcompat due to differences on AIX and Jython,
+    that should eventually go away.
+
+    :raises OSError: When path is a symlink or can't be read.
+    """
+    if hasattr(os, 'O_NOFOLLOW'):
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        file_uid = os.fstat(fd).st_uid
+        os.close(fd)
+    else:  # AIX and Jython
+        # WARNING: time of check vulnerabity, but best we can do w/o NOFOLLOW
+        if not os.path.islink(path):
+            # older versions of Jython don't have `os.fstat`
+            file_uid = os.stat(path).st_uid
+        else:
+            # raise OSError for parity with os.O_NOFOLLOW above
+            raise OSError("%s is a symlink; Will not return uid for symlinks" % path)
+    return file_uid
