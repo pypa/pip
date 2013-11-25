@@ -17,6 +17,10 @@ Changelog
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
 
+* **DEPRECATION** ``pip install --no-install`` and ``pip install
+  --no-download`` are now formally deprecated.  See Issue #906 for discussion on
+  possible alternatives, or lack thereof, in future releases.
+
 * pip will now install Mac OSX platform wheels from PyPI. (Pull #1278)
 
 * pip now generates the appropriate platform-specific console scripts when

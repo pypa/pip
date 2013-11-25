@@ -105,13 +105,13 @@ class InstallCommand(Command):
             '--no-install',
             dest='no_install',
             action='store_true',
-            help="Download and unpack all packages, but don't actually install them.")
+            help="DEPRECATED. Download and unpack all packages, but don't actually install them.")
 
         cmd_opts.add_option(
             '--no-download',
             dest='no_download',
             action="store_true",
-            help="Don't download any packages, just install the ones already downloaded "
+            help="DEPRECATED. Don't download any packages, just install the ones already downloaded "
             "(completes an install run with --no-install).")
 
         cmd_opts.add_option(cmdoptions.install_options.make())
