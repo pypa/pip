@@ -175,13 +175,14 @@ def test_should_not_install_always_from_cache(script):
 
 def test_install_with_ignoreinstalled_requested(script):
     """
-    It installs package if ignore installed is set.
-
+    Test old conflicting package is completely ignored
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', '-I', 'INITools', expect_error=True)
+    r = script.pip('install', 'INITools==0.1', expect_error=True)
+    result = script.pip('install', '-I', 'INITools==0.3', expect_error=True)
     assert result.files_created, 'pip install -I did not install'
-    assert script.site_packages/'INITools-0.1-py%s.egg-info' % pyversion not in result.files_created
+    # both the old and new metadata should be present.
+    assert os.path.exists(script.site_packages_path/'INITools-0.1-py%s.egg-info' % pyversion)
+    assert os.path.exists(script.site_packages_path/'INITools-0.3-py%s.egg-info' % pyversion)
 
 
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
