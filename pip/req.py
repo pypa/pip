@@ -1183,7 +1183,8 @@ class RequirementSet(object):
                                 install = False
                         # req_to_install.req is only avail after unpack for URL pkgs
                         # repeat check_if_exists to uninstall-on-upgrade (#14)
-                        req_to_install.check_if_exists()
+                        if not self.ignore_installed:
+                            req_to_install.check_if_exists()
                         if req_to_install.satisfied_by:
                             if self.upgrade or self.ignore_installed:
                                 #don't uninstall conflict if user install and and conflict is not user install
