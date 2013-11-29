@@ -29,6 +29,9 @@ Changelog
 * Pip now confirms a wheel is supported when installing directly from a path or
   url. (Pull #1315)
 
+* Fixed #1097, ``--ignore-installed`` now behaves again as designed, after it was
+  unintentionally broke in v0.8.3 when fixing Issue #14 (Pull #1352).
+
 * Fixed #1163, --user wasn't being respected when installing scripts from wheels (Pull #1176).
 
 * Fixed #1150, we now assume '_' means '-' in versions from wheel filenames (Pull #1158).
@@ -66,7 +69,7 @@ Changelog
 * Fixed #1006, error when installing local projects with symlinks in
   Python 3. (Pull #1311)
 
-* The previously hidden `--log-file` otion, is now shown as a general option.
+* The previously hidden ``--log-file`` otion, is now shown as a general option.
   (Pull #1316)
 
 
