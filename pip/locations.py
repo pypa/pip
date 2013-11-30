@@ -6,7 +6,7 @@ import os
 import tempfile
 from distutils.command.install import install, SCHEME_KEYS
 import getpass
-from pip.backwardcompat import get_python_lib, get_path_uid
+from pip.backwardcompat import get_python_lib, get_path_uid, user_site
 import pip.exceptions
 
 
@@ -109,14 +109,17 @@ site_packages = get_python_lib()
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
+    bin_user = os.path.join(user_site, 'Scripts') if user_site else None
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
+        bin_user = os.path.join(user_site, 'bin') if user_site else None
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.ini')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
+    bin_user = os.path.join(user_site, 'bin') if user_site else None
     default_storage_dir = os.path.join(user_dir, '.pip')
     default_config_file = os.path.join(default_storage_dir, 'pip.conf')
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
