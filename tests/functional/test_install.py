@@ -440,6 +440,15 @@ def test_install_package_that_emits_unicode(script, data):
     assert 'FakeError: this package designed to fail on install' in result.stdout
     assert 'UnicodeDecodeError' not in result.stdout
 
+def test_install_package_with_utf8_setup(script, data):
+    """Install a package with a setup.py that declares a utf-8 encoding."""
+    to_install = data.packages.join("SetupPyUTF8")
+    script.pip('install', to_install)
+
+def test_install_package_with_latin1_setup(script, data):
+    """Install a package with a setup.py that declares a latin-1 encoding."""
+    to_install = data.packages.join("SetupPyLatin1")
+    script.pip('install', to_install)
 
 def test_url_req_case_mismatch(script, data):
     """
