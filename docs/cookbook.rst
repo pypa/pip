@@ -270,6 +270,74 @@ To install "SomePackage" into an environment with site.USER_BASE customized to '
     pip install --user SomePackage
 
 
+``pip install --user`` follows four rules:
+
+#. When globally installed packages are on the python path, and they *conflict*
+   with the installation requirements, they are ignored, and *not*
+   uninstalled.
+#. When globally installed packages are on the python path, and they *satisfy*
+   the installation requirements, pip does nothing, and reports that
+   requirement is satisfied (similar to how global packages can satisfy
+   requirements when installing packages in a ``--system-site-packages``
+   virtualenv).
+#. pip will not perform a ``--user`` install in a ``--no-site-packages``
+   virtualenv (i.e. the default kind of virtualenv), due to the user site not
+   being on the python path.  The installation would be pointless.
+#. In a ``--system-site-packages`` virtualenv, pip will not install a package
+   that conflicts with a package in the virtualenv site-packages.  The --user
+   installation would lack sys.path precedence and be pointless.
+
+
+To make the rules clearer, here are some examples:
+
+
+From within a ``--no-site-packages`` virtualenv (i.e. the default kind)::
+
+  $ pip install --user SomePackage
+  Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+
+
+From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3`` is already installed in the virtualenv::
+
+  $ pip install --user SomePackage==0.4
+  Will not install to the user site because it will lack sys.path precedence
+
+
+From within a real python, where ``SomePackage`` is *not* installed globally::
+
+  $ pip install --user SomePackage
+  [...]
+  Successfully installed SomePackage
+
+
+From within a real python, where ``SomePackage`` *is* installed globally, but is *not* the latest version::
+
+  $ pip install --user SomePackage
+  [...]
+  Requirement already satisfied (use --upgrade to upgrade)
+
+  $ pip install --user --upgrade SomePackage
+  [...]
+  Successfully installed SomePackage
+
+
+From within a real python, where ``SomePackage`` *is* installed globally, and is the latest version::
+
+  $ pip install --user SomePackage
+  [...]
+  Requirement already satisfied (use --upgrade to upgrade)
+
+  $ pip install --user --upgrade SomePackage
+  [...]
+  Requirement already up-to-date: SomePackage
+
+  # force the install
+  $ pip install --user --ignore-installed SomePackage
+  [...]
+  Successfully installed SomePackage
+
+
+
 Controlling setup_requires
 **************************
 
