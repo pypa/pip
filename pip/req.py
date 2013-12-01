@@ -1191,6 +1191,9 @@ class RequirementSet(object):
                                     req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
+                                # Failure must be logged after unpack for wheels and sdists
+                                logger.notify('Requirement already up-to-date: %s'
+                                      % req_to_install.name)
                                 install = False
                 if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
