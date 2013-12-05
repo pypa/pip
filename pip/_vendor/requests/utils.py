@@ -17,13 +17,14 @@ import os
 import platform
 import re
 import sys
-from netrc import netrc, NetrcParseError
+import socket
+import struct
 
 from . import __version__
 from . import certs
 from .compat import parse_http_list as _parse_list_header
-from .compat import (quote, urlparse, bytes, str, OrderedDict, urlunparse,
-                     is_py2, is_py3, builtin_str, getproxies, proxy_bypass)
+from .compat import (quote, urlparse, bytes, str, OrderedDict, unquote, is_py2,
+                     builtin_str, getproxies, proxy_bypass)
 from .cookies import RequestsCookieJar, cookiejar_from_dict
 from .structures import CaseInsensitiveDict
 from .exceptions import MissingSchema, InvalidURL
@@ -67,6 +68,8 @@ def get_netrc_auth(url):
     """Returns the Requests tuple auth for a given url from netrc."""
 
     try:
+        from netrc import netrc, NetrcParseError
+
         locations = (os.path.expanduser('~/{0}'.format(f)) for f in NETRC_FILES)
         netrc_path = None
 
@@ -404,6 +407,56 @@ def requote_uri(uri):
     return quote(unquote_unreserved(uri), safe="!#$%&'()*+,/:;=?@[]~")
 
 
+def address_in_network(ip, net):
+    """
+    This function allows you to check if on IP belongs to a network subnet
+    Example: returns True if ip = 192.168.1.1 and net = 192.168.1.0/24
+             returns False if ip = 192.168.1.1 and net = 192.168.100.0/24
+    """
+    ipaddr = struct.unpack('=L', socket.inet_aton(ip))[0]
+    netaddr, bits = net.split('/')
+    netmask = struct.unpack('=L', socket.inet_aton(dotted_netmask(int(bits))))[0]
+    network = struct.unpack('=L', socket.inet_aton(netaddr))[0] & netmask
+    return (ipaddr & netmask) == (network & netmask)
+
+
+def dotted_netmask(mask):
+    """
+    Converts mask from /xx format to xxx.xxx.xxx.xxx
+    Example: if mask is 24 function returns 255.255.255.0
+    """
+    bits = 0xffffffff ^ (1 << 32 - mask) - 1
+    return socket.inet_ntoa(struct.pack('>I', bits))
+
+
+def is_ipv4_address(string_ip):
+    try:
+        socket.inet_aton(string_ip)
+    except socket.error:
+        return False
+    return True
+
+
+def is_valid_cidr(string_network):
+    """Very simple check of the cidr format in no_proxy variable"""
+    if string_network.count('/') == 1:
+        try:
+            mask = int(string_network.split('/')[1])
+        except ValueError:
+            return False
+
+        if mask < 1 or mask > 32:
+            return False
+
+        try:
+            socket.inet_aton(string_network.split('/')[0])
+        except socket.error:
+            return False
+    else:
+        return False
+    return True
+
+
 def get_environ_proxies(url):
     """Return a dict of environment proxies."""
 
@@ -419,11 +472,18 @@ def get_environ_proxies(url):
         # the end of the netloc, both with and without the port.
         no_proxy = no_proxy.replace(' ', '').split(',')
 
-        for host in no_proxy:
-            if netloc.endswith(host) or netloc.split(':')[0].endswith(host):
-                # The URL does match something in no_proxy, so we don't want
-                # to apply the proxies on this URL.
-                return {}
+        ip = netloc.split(':')[0]
+        if is_ipv4_address(ip):
+            for proxy_ip in no_proxy:
+                if is_valid_cidr(proxy_ip):
+                    if address_in_network(ip, proxy_ip):
+                        return {}
+        else:
+            for host in no_proxy:
+                if netloc.endswith(host) or netloc.split(':')[0].endswith(host):
+                    # The URL does match something in no_proxy, so we don't want
+                    # to apply the proxies on this URL.
+                    return {}
 
     # If the system proxy settings indicate that this URL should be bypassed,
     # don't proxy.
@@ -436,7 +496,7 @@ def get_environ_proxies(url):
     return getproxies()
 
 
-def default_user_agent():
+def default_user_agent(name="python-requests"):
     """Return a string representing the default user agent."""
     _implementation = platform.python_implementation()
 
@@ -462,7 +522,7 @@ def default_user_agent():
         p_system = 'Unknown'
         p_release = 'Unknown'
 
-    return " ".join(['python-requests/%s' % __version__,
+    return " ".join(['%s/%s' % (name, __version__),
                      '%s/%s' % (_implementation, _implementation_version),
                      '%s/%s' % (p_system, p_release)])
 
@@ -557,6 +617,7 @@ def get_auth_from_url(url):
     """Given a url with authentication components, extract them into a tuple of
     username,password."""
     if url:
+        url = unquote(url)
         parsed = urlparse(url)
         return (parsed.username, parsed.password)
     else:
