@@ -8,7 +8,7 @@ requests.utils imports from here, so be careful with imports.
 
 import time
 import collections
-from .compat import cookielib, urlparse, Morsel
+from .compat import cookielib, urlparse, urlunparse, Morsel
 
 try:
     import threading
@@ -45,7 +45,18 @@ class MockRequest(object):
         return self.get_host()
 
     def get_full_url(self):
-        return self._r.url
+        # Only return the response's URL if the user hadn't set the Host
+        # header
+        if not self._r.headers.get('Host'):
+            return self._r.url
+        # If they did set it, retrieve it and reconstruct the expected domain
+        host = self._r.headers['Host']
+        parsed = urlparse(self._r.url)
+        # Reconstruct the URL as we expect it
+        return urlunparse([
+            parsed.scheme, host, parsed.path, parsed.params, parsed.query,
+            parsed.fragment
+        ])
 
     def is_unverifiable(self):
         return True
@@ -267,7 +278,7 @@ class RequestsCookieJar(cookielib.CookieJar, collections.MutableMapping):
         remove_cookie_by_name(self, name)
 
     def set_cookie(self, cookie, *args, **kwargs):
-        if cookie.value.startswith('"') and cookie.value.endswith('"'):
+        if hasattr(cookie.value, 'startswith') and cookie.value.startswith('"') and cookie.value.endswith('"'):
             cookie.value = cookie.value.replace('\\"', '')
         return super(RequestsCookieJar, self).set_cookie(cookie, *args, **kwargs)
 
@@ -408,5 +419,27 @@ def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):
         for name in cookie_dict:
             if overwrite or (name not in names_from_jar):
                 cookiejar.set_cookie(create_cookie(name, cookie_dict[name]))
+
+    return cookiejar
+
+
+def merge_cookies(cookiejar, cookies):
+    """Add cookies to cookiejar and returns a merged CookieJar.
+
+    :param cookiejar: CookieJar object to add the cookies to.
+    :param cookies: Dictionary or CookieJar object to be added.
+    """
+    if not isinstance(cookiejar, cookielib.CookieJar):
+        raise ValueError('You can only merge into CookieJar')
+    
+    if isinstance(cookies, dict):
+        cookiejar = cookiejar_from_dict(
+            cookies, cookiejar=cookiejar, overwrite=False)
+    elif isinstance(cookies, cookielib.CookieJar):
+        try:
+            cookiejar.update(cookies)
+        except AttributeError:
+            for cookie_in_jar in cookies:
+                cookiejar.set_cookie(cookie_in_jar)
 
     return cookiejar

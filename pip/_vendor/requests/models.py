@@ -270,6 +270,9 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.url = None
         #: dictionary of HTTP headers.
         self.headers = None
+        # The `CookieJar` used to create the Cookie header will be stored here
+        # after prepare_cookies is called
+        self._cookies = None
         #: request body to send to the server.
         self.body = None
         #: dictionary of callback hooks, for internal usage.
@@ -299,6 +302,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         p.method = self.method
         p.url = self.url
         p.headers = self.headers.copy()
+        p._cookies = self._cookies.copy()
         p.body = self.body
         p.hooks = self.hooks
         return p
@@ -320,11 +324,17 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         except UnicodeDecodeError:
             pass
 
+        # Don't do any URL preparation for oddball schemes
+        if ':' in url and not url.lower().startswith('http'):
+            self.url = url
+            return
+
         # Support for unicode domain names and paths.
         scheme, auth, host, port, path, query, fragment = parse_url(url)
 
         if not scheme:
-            raise MissingSchema("Invalid URL %r: No schema supplied" % url)
+            raise MissingSchema("Invalid URL {0!r}: No schema supplied. "
+                                "Perhaps you meant http://{0}?".format(url))
 
         if not host:
             raise InvalidURL("Invalid URL %r: No host supplied" % url)
@@ -407,7 +417,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
                 raise NotImplementedError('Streamed bodies and files are mutually exclusive.')
 
             if length is not None:
-                self.headers['Content-Length'] = str(length)
+                self.headers['Content-Length'] = builtin_str(length)
             else:
                 self.headers['Transfer-Encoding'] = 'chunked'
         else:
@@ -433,12 +443,12 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
     def prepare_content_length(self, body):
         if hasattr(body, 'seek') and hasattr(body, 'tell'):
             body.seek(0, 2)
-            self.headers['Content-Length'] = str(body.tell())
+            self.headers['Content-Length'] = builtin_str(body.tell())
             body.seek(0, 0)
         elif body is not None:
             l = super_len(body)
             if l:
-                self.headers['Content-Length'] = str(l)
+                self.headers['Content-Length'] = builtin_str(l)
         elif self.method not in ('GET', 'HEAD'):
             self.headers['Content-Length'] = '0'
 
@@ -468,14 +478,13 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         """Prepares the given HTTP cookie data."""
 
         if isinstance(cookies, cookielib.CookieJar):
-            cookies = cookies
+            self._cookies = cookies
         else:
-            cookies = cookiejar_from_dict(cookies)
+            self._cookies = cookiejar_from_dict(cookies)
 
-        if 'cookie' not in self.headers:
-            cookie_header = get_cookie_header(cookies, self)
-            if cookie_header is not None:
-                self.headers['Cookie'] = cookie_header
+        cookie_header = get_cookie_header(self._cookies, self)
+        if cookie_header is not None:
+            self.headers['Cookie'] = cookie_header
 
     def prepare_hooks(self, hooks):
         """Prepares the given hooks."""
@@ -487,6 +496,19 @@ class Response(object):
     """The :class:`Response <Response>` object, which contains a
     server's response to an HTTP request.
     """
+
+    __attrs__ = [
+        '_content',
+        'status_code',
+        'headers',
+        'url',
+        'history',
+        'encoding',
+        'reason',
+        'cookies',
+        'elapsed',
+        'request',
+    ]
 
     def __init__(self):
         super(Response, self).__init__()
@@ -526,6 +548,24 @@ class Response(object):
         #: The amount of time elapsed between sending the request
         #: and the arrival of the response (as a timedelta)
         self.elapsed = datetime.timedelta(0)
+
+    def __getstate__(self):
+        # Consume everything; accessing the content attribute makes
+        # sure the content has been fully read.
+        if not self._content_consumed:
+            self.content
+
+        return dict(
+            (attr, getattr(self, attr, None))
+            for attr in self.__attrs__
+        )
+
+    def __setstate__(self, state):
+        for name, value in state.items():
+            setattr(self, name, value)
+
+        # pickled objects do not have .raw
+        setattr(self, '_content_consumed', True)
 
     def __repr__(self):
         return '<Response [%s]>' % (self.status_code)
@@ -647,8 +687,8 @@ class Response(object):
     def text(self):
         """Content of the response, in unicode.
 
-        if Response.encoding is None and chardet module is available, encoding
-        will be guessed.
+        If Response.encoding is None, encoding will be guessed using
+        ``charade``.
         """
 
         # Try charset from content-type
