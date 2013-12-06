@@ -348,7 +348,7 @@ def dist_is_editable(dist):
     return req.editable
 
 def get_installed_distributions(local_only=True,
-                                skip=('setuptools', 'pip', 'python', 'distribute'),
+                                skip=('setuptools', 'pip', 'python', 'distribute', 'wsgiref'),
                                 include_editables=True,
                                 editables_only=False):
     """
