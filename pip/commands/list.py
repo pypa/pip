@@ -15,7 +15,7 @@ class ListCommand(Command):
     summary = 'List installed packages.'
 
     # distributions to skip (python itself is reported by pkg_resources.working_set)
-    skip = ['python']
+    skip = ['python', 'wsgiref']
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
