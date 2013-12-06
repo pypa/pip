@@ -206,7 +206,10 @@ class HTTPAdapter(BaseAdapter):
 
             conn = self.proxy_manager[proxy].connection_from_url(url)
         else:
-            conn = self.poolmanager.connection_from_url(url.lower())
+            # Only scheme should be lower case
+            parsed = urlparse(url)
+            url = parsed.geturl()
+            conn = self.poolmanager.connection_from_url(url)
 
         return conn
 
@@ -232,7 +235,7 @@ class HTTPAdapter(BaseAdapter):
         :param proxies: A dictionary of schemes to proxy URLs.
         """
         proxies = proxies or {}
-        scheme = urlparse(request.url).scheme.lower()
+        scheme = urlparse(request.url).scheme
         proxy = proxies.get(scheme)
 
         if proxy and scheme != 'https':
@@ -289,7 +292,7 @@ class HTTPAdapter(BaseAdapter):
         :param stream: (optional) Whether to stream the request content.
         :param timeout: (optional) The timeout on the request.
         :param verify: (optional) Whether to verify SSL certificates.
-        :param vert: (optional) Any user-provided SSL certificate to be trusted.
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
         :param proxies: (optional) The proxies dictionary to apply to the request.
         """
 
@@ -327,27 +330,40 @@ class HTTPAdapter(BaseAdapter):
                     conn = conn.proxy_pool
 
                 low_conn = conn._get_conn(timeout=timeout)
-                low_conn.putrequest(request.method, url, skip_accept_encoding=True)
 
-                for header, value in request.headers.items():
-                    low_conn.putheader(header, value)
+                try:
+                    low_conn.putrequest(request.method,
+                                        url,
+                                        skip_accept_encoding=True)
 
-                low_conn.endheaders()
+                    for header, value in request.headers.items():
+                        low_conn.putheader(header, value)
 
-                for i in request.body:
-                    low_conn.send(hex(len(i))[2:].encode('utf-8'))
-                    low_conn.send(b'\r\n')
-                    low_conn.send(i)
-                    low_conn.send(b'\r\n')
-                low_conn.send(b'0\r\n\r\n')
+                    low_conn.endheaders()
 
-                r = low_conn.getresponse()
-                resp = HTTPResponse.from_httplib(r,
-                    pool=conn,
-                    connection=low_conn,
-                    preload_content=False,
-                    decode_content=False
-                )
+                    for i in request.body:
+                        low_conn.send(hex(len(i))[2:].encode('utf-8'))
+                        low_conn.send(b'\r\n')
+                        low_conn.send(i)
+                        low_conn.send(b'\r\n')
+                    low_conn.send(b'0\r\n\r\n')
+
+                    r = low_conn.getresponse()
+                    resp = HTTPResponse.from_httplib(
+                        r,
+                        pool=conn,
+                        connection=low_conn,
+                        preload_content=False,
+                        decode_content=False
+                    )
+                except:
+                    # If we hit any problems here, clean up the connection.
+                    # Then, reraise so that we can handle the actual exception.
+                    low_conn.close()
+                    raise
+                else:
+                    # All is well, return the connection to the pool.
+                    conn._put_conn(low_conn)
 
         except socket.error as sockerr:
             raise ConnectionError(sockerr)
