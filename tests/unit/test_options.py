@@ -230,7 +230,7 @@ class TestGeneralOptions(object):
 
 class TestOptionsConfigFiles(object):
 
-    def test_general_option_after_subcommand(self, monkeypatch):
+    def test_venv_config_file_found(self, monkeypatch):
         # We only want a dummy object to call the get_config_files method
         monkeypatch.setattr(pip.baseparser.ConfigOptionParser, '__init__', lambda self: None)
 
