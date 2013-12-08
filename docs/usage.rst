@@ -133,9 +133,9 @@ Examples
 
   Install from a local flat directory containing archives (and don't scan indexes)::
 
-  $ pip install --no-index --find-links:file:///local/dir/ SomePackage
-  $ pip install --no-index --find-links:/local/dir/ SomePackage
-  $ pip install --no-index --find-links:relative/dir/ SomePackage
+  $ pip install --no-index --find-links=file:///local/dir/ SomePackage
+  $ pip install --no-index --find-links=/local/dir/ SomePackage
+  $ pip install --no-index --find-links=relative/dir/ SomePackage
 
 
 9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.

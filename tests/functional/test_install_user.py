@@ -1,5 +1,5 @@
 """
-tests specific to "--user" option
+tests specific to "pip install --user"
 """
 import imp
 import sys
@@ -11,6 +11,7 @@ from os.path import abspath, join, curdir, isdir, isfile
 import pytest
 
 from pip.backwardcompat import uses_pycache
+from pip.locations import bin_user
 
 from tests.lib.local_repos import local_checkout
 from tests.lib import pyversion, assert_all_changes
@@ -200,33 +201,4 @@ class Tests_UserSite:
         dist_location = resultp.stdout.strip()
         assert "Will not install to the user site because it will lack sys.path precedence to %s in %s" \
             % ('INITools', dist_location) in result2.stdout, result2.stdout
-
-    def test_uninstall_from_usersite(self, script, virtualenv):
-        """
-        Test uninstall from usersite
-        """
-        virtualenv.system_site_packages = True
-        result1 = script.pip('install', '--user', 'INITools==0.3')
-        result2 = script.pip('uninstall', '-y', 'INITools')
-        assert_all_changes(result1, result2, [script.venv/'build', 'cache'])
-
-    def test_uninstall_editable_from_usersite(self, script, virtualenv, data):
-        """
-        Test uninstall editable local user install
-        """
-        virtualenv.system_site_packages = True
-        script.user_site_path.makedirs()
-
-        #install
-        to_install = data.packages.join("FSPkg")
-        result1 = script.pip('install', '--user', '-e', to_install, expect_error=False)
-        egg_link = script.user_site/'FSPkg.egg-link'
-        assert egg_link in result1.files_created, str(result1.stdout)
-
-        #uninstall
-        result2 = script.pip('uninstall', '-y', 'FSPkg')
-        assert not isfile(script.base_path / egg_link)
-
-        assert_all_changes(result1, result2,
-                           [script.venv/'build', 'cache', script.user_site/'easy-install.pth'])
 

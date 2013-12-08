@@ -25,6 +25,7 @@ Dave Abrahams
 David (d1b)
 David Aguilar
 David Evans
+David Pursehouse
 dengzhp
 Dmitry Gladkov
 Donald Stufft
@@ -40,6 +41,7 @@ Georgi Valkov
 Herbert Pfennig
 hetmankp
 Hugo Lopes Tavares
+Hynek Schlawack
 Ian Bicking
 Igor Sobreira
 Ionel Maries Cristian
@@ -52,6 +54,8 @@ Jeff Dairiki
 John-Scott Atlakson
 Jon Parise
 Jonas Nockert
+Jon Parise
+Jorge Niedbalski
 Josh Bronson
 Josh Hansen
 Kamal Bin Mustafa
@@ -70,7 +74,9 @@ Marcus Smith
 Markus Hametner
 Matt Maker
 Maxime Rouyrre
+Michael Williamson
 Miguel Araujo Perez
+Monty Taylor
 Nick Stenning
 Nowell Strite
 Oliver Tonnhofer
@@ -87,6 +93,7 @@ Peter Waller
 Phil Freo
 Phil Whelan
 Piet Delport
+Preston Holmes
 Przemek Wrzos
 Qiangning Hong
 Rafael Caricio
@@ -101,6 +108,7 @@ Simon Cross
 Stavros Korokithakis
 Stéphane Klein
 Steven Myint
+Takayuki SHIMIZUKAWA
 Thomas Fenzl
 Thomas Johansson
 Toshio Kuratomi

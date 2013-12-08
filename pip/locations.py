@@ -6,7 +6,7 @@ import os
 import tempfile
 from distutils.command.install import install, SCHEME_KEYS
 import getpass
-from pip.backwardcompat import get_python_lib
+from pip.backwardcompat import get_python_lib, get_path_uid, user_site
 import pip.exceptions
 
 
@@ -67,17 +67,18 @@ def _get_build_prefix():
     except OSError:
         file_uid = None
         try:
-            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-            file_uid = os.fstat(fd).st_uid
-            os.close(fd)
+            # raises OSError for symlinks
+            # https://github.com/pypa/pip/pull/935#discussion_r5307003
+            file_uid = get_path_uid(path)
         except OSError:
             file_uid = None
+
         if file_uid != os.geteuid():
-            msg = "The temporary folder for building (%s) is not owned by your user!" \
+            msg = "The temporary folder for building (%s) is either not owned by you, or is a symlink." \
                 % path
             print (msg)
             print("pip will not work until the temporary folder is " + \
-                 "either deleted or owned by your user account.")
+                 "either deleted or is a real directory owned by your user account.")
             raise pip.exceptions.InstallationError(msg)
     return path
 
@@ -85,9 +86,8 @@ if running_under_virtualenv():
     build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
-    # Use tempfile to create a temporary folder for build
-    # Note: we are NOT using mkdtemp so we can have a consistent build dir
-    # Note: using realpath due to tmp dirs on OSX being symlinks
+    # Note: intentionally NOT using mkdtemp
+    # See https://github.com/pypa/pip/issues/906 for plan to move to mkdtemp
     build_prefix = _get_build_prefix()
 
     ## FIXME: keep src in cwd for now (it is not a temporary folder)
@@ -99,6 +99,7 @@ else:
 
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
+# Note: using realpath due to tmp dirs on OSX being symlinks
 build_prefix = os.path.abspath(os.path.realpath(build_prefix))
 src_prefix = os.path.abspath(src_prefix)
 
@@ -108,15 +109,18 @@ site_packages = get_python_lib()
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
+    bin_user = os.path.join(user_site, 'Scripts') if user_site else None
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
+        bin_user = os.path.join(user_site, 'bin') if user_site else None
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_basename = 'pip.ini'
     default_config_file = os.path.join(default_storage_dir, default_config_basename)
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
+    bin_user = os.path.join(user_site, 'bin') if user_site else None
     default_storage_dir = os.path.join(user_dir, '.pip')
     default_config_basename = 'pip.conf'
     default_config_file = os.path.join(default_storage_dir, default_config_basename)

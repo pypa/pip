@@ -11,7 +11,7 @@ import zipfile
 
 from distutils.util import change_root
 from pip.locations import (bin_py, running_under_virtualenv,PIP_DELETE_MARKER_FILENAME,
-                           write_delete_marker_file)
+                           write_delete_marker_file, bin_user)
 from pip.exceptions import (InstallationError, UninstallationError, UnsupportedWheel,
                             BestVersionAlreadyInstalled, InvalidWheelFilename,
                             DistributionNotFound, PreviousBuildDirError)
@@ -534,9 +534,13 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
-                paths_to_remove.add(os.path.join(bin_py, script))
+                if dist_in_usersite(dist):
+                    bin_dir = bin_user
+                else:
+                    bin_dir = bin_py
+                paths_to_remove.add(os.path.join(bin_dir, script))
                 if sys.platform == 'win32':
-                    paths_to_remove.add(os.path.join(bin_py, script) + '.bat')
+                    paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
 
         # find console_scripts
         if dist.has_metadata('entry_points.txt'):
@@ -544,11 +548,15 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             config.readfp(FakeFile(dist.get_metadata_lines('entry_points.txt')))
             if config.has_section('console_scripts'):
                 for name, value in config.items('console_scripts'):
-                    paths_to_remove.add(os.path.join(bin_py, name))
+                    if dist_in_usersite(dist):
+                        bin_dir = bin_user
+                    else:
+                        bin_dir = bin_py
+                    paths_to_remove.add(os.path.join(bin_dir, name))
                     if sys.platform == 'win32':
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '.exe.manifest')
-                        paths_to_remove.add(os.path.join(bin_py, name) + '-script.py')
+                        paths_to_remove.add(os.path.join(bin_dir, name) + '.exe')
+                        paths_to_remove.add(os.path.join(bin_dir, name) + '.exe.manifest')
+                        paths_to_remove.add(os.path.join(bin_dir, name) + '-script.py')
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
@@ -1184,7 +1192,8 @@ class RequirementSet(object):
                                 install = False
                         # req_to_install.req is only avail after unpack for URL pkgs
                         # repeat check_if_exists to uninstall-on-upgrade (#14)
-                        req_to_install.check_if_exists()
+                        if not self.ignore_installed:
+                            req_to_install.check_if_exists()
                         if req_to_install.satisfied_by:
                             if self.upgrade or self.ignore_installed:
                                 #don't uninstall conflict if user install and and conflict is not user install

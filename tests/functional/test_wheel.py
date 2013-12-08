@@ -24,7 +24,7 @@ def test_pip_wheel_success(script, data):
     """
     Test 'pip wheel' success.
     """
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     result = script.pip('wheel', '--no-index', '-f', data.find_links, 'simple==3.0')
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
     wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
@@ -36,7 +36,7 @@ def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
     """
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     result = script.pip('wheel', '--no-index', '-f', data.find_links, 'wheelbroken==0.1')
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
     wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
@@ -49,7 +49,7 @@ def test_pip_wheel_ignore_wheels_editables(script, data):
     """
     Test 'pip wheel' ignores editables and *.whl files in requirements
     """
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
 
     local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % data.find_links
     local_editable = data.packages.join("FSPkg")
@@ -76,7 +76,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
     """
     Test --no-clean option blocks cleaning after wheel build
     """
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     result = script.pip('wheel', '--no-clean', '--no-index', '--find-links=%s' % data.find_links, 'simple')
     build = script.venv_path/'build'/'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
@@ -87,7 +87,7 @@ def test_pip_wheel_source_deps(script, data):
     Test 'pip wheel --use-wheel' finds and builds source archive dependencies of wheels
     """
     # 'requires_source' is a wheel that depends on the 'source' project
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     result = script.pip('wheel', '--use-wheel', '--no-index', '-f', data.find_links, 'requires_source')
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot
     wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
@@ -98,7 +98,7 @@ def test_pip_wheel_source_deps(script, data):
 def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     """Test when 'pip wheel' tries to install a package that has a previous build directory"""
 
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
 
     # Given that I have a previous build dir of the `simple` package
     build = script.venv_path / 'build' / 'simple'

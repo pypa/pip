@@ -41,6 +41,21 @@ def test_install_from_wheel_file(script, data):
     """
     Test installing directly from a wheel file.
     """
+    package = data.packages.join("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index', expect_error=False)
+    dist_info_folder = script.site_packages/'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created, (dist_info_folder,
+                                                      result.files_created,
+                                                      result.stdout)
+
+
+# header installs are broke in pypy virtualenvs
+# https://github.com/pypa/virtualenv/issues/510
+@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
+def test_install_from_wheel_with_headers(script, data):
+    """
+    Test installing from a wheel file with headers
+    """
     package = data.packages.join("headers.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages/'headers.dist-0.1.dist-info'
@@ -53,7 +68,7 @@ def test_install_wheel_with_target(script, data):
     """
     Test installing a wheel using pip install --target
     """
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     target_dir = script.scratch_path/'target'
     result = script.pip('install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
                      '--no-index', '--find-links='+data.find_links)
@@ -98,7 +113,7 @@ def test_install_user_wheel(script, virtualenv, data):
     Test user install from wheel (that has a script)
     """
     virtualenv.system_site_packages = True
-    script.pip_install_local('wheel')
+    script.pip('install', 'wheel')
     result = script.pip('install', 'has.script==1.0', '--user', '--use-wheel',
                  '--no-index', '--find-links='+data.find_links)
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
