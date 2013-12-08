@@ -226,3 +226,17 @@ class TestGeneralOptions(object):
         options1, args1 = main(['--cert', 'path', 'fake'])
         options2, args2 = main(['fake', '--cert', 'path'])
         assert options1.cert == options2.cert == 'path'
+
+
+class TestOptionsConfigFiles(object):
+
+    def test_venv_config_file_found(self, monkeypatch):
+        # We only want a dummy object to call the get_config_files method
+        monkeypatch.setattr(pip.baseparser.ConfigOptionParser, '__init__', lambda self: None)
+
+        # If we are running in a virtualenv and all files appear to exist,
+        # we should see two config files.
+        monkeypatch.setattr(pip.baseparser, 'running_under_virtualenv', lambda: True)
+        monkeypatch.setattr(os.path, 'exists', lambda filename: True)
+        cp = pip.baseparser.ConfigOptionParser()
+        assert len(cp.get_config_files()) == 2

@@ -7,7 +7,7 @@ import os
 import textwrap
 from distutils.util import strtobool
 from pip.backwardcompat import ConfigParser, string_types
-from pip.locations import default_config_file
+from pip.locations import default_config_file, default_config_basename, running_under_virtualenv
 from pip.util import get_terminal_size, get_prog
 
 
@@ -136,8 +136,14 @@ class ConfigOptionParser(CustomOptionParser):
     def get_config_files(self):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file and os.path.exists(config_file):
-            return [config_file]
-        return [default_config_file]
+            files = [config_file]
+        else:
+            files = [default_config_file]
+        if running_under_virtualenv():
+            venv_config_file = os.path.join(sys.prefix, default_config_basename)
+            if os.path.exists(venv_config_file):
+                files.append(venv_config_file)
+        return files
 
     def check_default(self, option, key, val):
         try:
