@@ -1,0 +1,10 @@
+Project Info
+============
+
+* Project Page: https://github.com/pypa/pip
+* Install howto: http://www.pip-installer.org/en/latest/installing.html
+* Changelog: http://www.pip-installer.org/en/latest/news.html
+* Bug Tracking: https://github.com/pypa/pip/issues
+* Mailing list: http://groups.google.com/group/python-virtualenv
+* Docs: http://www.pip-installer.org/
+* IRC: #pip on Freenode.

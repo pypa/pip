@@ -3,32 +3,67 @@ import getpass
 import hashlib
 import mimetypes
 import os
+import platform
 import re
 import shutil
+import socket
+import ssl
 import sys
 import tempfile
-from pip.backwardcompat import (xmlrpclib, urllib, urllib2,
-                                urlparse, string_types)
-from pip.exceptions import InstallationError
+
+import pip
+
+from pip.backwardcompat import (urllib, urllib2, httplib,
+                                urlparse, string_types, get_http_message_param,
+                                match_hostname, CertificateError)
+from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
+from pip.locations import default_cert_path
 
-
-__all__ = ['xmlrpclib_transport', 'get_file_content', 'urlopen',
+__all__ = ['get_file_content', 'urlopen',
            'is_url', 'url_to_path', 'path_to_url', 'path_to_url2',
            'geturl', 'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
 
 
-xmlrpclib_transport = xmlrpclib.Transport()
+def build_user_agent():
+    """Return a string representing the user agent."""
+    _implementation = platform.python_implementation()
+
+    if _implementation == 'CPython':
+        _implementation_version = platform.python_version()
+    elif _implementation == 'PyPy':
+        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
+                                                sys.pypy_version_info.minor,
+                                                sys.pypy_version_info.micro)
+        if sys.pypy_version_info.releaselevel != 'final':
+            _implementation_version = ''.join([_implementation_version, sys.pypy_version_info.releaselevel])
+    elif _implementation == 'Jython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    elif _implementation == 'IronPython':
+        _implementation_version = platform.python_version()  # Complete Guess
+    else:
+        _implementation_version = 'Unknown'
+
+    try:
+        p_system = platform.system()
+        p_release = platform.release()
+    except IOError:
+        p_system = 'Unknown'
+        p_release = 'Unknown'
+
+    return " ".join(['pip/%s' % pip.__version__,
+                     '%s/%s' % (_implementation, _implementation_version),
+                     '%s/%s' % (p_system, p_release)])
 
 
 def get_file_content(url, comes_from=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content)"""
+    http: URL.  Returns (location, content).  Content is unicode."""
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
@@ -50,7 +85,8 @@ def get_file_content(url, comes_from=None):
         else:
             ## FIXME: catch some errors
             resp = urlopen(url)
-            return geturl(resp), resp.read()
+            encoding = get_http_message_param(resp.headers, 'charset', 'utf-8')
+            return geturl(resp), resp.read().decode(encoding)
     try:
         f = open(url)
         content = f.read()
@@ -65,6 +101,59 @@ def get_file_content(url, comes_from=None):
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
+class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+    """
+    A connection that wraps connections with ssl certificate verification.
+    """
+    def connect(self):
+
+        self.connection_kwargs = {}
+
+        #TODO: refactor compatibility logic into backwardcompat?
+
+        # for > py2.5
+        if hasattr(self, 'timeout'):
+            self.connection_kwargs.update(timeout = self.timeout)
+
+        # for >= py2.7
+        if hasattr(self, 'source_address'):
+            self.connection_kwargs.update(source_address = self.source_address)
+
+        sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+
+        # for >= py2.7
+        if getattr(self, '_tunnel_host', None):
+            self.sock = sock
+            self._tunnel()
+
+        # get alternate bundle or use our included bundle
+        cert_path = os.environ.get('PIP_CERT', '') or default_cert_path
+
+        self.sock = ssl.wrap_socket(sock,
+                                self.key_file,
+                                self.cert_file,
+                                cert_reqs=ssl.CERT_REQUIRED,
+                                ca_certs=cert_path)
+
+        try:
+            match_hostname(self.sock.getpeercert(), self.host)
+        except CertificateError:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+            raise
+
+
+
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+    """
+    A HTTPSHandler that uses our own VerifiedHTTPSConnection.
+    """
+    def __init__(self, connection_class = VerifiedHTTPSConnection):
+        self.specialized_conn_class = connection_class
+        urllib2.HTTPSHandler.__init__(self)
+    def https_open(self, req):
+        return self.do_open(self.specialized_conn_class, req)
+
 
 class URLOpener(object):
     """
@@ -72,6 +161,7 @@ class URLOpener(object):
     """
     def __init__(self):
         self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        self.proxy_handler = None
 
     def __call__(self, url):
         """
@@ -80,10 +170,10 @@ class URLOpener(object):
         auth.
 
         """
-        url, username, password = self.extract_credentials(url)
+        url, username, password, scheme = self.extract_credentials(url)
         if username is None:
             try:
-                response = urllib2.urlopen(self.get_request(url))
+                response = self.get_opener(scheme=scheme).open(url)
             except urllib2.HTTPError:
                 e = sys.exc_info()[1]
                 if e.code != 401:
@@ -120,9 +210,35 @@ class URLOpener(object):
                 self.passman.add_password(None, netloc, username, password)
             stored_username, stored_password = self.passman.find_user_password(None, netloc)
         authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
+        opener = self.get_opener(authhandler, scheme=scheme)
         # FIXME: should catch a 401 and offer to let the user reenter credentials
         return opener.open(req)
+
+    def get_opener(self, *args, **kwargs):
+        """
+        Build an OpenerDirector instance based on the scheme and proxy option
+        """
+
+        args = list(args)
+        if self.proxy_handler:
+            args.extend([self.proxy_handler, urllib2.CacheFTPHandler])
+
+        if kwargs.get('scheme') == 'https':
+            https_handler = VerifiedHTTPSHandler()
+            director = urllib2.build_opener(https_handler, *args)
+            #strip out HTTPHandler to prevent MITM spoof
+            for handler in director.handlers:
+                if isinstance(handler, urllib2.HTTPHandler):
+                    director.handlers.remove(handler)
+        else:
+            director = urllib2.build_opener(*args)
+
+        # Add our new headers to the opener
+        headers = [x for x in director.addheaders if x[0].lower() != "user-agent"]
+        headers.append(("User-agent", build_user_agent()))
+        director.addheaders = headers
+
+        return director
 
     def setup(self, proxystr='', prompting=True):
         """
@@ -133,9 +249,7 @@ class URLOpener(object):
         self.prompting = prompting
         proxy = self.get_proxy(proxystr)
         if proxy:
-            proxy_support = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
-            opener = urllib2.build_opener(proxy_support, urllib2.CacheFTPHandler)
-            urllib2.install_opener(opener)
+            self.proxy_handler = urllib2.ProxyHandler({"http": proxy, "ftp": proxy, "https": proxy})
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
@@ -160,7 +274,7 @@ class URLOpener(object):
 
         username, password = self.parse_credentials(netloc)
         if username is None:
-            return url, None, None
+            return url, None, None, scheme
         elif password is None and self.prompting:
             # remove the auth credentials from the url part
             netloc = netloc.replace('%s@' % username, '', 1)
@@ -172,7 +286,7 @@ class URLOpener(object):
             netloc = netloc.replace('%s:%s@' % (username, password), '', 1)
 
         target_url = urlparse.urlunsplit((scheme, netloc, path, query, frag))
-        return target_url, username, password
+        return target_url, username, password, scheme
 
     def get_proxy(self, proxystr=''):
         """
@@ -280,7 +394,8 @@ def geturl(urllib2_resp):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tar.xz', '.tgz', '.tar', '.pybundle')
+    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tar.xz', '.tgz', '.tar',
+                '.pybundle', '.whl')
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True
@@ -326,11 +441,11 @@ def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
         logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
                     % (download_hash.digest_size, link, link.hash_name))
-        raise InstallationError('Hash name mismatch for package %s' % link)
+        raise HashMismatch('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
         logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (link, download_hash, link.hash))
-        raise InstallationError('Bad %s hash for package %s' % (link.hash_name, link))
+                     % (link, download_hash.hexdigest(), link.hash))
+        raise HashMismatch('Bad %s hash for package %s' % (link.hash_name, link))
 
 
 def _get_hash_from_file(target_file, link):
@@ -363,7 +478,7 @@ def _download_url(resp, link, temp_location):
     except (ValueError, KeyError, TypeError):
         total_length = 0
     downloaded = 0
-    show_progress = total_length > 40*1000 or not total_length
+    show_progress = total_length > 40 * 1000 or not total_length
     show_url = link.show_url
     try:
         if show_progress:
@@ -385,7 +500,7 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100*downloaded/total_length, format_size(downloaded)))
+                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
@@ -421,12 +536,21 @@ def _copy_file(filename, location, content_type, link):
 
 def unpack_http_url(link, location, download_cache, download_dir=None):
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
+    temp_location = None
     target_url = link.url.split('#', 1)[0]
-    target_file = None
+
+    already_cached = False
+    cache_file = None
+    cache_content_type_file = None
     download_hash = None
     if download_cache:
-        target_file = os.path.join(download_cache,
+        cache_file = os.path.join(download_cache,
                                    urllib.quote(target_url, ''))
+        cache_content_type_file = cache_file + '.content-type'
+        already_cached = (
+            os.path.exists(cache_file) and
+            os.path.exists(cache_content_type_file)
+            )
         if not os.path.isdir(download_cache):
             create_download_cache_folder(download_cache)
 
@@ -436,25 +560,47 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
         if not os.path.exists(already_downloaded):
             already_downloaded = None
 
-    if (target_file
-        and os.path.exists(target_file)
-        and os.path.exists(target_file + '.content-type')):
-        fp = open(target_file+'.content-type')
-        content_type = fp.read().strip()
-        fp.close()
-        if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(target_file, link)
-        temp_location = target_file
-        logger.notify('Using download cache from %s' % target_file)
-    elif already_downloaded:
+    if already_downloaded:
         temp_location = already_downloaded
-        content_type = mimetypes.guess_type(already_downloaded)
+        content_type = mimetypes.guess_type(already_downloaded)[0]
+        logger.notify('File was already downloaded %s' % already_downloaded)
         if link.hash:
             download_hash = _get_hash_from_file(temp_location, link)
-        logger.notify('File was already downloaded %s' % already_downloaded)
-    else:
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warn(
+                    'Previously-downloaded file %s has bad hash, '
+                    're-downloading.' % temp_location
+                    )
+                temp_location = None
+                os.unlink(already_downloaded)
+                already_downloaded = None
+
+    # We have a cached file, and we haven't already found a good downloaded copy
+    if already_cached and not temp_location:
+        with open(cache_content_type_file) as fp:
+            content_type = fp.read().strip()
+        temp_location = cache_file
+        logger.notify('Using download cache from %s' % cache_file)
+        if link.hash and link.hash_name:
+            download_hash = _get_hash_from_file(cache_file, link)
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warn(
+                    'Cached file %s has bad hash, '
+                    're-downloading.' % temp_location
+                    )
+                temp_location = None
+                os.unlink(cache_file)
+                os.unlink(cache_content_type_file)
+                already_cached = False
+
+    # We don't have either a cached or a downloaded copy
+    if not temp_location:
         resp = _get_response_from_url(target_url, link)
-        content_type = resp.info()['content-type']
+        content_type = resp.info().get('content-type', '')
         filename = link.filename  # fallback
         # Have a look at the Content-Disposition header for a better guess
         content_disposition = resp.info().get('content-disposition')
@@ -474,14 +620,15 @@ def unpack_http_url(link, location, download_cache, download_dir=None):
                 filename += ext
         temp_location = os.path.join(temp_dir, filename)
         download_hash = _download_url(resp, link, temp_location)
-    if link.hash and link.hash_name:
-        _check_hash(download_hash, link)
+        if link.hash and link.hash_name:
+            _check_hash(download_hash, link)
+
     if download_dir and not already_downloaded:
         _copy_file(temp_location, download_dir, content_type, link)
     unpack_file(temp_location, location, content_type, link)
-    if target_file and target_file != temp_location:
-        cache_download(target_file, temp_location, content_type)
-    if target_file is None and not already_downloaded:
+    if cache_file and not already_cached:
+        cache_download(cache_file, temp_location, content_type)
+    if not (already_cached or already_downloaded):
         os.unlink(temp_location)
     os.rmdir(temp_dir)
 

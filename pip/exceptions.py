@@ -28,3 +28,11 @@ class BadCommand(PipError):
 
 class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
+
+
+class PreviousBuildDirError(PipError):
+    """Raised when there's a previous conflicting build directory"""
+
+
+class HashMismatch(InstallationError):
+    """Distribution file hash values don't match."""

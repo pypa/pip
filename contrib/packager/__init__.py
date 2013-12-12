@@ -3,10 +3,9 @@
 
 import sys
 import pickle
-import zlib
+import bz2
 import base64
 import os
-import fnmatch
 
 
 def find_toplevel(name):
@@ -22,7 +21,7 @@ def find_toplevel(name):
 
 def pkgname(toplevel, rootpath, path):
     parts = path.split(os.sep)[len(rootpath.split(os.sep)):]
-    return '.'.join([toplevel] + [os.path.splitext(x)[0] for x in parts])
+    return '/'.join([toplevel] + parts)
 
 
 def pkg_to_mapping(name):
@@ -33,11 +32,11 @@ def pkg_to_mapping(name):
     name2src = {}
     for root, dirs, files in os.walk(toplevel):
         for pyfile in files:
-            if fnmatch.fnmatch(pyfile, '*.py'):
+            if os.path.splitext(pyfile)[1] in '.py .pem'.split():
                 pkg = pkgname(name, toplevel, os.path.join(root, pyfile))
                 f = open(os.path.join(root, pyfile))
                 try:
-                    name2src[pkg] = f.read()
+                    name2src[pkg] = f.read().encode('quoted-printable')
                 finally:
                     f.close()
     return name2src
@@ -45,7 +44,7 @@ def pkg_to_mapping(name):
 
 def compress_mapping(mapping):
     data = pickle.dumps(mapping, 2)
-    data = zlib.compress(data, 9)
+    data = bz2.compress(data, 9)
     data = base64.encodestring(data)
     data = data.decode('ascii')
     return data

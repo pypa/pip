@@ -5,22 +5,26 @@ from pip.log import logger
 
 
 class ShowCommand(Command):
+    """Show information about one or more installed packages."""
     name = 'show'
-    usage = '%prog QUERY'
-    summary = 'Output installed distributions (exact versions, files) to stdout'
+    usage = """
+      %prog [options] <package> ..."""
+    summary = 'Show information about installed packages.'
 
-    def __init__(self):
-        super(ShowCommand, self).__init__()
-        self.parser.add_option(
+    def __init__(self, *args, **kw):
+        super(ShowCommand, self).__init__(*args, **kw)
+        self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package')
+            help='Show the full list of installed files for each package.')
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Please provide a project name or names.')
+            logger.warn('ERROR: Please provide a package name or names.')
             return
         query = args
 
@@ -73,6 +77,3 @@ def print_results(distributions, list_all_files):
                     logger.notify("  %s" % line.strip())
             else:
                 logger.notify("Cannot locate installed-files.txt")
-
-
-ShowCommand()

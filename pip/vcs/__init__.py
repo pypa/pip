@@ -6,7 +6,7 @@ import shutil
 from pip.backwardcompat import urlparse, urllib
 from pip.log import logger
 from pip.util import (display_path, backup_dir, find_command,
-                      ask, rmtree, ask_path_exists)
+                      rmtree, ask_path_exists)
 
 
 __all__ = ['vcs', 'get_src_requirement']
@@ -117,9 +117,9 @@ class VersionControl(object):
         Returns the correct repository URL and revision by parsing the given
         repository URL
         """
-        error_message= (
+        error_message = (
            "Sorry, '%s' is a malformed VCS url. "
-           "Ihe format is <vcs>+<protocol>://<url>, "
+           "The format is <vcs>+<protocol>://<url>, "
            "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]

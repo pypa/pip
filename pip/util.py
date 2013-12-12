@@ -8,10 +8,13 @@ import pkg_resources
 import zipfile
 import tarfile
 import subprocess
-from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import WindowsError, string_types, raw_input, console_to_str, user_site
+import textwrap
+from pip.exceptions import InstallationError, BadCommand, PipError
+from pip.backwardcompat import(WindowsError, string_types, raw_input,
+                                console_to_str, user_site, PermissionError)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
+from pip.vendor.distlib import version
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -44,10 +47,10 @@ def rmtree_errorhandler(func, path, exc_info):
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
     exctype, value = exc_info[:2]
-    # On Python 2.4, it will be OSError number 13
-    # On all more recent Pythons, it'll be WindowsError number 5
-    if not ((exctype is WindowsError and value.args[0] == 5) or
-            (exctype is OSError and value.args[0] == 13)):
+    if not ((exctype is WindowsError and value.args[0] == 5) or #others
+            (exctype is OSError and value.args[0] == 13) or #python2.4
+            (exctype is PermissionError and value.args[3] == 5) #python3.3
+            ):
         raise
     # file type should currently be read only
     if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
@@ -337,7 +340,17 @@ def dist_in_site_packages(dist):
     return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
 
 
-def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'python')):
+def dist_is_editable(dist):
+    """Is distribution an editable install?"""
+    #TODO: factor out determining editableness out of FrozenRequirement
+    from pip import FrozenRequirement
+    req = FrozenRequirement.from_dist(dist, [])
+    return req.editable
+
+def get_installed_distributions(local_only=True,
+                                skip=('setuptools', 'pip', 'python'),
+                                include_editables=True,
+                                editables_only=False):
     """
     Return a list of installed Distribution objects.
 
@@ -348,12 +361,32 @@ def get_installed_distributions(local_only=True, skip=('setuptools', 'pip', 'pyt
     ignore; defaults to ('setuptools', 'pip', 'python'). [FIXME also
     skip virtualenv?]
 
+    If ``editables`` is False, don't report editables.
+
+    If ``editables_only`` is True , only report editables.
+
     """
     if local_only:
         local_test = dist_is_local
     else:
         local_test = lambda d: True
-    return [d for d in pkg_resources.working_set if local_test(d) and d.key not in skip]
+
+    if include_editables:
+        editable_test = lambda d: True
+    else:
+        editable_test = lambda d: not dist_is_editable(d)
+
+    if editables_only:
+        editables_only_test = lambda d: dist_is_editable(d)
+    else:
+        editables_only_test = lambda d: True
+
+    return [d for d in pkg_resources.working_set
+            if local_test(d)
+            and d.key not in skip
+            and editable_test(d)
+            and editables_only_test(d)
+            ]
 
 
 def egg_link_path(dist):
@@ -443,7 +476,8 @@ def unzip_file(filename, location, flatten=True):
     try:
         zip = zipfile.ZipFile(zipfp)
         leading = has_leading_dir(zip.namelist()) and flatten
-        for name in zip.namelist():
+        for info in zip.infolist():
+            name = info.filename
             data = zip.read(name)
             fn = name
             if leading:
@@ -462,6 +496,11 @@ def unzip_file(filename, location, flatten=True):
                     fp.write(data)
                 finally:
                     fp.close()
+                    unix_attributes = info.external_attr >> 16
+                    if unix_attributes:
+                        os.chmod(fn, unix_attributes)
+
+
     finally:
         zipfp.close()
 
@@ -572,15 +611,16 @@ def cache_download(target_file, temp_location, content_type):
     fp = open(target_file+'.content-type', 'w')
     fp.write(content_type)
     fp.close()
-    os.unlink(temp_location)
 
 
 def unpack_file(filename, location, content_type, link):
+    filename = os.path.realpath(filename)
     if (content_type == 'application/zip'
         or filename.endswith('.zip')
         or filename.endswith('.pybundle')
+        or filename.endswith('.whl')
         or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith('.pybundle'))
+        unzip_file(filename, location, flatten=not filename.endswith(('.pybundle', '.whl')))
     elif (content_type == 'application/x-gzip'
           or tarfile.is_tarfile(filename)
           or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tar.xz', '.tgz', '.tbz')):
@@ -663,3 +703,20 @@ def call_subprocess(cmd, show_stdout=True,
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
+
+
+def is_prerelease(vers):
+    """
+    Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
+
+    Will return True if it is a pre-release and False if not. Versions are
+    assumed to be a pre-release if they cannot be parsed.
+    """
+    normalized = version.suggest_normalized_version(vers)
+
+    if normalized is None:
+        # Cannot normalize, assume it is a pre-release
+        return True
+
+    parsed = version.normalized_key(normalized)
+    return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
