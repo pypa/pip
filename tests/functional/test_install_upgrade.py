@@ -263,6 +263,9 @@ class TestUpgradeSetuptools(object):
         result = self.script.run(self.ve_bin/'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
+
+    # disabling intermittent travis failure: https://github.com/pypa/pip/issues/1379
+    @pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
     def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(self, script, data, virtualenv):
         self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir, distribute=True)
         result = self.script.run(self.ve_bin/'pip', 'install', '--no-index', '--find-links=%s' % data.find_links, '-U', 'setuptools')
