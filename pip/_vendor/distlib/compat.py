@@ -420,7 +420,10 @@ try:
     from html import escape
 except ImportError:
     from cgi import escape
-unescape = HTMLParser().unescape
+if sys.version_info[:2] < (3, 4):
+    unescape = HTMLParser().unescape
+else:
+    from html import unescape
 
 try:
     from collections import ChainMap

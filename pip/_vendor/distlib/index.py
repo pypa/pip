@@ -10,7 +10,10 @@ import os
 import shutil
 import subprocess
 import tempfile
-from threading import Thread
+try:
+    from threading import Thread
+except ImportError:
+    from dummy_threading import Thread
 
 from distlib import DistlibException
 from distlib.compat import (HTTPBasicAuthHandler, Request, HTTPPasswordMgr,
@@ -19,7 +22,7 @@ from distlib.util import cached_property, zip_dir
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INDEX = 'http://pypi.python.org/pypi'
+DEFAULT_INDEX = 'https://pypi.python.org/pypi'
 DEFAULT_REALM = 'pypi'
 
 class PackageIndex(object):
@@ -271,7 +274,6 @@ class PackageIndex(object):
             files.append(('gpg_signature', os.path.basename(sig_file),
                          sig_data))
             shutil.rmtree(os.path.dirname(sig_file))
-        logger.debug('files: %s', files)
         request = self.encode_request(d.items(), files)
         return self.send_request(request)
 
