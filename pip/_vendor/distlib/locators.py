@@ -12,7 +12,10 @@ import logging
 import os
 import posixpath
 import re
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import zlib
 
 from . import DistlibException
