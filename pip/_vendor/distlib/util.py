@@ -20,7 +20,10 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import threading
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 import time
 
 from . import DistlibException

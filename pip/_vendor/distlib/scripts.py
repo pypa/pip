@@ -78,7 +78,8 @@ class ScriptMaker(object):
         self.add_launchers = add_launchers
         self.force = False
         self.clobber = False
-        self.set_mode = False
+        # It only makes sense to set mode bits on POSIX.
+        self.set_mode = (os.name == 'posix')
         self.variants = set(('', 'X.Y'))
         self._fileop = fileop or FileOperator(dry_run)
 
