@@ -299,6 +299,7 @@ __file__ = __SETUP_PY__
 from setuptools.command import egg_info
 import pkg_resources
 import os
+import tokenize
 def replacement_run(self):
     self.mkpath(self.egg_info)
     installer = self.distribution.fetch_build_egg
@@ -309,7 +310,7 @@ def replacement_run(self):
             writer(self, ep.name, os.path.join(self.egg_info,ep.name))
     self.find_sources()
 egg_info.egg_info.run = replacement_run
-exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
+exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
 """
 
     def egg_info_data(self, filename):
@@ -638,8 +639,8 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             install_args = [sys.executable]
             install_args.append('-c')
             install_args.append(
-            "import setuptools;__file__=%r;"\
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
+            "import setuptools, tokenize;__file__=%r;"\
+            "exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
             install_args += list(global_options) + ['install','--record', record_filename]
 
             if not self.as_egg:
@@ -728,7 +729,7 @@ exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))
             ## FIXME: should we do --install-headers here too?
             call_subprocess(
                 [sys.executable, '-c',
-                 "import setuptools; __file__=%r; exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
+                 "import setuptools, tokenize; __file__=%r; exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
                 + list(global_options) + ['develop', '--no-deps'] + list(install_options),
 
                 cwd=self.source_dir, filter_stdout=self._filter_install,
