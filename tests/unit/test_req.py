@@ -7,12 +7,12 @@ import pytest
 import pip.wheel
 
 from pkg_resources import Distribution
-from mock import Mock, patch
+from mock import Mock, patch, mock_open
 from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
 from pip.index import PackageFinder
 from pip.log import logger
-from pip.req import (InstallRequirement, RequirementSet, parse_editable,
-                     Requirements, parse_requirements)
+from pip.req import (read_text_file, InstallRequirement, RequirementSet,
+                     parse_editable, Requirements, parse_requirements)
 from tests.lib import assert_raises_regexp
 
 
@@ -51,6 +51,21 @@ class TestRequirementSet(object):
             reqset.prepare_files,
             finder
             )
+
+
+@pytest.mark.parametrize(('file_contents', 'expected'), [
+    (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
+    (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
+    (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
+])
+def test_egg_info_data(file_contents, expected):
+    om = mock_open(read_data=file_contents)
+    em = Mock()
+    em.return_value = 'cp1252'
+    with patch('pip.req.open', om, create=True):
+        with patch('locale.getpreferredencoding', em):
+            ret = read_text_file('foo')
+    assert ret == expected.decode('utf-8')
 
 
 class TestInstallRequirement(object):
