@@ -33,7 +33,7 @@ To install setuptools from scratch:
 
       Prior to Setuptools-1.0, `ez_setup.py` was not secure, and is currently
       only secure when your environment contains secure versions of either
-      `curl`, `wget`, or `powershell`. [2]_  If you're not sure if you're
+      `curl`, `wget`, or `powershell`. [2]_  If you're not sure if your
       environment fulfills this requirement, then the safest approach is to
       securely download the setuptools archive directly from `PyPI
       <https://pypi.python.org/pypi/setuptools/>`_, unpack it, and run "python
