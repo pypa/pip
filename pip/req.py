@@ -1225,6 +1225,7 @@ class RequirementSet(object):
                                     req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
+                                logger.notify('Requirement already satisfied (use --upgrade to upgrade): %s' % req_to_install)
                                 install = False
                 if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
