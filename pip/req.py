@@ -716,6 +716,7 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
                 f.close()
                 ## FIXME: put the record somewhere
                 ## FIXME: should this be an error?
+                f.close()
                 return
             f.close()
             new_lines = []
