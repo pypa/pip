@@ -8,6 +8,7 @@ import time
 import optparse
 
 from pip import cmdoptions
+from pip.locations import running_under_virtualenv
 from pip.log import logger
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
@@ -105,7 +106,7 @@ class Command(object):
 
         if options.require_venv:
             # If a venv is required check if it can really be found
-            if not os.environ.get('VIRTUAL_ENV'):
+            if not running_under_virtualenv():
                 logger.fatal('Could not find an activated virtualenv (required).')
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
