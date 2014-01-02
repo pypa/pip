@@ -182,7 +182,8 @@ class Matcher(object):
 
 
 PEP426_VERSION_RE = re.compile(r'^(\d+\.\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
-                               r'(\.(post)(\d+))?(\.(dev)(\d+))?$')
+                               r'(\.(post)(\d+))?(\.(dev)(\d+))?'
+                               r'(-(\d+(\.\d+)?))?$')
 
 
 def _pep426_key(s):
@@ -198,6 +199,7 @@ def _pep426_key(s):
     pre = groups[3:5]
     post = groups[6:8]
     dev = groups[9:11]
+    local = groups[12]
     if pre == (None, None):
         pre = ()
     else:
@@ -210,6 +212,10 @@ def _pep426_key(s):
         dev = ()
     else:
         dev = dev[0], int(dev[1])
+    if local is None:
+        local = ()
+    else:
+        local = tuple([int(s) for s in local.split('.')])
     if not pre:
         # either before pre-release, or final release and after
         if not post and dev:
@@ -224,7 +230,7 @@ def _pep426_key(s):
         dev = ('final',)
 
     #print('%s -> %s' % (s, m.groups()))
-    return nums, pre, post, dev
+    return nums, pre, post, dev, local
 
 
 _normalized_key = _pep426_key
@@ -263,7 +269,7 @@ class NormalizedVersion(Version):
 
     @property
     def is_prerelease(self):
-        return any(t[0] in self.PREREL_TAGS for t in self._parts)
+        return any(t[0] in self.PREREL_TAGS for t in self._parts if t)
 
 
 def _match_prefix(x, y):
