@@ -7,8 +7,8 @@ from docutils.parsers import rst
 from docutils.statemachine import ViewList
 from textwrap import dedent
 from pip import commands
-from pip.baseparser import create_main_parser, standard_options
 from pip import cmdoptions
+from pip.locations import default_log_file
 from pip.util import get_prog
 
 
@@ -59,6 +59,7 @@ class PipOptions(rst.Directive):
         opt_help = option.help.replace('%default', str(option.default))
         #fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
+        opt_help = opt_help.replace(default_log_file, "<see :ref:`FileLogging`>")
         return [bookmark_line, "", line, "", "    %s" % opt_help, ""]
 
     def _format_options(self, options, cmd_name=None):
@@ -79,19 +80,19 @@ class PipOptions(rst.Directive):
 
 class PipGeneralOptions(PipOptions):
     def process_options(self):
-        self._format_options(standard_options)
+        self._format_options([o.make() for o in cmdoptions.general_group['options']])
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
-        self._format_options(cmdoptions.index_group['options'])
+        self._format_options([o.make() for o in cmdoptions.index_group['options']])
 
 
 class PipCommandOptions(PipOptions):
     required_arguments = 1
 
     def process_options(self):
-        cmd = commands[self.arguments[0]](create_main_parser())
+        cmd = commands[self.arguments[0]]()
         self._format_options(cmd.parser.option_groups[0].option_list, cmd_name=cmd.name)
 
 

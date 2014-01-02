@@ -1,11 +1,28 @@
 """Tests for wheel binary packages and .dist-info."""
+import os
+
+import pytest
+
 import pkg_resources
 from mock import patch, Mock
 from pip import wheel
-from pip.exceptions import InstallationError
+from pip.exceptions import InstallationError, InvalidWheelFilename
 from pip.index import PackageFinder
 from tests.lib import assert_raises_regexp
-from nose.tools import assert_raises
+
+
+def test_get_entrypoints(tmpdir):
+    with open(str(tmpdir.join("entry_points.txt")), "w") as fp:
+        fp.write("""
+            [console_scripts]
+            pip = pip.main:pip
+        """)
+
+    assert wheel.get_entrypoints(str(tmpdir.join("entry_points.txt"))) == (
+        {"pip": "pip.main:pip"},
+        {},
+    )
+
 
 def test_uninstallation_paths():
     class dist(object):
@@ -36,60 +53,49 @@ def test_uninstallation_paths():
 
 class TestWheelSupported(object):
 
-    def raise_not_found(self, dist):
-        raise pkg_resources.DistributionNotFound()
-
     def set_use_wheel_true(self, finder):
         finder.use_wheel = True
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_true(self, mock_get_distribution):
+    def test_wheel_supported_true(self, monkeypatch):
         """
         Test wheel_supported returns true, when setuptools is installed and requirement is met
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        monkeypatch.setattr('pkg_resources.DistInfoDistribution', True)
         assert wheel.wheel_setuptools_support()
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_no_install(self, mock_get_distribution):
+    def test_wheel_supported_false_no_install(self, monkeypatch):
         """
-        Test wheel_supported returns false, when setuptools not installed
+        Test wheel_supported returns false, when setuptools not installed or does not meet the requirement
         """
-        mock_get_distribution.side_effect = self.raise_not_found
+        monkeypatch.delattr('pkg_resources.DistInfoDistribution')
         assert not wheel.wheel_setuptools_support()
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_wheel_supported_false_req_fail(self, mock_get_distribution):
-        """
-        Test wheel_supported returns false, when setuptools is installed, but req is not met
-        """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.7')
-        assert not wheel.wheel_setuptools_support()
-
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_raises_error(self, mock_get_distribution):
+    def test_finder_raises_error(self, monkeypatch):
         """
         Test the PackageFinder raises an error when wheel is not supported
         """
-        mock_get_distribution.side_effect = self.raise_not_found
+        monkeypatch.delattr('pkg_resources.DistInfoDistribution')
         # on initialization
         assert_raises_regexp(InstallationError, 'wheel support', PackageFinder, [], [], use_wheel=True)
         # when setting property later
-        p = PackageFinder([], [])
+        p = PackageFinder([], [], use_wheel=False)
         assert_raises_regexp(InstallationError, 'wheel support', self.set_use_wheel_true, p)
 
-    @patch("pip.wheel.pkg_resources.get_distribution")
-    def test_finder_no_raises_error(self, mock_get_distribution):
+    def test_finder_no_raises_error(self, monkeypatch):
         """
         Test the PackageFinder doesn't raises an error when use_wheel is False, and wheel is supported
         """
-        mock_get_distribution.return_value = pkg_resources.Distribution(project_name='setuptools', version='0.9')
+        monkeypatch.setattr('pkg_resources.DistInfoDistribution', True)
         p = PackageFinder( [], [], use_wheel=False)
         p = PackageFinder([], [])
         p.use_wheel = False
 
 
 class TestWheelFile(object):
+
+    def test_inavlid_filename_raises(self):
+        with pytest.raises(InvalidWheelFilename):
+            w = wheel.Wheel('invalid.whl')
 
     def test_supported_single_version(self):
         """
@@ -138,11 +144,10 @@ class TestWheelFile(object):
         from tempfile import mkdtemp
         from shutil import rmtree
         import os
-        from nose import SkipTest
 
         filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
         if not os.path.exists(filepath):
-            raise SkipTest
+            pytest.skip("%s does not exist" % filepath)
         try:
             tmpdir = mkdtemp()
             util.unpack_file(filepath, tmpdir, 'application/zip', None )
@@ -151,14 +156,25 @@ class TestWheelFile(object):
             rmtree(tmpdir)
             pass
 
-    def test_purelib_platlib(self):
+    def test_purelib_platlib(self, data):
         """
         Test the "wheel is purelib/platlib" code.
         """
-        packages =  [("pure_wheel", "data/packages/pure_wheel-1.7", True),
-                     ("plat_wheel", "data/packages/plat_wheel-1.7", False)]
+        packages = [
+            ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
+            ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+        ]
+
         for name, path, expected in packages:
             assert wheel.root_is_purelib(name, path) == expected
+
+    def test_version_underscore_conversion(self):
+        """
+        Test that we convert '_' to '-' for versions parsed out of wheel filenames
+        """
+        w = wheel.Wheel('simple-0.1_1-py2-none-any.whl')
+        assert w.version == '0.1-1'
+
 
 class TestPEP425Tags(object):
 

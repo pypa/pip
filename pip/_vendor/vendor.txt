@@ -1,0 +1,5 @@
+distlib==0.1.6
+html5lib==1.0b1
+six==1.3.0
+colorama==0.2.7
+requests==2.1.0

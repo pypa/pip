@@ -2,6 +2,20 @@
 Usage
 ==========
 
+pip
+---
+
+Usage
+*****
+
+::
+
+ pip <command> [options]
+
+
+Options
+*******
+
 .. _`General Options`:
 
 **General Options:**
@@ -88,7 +102,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-
+  $ pip install -e git+https://git.repo/some_repo.git@egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 
@@ -119,9 +133,9 @@ Examples
 
   Install from a local flat directory containing archives (and don't scan indexes)::
 
-  $ pip install --no-index --find-links:file:///local/dir/ SomePackage
-  $ pip install --no-index --find-links:/local/dir/ SomePackage
-  $ pip install --no-index --find-links:relative/dir/ SomePackage
+  $ pip install --no-index --find-links=file:///local/dir/ SomePackage
+  $ pip install --no-index --find-links=/local/dir/ SomePackage
+  $ pip install --no-index --find-links=relative/dir/ SomePackage
 
 
 9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
@@ -388,7 +402,7 @@ Examples
   ::
 
     $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-    $ pip install --use-wheel --no-index --find-links=/tmp/wheelhouse SomePackage
+    $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
 
 
 pip zip
@@ -414,4 +428,3 @@ Options
 **Other Options:**
 
 * :ref:`General Options <General Options>`
-

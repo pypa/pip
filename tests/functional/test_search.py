@@ -5,10 +5,8 @@ from pip.commands.search import (compare_versions,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip.backwardcompat import xmlrpclib, b
-from pip.baseparser import create_main_parser
 from mock import Mock
-from tests.lib import run_pip, reset_env, pyversion
-from tests.lib.pypi_server import assert_equal
+from tests.lib import pyversion
 
 
 if pyversion >= '3':
@@ -40,7 +38,7 @@ def test_pypi_xml_transformation():
             {'_pypi_ordering': 50, 'name': 'bar', 'summary': 'bar summary', 'version': '1.0'}]
     expected = [{'score': 200, 'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'},
             {'score': 50, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
-    assert_equal(transform_hits(pypi_hits), expected)
+    assert transform_hits(pypi_hits) == expected
 
 
 def test_invalid_pypi_transformation():
@@ -52,36 +50,33 @@ def test_invalid_pypi_transformation():
 
     expected = [{'score': 100, 'versions': ['1.0'], 'name': 'foo', 'summary': 'foo summary'},
             {'score': 0, 'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'}]
-    assert_equal(transform_hits(pypi_hits), expected)
+    assert transform_hits(pypi_hits) == expected
 
 
-def test_search():
+def test_search(script):
     """
     End to end test of search command.
 
     """
-    reset_env()
-    output = run_pip('search', 'pip')
+    output = script.pip('search', 'pip')
     assert 'A tool for installing and managing Python packages' in output.stdout
 
 
-def test_multiple_search():
+def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
 
     """
-    reset_env()
-    output = run_pip('search', 'pip', 'INITools')
+    output = script.pip('search', 'pip', 'INITools')
     assert 'A tool for installing and managing Python packages' in output.stdout
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
 
-def test_search_missing_argument():
+def test_search_missing_argument(script):
     """
     Test missing required argument for search
     """
-    env = reset_env()
-    result = run_pip('search', expect_error=True)
+    result = script.pip('search', expect_error=True)
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
 
@@ -91,7 +86,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     """
     options_mock = Mock()
     options_mock.index = 'http://pypi.python.org/pypi'
-    search_cmd = SearchCommand(create_main_parser())
+    search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('pip',))
     assert status == SUCCESS
 
@@ -102,24 +97,22 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_packages()
     """
     options_mock = Mock()
     options_mock.index = 'https://pypi.python.org/pypi'
-    search_cmd = SearchCommand(create_main_parser())
+    search_cmd = SearchCommand()
     status = search_cmd.run(options_mock, ('non-existant-package',))
     assert status == NO_MATCHES_FOUND, status
 
 
-def test_search_should_exit_status_code_zero_when_find_packages():
+def test_search_should_exit_status_code_zero_when_find_packages(script):
     """
     Test search exit status code for package found
     """
-    env = reset_env()
-    result = run_pip('search', 'pip')
+    result = script.pip('search', 'pip')
     assert result.returncode == SUCCESS
 
 
-def test_search_exit_status_code_when_finds_no_package():
+def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
     """
-    env = reset_env()
-    result = run_pip('search', 'non-existant-package', expect_error=True)
+    result = script.pip('search', 'non-existant-package', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode

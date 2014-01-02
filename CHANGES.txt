@@ -1,16 +1,97 @@
 Changelog
 =========
 
+1.5 (2014-01-01)
+----------------
+
+* **BACKWARD INCOMPATIBLE** pip no longer supports the ``--use-mirrors``,
+  ``-M``, and ``--mirrors`` flags. The mirroring support has been removed. In
+  order to use a mirror specify it as the primary index with ``-i`` or
+  ``--index-url``, or as an additional index with ``--extra-index-url``. (Pull #1098, CVE-2013-5123)
+
+* **BACKWARD INCOMPATIBLE** pip no longer will scrape insecure external urls by
+  default nor will it install externally hosted files by default. Users may opt
+  into installing externally hosted or insecure files or urls using
+  ``--allow-external PROJECT`` and ``--allow-unverified PROJECT``. (Pull #1055)
+
+* **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
+  Users may opt into respecting them again using ``--process-dependency-links``.
+
+* **DEPRECATION** ``pip install --no-install`` and ``pip install
+  --no-download`` are now formally deprecated.  See Issue #906 for discussion on
+  possible alternatives, or lack thereof, in future releases.
+
+* **DEPRECATION** ``pip zip`` and ``pip unzip`` are now formally deprecated.
+
+* pip will now install Mac OSX platform wheels from PyPI. (Pull #1278)
+
+* pip now generates the appropriate platform-specific console scripts when
+  installing wheels. (Pull #1251)
+
+* Pip now confirms a wheel is supported when installing directly from a path or
+  url. (Pull #1315)
+
+* Fixed #1097, ``--ignore-installed`` now behaves again as designed, after it was
+  unintentionally broke in v0.8.3 when fixing Issue #14 (Pull #1352).
+
+* Fixed a bug where global scripts were being removed when uninstalling --user
+  installed packages (Pull #1353).
+
+* Fixed #1163, --user wasn't being respected when installing scripts from wheels (Pull #1176).
+
+* Fixed #1150, we now assume '_' means '-' in versions from wheel filenames (Pull #1158).
+
+* Fixed #219, error when using --log with a failed install (Pull #1205).
+
+* Fixed #1131, logging was buffered and choppy in Python 3.
+
+* Fixed #70,  --timeout was being ignored (Pull #1202).
+
+* Fixed #772, error when setting PIP_EXISTS_ACTION (Pull #1201).
+
+* Added colors to the logging output in order to draw attention to important
+  warnings and errors. (Pull #1109)
+
+* Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
+
+* Added support for installing packages from a subdirectory using the ``subdirectory``
+  editable option. ( Pull #1082 )
+
+* Fixed #1192. "TypeError: bad operand type for unary" in some cases when
+  installing wheels using --find-links (Pull #1218).
+
+* Fixed #1133 and #317. Archive contents are now written based on system
+  defaults and umask (i.e. permissions are not preserved), except that regular
+  files with any execute permissions have the equivalent of "chmod +x" applied
+  after being written (Pull #1146).
+
+* PreviousBuildDirError now returns a non-zero exit code and prevents the
+  previous build dir from being cleaned in all cases (Pull #1162).
+
+* Renamed --allow-insecure to --allow-unverified, however the old name will
+  continue to work for a period of time (Pull #1257).
+
+* Fixed #1006, error when installing local projects with symlinks in
+  Python 3. (Pull #1311)
+
+* The previously hidden ``--log-file`` otion, is now shown as a general option.
+  (Pull #1316)
+
+
+
+
 1.4.1 (2013-08-07)
 ------------------
 
-* **New Signing Key** Release 1.4.1 is using a different key than normal with fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
+* **New Signing Key** Release 1.4.1 is using a different key than normal with
+  fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
 * Fixed issues with installing from pybundle files (Pull #1116).
 * Fixed error when sysconfig module throws an exception (Pull #1095).
 * Don't ignore already installed pre-releases (Pull #1076).
 * Fixes related to upgrading setuptools (Pull #1092).
 * Fixes so that --download works with wheel archives (Pull #1113).
 * Fixes related to recognizing and cleaning global build dirs (Pull #1080).
+
 
 1.4 (2013-07-23)
 ----------------
@@ -71,13 +152,13 @@ Changelog
 ----------------
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791).
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791, CVE-2013-1629).
 
 * Added "pip list" for listing installed packages and the latest version
   available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
 
 * Fixed security issues with pip's use of temp build directories.
-  Thanks David (d1b) and Thomas Guttler. (Pull #780)
+  Thanks David (d1b) and Thomas Guttler. (Pull #780, CVE-2013-1888)
 
 * Improvements to sphinx docs and cli help. (Pull #773)
 

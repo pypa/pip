@@ -7,41 +7,59 @@ Cookbook
 Requirements Files
 ******************
 
-A key idea in pip is that package versions listed in requirement files (or as :ref:`pip install` arguments),
-have precedence over those that are located during the normal dependency resolution process that uses "install_requires" metadata.
+"Requirements files" are files containing a list of items to be
+installed using :ref:`pip install -r <install_--requirement>` like so:
 
-This allows users to be in control of specifying an environment of packages that are known to work together.
+ ::
 
-Instead of running something like ``pip install MyApp`` and getting whatever libraries come along,
-you'd run ``pip install -r requirements.txt`` where "requirements.txt" contains something like::
+   pip install -r requirements.txt
 
-    MyApp
-    Framework==0.9.4
-    Library>=0.2
 
-Regardless of what MyApp lists in ``setup.py``, you'll get a specific version
-of Framework (0.9.4) and at least the 0.2 version of
-Library.  Additionally, you can add optional libraries and support tools that MyApp doesn't strictly
-require, giving people a set of recommended libraries.
+Details on the format of the files are here: :ref:`Requirements File Format`.
 
-Requirement files are intended to exhaust an environment and to be *flat*.
-Maybe ``MyApp`` requires ``Framework``, and ``Framework`` requires ``Library``.
-It is encouraged to still list all these in a single requirement file.
-It is the nature of Python programs that there are implicit bindings *directly*
-between MyApp and Library.  For instance, Framework might expose one
-of Library's objects, and so if Library is updated it might directly
-break MyApp.  If that happens you can update the requirements file to
-force an earlier version of Library, and you can do that without
-having to re-release MyApp at all.
 
-To create a new requirements file from a known working environment, use::
+There are 3 common use cases for requirements files:
 
-    $ pip freeze > stable-req.txt
+1. When installing many things, it's easier to use a requirements file,
+   than specifying them all on the command line.
 
-This will write a listing of *all* installed libraries to ``stable-req.txt``
-with exact versions for every library.
+2. Requirements files are often used to hold the result from :ref:`pip freeze`
+   for the purpose of achieving :ref:`repeatable installations <Repeatability>`.
+   In this case, your requirement file contains a pinned version of everything
+   that was installed when `pip freeze` was run.
 
-For more information, see:
+   ::
+
+     pip freeze > requirements.txt
+     pip install -r requirements.txt
+
+3. Requirements files can be used to force pip to properly resolve dependencies.
+   As it is now, pip `doesn't have true dependency resolution
+   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
+   specification it finds for a project. E.g if `pkg1` requires `pkg3>=1.0` and
+   `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
+   only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
+   that conflicts with the needs of `pkg2`.  To solve this problem, you can
+   place `pkg3>=1.0,<=2.0` (i.e. the correct specification) into your
+   requirements file directly along with the other top level requirements. Like
+   so:
+
+   ::
+
+     pkg1
+     pkg2
+     pkg3>=1.0,<=2.0
+
+
+It's important to be clear that pip determines package dependencies using `install_requires metadata
+<http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies>`_, not by discovering `requirements.txt`
+files embedded in projects.
+
+For a good discussion on the conceptual differences between setup.py and
+requirements, see `"setup.py vs requirements.txt" (an article by Donald Stufft)
+<https://caremad.io/blog/setup-vs-requirement/>`_
+
+See also:
 
 * :ref:`Requirements File Format`
 * :ref:`pip freeze`
@@ -76,19 +94,15 @@ to building and installing from source archives. For more information, see the
 
 pip's support for wheels currently requires `Setuptools`_ >=0.8.
 
-To have pip find and prefer wheels, use the :ref:`--use-wheel <install_--use-wheel>` flag for :ref:`pip install`.
+Pip prefers Wheels where they are available, to disable this use the
+:ref:`--no-use-wheel <install_--no-use-wheel>` flag for :ref:`pip install`.
+
 If no satisfactory wheels are found, pip will default to finding source archives.
-If you want to make pip use wheels by default, set the environment variable ``PIP_USE_WHEEL`` or set ``use-wheel`` in your ``pip.ini`` file.
-
-To install from wheels on PyPI, if they were to exist (which is not likely for the short term):
-
-::
-
- pip install --use-wheel SomePackage
 
 .. note::
 
-  pip currently disallows non-windows platform-specific wheels from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
+  pip currently disallows platform-specific wheels (except for Windows and Mac)
+  from being downloaded from PyPI.  See :ref:`Should you upload wheels to PyPI`.
 
 
 To install directly from a wheel archive:
@@ -116,7 +130,7 @@ And *then* to install those requirements just using your local directory of whee
 
 ::
 
- pip install --use-wheel --no-index --find-links=/local/wheels -r requirements.txt
+ pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 .. _`Should you upload wheels to PyPI`:
@@ -149,13 +163,12 @@ to be constantly kept up-to-date for security. Regardless of whether a
 compatible pre-build package is available, many Linux users will prefer
 to always compile their own anyway.
 
-On Windows the case for binary wheels on pypi is stronger both because
-Windows machines are much more uniform than Linux and because it's harder
-for the end user to compile their own. Windows-compatible wheels uploaded
-to pypi should be compatible with the Python distributions downloaded
-from http://python.org/.  If you already upload other binary formats to
-pypi, upload wheels as well.  Unlike the older formats, wheels are
-compatible with virtual environments.
+On Windows and Mac, the case for binary wheels on pypi is stronger due to the
+systems being much more uniform than Linux and because it's harder for the end
+user to compile their own. Windows and Mac wheels uploaded to pypi should be
+compatible with the Python distributions downloaded from http://python.org/.  If
+you already upload other binary formats to pypi, upload wheels as well.  Unlike
+the older formats, wheels are compatible with virtual environments.
 
 
 .. _`Downloading Archives`:
@@ -194,7 +207,7 @@ $ pip install --no-download SomePackage
 Non-recursive upgrades
 ************************
 
-``pip install ---upgrade`` is currently written to perform a recursive upgrade.
+``pip install --upgrade`` is currently written to perform a recursive upgrade.
 
 E.g. supposing:
 
@@ -203,7 +216,7 @@ E.g. supposing:
 * `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
-Running ``pip install ---upgrade SomePackage`` would upgrade `SomePackage` *and* `AnotherPackage`
+Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and* `AnotherPackage`
 despite `AnotherPackage` already being satisifed.
 
 If you would like to perform a non-recursive upgrade perform these 2 steps::
@@ -214,15 +227,28 @@ If you would like to perform a non-recursive upgrade perform these 2 steps::
 The first line will upgrade `SomePackage`, but not dependencies like `AnotherPackage`.  The 2nd line will fill in new dependencies like `OneMorePackage`.
 
 
+.. _`Repeatability`:
+
 Ensuring Repeatability
 **********************
 
 Three things are required to fully guarantee a repeatable installation using requirements files.
 
-1. The requirements file was generated by ``pip freeze`` or you're sure it only contains requirements that specify a specific version.
-2. The installation is performed using :ref:`--no-deps <install_--no-deps>`.  This guarantees that only what is explicitly listed in the requirements file is installed.
-3. The installation is performed against an index or find-links location that is guaranteed to *not* allow archives to be changed and updated without a version increase.
-
+1. The requirements file was generated by ``pip freeze`` or you're sure it only
+   contains requirements that specify a specific version.
+2. The installation is performed using :ref:`--no-deps <install_--no-deps>`.
+   This guarantees that only what is explicitly listed in the requirements file is
+   installed.
+3. The installation is performed against an index or find-links location that is
+   guaranteed to *not* allow archives to be changed and updated without a
+   version increase.  Unfortunately, this is *not* true on PyPI. It is possible
+   for the same pypi distribution to have a different hash over time. Project
+   authors are allowed to delete a distribution, and then upload a new one with
+   the same name and version, but a different hash. See `Issue #1175
+   <https://github.com/pypa/pip/issues/1175>`_ for plans to add hash
+   confirmation to pip, or a new "lock file" notion, but for now, know that the `peep
+   project <https://pypi.python.org/pypi/peep>`_ offers this feature on top of pip
+   using requirements file comments.
 
 User Installs
 *************
@@ -242,6 +268,74 @@ To install "SomePackage" into an environment with site.USER_BASE customized to '
 
     export PYTHONUSERBASE=/myappenv
     pip install --user SomePackage
+
+
+``pip install --user`` follows four rules:
+
+#. When globally installed packages are on the python path, and they *conflict*
+   with the installation requirements, they are ignored, and *not*
+   uninstalled.
+#. When globally installed packages are on the python path, and they *satisfy*
+   the installation requirements, pip does nothing, and reports that
+   requirement is satisfied (similar to how global packages can satisfy
+   requirements when installing packages in a ``--system-site-packages``
+   virtualenv).
+#. pip will not perform a ``--user`` install in a ``--no-site-packages``
+   virtualenv (i.e. the default kind of virtualenv), due to the user site not
+   being on the python path.  The installation would be pointless.
+#. In a ``--system-site-packages`` virtualenv, pip will not install a package
+   that conflicts with a package in the virtualenv site-packages.  The --user
+   installation would lack sys.path precedence and be pointless.
+
+
+To make the rules clearer, here are some examples:
+
+
+From within a ``--no-site-packages`` virtualenv (i.e. the default kind)::
+
+  $ pip install --user SomePackage
+  Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+
+
+From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3`` is already installed in the virtualenv::
+
+  $ pip install --user SomePackage==0.4
+  Will not install to the user site because it will lack sys.path precedence
+
+
+From within a real python, where ``SomePackage`` is *not* installed globally::
+
+  $ pip install --user SomePackage
+  [...]
+  Successfully installed SomePackage
+
+
+From within a real python, where ``SomePackage`` *is* installed globally, but is *not* the latest version::
+
+  $ pip install --user SomePackage
+  [...]
+  Requirement already satisfied (use --upgrade to upgrade)
+
+  $ pip install --user --upgrade SomePackage
+  [...]
+  Successfully installed SomePackage
+
+
+From within a real python, where ``SomePackage`` *is* installed globally, and is the latest version::
+
+  $ pip install --user SomePackage
+  [...]
+  Requirement already satisfied (use --upgrade to upgrade)
+
+  $ pip install --user --upgrade SomePackage
+  [...]
+  Requirement already up-to-date: SomePackage
+
+  # force the install
+  $ pip install --user --ignore-installed SomePackage
+  [...]
+  Successfully installed SomePackage
+
 
 
 Controlling setup_requires
@@ -320,11 +414,11 @@ Cause
 ~~~~~
 
 distribute-0.7.3 is just an empty wrapper that only serves to require the new
-setuptools (setuptools>=0.7) so that it will be installed. (if you don't know
+setuptools (setuptools>=0.7) so that it will be installed. (If you don't know
 yet, the "new setuptools" is a merge of distribute and setuptools back into one
-project)
+project).
 
-distribute-0.7.3 does it's job well, when the upgrade is done in isolation.
+distribute-0.7.3 does its job well, when the upgrade is done in isolation.
 E.g. if you're currently on distribute-0.6.X, then running `pip install -U
 setuptools` works fine to upgrade you to setuptools>=0.7.
 
@@ -341,7 +435,7 @@ separated by other dependencies in the list, so what can happen is this:
 1.  pip uninstalls the existing distribute
 2.  pip installs distribute-0.7.3 (which has no importable setuptools, that pip
     *needs* internally to function)
-3.  pip moves onto install another dependency (before setuptools>=0.7) and is
+3.  pip moves on to install another dependency (before setuptools>=0.7) and is
     unable to proceed without the setuptools package
 
 Note that pip v1.4 has fixes to prevent this.  distribute-0.7.3 (or
@@ -349,3 +443,4 @@ setuptools>=0.7) by themselves cannot prevent this kind of problem.
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
+.. _PyPI: https://pypi.python.org

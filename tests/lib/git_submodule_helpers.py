@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import textwrap
-from tests.lib import (mkdir, write_file,)
+
 
 def _create_test_package_submodule(env):
-    mkdir('version_pkg_submodule')
+    env.scratch_path.join("version_pkg_submodule").mkdir()
     submodule_path = env.scratch_path/'version_pkg_submodule'
     env.run('touch', 'testfile', cwd=submodule_path)
     env.run('git', 'init', cwd=submodule_path)
@@ -13,8 +15,8 @@ def _create_test_package_submodule(env):
     return submodule_path
 
 def _change_test_package_submodule(env, submodule_path):
-    write_file(submodule_path/'testfile', 'this is a changed file')
-    write_file(submodule_path/'testfile2', 'this is an added file')
+    submodule_path.join("testfile").write("this is a changed file")
+    submodule_path.join("testfile2").write("this is an added file")
     env.run('git', 'add', '.', cwd=submodule_path)
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
@@ -27,23 +29,23 @@ def _pull_in_submodule_changes_to_module(env, module_path):
             '-am', 'submodule change', cwd=module_path)
 
 def _create_test_package_with_submodule(env):
-    mkdir('version_pkg')
+    env.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = env.scratch_path/'version_pkg'
-    mkdir(version_pkg_path/'testpkg')
+    version_pkg_path.join("testpkg").mkdir()
     pkg_path = version_pkg_path/'testpkg'
 
-    write_file('__init__.py', '# hello there', pkg_path)
-    write_file('version_pkg.py', textwrap.dedent('''\
+    pkg_path.join("__init__.py").write("# hello there")
+    pkg_path.join("version_pkg.py").write(textwrap.dedent('''\
                                 def main():
                                     print('0.1')
-                                '''), pkg_path)
-    write_file('setup.py', textwrap.dedent('''\
+                                '''))
+    version_pkg_path.join("setup.py").write(textwrap.dedent('''\
                         from setuptools import setup, find_packages
                         setup(name='version_pkg',
                               version='0.1',
                               packages=find_packages(),
                              )
-                        '''), version_pkg_path)
+                        '''))
     env.run('git', 'init', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'add', '.', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'commit', '-q',

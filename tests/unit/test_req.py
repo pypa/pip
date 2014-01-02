@@ -2,15 +2,18 @@ import os
 import shutil
 import tempfile
 
+import pytest
+
+import pip.wheel
+
 from pkg_resources import Distribution
-from mock import Mock, patch
-from nose.tools import assert_equal, assert_raises
-from pip.exceptions import PreviousBuildDirError
+from mock import Mock, patch, mock_open
+from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
 from pip.index import PackageFinder
 from pip.log import logger
-from pip.req import (InstallRequirement, RequirementSet, parse_editable,
-                     Requirements, parse_requirements)
-from tests.lib import path_to_url, assert_raises_regexp, find_links, tests_data
+from pip.req import (read_text_file, InstallRequirement, RequirementSet,
+                     parse_editable, Requirements, parse_requirements)
+from tests.lib import assert_raises_regexp
 
 
 class TestRequirementSet(object):
@@ -32,7 +35,7 @@ class TestRequirementSet(object):
             download_cache=os.path.join(self.tempdir, 'download_cache')
             )
 
-    def test_no_reuse_existing_build_dir(self):
+    def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
 
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
@@ -41,7 +44,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
-        finder = PackageFinder([find_links], [])
+        finder = PackageFinder([data.find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
             "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir.replace('\\', '\\\\')),
@@ -50,13 +53,37 @@ class TestRequirementSet(object):
             )
 
 
-def test_url_with_query():
-    """InstallRequirement should strip the fragment, but not the query."""
-    url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-    fragment = '#egg=bar'
-    req = InstallRequirement.from_line(url + fragment)
+@pytest.mark.parametrize(('file_contents', 'expected'), [
+    (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
+    (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
+    (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
+])
+def test_egg_info_data(file_contents, expected):
+    om = mock_open(read_data=file_contents)
+    em = Mock()
+    em.return_value = 'cp1252'
+    with patch('pip.req.open', om, create=True):
+        with patch('locale.getpreferredencoding', em):
+            ret = read_text_file('foo')
+    assert ret == expected.decode('utf-8')
 
-    assert req.url == url, req.url
+
+class TestInstallRequirement(object):
+
+    def test_url_with_query(self):
+        """InstallRequirement should strip the fragment, but not the query."""
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        fragment = '#egg=bar'
+        req = InstallRequirement.from_line(url + fragment)
+        assert req.url == url, req.url
+
+    def test_unsupported_wheel_requirement_raises(self):
+        with pytest.raises(UnsupportedWheel):
+            req = InstallRequirement.from_line('peppercorn-0.4-py2.py3-bogus-any.whl')
+
+    def test_invalid_wheel_requirement_raises(self):
+        with pytest.raises(InvalidWheelFilename):
+            req = InstallRequirement.from_line('invalid.whl')
 
 
 def test_requirements_data_structure_keeps_order():
@@ -92,33 +119,24 @@ def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_moc
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert_equal(
-        parse_editable('.', 'git'),
-        (None, 'file:///some/path', None)
-    )
+    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
     normcase_mock.return_value = "/some/path/foo"
-    assert_equal(
-        parse_editable('foo', 'git'),
-        (None, 'file:///some/path/foo', None)
-    )
+    assert parse_editable('foo', 'git') == (None, 'file:///some/path/foo', None)
 
 def test_parse_editable_default_vcs():
-    assert_equal(
-        parse_editable('https://foo#egg=foo', 'git'),
-        ('foo', 'git+https://foo#egg=foo', None)
-    )
+    assert parse_editable('https://foo#egg=foo', 'git') == ('foo',
+                                                            'git+https://foo#egg=foo',
+                                                            {'egg': 'foo'})
 
 def test_parse_editable_explicit_vcs():
-    assert_equal(
-        parse_editable('svn+https://foo#egg=foo', 'git'),
-        ('foo', 'svn+https://foo#egg=foo', None)
-    )
+    assert parse_editable('svn+https://foo#egg=foo', 'git') == ('foo',
+                                                                'svn+https://foo#egg=foo',
+                                                                {'egg': 'foo'})
 
 def test_parse_editable_vcs_extras():
-    assert_equal(
-        parse_editable('svn+https://foo#egg=foo[extras]', 'git'),
-        ('foo[extras]', 'svn+https://foo#egg=foo[extras]', None)
-    )
+    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') ==  ('foo[extras]',
+                                                                         'svn+https://foo#egg=foo[extras]',
+                                                                         {'egg': 'foo[extras]'})
 
 @patch('os.path.normcase')
 @patch('pip.req.os.getcwd')
@@ -127,15 +145,9 @@ def test_parse_editable_vcs_extras():
 def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert_equal(
-        parse_editable('.[extras]', 'git'),
-        (None, 'file://' + "/some/path", ('extras',))
-    )
+    assert parse_editable('.[extras]', 'git') == (None, 'file://' + "/some/path", ('extras',))
     normcase_mock.return_value = "/some/path/foo"
-    assert_equal(
-        parse_editable('foo[bar,baz]', 'git'),
-        (None, 'file:///some/path/foo', ('bar', 'baz'))
-    )
+    assert parse_editable('foo[bar,baz]', 'git') == (None, 'file:///some/path/foo', ('bar', 'baz'))
 
 def test_remote_reqs_parse():
     """
@@ -146,14 +158,14 @@ def test_remote_reqs_parse():
     for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
         pass
 
-# patch this for travis which has distribute in it's base env for now
-@patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
-def test_req_file_parse_use_wheel():
+def test_req_file_parse_use_wheel(data, monkeypatch):
     """
     Test parsing --use-wheel from a req file
     """
-    reqfile = os.path.join(tests_data, 'reqfiles', 'supported_options.txt')
+    # patch this for travis which has distribute in it's base env for now
+    monkeypatch.setattr(pip.wheel.pkg_resources, "get_distribution", lambda x: Distribution(project_name='setuptools', version='0.9'))
+
     finder = PackageFinder([], [])
-    for req in parse_requirements(reqfile, finder):
+    for req in parse_requirements(data.reqfiles.join("supported_options.txt"), finder):
         pass
     assert finder.use_wheel

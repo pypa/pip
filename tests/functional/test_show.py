@@ -1,16 +1,13 @@
 import re
 from pip import __version__
 from pip.commands.show import search_packages_info
-from tests.lib import reset_env, run_pip
 
 
-def test_show():
+def test_show(script):
     """
     Test end to end test for show command.
-
     """
-    reset_env()
-    result = run_pip('show', 'pip')
+    result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 6
     assert lines[0] == '---', lines[0]
@@ -20,14 +17,12 @@ def test_show():
     assert lines[4] == 'Requires: '
 
 
-def test_show_with_files_not_found():
+def test_show_with_files_not_found(script):
     """
     Test for show command with installed files listing enabled and
     installed-files.txt not found.
-
     """
-    reset_env()
-    result = run_pip('show', '-f', 'pip')
+    result = script.pip('show', '-f', 'pip')
     lines = result.stdout.split('\n')
     assert len(lines) == 8
     assert lines[0] == '---', lines[0]
@@ -39,24 +34,20 @@ def test_show_with_files_not_found():
     assert lines[6] == 'Cannot locate installed-files.txt', lines[5]
 
 
-def test_show_with_all_files():
+def test_show_with_all_files(script):
     """
     Test listing all files in the show command.
-
     """
-    reset_env()
-    result = run_pip('install', 'initools==0.2')
-    result = run_pip('show', '--files', 'initools')
+    result = script.pip('install', 'initools==0.2')
+    result = script.pip('show', '--files', 'initools')
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
-def test_missing_argument():
+def test_missing_argument(script):
     """
     Test show command with no arguments.
-
     """
-    reset_env()
-    result = run_pip('show')
+    result = script.pip('show')
     assert 'ERROR: Please provide a package name or names.' in result.stdout
 
 
@@ -84,5 +75,5 @@ def test_more_than_one_package():
     Search for more than one package.
 
     """
-    result = list(search_packages_info(['Pip', 'Nose', 'Virtualenv']))
+    result = list(search_packages_info(['Pip', 'pytest', 'Virtualenv']))
     assert len(result) == 3
