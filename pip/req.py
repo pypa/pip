@@ -647,6 +647,16 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
         name = name.replace(os.path.sep, '/')
         return name
 
+    def _get_setup_command(self, setup_py_path):
+        cmd = ('import setuptools, tokenize;'
+               '__file__ = %r;'
+               'enc_open=getattr(tokenize, "open", open);'
+               'setup_py=enc_open(__file__).read();'
+               'setup_py=setup_py.replace("\\r\\n", "\\n");'
+               'exec(compile(setup_py, __file__, "exec"))')
+
+        return cmd % setup_py_path
+
     def install(self, install_options, global_options=(), root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
@@ -659,11 +669,7 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [sys.executable]
-            install_args.append('-c')
-            install_args.append(
-            "import setuptools, tokenize;__file__=%r;"\
-            "exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py)
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
             install_args += list(global_options) + ['install','--record', record_filename]
 
             if not self.as_egg:
@@ -680,14 +686,14 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
             if running_under_virtualenv():
                 ## FIXME: I'm not sure if this is a reasonable location; probably not
                 ## but we can't put it in the default location, as that is a virtualenv symlink that isn't writable
-                install_args += ['--install-headers',
-                                 os.path.join(sys.prefix, 'include', 'site',
-                                              'python' + get_python_version())]
+                include_path  = os.path.join(sys.prefix, 'include', 'site', 'python' + get_python_version())
+                install_args += ['--install-headers', include_path]
+
             logger.notify('Running setup.py install for %s' % self.name)
             logger.indent += 2
             try:
-                call_subprocess(install_args + install_options,
-                    cwd=self.source_dir, filter_stdout=self._filter_install, show_stdout=False)
+                call_subprocess(install_args + install_options, cwd=self.source_dir,
+                                filter_stdout=self._filter_install, show_stdout=False)
             finally:
                 logger.indent -= 2
             if not os.path.exists(record_filename):
@@ -751,13 +757,11 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
         logger.indent += 2
         try:
             ## FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [sys.executable, '-c',
-                 "import setuptools, tokenize; __file__=%r; exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py]
-                + list(global_options) + ['develop', '--no-deps'] + list(install_options),
-
-                cwd=self.source_dir, filter_stdout=self._filter_install,
-                show_stdout=False)
+            install_args  = [sys.executable, '-c', self._get_setup_command(self.setup_py)]
+            install_args += list(global_options) + ['develop', '--no-deps']
+            install_args += list(install_options)
+            call_subprocess(install_args, cwd=self.source_dir, show_stdout=False,
+                            filter_stdout=self._filter_install)
         finally:
             logger.indent -= 2
         self.install_succeeded = True
