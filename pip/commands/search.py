@@ -95,8 +95,9 @@ def print_results(hits, name_column_width=25, terminal_width=None):
             # wrap and indent summary to fit terminal
             summary = textwrap.wrap(summary, terminal_width - name_column_width - 5)
             summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
-        line = '%s (%s) - %s' % (name.ljust(name_column_width), version,
-                                 summary)
+
+        line = '%-*s - %s' % (name_column_width,
+                              '%s (%s)' % (name, version), summary)
         try:
             logger.notify(line)
             if name in installed_packages:
