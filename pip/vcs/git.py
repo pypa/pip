@@ -109,13 +109,13 @@ class Git(VersionControl):
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
-            #: repo may contain submodules
-            self.update_submodules(dest)
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.get_revision(dest).startswith(rev_options[0]):
                     call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+            #: repo may contain submodules
+            self.update_submodules(dest)
 
     def get_url(self, location):
         url = call_subprocess(
