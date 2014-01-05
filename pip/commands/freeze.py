@@ -12,7 +12,8 @@ class FreezeCommand(Command):
     """Output installed packages in requirements format."""
     name = 'freeze'
     usage = """
-      %prog [options]"""
+      %prog [options]
+      %prog [options] <part of module name> ..."""
     summary = 'Output installed packages in requirements format.'
 
     def __init__(self, *args, **kw):
@@ -110,4 +111,8 @@ class FreezeCommand(Command):
                 del installations[line_req.name]
             f.write('## The following requirements were added by pip --freeze:\n')
         for installation in sorted(installations.values(), key=lambda x: x.name):
+            if args:
+                args = [arg.lower() for arg in args]
+                if not any([arg in str(installation).lower() for arg in args]):
+                    continue
             f.write(str(installation))
