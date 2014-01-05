@@ -9,6 +9,7 @@ import zipfile
 import tarfile
 import subprocess
 import textwrap
+import hashlib
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
                                 console_to_str, user_site, PermissionError)
@@ -25,7 +26,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'cache_download', 'unpack_file', 'call_subprocess',
+           'shorten_filename']
 
 
 def get_prog():
@@ -594,6 +596,19 @@ def untar_file(filename, location):
     finally:
         tar.close()
 
+_MAX_FILENAME_LENGTH = 255 # ext4 limit
+_HASH_LENGTH = 7
+
+def shorten_filename(filename, suffix=''):
+    max_prefix_length = _MAX_FILENAME_LENGTH - len(suffix)
+    if len(filename) <= max_prefix_length:
+        return filename + suffix
+    split = max_prefix_length - _HASH_LENGTH - 1
+    return "{}-{}{}".format(
+        filename[:split],
+        hashlib.sha1(filename[split:]).hexdigest()[:_HASH_LENGTH],
+        suffix
+    )
 
 def create_download_cache_folder(folder):
     logger.indent -= 2
@@ -605,7 +620,7 @@ def create_download_cache_folder(folder):
 def cache_download(target_file, temp_location, content_type):
     logger.notify('Storing download in cache at %s' % display_path(target_file))
     shutil.copyfile(temp_location, target_file)
-    fp = open(target_file+'.content-type', 'w')
+    fp = open(shorten_filename(target_file, '.content-type'), 'w')
     fp.write(content_type)
     fp.close()
 
