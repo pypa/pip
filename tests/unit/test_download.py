@@ -49,13 +49,22 @@ def _write_file(fn, contents):
         fh.write(contents)
 
 
-class MockResponse(object):
+class FakeStream(object):
 
     def __init__(self, contents):
         self._io = BytesIO(contents)
 
-    def iter_content(self, size):
+    def read(self, size, decode_content=None):
+        return self._io.read(size)
+
+    def stream(self, size, decode_content=None):
         yield self._io.read(size)
+
+
+class MockResponse(object):
+
+    def __init__(self, contents):
+        self.raw = FakeStream(contents)
 
     def raise_for_status(self):
         pass
