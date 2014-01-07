@@ -261,6 +261,15 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
+        try:
+            import pkg_resources
+        except ImportError:
+            # Setuptools is not available
+            raise InstallationError(
+                "setuptools must be installed to install from a source "
+                "distribution"
+            )
+
         setup_file = 'setup.py'
 
         if self.editable_options and 'subdirectory' in self.editable_options:

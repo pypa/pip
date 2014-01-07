@@ -13,6 +13,18 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
+def test_without_setuptools(script):
+    script.run("pip", "uninstall", "setuptools", "-y")
+    result = script.run(
+        "python", "-m", "pip", "install", "INITools==0.2", "--no-use-wheel",
+        expect_error=True,
+    )
+    assert (
+        "setuptools must be installed to install from a source distribution"
+            in result.stdout
+    )
+
+
 def test_pip_second_command_line_interface_works(script):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
