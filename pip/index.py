@@ -675,7 +675,7 @@ class HTMLPage(object):
                 url = urlparse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s' % url)
 
-            resp = session.get(url)
+            resp = session.get(url, headers={"Accept": "text/html"})
             resp.raise_for_status()
 
             # The check for archives above only works if the url ends with
