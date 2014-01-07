@@ -16,7 +16,8 @@ from tests.lib.path import Path
 def test_without_setuptools(script):
     script.run("pip", "uninstall", "setuptools", "-y")
     result = script.run(
-        "python", "-m", "pip", "install", "INITools==0.2", "--no-use-wheel",
+        "python", "-c",
+        "import pip; pip.main(['install', 'INITools==0.2', '--no-use-wheel'])",
         expect_error=True,
     )
     assert (
