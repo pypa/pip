@@ -686,6 +686,11 @@ class HTMLPage(object):
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
             cls._handle_fail(req, link, exc, url, cache=cache, level=level)
+        except requests.ConnectionError as exc:
+            cls._handle_fail(
+                req, link, "connection error: %s" % exc, url,
+                cache=cache,
+            )
         except requests.Timeout:
             cls._handle_fail(req, link, "timed out", url, cache=cache)
         except SSLError as exc:
