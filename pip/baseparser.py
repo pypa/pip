@@ -2,13 +2,14 @@
 
 import sys
 import optparse
-import pkg_resources
 import os
 import textwrap
 from distutils.util import strtobool
+
 from pip.backwardcompat import ConfigParser, string_types
 from pip.locations import default_config_file
 from pip.util import get_terminal_size, get_prog
+from pip._vendor import pkg_resources
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):

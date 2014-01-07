@@ -9,6 +9,14 @@ Modifications
 =============
 
 * html5lib has been modified to import six from pip._vendor
+* pkg_resources has been modified to import _markerlib from pip._vendor
+* markerlib has been modified to import it's API from pip._vendor
+
+
+Markerlib and pkg_resources
+===========================
+
+Markerlib and pkg_resources has been pulled in from setuptools 2.0.2
 
 
 Note to Downstream Distributors

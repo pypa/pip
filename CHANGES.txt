@@ -1,6 +1,13 @@
 Changelog
 =========
 
+1.5.1 (unreleased)
+------------------
+
+* Remove the version requirement for setuptools so that it still functions with
+  setuptools < 0.8 installed (Pull #1434).
+
+
 1.5 (2014-01-01)
 ----------------
 
