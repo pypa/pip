@@ -8,10 +8,10 @@ import csv
 import functools
 import hashlib
 import os
-import pkg_resources
 import re
 import shutil
 import sys
+
 from base64 import urlsafe_b64encode
 
 from pip.backwardcompat import ConfigParser, StringIO
@@ -20,6 +20,7 @@ from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
+from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 
 wheel_ext = '.whl'

@@ -2,7 +2,6 @@ from email.parser import FeedParser
 import os
 import imp
 import locale
-import pkg_resources
 import re
 import sys
 import shutil
@@ -34,6 +33,7 @@ from pip.download import (PipSession, get_file_content, is_url, url_to_path,
                           unpack_file_url, unpack_http_url)
 import pip.wheel
 from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip._vendor import pkg_resources
 
 
 def read_text_file(filename):

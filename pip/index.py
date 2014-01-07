@@ -5,7 +5,6 @@ import os
 import re
 import mimetypes
 import posixpath
-import pkg_resources
 
 from pip.log import logger
 from pip.util import Inf, normalize_name, splitext, is_prerelease
@@ -15,7 +14,7 @@ from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests
+from pip._vendor import html5lib, requests, pkg_resources
 from pip._vendor.requests.exceptions import SSLError
 
 
