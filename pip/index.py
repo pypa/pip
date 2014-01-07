@@ -12,7 +12,7 @@ from pip.exceptions import (DistributionNotFound, BestVersionAlreadyInstalled,
                             InstallationError, InvalidWheelFilename, UnsupportedWheel)
 from pip.backwardcompat import urlparse, url2pathname
 from pip.download import PipSession, url_to_path, path_to_url
-from pip.wheel import Wheel, wheel_ext, wheel_setuptools_support
+from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests, pkg_resources
 from pip._vendor.requests.exceptions import SSLError
@@ -76,16 +76,6 @@ class PackageFinder(object):
 
         # The Session we'll use to make requests
         self.session = session or PipSession()
-
-    @property
-    def use_wheel(self):
-        return self._use_wheel
-
-    @use_wheel.setter
-    def use_wheel(self, value):
-        self._use_wheel = value
-        if self._use_wheel and not wheel_setuptools_support():
-            raise InstallationError("pip's wheel support requires setuptools >= 0.8 for dist-info support.")
 
     def add_dependency_links(self, links):
         ## FIXME: this shouldn't be global list this, it should only
