@@ -1552,6 +1552,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         elif line.startswith("--allow-unverified"):
             line = line[len("--allow-unverified"):].strip().lstrip("=")
             finder.allow_unverified |= set([normalize_name(line).lower()])
+        elif line.startswith("--allow-all-unverified"):
+            finder.allow_all_unverified = True
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith('-e') or line.startswith('--editable'):
