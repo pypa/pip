@@ -60,6 +60,11 @@ class PackageFinder(object):
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
 
+        # Store versions we have ignored for being external or unverified
+        # Used to warn if the latest version has been ignored
+        self.ignored_links = []
+        self.ignored_versions = []
+        
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
         self.need_warn_external = False
@@ -305,6 +310,21 @@ class PackageFinder(object):
                     continue
             applicable_versions.append((parsed_version, link, version))
         applicable_versions = self._sort_versions(applicable_versions)
+        
+        list(self._package_versions(self.ignored_links, req.name.lower()))
+        applicable_ignored = []
+        for (parsed_version, link, version) in self.ignored_versions:
+            if version not in req.req:
+                continue
+            elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
+                continue
+            applicable_ignored.append((parsed_version, link, version))
+        applicable_ignored = self._sort_versions(applicable_ignored)
+        if applicable_ignored and applicable_ignored[0] > applicable_versions[0]:
+            _, ignored_url, ignored_version = applicable_ignored[0]
+            logger.warn("Ignored highest version %s because it is external or insecure: %s" % (
+                ignored_version, ignored_url
+            ))
         existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is INSTALLED_VERSION])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is INSTALLED_VERSION:
@@ -404,6 +424,7 @@ class PackageFinder(object):
                 if (not normalized in self.allow_external
                         and not self.allow_all_external):
                     self.need_warn_external = True
+                    self.ignored_links.append(link)
                     logger.debug("Not searching %s for files because external "
                                  "urls are disallowed." % link)
                     continue
@@ -414,6 +435,7 @@ class PackageFinder(object):
                     logger.debug("Not searching %s for urls, it is an "
                                 "untrusted link and cannot produce safe or "
                                 "verifiable files." % link)
+                    self.ignored_links.append(link)
                     self.need_warn_unverified = True
                     continue
 
@@ -528,6 +550,9 @@ class PackageFinder(object):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
             logger.debug("Skipping %s because it is externally hosted." % link)
+            self.ignored_versions.append((pkg_resources.parse_version(version),
+                link,
+                version))
             self.need_warn_external = True
             return []
 
@@ -540,6 +565,9 @@ class PackageFinder(object):
             #   for this requirement.
             logger.debug("Skipping %s because it is an insecure and "
                          "unverifiable file." % link)
+            self.ignored_versions.append((pkg_resources.parse_version(version),
+                link,
+                version))
             self.need_warn_unverified = True
             return []
 
