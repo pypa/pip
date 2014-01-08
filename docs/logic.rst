@@ -161,6 +161,15 @@ installing insecurely linked files. These are either directly linked (as above)
 files without a hash, or files that are linked from either the home page or the
 download url of a package.
 
+These commands can be used in a requirements.txt in the following manner:: 
+
+    --allow-external httplib2  
+    --allow-unverified httplib2
+    httplib2==0.7.2 
+    
+They are separate lines, these lines just allows httplib2 to be unverified wherever it may be installed from.
+
+
 .. _`VCS Support`:
 
 VCS Support
