@@ -215,6 +215,8 @@ class PipSession(requests.Session):
     timeout = None
 
     def __init__(self, *args, **kwargs):
+        retries = kwargs.pop('retries', None)
+
         super(PipSession, self).__init__(*args, **kwargs)
 
         # Attach our User Agent to the request
@@ -222,6 +224,12 @@ class PipSession(requests.Session):
 
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth()
+
+        # Configure retries
+        if retries:
+            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
+            self.mount("http://", http_adapter)
+            self.mount("https://", http_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())

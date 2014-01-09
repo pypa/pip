@@ -114,6 +114,14 @@ proxy = OptionMaker(
     default='',
     help="Specify a proxy in the form [user:passwd@]proxy.server:port.")
 
+retries = OptionMaker(
+    '--retries',
+    dest='retries',
+    type='int',
+    default=3,
+    help="Maximum number of retries each connection should attempt "
+         "(default %default times).")
+
 timeout = OptionMaker(
     '--timeout', '--default-timeout',
     metavar='sec',
@@ -352,6 +360,7 @@ general_group = {
         log_explicit_levels,
         no_input,
         proxy,
+        retries,
         timeout,
         default_vcs,
         skip_requirements_regex,
