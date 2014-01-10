@@ -484,6 +484,22 @@ def test_finder_finds_external_links_without_hashes_scraped_all_all_insecure(dat
     link = finder.find_requirement(req, False)
     assert link.filename == "bar-4.0.tar.gz"
 
+
+def test_finder_finds_external_links_without_hashes_scraped_insecure(data):
+    """
+    Tests that PackageFinder finds externally scraped links without the
+    external flag
+    """
+    req = InstallRequirement.from_line("bar", None)
+
+    # using a local index
+    finder = PackageFinder([], [data.index_url("externals")],
+                allow_unverified=["bar"],
+            )
+    link = finder.find_requirement(req, False)
+    assert link.filename == "bar-4.0.tar.gz"
+
+
 class test_link_package_versions(object):
 
     # patch this for travis which has distribute in it's base env for now
