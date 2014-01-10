@@ -147,8 +147,8 @@ Externally Hosted Files
 =======================
 
 Starting with v1.4, pip will warn about installing any file that does not come
-from the primary index. In future versions pip will default to ignoring these
-files unless asked to consider them.
+from the primary index. As of version 1.5, pip defaults to ignoring these files
+unless asked to consider them.
 
 The ``pip install`` command supports a
 :ref:`--allow-external PROJECT <--allow-external>` option that will enable
