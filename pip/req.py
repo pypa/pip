@@ -262,7 +262,7 @@ class InstallRequirement(object):
     @property
     def setup_py(self):
         try:
-            import pkg_resources
+            import setuptools
         except ImportError:
             # Setuptools is not available
             raise InstallationError(
