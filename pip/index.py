@@ -56,6 +56,9 @@ class PackageFinder(object):
             normalize_name(n) for n in allow_unverified
         )
 
+        # Anything that is allowed unverified is also allowed external
+        self.allow_external |= self.allow_unverified
+
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
 
