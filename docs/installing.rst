@@ -38,44 +38,27 @@ Install or Upgrade Setuptools
 
 pip requires `setuptools`_ when installing Source Distributions, not when installing from wheels.
 
-To install setuptools from scratch:
+To install setuptools
 
-1. Securely download `ez_setup.py <https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py>`_. [2]_
+::
 
-2. Then run the following (which may require administrator access)::
-
-   $ python ez_setup.py
+$ pip install setuptools
 
 
-   .. warning::
+To upgrade setuptools:
 
-      Prior to Setuptools-1.0, `ez_setup.py` was not secure, and is currently
-      only secure when your environment contains secure versions of either
-      `curl`, `wget`, or `powershell`. [2]_  If you're not sure if you're
-      environment fulfills this requirement, then the safest approach is to
-      securely download the setuptools archive directly from `PyPI
-      <https://pypi.python.org/pypi/setuptools/>`_, unpack it, and run "python
-      setup.py install" from inside the unpacked directory.
+::
 
+$ pip install --upgrade setuptools
 
-To upgrade a previous install of `setuptools`_ or `distribute`_, there are two scenarios.
+   .. note::
 
-
-1. You currently have setuptools or distribute *and* some version of pip::
-
-   $ pip install --upgrade setuptools
-
-   If you have distribute, this will upgrade to you distribute-0.7.X, which is
-   just a wrapper, that depends on setuptools. The end result will be that you
-   have distribute-0.7.X (which does nothing) *and* the latest setuptools
-   installed.
-
-2. You currently have setuptools or distribute, but not pip:
-
-   Follow the pip install procedure below, then come back and run::
-
-   $ pip install --upgrade setuptools
-
+      If you have distribute, this will upgrade to you distribute-0.7.X, which
+      is just a wrapper, that depends on setuptools. The end result will be that
+      you have distribute-0.7.X (which does nothing) *and* the latest setuptools
+      installed.  If you'd prefer not to end up with the distribute wrapper,
+      then instead, run ``$ pip uninstall distribute``, then ``$ pip install
+      setuptools``.
 
 
 Using Package Managers
