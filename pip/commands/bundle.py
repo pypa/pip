@@ -28,7 +28,7 @@ class BundleCommand(InstallCommand):
 
     def run(self, options, args):
 
-        logger.warn("DEPRECATION: 'pip bundle' and support for installing from *.pybundle files is deprecated. "
+        logger.deprecated('1.6', "DEPRECATION: 'pip bundle' and support for installing from *.pybundle files is deprecated. "
                     "See https://github.com/pypa/pip/pull/1046")
 
         if not args:

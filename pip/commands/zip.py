@@ -91,7 +91,7 @@ class ZipCommand(Command):
 
     def run(self, options, args):
 
-        logger.warn("DEPRECATION: 'pip zip' and 'pip unzip` are deprecated, and will be removed in a future release.")
+        logger.deprecated('1.7', "DEPRECATION: 'pip zip' and 'pip unzip` are deprecated, and will be removed in a future release.")
 
         self.select_paths = options.paths
         self.simulate = options.simulate
