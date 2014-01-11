@@ -11,7 +11,7 @@ class BundleCommand(InstallCommand):
     name = 'bundle'
     usage = """
       %prog [options] <bundle name>.pybundle <package>..."""
-    summary = 'Create pybundles.'
+    summary = 'DEPRECATED. Create pybundles.'
     bundle = True
 
     def __init__(self, *args, **kw):

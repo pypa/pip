@@ -15,7 +15,7 @@ class ZipCommand(Command):
     name = 'zip'
     usage = """
      %prog [options] <package> ..."""
-    summary = 'Zip individual packages.'
+    summary = 'DEPRECATED. Zip individual packages.'
 
     def __init__(self, *args, **kw):
         super(ZipCommand, self).__init__(*args, **kw)
