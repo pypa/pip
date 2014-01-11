@@ -15,10 +15,28 @@ pip works on Unix/Linux, OS X, and Windows.
   Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through v1.1.
 
 
+.. _`get-pip`:
+
+Install or Upgrade pip
+----------------------
+
+Beginning with pip v1.5.1, pip can execute all of it's commands, and install
+from :ref:`wheels <Building and Installing Wheels>`, without having
+`setuptools`_ installed. `setuptools`_ is required when installing from Source
+Distributions (i.e the `*.tar.gz` or `*.zip` files from PyPI).
+
+To install pip, securely download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [2]_
+
+Then run the following (which may require administrator access), to install (or upgrade to) the
+latest version of pip::
+
+ $ python get-pip.py
+
+
 Install or Upgrade Setuptools
 -----------------------------
 
-pip requires `setuptools`_ and it has to be installed first, before pip can run. [1]_
+pip requires `setuptools`_ when installing Source Distributions, not when installing from wheels.
 
 To install setuptools from scratch:
 
@@ -58,18 +76,6 @@ To upgrade a previous install of `setuptools`_ or `distribute`_, there are two s
 
    $ pip install --upgrade setuptools
 
-
-.. _`get-pip`:
-
-Install or Upgrade pip
-----------------------
-
-Securely download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [2]_
-
-Then run the following (which may require administrator access), to install (or upgrade to) the
-latest version of pip::
-
- $ python get-pip.py
 
 
 Using Package Managers
