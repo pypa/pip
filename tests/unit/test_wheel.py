@@ -5,7 +5,7 @@ import pytest
 from mock import patch, Mock
 
 from pip._vendor import pkg_resources
-from pip import wheel
+from pip import pep425tags, wheel
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.util import unpack_file
 
@@ -148,6 +148,24 @@ class TestWheelFile(object):
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert not w.supported(tags=[('py1', 'none', 'any')])
+
+    def test_supported_arch_darwin(self):
+        """
+        Wheels built for OS X 10.6 are supported on 10.9
+        """
+        with patch('pip.pep425tags.get_platform', lambda : 'macosx_10_9_intel'):
+            tags = pep425tags.get_supported(['27'], False)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
+        assert w.supported(tags=tags)
+
+    def test_not_supported_arch_darwin(self):
+        """
+        Wheels built for OS X 10.9 are not supported on 10.6
+        """
+        with patch('pip.pep425tags.get_platform', lambda : 'macosx_10_6_intel'):
+            tags = pep425tags.get_supported(['27'], False)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
+        assert not w.supported(tags=tags)
 
     def test_support_index_min(self):
         """
