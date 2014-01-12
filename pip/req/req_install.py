@@ -17,7 +17,8 @@ from pip.locations import bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FI
 from pip.log import logger
 from pip.util import (display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
                       dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
-                      call_subprocess, is_prerelease
+                      call_subprocess, is_prerelease, read_text_file, FakeFile, _make_build_dir)
+from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel, wheel_ext
 

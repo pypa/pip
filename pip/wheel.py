@@ -376,7 +376,7 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .pyc.
     """
-    from pip.req import FakeFile # circular import
+    from pip.util import FakeFile # circular import
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
         path = os.path.join(dist.location, row[0])

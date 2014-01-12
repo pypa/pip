@@ -1,3 +1,4 @@
+import locale
 import sys
 import shutil
 import os
@@ -12,7 +13,8 @@ import textwrap
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
                                 console_to_str, user_site, PermissionError)
-from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
+from pip.locations import (site_packages, running_under_virtualenv, virtualenv_no_global,
+                           write_delete_marker_file)
 from pip.log import logger
 from pip._vendor import pkg_resources
 from pip._vendor.distlib import version

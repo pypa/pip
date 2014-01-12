@@ -192,38 +192,38 @@ def test_uninstall_as_egg(script, data):
     assert_all_changes(result, result2, [script.venv/'build', 'cache', script.site_packages/'easy-install.pth'])
 
 
-@patch('pip.req.logger')
+@patch('pip.req.req_uninstall.logger')
 def test_uninstallpathset_no_paths(mock_logger):
     """
     Test UninstallPathSet logs notification when there are no paths to uninstall
 
     """
-    from pip.req import UninstallPathSet
+    from pip.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     # ensure that the distribution is "local"
-    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+    with patch("pip.req.req_uninstall.dist_is_local") as mock_dist_is_local:
         mock_dist_is_local.return_value = True
         uninstall_set = UninstallPathSet(test_dist)
         uninstall_set.remove() #with no files added to set
     mock_logger.notify.assert_any_call("Can't uninstall 'pip'. No files were found to uninstall.")
 
 
-@patch('pip.req.logger')
+@patch('pip.req.req_uninstall.logger')
 def test_uninstallpathset_non_local(mock_logger):
     """
     Test UninstallPathSet logs notification and returns (with no exception) when dist is non-local
 
     """
     nonlocal_path = os.path.abspath("/nonlocal")
-    from pip.req import UninstallPathSet
+    from pip.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     test_dist.location = nonlocal_path
     # ensure that the distribution is "non-local"
     # setting location isn't enough, due to egg-link file checking for
     # develop-installs
-    with patch("pip.req.dist_is_local") as mock_dist_is_local:
+    with patch("pip.req.req_uninstall.dist_is_local") as mock_dist_is_local:
         mock_dist_is_local.return_value = False
         uninstall_set = UninstallPathSet(test_dist)
         uninstall_set.remove() #with no files added to set; which is the case when trying to remove non-local dists

@@ -9,12 +9,14 @@ from pip.backwardcompat import HTTPError
 from pip.download import (PipSession, url_to_path, unpack_vcs_link, is_vcs_url,
                           is_file_url, unpack_file_url, unpack_http_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
-                            DistributionNotFound, PreviousBuildDirError
+                            DistributionNotFound, PreviousBuildDirError)
 from pip.index import Link
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, write_delete_marker_file,
                            build_prefix)
 from pip.log import logger
-from pip.util import display_path, rmtree, dist_in_usersite, call_subprocess
+from pip.req.req_install import InstallRequirement
+from pip.util import (display_path, rmtree, dist_in_usersite, call_subprocess,
+                      _make_build_dir)
 from pip.vcs import vcs
 
 
