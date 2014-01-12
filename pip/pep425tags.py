@@ -1,5 +1,6 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
+import re
 import sys
 import warnings
 
@@ -9,6 +10,8 @@ except ImportError:  # pragma nocover
     # Python < 2.7
     import distutils.sysconfig as sysconfig
 import distutils.util
+
+_osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 
 def get_abbr_impl():
@@ -77,10 +80,23 @@ def get_supported(versions=None, noarch=False):
 
     if not noarch:
         arch = get_platform()
+        if sys.platform == 'darwin':
+            # support macosx-10.6-intel on macosx-10.9-intel
+            match = _osx_arch_pat.match(arch)
+            if match:
+                name, major, minor, actual_arch = match.groups()
+                tpl = '{}_{}_%i_{}'.format(name, major, actual_arch)
+                arches = [tpl % m for m in range(int(minor))]
+            else:
+                # arch pattern didn't match (?!)
+                arches = [arch]
+        else:
+            arches = [arch]
 
         # Current version, current API (built specifically for our Python):
         for abi in abis:
-            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+            for arch in arches:
+                supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):
