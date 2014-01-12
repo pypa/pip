@@ -1,3 +1,26 @@
+import os
+import re
+import shutil
+import sys
+import tempfile
+import zipfile
+from distutils.util import change_root
+from email.parser import FeedParser
+
+import pip.wheel
+from pip._vendor import pkg_resources
+from pip.backwardcompat import urllib, ConfigParser, string_types, get_python_version
+from pip.download import is_url, url_to_path, path_to_url, is_archive_file
+from pip.exceptions import InstallationError, UninstallationError, UnsupportedWheel
+from pip.index import Link
+from pip.locations import bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user
+from pip.log import logger
+from pip.util import (display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
+                      dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
+                      call_subprocess, is_prerelease
+from pip.vcs import vcs
+from pip.wheel import move_wheel_files, Wheel, wheel_ext
+
 
 class InstallRequirement(object):
 

@@ -1,3 +1,9 @@
+import os
+import re
+
+from pip.backwardcompat import urlparse
+from pip.download import PipSession, get_file_content
+from pip.util import normalize_name
 
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 

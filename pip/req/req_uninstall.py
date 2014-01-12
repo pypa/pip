@@ -1,3 +1,14 @@
+import imp
+import os
+import sys
+import tempfile
+
+from pip.backwardcompat import uses_pycache, b
+from pip.exceptions import UninstallationError
+from pip.log import logger
+from pip.util import (rmtree, ask, is_local, dist_is_local, renames,
+                      normalize_path)
+
 
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
