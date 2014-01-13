@@ -11,8 +11,10 @@ from mock import Mock, patch, mock_open
 from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
 from pip.index import PackageFinder
 from pip.log import logger
-from pip.req import (read_text_file, InstallRequirement, RequirementSet,
-                     parse_editable, Requirements, parse_requirements)
+from pip.req import (InstallRequirement, RequirementSet,
+                     Requirements, parse_requirements)
+from pip.req.req_install import parse_editable
+from pip.util import read_text_file
 from tests.lib import assert_raises_regexp
 
 
@@ -62,7 +64,7 @@ def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
     em.return_value = 'cp1252'
-    with patch('pip.req.open', om, create=True):
+    with patch('pip.util.open', om, create=True):
         with patch('locale.getpreferredencoding', em):
             ret = read_text_file('foo')
     assert ret == expected.decode('utf-8')
@@ -112,9 +114,9 @@ def test_requirements_data_structure_implements__contains__():
     assert 'nose' not in requirements
 
 @patch('os.path.normcase')
-@patch('pip.req.os.getcwd')
-@patch('pip.req.os.path.exists')
-@patch('pip.req.os.path.isdir')
+@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.exists')
+@patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
@@ -139,9 +141,9 @@ def test_parse_editable_vcs_extras():
                                                                          {'egg': 'foo[extras]'})
 
 @patch('os.path.normcase')
-@patch('pip.req.os.getcwd')
-@patch('pip.req.os.path.exists')
-@patch('pip.req.os.path.isdir')
+@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.exists')
+@patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"

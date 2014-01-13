@@ -6,7 +6,8 @@ import pytest
 from mock import patch
 
 from pip.backwardcompat import urllib
-from pip.req import Requirements, parse_editable, parse_requirements
+from pip.req import Requirements, parse_requirements
+from pip.req.req_install import parse_editable
 from tests.lib import (pyversion, path_to_url,
                        _create_test_package_with_subdirectory)
 from tests.lib.local_repos import local_checkout

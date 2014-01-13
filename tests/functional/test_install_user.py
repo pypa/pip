@@ -23,8 +23,8 @@ def _patch_dist_in_site_packages(script):
         def dist_in_site_packages(dist):
             return False
 
-        from pip import req
-        req.dist_in_site_packages = dist_in_site_packages
+        from pip.req import req_install
+        req_install.dist_in_site_packages = dist_in_site_packages
     """))
 
     # Caught py32 with an outdated __pycache__ file after a sitecustomize
