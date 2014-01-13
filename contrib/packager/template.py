@@ -18,12 +18,11 @@ quopri_decode = codecs.getdecoder('quopri_codec')
 def unpack(sources):
     temp_dir = tempfile.mkdtemp('-scratchdir', 'unpacker-')
     for package, content in sources.items():
-        filepath = package.split("/")
-        dirpath = os.sep.join(filepath[:-1])
-        packagedir = os.path.join(temp_dir, dirpath)
+        filepath = os.path.join(temp_dir, package)
+        packagedir = os.path.dirname(filepath)
         if not os.path.isdir(packagedir):
             os.makedirs(packagedir)
-        mod = open(os.path.join(packagedir, filepath[-1]), 'wb')
+        mod = open(filepath, 'wb')
         try:
             mod.write(quopri_decode(content.encode('ascii'))[0])
         finally:
