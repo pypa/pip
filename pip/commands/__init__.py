@@ -2,6 +2,7 @@
 Package containing all pip commands
 """
 
+from pkg_resources import iter_entry_points
 
 from pip.commands.bundle import BundleCommand
 from pip.commands.completion import CompletionCommand
@@ -47,6 +48,12 @@ commands_order = [
     HelpCommand,
 ]
 
+# add plugin commands
+for entry_point in iter_entry_points('pip.commands', name='command'):
+    project = entry_point.dist.project_name
+    commandClass = entry_point.load()
+    commandClass.summary = "(From %s) %s" % (project, commandClass.summary)
+    commands[commandClass.name] = commandClass
 
 def get_summaries(ignore_hidden=True, ordered=True):
     """Yields sorted (command name, command summary) tuples."""
