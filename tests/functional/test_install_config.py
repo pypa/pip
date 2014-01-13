@@ -154,4 +154,6 @@ def test_options_from_venv_config(script, virtualenv):
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert "DistributionNotFound: No distributions at all found for INITools" in result.stdout
 
-
+def test_no_use_wheel_mandatory(script):
+    result = script.pip('install', '--install-option=--prefix=/tmp/', expect_error=True)
+    assert "'--no-use-wheel' option is mandatory for '--install_option'" in result.stdout, str(result)

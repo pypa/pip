@@ -329,7 +329,8 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     url = 'git+git://github.com/pypa/virtualenv'
     result = script.pip('install', '-e', '%s#egg=virtualenv' %
                       local_checkout(url, tmpdir.join("cache")),
-                     '--install-option=--script-dir=%s' % folder)
+                     '--install-option=--script-dir=%s' % folder,
+                     '--no-use-wheel')
     virtualenv_bin = script.venv/'src'/'virtualenv'/folder/'virtualenv'+script.exe
     assert virtualenv_bin in result.files_created
 

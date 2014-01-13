@@ -196,6 +196,8 @@ class InstallCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+        if install_options and options.use_wheel:
+            raise InstallationError("'--no-use-wheel' option is mandatory for '--install_option'. See https://github.com/pypa/pip/issues/1439.")
         if options.use_user_site:
             if virtualenv_no_global():
                 raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
