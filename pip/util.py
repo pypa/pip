@@ -215,7 +215,6 @@ def file_contents(filename):
 
 
 def split_leading_dir(path):
-    path = str(path)
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\'))
                         or '\\' not in path):
@@ -542,7 +541,7 @@ def untar_file(filename, location):
     else:
         logger.warn('Cannot determine compression type for file %s' % filename)
         mode = 'r:*'
-    tar = tarfile.open(filename, mode)
+    tar = tarfile.open(filename, mode, encoding='utf-8')
     try:
         # note: python<=2.5 doesnt seem to know about pax headers, filter them
         leading = has_leading_dir([
@@ -550,7 +549,7 @@ def untar_file(filename, location):
             if member.name != 'pax_global_header'
         ])
         for member in tar.getmembers():
-            fn = member.name
+            fn = member.name.decode('utf-8')
             if fn == 'pax_global_header':
                 continue
             if leading:
