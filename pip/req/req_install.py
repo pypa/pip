@@ -45,7 +45,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options=None, pycompile=True):
+                 editable_options=None, pycompile=True, markers=None):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -61,6 +61,7 @@ class InstallRequirement(object):
         self.editable_options = editable_options
         self.url = url
         self.as_egg = as_egg
+        self.markers = markers
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -115,6 +116,13 @@ class InstallRequirement(object):
         requirement, directory containing 'setup.py', filename, or URL.
         """
         url = None
+        if ';' in name:
+            name, markers = name.split(';', 1)
+            markers = markers.strip()
+            if not markers:
+                markers = None
+        else:
+            markers = None
         name = name.strip()
         req = None
         path = os.path.normpath(os.path.abspath(name))
@@ -165,7 +173,8 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url, prereleases=prereleases)
+        return cls(req, comes_from, url=url, prereleases=prereleases,
+                   markers=markers)
 
     def __str__(self):
         if self.req:
@@ -726,6 +735,12 @@ exec(compile(
         name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
+
+    def match_markers(self):
+        if self.markers is not None:
+            return markers.interpret(self.markers)
+        else:
+            return True
 
     def install(self, install_options, global_options=(), root=None):
         if self.editable:
