@@ -549,7 +549,10 @@ def untar_file(filename, location):
             if member.name != 'pax_global_header'
         ])
         for member in tar.getmembers():
-            fn = member.name.decode('utf-8') if sys.version_info.major <= 2 else member.name
+            if sys.version_info.major <= 2:
+                fn = member.name.decode('utf-8')
+            else:
+                fn = member.name
             if fn == 'pax_global_header':
                 continue
             if leading:
