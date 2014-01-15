@@ -189,7 +189,12 @@ def bootstrap():
     """
     Bootstrapping function to be called from install-pip.py script.
     """
-    return main(['install', '--upgrade', 'pip'] + sys.argv[1:])
+    pkgs = ['pip']
+    try:
+        import setuptools
+    except ImportError:
+        pkgs.append('setuptools')
+    return main(['install', '--upgrade'] + pkgs + sys.argv[1:])
 
 ############################################################
 ## Writing freeze files
