@@ -135,6 +135,13 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1_1-py2-none-any.whl')
         assert w.version == '0.1-1'
 
+    def test_single_digit_version(self):
+        """
+        Test that a single digit version works
+        """
+        w = wheel.Wheel('simple-1-py2-none-any.whl')
+        assert w.version == '1'
+
 
 class TestPEP425Tags(object):
 
