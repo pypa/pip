@@ -53,7 +53,7 @@ def test_uninstallation_paths():
 
 class TestWheelFile(object):
 
-    def test_inavlid_filename_raises(self):
+    def test_invalid_filename_raises(self):
         with pytest.raises(InvalidWheelFilename):
             w = wheel.Wheel('invalid.whl')
 
