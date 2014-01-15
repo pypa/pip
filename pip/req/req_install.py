@@ -13,6 +13,7 @@ from distutils import sysconfig
 from email.parser import FeedParser
 
 from pip._vendor import pkg_resources, six
+from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.six.moves import configparser
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
@@ -116,8 +117,12 @@ class InstallRequirement(object):
         requirement, directory containing 'setup.py', filename, or URL.
         """
         url = None
-        if ';' in name:
-            name, markers = name.split(';', 1)
+        if is_url(name):
+            marker_sep = '; '
+        else:
+            marker_sep = ';'
+        if marker_sep in name:
+            name, markers = name.split(marker_sep, 1)
             markers = markers.strip()
             if not markers:
                 markers = None
@@ -738,7 +743,7 @@ exec(compile(
 
     def match_markers(self):
         if self.markers is not None:
-            return markers.interpret(self.markers)
+            return markers_interpret(self.markers)
         else:
             return True
 
