@@ -53,7 +53,7 @@ def test_uninstallation_paths():
 
 class TestWheelFile(object):
 
-    def test_inavlid_filename_raises(self):
+    def test_invalid_filename_raises(self):
         with pytest.raises(InvalidWheelFilename):
             w = wheel.Wheel('invalid.whl')
 
@@ -141,6 +141,13 @@ class TestWheelFile(object):
         """
         w = wheel.Wheel('simple-1-py2-none-any.whl')
         assert w.version == '1'
+
+    def test_invalid_filename_missing_version_raises(self):
+        """
+        Test that Wheel constructor raises InvalidWheelFilename if the version is missing
+        """
+        with pytest.raises(InvalidWheelFilename):
+            wheel.Wheel('Cython-cp27-none-linux_x86_64.whl')
 
 
 class TestPEP425Tags(object):
