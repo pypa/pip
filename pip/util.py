@@ -642,7 +642,7 @@ def call_subprocess(cmd, show_stdout=True,
                     filter_stdout=None, cwd=None,
                     raise_on_returncode=True,
                     command_level=logger.DEBUG, command_desc=None,
-                    extra_environ=None):
+                    extra_environ=None, override_locale=True):
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -658,6 +658,9 @@ def call_subprocess(cmd, show_stdout=True,
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
+    if override_locale:
+        # custom locales are evil when you parse command output
+        env['LC_ALL'] = 'en_US.UTF-8'
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
