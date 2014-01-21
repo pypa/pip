@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.1 (unreleased)
+1.5.1 (2014-01-20)
 ------------------
 
 * pip now only requires setuptools (any setuptools, not a certain version) when
