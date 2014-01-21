@@ -20,7 +20,7 @@ def test_create_bundle(script, tmpdir, data):
             pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     script.scratch_path.join("bundle-req.txt").write(pkg_lines)
     # Create a bundle in env.scratch_path/ test.pybundle
-    result = script.pip('bundle', '-r', script.scratch_path/ 'bundle-req.txt', script.scratch_path/ 'test.pybundle')
+    result = script.pip('bundle', '--no-use-wheel', '-r', script.scratch_path/ 'bundle-req.txt', script.scratch_path/ 'test.pybundle')
     bundle = result.files_after.get(join('scratch', 'test.pybundle'), None)
     assert bundle is not None
 
@@ -53,7 +53,7 @@ def test_cleanup_after_create_bundle(script, tmpdir, data):
             -e %s#egg=initools-dev
             pip''' % (fspkg, local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir.join("cache"))))
     script.scratch_path.join("bundle-req.txt").write(pkg_lines)
-    script.pip('bundle', '-r', 'bundle-req.txt', 'test.pybundle')
+    script.pip('bundle', '--no-use-wheel', '-r', 'bundle-req.txt', 'test.pybundle')
     build_bundle = script.scratch_path/"build-bundle"
     src_bundle = script.scratch_path/"src-bundle"
     assert not exists(build_bundle), "build-bundle/ dir still exists: %s" % build_bundle
