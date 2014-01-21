@@ -1,13 +1,24 @@
 Changelog
 =========
 
-1.5.1 (unreleased)
+1.5.1 (2014-01-20)
 ------------------
 
-* Remove the version requirement for setuptools so that it still functions with
-  setuptools < 0.8 installed (Pull #1434).
+* pip now only requires setuptools (any setuptools, not a certain version) when
+  installing distributions from src (i.e. not from wheel). (Pull #1434).
 
-* Don't decode downloaded files that have a ``Content-Encoding`` header.
+* `get-pip.py` now installs setuptools, when it's not already installed (Pull
+  #1475)
+
+* Don't decode downloaded files that have a ``Content-Encoding`` header. (Pull
+  #1435)
+
+* Fix to correctly parse wheel filenames with single digit versions. (Pull
+  #1445)
+
+* If `--allow-unverified` is used assume it also means `--allow-external`. (Pull
+  #1457)
+
 
 
 1.5 (2014-01-01)

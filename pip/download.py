@@ -19,7 +19,7 @@ from pip.util import (splitext, rmtree, format_size, display_path,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
-from pip._vendor import requests
+from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.compat import IncompleteRead
@@ -265,7 +265,11 @@ def get_file_content(url, comes_from=None, session=None):
             ## FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
-            return resp.url, resp.text
+
+            if six.PY3:
+                return resp.url, resp.text
+            else:
+                return resp.url, resp.content
     try:
         f = open(url)
         content = f.read()

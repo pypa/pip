@@ -6,7 +6,7 @@ Installation
 Python & OS Support
 -------------------
 
-pip works with CPython versions 2.6, 2.7, 3.1, 3.2, 3.3 and also pypy.
+pip works with CPython versions 2.6, 2.7, 3.1, 3.2, 3.3, 3.4 and also pypy.
 
 pip works on Unix/Linux, OS X, and Windows.
 
@@ -30,42 +30,24 @@ To install pip, securely download `get-pip.py <https://raw.github.com/pypa/pip/m
 Then run the following (which may require administrator access), to install (or upgrade to) the
 latest version of pip::
 
+
+Then run the following (which may require administrator access)::
+
  $ python get-pip.py
 
+.. note::
 
-Install or Upgrade Setuptools
------------------------------
-
-pip requires `setuptools`_ when installing Source Distributions, not when installing from wheels.
-
-To install setuptools
-
-::
-
-$ pip install setuptools
-
-
-To upgrade setuptools:
-
-::
-
-$ pip install --upgrade setuptools
-
-   .. note::
-
-      If you have distribute, this will upgrade to you distribute-0.7.X, which
-      is just a wrapper, that depends on setuptools. The end result will be that
-      you have distribute-0.7.X (which does nothing) *and* the latest setuptools
-      installed.  If you'd prefer not to end up with the distribute wrapper,
-      then instead, run ``$ pip uninstall distribute``, then ``$ pip install
-      setuptools``.
+    Beginning with v1.5.1, pip does not require `setuptools`_ prior to running
+    `get-pip.py`. Additionally, if `setuptools`_ (or `distribute`_) is not
+    already installed, `get-pip.py` will install `setuptools`_ for you.
 
 
 Using Package Managers
 ----------------------
 
-On Linux, pip will generally be available for the system install of python using the system package manager,
-although often the latest version lags behind. Installing `python-pip` will also install `python-setuptools`.
+On Linux, pip will generally be available for the system install of python using
+the system package manager, although often the latest version will be
+unavailable.
 
 On Debian and Ubuntu::
 
@@ -76,10 +58,7 @@ On Fedora::
    $ sudo yum install python-pip
 
 
-.. [1] As of pip 1.4, pip started requiring `setuptools`_, not `distribute`_
-       (a fork of setuptools). `setuptools`_ and `distribute`_ are now merged
-       back together as "setuptools".
-.. [2] "Secure" in this context means using a modern browser or a
+.. [1] "Secure" in this context means using a modern browser or a
        tool like `curl` that verifies SSL certificates when downloading from
        https URLs.
 

@@ -53,7 +53,41 @@ def test_uninstallation_paths():
 
 class TestWheelFile(object):
 
-    def test_inavlid_filename_raises(self):
+    def test_std_wheel_pattern(self):
+        w = wheel.Wheel('simple-1.1.1-py2-none-any.whl')
+        assert w.name == 'simple'
+        assert w.version == '1.1.1'
+        assert w.pyversions == ['py2']
+        assert w.abis == ['none']
+        assert w.plats == ['any']
+
+    def test_wheel_pattern_multi_values(self):
+        w = wheel.Wheel('simple-1.1-py2.py3-abi1.abi2-any.whl')
+        assert w.name == 'simple'
+        assert w.version == '1.1'
+        assert w.pyversions == ['py2', 'py3']
+        assert w.abis == ['abi1', 'abi2']
+        assert w.plats == ['any']
+
+    def test_wheel_with_build_tag(self):
+        # pip doesn't do anything with build tags, but theoretically, we might
+        # see one, in this case the build tag = '4'
+        w = wheel.Wheel('simple-1.1-4-py2-none-any.whl')
+        assert w.name == 'simple'
+        assert w.version == '1.1'
+        assert w.pyversions == ['py2']
+        assert w.abis == ['none']
+        assert w.plats == ['any']
+
+    def test_single_digit_version(self):
+        w = wheel.Wheel('simple-1-py2-none-any.whl')
+        assert w.version == '1'
+
+    def test_missing_version_raises(self):
+        with pytest.raises(InvalidWheelFilename):
+            wheel.Wheel('Cython-cp27-none-linux_x86_64.whl')
+
+    def test_invalid_filename_raises(self):
         with pytest.raises(InvalidWheelFilename):
             w = wheel.Wheel('invalid.whl')
 
