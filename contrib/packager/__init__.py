@@ -34,9 +34,10 @@ def pkg_to_mapping(name):
         for pyfile in files:
             if os.path.splitext(pyfile)[1] in '.py .pem .cfg .exe'.split():
                 pkg = pkgname(name, toplevel, os.path.join(root, pyfile))
-                f = open(os.path.join(root, pyfile))
+                f = open(os.path.join(root, pyfile), 'rb')
                 try:
-                    name2src[pkg] = f.read().encode('quoted-printable')
+                    b = f.read()
+                    name2src[pkg] = base64.b64encode(b)
                 finally:
                     f.close()
     return name2src
