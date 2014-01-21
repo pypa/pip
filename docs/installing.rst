@@ -20,18 +20,12 @@ pip works on Unix/Linux, OS X, and Windows.
 Install or Upgrade pip
 ----------------------
 
-Beginning with pip v1.5.1, pip can execute all of it's commands, and install
-from :ref:`wheels <Building and Installing Wheels>`, without having
-`setuptools`_ installed. `setuptools`_ is required when installing from Source
-Distributions (i.e the `*.tar.gz` or `*.zip` files from PyPI).
+To install pip, securely download `get-pip.py
+<https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [1]_
 
-To install pip, securely download `get-pip.py <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [2]_
+Then run the following (which may require administrator access):
 
-Then run the following (which may require administrator access), to install (or upgrade to) the
-latest version of pip::
-
-
-Then run the following (which may require administrator access)::
+::
 
  $ python get-pip.py
 
