@@ -9,7 +9,7 @@ from pip.log import logger
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
-from pip.wheel import WheelBuilder, wheel_setuptools_support
+from pip.wheel import WheelBuilder
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -89,8 +89,21 @@ class WheelCommand(Command):
             import wheel.bdist_wheel
         except ImportError:
             raise CommandError("'pip wheel' requires the 'wheel' package. To fix this, run:  pip install wheel")
-        if not wheel_setuptools_support():
-            raise CommandError("'pip wheel' requires setuptools>=0.8. To fix this, run: pip install --upgrade setuptools")
+
+        try:
+            import pkg_resources
+        except ImportError:
+            raise CommandError(
+                "'pip wheel' requires setuptools >= 0.8 for dist-info support."
+                " To fix this, run: pip install --upgrade setuptools"
+            )
+        else:
+            if not hasattr(pkg_resources, 'DistInfoDistribution'):
+                raise CommandError(
+                    "'pip wheel' requires setuptools >= 0.8 for dist-info "
+                    "support. To fix this, run: pip install --upgrade "
+                    "setuptools"
+                )
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

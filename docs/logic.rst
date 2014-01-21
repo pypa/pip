@@ -27,6 +27,9 @@ Additionally, the following :ref:`Package Index Options <Package Index Options>`
   *  :ref:`--extra-index-url <--extra-index-url>`
   *  :ref:`--no-index <--no-index>`
   *  :ref:`-f, --find-links <--find-links>`
+  *  :ref:`--allow-external <--allow-external>`
+  *  :ref:`--allow-all-external <--allow-external>`
+  *  :ref:`--allow-unverified <--allow-unverified>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
@@ -144,8 +147,8 @@ Externally Hosted Files
 =======================
 
 Starting with v1.4, pip will warn about installing any file that does not come
-from the primary index. In future versions pip will default to ignoring these
-files unless asked to consider them.
+from the primary index. As of version 1.5, pip defaults to ignoring these files
+unless asked to consider them.
 
 The ``pip install`` command supports a
 :ref:`--allow-external PROJECT <--allow-external>` option that will enable
@@ -160,6 +163,15 @@ The ``pip install`` command also supports a
 installing insecurely linked files. These are either directly linked (as above)
 files without a hash, or files that are linked from either the home page or the
 download url of a package.
+
+These options can be used in a requirements file.  Assuming some fictional
+`ExternalPackage` that is hosted external and unverified, then your requirements
+file would be like so::
+
+    --allow-external ExternalPackage
+    --allow-unverified ExternalPackage
+    ExternalPackage
+
 
 .. _`VCS Support`:
 

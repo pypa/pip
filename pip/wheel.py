@@ -8,10 +8,10 @@ import csv
 import functools
 import hashlib
 import os
-import pkg_resources
 import re
 import shutil
 import sys
+
 from base64 import urlsafe_b64encode
 
 from pip.backwardcompat import ConfigParser, StringIO
@@ -20,18 +20,11 @@ from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
+from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 
 wheel_ext = '.whl'
 
-def wheel_setuptools_support():
-    """
-    Return True if we have a setuptools that supports wheel.
-    """
-    fulfilled = hasattr(pkg_resources, 'DistInfoDistribution')
-    if not fulfilled:
-        logger.warn("Wheel installs require setuptools >= 0.8 for dist-info support.")
-    return fulfilled
 
 def rehash(path, algo='sha256', blocksize=1<<20):
     """Return (hash, length) for path using hashlib.new(algo)"""
@@ -401,7 +394,7 @@ class Wheel(object):
     # TODO: maybe move the install code into this class
 
     wheel_file_re = re.compile(
-                r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+                r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
                 ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
                 \.whl|\.dist-info)$""",
                 re.VERBOSE)

@@ -19,10 +19,11 @@ from pip.util import (splitext, rmtree, format_size, display_path,
                       create_download_cache_folder, cache_download)
 from pip.vcs import vcs
 from pip.log import logger
-from pip._vendor import requests
+from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.exceptions import InvalidURL
+from pip._vendor.requests.compat import IncompleteRead
+from pip._vendor.requests.exceptions import InvalidURL, ChunkedEncodingError
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
@@ -264,7 +265,11 @@ def get_file_content(url, comes_from=None, session=None):
             ## FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
-            return resp.url, resp.text
+
+            if six.PY3:
+                return resp.url, resp.text
+            else:
+                return resp.url, resp.content
     try:
         f = open(url)
         content = f.read()
@@ -420,7 +425,24 @@ def _download_url(resp, link, temp_location):
             logger.notify('Downloading %s' % show_url)
         logger.info('Downloading from URL %s' % link)
 
-        for chunk in resp.iter_content(4096):
+        def resp_read(chunk_size):
+            try:
+                # Special case for urllib3.
+                try:
+                    for chunk in resp.raw.stream(
+                            chunk_size, decode_content=False):
+                        yield chunk
+                except IncompleteRead as e:
+                    raise ChunkedEncodingError(e)
+            except AttributeError:
+                # Standard file-like object.
+                while True:
+                    chunk = resp.raw.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+
+        for chunk in resp_read(4096):
             downloaded += len(chunk)
             if show_progress:
                 if not total_length:

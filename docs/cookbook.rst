@@ -92,8 +92,6 @@ to building and installing from source archives. For more information, see the
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
-pip's support for wheels currently requires `Setuptools`_ >=0.8.
-
 Pip prefers Wheels where they are available, to disable this use the
 :ref:`--no-use-wheel <install_--no-use-wheel>` flag for :ref:`pip install`.
 
