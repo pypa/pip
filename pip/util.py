@@ -707,19 +707,22 @@ def call_subprocess(cmd, show_stdout=True,
 
 def is_prerelease(vers):
     """
-    Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
+    Attempt to determine if this is a pre-release using Normalized rules
+    (PEP426), and then Legacy Rules (pkg_resources)
 
     Will return True if it is a pre-release and False if not. Versions are
     assumed to be a pre-release if they cannot be parsed.
     """
-    normalized = version._suggest_normalized_version(vers)
+    vers_normalized = version._suggest_normalized_version(vers)
+    if vers_normalized is None:
+        try:
+            v = version.LegacyVersion(vers)
+        except version.UnsupportedVersionError:
+            return True
+    else:
+        v = version.NormalizedVersion(vers_normalized)
+    return v.is_prerelease
 
-    if normalized is None:
-        # Cannot normalize, assume it is a pre-release
-        return True
-
-    parsed = version._normalized_key(normalized)
-    return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
 
 def read_text_file(filename):
     """Return the contents of *filename*.

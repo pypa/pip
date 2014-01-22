@@ -13,7 +13,7 @@ import pytest
 from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.util import (egg_link_path, Inf, get_installed_distributions,
-                      find_command, untar_file, unzip_file)
+                      find_command, untar_file, unzip_file, is_prerelease)
 
 
 class Tests_EgglinkPath:
@@ -348,3 +348,19 @@ class TestUnpackArchives(object):
         test_file = data.packages.join("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
+
+
+class Tests_is_prerelease(object):
+
+    def test_is_prerelease_already_normal(self):
+        assert is_prerelease('1.2a4')
+        assert is_prerelease('1.2rc4')
+        assert is_prerelease('1.2.dev4')
+
+    def test_is_prerelease_gets_normalized(self):
+        assert is_prerelease('1.2.a4')
+        assert is_prerelease('1.2.rc4')
+        assert is_prerelease('1.2dev4')
+
+    def test_is_not_prerelease_legacy(self):
+        assert not is_prerelease('1.2-fork1')
