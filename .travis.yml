@@ -1,5 +1,9 @@
 language: python
 
+os:
+  - linux
+  - osx
+
 env:
   - TOXENV=docs
   - TOXENV=py26
