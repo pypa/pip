@@ -1493,6 +1493,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     for line_number, line in enumerate(content.splitlines()):
         line_number += 1
         line = line.strip()
+
+        # Remove comments from file
+        line = re.sub(r"(^|\s)#.*$", "", line)
+
         if not line or line.startswith('#'):
             continue
         if skip_match and skip_match.search(line):
