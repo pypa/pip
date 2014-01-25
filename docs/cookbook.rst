@@ -124,6 +124,15 @@ To build wheels for your requirements and all their dependencies to a local dire
  pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
 
+.. warning::
+
+  Currently, when ``pip wheel`` finds a wheel for one of your requirements
+  already on PyPI, it does not rebuild, and it does not place the file in your
+  wheelhouse dir.  There is an issue open to change this
+  (https://github.com/pypa/pip/issues/1310)
+
+
+
 And *then* to install those requirements just using your local directory of wheels (and not from PyPI):
 
 ::

@@ -382,6 +382,14 @@ Description
 
 .. pip-command-description:: wheel
 
+.. warning::
+
+  Currently, when ``pip wheel`` finds a wheel for one of your requirements
+  already on PyPI, it does not rebuild, and it does not place the file in your
+  wheelhouse dir.  There is an issue open to change this
+  (https://github.com/pypa/pip/issues/1310)
+
+
 Options
 *******
 
