@@ -23,12 +23,15 @@ def make_option_group(group, parser):
         option_group.add_option(option.make())
     return option_group
 
+
 class OptionMaker(object):
     """Class that stores the args/kwargs that would be used to make an Option,
     for making them later, and uses deepcopy's to reset state."""
+
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+
     def make(self):
         args_copy = copy.deepcopy(self.args)
         kwargs_copy = copy.deepcopy(self.kwargs)
@@ -143,7 +146,7 @@ exists_action = OptionMaker(
     action='append',
     metavar='action',
     help="Default action when a path already exists: "
-    "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
+         "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
 
 cert = OptionMaker(
     '--cert',
@@ -151,7 +154,7 @@ cert = OptionMaker(
     type='str',
     default='',
     metavar='path',
-    help = "Path to alternate CA bundle.")
+    help="Path to alternate CA bundle.")
 
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
@@ -175,7 +178,7 @@ no_index = OptionMaker(
     default=False,
     help='Ignore package index (only looking at --find-links URLs instead).')
 
-find_links =  OptionMaker(
+find_links = OptionMaker(
     '-f', '--find-links',
     dest='find_links',
     action='append',
@@ -261,7 +264,7 @@ requirements = OptionMaker(
     default=[],
     metavar='file',
     help='Install from the given requirements file. '
-    'This option can be used multiple times.')
+         'This option can be used multiple times.')
 
 use_wheel = OptionMaker(
     '--use-wheel',
@@ -299,8 +302,8 @@ build_dir = OptionMaker(
     metavar='dir',
     default=build_prefix,
     help='Directory to unpack packages into and build in. '
-    'The default in a virtualenv is "<venv path>/build". '
-    'The default for global installs is "<OS temp dir>/pip_build_<username>".')
+         'The default in a virtualenv is "<venv path>/build". '
+         'The default for global installs is "<OS temp dir>/pip_build_<username>".')
 
 install_options = OptionMaker(
     '--install-option',
@@ -308,9 +311,9 @@ install_options = OptionMaker(
     action='append',
     metavar='options',
     help="Extra arguments to be supplied to the setup.py install "
-    "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
-    "Use multiple --install-option options to pass multiple options to setup.py install. "
-    "If you are using an option with a directory path, be sure to use absolute path.")
+         "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
+         "Use multiple --install-option options to pass multiple options to setup.py install. "
+         "If you are using an option with a directory path, be sure to use absolute path.")
 
 global_options = OptionMaker(
     '--global-option',
@@ -318,7 +321,7 @@ global_options = OptionMaker(
     action='append',
     metavar='options',
     help="Extra global options to be supplied to the setup.py "
-    "call before the install command.")
+         "call before the install command.")
 
 no_clean = OptionMaker(
     '--no-clean',
@@ -349,8 +352,8 @@ general_group = {
         skip_requirements_regex,
         exists_action,
         cert,
-        ]
-    }
+    ]
+}
 
 index_group = {
     'name': 'Package Index Options',
@@ -367,5 +370,5 @@ index_group = {
         allow_unsafe,
         no_allow_unsafe,
         process_dependency_links,
-        ]
-    }
+    ]
+}

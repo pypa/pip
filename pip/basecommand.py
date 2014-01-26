@@ -130,22 +130,11 @@ class Command(object):
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError):
+        except (InstallationError, UninstallationError, BadCommand, CommandError):
             e = sys.exc_info()[1]
             logger.fatal(str(e))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = ERROR
-        except BadCommand:
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
-        except CommandError:
-            e = sys.exc_info()[1]
-            logger.fatal('ERROR: %s' % e)
-            logger.info('Exception information:\n%s' % format_exc())
             exit = ERROR
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
