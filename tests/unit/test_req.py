@@ -169,3 +169,44 @@ def test_req_file_parse_use_wheel(data, monkeypatch):
     for req in parse_requirements(data.reqfiles.join("supported_options.txt"), finder):
         pass
     assert finder.use_wheel
+
+
+def test_req_file_parse_comment_start_of_line(tmpdir):
+    """
+    Test parsing comments in a requirements file
+    """
+    with open(tmpdir.join("req1.txt"), "w") as fp:
+        fp.write("# Comment ")
+
+    finder = PackageFinder([], [])
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+
+    assert not reqs
+
+
+def test_req_file_parse_comment_end_of_line_with_url(tmpdir):
+    """
+    Test parsing comments in a requirements file
+    """
+    with open(tmpdir.join("req1.txt"), "w") as fp:
+        fp.write("https://example.com/foo.tar.gz # Comment ")
+
+    finder = PackageFinder([], [])
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+
+    assert len(reqs) == 1
+    assert reqs[0].url == "https://example.com/foo.tar.gz"
+
+
+def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):
+    """
+    Test parsing comments in a requirements file
+    """
+    with open(tmpdir.join("req1.txt"), "w") as fp:
+        fp.write("https://example.com/foo.tar.gz#egg=wat")
+
+    finder = PackageFinder([], [])
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+
+    assert len(reqs) == 1
+    assert reqs[0].name == "wat"
