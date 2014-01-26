@@ -1,5 +1,4 @@
 import os
-import sys
 import tempfile
 import shutil
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
@@ -8,8 +7,7 @@ from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError, PreviousBuildDirError
-from pip import get_installed_distributions
-from pip import cmdoptions
+from pip import cmdoptions, get_installed_distributions
 
 
 class InstallCommand(Command):
@@ -173,9 +171,8 @@ class InstallCommand(Command):
 
     def run(self, options, args):
         if options.upgrade_all:
-            args += [package.split(' ', 1)[0] for package in
+            args += [package.project_name for package in
                      get_installed_distributions(local_only=bool(options.use_user_site))]
-            logger.notify('Attempting to upgrade: %s' % args)
 
         if options.no_install or options.no_download:
             logger.deprecated('1.7',

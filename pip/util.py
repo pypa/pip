@@ -11,7 +11,7 @@ import subprocess
 import textwrap
 
 from pip.exceptions import InstallationError, BadCommand, PipError
-from pip.backwardcompat import(WindowsError, string_types, raw_input,
+from pip.backwardcompat import (WindowsError, string_types, raw_input,
                                 console_to_str, user_site, PermissionError)
 from pip.locations import (site_packages, running_under_virtualenv, virtualenv_no_global,
                            write_delete_marker_file)
@@ -51,14 +51,14 @@ def rmtree_errorhandler(func, path, exc_info):
     read-only attribute, and hopefully continue without problems."""
     exctype, value = exc_info[:2]
     if not ((exctype is WindowsError and value.args[0] == 5) or #others
-            (exctype is OSError and value.args[0] == 13) or #python2.4
-            (exctype is PermissionError and value.args[3] == 5) #python3.3
-            ):
+                (exctype is OSError and value.args[0] == 13) or #python2.4
+                (exctype is PermissionError and value.args[3] == 5) #python3.3
+    ):
         raise
-    # file type should currently be read only
+        # file type should currently be read only
     if ((os.stat(path).st_mode & stat.S_IREAD) != stat.S_IREAD):
         raise
-    # convert to read/write
+        # convert to read/write
     os.chmod(path, stat.S_IWRITE)
     # use the original function to repeat the operation
     func(path)
@@ -90,14 +90,14 @@ def find_command(cmd, paths=None, pathext=None):
         paths = os.environ.get('PATH', '').split(os.pathsep)
     if isinstance(paths, string_types):
         paths = [paths]
-    # check if there are funny path extensions for executables, e.g. Windows
+        # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
         pathext = get_pathext()
     pathext = [ext for ext in pathext.lower().split(os.pathsep) if len(ext)]
     # don't use extensions if the command ends with one of them
     if os.path.splitext(cmd)[1].lower() in pathext:
         pathext = ['']
-    # check if we find the command on PATH
+        # check if we find the command on PATH
     for path in paths:
         # try without extension first
         cmd_path = os.path.join(path, cmd)
@@ -171,7 +171,6 @@ class _Inf(object):
 Inf = _Inf() #this object is not currently used as a sortable in our code
 del _Inf
 
-
 _normalize_re = re.compile(r'[^a-z]', re.I)
 
 
@@ -180,12 +179,12 @@ def normalize_name(name):
 
 
 def format_size(bytes):
-    if bytes > 1000*1000:
-        return '%.1fMB' % (bytes/1000.0/1000)
-    elif bytes > 10*1000:
-        return '%ikB' % (bytes/1000)
+    if bytes > 1000 * 1000:
+        return '%.1fMB' % (bytes / 1000.0 / 1000)
+    elif bytes > 10 * 1000:
+        return '%ikB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes/1000.0)
+        return '%.1fkB' % (bytes / 1000.0)
     else:
         return '%ibytes' % bytes
 
@@ -264,7 +263,7 @@ def make_path_relative(path, rel_to):
     while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
         path_parts.pop(0)
         rel_to_parts.pop(0)
-    full_parts = ['..']*len(rel_to_parts) + path_parts + [path_filename]
+    full_parts = ['..'] * len(rel_to_parts) + path_parts + [path_filename]
     if full_parts == ['']:
         return '.' + os.path.sep
     return os.path.sep.join(full_parts)
@@ -336,6 +335,7 @@ def dist_in_usersite(dist):
     else:
         return False
 
+
 def dist_in_site_packages(dist):
     """
     Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
@@ -347,8 +347,10 @@ def dist_is_editable(dist):
     """Is distribution an editable install?"""
     #TODO: factor out determining editableness out of FrozenRequirement
     from pip import FrozenRequirement
+
     req = FrozenRequirement.from_dist(dist, [])
     return req.editable
+
 
 def get_installed_distributions(local_only=True,
                                 skip=('setuptools', 'pip', 'python', 'distribute', 'wsgiref'),
@@ -369,27 +371,16 @@ def get_installed_distributions(local_only=True,
     If ``editables_only`` is True , only report editables.
 
     """
-    if local_only:
-        local_test = dist_is_local
-    else:
-        local_test = lambda d: True
+    local_test = dist_is_local if local_only else lambda _: True
 
-    if include_editables:
-        editable_test = lambda d: True
-    else:
-        editable_test = lambda d: not dist_is_editable(d)
-
-    if editables_only:
-        editables_only_test = lambda d: dist_is_editable(d)
-    else:
-        editables_only_test = lambda d: True
+    editable_test = lambda d: True if include_editables else not dist_is_editable(d)
+    editables_only_test = lambda d: dist_is_editable(d) if editables_only else True
 
     return [d for d in pkg_resources.working_set
-            if local_test(d)
-            and d.key not in skip
-            and editable_test(d)
-            and editables_only_test(d)
-            ]
+            if (local_test(d)
+                and d.key not in skip
+                and editable_test(d)
+                and editables_only_test(d))]
 
 
 def egg_link_path(dist):
@@ -408,6 +399,7 @@ def egg_link_path(dist):
     This method will just return the first one found.
     """
     sites = []
+
     if running_under_virtualenv():
         if virtualenv_no_global():
             sites.append(site_packages)
@@ -443,13 +435,15 @@ def dist_location(dist):
 def get_terminal_size():
     """Returns a tuple (x, y) representing the width(x) and the height(x)
     in characters of the terminal window."""
+
     def ioctl_GWINSZ(fd):
         try:
             import fcntl
             import termios
             import struct
+
             cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
-        '1234'))
+                                                 '1234'))
         except:
             return None
         if cr == (0, 0):
@@ -457,6 +451,7 @@ def get_terminal_size():
         if cr == (0, 0):
             return None
         return cr
+
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not cr:
         try:
@@ -514,10 +509,10 @@ def unzip_file(filename, location, flatten=True):
                     fp.close()
                     mode = info.external_attr >> 16
                     # if mode and regular file and any execute permissions for user/group/world?
-                    if mode and stat.S_ISREG(mode) and  mode & 0o111:
+                    if mode and stat.S_ISREG(mode) and mode & 0o111:
                         # make dest file have execute for user/group/world (chmod +x)
                         # no-op on windows per python docs
-                        os.chmod(fn, (0o777-current_umask() | 0o111))
+                        os.chmod(fn, (0o777 - current_umask() | 0o111))
     finally:
         zipfp.close()
 
@@ -593,7 +588,7 @@ def untar_file(filename, location):
                 if member.mode & 0o111:
                     # make dest file have execute for user/group/world
                     # no-op on windows per python docs
-                    os.chmod(path, (0o777-current_umask() | 0o111))
+                    os.chmod(path, (0o777 - current_umask() | 0o111))
     finally:
         tar.close()
 
@@ -608,7 +603,7 @@ def create_download_cache_folder(folder):
 def cache_download(target_file, temp_location, content_type):
     logger.notify('Storing download in cache at %s' % display_path(target_file))
     shutil.copyfile(temp_location, target_file)
-    fp = open(target_file+'.content-type', 'w')
+    fp = open(target_file + '.content-type', 'w')
     fp.write(content_type)
     fp.close()
 
@@ -629,6 +624,7 @@ def unpack_file(filename, location, content_type, link):
           and is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip.vcs.subversion import Subversion
+
         Subversion('svn+' + link.url).unpack(location)
     else:
         ## FIXME: handle?
@@ -721,6 +717,7 @@ def is_prerelease(vers):
     parsed = version._normalized_key(normalized)
     return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
 
+
 def read_text_file(filename):
     """Return the contents of *filename*.
 
@@ -753,6 +750,7 @@ def _make_build_dir(build_dir):
 class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
+
     def __init__(self, lines):
         self._gen = (l for l in lines)
 
