@@ -1,6 +1,18 @@
 Changelog
 =========
 
+1.5.2 (2014-01-26)
+------------------
+
+* Upgraded the vendored ``pkg_resources`` and ``_markerlib`` to setuptools 2.1.
+
+* Fixed an error that prevented accessing PyPI when pyopenssl, ndg-httpsclient,
+  and pyasn1 are installed
+
+* Fixed an issue that caused trailing comments to be incorrectly included as
+  part of the URL in a requirements file
+
+
 1.5.1 (2014-01-20)
 ------------------
 
