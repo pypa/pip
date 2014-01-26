@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.2 (unreleased)
+1.5.2 (2014-01-26)
 ------------------
 
 * Upgraded the vendored ``pkg_resources`` and ``_markerlib`` to setuptools 2.1.
