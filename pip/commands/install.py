@@ -8,6 +8,7 @@ from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError, PreviousBuildDirError
+from pip import get_installed_distributions
 from pip import cmdoptions
 
 
@@ -38,134 +39,121 @@ class InstallCommand(Command):
     summary = 'Install packages.'
     bundle = False
 
-    def __init__(self, *args, **kw):
-        super(InstallCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(
+    def populate_cmd_opts(self):
+        self.cmd_opts.add_option(
             '-e', '--editable',
             dest='editables',
             action='append',
             default=[],
             metavar='path/url',
             help='Install a project in editable mode (i.e. setuptools "develop mode") from a local project path or a VCS url.')
-
-        cmd_opts.add_option(cmdoptions.requirements.make())
-        cmd_opts.add_option(cmdoptions.build_dir.make())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.requirements.make())
+        self.cmd_opts.add_option(cmdoptions.build_dir.make())
+        self.cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
             metavar='dir',
             default=None,
             help='Install packages into <dir>.')
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
             dest='download_dir',
             metavar='dir',
             default=None,
             help="Download packages into <dir> instead of installing them, regardless of what's already installed.")
-
-        cmd_opts.add_option(cmdoptions.download_cache.make())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.download_cache.make())
+        self.cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
             dest='src_dir',
             metavar='dir',
             default=src_prefix,
             help='Directory to check out editable projects into. '
-            'The default in a virtualenv is "<venv path>/src". '
-            'The default for global installs is "<current dir>/src".')
-
-        cmd_opts.add_option(
+                 'The default in a virtualenv is "<venv path>/src". '
+                 'The default for global installs is "<current dir>/src".')
+        self.cmd_opts.add_option(
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
             help='Upgrade all packages to the newest available version. '
-            'This process is recursive regardless of whether a dependency is already satisfied.')
-
-        cmd_opts.add_option(
+                 'This process is recursive regardless of whether a dependency is already satisfied.')
+        self.cmd_opts.add_option(
+            '--upgrade_all',
+            dest='upgrade_all',
+            action='store_true',
+            help='Upgrades all packages to the newest available version. '
+                 'This process is recursive regardless of whether a dependency is already satisfied.')
+        self.cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
             help='When upgrading, reinstall all packages even if they are '
                  'already up-to-date.')
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
-
-        cmd_opts.add_option(cmdoptions.no_deps.make())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.no_deps.make())
+        self.cmd_opts.add_option(
             '--no-install',
             dest='no_install',
             action='store_true',
             help="DEPRECATED. Download and unpack all packages, but don't actually install them.")
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--no-download',
             dest='no_download',
             action="store_true",
             help="DEPRECATED. Don't download any packages, just install the ones already downloaded "
-            "(completes an install run with --no-install).")
-
-        cmd_opts.add_option(cmdoptions.install_options.make())
-        cmd_opts.add_option(cmdoptions.global_options.make())
-
-        cmd_opts.add_option(
+                 "(completes an install run with --no-install).")
+        self.cmd_opts.add_option(cmdoptions.install_options.make())
+        self.cmd_opts.add_option(cmdoptions.global_options.make())
+        self.cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
             help='Install using the user scheme.')
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--egg',
             dest='as_egg',
             action='store_true',
             help="Install packages as eggs, not 'flat', like pip normally does. This option is not about installing *from* eggs. (WARNING: Because this option overrides pip's normal install logic, requirements files may not behave as expected.)")
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
             help="Install everything relative to this alternate root directory.")
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
             default=True,
             help="Compile py files to pyc",
         )
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-compile",
             action="store_false",
             dest="compile",
             help="Do not compile py files to pyc",
         )
-
-        cmd_opts.add_option(cmdoptions.use_wheel.make())
-        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.use_wheel.make())
+        self.cmd_opts.add_option(cmdoptions.no_use_wheel.make())
+        self.cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
             help="Include pre-release and development versions. By default, pip only finds stable versions.")
+        self.cmd_opts.add_option(cmdoptions.no_clean.make())
 
-        cmd_opts.add_option(cmdoptions.no_clean.make())
+    def __init__(self, *args, **kw):
+        super(InstallCommand, self).__init__(*args, **kw)
+
+        self.populate_cmd_opts()
 
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def _build_package_finder(self, options, index_urls, session):
         """
@@ -180,15 +168,18 @@ class InstallCommand(Command):
                              allow_unverified=options.allow_unverified,
                              allow_all_external=options.allow_all_external,
                              allow_all_prereleases=options.pre,
-                             process_dependency_links=
-                                options.process_dependency_links,
-                             session=session,
-                            )
+                             process_dependency_links=options.process_dependency_links,
+                             session=session)
 
     def run(self, options, args):
+        if options.upgrade_all:
+            args += [package.split(' ', 1)[0] for package in
+                     get_installed_distributions(local_only=bool(options.use_user_site))]
+            logger.notify('Attempting to upgrade: %s' % args)
 
         if options.no_install or options.no_download:
-            logger.deprecated('1.7', "DEPRECATION: '--no-install' and '--no-download` are deprecated.  See https://github.com/pypa/pip/issues/906.")
+            logger.deprecated('1.7',
+                              "DEPRECATION: '--no-install' and '--no-download` are deprecated.  See https://github.com/pypa/pip/issues/906.")
 
         if options.download_dir:
             options.no_install = True
@@ -198,7 +189,8 @@ class InstallCommand(Command):
         install_options = options.install_options or []
         if options.use_user_site:
             if virtualenv_no_global():
-                raise InstallationError("Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
+                raise InstallationError(
+                    "Can not perform a '--user' install. User site-packages are not visible in this virtualenv.")
             install_options.append('--user')
 
         temp_target_dir = None
@@ -218,15 +210,15 @@ class InstallCommand(Command):
 
         if options.use_mirrors:
             logger.deprecated("1.7",
-                        "--use-mirrors has been deprecated and will be removed"
-                        " in the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+                              "--use-mirrors has been deprecated and will be removed"
+                              " in the future. Explicit uses of --index-url and/or "
+                              "--extra-index-url is suggested.")
 
         if options.mirrors:
             logger.deprecated("1.7",
-                        "--mirrors has been deprecated and will be removed in "
-                        " the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+                              "--mirrors has been deprecated and will be removed in "
+                              " the future. Explicit uses of --index-url and/or "
+                              "--extra-index-url is suggested.")
             index_urls += options.mirrors
 
         session = self._build_session(options)
@@ -305,6 +297,6 @@ class InstallCommand(Command):
                 shutil.move(
                     os.path.join(lib_dir, item),
                     os.path.join(options.target_dir, item)
-                    )
+                )
             shutil.rmtree(temp_target_dir)
         return requirement_set
