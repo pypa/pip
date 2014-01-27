@@ -37,7 +37,7 @@ def pkg_to_mapping(name):
                 f = open(os.path.join(root, pyfile), 'rb')
                 try:
                     b = f.read()
-                    name2src[pkg] = base64.b64encode(b)
+                    name2src[pkg] = b
                 finally:
                     f.close()
     return name2src
