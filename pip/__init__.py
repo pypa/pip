@@ -175,9 +175,8 @@ def main(initial_args=None):
 
     try:
         cmd_name, cmd_args = parseopts(initial_args)
-    except PipError:
-        e = sys.exc_info()[1]
-        sys.stderr.write("ERROR: %s" % e)
+    except PipError as exc:
+        sys.stderr.write("ERROR: %s" % exc)
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
@@ -220,9 +219,8 @@ class FrozenRequirement(object):
             editable = True
             try:
                 req = get_src_requirement(dist, location, find_tags)
-            except InstallationError:
-                ex = sys.exc_info()[1]
-                logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)
+            except InstallationError as exc:
+                logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % exc)
                 req = None
             if req is None:
                 logger.warn('Could not determine repository location of %s' % location)

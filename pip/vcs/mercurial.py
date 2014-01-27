@@ -54,11 +54,10 @@ class Mercurial(VersionControl):
             config_file = open(repo_config, 'w')
             config.write(config_file)
             config_file.close()
-        except (OSError, ConfigParser.NoSectionError):
-            e = sys.exc_info()[1]
+        except (OSError, ConfigParser.NoSectionError) as exc:
             logger.warn(
                 'Could not switch Mercurial repository to %s: %s'
-                % (url, e))
+                % (url, exc))
         else:
             call_subprocess([self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 

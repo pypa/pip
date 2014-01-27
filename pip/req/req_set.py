@@ -206,8 +206,8 @@ class RequirementSet(object):
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
-                            except DistributionNotFound:
-                                not_found = sys.exc_info()[1]
+                            except DistributionNotFound as exc:
+                                not_found = exc
                             else:
                                 # Avoid the need to call find_requirement again
                                 req_to_install.url = url.url
@@ -291,10 +291,9 @@ class RequirementSet(object):
                         if url:
                             try:
                                 self.unpack_url(url, location, self.is_download)
-                            except HTTPError:
-                                e = sys.exc_info()[1]
+                            except HTTPError as exc:
                                 logger.fatal('Could not install requirement %s because of error %s'
-                                             % (req_to_install, e))
+                                             % (req_to_install, exc))
                                 raise InstallationError(
                                     'Could not install requirement %s because of HTTP error %s for URL %s'
                                     % (req_to_install, e, url))
@@ -364,10 +363,9 @@ class RequirementSet(object):
                         for req in req_to_install.requirements(req_to_install.extras):
                             try:
                                 name = pkg_resources.Requirement.parse(req).project_name
-                            except ValueError:
-                                e = sys.exc_info()[1]
+                            except ValueError as exc:
                                 ## FIXME: proper warning
-                                logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, e, req_to_install))
+                                logger.error('Invalid requirement: %r (%s) in requirement %s' % (req, exc, req_to_install))
                                 continue
                             if self.has_requirement(name):
                                 ## FIXME: check for conflict

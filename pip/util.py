@@ -562,24 +562,22 @@ def untar_file(filename, location):
             elif member.issym():
                 try:
                     tar._extract_member(member, path)
-                except:
-                    e = sys.exc_info()[1]
+                except Exception as exc:
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warn(
                         'In the tar file %s the member %s is invalid: %s'
-                        % (filename, member.name, e))
+                        % (filename, member.name, exc))
                     continue
             else:
                 try:
                     fp = tar.extractfile(member)
-                except (KeyError, AttributeError):
-                    e = sys.exc_info()[1]
+                except (KeyError, AttributeError) as exc:
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warn(
                         'In the tar file %s the member %s is invalid: %s'
-                        % (filename, member.name, e))
+                        % (filename, member.name, exc))
                     continue
                 if not os.path.exists(os.path.dirname(path)):
                     os.makedirs(os.path.dirname(path))
@@ -662,10 +660,9 @@ def call_subprocess(cmd, show_stdout=True,
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
             cwd=cwd, env=env)
-    except Exception:
-        e = sys.exc_info()[1]
+    except Exception as exc:
         logger.fatal(
-            "Error %s while executing command %s" % (e, command_desc))
+            "Error %s while executing command %s" % (exc, command_desc))
         raise
     all_output = []
     if stdout is not None:

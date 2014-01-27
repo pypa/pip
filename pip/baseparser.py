@@ -149,9 +149,8 @@ class ConfigOptionParser(CustomOptionParser):
     def check_default(self, option, key, val):
         try:
             return option.check_value(key, val)
-        except optparse.OptionValueError:
-            e = sys.exc_info()[1]
-            print("An error occurred during configuration: %s" % e)
+        except optparse.OptionValueError as exc:
+            print("An error occurred during configuration: %s" % exc)
             sys.exit(3)
 
     def update_defaults(self, defaults):
