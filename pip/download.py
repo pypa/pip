@@ -181,8 +181,10 @@ class LocalFSAdapter(BaseAdapter):
 
         # We only work for requests with a host of localhost
         if parsed_url.netloc.lower() != "localhost":
-            raise InvalidURL("Invalid URL %r: Only localhost is allowed" %
-                request.url)
+            raise InvalidURL(
+                "Invalid URL %r: Only localhost is allowed" %
+                request.url
+            )
 
         real_url = urlparse.urlunparse(parsed_url[:1] + ("",) + parsed_url[2:])
         pathname = url_to_path(real_url)
@@ -247,7 +249,7 @@ def get_file_content(url, comes_from=None, session=None):
     if match:
         scheme = match.group(1).lower()
         if (scheme == 'file' and comes_from
-            and comes_from.startswith('http')):
+                and comes_from.startswith('http')):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
@@ -274,7 +276,9 @@ def get_file_content(url, comes_from=None, session=None):
         f = open(url)
         content = f.read()
     except IOError as exc:
-        raise InstallationError('Could not open requirements file: %s' % str(exc))
+        raise InstallationError(
+            'Could not open requirements file: %s' % str(exc)
+        )
     else:
         f.close()
     return url, content
@@ -327,8 +331,9 @@ def path_to_url(path):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle',
-               '.whl')
+    archives = (
+        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle', '.whl'
+    )
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True
@@ -372,20 +377,29 @@ def is_file_url(link):
 
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
-        logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.digest_size, link, link.hash_name))
+        logger.fatal(
+            "Hash digest size of the package %d (%s) doesn't match the "
+            "expected hash name %s!" %
+            (download_hash.digest_size, link, link.hash_name)
+        )
         raise HashMismatch('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
-        logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (link, download_hash.hexdigest(), link.hash))
-        raise HashMismatch('Bad %s hash for package %s' % (link.hash_name, link))
+        logger.fatal(
+            "Hash of the package %s (%s) doesn't match the expected hash %s!" %
+            (link, download_hash.hexdigest(), link.hash)
+        )
+        raise HashMismatch(
+            'Bad %s hash for package %s' % (link.hash_name, link)
+        )
 
 
 def _get_hash_from_file(target_file, link):
     try:
         download_hash = hashlib.new(link.hash_name)
     except (ValueError, TypeError):
-        logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+        logger.warn(
+            "Unsupported hash name %s for package %s" % (link.hash_name, link)
+        )
         return None
 
     fp = open(target_file, 'rb')
@@ -405,7 +419,10 @@ def _download_url(resp, link, temp_location):
         try:
             download_hash = hashlib.new(link.hash_name)
         except ValueError:
-            logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+            logger.warn(
+                "Unsupported hash name %s for package %s" %
+                (link.hash_name, link)
+            )
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -417,9 +434,14 @@ def _download_url(resp, link, temp_location):
         if show_progress:
             ## FIXME: the URL can get really long in this message:
             if total_length:
-                logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
+                logger.start_progress(
+                    'Downloading %s (%s): ' %
+                    (show_url, format_size(total_length))
+                )
             else:
-                logger.start_progress('Downloading %s (unknown size): ' % show_url)
+                logger.start_progress(
+                    'Downloading %s (unknown size): ' % show_url
+                )
         else:
             logger.notify('Downloading %s' % show_url)
         logger.info('Downloading from URL %s' % link)
@@ -447,7 +469,13 @@ def _download_url(resp, link, temp_location):
                 if not total_length:
                     logger.show_progress('%s' % format_size(downloaded))
                 else:
-                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
+                    logger.show_progress(
+                        '%3i%%  %s' %
+                        (
+                            100 * downloaded / total_length,
+                            format_size(downloaded)
+                        )
+                    )
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
@@ -472,8 +500,10 @@ def _copy_file(filename, location, content_type, link):
             os.remove(download_location)
         elif response == 'b':
             dest_file = backup_dir(download_location)
-            logger.warn('Backing up %s to %s'
-                        % (display_path(download_location), display_path(dest_file)))
+            logger.warn(
+                'Backing up %s to %s' %
+                (display_path(download_location), display_path(dest_file))
+            )
             shutil.move(download_location, dest_file)
     if copy:
         shutil.copy(filename, download_location)
@@ -495,8 +525,10 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     cache_content_type_file = None
     download_hash = None
     if download_cache:
-        cache_file = os.path.join(download_cache,
-                                   urllib.quote(target_url, ''))
+        cache_file = os.path.join(
+            download_cache,
+            urllib.quote(target_url, '')
+        )
         cache_content_type_file = cache_file + '.content-type'
         already_cached = (
             os.path.exists(cache_file) and
@@ -528,7 +560,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
                 os.unlink(already_downloaded)
                 already_downloaded = None
 
-    # We have a cached file, and we haven't already found a good downloaded copy
+    # We have a cached file, and we haven't already found a good downloaded
+    # copy
     if already_cached and not temp_location:
         with open(cache_content_type_file) as fp:
             content_type = fp.read().strip()

@@ -14,7 +14,8 @@ class ListCommand(Command):
       %prog [options]"""
     summary = 'List installed packages.'
 
-    # distributions to skip (python itself is reported by pkg_resources.working_set)
+    # distributions to skip (python itself is reported by
+    # pkg_resources.working_set)
     skip = ['python', 'wsgiref']
 
     def __init__(self, *args, **kw):
@@ -41,13 +42,17 @@ class ListCommand(Command):
             '-l', '--local',
             action='store_true',
             default=False,
-            help='If in a virtualenv that has global access, do not list globally-installed packages.')
+            help=('If in a virtualenv that has global access, do not list '
+                  'globally-installed packages.'),
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+            help=("Include pre-release and development versions. By default, "
+                  "pip only finds stable versions."),
+        )
 
         index_opts = make_option_group(index_group, self.parser)
 
@@ -58,16 +63,16 @@ class ListCommand(Command):
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder(find_links=options.find_links,
-                             index_urls=index_urls,
-                             allow_external=options.allow_external,
-                             allow_unverified=options.allow_unverified,
-                             allow_all_external=options.allow_all_external,
-                             allow_all_prereleases=options.pre,
-                             process_dependency_links=
-                                options.process_dependency_links,
-                             session=session,
-                        )
+        return PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls,
+            allow_external=options.allow_external,
+            allow_unverified=options.allow_unverified,
+            allow_all_external=options.allow_all_external,
+            allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
+            session=session,
+        )
 
     def run(self, options, args):
         if options.outdated:
@@ -80,10 +85,13 @@ class ListCommand(Command):
             self.run_listing(options)
 
     def run_outdated(self, options):
-        for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
+        for dist, remote_version_raw, remote_version_parsed in \
+                self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
-                logger.notify('%s (Current: %s Latest: %s)' % (dist.project_name,
-                    dist.version, remote_version_raw))
+                logger.notify(
+                    '%s (Current: %s Latest: %s)' %
+                    (dist.project_name, dist.version, remote_version_raw)
+                )
 
     def find_packages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
@@ -92,20 +100,25 @@ class ListCommand(Command):
             index_urls = []
 
         if options.use_mirrors:
-            logger.deprecated("1.7",
-                        "--use-mirrors has been deprecated and will be removed"
-                        " in the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+            logger.deprecated(
+                "1.7",
+                "--use-mirrors has been deprecated and will be removed"
+                " in the future. Explicit uses of --index-url and/or "
+                "--extra-index-url is suggested."
+            )
 
         if options.mirrors:
-            logger.deprecated("1.7",
-                        "--mirrors has been deprecated and will be removed in "
-                        " the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+            logger.deprecated(
+                "1.7",
+                "--mirrors has been deprecated and will be removed in "
+                " the future. Explicit uses of --index-url and/or "
+                "--extra-index-url is suggested."
+            )
             index_urls += options.mirrors
 
         dependency_links = []
-        for dist in get_installed_distributions(local_only=options.local, skip=self.skip):
+        for dist in get_installed_distributions(
+                local_only=options.local, skip=self.skip):
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -116,7 +129,11 @@ class ListCommand(Command):
         finder = self._build_package_finder(options, index_urls, session)
         finder.add_dependency_links(dependency_links)
 
-        installed_packages = get_installed_distributions(local_only=options.local, include_editables=False, skip=self.skip)
+        installed_packages = get_installed_distributions(
+            local_only=options.local,
+            include_editables=False,
+            skip=self.skip,
+        )
         for dist in installed_packages:
             req = InstallRequirement.from_line(dist.key, None)
             try:
@@ -130,33 +147,49 @@ class ListCommand(Command):
             except BestVersionAlreadyInstalled:
                 remote_version = req.installed_version
             else:
-                # It might be a good idea that link or finder had a public method
-                # that returned version
-                remote_version = finder._link_package_versions(link, req.name)[0]
+                # It might be a good idea that link or finder had a public
+                # method that returned version
+                remote_version = finder._link_package_versions(
+                    link, req.name
+                )[0]
                 remote_version_raw = remote_version[2]
                 remote_version_parsed = remote_version[0]
             yield dist, remote_version_raw, remote_version_parsed
 
     def run_listing(self, options):
-        installed_packages = get_installed_distributions(local_only=options.local, skip=self.skip)
+        installed_packages = get_installed_distributions(
+            local_only=options.local,
+            skip=self.skip,
+        )
         self.output_package_listing(installed_packages)
 
     def run_editables(self, options):
-        installed_packages = get_installed_distributions(local_only=options.local, editables_only=True)
+        installed_packages = get_installed_distributions(
+            local_only=options.local,
+            editables_only=True,
+        )
         self.output_package_listing(installed_packages)
 
     def output_package_listing(self, installed_packages):
-        installed_packages = sorted(installed_packages, key=lambda dist: dist.project_name.lower())
+        installed_packages = sorted(
+            installed_packages,
+            key=lambda dist: dist.project_name.lower(),
+        )
         for dist in installed_packages:
             if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
+                line = '%s (%s, %s)' % (
+                    dist.project_name,
+                    dist.version,
+                    dist.location,
+                )
             else:
                 line = '%s (%s)' % (dist.project_name, dist.version)
             logger.notify(line)
 
     def run_uptodate(self, options):
         uptodate = []
-        for dist, remote_version_raw, remote_version_parsed in self.find_packages_latests_versions(options):
+        for dist, remote_version_raw, remote_version_parsed in \
+                self.find_packages_latests_versions(options):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)

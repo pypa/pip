@@ -5,7 +5,6 @@ import sys
 import os
 import logging
 
-from pip import backwardcompat
 from pip._vendor import colorama, pkg_resources
 
 
@@ -16,8 +15,10 @@ def _color_wrap(*colors):
 
 
 def should_color(consumer, environ, std=(sys.stdout, sys.stderr)):
-    real_consumer = (consumer if not isinstance(consumer, colorama.AnsiToWin32)
-                        else consumer.wrapped)
+    real_consumer = (
+        consumer if not isinstance(consumer, colorama.AnsiToWin32)
+        else consumer.wrapped
+    )
 
     # If consumer isn't stdout or stderr we shouldn't colorize it
     if real_consumer not in std:
@@ -49,7 +50,7 @@ def should_warn(current_version, removal_version):
 
     # Test if our current_version should be a warn
     return (pkg_resources.parse_version(current_version)
-                < pkg_resources.parse_version(warn_version))
+            < pkg_resources.parse_version(warn_version))
 
 
 class Logger(object):
@@ -147,7 +148,7 @@ class Logger(object):
         for consumer_level, consumer in self.consumers:
             if self.level_matches(level, consumer_level):
                 if (self.in_progress_hanging
-                    and consumer in (sys.stdout, sys.stderr)):
+                        and consumer in (sys.stdout, sys.stderr)):
                     self.in_progress_hanging = False
                     sys.stdout.write('\n')
                     sys.stdout.flush()
@@ -191,7 +192,8 @@ class Logger(object):
                 sys.stdout.write('...' + self.in_progress + msg + '\n')
                 sys.stdout.flush()
             else:
-                # These erase any messages shown with show_progress (besides .'s)
+                # These erase any messages shown with show_progress
+                # (besides .'s)
                 logger.show_progress('')
                 logger.show_progress('')
                 sys.stdout.write(msg + '\n')
@@ -208,11 +210,16 @@ class Logger(object):
                 sys.stdout.flush()
             else:
                 if self.last_message:
-                    padding = ' ' * max(0, len(self.last_message) - len(message))
+                    padding = ' ' * max(
+                        0,
+                        len(self.last_message) - len(message)
+                    )
                 else:
                     padding = ''
-                sys.stdout.write('\r%s%s%s%s' %
-                                (' ' * self.indent, self.in_progress, message, padding))
+                sys.stdout.write(
+                    '\r%s%s%s%s' %
+                    (' ' * self.indent, self.in_progress, message, padding)
+                )
                 sys.stdout.flush()
                 self.last_message = message
 

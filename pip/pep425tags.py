@@ -58,7 +58,7 @@ def get_supported(versions=None, noarch=False):
 
     try:
         soabi = sysconfig.get_config_var('SOABI')
-    except IOError as e: # Issue #1074
+    except IOError as e:  # Issue #1074
         warnings.warn("{0}".format(e), RuntimeWarning)
         soabi = None
 

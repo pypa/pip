@@ -1,8 +1,6 @@
 import sys
 import textwrap
 
-import pip.download
-
 from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size
 from pip.log import logger
@@ -71,7 +69,12 @@ def transform_hits(hits):
             score = 0
 
         if name not in packages.keys():
-            packages[name] = {'name': name, 'summary': summary, 'versions': [version], 'score': score}
+            packages[name] = {
+                'name': name,
+                'summary': summary,
+                'versions': [version],
+                'score': score,
+            }
         else:
             packages[name]['versions'].append(version)
 
@@ -80,8 +83,13 @@ def transform_hits(hits):
                 packages[name]['summary'] = summary
                 packages[name]['score'] = score
 
-    # each record has a unique name now, so we will convert the dict into a list sorted by score
-    package_list = sorted(packages.values(), key=lambda x: x['score'], reverse=True)
+    # each record has a unique name now, so we will convert the dict into a
+    # list sorted by score
+    package_list = sorted(
+        packages.values(),
+        key=lambda x: x['score'],
+        reverse=True,
+    )
     return package_list
 
 
@@ -92,7 +100,10 @@ def print_results(hits, name_column_width=25, terminal_width=None):
         summary = hit['summary'] or ''
         if terminal_width is not None:
             # wrap and indent summary to fit terminal
-            summary = textwrap.wrap(summary, terminal_width - name_column_width - 5)
+            summary = textwrap.wrap(
+                summary,
+                terminal_width - name_column_width - 5,
+            )
             summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
         line = '%s - %s' % (name.ljust(name_column_width), summary)
         try:
@@ -129,4 +140,7 @@ def compare_versions(version1, version2):
 
 
 def highest_version(versions):
-    return reduce((lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2), versions)
+    return reduce(
+        (lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2),
+        versions,
+    )

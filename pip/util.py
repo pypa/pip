@@ -8,13 +8,16 @@ import posixpath
 import zipfile
 import tarfile
 import subprocess
-import textwrap
 
-from pip.exceptions import InstallationError, BadCommand, PipError
-from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site, PermissionError)
-from pip.locations import (site_packages, running_under_virtualenv, virtualenv_no_global,
-                           write_delete_marker_file)
+from pip.exceptions import InstallationError, BadCommand
+from pip.backwardcompat import(
+    WindowsError, string_types, raw_input, console_to_str, user_site,
+    PermissionError,
+)
+from pip.locations import (
+    site_packages, running_under_virtualenv, virtualenv_no_global,
+    write_delete_marker_file,
+)
 from pip.log import logger
 from pip._vendor import pkg_resources
 from pip._vendor.distlib import version
@@ -50,9 +53,9 @@ def rmtree_errorhandler(func, path, exc_info):
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
     exctype, value = exc_info[:2]
-    if not ((exctype is WindowsError and value.args[0] == 5) or #others
-            (exctype is OSError and value.args[0] == 13) or #python2.4
-            (exctype is PermissionError and value.args[3] == 5) #python3.3
+    if not ((exctype is WindowsError and value.args[0] == 5) or  # others
+            (exctype is OSError and value.args[0] == 13) or  # python2.4
+            (exctype is PermissionError and value.args[3] == 5)  # python3.3
             ):
         raise
     # file type should currently be read only
@@ -130,12 +133,17 @@ def ask(message, options):
     """Ask the message interactively, with the given possible responses"""
     while 1:
         if os.environ.get('PIP_NO_INPUT'):
-            raise Exception('No input was expected ($PIP_NO_INPUT set); question: %s' % message)
+            raise Exception(
+                'No input was expected ($PIP_NO_INPUT set); question: %s' %
+                message
+            )
         response = raw_input(message)
         response = response.strip().lower()
         if response not in options:
-            print('Your response (%r) was not one of the expected responses: %s' % (
-                response, ', '.join(options)))
+            print(
+                'Your response (%r) was not one of the expected responses: '
+                '%s' % (response, ', '.join(options))
+            )
         else:
             return response
 
@@ -168,7 +176,7 @@ class _Inf(object):
         return 'Inf'
 
 
-Inf = _Inf() #this object is not currently used as a sortable in our code
+Inf = _Inf()  # this object is not currently used as a sortable in our code
 del _Inf
 
 
@@ -201,7 +209,9 @@ def is_installable_dir(path):
 
 
 def is_svn_page(html):
-    """Returns true if the page appears to be the index page of an svn repository"""
+    """
+    Returns true if the page appears to be the index page of an svn repository
+    """
     return (re.search(r'<title>[^<]*Revision \d+:', html)
             and re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
 
@@ -246,13 +256,13 @@ def make_path_relative(path, rel_to):
     Make a filename relative, where the filename path, and it is
     relative to rel_to
 
-        >>> make_relative_path('/usr/share/something/a-file.pth',
+        >>> make_path_relative('/usr/share/something/a-file.pth',
         ...                    '/usr/share/another-place/src/Directory')
         '../../../something/a-file.pth'
-        >>> make_relative_path('/usr/share/something/a-file.pth',
+        >>> make_path_relative('/usr/share/something/a-file.pth',
         ...                    '/home/user/src/Directory')
         '../../../usr/share/something/a-file.pth'
-        >>> make_relative_path('/usr/share/a-file.pth', '/usr/share/')
+        >>> make_path_relative('/usr/share/a-file.pth', '/usr/share/')
         'a-file.pth'
     """
     path_filename = os.path.basename(path)
@@ -332,15 +342,21 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site.
     """
     if user_site:
-        return normalize_path(dist_location(dist)).startswith(normalize_path(user_site))
+        return normalize_path(
+            dist_location(dist)
+        ).startswith(normalize_path(user_site))
     else:
         return False
 
+
 def dist_in_site_packages(dist):
     """
-    Return True if given Distribution is installed in distutils.sysconfig.get_python_lib().
+    Return True if given Distribution is installed in
+    distutils.sysconfig.get_python_lib().
     """
-    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
+    return normalize_path(
+        dist_location(dist)
+    ).startswith(normalize_path(site_packages))
 
 
 def dist_is_editable(dist):
@@ -350,10 +366,11 @@ def dist_is_editable(dist):
     req = FrozenRequirement.from_dist(dist, [])
     return req.editable
 
-def get_installed_distributions(local_only=True,
-                                skip=('setuptools', 'pip', 'python', 'distribute', 'wsgiref'),
-                                include_editables=True,
-                                editables_only=False):
+
+def get_installed_distributions(
+        local_only=True,
+        skip=('setuptools', 'pip', 'python', 'distribute', 'wsgiref'),
+        include_editables=True, editables_only=False):
     """
     Return a list of installed Distribution objects.
 
@@ -402,9 +419,12 @@ def egg_link_path(dist):
     2) in a no-global virtualenv
        try to find in site_packages
     3) in a yes-global virtualenv
-       try to find in site_packages, then site.USER_SITE  (don't look in global location)
+       try to find in site_packages, then site.USER_SITE
+       (don't look in global location)
 
-    For #1 and #3, there could be odd cases, where there's an egg-link in 2 locations.
+    For #1 and #3, there could be odd cases, where there's an egg-link in 2
+    locations.
+
     This method will just return the first one found.
     """
     sites = []
@@ -448,8 +468,10 @@ def get_terminal_size():
             import fcntl
             import termios
             import struct
-            cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
-        '1234'))
+            cr = struct.unpack(
+                'hh',
+                fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
+            )
         except:
             return None
         if cr == (0, 0):
@@ -513,10 +535,11 @@ def unzip_file(filename, location, flatten=True):
                 finally:
                     fp.close()
                     mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for user/group/world?
-                    if mode and stat.S_ISREG(mode) and  mode & 0o111:
-                        # make dest file have execute for user/group/world (chmod +x)
-                        # no-op on windows per python docs
+                    # if mode and regular file and any execute permissions for
+                    # user/group/world?
+                    if mode and stat.S_ISREG(mode) and mode & 0o111:
+                        # make dest file have execute for user/group/world
+                        # (chmod +x) no-op on windows per python docs
                         os.chmod(fn, (0o777-current_umask() | 0o111))
     finally:
         zipfp.close()
@@ -535,7 +558,8 @@ def untar_file(filename, location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
-    elif filename.lower().endswith('.bz2') or filename.lower().endswith('.tbz'):
+    elif (filename.lower().endswith('.bz2')
+            or filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
@@ -604,7 +628,9 @@ def create_download_cache_folder(folder):
 
 
 def cache_download(target_file, temp_location, content_type):
-    logger.notify('Storing download in cache at %s' % display_path(target_file))
+    logger.notify(
+        'Storing download in cache at %s' % display_path(target_file)
+    )
     shutil.copyfile(temp_location, target_file)
     fp = open(target_file+'.content-type', 'w')
     fp.write(content_type)
@@ -614,26 +640,36 @@ def cache_download(target_file, temp_location, content_type):
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
     if (content_type == 'application/zip'
-        or filename.endswith('.zip')
-        or filename.endswith('.pybundle')
-        or filename.endswith('.whl')
-        or zipfile.is_zipfile(filename)):
-        unzip_file(filename, location, flatten=not filename.endswith(('.pybundle', '.whl')))
+            or filename.endswith('.zip')
+            or filename.endswith('.pybundle')
+            or filename.endswith('.whl')
+            or zipfile.is_zipfile(filename)):
+        unzip_file(
+            filename,
+            location,
+            flatten=not filename.endswith(('.pybundle', '.whl'))
+        )
     elif (content_type == 'application/x-gzip'
-          or tarfile.is_tarfile(filename)
-          or splitext(filename)[1].lower() in ('.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+            or tarfile.is_tarfile(filename)
+            or splitext(filename)[1].lower() in (
+                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html')
-          and is_svn_page(file_contents(filename))):
+            and is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)
     else:
         ## FIXME: handle?
         ## FIXME: magic signatures?
-        logger.fatal('Cannot unpack file %s (downloaded from %s, content-type: %s); cannot detect archive format'
-                     % (filename, location, content_type))
-        raise InstallationError('Cannot determine archive format of %s' % location)
+        logger.fatal(
+            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
+            'cannot detect archive format' %
+            (filename, location, content_type)
+        )
+        raise InstallationError(
+            'Cannot determine archive format of %s' % location
+        )
 
 
 def call_subprocess(cmd, show_stdout=True,
@@ -689,8 +725,13 @@ def call_subprocess(cmd, show_stdout=True,
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
-                logger.notify('Complete output from command %s:' % command_desc)
-                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+                logger.notify(
+                    'Complete output from command %s:' % command_desc
+                )
+                logger.notify(
+                    '\n'.join(all_output) +
+                    '\n----------------------------------------'
+                )
             raise InstallationError(
                 "Command %s failed with error code %s in %s"
                 % (command_desc, proc.returncode, cwd))
@@ -716,7 +757,11 @@ def is_prerelease(vers):
         return True
 
     parsed = version._normalized_key(normalized)
-    return any([any([y in set(["a", "b", "c", "rc", "dev"]) for y in x]) for x in parsed])
+    return any([
+        any([y in set(["a", "b", "c", "rc", "dev"]) for y in x])
+        for x in parsed
+    ])
+
 
 def read_text_file(filename):
     """Return the contents of *filename*.

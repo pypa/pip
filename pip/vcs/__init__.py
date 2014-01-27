@@ -17,7 +17,8 @@ class VcsSupport(object):
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
-        # Register more schemes with urlparse for various version control systems
+        # Register more schemes with urlparse for various version control
+        # systems
         urlparse.uses_netloc.extend(self.schemes)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment
         if getattr(urlparse, 'uses_fragment', None):
@@ -118,9 +119,10 @@ class VersionControl(object):
         repository URL
         """
         error_message = (
-           "Sorry, '%s' is a malformed VCS url. "
-           "The format is <vcs>+<protocol>://<url>, "
-           "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
+            "Sorry, '%s' is a malformed VCS url. "
+            "The format is <vcs>+<protocol>://<url>, "
+            "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
+        )
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urlparse.urlsplit(url)
@@ -134,12 +136,14 @@ class VersionControl(object):
         """
         Returns (url, revision), where both are strings
         """
-        assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
+        assert not location.rstrip('/').endswith(self.dirname), \
+            'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
     def normalize_url(self, url):
         """
-        Normalize a URL for comparison by unquoting it and removing any trailing slash.
+        Normalize a URL for comparison by unquoting it and removing any
+        trailing slash.
         """
         return urllib.unquote(url).rstrip('/')
 
@@ -247,5 +251,8 @@ def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         return version_control().get_src_requirement(dist, location, find_tags)
-    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
+    logger.warn(
+        'cannot determine version of editable source in %s (is not SVN '
+        'checkout, Git clone, Mercurial clone or Bazaar branch)' % location
+    )
     return dist.as_requirement()

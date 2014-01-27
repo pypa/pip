@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import os
-import sys
+
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.log import logger
@@ -14,16 +14,19 @@ from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
+
 class WheelCommand(Command):
     """
     Build Wheel archives for your requirements and dependencies.
 
-    Wheel is a built-package format, and offers the advantage of not recompiling your software during every install.
-    For more details, see the wheel docs: http://wheel.readthedocs.org/en/latest.
+    Wheel is a built-package format, and offers the advantage of not
+    recompiling your software during every install. For more details, see the
+    wheel docs: http://wheel.readthedocs.org/en/latest.
 
     Requirements: setuptools>=0.8, and wheel.
 
-    'pip wheel' uses the bdist_wheel setuptools extension from the wheel package to build individual wheels.
+    'pip wheel' uses the bdist_wheel setuptools extension from the wheel
+    package to build individual wheels.
 
     """
 
@@ -47,7 +50,9 @@ class WheelCommand(Command):
             dest='wheel_dir',
             metavar='dir',
             default=DEFAULT_WHEEL_DIR,
-            help="Build wheels into <dir>, where the default is '<cwd>/wheelhouse'.")
+            help=("Build wheels into <dir>, where the default is "
+                  "'<cwd>/wheelhouse'."),
+        )
         cmd_opts.add_option(cmdoptions.use_wheel.make())
         cmd_opts.add_option(cmdoptions.no_use_wheel.make())
         cmd_opts.add_option(
@@ -73,11 +78,16 @@ class WheelCommand(Command):
             '--pre',
             action='store_true',
             default=False,
-            help="Include pre-release and development versions. By default, pip only finds stable versions.")
+            help=("Include pre-release and development versions. By default, "
+                  "pip only finds stable versions."),
+        )
 
         cmd_opts.add_option(cmdoptions.no_clean.make())
 
-        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
+        index_opts = cmdoptions.make_option_group(
+            cmdoptions.index_group,
+            self.parser,
+        )
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -87,8 +97,13 @@ class WheelCommand(Command):
         # confirm requirements
         try:
             import wheel.bdist_wheel
+            # Hack to make flake8 not complain about an unused import
+            wheel.bdist_wheel
         except ImportError:
-            raise CommandError("'pip wheel' requires the 'wheel' package. To fix this, run:  pip install wheel")
+            raise CommandError(
+                "'pip wheel' requires the 'wheel' package. To fix this, run: "
+                "pip install wheel"
+            )
 
         try:
             import pkg_resources
@@ -111,31 +126,35 @@ class WheelCommand(Command):
             index_urls = []
 
         if options.use_mirrors:
-            logger.deprecated("1.7",
-                        "--use-mirrors has been deprecated and will be removed"
-                        " in the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+            logger.deprecated(
+                "1.7",
+                "--use-mirrors has been deprecated and will be removed"
+                " in the future. Explicit uses of --index-url and/or "
+                "--extra-index-url is suggested."
+            )
 
         if options.mirrors:
-            logger.deprecated("1.7",
-                        "--mirrors has been deprecated and will be removed in "
-                        " the future. Explicit uses of --index-url and/or "
-                        "--extra-index-url is suggested.")
+            logger.deprecated(
+                "1.7",
+                "--mirrors has been deprecated and will be removed in "
+                " the future. Explicit uses of --index-url and/or "
+                "--extra-index-url is suggested."
+            )
             index_urls += options.mirrors
 
         session = self._build_session(options)
 
-        finder = PackageFinder(find_links=options.find_links,
-                               index_urls=index_urls,
-                               use_wheel=options.use_wheel,
-                               allow_external=options.allow_external,
-                               allow_unverified=options.allow_unverified,
-                               allow_all_external=options.allow_all_external,
-                               allow_all_prereleases=options.pre,
-                               process_dependency_links=
-                                options.process_dependency_links,
-                               session=session,
-                            )
+        finder = PackageFinder(
+            find_links=options.find_links,
+            index_urls=index_urls,
+            use_wheel=options.use_wheel,
+            allow_external=options.allow_external,
+            allow_unverified=options.allow_unverified,
+            allow_all_external=options.allow_all_external,
+            allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
+            session=session,
+        )
 
         options.build_dir = os.path.abspath(options.build_dir)
         requirement_set = RequirementSet(
@@ -157,8 +176,13 @@ class WheelCommand(Command):
                 InstallRequirement.from_line(name, None))
 
         for filename in options.requirements:
-            for req in parse_requirements(filename, finder=finder, options=options, session=session):
-                if req.editable or (req.name is None and req.url.endswith(".whl")):
+            for req in parse_requirements(
+                    filename,
+                    finder=finder,
+                    options=options,
+                    session=session):
+                if (req.editable
+                        or (req.name is None and req.url.endswith(".whl"))):
                     logger.notify("ignoring %s" % req.url)
                     continue
                 requirement_set.add_requirement(req)
@@ -177,9 +201,9 @@ class WheelCommand(Command):
                 requirement_set,
                 finder,
                 options.wheel_dir,
-                build_options = options.build_options or [],
-                global_options = options.global_options or []
-                )
+                build_options=options.build_options or [],
+                global_options=options.global_options or [],
+            )
             wb.build()
         except PreviousBuildDirError:
             options.no_clean = True

@@ -15,8 +15,10 @@ from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 from pip.backwardcompat import StringIO
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.status_codes import (SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
-                              PREVIOUS_BUILD_DIR_ERROR)
+from pip.status_codes import (
+    SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
+    PREVIOUS_BUILD_DIR_ERROR,
+)
 from pip.util import get_prog
 
 
@@ -45,7 +47,10 @@ class Command(object):
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
-        gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, self.parser)
+        gen_opts = cmdoptions.make_option_group(
+            cmdoptions.general_group,
+            self.parser,
+        )
         self.parser.add_option_group(gen_opts)
 
     def _build_session(self, options):
@@ -107,7 +112,9 @@ class Command(object):
         if options.require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.fatal('Could not find an activated virtualenv (required).')
+                logger.fatal(
+                    'Could not find an activated virtualenv (required).'
+                )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.log:

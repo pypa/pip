@@ -7,9 +7,10 @@ import textwrap
 from distutils.util import strtobool
 
 from pip.backwardcompat import ConfigParser, string_types
-from pip.locations import default_config_file, default_config_basename, running_under_virtualenv
-from pip.util import get_terminal_size, get_prog
-from pip._vendor import pkg_resources
+from pip.locations import (
+    default_config_file, default_config_basename, running_under_virtualenv,
+)
+from pip.util import get_terminal_size
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -141,7 +142,10 @@ class ConfigOptionParser(CustomOptionParser):
         else:
             files = [default_config_file]
         if running_under_virtualenv():
-            venv_config_file = os.path.join(sys.prefix, default_config_basename)
+            venv_config_file = os.path.join(
+                sys.prefix,
+                default_config_basename,
+            )
             if os.path.exists(venv_config_file):
                 files.append(venv_config_file)
         return files
@@ -161,7 +165,9 @@ class ConfigOptionParser(CustomOptionParser):
         config = {}
         # 1. config files
         for section in ('global', self.name):
-            config.update(self.normalize_keys(self.get_config_section(section)))
+            config.update(
+                self.normalize_keys(self.get_config_section(section))
+            )
         # 2. environmental variables
         config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
