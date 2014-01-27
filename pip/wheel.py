@@ -14,7 +14,7 @@ import sys
 
 from base64 import urlsafe_b64encode
 
-from pip.backwardcompat import ConfigParser, StringIO
+from pip.backwardcompat import ConfigParser, StringIO, binary
 from pip.exceptions import InvalidWheelFilename
 from pip.locations import distutils_scheme
 from pip.log import logger
@@ -39,18 +39,6 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
         h.digest()
     ).decode('latin1').rstrip('=')
     return (digest, length)
-
-try:
-    unicode
-
-    def binary(s):
-        if isinstance(s, unicode):
-            return s.encode('ascii')
-        return s
-except NameError:
-    def binary(s):
-        if isinstance(s, str):
-            return s.encode('ascii')
 
 
 def open_for_csv(name, mode):

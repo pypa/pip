@@ -29,6 +29,20 @@ except NameError:
 
 console_encoding = sys.__stdout__.encoding
 
+
+try:
+    unicode
+
+    def binary(s):
+        if isinstance(s, unicode):
+            return s.encode('ascii')
+        return s
+except NameError:
+    def binary(s):
+        if isinstance(s, str):
+            return s.encode('ascii')
+
+
 if sys.version_info >= (3,):
     from io import StringIO, BytesIO
     from functools import reduce
