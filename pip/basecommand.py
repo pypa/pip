@@ -124,27 +124,23 @@ class Command(object):
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 exit = status
-        except PreviousBuildDirError:
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
+        except PreviousBuildDirError as exc:
+            logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError):
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
+        except (InstallationError, UninstallationError) as exc:
+            logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = ERROR
-        except BadCommand:
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
+        except BadCommand as exc:
+            logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
             exit = ERROR
-        except CommandError:
-            e = sys.exc_info()[1]
-            logger.fatal('ERROR: %s' % e)
+        except CommandError as exc:
+            logger.fatal('ERROR: %s' % exc)
             logger.info('Exception information:\n%s' % format_exc())
             exit = ERROR
         except KeyboardInterrupt:

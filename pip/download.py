@@ -273,9 +273,8 @@ def get_file_content(url, comes_from=None, session=None):
     try:
         f = open(url)
         content = f.read()
-    except IOError:
-        e = sys.exc_info()[1]
-        raise InstallationError('Could not open requirements file: %s' % str(e))
+    except IOError as exc:
+        raise InstallationError('Could not open requirements file: %s' % str(exc))
     else:
         f.close()
     return url, content
