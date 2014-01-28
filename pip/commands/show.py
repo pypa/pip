@@ -53,9 +53,10 @@ def search_packages_info(query):
                 'requires': [dep.project_name for dep in dist.requires()],
             }
             filelist = os.path.join(
-                       dist.location,
-                       dist.egg_name() + '.egg-info',
-                       'installed-files.txt')
+                dist.location,
+                dist.egg_name() + '.egg-info',
+                'installed-files.txt',
+            )
             if os.path.isfile(filelist):
                 package['files'] = filelist
             yield package

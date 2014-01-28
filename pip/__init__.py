@@ -115,7 +115,7 @@ def create_main_parser():
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
     parser.add_option_group(gen_opts)
 
-    parser.main = True # so the help formatter knows
+    parser.main = True  # so the help formatter knows
 
     # create command listing for description
     command_summaries = get_summaries()
@@ -128,8 +128,8 @@ def create_main_parser():
 def parseopts(args):
     parser = create_main_parser()
 
-    # Note: parser calls disable_interspersed_args(), so the result of this call
-    # is to split the initial args into the general options before the
+    # Note: parser calls disable_interspersed_args(), so the result of this
+    # call is to split the initial args into the general options before the
     # subcommand and everything else.
     # For example:
     #  args: ['--timeout=5', 'install', '--user', 'INITools']
@@ -191,6 +191,8 @@ def bootstrap():
     pkgs = ['pip']
     try:
         import setuptools
+        # Dumb hack
+        setuptools
     except ImportError:
         pkgs.append('setuptools')
     return main(['install', '--upgrade'] + pkgs + sys.argv[1:])
@@ -220,11 +222,18 @@ class FrozenRequirement(object):
             try:
                 req = get_src_requirement(dist, location, find_tags)
             except InstallationError as exc:
-                logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % exc)
+                logger.warn(
+                    "Error when trying to get requirement for VCS system %s, "
+                    "falling back to uneditable format" % exc
+                )
                 req = None
             if req is None:
-                logger.warn('Could not determine repository location of %s' % location)
-                comments.append('## !! Could not determine repository location')
+                logger.warn(
+                    'Could not determine repository location of %s' % location
+                )
+                comments.append(
+                    '## !! Could not determine repository location'
+                )
                 req = dist.as_requirement()
                 editable = False
         else:
@@ -243,15 +252,25 @@ class FrozenRequirement(object):
                 if not svn_location:
                     logger.warn(
                         'Warning: cannot find svn location for %s' % req)
-                    comments.append('## FIXME: could not find svn URL in dependency_links for this package:')
+                    comments.append(
+                        '## FIXME: could not find svn URL in dependency_links '
+                        'for this package:'
+                    )
                 else:
-                    comments.append('# Installing as editable to satisfy requirement %s:' % req)
+                    comments.append(
+                        '# Installing as editable to satisfy requirement %s:' %
+                        req
+                    )
                     if ver_match:
                         rev = ver_match.group(1)
                     else:
                         rev = '{%s}' % date_match.group(1)
                     editable = True
-                    req = '%s@%s#egg=%s' % (svn_location, rev, cls.egg_name(dist))
+                    req = '%s@%s#egg=%s' % (
+                        svn_location,
+                        rev,
+                        cls.egg_name(dist)
+                    )
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod

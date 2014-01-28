@@ -31,8 +31,14 @@ class UninstallPathSet(object):
 
     def _can_uninstall(self):
         if not dist_is_local(self.dist):
-            logger.notify("Not uninstalling %s at %s, outside environment %s"
-                          % (self.dist.project_name, normalize_path(self.dist.location), sys.prefix))
+            logger.notify(
+                "Not uninstalling %s at %s, outside environment %s" %
+                (
+                    self.dist.project_name,
+                    normalize_path(self.dist.location),
+                    sys.prefix
+                ),
+            )
             return False
         return True
 
@@ -45,10 +51,10 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(path)
 
-        # __pycache__ files can show up after 'installed-files.txt' is created, due to imports
+        # __pycache__ files can show up after 'installed-files.txt' is created,
+        # due to imports
         if os.path.splitext(path)[1] == '.py' and uses_pycache:
             self.add(imp.cache_from_source(path))
-
 
     def add_pth(self, pth_file, entry):
         pth_file = normalize_path(pth_file)
@@ -66,9 +72,10 @@ class UninstallPathSet(object):
         shorter path."""
         short_paths = set()
         for path in sorted(paths, key=len):
-            if not any([(path.startswith(shortpath) and
-                         path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                        for shortpath in short_paths]):
+            if not any([
+                    (path.startswith(shortpath) and
+                     path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
+                    for shortpath in short_paths]):
                 short_paths.add(path)
         return short_paths
 
@@ -82,7 +89,10 @@ class UninstallPathSet(object):
         if not self._can_uninstall():
             return
         if not self.paths:
-            logger.notify("Can't uninstall '%s'. No files were found to uninstall." % self.dist.project_name)
+            logger.notify(
+                "Can't uninstall '%s'. No files were found to uninstall." %
+                self.dist.project_name
+            )
             return
         logger.notify('Uninstalling %s:' % self.dist.project_name)
         logger.indent += 2
@@ -108,7 +118,9 @@ class UninstallPathSet(object):
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.notify('Successfully uninstalled %s' % self.dist.project_name)
+                logger.notify(
+                    'Successfully uninstalled %s' % self.dist.project_name
+                )
 
         finally:
             logger.indent -= 2
@@ -116,7 +128,10 @@ class UninstallPathSet(object):
     def rollback(self):
         """Rollback the changes previously made by remove()."""
         if self.save_dir is None:
-            logger.error("Can't roll back %s; was not uninstalled" % self.dist.project_name)
+            logger.error(
+                "Can't roll back %s; was not uninstalled" %
+                self.dist.project_name
+            )
             return False
         logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
         for path in self._moved_paths:
@@ -137,7 +152,9 @@ class UninstallPathSet(object):
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
         if not os.path.isfile(pth_file):
-            raise UninstallationError("Cannot remove entries from nonexistent file %s" % pth_file)
+            raise UninstallationError(
+                "Cannot remove entries from nonexistent file %s" % pth_file
+            )
         self.file = pth_file
         self.entries = set()
         self._saved_lines = None
@@ -175,11 +192,12 @@ class UninstallPthEntries(object):
 
     def rollback(self):
         if self._saved_lines is None:
-            logger.error('Cannot roll back changes to %s, none were made' % self.file)
+            logger.error(
+                'Cannot roll back changes to %s, none were made' % self.file
+            )
             return False
         logger.info('Rolling %s back to previous state' % self.file)
         fh = open(self.file, 'wb')
         fh.writelines(self._saved_lines)
         fh.close()
         return True
-

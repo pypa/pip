@@ -19,7 +19,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     if skip_regex:
         skip_match = re.compile(skip_regex)
     reqs_file_dir = os.path.dirname(os.path.abspath(filename))
-    filename, content = get_file_content(filename,
+    filename, content = get_file_content(
+        filename,
         comes_from=comes_from,
         session=session,
     )
@@ -44,7 +45,11 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 req_url = urlparse.urljoin(filename, req_url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
-            for item in parse_requirements(req_url, finder, comes_from=filename, options=options, session=session):
+            for item in parse_requirements(
+                    req_url, finder,
+                    comes_from=filename,
+                    options=options,
+                    session=session):
                 yield item
         elif line.startswith('-Z') or line.startswith('--always-unzip'):
             # No longer used, but previously these were used in
@@ -104,7 +109,14 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 else:
                     line = line[len('--editable'):].strip().lstrip('=')
                 req = InstallRequirement.from_editable(
-                    line, comes_from=comes_from, default_vcs=options.default_vcs if options else None)
+                    line,
+                    comes_from=comes_from,
+                    default_vcs=options.default_vcs if options else None
+                )
             else:
-                req = InstallRequirement.from_line(line, comes_from, prereleases=getattr(options, "pre", None))
+                req = InstallRequirement.from_line(
+                    line,
+                    comes_from,
+                    prereleases=getattr(options, "pre", None)
+                )
             yield req

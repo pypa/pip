@@ -1,7 +1,7 @@
 import os
 import tempfile
 import re
-import sys
+
 from pip.util import call_subprocess
 from pip.util import display_path, rmtree
 from pip.log import logger
@@ -17,7 +17,7 @@ class Mercurial(VersionControl):
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
     bundle_file = 'hg-clone.txt'
     guide = ('# This was a Mercurial repo; to make it a repo again run:\n'
-            'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
+             'hg init\nhg pull %(url)s\nhg update -r %(rev)s\n')
 
     def parse_vcs_bundle_file(self, content):
         url = rev = None
@@ -142,7 +142,10 @@ class Mercurial(VersionControl):
             full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         elif current_rev in branch_revs:
             # It's the tip of a branch
-            full_egg_name = '%s-%s' % (egg_project_name, branch_revs[current_rev])
+            full_egg_name = '%s-%s' % (
+                egg_project_name,
+                branch_revs[current_rev],
+            )
         else:
             full_egg_name = '%s-dev' % egg_project_name
         return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)

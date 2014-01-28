@@ -1,10 +1,10 @@
 """
 shared options and groups
 
-The principle here is to define options once, but *not* instantiate them globally.
-One reason being that options with action='append' can carry state between parses.
-pip parse's general options twice internally, and shouldn't pass on state.
-To be consistent, all options will follow this design.
+The principle here is to define options once, but *not* instantiate them
+globally. One reason being that options with action='append' can carry state
+between parses. pip parse's general options twice internally, and shouldn't
+pass on state. To be consistent, all options will follow this design.
 
 """
 import copy
@@ -23,12 +23,15 @@ def make_option_group(group, parser):
         option_group.add_option(option.make())
     return option_group
 
+
 class OptionMaker(object):
     """Class that stores the args/kwargs that would be used to make an Option,
     for making them later, and uses deepcopy's to reset state."""
+
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+
     def make(self):
         args_copy = copy.deepcopy(self.args)
         kwargs_copy = copy.deepcopy(self.kwargs)
@@ -57,7 +60,8 @@ verbose = OptionMaker(
     dest='verbose',
     action='count',
     default=0,
-    help='Give more output. Option is additive, and can be used up to 3 times.')
+    help='Give more output. Option is additive, and can be used up to 3 times.'
+)
 
 version = OptionMaker(
     '-V', '--version',
@@ -92,7 +96,8 @@ log_file = OptionMaker(
     dest='log_file',
     metavar='path',
     default=default_log_file,
-    help='Path to a verbose non-appending log, that only logs failures. This log is active by default at %default.')
+    help='Path to a verbose non-appending log, that only logs failures. This '
+         'log is active by default at %default.')
 
 no_input = OptionMaker(
     # Don't ask for input
@@ -151,7 +156,7 @@ cert = OptionMaker(
     type='str',
     default='',
     metavar='path',
-    help = "Path to alternate CA bundle.")
+    help="Path to alternate CA bundle.")
 
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
@@ -175,13 +180,15 @@ no_index = OptionMaker(
     default=False,
     help='Ignore package index (only looking at --find-links URLs instead).')
 
-find_links =  OptionMaker(
+find_links = OptionMaker(
     '-f', '--find-links',
     dest='find_links',
     action='append',
     default=[],
     metavar='url',
-    help="If a url or path to an html file, then parse for links to archives. If a local path or file:// url that's a directory, then look for archives in the directory listing.")
+    help="If a url or path to an html file, then parse for links to archives. "
+         "If a local path or file:// url that's a directory, then look for "
+         "archives in the directory listing.")
 
 # TODO: Remove after 1.6
 use_mirrors = OptionMaker(
@@ -308,9 +315,10 @@ install_options = OptionMaker(
     action='append',
     metavar='options',
     help="Extra arguments to be supplied to the setup.py install "
-    "command (use like --install-option=\"--install-scripts=/usr/local/bin\"). "
-    "Use multiple --install-option options to pass multiple options to setup.py install. "
-    "If you are using an option with a directory path, be sure to use absolute path.")
+         "command (use like --install-option=\"--install-scripts=/usr/local/"
+         "bin\"). Use multiple --install-option options to pass multiple "
+         "options to setup.py install. If you are using an option with a "
+         "directory path, be sure to use absolute path.")
 
 global_options = OptionMaker(
     '--global-option',
@@ -318,7 +326,7 @@ global_options = OptionMaker(
     action='append',
     metavar='options',
     help="Extra global options to be supplied to the setup.py "
-    "call before the install command.")
+         "call before the install command.")
 
 no_clean = OptionMaker(
     '--no-clean',

@@ -13,7 +13,10 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     bundle_file = 'bzr-branch.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp', 'bzr+lp')
+    schemes = (
+        'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
+        'bzr+lp',
+    )
     guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
              'bzr branch -r %(rev)s %(url)s .\n')
 
@@ -39,7 +42,9 @@ class Bazaar(VersionControl):
         return None, None
 
     def export(self, location):
-        """Export the Bazaar repository at the url to the destination location"""
+        """
+        Export the Bazaar repository at the url to the destination location
+        """
         temp_dir = tempfile.mkdtemp('-export', 'pip-')
         self.unpack(temp_dir)
         if os.path.exists(location):

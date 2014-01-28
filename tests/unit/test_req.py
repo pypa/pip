@@ -160,13 +160,10 @@ def test_remote_reqs_parse():
     for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
         pass
 
-def test_req_file_parse_use_wheel(data, monkeypatch):
+def test_req_file_parse_use_wheel(data):
     """
     Test parsing --use-wheel from a req file
     """
-    # patch this for travis which has distribute in it's base env for now
-    monkeypatch.setattr(pip.wheel.pkg_resources, "get_distribution", lambda x: Distribution(project_name='setuptools', version='0.9'))
-
     finder = PackageFinder([], [])
     for req in parse_requirements(data.reqfiles.join("supported_options.txt"), finder):
         pass

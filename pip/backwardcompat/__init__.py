@@ -1,6 +1,8 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
 
+# flake8: noqa
+
 import os
 import imp
 import sys
@@ -9,6 +11,7 @@ import site
 __all__ = ['WindowsError']
 
 uses_pycache = hasattr(imp, 'cache_from_source')
+
 
 class NeverUsedException(Exception):
     """this exception should never be raised"""
@@ -25,6 +28,20 @@ except NameError:
     PermissionError = NeverUsedException
 
 console_encoding = sys.__stdout__.encoding
+
+
+try:
+    unicode
+
+    def binary(s):
+        if isinstance(s, unicode):
+            return s.encode('ascii')
+        return s
+except NameError:
+    def binary(s):
+        if isinstance(s, str):
+            return s.encode('ascii')
+
 
 if sys.version_info >= (3,):
     from io import StringIO, BytesIO
@@ -116,10 +133,11 @@ def get_path_uid(path):
     """
     Return path's uid.
 
-    Does not follow symlinks: https://github.com/pypa/pip/pull/935#discussion_r5307003
+    Does not follow symlinks:
+        https://github.com/pypa/pip/pull/935#discussion_r5307003
 
-    Placed this function in backwardcompat due to differences on AIX and Jython,
-    that should eventually go away.
+    Placed this function in backwardcompat due to differences on AIX and
+    Jython, that should eventually go away.
 
     :raises OSError: When path is a symlink or can't be read.
     """
@@ -134,5 +152,7 @@ def get_path_uid(path):
             file_uid = os.stat(path).st_uid
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
-            raise OSError("%s is a symlink; Will not return uid for symlinks" % path)
+            raise OSError(
+                "%s is a symlink; Will not return uid for symlinks" % path
+            )
     return file_uid

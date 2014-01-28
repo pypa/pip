@@ -14,19 +14,18 @@ import sys
 
 from base64 import urlsafe_b64encode
 
-from pip.backwardcompat import ConfigParser, StringIO
+from pip.backwardcompat import ConfigParser, StringIO, binary
 from pip.exceptions import InvalidWheelFilename
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
-from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 
 wheel_ext = '.whl'
 
 
-def rehash(path, algo='sha256', blocksize=1<<20):
+def rehash(path, algo='sha256', blocksize=1 << 20):
     """Return (hash, length) for path using hashlib.new(algo)"""
     h = hashlib.new(algo)
     length = 0
@@ -36,28 +35,21 @@ def rehash(path, algo='sha256', blocksize=1<<20):
             length += len(block)
             h.update(block)
             block = f.read(blocksize)
-    digest = 'sha256='+urlsafe_b64encode(h.digest()).decode('latin1').rstrip('=')
+    digest = 'sha256=' + urlsafe_b64encode(
+        h.digest()
+    ).decode('latin1').rstrip('=')
     return (digest, length)
 
-try:
-    unicode
-    def binary(s):
-        if isinstance(s, unicode):
-            return s.encode('ascii')
-        return s
-except NameError:
-    def binary(s):
-        if isinstance(s, str):
-            return s.encode('ascii')
 
 def open_for_csv(name, mode):
     if sys.version_info[0] < 3:
         nl = {}
         bin = 'b'
     else:
-        nl = { 'newline': '' }
+        nl = {'newline': ''}
         bin = ''
     return open(name, mode + bin, **nl)
+
 
 def fix_script(path):
     """Replace #!python with #!/path/to/python
@@ -84,6 +76,7 @@ def fix_script(path):
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
                                 \.dist-info$""", re.VERBOSE)
+
 
 def root_is_purelib(name, wheeldir):
     """
@@ -129,7 +122,7 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-        pycompile=True):
+                     pycompile=True):
     """Install a wheel"""
 
     scheme = distutils_scheme(name, user=user, home=home, root=root)
@@ -167,7 +160,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
             changed.add(destfile)
 
     def clobber(source, dest, is_base, fixer=None, filter=None):
-        if not os.path.exists(dest): # common for the 'include' path
+        if not os.path.exists(dest):  # common for the 'include' path
             os.makedirs(dest)
 
         for dir, subdirs, files in os.walk(source):
@@ -180,9 +173,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                     data_dirs.append(s)
                     continue
                 elif (is_base
-                    and s.endswith('.dist-info')
-                    # is self.req.project_name case preserving?
-                    and s.lower().startswith(req.project_name.replace('-', '_').lower())):
+                        and s.endswith('.dist-info')
+                        # is self.req.project_name case preserving?
+                        and s.lower().startswith(
+                            req.project_name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)
                 if not os.path.exists(destsubdir):
@@ -326,16 +320,24 @@ if __name__ == '__main__':
         spec = 'easy_install-%s = %s' % (sys.version[:3], easy_install_script)
         generated.extend(maker.make(spec))
         # Delete any other versioned easy_install entry points
-        easy_install_ep = [k for k in console
-                if re.match(r'easy_install(-\d\.\d)?$', k)]
+        easy_install_ep = [
+            k for k in console if re.match(r'easy_install(-\d\.\d)?$', k)
+        ]
         for k in easy_install_ep:
             del console[k]
 
     # Generate the console and GUI entry points specified in the wheel
     if len(console) > 0:
-        generated.extend(maker.make_multiple(['%s = %s' % kv for kv in console.items()]))
+        generated.extend(
+            maker.make_multiple(['%s = %s' % kv for kv in console.items()])
+        )
     if len(gui) > 0:
-        generated.extend(maker.make_multiple(['%s = %s' % kv for kv in gui.items()], {'gui': True}))
+        generated.extend(
+            maker.make_multiple(
+                ['%s = %s' % kv for kv in gui.items()],
+                {'gui': True}
+            )
+        )
 
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
@@ -355,6 +357,7 @@ if __name__ == '__main__':
                 writer.writerow((installed[f], '', ''))
     shutil.move(temp_record, record)
 
+
 def _unique(fn):
     @functools.wraps(fn)
     def unique(*args, **kw):
@@ -364,6 +367,7 @@ def _unique(fn):
                 seen.add(item)
                 yield item
     return unique
+
 
 # TODO: this goes somewhere besides the wheel module
 @_unique
@@ -376,7 +380,7 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .pyc.
     """
-    from pip.util import FakeFile # circular import
+    from pip.util import FakeFile  # circular import
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
         path = os.path.join(dist.location, row[0])
@@ -394,10 +398,11 @@ class Wheel(object):
     # TODO: maybe move the install code into this class
 
     wheel_file_re = re.compile(
-                r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
-                ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
-                \.whl|\.dist-info)$""",
-                re.VERBOSE)
+        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
+        ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+        \.whl|\.dist-info)$""",
+        re.VERBOSE
+    )
 
     def __init__(self, filename):
         """
@@ -405,7 +410,9 @@ class Wheel(object):
         """
         wheel_info = self.wheel_file_re.match(filename)
         if not wheel_info:
-            raise InvalidWheelFilename("%s is not a valid wheel filename." % filename)
+            raise InvalidWheelFilename(
+                "%s is not a valid wheel filename." % filename
+            )
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
         # we'll assume "_" means "-" due to wheel naming scheme
@@ -416,8 +423,10 @@ class Wheel(object):
         self.plats = wheel_info.group('plat').split('.')
 
         # All the tag combinations from this file
-        self.file_tags = set((x, y, z) for x in self.pyversions for y
-                            in self.abis for z in self.plats)
+        self.file_tags = set(
+            (x, y, z) for x in self.pyversions
+            for y in self.abis for z in self.plats
+        )
 
     def support_index_min(self, tags=None):
         """
@@ -426,14 +435,14 @@ class Wheel(object):
         and one of the file tags is first in the list, then return 0.  Returns
         None is the wheel is not supported.
         """
-        if tags is None: # for mock
+        if tags is None:  # for mock
             tags = pep425tags.supported_tags
         indexes = [tags.index(c) for c in self.file_tags if c in tags]
         return min(indexes) if indexes else None
 
     def supported(self, tags=None):
         """Is this wheel supported on this system?"""
-        if tags is None: # for mock
+        if tags is None:  # for mock
             tags = pep425tags.supported_tags
         return bool(set(tags).intersection(self.file_tags))
 
@@ -441,7 +450,8 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=[], global_options=[]):
+    def __init__(self, requirement_set, finder, wheel_dir, build_options=[],
+                 global_options=[]):
         self.requirement_set = requirement_set
         self.finder = finder
         self.wheel_dir = normalize_path(wheel_dir)
@@ -453,13 +463,15 @@ class WheelBuilder(object):
 
         base_args = [
             sys.executable, '-c',
-            "import setuptools;__file__=%r;"\
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), __file__, 'exec'))" % req.setup_py] + \
-            list(self.global_options)
+            "import setuptools;__file__=%r;"
+            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
+            "__file__, 'exec'))" % req.setup_py
+        ] + list(self.global_options)
 
         logger.notify('Running setup.py bdist_wheel for %s' % req.name)
         logger.notify('Destination directory: %s' % self.wheel_dir)
-        wheel_args = base_args + ['bdist_wheel', '-d', self.wheel_dir] + self.build_options
+        wheel_args = base_args + ['bdist_wheel', '-d', self.wheel_dir] \
+            + self.build_options
         try:
             call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
             return True
@@ -480,7 +492,10 @@ class WheelBuilder(object):
             os.makedirs(self.wheel_dir)
 
         #build the wheels
-        logger.notify('Building wheels for collected packages: %s' % ', '.join([req.name for req in reqset]))
+        logger.notify(
+            'Building wheels for collected packages: %s' %
+            ','.join([req.name for req in reqset])
+        )
         logger.indent += 2
         build_success, build_failure = [], []
         for req in reqset:
@@ -495,6 +510,12 @@ class WheelBuilder(object):
 
         #notify sucess/failure
         if build_success:
-            logger.notify('Successfully built %s' % ' '.join([req.name for req in build_success]))
+            logger.notify(
+                'Successfully built %s' %
+                ' '.join([req.name for req in build_success])
+            )
         if build_failure:
-            logger.notify('Failed to build %s' % ' '.join([req.name for req in build_failure]))
+            logger.notify(
+                'Failed to build %s' %
+                ' '.join([req.name for req in build_failure])
+            )

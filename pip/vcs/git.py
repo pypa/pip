@@ -14,10 +14,13 @@ class Git(VersionControl):
     name = 'git'
     dirname = '.git'
     repo_name = 'clone'
-    schemes = ('git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file')
+    schemes = (
+        'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
+    )
     bundle_file = 'git-clone.txt'
     guide = ('# This was a Git repo; to make it a repo again run:\n'
-        'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
+             'git init\ngit remote add origin %(url)s -f\ngit '
+             'checkout %(rev)s\n')
 
     def __init__(self, url=None, *args, **kwargs):
 
@@ -27,10 +30,15 @@ class Git(VersionControl):
             scheme, netloc, path, query, fragment = urlsplit(url)
             if scheme.endswith('file'):
                 initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = initial_slashes + url2pathname(path).replace('\\', '/').lstrip('/')
+                newpath = (
+                    initial_slashes +
+                    url2pathname(path).replace('\\', '/').lstrip('/')
+                )
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
                 after_plus = scheme.find('+') + 1
-                url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
+                url = scheme[:after_plus] + urlunsplit(
+                    (scheme[after_plus:], netloc, newpath, query, fragment),
+                )
 
         super(Git, self).__init__(url, *args, **kwargs)
 
@@ -39,7 +47,10 @@ class Git(VersionControl):
         for line in content.splitlines():
             if not line.strip() or line.strip().startswith('#'):
                 continue
-            url_match = re.search(r'git\s*remote\s*add\s*origin(.*)\s*-f', line)
+            url_match = re.search(
+                r'git\s*remote\s*add\s*origin(.*)\s*-f',
+                line,
+            )
             if url_match:
                 url = url_match.group(1).strip()
             rev_match = re.search(r'^git\s*checkout\s*-q\s*(.*)\s*', line)
@@ -77,7 +88,9 @@ class Git(VersionControl):
             # a local tag or branch name
             return [revisions[rev]]
         else:
-            logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
+            logger.warn(
+                "Could not find a tag or branch '%s', assuming commit." % rev,
+            )
             return rev_options
 
     def switch(self, dest, url, rev_options):
@@ -93,8 +106,13 @@ class Git(VersionControl):
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maby even origin/master)
         if rev_options:
-            rev_options = self.check_rev_options(rev_options[0], dest, rev_options)
-        call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
+            rev_options = self.check_rev_options(
+                rev_options[0], dest, rev_options,
+            )
+        call_subprocess(
+            [self.cmd, 'reset', '--hard', '-q'] + rev_options,
+            cwd=dest,
+        )
         #: update submodules
         self.update_submodules(dest)
 
@@ -107,7 +125,9 @@ class Git(VersionControl):
             rev_options = ['origin/master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
+            logger.notify(
+                'Cloning %s%s to %s' % (url, rev_display, display_path(dest)),
+            )
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
             #: repo may contain submodules
             self.update_submodules(dest)
@@ -115,7 +135,10 @@ class Git(VersionControl):
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.get_revision(dest).startswith(rev_options[0]):
-                    call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+                    call_subprocess(
+                        [self.cmd, 'checkout', '-q'] + rev_options,
+                        cwd=dest,
+                    )
 
     def get_url(self, location):
         url = call_subprocess(
@@ -162,7 +185,9 @@ class Git(VersionControl):
 
         if current_rev in names_by_commit:
             # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, names_by_commit[current_rev])
+            full_egg_name = (
+                '%s-%s' % (egg_project_name, names_by_commit[current_rev])
+            )
         else:
             full_egg_name = '%s-dev' % egg_project_name
 
@@ -188,7 +213,9 @@ class Git(VersionControl):
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        call_subprocess([self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
-                        cwd=location)
+        call_subprocess(
+            [self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
+            cwd=location,
+        )
 
 vcs.register(Git)
