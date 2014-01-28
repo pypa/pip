@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 
 from mock import patch
@@ -17,8 +15,10 @@ def test_get_refs_should_return_tag_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
     script.run('git', 'tag', '0.2', cwd=version_pkg_path)
-    commit = script.run('git', 'rev-parse', 'HEAD',
-                     cwd=version_pkg_path).stdout.strip()
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
     git = Git()
     result = git.get_refs(version_pkg_path)
     assert result['0.1'] == commit, result
@@ -28,8 +28,10 @@ def test_get_refs_should_return_tag_name_and_commit_pair(script):
 def test_get_refs_should_return_branch_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
-    commit = script.run('git', 'rev-parse', 'HEAD',
-                     cwd=version_pkg_path).stdout.strip()
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
     git = Git()
     result = git.get_refs(version_pkg_path)
     assert result['master'] == commit, result
@@ -39,11 +41,16 @@ def test_get_refs_should_return_branch_name_and_commit_pair(script):
 def test_get_refs_should_ignore_no_branch(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
-    commit = script.run('git', 'rev-parse', 'HEAD',
-                     cwd=version_pkg_path).stdout.strip()
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
     # current branch here is "* (nobranch)"
-    script.run('git', 'checkout', commit,
-            cwd=version_pkg_path, expect_stderr=True)
+    script.run(
+        'git', 'checkout', commit,
+        cwd=version_pkg_path,
+        expect_stderr=True,
+    )
     git = Git()
     result = git.get_refs(version_pkg_path)
     assert result['master'] == commit, result
@@ -85,13 +92,24 @@ def test_check_submodule_addition(script):
     """
     module_path, submodule_path = _create_test_package_with_submodule(script)
 
-    install_result = script.pip('install', '-e', 'git+'+module_path+'#egg=version_pkg')
-    assert script.venv/'src/version-pkg/testpkg/static/testfile' in install_result.files_created
+    install_result = script.pip(
+        'install', '-e', 'git+'+module_path+'#egg=version_pkg'
+    )
+    assert (
+        script.venv/'src/version-pkg/testpkg/static/testfile'
+        in install_result.files_created
+    )
 
     _change_test_package_submodule(script, submodule_path)
     _pull_in_submodule_changes_to_module(script, module_path)
 
     # expect error because git may write to stderr
-    update_result = script.pip('install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade', expect_error=True)
+    update_result = script.pip(
+        'install', '-e', 'git+'+module_path+'#egg=version_pkg', '--upgrade',
+        expect_error=True,
+    )
 
-    assert script.venv/'src/version-pkg/testpkg/static/testfile2' in update_result.files_created
+    assert (
+        script.venv/'src/version-pkg/testpkg/static/testfile2'
+        in update_result.files_created
+    )

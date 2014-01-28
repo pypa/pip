@@ -16,9 +16,9 @@ import pip
 from pip.locations import distutils_scheme
 
 if sys.platform == 'win32':
-   pwd = Mock()
+    pwd = Mock()
 else:
-   import pwd
+    import pwd
 
 
 class TestLocations:
@@ -43,10 +43,10 @@ class TestLocations:
         self.old_getpass_getuser = getpass.getuser
 
         # now patch
-        tempfile.gettempdir = lambda : self.tempdir
-        getpass.getuser = lambda : self.username
-        os.geteuid = lambda : self.st_uid
-        os.fstat = lambda fd : self.get_mock_fstat(fd)
+        tempfile.gettempdir = lambda: self.tempdir
+        getpass.getuser = lambda: self.username
+        os.geteuid = lambda: self.st_uid
+        os.fstat = lambda fd: self.get_mock_fstat(fd)
 
         if sys.platform != 'win32':
             pwd.getpwuid = lambda uid: self.get_mock_getpwuid(uid)
@@ -96,13 +96,12 @@ class TestLocations:
         """ test that the build_prefix directory is generated when
             _get_build_prefix is called.
         """
-        assert not os.path.exists(self.get_build_dir_location() ), \
+        assert not os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should not exist yet!"
         from pip import locations
         locations._get_build_prefix()
-        assert os.path.exists(self.get_build_dir_location() ), \
+        assert os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should now exist!"
-
 
     #skip on windows, build dir is not created
     @pytest.mark.skipif("sys.platform == 'win32'")
@@ -111,12 +110,12 @@ class TestLocations:
             os.O_NOFOLLOW doen't exist
         """
         if hasattr(os, 'O_NOFOLLOW'):
-           monkeypatch.delattr("os.O_NOFOLLOW")
-        assert not os.path.exists(self.get_build_dir_location() ), \
+            monkeypatch.delattr("os.O_NOFOLLOW")
+        assert not os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should not exist yet!"
         from pip import locations
         locations._get_build_prefix()
-        assert os.path.exists(self.get_build_dir_location() ), \
+        assert os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should now exist!"
 
     #skip on windows; this exception logic only runs on linux
@@ -127,28 +126,28 @@ class TestLocations:
             directory owned by another user raises an InstallationError.
         """
         from pip import locations
-        os.geteuid = lambda : 1111
-        os.mkdir(self.get_build_dir_location() )
+        os.geteuid = lambda: 1111
+        os.mkdir(self.get_build_dir_location())
 
         with pytest.raises(pip.exceptions.InstallationError):
             locations._get_build_prefix()
 
     #skip on windows; this exception logic only runs on linux
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_error_raised_when_owned_by_another_without_NOFOLLOW(self, monkeypatch):
+    def test_error_raised_when_owned_by_another_without_NOFOLLOW(
+            self, monkeypatch):
         """ test calling _get_build_prefix when there is a temporary
             directory owned by another user raises an InstallationError.
             (when os.O_NOFOLLOW doesn't exist
         """
         if hasattr(os, 'O_NOFOLLOW'):
-           monkeypatch.delattr("os.O_NOFOLLOW")
+            monkeypatch.delattr("os.O_NOFOLLOW")
         from pip import locations
-        os.geteuid = lambda : 1111
-        os.mkdir(self.get_build_dir_location() )
+        os.geteuid = lambda: 1111
+        os.mkdir(self.get_build_dir_location())
 
         with pytest.raises(pip.exceptions.InstallationError):
             locations._get_build_prefix()
-
 
     def test_no_error_raised_when_owned_by_you(self):
         """ test calling _get_build_prefix when there is a temporary
@@ -170,10 +169,14 @@ class TestDisutilsScheme:
             assert root_scheme[key] == expected
 
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
-       f = tmpdir.mkdir("config").join("setup.cfg")
-       f.write("[install]\ninstall-scripts=/somewhere/else")
-       from distutils.dist import Distribution
-       # patch the function that returns what config files are present
-       monkeypatch.setattr(Distribution, 'find_config_files', lambda self: [f])
-       scheme = distutils_scheme('example')
-       assert scheme['scripts'] == '/somewhere/else'
+        f = tmpdir.mkdir("config").join("setup.cfg")
+        f.write("[install]\ninstall-scripts=/somewhere/else")
+        from distutils.dist import Distribution
+        # patch the function that returns what config files are present
+        monkeypatch.setattr(
+            Distribution,
+            'find_config_files',
+            lambda self: [f],
+        )
+        scheme = distutils_scheme('example')
+        assert scheme['scripts'] == '/somewhere/else'

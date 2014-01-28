@@ -80,6 +80,10 @@ def test_help_commands_equally_functional(script):
     assert sum(ret) == 0, 'exit codes of: ' + msg
 
     for name, cls in commands.items():
-        if cls.hidden: continue
-        assert script.pip('help', name).stdout == \
-               script.pip(name, '--help').stdout
+        if cls.hidden:
+            continue
+
+        assert (
+            script.pip('help', name).stdout
+            == script.pip(name, '--help').stdout
+        )

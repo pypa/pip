@@ -6,11 +6,16 @@ from pip import cmdoptions
 from pip.basecommand import Command
 from pip.commands import commands
 
+
 class FakeCommand(Command):
     name = 'fake'
     summary = name
+
     def main(self, args):
-        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
+        index_opts = cmdoptions.make_option_group(
+            cmdoptions.index_group,
+            self.parser,
+        )
         self.parser.add_option_group(index_opts)
         return self.parse_args(args)
 
@@ -18,7 +23,8 @@ class FakeCommand(Command):
 class TestOptionPrecedence(object):
     """
     Tests for confirming our option precedence:
-         cli -> environment -> subcommand config -> global config -> option defaults
+         cli -> environment -> subcommand config -> global config -> option
+         defaults
     """
 
     def setup(self):
@@ -31,14 +37,14 @@ class TestOptionPrecedence(object):
 
     def get_config_section(self, section):
         config = {
-            'global': [('timeout','-3')],
-            'fake': [('timeout','-2')]
+            'global': [('timeout', '-3')],
+            'fake': [('timeout', '-2')]
             }
         return config[section]
 
     def get_config_section_global(self, section):
         config = {
-            'global': [('timeout','-3')],
+            'global': [('timeout', '-3')],
             'fake': []
             }
         return config[section]
@@ -69,7 +75,7 @@ class TestOptionPrecedence(object):
         """
         os.environ['PIP_EXISTS_ACTION'] = 'w'
         options, args = main(['fake'])
-        assert options.exists_action  == ['w']
+        assert options.exists_action == ['w']
 
         os.environ['PIP_EXISTS_ACTION'] = 's w'
         options, args = main(['fake'])
@@ -77,8 +83,8 @@ class TestOptionPrecedence(object):
 
     def test_env_alias_override_default(self):
         """
-        When an option has multiple long forms, test that the technique of using
-        the env variable, "PIP_<long form>" works for all cases.
+        When an option has multiple long forms, test that the technique of
+        using the env variable, "PIP_<long form>" works for all cases.
         (e.g. PIP_LOG_FILE and PIP_LOCAL_LOG should all work)
         """
         os.environ['PIP_LOG_FILE'] = 'override.log'
@@ -100,7 +106,11 @@ class TestOptionPrecedence(object):
         """
         Test an environment variable overrides the config file
         """
-        monkeypatch.setattr(pip.baseparser.ConfigOptionParser, "get_config_section", self.get_config_section)
+        monkeypatch.setattr(
+            pip.baseparser.ConfigOptionParser,
+            "get_config_section",
+            self.get_config_section,
+        )
         os.environ['PIP_TIMEOUT'] = '-1'
         options, args = main(['fake'])
         assert options.timeout == -1
@@ -109,7 +119,11 @@ class TestOptionPrecedence(object):
         """
         Test that command config overrides global config
         """
-        monkeypatch.setattr(pip.baseparser.ConfigOptionParser, "get_config_section", self.get_config_section)
+        monkeypatch.setattr(
+            pip.baseparser.ConfigOptionParser,
+            "get_config_section",
+            self.get_config_section,
+        )
         options, args = main(['fake'])
         assert options.timeout == -2
 
@@ -117,7 +131,11 @@ class TestOptionPrecedence(object):
         """
         Test that global config is used
         """
-        monkeypatch.setattr(pip.baseparser.ConfigOptionParser, "get_config_section", self.get_config_section_global)
+        monkeypatch.setattr(
+            pip.baseparser.ConfigOptionParser,
+            "get_config_section",
+            self.get_config_section_global,
+        )
         options, args = main(['fake'])
         assert options.timeout == -3
 
@@ -165,7 +183,8 @@ class TestGeneralOptions(object):
     def test_require_virtualenv(self):
         options1, args1 = main(['--require-virtualenv', 'fake'])
         options2, args2 = main(['fake', '--require-virtualenv'])
-        assert options1.require_venv == options2.require_venv == True
+        assert options1.require_venv
+        assert options2.require_venv
 
     def test_verbose(self):
         options1, args1 = main(['--verbose', 'fake'])
@@ -185,7 +204,8 @@ class TestGeneralOptions(object):
     def test_log_explicit_levels(self):
         options1, args1 = main(['--log-explicit-levels', 'fake'])
         options2, args2 = main(['fake', '--log-explicit-levels'])
-        assert options1.log_explicit_levels == options2.log_explicit_levels == True
+        assert options1.log_explicit_levels
+        assert options2.log_explicit_levels
 
     def test_local_log(self):
         options1, args1 = main(['--local-log', 'path', 'fake'])
@@ -195,7 +215,8 @@ class TestGeneralOptions(object):
     def test_no_input(self):
         options1, args1 = main(['--no-input', 'fake'])
         options2, args2 = main(['fake', '--no-input'])
-        assert options1.no_input == options2.no_input == True
+        assert options1.no_input
+        assert options2.no_input
 
     def test_proxy(self):
         options1, args1 = main(['--proxy', 'path', 'fake'])
@@ -215,7 +236,8 @@ class TestGeneralOptions(object):
     def test_skip_requirements_regex(self):
         options1, args1 = main(['--skip-requirements-regex', 'path', 'fake'])
         options2, args2 = main(['fake', '--skip-requirements-regex', 'path'])
-        assert options1.skip_requirements_regex == options2.skip_requirements_regex == 'path'
+        assert options1.skip_requirements_regex == 'path'
+        assert options2.skip_requirements_regex == 'path'
 
     def test_exists_action(self):
         options1, args1 = main(['--exists-action', 'w', 'fake'])
@@ -232,11 +254,19 @@ class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
         # We only want a dummy object to call the get_config_files method
-        monkeypatch.setattr(pip.baseparser.ConfigOptionParser, '__init__', lambda self: None)
+        monkeypatch.setattr(
+            pip.baseparser.ConfigOptionParser,
+            '__init__',
+            lambda self: None,
+        )
 
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
-        monkeypatch.setattr(pip.baseparser, 'running_under_virtualenv', lambda: True)
+        monkeypatch.setattr(
+            pip.baseparser,
+            'running_under_virtualenv',
+            lambda: True,
+        )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip.baseparser.ConfigOptionParser()
         assert len(cp.get_config_files()) == 2

@@ -40,7 +40,9 @@ def virtualenv(tmpdir, monkeypatch):
     # Copy over our source tree so that each virtual environment is self
     # contained
     pip_src = tmpdir.join("pip_src").abspath
-    shutil.copytree(SRC_DIR, pip_src,
+    shutil.copytree(
+        SRC_DIR,
+        pip_src,
         ignore=shutil.ignore_patterns(
             "*.pyc", "tests", "pip.egg-info", "build", "dist", ".tox",
         ),

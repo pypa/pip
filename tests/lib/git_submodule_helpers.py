@@ -14,6 +14,7 @@ def _create_test_package_submodule(env):
             '-am', 'initial version / submodule', cwd=submodule_path)
     return submodule_path
 
+
 def _change_test_package_submodule(env, submodule_path):
     submodule_path.join("testfile").write("this is a changed file")
     submodule_path.join("testfile2").write("this is an added file")
@@ -22,11 +23,20 @@ def _change_test_package_submodule(env, submodule_path):
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'submodule change', cwd=submodule_path)
 
+
 def _pull_in_submodule_changes_to_module(env, module_path):
-    env.run(cwd=module_path/'testpkg/static/', *('git pull -q origin master'.split(' ')))
+    env.run(
+        'git',
+        'pull',
+        '-q',
+        'origin',
+        'master',
+        cwd=module_path/'testpkg/static/',
+    )
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'submodule change', cwd=module_path)
+
 
 def _create_test_package_with_submodule(env):
     env.scratch_path.join("version_pkg").mkdir()
@@ -53,15 +63,20 @@ def _create_test_package_with_submodule(env):
             '-am', 'initial version', cwd=version_pkg_path,
             expect_error=True)
 
-
     submodule_path = _create_test_package_submodule(env)
 
-    env.run('git', 'submodule', 'add', submodule_path, 'testpkg/static', cwd=version_pkg_path,
-            expect_error=True)
+    env.run(
+        'git',
+        'submodule',
+        'add',
+        submodule_path,
+        'testpkg/static',
+        cwd=version_pkg_path,
+        expect_error=True,
+    )
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
             '-am', 'initial version w submodule', cwd=version_pkg_path,
             expect_error=True)
-
 
     return version_pkg_path, submodule_path

@@ -1,3 +1,3 @@
 from __future__ import absolute_import
 
-from . import PipTestEnvironment
+from . import PipTestEnvironment  # noqa

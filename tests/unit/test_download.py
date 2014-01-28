@@ -30,12 +30,16 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
-        unpack_http_url(link, temp_dir,
+        unpack_http_url(
+            link,
+            temp_dir,
             download_cache=None,
             download_dir=None,
             session=session,
         )
-        assert set(os.listdir(temp_dir)) == set(['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'])
+        assert set(os.listdir(temp_dir)) == set([
+            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+        ])
     finally:
         rmtree(temp_dir)
 
@@ -93,7 +97,9 @@ def test_unpack_http_url_bad_cache_checksum(mock_unpack_file):
         _write_file(cache_file, 'some contents')
         _write_file(cache_ct_file, 'application/x-tar')
 
-        unpack_http_url(link, 'location',
+        unpack_http_url(
+            link,
+            'location',
             download_cache=cache_dir,
             session=session,
         )
@@ -132,7 +138,9 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
         _write_file(downloaded_file, 'some contents')
 
-        unpack_http_url(link, 'location',
+        unpack_http_url(
+            link,
+            'location',
             download_cache=None,
             download_dir=download_dir,
             session=session,
