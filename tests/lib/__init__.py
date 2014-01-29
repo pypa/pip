@@ -146,27 +146,31 @@ class TestPipResult(object):
 
         if without_egg_link:
             if egg_link_path in self.files_created:
-                raise TestFailure('unexpected egg link file created: '\
-                                  '%r\n%s' % (egg_link_path, self))
+                raise TestFailure(
+                    'unexpected egg link file created: %r\n%s' %
+                    (egg_link_path, self)
+                )
         else:
             if not egg_link_path in self.files_created:
-                raise TestFailure('expected egg link file missing: '\
-                                  '%r\n%s' % (egg_link_path, self))
+                raise TestFailure(
+                    'expected egg link file missing: %r\n%s' %
+                    (egg_link_path, self)
+                )
 
             egg_link_file = self.files_created[egg_link_path]
 
-            if not (# FIXME: I don't understand why there's a trailing . here
+            if not (  # FIXME: I don't understand why there's a trailing . here
                     egg_link_file.bytes.endswith('.')
-                and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
+                    and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u('''\
                 Incorrect egg_link file %r
                 Expected ending: %r
                 ------- Actual contents -------
                 %s
                 -------------------------------''' % (
-                        egg_link_file,
-                        pkg_dir + u('\n.'),
-                        egg_link_file.bytes))))
+                    egg_link_file,
+                    pkg_dir + u('\n.'),
+                    egg_link_file.bytes))))
 
         if use_user_site:
             pth_file = e.user_site/'easy-install.pth'
@@ -189,13 +193,17 @@ class TestPipResult(object):
 
         for f in with_files:
             if not (pkg_dir/f).normpath in self.files_created:
-                raise TestFailure('Package directory %r missing '\
-                                  'expected content %r' % (pkg_dir, f))
+                raise TestFailure(
+                    'Package directory %r missing expected content %r' %
+                    (pkg_dir, f)
+                )
 
         for f in without_files:
             if (pkg_dir/f).normpath in self.files_created:
-                raise TestFailure('Package directory %r has '\
-                                  'unexpected content %f' % (pkg_dir, f))
+                raise TestFailure(
+                    'Package directory %r has unexpected content %f' %
+                    (pkg_dir, f)
+                )
 
 
 class PipTestEnvironment(scripttest.TestFileEnvironment):
@@ -233,7 +241,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             self.site_packages_path = self.lib_path.join("site-packages")
 
         self.user_base_path = self.venv_path.join("user")
-        self.user_bin_path = self.user_base_path.join(self.bin_path - self.venv_path)
+        self.user_bin_path = self.user_base_path.join(
+            self.bin_path - self.venv_path
+        )
         self.user_site_path = self.venv_path.join(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
@@ -290,7 +300,10 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
-        return TestPipResult(super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw), verbose=self.verbose)
+        return TestPipResult(
+            super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
+            verbose=self.verbose,
+        )
 
     def pip(self, *args, **kwargs):
         return self.run("pip", *args, **kwargs)
@@ -381,6 +394,7 @@ def assert_all_changes(start_state, end_state, expected_changes):
     # Don't throw away this potentially useful information
     return diff
 
+
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path/'version_pkg'
@@ -388,14 +402,15 @@ def _create_test_package_with_subdirectory(script, subdirectory):
                                 def main():
                                     print('0.1')
                                 """))
-    version_pkg_path.join("setup.py").write(textwrap.dedent("""
-                        from setuptools import setup, find_packages
-                        setup(name='version_pkg',
-                              version='0.1',
-                              packages=find_packages(),
-                              py_modules=['version_pkg'],
-                              entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
-                        """))
+    version_pkg_path.join("setup.py").write(
+        textwrap.dedent("""
+    from setuptools import setup, find_packages
+    setup(name='version_pkg',
+          version='0.1',
+          packages=find_packages(),
+          py_modules=['version_pkg'],
+          entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
+        """))
 
     subdirectory_path = version_pkg_path.join(subdirectory)
     subdirectory_path.mkdir()
@@ -404,22 +419,26 @@ def _create_test_package_with_subdirectory(script, subdirectory):
                                     print('0.1')
                                 """))
 
-    subdirectory_path.join('setup.py').write(textwrap.dedent("""
-                        from setuptools import setup, find_packages
-                        setup(name='version_subpkg',
-                              version='0.1',
-                              packages=find_packages(),
-                              py_modules=['version_subpkg'],
-                              entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
-                        """))
+    subdirectory_path.join('setup.py').write(
+        textwrap.dedent("""
+from setuptools import setup, find_packages
+setup(name='version_subpkg',
+      version='0.1',
+      packages=find_packages(),
+      py_modules=['version_subpkg'],
+      entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
+        """))
 
     script.run('git', 'init', cwd=version_pkg_path)
     script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path)
+    script.run(
+        'git', 'commit', '-q',
+        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '-am', 'initial version', cwd=version_pkg_path
+    )
 
     return version_pkg_path
+
 
 def _create_test_package(script):
     script.scratch_path.join("version_pkg").mkdir()
@@ -440,9 +459,11 @@ def _create_test_package(script):
     """))
     script.run('git', 'init', cwd=version_pkg_path)
     script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path)
+    script.run(
+        'git', 'commit', '-q',
+        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '-am', 'initial version', cwd=version_pkg_path,
+    )
     return version_pkg_path
 
 
@@ -450,14 +471,18 @@ def _change_test_package_version(script, version_pkg_path):
     version_pkg_path.join("version_pkg.py").write(textwrap.dedent('''\
         def main():
             print("some different version")'''))
-    script.run('git', 'clean', '-qfdx',
+    script.run(
+        'git', 'clean', '-qfdx',
         cwd=version_pkg_path,
         expect_stderr=True,
     )
-    script.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
-            '-am', 'messed version',
-            cwd=version_pkg_path, expect_stderr=True)
+    script.run(
+        'git', 'commit', '-q',
+        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '-am', 'messed version',
+        cwd=version_pkg_path,
+        expect_stderr=True,
+    )
 
 
 def assert_raises_regexp(exception, reg, run, *args, **kwargs):

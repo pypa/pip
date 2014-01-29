@@ -1,14 +1,9 @@
 """Tests for wheel binary packages and .dist-info."""
-import os
-
 import pytest
 
-import pkg_resources
-from mock import patch, Mock
+from mock import patch
 from pip import wheel
-from pip.exceptions import InstallationError, InvalidWheelFilename
-from pip.index import PackageFinder
-from tests.lib import assert_raises_regexp
+from pip.exceptions import InvalidWheelFilename
 
 
 def test_get_entrypoints(tmpdir):
@@ -89,7 +84,7 @@ class TestWheelFile(object):
 
     def test_invalid_filename_raises(self):
         with pytest.raises(InvalidWheelFilename):
-            w = wheel.Wheel('invalid.whl')
+            wheel.Wheel('invalid.whl')
 
     def test_supported_single_version(self):
         """
@@ -117,9 +112,9 @@ class TestWheelFile(object):
         Test results from `support_index_min`
         """
         tags = [
-        ('py2', 'none', 'TEST'),
-        ('py2', 'TEST', 'any'),
-        ('py2', 'none', 'any'),
+            ('py2', 'none', 'TEST'),
+            ('py2', 'TEST', 'any'),
+            ('py2', 'none', 'any'),
         ]
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert w.support_index_min(tags=tags) == 2
@@ -131,7 +126,7 @@ class TestWheelFile(object):
         Test `support_index_min` returns None, when wheel not supported
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.support_index_min(tags=[]) == None
+        assert w.support_index_min(tags=[]) is None
 
     def test_unpack_wheel_no_flatten(self):
         from pip import util
@@ -144,8 +139,8 @@ class TestWheelFile(object):
             pytest.skip("%s does not exist" % filepath)
         try:
             tmpdir = mkdtemp()
-            util.unpack_file(filepath, tmpdir, 'application/zip', None )
-            assert os.path.isdir(os.path.join(tmpdir,'meta-1.0.dist-info'))
+            util.unpack_file(filepath, tmpdir, 'application/zip', None)
+            assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
         finally:
             rmtree(tmpdir)
             pass
@@ -164,7 +159,8 @@ class TestWheelFile(object):
 
     def test_version_underscore_conversion(self):
         """
-        Test that we convert '_' to '-' for versions parsed out of wheel filenames
+        Test that we convert '_' to '-' for versions parsed out of wheel
+        filenames
         """
         w = wheel.Wheel('simple-0.1_1-py2-none-any.whl')
         assert w.version == '0.1-1'
@@ -179,8 +175,9 @@ class TestPEP425Tags(object):
         Issue #1074.
         """
         import pip.pep425tags
+
         def raises_ioerror(var):
             raise IOError("I have the wrong path!")
+
         with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
             assert len(pip.pep425tags.get_supported())
-

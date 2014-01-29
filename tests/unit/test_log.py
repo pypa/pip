@@ -47,19 +47,21 @@ def test_should_warn_significance():
 
 def test_log_no_extra_line_break():
     """
-    Confirm that multiple `.write()` consumers doesn't result in additional '\n's per write
+    Confirm that multiple `.write()` consumers doesn't result in additional
+    '\n's per write
     """
     consumer1 = StringIO()
     consumer2 = StringIO()
     logger = Logger()
     logger.add_consumers(
-            (logger.NOTIFY, consumer1),
-            (logger.NOTIFY, consumer2)
-            )
+        (logger.NOTIFY, consumer1),
+        (logger.NOTIFY, consumer2)
+    )
     logger.notify("one line")
     # splitlines(True) will detect empty line-breaks
     assert 1 == len(consumer1.getvalue().splitlines(True))
     assert 1 == len(consumer2.getvalue().splitlines(True))
+
 
 def test_level_for_integer():
     logger = Logger()

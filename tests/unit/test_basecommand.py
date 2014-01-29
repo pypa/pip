@@ -6,9 +6,11 @@ from pip.log import logger
 class FakeCommand(Command):
     name = 'fake'
     summary = name
+
     def __init__(self, error=False):
         self.error = error
         super(FakeCommand, self).__init__()
+
     def run(self, options, args):
         logger.info("fake")
         if self.error:
@@ -17,7 +19,8 @@ class FakeCommand(Command):
 
 class Test_basecommand_logging(object):
     """
-    Test `pip.basecommand.Command` setting up logging consumers based on options
+    Test `pip.basecommand.Command` setting up logging consumers based on
+    options
     """
 
     def teardown(self):
@@ -62,7 +65,8 @@ class Test_basecommand_logging(object):
 
     def test_log_log_file(self, tmpdir):
         """
-        Test the --log and --log-file options log together (when there's an error).
+        Test the --log and --log-file options log together (when there's an
+        error).
         """
         cmd = FakeCommand(error=True)
         log_path = tmpdir.join('log')

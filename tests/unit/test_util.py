@@ -26,15 +26,22 @@ class Tests_EgglinkPath:
         self.mock_dist = Mock(project_name=project)
         self.site_packages = 'SITE_PACKAGES'
         self.user_site = 'USER_SITE'
-        self.user_site_egglink = os.path.join(self.user_site,'%s.egg-link' % project)
-        self.site_packages_egglink = os.path.join(self.site_packages,'%s.egg-link' % project)
+        self.user_site_egglink = os.path.join(
+            self.user_site,
+            '%s.egg-link' % project
+        )
+        self.site_packages_egglink = os.path.join(
+            self.site_packages,
+            '%s.egg-link' % project,
+        )
 
         #patches
         from pip import util
         self.old_site_packages = util.site_packages
         self.mock_site_packages = util.site_packages = 'SITE_PACKAGES'
         self.old_running_under_virtualenv = util.running_under_virtualenv
-        self.mock_running_under_virtualenv = util.running_under_virtualenv = Mock()
+        self.mock_running_under_virtualenv = util.running_under_virtualenv = \
+            Mock()
         self.old_virtualenv_no_global = util.virtualenv_no_global
         self.mock_virtualenv_no_global = util.virtualenv_no_global = Mock()
         self.old_user_site = util.user_site
@@ -42,7 +49,6 @@ class Tests_EgglinkPath:
         from os import path
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
-
 
     def teardown(self):
         from pip import util
@@ -53,12 +59,11 @@ class Tests_EgglinkPath:
         from os import path
         path.isfile = self.old_isfile
 
+    def eggLinkInUserSite(self, egglink):
+        return egglink == self.user_site_egglink
 
-    def eggLinkInUserSite(self,egglink):
-        return egglink==self.user_site_egglink
-
-    def eggLinkInSitePackages(self,egglink):
-        return egglink==self.site_packages_egglink
+    def eggLinkInSitePackages(self, egglink):
+        return egglink == self.site_packages_egglink
 
     #########################
     ## egglink in usersite ##
@@ -144,9 +149,11 @@ class Tests_EgglinkPath:
         self.mock_isfile.return_value = False
         assert egg_link_path(self.mock_dist) is None
 
+
 def test_Inf_greater():
     """Test Inf compares greater."""
     assert Inf > object()
+
 
 def test_Inf_equals_Inf():
     """Test Inf compares greater."""
@@ -156,19 +163,17 @@ def test_Inf_equals_Inf():
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
-
     workingset = [
-            Mock(test_name="global"),
-            Mock(test_name="editable"),
-            Mock(test_name="normal")
-            ]
+        Mock(test_name="global"),
+        Mock(test_name="editable"),
+        Mock(test_name="normal")
+    ]
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
 
     def dist_is_local(self, dist):
         return dist.test_name != "global"
-
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
@@ -180,17 +185,16 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1, dists
         assert dists[0].test_name == "editable"
 
-
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_exclude_editables(self, mock_dist_is_editable, mock_dist_is_local):
+    def test_exclude_editables(
+            self, mock_dist_is_editable, mock_dist_is_local):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         dists = get_installed_distributions(include_editables=False)
         assert len(dists) == 1
         assert dists[0].test_name == "normal"
-
 
     @patch('pip.util.dist_is_local')
     @patch('pip.util.dist_is_editable')
@@ -248,13 +252,18 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
     getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
 
-    paths = [os.path.join('path_one', f)  for f in ['foo.com', 'foo.exe', 'foo']]
+    paths = [
+        os.path.join('path_one', f) for f in ['foo.com', 'foo.exe', 'foo']
+    ]
     expected = [((p,),) for p in paths]
 
     with pytest.raises(BadCommand):
         find_command("foo", "path_one")
 
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert (
+        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
+        (mock_isfile.call_args_list, expected)
+    )
     assert getpath_mock.called, "Should call get_pathext"
 
 
@@ -263,26 +272,33 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 @patch('os.path.isfile')
 def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     """
-    If pathext supplied find_command should use all of its list of extensions to find file.
+    If pathext supplied find_command should use all of its list of extensions
+    to find file.
     """
     mock_isfile.return_value = False
     getpath_mock.return_value = ".FOO"
 
     pathext = os.pathsep.join([".RUN", ".CMD"])
 
-    paths = [os.path.join('path_one', f)  for f in ['foo.run', 'foo.cmd', 'foo']]
+    paths = [
+        os.path.join('path_one', f) for f in ['foo.run', 'foo.cmd', 'foo']
+    ]
     expected = [((p,),) for p in paths]
 
     with pytest.raises(BadCommand):
         find_command("foo", "path_one", pathext)
 
-    assert mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert (
+        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
+        (mock_isfile.call_args_list, expected)
+    )
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
 class TestUnpackArchives(object):
     """
-    test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3 things:
+    test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3
+    things:
      1) confirm that reg files, dirs, and symlinks get unpacked
      2) permissions are not preserved (and go by the 022 umask)
      3) reg files with *any* execute perms, get chmod +x
@@ -310,17 +326,17 @@ class TestUnpackArchives(object):
         return stat.S_IMODE(os.stat(path).st_mode)
 
     def confirm_files(self):
-        # expections based on 022 umask set above and the unpack logic that sets
-        # execute permissions, not preservation
+        # expections based on 022 umask set above and the unpack logic that
+        # sets execute permissions, not preservation
         for fname, expected_mode, test in [
-            ('file.txt', 0o644, os.path.isfile),
-            ('symlink.txt', 0o644, os.path.isfile),
-            ('script_owner.sh', 0o755, os.path.isfile),
-            ('script_group.sh', 0o755, os.path.isfile),
-            ('script_world.sh', 0o755, os.path.isfile),
-            ('dir', 0o755, os.path.isdir),
-            (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
-            ]:
+                ('file.txt', 0o644, os.path.isfile),
+                ('symlink.txt', 0o644, os.path.isfile),
+                ('script_owner.sh', 0o755, os.path.isfile),
+                ('script_group.sh', 0o755, os.path.isfile),
+                ('script_world.sh', 0o755, os.path.isfile),
+                ('dir', 0o755, os.path.isdir),
+                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
+                ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
                 # no symlinks created on windows
@@ -331,7 +347,9 @@ class TestUnpackArchives(object):
                 # due to os.chmod being a noop
                 continue
             mode = self.mode(path)
-            assert mode == expected_mode, "mode: %s, expected mode: %s" % (mode, expected_mode)
+            assert mode == expected_mode, (
+                "mode: %s, expected mode: %s" % (mode, expected_mode)
+            )
 
     def test_unpack_tgz(self, data):
         """

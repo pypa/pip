@@ -20304,7 +20304,7 @@ def bootstrap(tmpdir=None):
         # We want to see if setuptools is available before attempting to
         # install it
         try:
-            import setuptools
+            import setuptools  # noqa
         except ImportError:
             packages += ["setuptools"]
 

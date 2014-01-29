@@ -4,11 +4,10 @@ import tempfile
 
 import pytest
 
-import pip.wheel
-
-from pkg_resources import Distribution
 from mock import Mock, patch, mock_open
-from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
+from pip.exceptions import (
+    PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
+)
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet,
@@ -49,7 +48,8 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [])
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" % (req, build_dir.replace('\\', '\\\\')),
+            "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
+            (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
             finder
             )
@@ -81,11 +81,13 @@ class TestInstallRequirement(object):
 
     def test_unsupported_wheel_requirement_raises(self):
         with pytest.raises(UnsupportedWheel):
-            req = InstallRequirement.from_line('peppercorn-0.4-py2.py3-bogus-any.whl')
+            InstallRequirement.from_line(
+                'peppercorn-0.4-py2.py3-bogus-any.whl',
+            )
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
-            req = InstallRequirement.from_line('invalid.whl')
+            InstallRequirement.from_line('invalid.whl')
 
 
 def test_requirements_data_structure_keeps_order():
@@ -113,59 +115,83 @@ def test_requirements_data_structure_implements__contains__():
     assert 'pip' in requirements
     assert 'nose' not in requirements
 
+
 @patch('os.path.normcase')
 @patch('pip.req.req_install.os.getcwd')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
-def test_parse_editable_local(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+def test_parse_editable_local(
+        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
     assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
     normcase_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo', 'git') == (None, 'file:///some/path/foo', None)
+    assert parse_editable('foo', 'git') == (
+        None, 'file:///some/path/foo', None,
+    )
+
 
 def test_parse_editable_default_vcs():
-    assert parse_editable('https://foo#egg=foo', 'git') == ('foo',
-                                                            'git+https://foo#egg=foo',
-                                                            {'egg': 'foo'})
+    assert parse_editable('https://foo#egg=foo', 'git') == (
+        'foo',
+        'git+https://foo#egg=foo',
+        {'egg': 'foo'},
+    )
+
 
 def test_parse_editable_explicit_vcs():
-    assert parse_editable('svn+https://foo#egg=foo', 'git') == ('foo',
-                                                                'svn+https://foo#egg=foo',
-                                                                {'egg': 'foo'})
+    assert parse_editable('svn+https://foo#egg=foo', 'git') == (
+        'foo',
+        'svn+https://foo#egg=foo',
+        {'egg': 'foo'},
+    )
+
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') ==  ('foo[extras]',
-                                                                         'svn+https://foo#egg=foo[extras]',
-                                                                         {'egg': 'foo[extras]'})
+    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
+        'foo[extras]',
+        'svn+https://foo#egg=foo[extras]',
+        {'egg': 'foo[extras]'},
+    )
+
 
 @patch('os.path.normcase')
 @patch('pip.req.req_install.os.getcwd')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
-def test_parse_editable_local_extras(isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+def test_parse_editable_local_extras(
+        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert parse_editable('.[extras]', 'git') == (None, 'file://' + "/some/path", ('extras',))
+    assert parse_editable('.[extras]', 'git') == (
+        None, 'file://' + "/some/path", ('extras',),
+    )
     normcase_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo[bar,baz]', 'git') == (None, 'file:///some/path/foo', ('bar', 'baz'))
+    assert parse_editable('foo[bar,baz]', 'git') == (
+        None, 'file:///some/path/foo', ('bar', 'baz'),
+    )
+
 
 def test_remote_reqs_parse():
     """
     Test parsing a simple remote requirements file
     """
     # this requirements file just contains a comment
-    # previously this has failed in py3 (https://github.com/pypa/pip/issues/760)
-    for req in parse_requirements('https://raw.github.com/pypa/pip-test-package/master/tests/req_just_comment.txt'):
+    # previously this has failed in py3: https://github.com/pypa/pip/issues/760
+    for req in parse_requirements(
+            'https://raw.github.com/pypa/pip-test-package/master/tests/'
+            'req_just_comment.txt'):
         pass
+
 
 def test_req_file_parse_use_wheel(data):
     """
     Test parsing --use-wheel from a req file
     """
     finder = PackageFinder([], [])
-    for req in parse_requirements(data.reqfiles.join("supported_options.txt"), finder):
+    for req in parse_requirements(
+            data.reqfiles.join("supported_options.txt"), finder):
         pass
     assert finder.use_wheel
 

@@ -1,11 +1,5 @@
-import os
-from pip.backwardcompat import urllib
-from tests.lib.path import Path
 from pip.index import package_to_requirement, HTMLPage
 from pip.index import PackageFinder, Link, INSTALLED_VERSION
-from tests.lib import path_to_url
-from string import ascii_lowercase
-from mock import patch
 
 
 def test_package_name_should_be_converted_to_requirement():
@@ -21,13 +15,17 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     """
     Test scraping page looking for url in href
     """
-    page = HTMLPage("""
-        <!-- The <th> elements below are a terrible terrible hack for setuptools -->
-        <li>
-        <strong>Home Page:</strong>
-        <!-- <th>Home Page -->
-        <a href="http://supervisord.org/">http://supervisord.org/</a>
-        </li>""", "supervisor")
+    page = HTMLPage(
+        """
+<!-- The <th> elements below are a terrible terrible hack for setuptools -->
+<li>
+<strong>Home Page:</strong>
+<!-- <th>Home Page -->
+<a href="http://supervisord.org/">http://supervisord.org/</a>
+</li>
+        """,
+        "supervisor",
+    )
 
     links = list(page.scraped_rel_links())
     assert len(links) == 1
@@ -40,12 +38,16 @@ def test_sort_locations_file_find_link(data):
     """
     finder = PackageFinder([data.find_links], [])
     files, urls = finder._sort_locations([data.find_links])
-    assert files and not urls, "files and not urls should have been found at find-links url: %s" % data.find_links
+    assert files and not urls, (
+        "files and not urls should have been found at find-links url: %s" %
+        data.find_links
+    )
 
 
 def test_sort_locations_file_not_find_link(data):
     """
-    Test that a file:// url dir that's not a find-link, doesn't get a listdir run
+    Test that a file:// url dir that's not a find-link, doesn't get a listdir
+    run
     """
     finder = PackageFinder([], [])
     files, urls = finder._sort_locations(data.index_url("empty_with_pkg"))
@@ -77,5 +79,3 @@ class TestLink(object):
 
     def test_ext_query(self):
         assert '.whl' == Link('http://yo/wheel.whl?a=b').ext
-
-

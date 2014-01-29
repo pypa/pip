@@ -59,7 +59,10 @@ class PipOptions(rst.Directive):
         opt_help = option.help.replace('%default', str(option.default))
         #fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
-        opt_help = opt_help.replace(default_log_file, "<see :ref:`FileLogging`>")
+        opt_help = opt_help.replace(
+            default_log_file,
+            "<see :ref:`FileLogging`>",
+        )
         return [bookmark_line, "", line, "", "    %s" % opt_help, ""]
 
     def _format_options(self, options, cmd_name=None):
@@ -80,12 +83,16 @@ class PipOptions(rst.Directive):
 
 class PipGeneralOptions(PipOptions):
     def process_options(self):
-        self._format_options([o.make() for o in cmdoptions.general_group['options']])
+        self._format_options(
+            [o.make() for o in cmdoptions.general_group['options']]
+        )
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
-        self._format_options([o.make() for o in cmdoptions.index_group['options']])
+        self._format_options(
+            [o.make() for o in cmdoptions.index_group['options']]
+        )
 
 
 class PipCommandOptions(PipOptions):
@@ -93,7 +100,10 @@ class PipCommandOptions(PipOptions):
 
     def process_options(self):
         cmd = commands[self.arguments[0]]()
-        self._format_options(cmd.parser.option_groups[0].option_list, cmd_name=cmd.name)
+        self._format_options(
+            cmd.parser.option_groups[0].option_list,
+            cmd_name=cmd.name,
+        )
 
 
 def setup(app):
