@@ -20347,7 +20347,7 @@ def main():
             fp.write(base64.decodestring(ZIPFILE))
 
         # Add the zipfile to sys.path so that we can import it
-        sys.path = [pip_zip] + sys.path
+        sys.path.insert(0, pip_zip)
 
         # Run the bootstrap
         bootstrap(tmpdir=tmpdir)
