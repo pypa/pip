@@ -6,7 +6,6 @@ from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
 from pip.util import get_installed_distributions
-from pip._vendor import pkg_resources
 
 
 class FreezeCommand(Command):
@@ -60,27 +59,13 @@ class FreezeCommand(Command):
         if skip_regex:
             skip_match = re.compile(skip_regex)
 
-        dependency_links = []
-
         f = sys.stdout
 
-        for dist in pkg_resources.working_set:
-            if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(
-                    dist.get_metadata_lines('dependency_links.txt')
-                )
-        for link in find_links:
-            if '#egg=' in link:
-                dependency_links.append(link)
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
         for dist in get_installed_distributions(local_only=local_only):
-            req = pip.FrozenRequirement.from_dist(
-                dist,
-                dependency_links,
-                find_tags=find_tags,
-            )
+            req = pip.FrozenRequirement.from_dist(dist, find_tags=find_tags)
             installations[req.name] = req
         if requirement:
             req_f = open(requirement)
