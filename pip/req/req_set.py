@@ -9,14 +9,14 @@ from pip.download import (PipSession, url_to_path, unpack_vcs_link, is_vcs_url,
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.index import Link
-from pip.locations import (
-    PIP_DELETE_MARKER_FILENAME, write_delete_marker_file, build_prefix,
-)
+from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix,
+                           write_delete_marker_file)
 from pip.log import logger
 from pip.req.req_install import InstallRequirement
 from pip.util import (display_path, rmtree, dist_in_usersite, call_subprocess,
                       _make_build_dir)
 from pip.vcs import vcs
+from pip.wheel import wheel_ext
 
 
 class Requirements(object):
@@ -53,10 +53,12 @@ class RequirementSet(object):
                  upgrade=False, ignore_installed=False, as_egg=False,
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
-                 pycompile=True):
+                 pycompile=True, wheel_download_dir=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
+        if download_cache:
+            download_cache = os.path.expanduser(download_cache)
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -74,6 +76,7 @@ class RequirementSet(object):
         self.target_dir = target_dir  # set from --target option
         self.session = session or PipSession()
         self.pycompile = pycompile
+        self.wheel_download_dir = wheel_download_dir
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -209,6 +212,11 @@ class RequirementSet(object):
             install = True
             best_installed = False
             not_found = None
+
+            ###############################################
+            ## Search for archive to fulfill requirement ##
+            ###############################################
+
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
@@ -258,6 +266,11 @@ class RequirementSet(object):
                 else:
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
+
+            ##################################
+            ## vcs update or unpack archive ##
+            ##################################
+
             try:
                 is_bundle = False
                 is_wheel = False
@@ -323,9 +336,21 @@ class RequirementSet(object):
                             assert url
                         if url:
                             try:
+
+                                if (
+                                    url.filename.endswith(wheel_ext)
+                                    and self.wheel_download_dir
+                                ):
+                                    # when doing 'pip wheel`
+                                    download_dir = self.wheel_download_dir
+                                    do_download = True
+                                else:
+                                    download_dir = self.download_dir
+                                    do_download = self.is_download
                                 self.unpack_url(
-                                    url, location, self.is_download,
-                                )
+                                    url, location, download_dir,
+                                    do_download,
+                                    )
                             except HTTPError as exc:
                                 logger.fatal(
                                     'Could not install requirement %s because '
@@ -340,7 +365,7 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_bundle = req_to_install.is_bundle
-                        is_wheel = url and url.filename.endswith('.whl')
+                        is_wheel = url and url.filename.endswith(wheel_ext)
                         if is_bundle:
                             req_to_install.move_bundle_files(
                                 self.build_dir,
@@ -356,6 +381,11 @@ class RequirementSet(object):
                                 req_to_install.run_egg_info()
                             if url and url.scheme in vcs.all_schemes:
                                 req_to_install.archive(self.download_dir)
+
+                        ##############################
+                        ## parse wheel dependencies ##
+                        ##############################
+
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
@@ -413,6 +443,11 @@ class RequirementSet(object):
                                     req_to_install
                                 )
                                 install = False
+
+                ##############################
+                ## parse sdist dependencies ##
+                ##############################
+
                 if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(
@@ -503,29 +538,36 @@ class RequirementSet(object):
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
                         command_desc='python setup.py clean')
 
-    def unpack_url(self, link, location, only_download=False):
-        if only_download:
-            loc = self.download_dir
-        else:
-            loc = location
+    def unpack_url(self, link, location, download_dir=None,
+                   only_download=False):
+        if download_dir is None:
+            download_dir = self.download_dir
+
+        # non-editable vcs urls
         if is_vcs_url(link):
-            return unpack_vcs_link(link, loc, only_download)
-        # a local file:// index could have links with hashes
-        elif not link.hash and is_file_url(link):
-            return unpack_file_url(link, loc)
+            if only_download:
+                loc = download_dir
+            else:
+                loc = location
+            unpack_vcs_link(link, loc, only_download)
+
+        # file urls
+        elif is_file_url(link):
+            unpack_file_url(link, location, download_dir)
+            if only_download:
+                write_delete_marker_file(location)
+
+        # http urls
         else:
-            if self.download_cache:
-                self.download_cache = os.path.expanduser(self.download_cache)
-            retval = unpack_http_url(
+            unpack_http_url(
                 link,
                 location,
                 self.download_cache,
-                self.download_dir,
+                download_dir,
                 self.session,
             )
             if only_download:
                 write_delete_marker_file(location)
-            return retval
 
     def install(self, install_options, global_options=(), *args, **kwargs):
         """

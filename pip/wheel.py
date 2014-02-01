@@ -487,21 +487,19 @@ class WheelBuilder(object):
 
         reqset = self.requirement_set.requirements.values()
 
-        #make the wheelhouse
-        if not os.path.exists(self.wheel_dir):
-            os.makedirs(self.wheel_dir)
+        buildset = [req for req in reqset if not req.is_wheel]
+
+        if not buildset:
+            return
 
         #build the wheels
         logger.notify(
             'Building wheels for collected packages: %s' %
-            ','.join([req.name for req in reqset])
+            ','.join([req.name for req in buildset])
         )
         logger.indent += 2
         build_success, build_failure = [], []
-        for req in reqset:
-            if req.is_wheel:
-                logger.notify("Skipping building wheel: %s", req.url)
-                continue
+        for req in buildset:
             if self._build_one(req):
                 build_success.append(req)
             else:

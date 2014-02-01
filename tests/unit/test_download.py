@@ -1,6 +1,6 @@
 import hashlib
 import os
-from shutil import rmtree
+from shutil import rmtree, copy
 from tempfile import mkdtemp
 
 from mock import Mock, patch
@@ -8,7 +8,8 @@ import pytest
 
 import pip
 from pip.backwardcompat import urllib, BytesIO, b, pathname2url
-from pip.download import PipSession, path_to_url, unpack_http_url, url_to_path
+from pip.download import (PipSession, path_to_url, unpack_http_url,
+                          url_to_path, unpack_file_url)
 from pip.index import Link
 
 
@@ -182,3 +183,89 @@ def test_path_to_url_win():
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_url_to_path_win():
     assert url_to_path('file:///c:/tmp/file') == 'c:/tmp/file'
+
+
+class Test_unpack_file_url(object):
+
+    def prep(self, tmpdir, data):
+        self.build_dir = tmpdir.join('build')
+        self.download_dir = tmpdir.join('download')
+        os.mkdir(self.build_dir)
+        os.mkdir(self.download_dir)
+        self.dist_file = "simple-1.0.tar.gz"
+        self.dist_file2 = "simple-2.0.tar.gz"
+        self.dist_path = data.packages.join(self.dist_file)
+        self.dist_path2 = data.packages.join(self.dist_file2)
+        self.dist_url = Link(path_to_url(self.dist_path))
+        self.dist_url2 = Link(path_to_url(self.dist_path2))
+
+    def test_unpack_file_url_no_download(self, tmpdir, data):
+        self.prep(tmpdir, data)
+        unpack_file_url(self.dist_url, self.build_dir)
+        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
+        assert not os.path.isfile(
+            os.path.join(self.download_dir, self.dist_file))
+
+    def test_unpack_file_url_and_download(self, tmpdir, data):
+        self.prep(tmpdir, data)
+        unpack_file_url(self.dist_url, self.build_dir,
+                        download_dir=self.download_dir)
+        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
+        assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
+
+    def test_unpack_file_url_download_already_exists(self, tmpdir,
+                                                     data, monkeypatch):
+        self.prep(tmpdir, data)
+        # add in previous download (copy simple-2.0 as simple-1.0)
+        # so we can tell it didn't get overwritten
+        dest_file = os.path.join(self.download_dir, self.dist_file)
+        copy(self.dist_path2, dest_file)
+        dist_path2_md5 = hashlib.md5(
+            open(self.dist_path2, 'rb').read()).hexdigest()
+
+        unpack_file_url(self.dist_url, self.build_dir,
+                        download_dir=self.download_dir)
+        # our hash should be the same, i.e. not overwritten by simple-1.0 hash
+        assert dist_path2_md5 == hashlib.md5(
+            open(dest_file, 'rb').read()).hexdigest()
+
+    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
+                                               monkeypatch):
+        """
+        Test when existing download has different hash from the file url
+        fragment
+        """
+        self.prep(tmpdir, data)
+
+        # add in previous download (copy simple-2.0 as simple-1.0 so it's wrong
+        # hash)
+        dest_file = os.path.join(self.download_dir, self.dist_file)
+        copy(self.dist_path2, dest_file)
+
+        dist_path_md5 = hashlib.md5(
+            open(self.dist_path, 'rb').read()).hexdigest()
+        dist_path2_md5 = hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
+
+        assert dist_path_md5 != dist_path2_md5
+
+        self.dist_url.url = "%s#md5=%s" % (
+            self.dist_url.url,
+            dist_path_md5
+            )
+        unpack_file_url(self.dist_url, self.build_dir,
+                        download_dir=self.download_dir)
+
+        # confirm hash is for simple1-1.0
+        # the previous bad download has been removed
+        assert (hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
+                ==
+                dist_path_md5
+                ), hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
+
+    def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
+        self.prep(tmpdir, data)
+        dist_path = data.packages.join("FSPkg")
+        dist_url = Link(path_to_url(dist_path))
+        unpack_file_url(dist_url, self.build_dir,
+                        download_dir=self.download_dir)
+        assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
