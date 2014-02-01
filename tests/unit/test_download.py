@@ -8,6 +8,7 @@ import pytest
 
 import pip
 from pip.backwardcompat import urllib, BytesIO, b, pathname2url
+from pip.exceptions import HashMismatch
 from pip.download import (PipSession, path_to_url, unpack_http_url,
                           url_to_path, unpack_file_url)
 from pip.index import Link
@@ -228,6 +229,16 @@ class Test_unpack_file_url(object):
         # our hash should be the same, i.e. not overwritten by simple-1.0 hash
         assert dist_path2_md5 == hashlib.md5(
             open(dest_file, 'rb').read()).hexdigest()
+
+    def test_unpack_file_url_bad_hash(self, tmpdir, data,
+                                      monkeypatch):
+        """
+        Test when the file url hash fragment is wrong
+        """
+        self.prep(tmpdir, data)
+        self.dist_url.url = "%s#md5=bogus" % self.dist_url.url
+        with pytest.raises(HashMismatch):
+            unpack_file_url(self.dist_url, self.build_dir)
 
     def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
                                                monkeypatch):

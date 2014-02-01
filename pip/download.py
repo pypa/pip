@@ -625,7 +625,6 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
 def unpack_file_url(link, location, download_dir=None):
 
     link_path = url_to_path(link.url_without_fragment)
-    from_path = None
     already_downloaded = False
 
     # If it's a url to a local directory
@@ -634,6 +633,11 @@ def unpack_file_url(link, location, download_dir=None):
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
         return
+
+    # if link has a hash, let's confirm it matches
+    if link.hash:
+        link_path_hash = _get_hash_from_file(link_path, link)
+        _check_hash(link_path_hash, link)
 
     # If a download dir is specified, is the file already there and valid?
     if download_dir:
@@ -655,16 +659,17 @@ def unpack_file_url(link, location, download_dir=None):
             else:
                 already_downloaded = True
 
-    # a download dir is specified and not already downloaded
-    if download_dir and not already_downloaded:
-        content_type = mimetypes.guess_type(link_path)[0]
-        _copy_file(link_path, download_dir, content_type, link)
-
-    # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies
     if already_downloaded:
         from_path = download_path
     else:
         from_path = link_path
+
     content_type = mimetypes.guess_type(from_path)[0]
+
+    # unpack the archive to the build dir location. even when only downloading
+    # archives, they have to be unpacked to parse dependencies
     unpack_file(from_path, location, content_type, link)
+
+    # a download dir is specified and not already downloaded
+    if download_dir and not already_downloaded:
+        _copy_file(from_path, download_dir, content_type, link)
