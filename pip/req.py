@@ -931,12 +931,15 @@ class Requirements(object):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False, use_user_site=False,
-                 session=None, pycompile=True):
+                 upgrade=False, ignore_installed=False, as_egg=False,
+                 target_dir=None, ignore_dependencies=False,
+                 force_reinstall=False, use_user_site=False, session=None,
+                 pycompile=True, wheel_download_dir=None):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
+        if download_cache:
+            download_cache = os.path.expanduser(download_cache)
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -954,6 +957,7 @@ class RequirementSet(object):
         self.target_dir = target_dir #set from --target option
         self.session = session or PipSession()
         self.pycompile = pycompile
+        self.wheel_download_dir = wheel_download_dir
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -1170,11 +1174,26 @@ class RequirementSet(object):
                             assert url
                         if url:
                             try:
-                                self.unpack_url(url, location, self.is_download)
-                            except HTTPError:
-                                e = sys.exc_info()[1]
-                                logger.fatal('Could not install requirement %s because of error %s'
-                                             % (req_to_install, e))
+
+                                if (
+                                    url.filename.endswith(wheel_ext)
+                                    and self.wheel_download_dir
+                                ):
+                                    # when doing 'pip wheel`
+                                    download_dir = self.wheel_download_dir
+                                    do_download = True
+                                else:
+                                    download_dir = self.download_dir
+                                    do_download = self.is_download
+                                self.unpack_url(
+                                    url, location, download_dir,
+                                    do_download,
+                                    )
+                            except HTTPError as exc:
+                                logger.fatal(
+                                    'Could not install requirement %s because '
+                                    'of error %s' % (req_to_install, exc)
+                                )
                                 raise InstallationError(
                                     'Could not install requirement %s because of HTTP error %s for URL %s'
                                     % (req_to_install, e, url))
@@ -1182,7 +1201,7 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_bundle = req_to_install.is_bundle
-                        is_wheel = url and url.filename.endswith('.whl')
+                        is_wheel = url and url.filename.endswith(wheel_ext)
                         if is_bundle:
                             req_to_install.move_bundle_files(self.build_dir, self.src_dir)
                             for subreq in req_to_install.bundle_requirements():
@@ -1233,6 +1252,11 @@ class RequirementSet(object):
                                     req_to_install.conflicts_with = req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
+                                logger.notify(
+                                    'Requirement already satisfied (use '
+                                    '--upgrade to upgrade): %s' %
+                                    req_to_install
+                                )
                                 install = False
                 if not (is_bundle or is_wheel):
                     ## FIXME: shouldn't be globally added:
@@ -1310,17 +1334,29 @@ class RequirementSet(object):
         else:
             loc = location
         if is_vcs_url(link):
-            return unpack_vcs_link(link, loc, only_download)
-        # a local file:// index could have links with hashes
-        elif not link.hash and is_file_url(link):
-            return unpack_file_url(link, loc)
-        else:
-            if self.download_cache:
-                self.download_cache = os.path.expanduser(self.download_cache)
-            retval = unpack_http_url(link, location, self.download_cache, self.download_dir, self.session)
+            if only_download:
+                loc = download_dir
+            else:
+                loc = location
+            unpack_vcs_link(link, loc, only_download)
+
+        # file urls
+        elif is_file_url(link):
+            unpack_file_url(link, location, download_dir)
             if only_download:
                 write_delete_marker_file(location)
-            return retval
+
+        # http urls
+        else:
+            unpack_http_url(
+                link,
+                location,
+                self.download_cache,
+                download_dir,
+                self.session,
+            )
+            if only_download:
+                write_delete_marker_file(location)
 
     def install(self, install_options, global_options=(), *args, **kwargs):
         """Install everything in this set (after having downloaded and unpacked the packages)"""

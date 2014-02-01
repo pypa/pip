@@ -32,6 +32,20 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+def test_pip_wheel_downloads_wheels(script, data):
+    """
+    Test 'pip wheel' downloads wheels
+    """
+    script.pip('install', 'wheel')
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links, 'simple.dist',
+    )
+    wheel_file_name = 'simple.dist-0.1-py2.py3-none-any.whl'
+    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Saved" in result.stdout, result.stdout
+
+
 def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
@@ -47,7 +61,7 @@ def test_pip_wheel_fail(script, data):
 
 def test_pip_wheel_ignore_wheels_editables(script, data):
     """
-    Test 'pip wheel' ignores editables and *.whl files in requirements
+    Test 'pip wheel' ignores editables
     """
     script.pip('install', 'wheel')
 
@@ -64,7 +78,6 @@ def test_pip_wheel_ignore_wheels_editables(script, data):
     assert wheel_file_path in result.files_created, (wheel_file_path, result.files_created)
     assert "Successfully built simple" in result.stdout, result.stdout
     assert "Failed to build" not in result.stdout, result.stdout
-    assert "ignoring %s" % local_wheel in result.stdout
     ignore_editable = "ignoring %s" % path_to_url(local_editable)
     #TODO: understand this divergence
     if sys.platform == 'win32':
