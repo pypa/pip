@@ -1,3 +1,4 @@
+import os
 import textwrap
 
 from tests.lib.path import Path
@@ -61,6 +62,34 @@ def test_download_should_download_dependencies(script):
         path.startswith(openid_tarball_prefix) for path in result.files_created
     )
     assert script.site_packages / 'openid' not in result.files_created
+
+
+def test_download_wheel_archive(script, data):
+    """
+    It should download a wheel archive path
+    """
+    wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
+    wheel_path = os.path.join(data.find_links, wheel_filename)
+    result = script.pip(
+        'install', wheel_path,
+        '-d', '.', '--no-deps'
+    )
+    assert Path('scratch') / wheel_filename in result.files_created
+
+
+def test_download_should_download_wheel_deps(script, data):
+    """
+    It should download dependencies for wheels(in the scratch path)
+    """
+    wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
+    dep_filename = 'translationstring-1.1.tar.gz'
+    wheel_path = os.path.join(data.find_links, wheel_filename)
+    result = script.pip(
+        'install', wheel_path,
+        '-d', '.', '--find-links', data.find_links, '--no-index'
+    )
+    assert Path('scratch') / wheel_filename in result.files_created
+    assert Path('scratch') / dep_filename in result.files_created
 
 
 def test_download_should_skip_existing_files(script):
