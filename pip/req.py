@@ -1217,18 +1217,6 @@ class RequirementSet(object):
                         elif is_wheel:
                             req_to_install.source_dir = location
                             req_to_install.url = url.url
-                            dist = list(pkg_resources.find_distributions(location))[0]
-                            if not req_to_install.req:
-                                req_to_install.req = dist.as_requirement()
-                                self.add_requirement(req_to_install)
-                            if not self.ignore_dependencies:
-                                for subreq in dist.requires(req_to_install.extras):
-                                    if self.has_requirement(subreq.project_name):
-                                        continue
-                                    subreq = InstallRequirement(str(subreq),
-                                                                req_to_install)
-                                    reqs.append(subreq)
-                                    self.add_requirement(subreq)
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
@@ -1258,7 +1246,26 @@ class RequirementSet(object):
                                     req_to_install
                                 )
                                 install = False
-                if not (is_bundle or is_wheel):
+                if is_wheel:
+                    dist = list(
+                        pkg_resources.find_distributions(location)
+                    )[0]
+                    if not req_to_install.req:
+                        req_to_install.req = dist.as_requirement()
+                        self.add_requirement(req_to_install)
+                    if not self.ignore_dependencies:
+                        for subreq in dist.requires(
+                                req_to_install.extras):
+                            if self.has_requirement(
+                                    subreq.project_name):
+                                continue
+                            subreq = InstallRequirement(str(subreq),
+                                                        req_to_install)
+                            reqs.append(subreq)
+                            self.add_requirement(subreq)
+
+                # sdists
+                elif not is_bundle:
                     ## FIXME: shouldn't be globally added:
                     finder.add_dependency_links(req_to_install.dependency_links)
                     if (req_to_install.extras):
@@ -1281,10 +1288,14 @@ class RequirementSet(object):
                     if not self.has_requirement(req_to_install.name):
                         #'unnamed' requirements will get added here
                         self.add_requirement(req_to_install)
-                    if self.is_download or req_to_install._temp_build_dir is not None:
+
+                # cleanup tmp src
+                if not is_bundle:
+                    if (
+                        self.is_download or
+                        req_to_install._temp_build_dir is not None
+                    ):
                         self.reqs_to_cleanup.append(req_to_install)
-                else:
-                    self.reqs_to_cleanup.append(req_to_install)
 
                 if install:
                     self.successfully_downloaded.append(req_to_install)
