@@ -165,13 +165,15 @@ class WheelCommand(Command):
             ignore_dependencies=options.ignore_dependencies,
             ignore_installed=True,
             session=session,
+            wheel_download_dir=options.wheel_dir
         )
+
+        # make the wheelhouse
+        if not os.path.exists(options.wheel_dir):
+            os.makedirs(options.wheel_dir)
 
         #parse args and/or requirements files
         for name in args:
-            if name.endswith(".whl"):
-                logger.notify("ignoring %s" % name)
-                continue
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
 
@@ -181,8 +183,7 @@ class WheelCommand(Command):
                     finder=finder,
                     options=options,
                     session=session):
-                if (req.editable
-                        or (req.name is None and req.url.endswith(".whl"))):
+                if req.editable:
                     logger.notify("ignoring %s" % req.url)
                     continue
                 requirement_set.add_requirement(req)
