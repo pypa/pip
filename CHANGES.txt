@@ -1,6 +1,19 @@
 Changelog
 =========
 
+1.6.0.dev1 (unreleased)
+-----------------------
+
+* Fixed #1112. Couldn't download directly from wheel archives, and wheel
+  dependencies weren't downloaded (PR #1527)
+
+* Fixed #1320. ``pip wheel`` was not downloading wheels that already existed (PR
+  #1524)
+
+* Fixed #1111. ``pip install --download`` was failing using local
+  ``--find-links`` (PR #1524)
+
+
 1.5.2 (2014-01-26)
 ------------------
 
