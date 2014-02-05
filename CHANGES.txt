@@ -4,8 +4,9 @@ Changelog
 1.6.0.dev1 (unreleased)
 -----------------------
 
-* Fixed #1112. Couldn't download directly from wheel archives, and wheel
-  dependencies weren't downloaded (PR #1527)
+* Fixed #1112. Couldn't download directly from wheel paths/urls, and when wheel
+  downloads did occur using requirement specifiers, dependencies weren't
+  downloaded (PR #1527)
 
 * Fixed #1320. ``pip wheel`` was not downloading wheels that already existed (PR
   #1524)
