@@ -184,18 +184,54 @@ def main(initial_args=None):
     return command.main(cmd_args)
 
 
-def bootstrap():
+def bootstrap(args=None, tmpdir=None, in_zip=False):
     """
-    Bootstrapping function to be called from install-pip.py script.
+    Bootstrapping function to be called from get-pip.py script.
     """
-    pkgs = ['pip']
+    import tempfile
+    import pkgutil
+    import shutil
+
+    if args is None:
+        args = sys.argv[1:]
+
+    # We always want to install pip
+    packages = ["pip"]
+
+    # Check if the user has requested us not to install setuptools
+    if "--no-setuptools" in args or os.environ.get("PIP_NO_SETUPTOOLS"):
+        args = [a for a in args if a != "--no-setuptools"]
+    else:
+        try:
+            import setuptools  # noqa
+        except ImportError:
+            packages.append('setuptools')
+
+    delete_tmpdir = False
     try:
-        import setuptools
-        # Dumb hack
-        setuptools
-    except ImportError:
-        pkgs.append('setuptools')
-    return main(['install', '--upgrade'] + pkgs + sys.argv[1:])
+        # Create a temporary directory to act as a working directory
+        # if we were not given one.
+        if tmpdir is None:
+            tmpdir = tempfile.mkdtemp()
+            delete_tmpdir = True
+
+        if in_zip:
+            # We need to extract the SSL certificates from requests
+            # so that they can be passed used in PIP_CERT
+            cert_path = os.path.join(tmpdir, "cacert.pem")
+            with open(cert_path, "wb") as cert:
+                cert.write(pkgutil.get_data("pip._vendor.requests",
+                                            "cacert.pem"))
+
+            # Use an environment variable here so that users can still pass
+            # --cert via sys.argv
+            os.environ.setdefault("PIP_CERT", cert_path)
+
+        return main(['install', '--upgrade'] + packages + args)
+    finally:
+        # Remove our temporary directory
+        if delete_tmpdir and tmpdir:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 ############################################################
 ## Writing freeze files
