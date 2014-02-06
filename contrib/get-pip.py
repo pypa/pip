@@ -20359,7 +20359,6 @@ L2luc3RhbGwucHlQSwUGAAAAANsA2wCDSQAAzWURAAAA
 
 import base64
 import os.path
-import pkgutil
 import shutil
 import sys
 import tempfile
