@@ -131,13 +131,16 @@ class ConfigOptionParser(CustomOptionParser):
         self.config = ConfigParser.RawConfigParser()
         self.name = kwargs.pop('name')
         self.files = self.get_config_files()
-        self.config.read(self.files)
+        if self.files:
+            self.config.read(self.files)
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
-        if config_file and os.path.exists(config_file):
+        if config_file == os.devnull:
+            files = []
+        elif config_file and os.path.exists(config_file):
             files = [config_file]
         else:
             files = [default_config_file]
