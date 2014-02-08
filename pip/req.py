@@ -1339,11 +1339,12 @@ class RequirementSet(object):
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
                         command_desc='python setup.py clean')
 
-    def unpack_url(self, link, location, only_download=False):
-        if only_download:
-            loc = self.download_dir
-        else:
-            loc = location
+    def unpack_url(self, link, location, download_dir=None,
+                   only_download=False):
+        if download_dir is None:
+            download_dir = self.download_dir
+
+        # non-editable vcs urls
         if is_vcs_url(link):
             if only_download:
                 loc = download_dir
