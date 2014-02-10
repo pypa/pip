@@ -1,4 +1,5 @@
 import sys
 import pip
 
-sys.exit(pip.main())
+if __name__ == '__main__':
+    sys.exit(pip.main())
