@@ -876,6 +876,10 @@ exec(compile(
                 return True
             else:
                 self.satisfied_by = pkg_resources.get_distribution(self.req)
+
+            if self.editable and self.satisfied_by:
+                self.conflicts_with = self.satisfied_by
+                return True
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
