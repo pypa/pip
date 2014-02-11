@@ -54,7 +54,7 @@ class Command(object):
         self.parser.add_option_group(gen_opts)
 
     def _build_session(self, options):
-        session = PipSession()
+        session = PipSession(gssapi=options.gssapi)
 
         # Handle custom ca-bundles from the user
         if options.cert:

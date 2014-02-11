@@ -215,13 +215,26 @@ class PipSession(requests.Session):
     timeout = None
 
     def __init__(self, *args, **kwargs):
+        use_gssapi = kwargs.pop('gssapi', None)
+
         super(PipSession, self).__init__(*args, **kwargs)
+
+        if use_gssapi:
+            # Use Kerberos authentication
+            logger.info("Using Kerberos for authentication")
+            try:
+                from requests_kerberos import HTTPKerberosAuth
+                self.auth = HTTPKerberosAuth(mutual_authentication='OPTIONAL')
+            except ImportError as e:
+                logger.error("""Can't import module requests_kerberos: %s
+Falling back to basic auth..""", e)
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
 
-        # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth()
+        if not self.auth:
+            # Attach our Authentication handler to the session
+            self.auth = MultiDomainBasicAuth()
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())

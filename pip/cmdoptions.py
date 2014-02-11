@@ -107,6 +107,14 @@ no_input = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
+gssapi = OptionMaker(
+    # Don't ask for input
+    '--gssapi',
+    dest='gssapi',
+    action='store_true',
+    default=False,
+    help="Use Kerberos for authentication")
+
 proxy = OptionMaker(
     '--proxy',
     dest='proxy',
@@ -352,6 +360,7 @@ general_group = {
         log_explicit_levels,
         no_input,
         proxy,
+        gssapi,
         timeout,
         default_vcs,
         skip_requirements_regex,
