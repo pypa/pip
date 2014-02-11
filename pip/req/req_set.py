@@ -625,7 +625,8 @@ class RequirementSet(object):
                         # distribute wasn't installed, so nothing to do
                         pass
 
-                requirement.check_if_exists()
+                if not self.ignore_installed:
+                    requirement.check_if_exists()
 
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
