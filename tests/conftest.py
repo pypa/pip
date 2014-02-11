@@ -17,11 +17,18 @@ def tmpdir(request):
     directory. The returned object is a ``tests.lib.path.Path`` object.
 
     This is taken from pytest itself but modified to return our typical
-    path object instead of py.path.local.
+    path object instead of py.path.local as well as deleting the temporary
+    directories at the end of each test case.
     """
     name = request.node.name
     name = py.std.re.sub("[\W]", "_", name)
     tmp = request.config._tmpdirhandler.mktemp(name, numbered=True)
+
+    # Clear out the temporary directory after the test has finished using it.
+    # This should prevent us from needing a multiple gigabyte temporary
+    # directory while running the tests.
+    request.addfinalizer(lambda: shutil.rmtree(str(tmp), ignore_errors=True))
+
     return Path(tmp)
 
 
