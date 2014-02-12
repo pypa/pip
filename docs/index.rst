@@ -1,26 +1,25 @@
 pip
 ===
 
-A tool for installing and managing Python packages.
-
 `User list <http://groups.google.com/group/python-virtualenv>`_ |
 `Dev list <http://groups.google.com/group/pypa-dev>`_ |
-`Issues <https://github.com/pypa/pip/issues>`_ |
 `Github <https://github.com/pypa/pip>`_ |
 `PyPI <https://pypi.python.org/pypi/pip/>`_ |
-irc:#pip
+User IRC: #pip |
+Dev IRC: #pypa
 
+The `PyPA recommended
+<https://python-packaging-user-guide.readthedocs.org/en/latest/current.html>`_
+tool for installing and managing Python packages.
 
 .. toctree::
    :maxdepth: 2
 
    quickstart
    installing
-   usage
-   cookbook
-   logic
-   configuration
-   other-tools
+   user_guide
+   reference/index
    development
    news
+
 

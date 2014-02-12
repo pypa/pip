@@ -1,5 +1,5 @@
-====
-News
-====
+=============
+Release Notes
+=============
 
 .. include:: ../CHANGES.txt
