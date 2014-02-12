@@ -24,9 +24,6 @@ class InstallCommand(Command):
 
     pip also supports installing from "requirements files", which provide
     an easy way to specify a whole environment to be installed.
-
-    See http://www.pip-installer.org for details on VCS url formats and
-    requirements files.
     """
     name = 'install'
 

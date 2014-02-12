@@ -29,11 +29,10 @@ Then run the following (which may require administrator access):
 
  $ python get-pip.py
 
-.. note::
+If `setuptools`_ (or `distribute`_) is not already installed, ``get-pip.py`` will
+install `setuptools`_ for you. [2]_
 
-    Beginning with v1.5.1, pip does not require `setuptools`_ prior to running
-    `get-pip.py`. Additionally, if `setuptools`_ (or `distribute`_) is not
-    already installed, `get-pip.py` will install `setuptools`_ for you.
+To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
 
 
 Using Package Managers
@@ -56,7 +55,14 @@ On Fedora::
        tool like `curl` that verifies SSL certificates when downloading from
        https URLs.
 
+.. [2] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to
+       be installed first.
+
+.. [3] Although using ``pip install --upgrade setuptools`` to upgrade from
+       distribute to setuptools works in isolation, it's possible to get
+       "ImportError: No module named setuptools" when using pip<1.4 to upgrade a
+       package that depends on setuptools or distribute. See :doc:`here for
+       details <distribute_setuptools>`.
+
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
-
-
