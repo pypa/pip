@@ -7,4 +7,5 @@ Project Info
 * Bug Tracking: https://github.com/pypa/pip/issues
 * Mailing list: http://groups.google.com/group/python-virtualenv
 * Docs: http://www.pip-installer.org/
-* IRC: #pip on Freenode.
+* User IRC: #pip on Freenode.
+* Dev IRC: #pypa on Freenode.

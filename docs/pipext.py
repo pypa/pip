@@ -44,7 +44,7 @@ class PipOptions(rst.Directive):
             bookmark_line = ".. _`%s_%s`:" % (cmd_name, option._long_opts[0])
         else:
             bookmark_line = ".. _`%s`:" % option._long_opts[0]
-        line = "``"
+        line = ".. option:: "
         if option._short_opts:
             line += option._short_opts[0]
         if option._short_opts and option._long_opts:
@@ -54,7 +54,6 @@ class PipOptions(rst.Directive):
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
             line += " <%s>" % metavar.lower()
-        line += '``'
         #fix defaults
         opt_help = option.help.replace('%default', str(option.default))
         #fix paths with sys.prefix

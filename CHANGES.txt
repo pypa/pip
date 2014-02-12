@@ -1,8 +1,7 @@
-Changelog
-=========
 
-1.6.0.dev1 (unreleased)
------------------------
+
+**1.6.0.dev1 (unreleased)**
+
 
 * Fixed #1112. Couldn't download directly from wheel paths/urls, and when wheel
   downloads did occur using requirement specifiers, dependencies weren't
@@ -15,8 +14,8 @@ Changelog
   ``--find-links`` (PR #1524)
 
 
-1.5.2 (2014-01-26)
-------------------
+**1.5.2 (2014-01-26)**
+
 
 * Upgraded the vendored ``pkg_resources`` and ``_markerlib`` to setuptools 2.1.
 
@@ -27,8 +26,8 @@ Changelog
   part of the URL in a requirements file
 
 
-1.5.1 (2014-01-20)
-------------------
+**1.5.1 (2014-01-20)**
+
 
 * pip now only requires setuptools (any setuptools, not a certain version) when
   installing distributions from src (i.e. not from wheel). (Pull #1434).
@@ -46,9 +45,8 @@ Changelog
   #1457)
 
 
+**1.5 (2014-01-01)**
 
-1.5 (2014-01-01)
-----------------
 
 * **BACKWARD INCOMPATIBLE** pip no longer supports the ``--use-mirrors``,
   ``-M``, and ``--mirrors`` flags. The mirroring support has been removed. In
@@ -124,10 +122,8 @@ Changelog
   (Pull #1316)
 
 
+**1.4.1 (2013-08-07)**
 
-
-1.4.1 (2013-08-07)
-------------------
 
 * **New Signing Key** Release 1.4.1 is using a different key than normal with
   fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
@@ -139,8 +135,8 @@ Changelog
 * Fixes related to recognizing and cleaning global build dirs (Pull #1080).
 
 
-1.4 (2013-07-23)
-----------------
+**1.4 (2013-07-23)**
+
 
 * **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
   and offers a new ``--pre`` option to also find pre-release and development
@@ -188,14 +184,16 @@ Changelog
 
 * Fixed git VCS backend with git 1.8.3. (Pull #967)
 
-1.3.1 (2013-03-08)
-------------------
+
+**1.3.1 (2013-03-08)**
+
 
 * Fixed a major backward incompatible change of parsing URLs to externally
   hosted packages that got accidentily included in 1.3.
 
-1.3 (2013-03-07)
-----------------
+
+**1.3 (2013-03-07)**
+
 
 * SSL Cert Verification; Make https the default for PyPI access.
   Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791, CVE-2013-1629).
@@ -251,15 +249,17 @@ Changelog
   like the same option in distutils but also plays nice with pip's egg-info.
   Thanks Przemek Wrzos.  (Issue #253 / Pull #693)
 
-1.2.1 (2012-09-06)
-------------------
+
+**1.2.1 (2012-09-06)**
+
 
 * Fixed a regression introduced in 1.2 about raising an exception when
   not finding any files to uninstall in the current environment. Thanks for
   the fix, Marcus Smith.
 
-1.2 (2012-09-01)
-----------------
+
+**1.2 (2012-09-01)**
+
 
 * **Dropped support for Python 2.4** The minimum supported Python version is
   now Python 2.5.
@@ -327,8 +327,9 @@ Changelog
 
 * Added a better help formatter.
 
-1.1 (2012-02-16)
-----------------
+
+**1.1 (2012-02-16)**
+
 
 * Fixed issue #326 - don't crash when a package's setup.py emits UTF-8 and
   then fails. Thanks Marc Abramowitz.
@@ -387,8 +388,8 @@ Changelog
   requirements from VCS that have a changed repo URL.
 
 
-1.0.2 (2011-07-16)
-------------------
+**1.0.2 (2011-07-16)**
+
 
 * Fixed docs issues.
 * Fixed issue #295 - Reinstall a package when using the ``install -I`` option
@@ -397,8 +398,9 @@ Changelog
 * Fixed issue #314 - Correctly handle exceptions on Python3.
 * Fixed issue #320 - Correctly parse ``--editable`` lines in requirements files
 
-1.0.1 (2011-04-30)
-------------------
+
+**1.0.1 (2011-04-30)**
+
 
 * Start to use git-flow.
 * Fixed issue #274 - `find_command` should not raise AttributeError
@@ -408,8 +410,9 @@ Changelog
 * Fixed issue #44 - multiple CLI searches.
 * Fixed issue #266 - current working directory when running setup.py clean.
 
-1.0 (2011-04-04)
-----------------
+
+**1.0 (2011-04-04)**
+
 
 * Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
   Hightower, and Alex Gronholm, among others.
@@ -436,8 +439,9 @@ Changelog
       Make sure you have `distribute <http://pypi.python.org/pypi/distribute>`_
       installed before using the installer!
 
-0.8.3
------
+
+**0.8.3**
+
 
 * Moved main repository to Github: https://github.com/pypa/pip
 
@@ -459,8 +463,9 @@ Changelog
 
 * Fixed bug in version string parsing related to the suffix "-dev".
 
-0.8.2
------
+
+**0.8.2**
+
 
 * Avoid redundant unpacking of bundles (from pwaller)
 
@@ -476,8 +481,9 @@ Changelog
 
 * Added ``git+https://`` scheme to Git VCS backend.
 
-0.8.1
------
+
+**0.8.1**
+
 
 * Added global --user flag as shortcut for --install-option="--user". From
   Ronny Pfannschmidt.
@@ -496,9 +502,8 @@ Changelog
   Thanks Ronny Pfannschmidt and Wil Tan.
 
 
+**0.8**
 
-0.8
----
 
 * Track which ``build/`` directories pip creates, never remove directories
   it doesn't create.  From Hugo Lopes Tavares.
@@ -524,14 +529,16 @@ Changelog
 
 * Significant test framework changes, from Hugo Lopes Tavares.
 
-0.7.2
------
+
+**0.7.2**
+
 
 * Set zip_safe=False to avoid problems some people are encountering where
   pip is installed as a zip file.
 
-0.7.1
------
+
+**0.7.1**
+
 
 * Fixed opening of logfile with no directory name. Thanks Alexandre Conrad.
 
@@ -540,8 +547,9 @@ Changelog
 
 * Tests now require at least ScriptTest 1.0.3.
 
-0.7
----
+
+**0.7**
+
 
 * Fixed uninstallation on Windows
 * Added ``pip search`` command.
@@ -582,21 +590,24 @@ Changelog
   --extra-index-url.
 * Leftover build directories are now removed. Thanks Alexandre Conrad.
 
-0.6.3
------
+
+**0.6.3**
+
 
 * Fixed import error on Windows with regard to the backwards compatibility
   package
 
-0.6.2
------
+
+**0.6.2**
+
 
 * Fixed uninstall when /tmp is on a different filesystem.
 
 * Fixed uninstallation of distributions with namespace packages.
 
-0.6.1
------
+
+**0.6.1**
+
 
 * Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
@@ -609,8 +620,9 @@ Changelog
 * Fixed issue with ``pip bundle`` and local files (which weren't being
   copied into the bundle), from Whit Morriss.
 
-0.6
----
+
+**0.6**
+
 
 * Add ``pip uninstall`` and uninstall-before upgrade (from Carl
   Meyer).
@@ -640,13 +652,15 @@ Changelog
 
 * Creates download cache directory if not existing.
 
-0.5.1
------
+
+**0.5.1**
+
 
 * Fixed a couple little bugs, with git and with extensions.
 
-0.5
----
+
+**0.5**
+
 
 * Added ability to override the default log file name (``pip-log.txt``)
   with the environmental variable ``$PIP_LOG_FILE``.
@@ -698,8 +712,9 @@ Changelog
 * Fixed handling of attempt to checkout editable install to a
   non-empty, non-repo directory.
 
-0.4
----
+
+**0.4**
+
 
 * Make ``-e`` work better with local hg repositories
 
@@ -727,8 +742,9 @@ Changelog
 
 * Fixed support for Subversion 1.6.
 
-0.3.1
------
+
+**0.3.1**
+
 
 * Improved virtualenv restart and various path/cleanup problems on win32.
 
@@ -740,8 +756,9 @@ Changelog
 
 * Improve ``pip -h``
 
-0.3
----
+
+**0.3**
+
 
 * Added support for editable packages created from Git, Mercurial and Bazaar
   repositories and ability to freeze them. Refactored support for version
@@ -777,8 +794,9 @@ Changelog
 
 * Add ``--simulate`` option to ``pip zip``.
 
-0.2.1
------
+
+**0.2.1**
+
 
 * Fixed small problem that prevented using ``pip.py`` without actually
   installing pip.
@@ -797,8 +815,9 @@ Changelog
 
 * Turn some tar file errors into warnings.
 
-0.2
----
+
+**0.2**
+
 
 * Renamed to ``pip``, and to install you now do ``pip install
   PACKAGE``
@@ -811,8 +830,9 @@ Changelog
   creating a bundle using unnamed packages (like just an svn
   repository without ``#egg=Package``).
 
-0.1.4
------
+
+**0.1.4**
+
 
 * Added an option ``--install-option`` to pass options to pass
   arguments to ``setup.py install``
@@ -838,16 +858,18 @@ Changelog
   is still required, but just some downloads will be avoided when
   using this.
 
-0.1.3
------
+
+**0.1.3**
+
 
 * Always use ``svn checkout`` (not ``export``) so that
   ``tag_svn_revision`` settings give the revision of the package.
 
 * Don't update checkouts that came from ``.pybundle`` files.
 
-0.1.2
------
+
+**0.1.2**
+
 
 * Improve error text when there are errors fetching HTML pages when
   seeking packages.
@@ -860,8 +882,9 @@ Changelog
 
 * Fix ``dependency_links`` for finding packages.
 
-0.1.1
------
+
+**0.1.1**
+
 
 * Fixed a NameError exception when running pip outside of a
   virtualenv environment.
@@ -871,7 +894,8 @@ Changelog
 * Fixed use of ``hashlib.md5`` on python2.5+ (also from Prabhu
   Ramachandran)
 
-0.1
----
+
+**0.1**
+
 
 * Initial release
