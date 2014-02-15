@@ -710,6 +710,17 @@ exec(compile(
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
+            wheel_version = pip.wheel.wheel_version(self.source_dir)
+            if ((not wheel_version) or
+                    (wheel_version[0] > pip.wheel.VERSION_COMPATIBLE[0])):
+                raise UnsupportedWheel(
+                    "%s's wheel version is not compatible with this version "
+                    "of pip" % self.name
+                )
+            elif (wheel_version[0] == pip.wheel.VERSION_COMPATIBLE[0] and
+                    wheel_version > pip.wheel.VERSION_COMPATIBLE):
+                logger.warn('Installing a newer Wheel-Version: %s'
+                            % '.'.join(map(str, wheel_version)))
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return

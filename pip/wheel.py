@@ -21,8 +21,13 @@ from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor.pkg_resources import (
+    Distribution, FileMetadata, PathMetadata
+)
 
 wheel_ext = '.whl'
+
+VERSION_COMPATIBLE = (1, 0)
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):
@@ -390,6 +395,35 @@ def uninstallation_paths(dist):
             base = fn[:-3]
             path = os.path.join(dn, base+'.pyc')
             yield path
+
+
+def wheel_version(source_dir):
+    """
+    Return the Wheel-Version of an extracted wheel, if possible.
+
+    Otherwise, return False if we couldn't parse / extract it.
+    """
+    wheel_version_re = "Wheel-Version:(?P<version>.+)\n"
+    try:
+        entries = [e for e in os.listdir(source_dir)
+                   if e.lower().endswith('.dist-info')]
+        entry = entries[0]
+        fullpath = os.path.join(source_dir, entry)
+        if os.path.isdir(fullpath):
+            # egg-info directory, allow getting metadata
+            metadata = PathMetadata(source_dir, fullpath)
+        else:
+            metadata = FileMetadata(fullpath)
+        dist = Distribution.from_location(
+            source_dir, entry, metadata
+        )
+        wheel_data = dist.get_metadata('WHEEL')
+        match = re.search(wheel_version_re, wheel_data)
+        version = match.group('version').strip()
+        version = tuple(map(int, version.split('.')))
+        return version
+    except:
+        return False
 
 
 class Wheel(object):

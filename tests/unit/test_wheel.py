@@ -4,6 +4,7 @@ import pytest
 from mock import patch
 from pip import wheel
 from pip.exceptions import InvalidWheelFilename
+from pip.util import unpack_file
 
 
 def test_get_entrypoints(tmpdir):
@@ -44,6 +45,20 @@ def test_uninstallation_paths():
     paths2 = list(wheel.uninstallation_paths(d))
 
     assert paths2 == paths
+
+
+def test_version_compatible(tmpdir, data):
+    future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
+    broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
+    future_version = (1, 9)
+
+    unpack_file(data.packages.join(future_wheel),
+                tmpdir + 'future', None, None)
+    unpack_file(data.packages.join(broken_wheel),
+                tmpdir + 'broken', None, None)
+
+    assert wheel.wheel_version(tmpdir + 'future') == future_version
+    assert not wheel.wheel_version(tmpdir + 'broken')
 
 
 class TestWheelFile(object):

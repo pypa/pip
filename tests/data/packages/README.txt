@@ -29,6 +29,10 @@ FSPkg
 -----
 for installing from the file system
 
+futurewheel
+-----------
+Wheels of a Wheel-Version that is newer in minor and major series.
+
 gmpy-1.15.tar.gz
 ----------------
 hash testing (although this pkg isn't needed explicitly)
