@@ -3,18 +3,23 @@ import pytest
 import glob
 
 from tests.lib.path import Path
+from tests.lib import TestFailure
 
 
 def test_install_from_future_wheel_version(script, data):
     """
     Test installing a future wheel (minor series)
     """
-    package = data.packages.join("futurewheel-1.9-py2.py3-none-any.whl")
-    result = script.pip('install', package, '--no-index', expect_error=False)
-    # TODO: test that warning is produced
     package = data.packages.join("futurewheel-3.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
-    # TODO: test that package didn't install, anything else necessary?
+    with pytest.raises(TestFailure):
+        result.assert_installed('futurewheel', without_egg_link=True,
+                                editable=False)
+
+    package = data.packages.join("futurewheel-1.9-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index', expect_error=False)
+    result.assert_installed('futurewheel', without_egg_link=True,
+                            editable=False)
 
 
 def test_install_from_broken_wheel(script, data):
@@ -23,7 +28,9 @@ def test_install_from_broken_wheel(script, data):
     """
     package = data.packages.join("brokenwheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
-    # TODO: test that package didn't install, anything else necessary?
+    with pytest.raises(TestFailure):
+        result.assert_installed('futurewheel', without_egg_link=True,
+                                editable=False)
 
 
 def test_install_from_wheel(script, data):
