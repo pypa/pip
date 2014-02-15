@@ -13,17 +13,22 @@ import shutil
 import sys
 
 from base64 import urlsafe_b64encode
+from email.parser import Parser
 
 from pip.backwardcompat import ConfigParser, StringIO
-from pip.exceptions import InvalidWheelFilename
+from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor import pkg_resources
+
 
 wheel_ext = '.whl'
+
+VERSION_COMPATIBLE = (1, 0)
 
 
 def rehash(path, algo='sha256', blocksize=1<<20):
@@ -386,6 +391,52 @@ def uninstallation_paths(dist):
             base = fn[:-3]
             path = os.path.join(dn, base+'.pyc')
             yield path
+
+
+def wheel_version(source_dir):
+    """
+    Return the Wheel-Version of an extracted wheel, if possible.
+
+    Otherwise, return False if we couldn't parse / extract it.
+    """
+    try:
+        dist = [d for d in pkg_resources.find_on_path(None, source_dir)][0]
+
+        wheel_data = dist.get_metadata('WHEEL')
+        wheel_data = Parser().parsestr(wheel_data)
+
+        version = wheel_data['Wheel-Version'].strip()
+        version = tuple(map(int, version.split('.')))
+        return version
+    except:
+        return False
+
+
+def check_compatibility(version, name):
+    """
+    Raises errors or warns if called with an incompatible Wheel-Version.
+
+    Pip should refuse to install a Wheel-Version that's a major series
+    ahead of what it's compatible with (e.g 2.0 > 1.1); and warn when
+    installing a version only minor version ahead (e.g 1.2 > 1.1).
+
+    version: a 2-tuple representing a Wheel-Version (Major, Minor)
+    name: name of wheel or package to raise exception about
+
+    :raises UnsupportedWheel: when an incompatible Wheel-Version is given
+    """
+    if not version:
+        raise UnsupportedWheel(
+            "%s is in an unsupported or invalid wheel" % name
+        )
+    if version[0] > VERSION_COMPATIBLE[0]:
+        raise UnsupportedWheel(
+            "%s's Wheel-Version (%s) is not compatible with this version "
+            "of pip" % (name, '.'.join(map(str, version)))
+        )
+    elif version > VERSION_COMPATIBLE:
+        logger.warn('Installing from a newer Wheel-Version (%s)'
+                    % '.'.join(map(str, version)))
 
 
 class Wheel(object):
