@@ -13,6 +13,7 @@ import shutil
 import sys
 
 from base64 import urlsafe_b64encode
+from email.parser import Parser
 
 from pip.backwardcompat import ConfigParser, StringIO, binary
 from pip.exceptions import InvalidWheelFilename
@@ -21,9 +22,8 @@ from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.pkg_resources import (
-    Distribution, FileMetadata, PathMetadata
-)
+from pip._vendor.pkg_resources import Distribution, PathMetadata
+
 
 wheel_ext = '.whl'
 
@@ -403,23 +403,20 @@ def wheel_version(source_dir):
 
     Otherwise, return False if we couldn't parse / extract it.
     """
-    wheel_version_re = "Wheel-Version:(?P<version>.+)\n"
     try:
         entries = [e for e in os.listdir(source_dir)
                    if e.lower().endswith('.dist-info')]
         entry = entries[0]
         fullpath = os.path.join(source_dir, entry)
-        if os.path.isdir(fullpath):
-            # egg-info directory, allow getting metadata
-            metadata = PathMetadata(source_dir, fullpath)
-        else:
-            metadata = FileMetadata(fullpath)
+        metadata = PathMetadata(source_dir, fullpath)
+
         dist = Distribution.from_location(
             source_dir, entry, metadata
         )
+
         wheel_data = dist.get_metadata('WHEEL')
-        match = re.search(wheel_version_re, wheel_data)
-        version = match.group('version').strip()
+        wheel_data = Parser().parsestr(wheel_data)
+        version = wheel_data['Wheel-Version'].strip()
         version = tuple(map(int, version.split('.')))
         return version
     except:
