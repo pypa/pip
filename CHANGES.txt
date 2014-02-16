@@ -4,6 +4,9 @@ Changelog
 1.5.3 (unreleased)
 ------------------
 
+* **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
+  deprecated.  See Issue #906 for discussion.
+
 * Fixed #1112. Couldn't download directly from wheel paths/urls, and when wheel
   downloads did occur using requirement specifiers, dependencies weren't
   downloaded (PR #1527)
