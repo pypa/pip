@@ -165,6 +165,10 @@ class InstallCommand(Command):
 
         cmd_opts.add_option(cmdoptions.use_wheel.make())
         cmd_opts.add_option(cmdoptions.no_use_wheel.make())
+        cmd_opts.add_option(cmdoptions.wheel_cache.make())
+        cmd_opts.add_option(cmdoptions.wheel_cache_rebuild.make())
+        cmd_opts.add_option(cmdoptions.wheel_cache_dir.make())
+        cmd_opts.add_option(cmdoptions.wheel_cache_exclude.make())
 
         cmd_opts.add_option(
             '--pre',
@@ -278,6 +282,9 @@ class InstallCommand(Command):
             target_dir=temp_target_dir,
             session=session,
             pycompile=options.compile,
+            wheel_cache = options.wheel_cache,
+            wheel_cache_dir = options.wheel_cache_dir,
+            wheel_cache_exclude = options.wheel_cache_exclude
         )
         for name in args:
             requirement_set.add_requirement(

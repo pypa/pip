@@ -17,6 +17,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
                       create_download_cache_folder, cache_download)
+from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip.log import logger
 from pip._vendor import requests, six
@@ -496,6 +497,39 @@ def _copy_file(filename, location, content_type, link):
     if copy:
         shutil.copy(filename, download_location)
         logger.notify('Saved %s' % display_path(download_location))
+
+
+def unpack_url(link, location, download_dir=None, only_download=False,
+               download_cache=None, session=None):
+
+    if session is None:
+        session = PipSession()
+
+    # non-editable vcs urls
+    if is_vcs_url(link):
+        if only_download:
+            loc = download_dir
+        else:
+            loc = location
+        unpack_vcs_link(link, loc, only_download)
+
+    # file urls
+    elif is_file_url(link):
+        unpack_file_url(link, location, download_dir)
+        if only_download:
+            write_delete_marker_file(location)
+
+    # http urls
+    else:
+        unpack_http_url(
+            link,
+            location,
+            download_cache,
+            download_dir,
+            session,
+        )
+        if only_download:
+            write_delete_marker_file(location)
 
 
 def unpack_http_url(link, location, download_cache, download_dir=None,

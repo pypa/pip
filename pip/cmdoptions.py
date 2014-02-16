@@ -9,7 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import build_prefix, default_log_file
+from pip.locations import build_prefix, default_log_file, default_wheel_cache
 
 
 def make_option_group(group, parser):
@@ -285,6 +285,31 @@ no_use_wheel = OptionMaker(
     help=('Do not Find and prefer wheel archives when searching indexes and '
           'find-links locations.'),
 )
+
+wheel_cache = OptionMaker(
+    '--wheel-cache',
+    action='store_true',
+    default=False,
+    help="Build and Cache wheels.")
+
+wheel_cache_rebuild = OptionMaker(
+    '--wheel-cache-rebuild',
+    action='store_true',
+    default=False,
+    help="Rebuild pre-existing wheels in the cache.")
+
+wheel_cache_dir = OptionMaker(
+    '--wheel-cache-dir',
+    metavar='dir',
+    default=default_wheel_cache,
+    help='Directory for cached wheels. Defaults to %default.')
+
+wheel_cache_exclude = OptionMaker(
+    '--wheel-cache-exclude',
+    action='append',
+    default=[],
+    metavar='pkg',
+    help="A Package to exclude from wheel building and caching.")
 
 download_cache = OptionMaker(
     '--download-cache',
