@@ -357,12 +357,17 @@ class RequirementSet(object):
                         if url:
                             try:
 
-                                if (
-                                    url.filename.endswith(wheel_ext)
+                                # 'pip wheel'
+                                if (url.filename.endswith(wheel_ext)
                                     and self.wheel_download_dir
                                 ):
-                                    # when doing 'pip wheel`
                                     download_dir = self.wheel_download_dir
+                                    do_download = True
+                                # 'pip install --wheel-cache'
+                                elif (url.filename.endswith(wheel_ext)
+                                    and self.wheel_cache_dir
+                                ):
+                                    download_dir = self.wheel_cache_dir
                                     do_download = True
                                 else:
                                     download_dir = self.download_dir
