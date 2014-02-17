@@ -23,8 +23,6 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['PackageFinder']
 
 
-DEFAULT_MIRROR_HOSTNAME = "last.pypi.python.org"
-
 INSECURE_SCHEMES = {
     "http": ["https"],
 }
