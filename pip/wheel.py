@@ -22,7 +22,6 @@ from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
-# from pip._vendor.pkg_resources import Distribution, PathMetadata
 from pip._vendor import pkg_resources
 
 
