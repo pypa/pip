@@ -8,7 +8,7 @@ from tests.lib import TestFailure
 
 def test_install_from_future_wheel_version(script, data):
     """
-    Test installing a future wheel (minor series)
+    Test installing a future wheel
     """
     package = data.packages.join("futurewheel-3.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
@@ -24,7 +24,7 @@ def test_install_from_future_wheel_version(script, data):
 
 def test_install_from_broken_wheel(script, data):
     """
-    Test installing a future wheel (minor series)
+    Test that installing a broken wheel fails properly
     """
     package = data.packages.join("brokenwheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)

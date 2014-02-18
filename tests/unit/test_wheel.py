@@ -3,7 +3,7 @@ import pytest
 
 from mock import patch
 from pip import wheel
-from pip.exceptions import InvalidWheelFilename
+from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.util import unpack_file
 
 
@@ -47,7 +47,7 @@ def test_uninstallation_paths():
     assert paths2 == paths
 
 
-def test_version_compatible(tmpdir, data):
+def test_wheel_version(tmpdir, data):
     future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
@@ -59,6 +59,33 @@ def test_version_compatible(tmpdir, data):
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
     assert not wheel.wheel_version(tmpdir + 'broken')
+
+
+def test_check_compatibility():
+    name = 'test'
+    higher_v = lower_v = wheel.VERSION_COMPATIBLE[:]
+
+    higher_v = (higher_v[0] + 1, higher_v[1])
+
+    # test raises
+    with pytest.raises(UnsupportedWheel):
+        wheel.check_compatibility(higher_v, name)
+
+    # test raises with correct error
+    try:
+        wheel.check_compatibility(higher_v, name)
+    except UnsupportedWheel as e:
+        assert 'is not compatible' in e.message
+
+    # Should only log.warn
+    wheel.check_compatibility((1, 9), name)
+
+    # These should work fine
+    wheel.check_compatibility(wheel.VERSION_COMPATIBLE, name)
+
+    lower_v = (lower_v[0], lower_v[1] - 1)
+    lower_v = wheel.VERSION_COMPATIBLE[:]
+    wheel.check_compatibility(lower_v, name)
 
 
 class TestWheelFile(object):
