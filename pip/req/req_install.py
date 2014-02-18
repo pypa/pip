@@ -28,7 +28,9 @@ from pip.util import (
 )
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip.wheel import (
+    move_wheel_files, Wheel, wheel_ext, wheel_version
+)
 
 
 class InstallRequirement(object):
@@ -710,17 +712,9 @@ exec(compile(
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
-            wheel_version = pip.wheel.wheel_version(self.source_dir)
-            if ((not wheel_version) or
-                    (wheel_version[0] > pip.wheel.VERSION_COMPATIBLE[0])):
-                raise UnsupportedWheel(
-                    "%s's wheel version is not compatible with this version "
-                    "of pip" % self.name
-                )
-            elif (wheel_version[0] == pip.wheel.VERSION_COMPATIBLE[0] and
-                    wheel_version > pip.wheel.VERSION_COMPATIBLE):
-                logger.warn('Installing a newer Wheel-Version: %s'
-                            % '.'.join(map(str, wheel_version)))
+            version = wheel_version(self.source_dir)
+            pip.wheel.check_compatibility(version, self.name)
+
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
@@ -1109,8 +1103,8 @@ def parse_editable(editable_req, default_vcs=None):
         options = _build_editable_options(editable_req)
     except Exception as exc:
         raise InstallationError(
-            '--editable=%s error in editable options:%s' % (editable_req, exc))
-
+            '--editable=%s error in editable options:%s' % (editable_req, exc)
+        )
     if not options or 'egg' not in options:
         req = _build_req_from_url(editable_req)
         if not req:

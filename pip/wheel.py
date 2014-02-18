@@ -16,13 +16,14 @@ from base64 import urlsafe_b64encode
 from email.parser import Parser
 
 from pip.backwardcompat import ConfigParser, StringIO, binary
-from pip.exceptions import InvalidWheelFilename
+from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.pkg_resources import Distribution, PathMetadata
+# from pip._vendor.pkg_resources import Distribution, PathMetadata
+from pip._vendor import pkg_resources
 
 
 wheel_ext = '.whl'
@@ -404,23 +405,36 @@ def wheel_version(source_dir):
     Otherwise, return False if we couldn't parse / extract it.
     """
     try:
-        entries = [e for e in os.listdir(source_dir)
-                   if e.lower().endswith('.dist-info')]
-        entry = entries[0]
-        fullpath = os.path.join(source_dir, entry)
-        metadata = PathMetadata(source_dir, fullpath)
-
-        dist = Distribution.from_location(
-            source_dir, entry, metadata
-        )
+        dist = [d for d in pkg_resources.find_on_path(None, source_dir)][0]
 
         wheel_data = dist.get_metadata('WHEEL')
         wheel_data = Parser().parsestr(wheel_data)
+
         version = wheel_data['Wheel-Version'].strip()
         version = tuple(map(int, version.split('.')))
         return version
     except:
         return False
+
+
+def check_compatibility(version, name):
+    """
+    Raises errors or warns if called with an incompatible wheel version
+
+    name: name of wheel or package to raise exception about
+    """
+    if not version:
+        raise UnsupportedWheel(
+            "%s is in an unsupported or invalid wheel" % name
+        )
+    if version[0] > VERSION_COMPATIBLE[0]:
+        raise UnsupportedWheel(
+            "%s's Wheel-Version (%s) is not compatible with this version "
+            "of pip" % (name, '.'.join(map(str, version)))
+        )
+    elif version > VERSION_COMPATIBLE:
+        logger.warn('Installing from a newer Wheel-Version: %s'
+                    % '.'.join(map(str, version)))
 
 
 class Wheel(object):
