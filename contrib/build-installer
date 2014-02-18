@@ -32,61 +32,14 @@ ZIPFILE = b\"\"\"
 
 import base64
 import os.path
-import pkgutil
 import shutil
 import sys
 import tempfile
 
 
-def bootstrap(tmpdir=None):
-    # Import pip so we can use it to install pip and maybe setuptools too
-    import pip
-
-    # We always want to install pip
-    packages = ["pip"]
-
-    # Check if the user has requested us not to install setuptools
-    if "--no-setuptools" in sys.argv or os.environ.get("PIP_NO_SETUPTOOLS"):
-        args = [x for x in sys.argv[1:] if x != "--no-setuptools"]
-    else:
-        args = sys.argv[1:]
-
-        # We want to see if setuptools is available before attempting to
-        # install it
-        try:
-            import setuptools  # noqa
-        except ImportError:
-            packages += ["setuptools"]
-
-    delete_tmpdir = False
-    try:
-        # Create a temporary directory to act as a working directory if we were
-        # not given one.
-        if tmpdir is None:
-            tmpdir = tempfile.mkdtemp()
-            delete_tmpdir = True
-
-        # We need to extract the SSL certificates from requests so that they
-        # can be passed to --cert
-        cert_path = os.path.join(tmpdir, "cacert.pem")
-        with open(cert_path, "wb") as cert:
-            cert.write(pkgutil.get_data("pip._vendor.requests", "cacert.pem"))
-
-        # Use an environment variable here so that users can still pass
-        # --cert via sys.argv
-        os.environ.setdefault("PIP_CERT", cert_path)
-
-        # Execute the included pip and use it to install the latest pip and
-        # setuptools from PyPI
-        sys.exit(pip.main(["install", "--upgrade"] + packages + args))
-    finally:
-        # Remove our temporary directory
-        if delete_tmpdir and tmpdir:
-            shutil.rmtree(tmpdir, ignore_errors=True)
-
-
 def main():
     tmpdir = None
+
     try:
         # Create a temporary working directory
         tmpdir = tempfile.mkdtemp()
@@ -99,16 +52,17 @@ def main():
         # Add the zipfile to sys.path so that we can import it
         sys.path.insert(0, pip_zip)
 
+        import pip
+
         # Run the bootstrap
-        bootstrap(tmpdir=tmpdir)
+        return pip.bootstrap(tmpdir=tmpdir, in_zip=True)
     finally:
         # Clean up our temporary working directory
         if tmpdir:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
-
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 """.lstrip()
 
 
