@@ -63,9 +63,10 @@ def test_wheel_version(tmpdir, data):
 
 def test_check_compatibility():
     name = 'test'
-    higher_v = lower_v = wheel.VERSION_COMPATIBLE[:]
+    vc = wheel.VERSION_COMPATIBLE
 
-    higher_v = (higher_v[0] + 1, higher_v[1])
+    # Major version is higher - should be incompatible
+    higher_v = (vc[0] + 1, vc[1])
 
     # test raises
     with pytest.raises(UnsupportedWheel):
@@ -77,14 +78,15 @@ def test_check_compatibility():
     except UnsupportedWheel as e:
         assert 'is not compatible' in str(e)
 
-    # Should only log.warn
-    wheel.check_compatibility((1, 9), name)
+    # Should only log.warn - minor version is greator
+    higher_v = (vc[0], vc[1] + 1)
+    wheel.check_compatibility(higher_v, name)
 
     # These should work fine
     wheel.check_compatibility(wheel.VERSION_COMPATIBLE, name)
 
-    lower_v = (lower_v[0], lower_v[1] - 1)
-    lower_v = wheel.VERSION_COMPATIBLE[:]
+    # E.g if wheel to install is 1.0 and we support up to 1.2
+    lower_v = (vc[0], max(0, vc[1] - 1))
     wheel.check_compatibility(lower_v, name)
 
 

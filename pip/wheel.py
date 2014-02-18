@@ -432,7 +432,7 @@ def check_compatibility(version, name):
             "of pip" % (name, '.'.join(map(str, version)))
         )
     elif version > VERSION_COMPATIBLE:
-        logger.warn('Installing from a newer Wheel-Version: %s'
+        logger.warn('Installing from a newer Wheel-Version (%s)'
                     % '.'.join(map(str, version)))
 
 

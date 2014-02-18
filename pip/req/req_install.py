@@ -28,9 +28,7 @@ from pip.util import (
 )
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import (
-    move_wheel_files, Wheel, wheel_ext, wheel_version
-)
+from pip.wheel import move_wheel_files, Wheel, wheel_ext
 
 
 class InstallRequirement(object):
@@ -712,7 +710,7 @@ exec(compile(
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
-            version = wheel_version(self.source_dir)
+            version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
             self.move_wheel_files(self.source_dir, root=root)
