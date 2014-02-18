@@ -75,7 +75,7 @@ def test_check_compatibility():
     try:
         wheel.check_compatibility(higher_v, name)
     except UnsupportedWheel as e:
-        assert 'is not compatible' in e.message
+        assert 'is not compatible' in str(e)
 
     # Should only log.warn
     wheel.check_compatibility((1, 9), name)
