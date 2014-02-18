@@ -71,6 +71,30 @@ Like all pip options, ``--log`` and ``log-file``, can also be set as an environm
 variable, or placed into the pip config file.  See the :ref:`Configuration`
 section.
 
+.. _`exists-action`:
+
+--exists-action option
+======================
+
+This option specifies default behavior when path already exists.
+Possible cases: downloading files or checking out repositories for installation,
+creating archives. If ``--exists-action`` is not defined, pip will prompt
+when decision is needed.
+
+*(s)witch*
+    Only relevant to VCS checkout. Attempt to switch the checkout
+    to the appropriate url and/or revision.
+*(i)gnore*
+    Abort current operation (e.g. don't copy file, don't create archive,
+    don't modify a checkout).
+*(w)ipe*
+    Delete the file or VCS checkout before trying to create, download, or checkout a new one.
+*(b)ackup*
+    Rename the file or checkout to ``{name}{'.bak' * n}``, where n is some number
+    of ``.bak`` extensions, such that the file didn't exist at some point.
+    So the most recent backup will be the one with the largest number after ``.bak``.
+
+
 .. _`General Options`:
 
 General Options
