@@ -4,6 +4,10 @@ import sys
 # This allows the usage python pip-*.whl/pip install pip-*.whl
 if __package__ == '':
     import os
+    # __file__ is pip-*.whl/pip/__main__.py
+    # first dirname call strips of '/__main__.py', second strips off '/pip'
+    # Resulting path is the name of the wheel itself
+    # Add that to sys.path so we can import pip
     path = os.path.dirname(os.path.dirname(__file__))
     sys.path.insert(0, path)
 
