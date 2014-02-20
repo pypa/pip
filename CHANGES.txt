@@ -19,6 +19,9 @@ Changelog
 
 * Workaround for Python bug http://bugs.python.org/issue20053 (PR #1544)
 
+* Don't pass a unicode __file__ to setup.py on Python 2.x (PR #1583)
+
+
 1.5.2 (2014-01-26)
 ------------------
 
