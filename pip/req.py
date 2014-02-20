@@ -661,6 +661,9 @@ exec(compile(getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', 
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
+            version = pip.wheel.wheel_version(self.source_dir)
+            pip.wheel.check_compatibility(version, self.name)
+
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
