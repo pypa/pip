@@ -136,3 +136,10 @@ def get_path_uid(path):
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError("%s is a symlink; Will not return uid for symlinks" % path)
     return file_uid
+
+
+# packages in the stdlib that may have installation metadata, but should not be
+# considered 'installed'
+stdlib_pkgs = ['python', 'wsgiref']
+if sys.version_info >= (2, 7):
+    stdlib_pkgs.extend(['argparse'])

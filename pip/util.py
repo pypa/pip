@@ -11,7 +11,8 @@ import textwrap
 
 from pip.exceptions import InstallationError, BadCommand, PipError
 from pip.backwardcompat import(WindowsError, string_types, raw_input,
-                                console_to_str, user_site, PermissionError)
+                               console_to_str, user_site, PermissionError,
+                               stdlib_pkgs)
 from pip.locations import site_packages, running_under_virtualenv, virtualenv_no_global
 from pip.log import logger
 from pip._vendor import pkg_resources
@@ -349,7 +350,7 @@ def dist_is_editable(dist):
     return req.editable
 
 def get_installed_distributions(local_only=True,
-                                skip=('setuptools', 'pip', 'python', 'distribute'),
+                                skip=stdlib_pkgs,
                                 include_editables=True,
                                 editables_only=False):
     """
@@ -359,8 +360,7 @@ def get_installed_distributions(local_only=True,
     local to the current virtualenv, if in a virtualenv.
 
     ``skip`` argument is an iterable of lower-case project names to
-    ignore; defaults to ('setuptools', 'pip', 'python'). [FIXME also
-    skip virtualenv?]
+    ignore; defaults to stdlib_pkgs
 
     If ``editables`` is False, don't report editables.
 

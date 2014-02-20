@@ -14,9 +14,6 @@ class ListCommand(Command):
       %prog [options]"""
     summary = 'List installed packages.'
 
-    # distributions to skip (python itself is reported by pkg_resources.working_set)
-    skip = ['python']
-
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
 
@@ -105,7 +102,7 @@ class ListCommand(Command):
             index_urls += options.mirrors
 
         dependency_links = []
-        for dist in get_installed_distributions(local_only=options.local, skip=self.skip):
+        for dist in get_installed_distributions(local_only=options.local):
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -116,7 +113,7 @@ class ListCommand(Command):
         finder = self._build_package_finder(options, index_urls, session)
         finder.add_dependency_links(dependency_links)
 
-        installed_packages = get_installed_distributions(local_only=options.local, include_editables=False, skip=self.skip)
+        installed_packages = get_installed_distributions(local_only=options.local, include_editables=False)
         for dist in installed_packages:
             req = InstallRequirement.from_line(dist.key, None)
             try:
@@ -138,7 +135,7 @@ class ListCommand(Command):
             yield dist, remote_version_raw, remote_version_parsed
 
     def run_listing(self, options):
-        installed_packages = get_installed_distributions(local_only=options.local, skip=self.skip)
+        installed_packages = get_installed_distributions(local_only=options.local)
         self.output_package_listing(installed_packages)
 
     def run_editables(self, options):
