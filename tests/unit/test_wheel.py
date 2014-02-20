@@ -3,7 +3,8 @@ import pytest
 
 from mock import patch
 from pip import wheel
-from pip.exceptions import InvalidWheelFilename
+from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip.util import unpack_file
 
 
 def test_get_entrypoints(tmpdir):
@@ -44,6 +45,44 @@ def test_uninstallation_paths():
     paths2 = list(wheel.uninstallation_paths(d))
 
     assert paths2 == paths
+
+
+def test_wheel_version(tmpdir, data):
+    future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
+    broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
+    future_version = (1, 9)
+
+    unpack_file(data.packages.join(future_wheel),
+                tmpdir + 'future', None, None)
+    unpack_file(data.packages.join(broken_wheel),
+                tmpdir + 'broken', None, None)
+
+    assert wheel.wheel_version(tmpdir + 'future') == future_version
+    assert not wheel.wheel_version(tmpdir + 'broken')
+
+
+def test_check_compatibility():
+    name = 'test'
+    vc = wheel.VERSION_COMPATIBLE
+
+    # Major version is higher - should be incompatible
+    higher_v = (vc[0] + 1, vc[1])
+
+    # test raises with correct error
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.check_compatibility(higher_v, name)
+    assert 'is not compatible' in str(e)
+
+    # Should only log.warn - minor version is greator
+    higher_v = (vc[0], vc[1] + 1)
+    wheel.check_compatibility(higher_v, name)
+
+    # These should work fine
+    wheel.check_compatibility(wheel.VERSION_COMPATIBLE, name)
+
+    # E.g if wheel to install is 1.0 and we support up to 1.2
+    lower_v = (vc[0], max(0, vc[1] - 1))
+    wheel.check_compatibility(lower_v, name)
 
 
 class TestWheelFile(object):

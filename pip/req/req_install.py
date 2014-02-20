@@ -710,6 +710,9 @@ exec(compile(
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
+            version = pip.wheel.wheel_version(self.source_dir)
+            pip.wheel.check_compatibility(version, self.name)
+
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
@@ -1098,8 +1101,8 @@ def parse_editable(editable_req, default_vcs=None):
         options = _build_editable_options(editable_req)
     except Exception as exc:
         raise InstallationError(
-            '--editable=%s error in editable options:%s' % (editable_req, exc))
-
+            '--editable=%s error in editable options:%s' % (editable_req, exc)
+        )
     if not options or 'egg' not in options:
         req = _build_req_from_url(editable_req)
         if not req:
