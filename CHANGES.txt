@@ -21,6 +21,8 @@ Changelog
 
 * Don't pass a unicode __file__ to setup.py on Python 2.x (PR #1583)
 
+* Verify that the Wheel version is compatible with this pip (PR #1569)
+
 
 1.5.2 (2014-01-26)
 ------------------
