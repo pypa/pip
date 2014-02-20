@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.3 (unreleased)
+1.5.3 (2014-02-20)
 ------------------
 
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
