@@ -271,6 +271,11 @@ class InstallRequirement(object):
         else:
             setup_py = os.path.join(self.source_dir, setup_file)
 
+        if sys.version_info[0] < 3:
+            # Python2 __file__ should not be unicode
+            if isinstance(setup_py, unicode):
+                setup_py = setup_py.encode(sys.getfilesystemencoding())
+
         return setup_py
 
     def run_egg_info(self, force_root_egg_info=False):
