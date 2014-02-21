@@ -190,7 +190,6 @@ class InstallCommand(Command):
         if (
             options.no_install or
             options.no_download or
-            options.build_dir or
             options.no_clean
         ):
             logger.deprecated('1.7', 'DEPRECATION: --no-install, --no-download, --build, '
