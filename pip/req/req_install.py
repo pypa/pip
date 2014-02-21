@@ -8,7 +8,7 @@ from distutils.util import change_root
 from email.parser import FeedParser
 
 import pip.wheel
-from pip._vendor import pkg_resources
+from pip._vendor import pkg_resources, six
 from pip.backwardcompat import (
     urllib, ConfigParser, string_types, get_python_version,
 )
@@ -270,6 +270,10 @@ class InstallRequirement(object):
 
         else:
             setup_py = os.path.join(self.source_dir, setup_file)
+
+        # Python2 __file__ should not be unicode
+        if six.PY2 and isinstance(setup_py, six.text_type):
+            setup_py = setup_py.encode(sys.getfilesystemencoding())
 
         return setup_py
 

@@ -203,11 +203,17 @@ class InstallCommand(Command):
 
     def run(self, options, args):
 
-        if options.no_install or options.no_download:
+        if (
+            options.no_install or
+            options.no_download or
+            options.build_dir or
+            options.no_clean
+        ):
             logger.deprecated(
                 '1.7',
-                "DEPRECATION: '--no-install' and '--no-download` are "
-                "deprecated.  See https://github.com/pypa/pip/issues/906."
+                'DEPRECATION: --no-install, --no-download, --build, '
+                'and --no-clean are deprecated.  See '
+                'https://github.com/pypa/pip/issues/906.',
             )
 
         if options.download_dir:
