@@ -3,6 +3,13 @@
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
 
+**1.5.4 (2014-02-21)**
+
+
+* Correct deprecation warning for ``pip install --build`` to only notify when
+  the `--build` value is different than the default.
+
+
 **1.5.3 (2014-02-20)**
 
 
