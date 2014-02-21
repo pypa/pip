@@ -4,7 +4,8 @@ import tempfile
 import shutil
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
-from pip.locations import src_prefix, virtualenv_no_global, distutils_scheme
+from pip.locations import (src_prefix, virtualenv_no_global, distutils_scheme,
+                           build_prefix)
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import InstallationError, CommandError, PreviousBuildDirError
@@ -187,7 +188,7 @@ class InstallCommand(Command):
         if (
             options.no_install or
             options.no_download or
-            options.build_dir or
+            (options.build_dir != build_prefix) or
             options.no_clean
         ):
             logger.deprecated('1.7', 'DEPRECATION: --no-install, --no-download, --build, '
