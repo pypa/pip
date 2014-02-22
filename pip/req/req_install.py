@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 import shutil
@@ -12,7 +13,8 @@ from pip._vendor import pkg_resources, six
 from pip.backwardcompat import (
     urllib, ConfigParser, string_types, get_python_version,
 )
-from pip.download import is_url, url_to_path, path_to_url, is_archive_file
+from pip.download import (is_url, url_to_path, path_to_url, is_archive_file,
+                          unpack_url)
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
 )
@@ -28,7 +30,7 @@ from pip.util import (
 )
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip.wheel import move_wheel_files, Wheel, wheel_ext, bdist_wheel
 
 
 class InstallRequirement(object):
@@ -708,6 +710,33 @@ exec(compile(
         name = name[len(prefix)+1:]
         name = name.replace(os.path.sep, '/')
         return name
+
+    def build(self, wheel_cache_dir, build_options, global_options):
+        """Build a wheel from sdist src, and place it in the cache"""
+
+        if self.is_wheel:
+            return
+
+        # build into tmp dir (so we know what file we built). knowing the
+        # filename in advance is semi-hard see
+        # https://github.com/pypa/pip/issues/855#issuecomment-350447813
+        wheel_tmp_dir = tempfile.mkdtemp()
+        bdist_wheel(self, wheel_tmp_dir, build_options, global_options)
+        wheel_path = glob.glob(os.path.join(wheel_tmp_dir, '*.whl'))[0]
+        wheel_filename = os.path.basename(wheel_path)
+
+        # move the wheel into the cache
+        dest_path = os.path.join(wheel_cache_dir, wheel_filename)
+        shutil.move(wheel_path, dest_path)
+
+        # unpack the wheel into a new src dir (and set self.source_dir)
+        # i.e. we want to install from the wheel we just built, not the sdist src
+        cache_url = path_to_url(dest_path)
+        self.source_dir = tempfile.mkdtemp()
+        self.url = cache_url
+        unpack_url(Link(cache_url), self.source_dir)
+
+        # TODO: deal with tmp dir cleanup (pip delete files)
 
     def install(self, install_options, global_options=(), root=None):
         if self.editable:

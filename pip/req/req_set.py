@@ -5,10 +5,10 @@ import zipfile
 from pip._vendor import pkg_resources
 from pip.backwardcompat import HTTPError
 from pip.download import (PipSession, url_to_path, unpack_vcs_link, is_vcs_url,
-                          is_file_url, unpack_file_url, unpack_http_url)
+                          is_file_url, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.index import Link
+from pip.index import Link, PackageFinder
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix,
                            write_delete_marker_file)
 from pip.log import logger
@@ -53,7 +53,8 @@ class RequirementSet(object):
                  upgrade=False, ignore_installed=False, as_egg=False,
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
-                 pycompile=True, wheel_download_dir=None):
+                 pycompile=True, wheel_download_dir=None, wheel_cache=False,
+                 wheel_cache_dir=None, wheel_cache_exclude=[]):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -77,6 +78,10 @@ class RequirementSet(object):
         self.session = session or PipSession()
         self.pycompile = pycompile
         self.wheel_download_dir = wheel_download_dir
+        self.wheel_cache = wheel_cache
+        self.wheel_cache_dir = wheel_cache_dir
+        self.wheel_cache_exclude = wheel_cache_exclude
+
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -146,6 +151,25 @@ class RequirementSet(object):
         for req in self.requirements.values():
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
+
+    def find_requirement(self, finder, req, upgrade=False):
+        """Return the url that fulfills a requirement. If caching wheels, try to
+        fulfill from the cache first."""
+
+        url = None
+        if self.wheel_cache:
+            # TODO: don't do this when --wheel-cache-rebuild
+            # TODO: quiet the failure logging from the finder
+            cache_finder = PackageFinder(find_links=[self.wheel_cache_dir], index_urls=[])
+            try:
+                url = cache_finder.find_requirement(req, upgrade=upgrade)
+                logger.notify("Using wheel from cache: %s" % url_to_path(url.url))
+            except DistributionNotFound:
+                # TODO: need more handling; refactor handling from below
+                pass
+        if not url:
+            url = finder.find_requirement(req, upgrade=upgrade)
+        return url
 
     def locate_files(self):
         ## FIXME: duplicates code from prepare_files; relevant code should
@@ -223,8 +247,9 @@ class RequirementSet(object):
                     if self.upgrade:
                         if not self.force_reinstall and not req_to_install.url:
                             try:
-                                url = finder.find_requirement(
-                                    req_to_install, self.upgrade)
+                                url = self.find_requirement(finder,
+                                                            req_to_install,
+                                                            self.upgrade)
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
                                 install = False
@@ -266,10 +291,6 @@ class RequirementSet(object):
                 else:
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
-
-            ##################################
-            ## vcs update or unpack archive ##
-            ##################################
 
             try:
                 is_bundle = False
@@ -325,10 +346,9 @@ class RequirementSet(object):
                         if req_to_install.url is None:
                             if not_found:
                                 raise not_found
-                            url = finder.find_requirement(
-                                req_to_install,
-                                upgrade=self.upgrade,
-                            )
+                            url = self.find_requirement(finder,
+                                                        req_to_install,
+                                                        self.upgrade)
                         else:
                             ## FIXME: should req_to_install.url already be a
                             # link?
@@ -337,19 +357,25 @@ class RequirementSet(object):
                         if url:
                             try:
 
-                                if (
-                                    url.filename.endswith(wheel_ext)
+                                # 'pip wheel'
+                                if (url.filename.endswith(wheel_ext)
                                     and self.wheel_download_dir
                                 ):
-                                    # when doing 'pip wheel`
                                     download_dir = self.wheel_download_dir
+                                    do_download = True
+                                # 'pip install --wheel-cache'
+                                elif (url.filename.endswith(wheel_ext)
+                                    and self.wheel_cache_dir
+                                ):
+                                    download_dir = self.wheel_cache_dir
                                     do_download = True
                                 else:
                                     download_dir = self.download_dir
                                     do_download = self.is_download
-                                self.unpack_url(
+                                unpack_url(
                                     url, location, download_dir,
-                                    do_download,
+                                    do_download, session = self.session,
+                                    download_cache = self.download_cache
                                     )
                             except HTTPError as exc:
                                 logger.fatal(
@@ -538,36 +564,6 @@ class RequirementSet(object):
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
                         command_desc='python setup.py clean')
 
-    def unpack_url(self, link, location, download_dir=None,
-                   only_download=False):
-        if download_dir is None:
-            download_dir = self.download_dir
-
-        # non-editable vcs urls
-        if is_vcs_url(link):
-            if only_download:
-                loc = download_dir
-            else:
-                loc = location
-            unpack_vcs_link(link, loc, only_download)
-
-        # file urls
-        elif is_file_url(link):
-            unpack_file_url(link, location, download_dir)
-            if only_download:
-                write_delete_marker_file(location)
-
-        # http urls
-        else:
-            unpack_http_url(
-                link,
-                location,
-                self.download_cache,
-                download_dir,
-                self.session,
-            )
-            if only_download:
-                write_delete_marker_file(location)
 
     def install(self, install_options, global_options=(), *args, **kwargs):
         """
@@ -634,6 +630,13 @@ class RequirementSet(object):
                     finally:
                         logger.indent -= 2
                 try:
+                    if self.wheel_cache and not requirement.is_wheel:
+                        # TODO: handle --wheel-cache-exclude
+                        requirement.build(
+                            self.wheel_cache_dir,
+                            install_options,
+                            global_options,
+                        )
                     requirement.install(
                         install_options,
                         global_options,

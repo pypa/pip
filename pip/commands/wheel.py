@@ -9,7 +9,7 @@ from pip.log import logger
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.util import normalize_path
-from pip.wheel import WheelBuilder
+from pip.wheel import bdist_wheel
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -91,6 +91,44 @@ class WheelCommand(Command):
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
+
+
+    def build(self, requirement_set, finder, wheel_dir,
+              build_options, global_options):
+
+        reqset = requirement_set.requirements.values()
+
+        buildset = [req for req in reqset if not req.is_wheel]
+
+        if not buildset:
+            return
+
+        #build the wheels
+        logger.notify(
+            'Building wheels for collected packages: %s' %
+            ','.join([req.name for req in buildset])
+        )
+        logger.indent += 2
+        build_success, build_failure = [], []
+        for req in buildset:
+            if bdist_wheel(req, wheel_dir, build_options, global_options):
+                build_success.append(req)
+            else:
+                build_failure.append(req)
+        logger.indent -= 2
+
+        #notify sucess/failure
+        if build_success:
+            logger.notify(
+                'Successfully built %s' %
+                ' '.join([req.name for req in build_success])
+            )
+        if build_failure:
+            logger.notify(
+                'Failed to build %s' %
+                ' '.join([req.name for req in build_failure])
+            )
+
 
     def run(self, options, args):
 
@@ -197,15 +235,16 @@ class WheelCommand(Command):
             return
 
         try:
+            #unpack and constructs req set
+            requirement_set.prepare_files(finder)
             #build wheels
-            wb = WheelBuilder(
+            self.build(
                 requirement_set,
                 finder,
                 options.wheel_dir,
-                build_options=options.build_options or [],
-                global_options=options.global_options or [],
+                options.build_options or [],
+                options.global_options or [],
             )
-            wb.build()
         except PreviousBuildDirError:
             options.no_clean = True
             raise

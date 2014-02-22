@@ -498,73 +498,24 @@ class Wheel(object):
         return bool(set(tags).intersection(self.file_tags))
 
 
-class WheelBuilder(object):
-    """Build wheels from a RequirementSet."""
+def bdist_wheel(req, wheel_dir, build_options, global_options):
+    """Build a wheel from an unpacked `InstallRequirement` using bdist_wheel"""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=[],
-                 global_options=[]):
-        self.requirement_set = requirement_set
-        self.finder = finder
-        self.wheel_dir = normalize_path(wheel_dir)
-        self.build_options = build_options
-        self.global_options = global_options
+    base_args = [
+        sys.executable, '-c',
+        "import setuptools;__file__=%r;"
+        "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
+        "__file__, 'exec'))" % req.setup_py
+    ] + list(global_options)
 
-    def _build_one(self, req):
-        """Build one wheel."""
+    logger.notify('Running setup.py bdist_wheel for %s' % req.name)
+    logger.notify('Destination directory: %s' % wheel_dir)
+    wheel_args = base_args + ['bdist_wheel', '-d', wheel_dir] \
+        + build_options
+    try:
+        call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
+        return True
+    except:
+        logger.error('Failed building wheel for %s' % req.name)
+        return False
 
-        base_args = [
-            sys.executable, '-c',
-            "import setuptools;__file__=%r;"
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
-            "__file__, 'exec'))" % req.setup_py
-        ] + list(self.global_options)
-
-        logger.notify('Running setup.py bdist_wheel for %s' % req.name)
-        logger.notify('Destination directory: %s' % self.wheel_dir)
-        wheel_args = base_args + ['bdist_wheel', '-d', self.wheel_dir] \
-            + self.build_options
-        try:
-            call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
-            return True
-        except:
-            logger.error('Failed building wheel for %s' % req.name)
-            return False
-
-    def build(self):
-        """Build wheels."""
-
-        #unpack and constructs req set
-        self.requirement_set.prepare_files(self.finder)
-
-        reqset = self.requirement_set.requirements.values()
-
-        buildset = [req for req in reqset if not req.is_wheel]
-
-        if not buildset:
-            return
-
-        #build the wheels
-        logger.notify(
-            'Building wheels for collected packages: %s' %
-            ','.join([req.name for req in buildset])
-        )
-        logger.indent += 2
-        build_success, build_failure = [], []
-        for req in buildset:
-            if self._build_one(req):
-                build_success.append(req)
-            else:
-                build_failure.append(req)
-        logger.indent -= 2
-
-        #notify sucess/failure
-        if build_success:
-            logger.notify(
-                'Successfully built %s' %
-                ' '.join([req.name for req in build_success])
-            )
-        if build_failure:
-            logger.notify(
-                'Failed to build %s' %
-                ' '.join([req.name for req in build_failure])
-            )

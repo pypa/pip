@@ -157,7 +157,9 @@ else:
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
         default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
-
+default_wheel_cache = os.path.join(default_storage_dir, 'wheel_cache')
+if not os.path.isdir(default_wheel_cache):
+    os.makedirs(default_wheel_cache)
 
 def distutils_scheme(dist_name, user=False, home=None, root=None):
     """
