@@ -879,6 +879,9 @@ exec(compile(
 
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
+                # when installing editables, nothing pre-existing should ever
+                # satisfy
+                self.satisfied_by = None
                 return True
         except pkg_resources.DistributionNotFound:
             return False
