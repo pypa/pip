@@ -217,7 +217,7 @@ class RequirementSet(object):
             ## Search for archive to fulfill requirement ##
             ###############################################
 
-            if not self.ignore_installed and not req_to_install.editable:
+            if not self.ignore_installed:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
@@ -624,9 +624,6 @@ class RequirementSet(object):
                     except pkg_resources.DistributionNotFound:
                         # distribute wasn't installed, so nothing to do
                         pass
-
-                if not self.ignore_installed:
-                    requirement.check_if_exists()
 
                 if requirement.conflicts_with:
                     logger.notify('Found existing installation: %s'
