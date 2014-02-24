@@ -85,8 +85,16 @@ def get_supported(versions=None, noarch=False):
             match = _osx_arch_pat.match(arch)
             if match:
                 name, major, minor, actual_arch = match.groups()
-                tpl = '{}_{}_%i_{}'.format(name, major, actual_arch)
-                arches = [tpl % m for m in range(int(minor))]
+                actual_arches = [actual_arch]
+                if actual_arch in ('i386', 'x86_64'):
+                    actual_arches.append('intel')
+                if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
+                    actual_arches.append('universal')
+                tpl = '{0}_{1}_%i_%s'.format(name, major)
+                arches = []
+                for m in range(int(minor) + 1):
+                    for a in actual_arches:
+                        arches.append(tpl % (m, a))
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
