@@ -76,8 +76,8 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     satisfied_by = Mock(
         location="/path",
         parsed_version=parse_version(latest_version),
-        version=latest_version
-        )
+        version=latest_version,
+    )
     req.satisfied_by = satisfied_by
     finder = PackageFinder([], ["http://pypi.python.org/simple"])
 
@@ -156,8 +156,8 @@ class TestWheel:
         satisfied_by = Mock(
             location="/path",
             parsed_version=parse_version(latest_version),
-            version=latest_version
-            )
+            version=latest_version,
+        )
         req.satisfied_by = satisfied_by
         finder = PackageFinder([data.find_links], [], use_wheel=True)
 

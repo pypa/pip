@@ -12,7 +12,7 @@ def test_create_bundle(script, tmpdir, data):
     index (pip itself).
 
     """
-    fspkg = path_to_url(data.packages/'FSPkg')
+    fspkg = path_to_url(data.packages / 'FSPkg')
     script.pip('install', '-e', fspkg)
     pkg_lines = textwrap.dedent(
         '''
@@ -61,13 +61,13 @@ def test_cleanup_after_create_bundle(script, tmpdir, data):
         ),
     ])
     script.pip(*args)
-    build = script.venv_path/"build"
-    src = script.venv_path/"src"
+    build = script.venv_path / "build"
+    src = script.venv_path / "src"
     assert not exists(build), "build/ dir still exists: %s" % build
     assert exists(src), "expected src/ dir doesn't exist: %s" % src
 
     # Make the bundle.
-    fspkg = path_to_url(data.packages/'FSPkg')
+    fspkg = path_to_url(data.packages / 'FSPkg')
     pkg_lines = textwrap.dedent(
         '''
             -e %s
@@ -86,8 +86,8 @@ def test_cleanup_after_create_bundle(script, tmpdir, data):
     script.pip(
         'bundle', '--no-use-wheel', '-r', 'bundle-req.txt', 'test.pybundle',
     )
-    build_bundle = script.scratch_path/"build-bundle"
-    src_bundle = script.scratch_path/"src-bundle"
+    build_bundle = script.scratch_path / "build-bundle"
+    src_bundle = script.scratch_path / "src-bundle"
     assert not exists(build_bundle), (
         "build-bundle/ dir still exists: %s" % build_bundle
     )

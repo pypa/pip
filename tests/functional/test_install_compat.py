@@ -41,7 +41,7 @@ def test_debian_egg_name_workaround(script):
 
     # Try the uninstall and verify that everything is removed.
     result2 = script.pip("uninstall", "INITools", "-y")
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
 def test_setup_py_with_dos_line_endings(script, data):

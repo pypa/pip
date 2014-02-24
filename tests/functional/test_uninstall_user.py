@@ -20,7 +20,7 @@ class Tests_UninstallUserSite:
         virtualenv.system_site_packages = True
         result1 = script.pip('install', '--user', 'INITools==0.3')
         result2 = script.pip('uninstall', '-y', 'INITools')
-        assert_all_changes(result1, result2, [script.venv/'build', 'cache'])
+        assert_all_changes(result1, result2, [script.venv / 'build', 'cache'])
 
     def test_uninstall_from_usersite_with_dist_in_global_site(
             self, script, virtualenv):
@@ -53,7 +53,7 @@ class Tests_UninstallUserSite:
         assert script.bin_path not in result3.stdout
 
         # uninstall worked
-        assert_all_changes(result2, result3, [script.venv/'build', 'cache'])
+        assert_all_changes(result2, result3, [script.venv / 'build', 'cache'])
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
@@ -74,7 +74,7 @@ class Tests_UninstallUserSite:
         result1 = script.pip(
             'install', '--user', '-e', to_install, expect_error=False,
         )
-        egg_link = script.user_site/'FSPkg.egg-link'
+        egg_link = script.user_site / 'FSPkg.egg-link'
         assert egg_link in result1.files_created, str(result1.stdout)
 
         #uninstall
@@ -84,5 +84,9 @@ class Tests_UninstallUserSite:
         assert_all_changes(
             result1,
             result2,
-            [script.venv/'build', 'cache', script.user_site/'easy-install.pth']
+            [
+                script.venv / 'build',
+                'cache',
+                script.user_site / 'easy-install.pth',
+            ]
         )

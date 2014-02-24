@@ -25,7 +25,7 @@ def test_simple_uninstall(script):
     # supports it
     script.run('python', '-c', "import initools")
     result2 = script.pip('uninstall', 'INITools', '-y')
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
 def test_uninstall_with_scripts(script):
@@ -41,7 +41,7 @@ def test_uninstall_with_scripts(script):
     assert_all_changes(
         result,
         result2,
-        [script.venv/'build', 'cache', easy_install_pth],
+        [script.venv / 'build', 'cache', easy_install_pth],
     )
 
 
@@ -58,7 +58,11 @@ def test_uninstall_easy_install_after_import(script):
     assert_all_changes(
         result,
         result2,
-        [script.venv/'build', 'cache', script.site_packages/'easy-install.pth']
+        [
+            script.venv / 'build',
+            'cache',
+            script.site_packages / 'easy-install.pth',
+        ]
     )
 
 
@@ -129,11 +133,11 @@ def test_uninstall_console_scripts(script):
     args = ['install']
     args.append('discover')
     result = script.pip(*args, **{"expect_error": True})
-    assert script.bin/'discover'+script.exe in result.files_created, (
+    assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'discover', '-y', expect_error=True)
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
 def test_uninstall_easy_installed_console_scripts(script):
@@ -143,14 +147,18 @@ def test_uninstall_easy_installed_console_scripts(script):
     args = ['easy_install']
     args.append('discover')
     result = script.run(*args, **{"expect_stderr": True})
-    assert script.bin/'discover'+script.exe in result.files_created, (
+    assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(
         result,
         result2,
-        [script.venv/'build', 'cache', script.site_packages/'easy-install.pth']
+        [
+            script.venv / 'build',
+            'cache',
+            script.site_packages / 'easy-install.pth',
+        ]
     )
 
 
@@ -167,14 +175,14 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     )
     result.assert_installed('INITools')
     result2 = script.pip('uninstall', '-y', 'initools')
-    assert (script.venv/'src'/'initools' in result2.files_after)
+    assert (script.venv / 'src' / 'initools' in result2.files_after)
     assert_all_changes(
         result,
         result2,
         [
-            script.venv/'src',
-            script.venv/'build',
-            script.site_packages/'easy-install.pth'
+            script.venv / 'src',
+            script.venv / 'build',
+            script.site_packages / 'easy-install.pth'
         ],
     )
 
@@ -217,7 +225,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     assert_all_changes(
         result,
         result3,
-        [script.venv/'build', script.site_packages/'easy-install.pth'],
+        [script.venv / 'build', script.site_packages / 'easy-install.pth'],
     )
 
 
@@ -259,10 +267,10 @@ def test_uninstall_from_reqs_file(script, tmpdir):
         result,
         result2,
         [
-            script.venv/'build',
-            script.venv/'src',
-            script.scratch/'test-req.txt',
-            script.site_packages/'easy-install.pth',
+            script.venv / 'build',
+            script.venv / 'src',
+            script.scratch / 'test-req.txt',
+            script.site_packages / 'easy-install.pth',
         ],
     )
 
@@ -273,8 +281,8 @@ def test_uninstall_as_egg(script, data):
     """
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
-    fspkg_folder = script.site_packages/'fspkg'
-    egg_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    fspkg_folder = script.site_packages / 'fspkg'
+    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
 
@@ -283,9 +291,9 @@ def test_uninstall_as_egg(script, data):
         result,
         result2,
         [
-            script.venv/'build',
+            script.venv / 'build',
             'cache',
-            script.site_packages/'easy-install.pth',
+            script.site_packages / 'easy-install.pth',
         ],
     )
 

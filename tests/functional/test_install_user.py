@@ -85,9 +85,9 @@ class Tests_UserSite:
             cwd=run_from,
             expect_error=False,
         )
-        fspkg_folder = script.user_site/'fspkg'
+        fspkg_folder = script.user_site / 'fspkg'
         egg_info_folder = (
-            script.user_site/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+            script.user_site / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
         )
         assert fspkg_folder in result.files_created, result.stdout
 
@@ -124,7 +124,8 @@ class Tests_UserSite:
         )
         initools_v3_file = (
             # file only in 0.3
-            script.base_path/script.user_site/'initools'/'configparser.py'
+            script.base_path / script.user_site / 'initools' /
+            'configparser.py'
         )
         assert egg_info_folder in result2.files_created, str(result2)
         assert not isfile(initools_v3_file), initools_v3_file
@@ -245,7 +246,8 @@ class Tests_UserSite:
         )
         initools_v3_file = (
             # file only in 0.3
-            script.base_path/script.user_site/'initools'/'configparser.py'
+            script.base_path / script.user_site / 'initools' /
+            'configparser.py'
         )
         assert egg_info_folder in result3.files_created, str(result3)
         assert not isfile(initools_v3_file), initools_v3_file

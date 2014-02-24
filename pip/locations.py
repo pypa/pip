@@ -177,7 +177,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None):
     i.root = root or i.root
     i.finalize_options()
     for key in SCHEME_KEYS:
-        scheme[key] = getattr(i, 'install_'+key)
+        scheme[key] = getattr(i, 'install_' + key)
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(

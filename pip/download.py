@@ -521,7 +521,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
         already_cached = (
             os.path.exists(cache_file) and
             os.path.exists(cache_content_type_file)
-            )
+        )
         if not os.path.isdir(download_cache):
             create_download_cache_folder(download_cache)
 
@@ -545,7 +545,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
                 logger.warn(
                     'Previously-downloaded file %s has bad hash, '
                     're-downloading.' % temp_location
-                    )
+                )
                 temp_location = None
                 os.unlink(already_downloaded)
                 already_downloaded = None
@@ -564,7 +564,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
                 logger.warn(
                     'Cached file %s has bad hash, '
                     're-downloading.' % temp_location
-                    )
+                )
                 temp_location = None
                 os.unlink(cache_file)
                 os.unlink(cache_content_type_file)
@@ -654,7 +654,7 @@ def unpack_file_url(link, location, download_dir=None):
                     logger.warn(
                         'Previously-downloaded file %s has bad hash, '
                         're-downloading.' % link_path
-                        )
+                    )
                     os.unlink(download_path)
             else:
                 already_downloaded = True

@@ -33,8 +33,8 @@ class TestRequirementSet(object):
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            download_cache=os.path.join(self.tempdir, 'download_cache')
-            )
+            download_cache=os.path.join(self.tempdir, 'download_cache'),
+        )
 
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
@@ -51,8 +51,8 @@ class TestRequirementSet(object):
             "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
             (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
-            finder
-            )
+            finder,
+        )
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [

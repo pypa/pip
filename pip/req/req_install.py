@@ -391,7 +391,7 @@ exec(compile(
                         if (
                                 os.path.exists(
                                     os.path.join(root, dir, 'bin', 'python')
-                                    )
+                                )
                                 or os.path.exists(
                                     os.path.join(
                                         root, dir, 'Scripts', 'Python.exe'
@@ -703,9 +703,10 @@ exec(compile(
             logger.notify('Saved %s' % display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix+os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix))
-        name = name[len(prefix)+1:]
+        assert name.startswith(prefix + os.path.sep), (
+            "name %r doesn't start with prefix %r" % (name, prefix)
+        )
+        name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
         return name
 
@@ -805,7 +806,7 @@ exec(compile(
                 )
             f.close()
             f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-            f.write('\n'.join(new_lines)+'\n')
+            f.write('\n'.join(new_lines) + '\n')
             f.close()
         finally:
             if os.path.exists(record_filename):

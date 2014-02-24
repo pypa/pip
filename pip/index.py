@@ -720,7 +720,7 @@ class PageCache(object):
         self._archives[url] = value
 
     def add_page_failure(self, url, level):
-        self._failures[url] = self._failures.get(url, 0)+level
+        self._failures[url] = self._failures.get(url, 0) + level
 
     def add_page(self, urls, page):
         for url in urls:

@@ -31,7 +31,7 @@ def test_pip_wheel_success(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
     )
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
-    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
 
@@ -45,7 +45,7 @@ def test_pip_wheel_downloads_wheels(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple.dist',
     )
     wheel_file_name = 'simple.dist-0.1-py2.py3-none-any.whl'
-    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Saved" in result.stdout, result.stdout
 
@@ -59,7 +59,7 @@ def test_pip_wheel_fail(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'wheelbroken==0.1',
     )
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
-    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path not in result.files_created, (
         wheel_file_path,
         result.files_created,
@@ -86,7 +86,7 @@ def test_pip_wheel_ignore_wheels_editables(script, data):
         script.scratch_path / 'reqs.txt',
     )
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
-    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, (
         wheel_file_path,
         result.files_created,
@@ -109,7 +109,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
         'wheel', '--no-clean', '--no-index',
         '--find-links=%s' % data.find_links, 'simple',
     )
-    build = script.venv_path/'build'/'simple'
+    build = script.venv_path / 'build' / 'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
@@ -125,7 +125,7 @@ def test_pip_wheel_source_deps(script, data):
         'requires_source',
     )
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot
-    wheel_file_path = script.scratch/'wheelhouse'/wheel_file_name
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout
 

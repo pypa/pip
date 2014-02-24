@@ -134,10 +134,10 @@ class TestPipResult(object):
         e = self.test_env
 
         if editable:
-            pkg_dir = e.venv/'src'/pkg_name.lower()
+            pkg_dir = e.venv / 'src' / pkg_name.lower()
         else:
             without_egg_link = True
-            pkg_dir = e.site_packages/pkg_name
+            pkg_dir = e.site_packages / pkg_name
 
         if use_user_site:
             egg_link_path = e.user_site / pkg_name + '.egg-link'
@@ -173,9 +173,9 @@ class TestPipResult(object):
                     egg_link_file.bytes))))
 
         if use_user_site:
-            pth_file = e.user_site/'easy-install.pth'
+            pth_file = e.user_site / 'easy-install.pth'
         else:
-            pth_file = e.site_packages/'easy-install.pth'
+            pth_file = e.site_packages / 'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
             raise TestFailure('%r unexpectedly %supdated by install' % (
@@ -192,14 +192,14 @@ class TestPipResult(object):
                 sorted(self.files_created.keys())))
 
         for f in with_files:
-            if not (pkg_dir/f).normpath in self.files_created:
+            if not (pkg_dir / f).normpath in self.files_created:
                 raise TestFailure(
                     'Package directory %r missing expected content %r' %
                     (pkg_dir, f)
                 )
 
         for f in without_files:
-            if (pkg_dir/f).normpath in self.files_created:
+            if (pkg_dir / f).normpath in self.files_created:
                 raise TestFailure(
                     'Package directory %r has unexpected content %f' %
                     (pkg_dir, f)
@@ -397,7 +397,7 @@ def assert_all_changes(start_state, end_state, expected_changes):
 
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path/'version_pkg'
+    version_pkg_path = script.scratch_path / 'version_pkg'
     version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
                                 def main():
                                     print('0.1')
@@ -442,7 +442,7 @@ setup(name='version_subpkg',
 
 def _create_test_package(script):
     script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path/'version_pkg'
+    version_pkg_path = script.scratch_path / 'version_pkg'
     version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
         def main():
             print('0.1')

@@ -213,13 +213,13 @@ def test_find_command_folder_in_path(script):
     looking.
     """
     script.scratch_path.join("path_one").mkdir()
-    path_one = script.scratch_path/'path_one'
+    path_one = script.scratch_path / 'path_one'
     path_one.join("foo").mkdir()
     script.scratch_path.join("path_two").mkdir()
-    path_two = script.scratch_path/'path_two'
+    path_two = script.scratch_path / 'path_two'
     path_two.join("foo").write("# nothing")
     found_path = find_command('foo', map(str, [path_one, path_two]))
-    assert found_path == path_two/'foo'
+    assert found_path == path_two / 'foo'
 
 
 def test_does_not_find_command_because_there_is_no_path():
@@ -335,8 +335,7 @@ class TestUnpackArchives(object):
                 ('script_group.sh', 0o755, os.path.isfile),
                 ('script_world.sh', 0o755, os.path.isfile),
                 ('dir', 0o755, os.path.isdir),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
-                ]:
+                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile)]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
                 # no symlinks created on windows
