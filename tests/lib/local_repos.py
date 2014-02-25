@@ -55,7 +55,9 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
     if vcs == 'svn':
         branch = os.path.basename(remote_repository)
         # remove the slash
-        repository_name = os.path.basename(remote_repository[:-len(branch)-1])
+        repository_name = os.path.basename(
+            remote_repository[:-len(branch) - 1]
+        )
     else:
         repository_name = os.path.basename(remote_repository)
 

@@ -357,7 +357,7 @@ class InstallCommand(Command):
             for item in os.listdir(lib_dir):
                 shutil.move(
                     os.path.join(lib_dir, item),
-                    os.path.join(options.target_dir, item)
-                    )
+                    os.path.join(options.target_dir, item),
+                )
             shutil.rmtree(temp_target_dir)
         return requirement_set

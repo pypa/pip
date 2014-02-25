@@ -113,7 +113,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
         ),
         expect_error=True,
     )
-    source_dir = script.venv_path/'src'/'pip-test-package'
+    source_dir = script.venv_path / 'src' / 'pip-test-package'
     result = script.run('git', 'branch', cwd=source_dir)
     assert '* master' in result.stdout, result.stdout
 
@@ -144,8 +144,9 @@ def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
         '%s#egg=django-devserver' %
         local_checkout(
             'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache"))
+            tmpdir.join("cache")
         )
+    )
     result.assert_installed('django-devserver', with_files=['.git'])
 
 
@@ -159,9 +160,10 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
         '%s#egg=django-devserver' %
         local_checkout(
             'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache")),
-        )
-    devserver_folder = script.site_packages/'devserver'
+            tmpdir.join("cache")
+        ),
+    )
+    devserver_folder = script.site_packages / 'devserver'
     assert devserver_folder in result.files_created, str(result)
 
 

@@ -188,12 +188,12 @@ def normalize_name(name):
 
 
 def format_size(bytes):
-    if bytes > 1000*1000:
-        return '%.1fMB' % (bytes/1000.0/1000)
-    elif bytes > 10*1000:
-        return '%ikB' % (bytes/1000)
+    if bytes > 1000 * 1000:
+        return '%.1fMB' % (bytes / 1000.0 / 1000)
+    elif bytes > 10 * 1000:
+        return '%ikB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes/1000.0)
+        return '%.1fkB' % (bytes / 1000.0)
     else:
         return '%ibytes' % bytes
 
@@ -274,7 +274,7 @@ def make_path_relative(path, rel_to):
     while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
         path_parts.pop(0)
         rel_to_parts.pop(0)
-    full_parts = ['..']*len(rel_to_parts) + path_parts + [path_filename]
+    full_parts = ['..'] * len(rel_to_parts) + path_parts + [path_filename]
     if full_parts == ['']:
         return '.' + os.path.sep
     return os.path.sep.join(full_parts)
@@ -540,7 +540,7 @@ def unzip_file(filename, location, flatten=True):
                     if mode and stat.S_ISREG(mode) and mode & 0o111:
                         # make dest file have execute for user/group/world
                         # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777-current_umask() | 0o111))
+                        os.chmod(fn, (0o777 - current_umask() | 0o111))
     finally:
         zipfp.close()
 
@@ -615,7 +615,7 @@ def untar_file(filename, location):
                 if member.mode & 0o111:
                     # make dest file have execute for user/group/world
                     # no-op on windows per python docs
-                    os.chmod(path, (0o777-current_umask() | 0o111))
+                    os.chmod(path, (0o777 - current_umask() | 0o111))
     finally:
         tar.close()
 
@@ -632,7 +632,7 @@ def cache_download(target_file, temp_location, content_type):
         'Storing download in cache at %s' % display_path(target_file)
     )
     shutil.copyfile(temp_location, target_file)
-    fp = open(target_file+'.content-type', 'w')
+    fp = open(target_file + '.content-type', 'w')
     fp.write(content_type)
     fp.close()
 

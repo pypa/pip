@@ -5,7 +5,7 @@ import textwrap
 
 def _create_test_package_submodule(env):
     env.scratch_path.join("version_pkg_submodule").mkdir()
-    submodule_path = env.scratch_path/'version_pkg_submodule'
+    submodule_path = env.scratch_path / 'version_pkg_submodule'
     env.run('touch', 'testfile', cwd=submodule_path)
     env.run('git', 'init', cwd=submodule_path)
     env.run('git', 'add', '.', cwd=submodule_path)
@@ -31,7 +31,7 @@ def _pull_in_submodule_changes_to_module(env, module_path):
         '-q',
         'origin',
         'master',
-        cwd=module_path/'testpkg/static/',
+        cwd=module_path / 'testpkg/static/',
     )
     env.run('git', 'commit', '-q',
             '--author', 'Pip <python-virtualenv@googlegroups.com>',
@@ -40,9 +40,9 @@ def _pull_in_submodule_changes_to_module(env, module_path):
 
 def _create_test_package_with_submodule(env):
     env.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = env.scratch_path/'version_pkg'
+    version_pkg_path = env.scratch_path / 'version_pkg'
     version_pkg_path.join("testpkg").mkdir()
-    pkg_path = version_pkg_path/'testpkg'
+    pkg_path = version_pkg_path / 'testpkg'
 
     pkg_path.join("__init__.py").write("# hello there")
     pkg_path.join("version_pkg.py").write(textwrap.dedent('''\

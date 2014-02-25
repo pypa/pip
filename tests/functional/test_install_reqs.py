@@ -23,13 +23,13 @@ def test_requirements_file(script):
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
     assert (
-        script.site_packages/'INITools-0.2-py%s.egg-info' %
+        script.site_packages / 'INITools-0.2-py%s.egg-info' %
         pyversion in result.files_created
     )
-    assert script.site_packages/'initools' in result.files_created
-    assert result.files_created[script.site_packages/other_lib_name].dir
+    assert script.site_packages / 'initools' in result.files_created
+    assert result.files_created[script.site_packages / other_lib_name].dir
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
-    assert result.files_created[script.site_packages/fn].dir
+    assert result.files_created[script.site_packages / fn].dir
 
 
 def test_schema_check_in_requirements_file(script):
@@ -66,9 +66,9 @@ def test_relative_requirements_file(script, data):
         'install', '-vvv', '-r', script.scratch_path / 'file-egg-req.txt'
     )
     assert (
-        script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
     ) in result.files_created, str(result)
-    assert (script.site_packages/'fspkg') in result.files_created, (
+    assert (script.site_packages / 'fspkg') in result.files_created, (
         str(result.stdout)
     )
 
@@ -98,10 +98,10 @@ def test_multiple_requirements_files(script, tmpdir):
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
-    assert result.files_created[script.site_packages/other_lib_name].dir
+    assert result.files_created[script.site_packages / other_lib_name].dir
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
-    assert result.files_created[script.site_packages/fn].dir
-    assert script.venv/'src'/'initools' in result.files_created
+    assert result.files_created[script.site_packages / fn].dir
+    assert script.venv / 'src' / 'initools' in result.files_created
 
 
 def test_respect_order_in_requirements_file(script, data):
@@ -136,13 +136,13 @@ def test_install_local_editable_with_extras(script, data):
         'install', '-e', to_install + '[bar]', '--process-dependency-links',
         expect_error=False,
     )
-    assert script.site_packages/'easy-install.pth' in res.files_updated, (
+    assert script.site_packages / 'easy-install.pth' in res.files_updated, (
         str(res)
     )
-    assert script.site_packages/'LocalExtras.egg-link' in res.files_created, (
-        str(res)
-    )
-    assert script.site_packages/'simple' in res.files_created, str(res)
+    assert (
+        script.site_packages / 'LocalExtras.egg-link' in res.files_created
+    ), str(res)
+    assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
 def test_install_local_editable_with_subdirectory(script):

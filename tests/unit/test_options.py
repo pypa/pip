@@ -38,15 +38,15 @@ class TestOptionPrecedence(object):
     def get_config_section(self, section):
         config = {
             'global': [('timeout', '-3')],
-            'fake': [('timeout', '-2')]
-            }
+            'fake': [('timeout', '-2')],
+        }
         return config[section]
 
     def get_config_section_global(self, section):
         config = {
             'global': [('timeout', '-3')],
-            'fake': []
-            }
+            'fake': [],
+        }
         return config[section]
 
     def test_env_override_default_int(self):

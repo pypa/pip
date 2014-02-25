@@ -60,7 +60,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     # because their is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path/config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write(textwrap.dedent("""\
         [global]
         no-index = 1
         """))
@@ -135,7 +135,7 @@ def test_config_file_override_stack(script, virtualenv):
 def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
     script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path/config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write(textwrap.dedent("""\
         [global]
         index-url = http://download.zope.org/ppix
         """))
@@ -144,7 +144,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         "Getting page http://download.zope.org/ppix/INITools" in result.stdout
     )
     virtualenv.clear()
-    (script.scratch_path/config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write(textwrap.dedent("""\
         [global]
         index-url = http://download.zope.org/ppix
         [install]

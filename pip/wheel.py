@@ -393,7 +393,7 @@ def uninstallation_paths(dist):
         if path.endswith('.py'):
             dn, fn = os.path.split(path)
             base = fn[:-3]
-            path = os.path.join(dn, base+'.pyc')
+            path = os.path.join(dn, base + '.pyc')
             yield path
 
 

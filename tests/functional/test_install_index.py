@@ -65,9 +65,9 @@ def test_file_index_url_quoting(script, data):
         'install', '-vvv', '--index-url', index_url, 'simple',
         expect_error=False,
     )
-    assert (script.site_packages/'simple') in result.files_created, (
+    assert (script.site_packages / 'simple') in result.files_created, (
         str(result.stdout)
     )
     assert (
-        script.site_packages/'simple-1.0-py%s.egg-info' % pyversion
+        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
     ) in result.files_created, str(result)

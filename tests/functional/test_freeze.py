@@ -32,7 +32,7 @@ def _check_output(result, expected):
         return '\n========== %s ==========\n' % msg
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner('EXPECTED') + expected + banner('ACTUAL') + actual +
-        banner(6*'=')
+        banner(6 * '=')
     )
 
 
@@ -51,7 +51,7 @@ def test_freeze_basic(script):
         simple2<=3.0
         """))
     result = script.pip_install_local(
-        '-r', script.scratch_path/'initools-req.txt',
+        '-r', script.scratch_path / 'initools-req.txt',
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -178,7 +178,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path/'pip-test-package',
+        cwd=script.scratch_path / 'pip-test-package',
         expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
@@ -248,7 +248,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path/'django-wikiapp',
+        cwd=script.scratch_path / 'django-wikiapp',
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\

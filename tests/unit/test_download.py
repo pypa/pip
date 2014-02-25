@@ -262,7 +262,7 @@ class Test_unpack_file_url(object):
         self.dist_url.url = "%s#md5=%s" % (
             self.dist_url.url,
             dist_path_md5
-            )
+        )
         unpack_file_url(self.dist_url, self.build_dir,
                         download_dir=self.download_dir)
 

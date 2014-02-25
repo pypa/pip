@@ -357,8 +357,8 @@ general_group = {
         skip_requirements_regex,
         exists_action,
         cert,
-        ]
-    }
+    ]
+}
 
 index_group = {
     'name': 'Package Index Options',
@@ -375,5 +375,5 @@ index_group = {
         allow_unsafe,
         no_allow_unsafe,
         process_dependency_links,
-        ]
-    }
+    ]
+}

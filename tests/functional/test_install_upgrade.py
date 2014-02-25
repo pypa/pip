@@ -34,11 +34,11 @@ def test_upgrade_to_specific_version(script):
         'pip install with specific version did not upgrade'
     )
     assert (
-        script.site_packages/'INITools-0.1-py%s.egg-info' %
+        script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion in result.files_deleted
     )
     assert (
-        script.site_packages/'INITools-0.2-py%s.egg-info' %
+        script.site_packages / 'INITools-0.2-py%s.egg-info' %
         pyversion in result.files_created
     )
 
@@ -52,7 +52,7 @@ def test_upgrade_if_requested(script):
     result = script.pip('install', '--upgrade', 'INITools', expect_error=True)
     assert result.files_created, 'pip install --upgrade did not upgrade'
     assert (
-        script.site_packages/'INITools-0.1-py%s.egg-info' %
+        script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion not in result.files_created
     )
 
@@ -84,7 +84,7 @@ def test_upgrade_force_reinstall_newest(script):
     )
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
-    assert_all_changes(result, result3, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
 def test_uninstall_before_upgrade(script):
@@ -99,7 +99,7 @@ def test_uninstall_before_upgrade(script):
     result2 = script.pip('install', 'INITools==0.3', expect_error=True)
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
-    assert_all_changes(result, result3, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
 def test_uninstall_before_upgrade_from_url(script):
@@ -119,7 +119,7 @@ def test_uninstall_before_upgrade_from_url(script):
     )
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
-    assert_all_changes(result, result3, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
 def test_upgrade_to_same_version_from_url(script):
@@ -140,7 +140,7 @@ def test_upgrade_to_same_version_from_url(script):
     )
     assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
-    assert_all_changes(result, result3, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
 def test_upgrade_from_reqs_file(script):
@@ -170,7 +170,7 @@ def test_upgrade_from_reqs_file(script):
     assert_all_changes(
         install_result,
         uninstall_result,
-        [script.venv/'build', 'cache', script.scratch/'test-req.txt'],
+        [script.venv / 'build', 'cache', script.scratch / 'test-req.txt'],
     )
 
 
@@ -197,7 +197,7 @@ def test_uninstall_rollback(script, data):
     assert_all_changes(
         result.files_after,
         result2,
-        [script.venv/'build', 'pip-log.txt'],
+        [script.venv / 'build', 'pip-log.txt'],
     )
 
 
@@ -235,11 +235,11 @@ def test_should_not_install_always_from_cache(script):
     script.pip('uninstall', '-y', 'INITools')
     result = script.pip('install', 'INITools==0.1', expect_error=True)
     assert (
-        script.site_packages/'INITools-0.2-py%s.egg-info' %
+        script.site_packages / 'INITools-0.2-py%s.egg-info' %
         pyversion not in result.files_created
     )
     assert (
-        script.site_packages/'INITools-0.1-py%s.egg-info' %
+        script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion in result.files_created
     )
 
@@ -253,10 +253,10 @@ def test_install_with_ignoreinstalled_requested(script):
     assert result.files_created, 'pip install -I did not install'
     # both the old and new metadata should be present.
     assert os.path.exists(
-        script.site_packages_path/'INITools-0.1-py%s.egg-info' % pyversion
+        script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion
     )
     assert os.path.exists(
-        script.site_packages_path/'INITools-0.3-py%s.egg-info' % pyversion
+        script.site_packages_path / 'INITools-0.3-py%s.egg-info' % pyversion
     )
 
 
@@ -298,7 +298,7 @@ class TestUpgradeSetuptools(object):
     def prep_ve(self, script, version, pip_src, distribute=False):
         self.script = script
         self.script.pip_install_local('virtualenv==%s' % version)
-        args = ['virtualenv', self.script.scratch_path/'VE']
+        args = ['virtualenv', self.script.scratch_path / 'VE']
         if distribute:
             args.insert(1, '--distribute')
         if version == "1.9.1" and not distribute:
@@ -309,10 +309,10 @@ class TestUpgradeSetuptools(object):
             bindir = "Scripts"
         else:
             bindir = "bin"
-        self.ve_bin = self.script.scratch_path/'VE'/bindir
-        self.script.run(self.ve_bin/'pip', 'uninstall', '-y', 'pip')
+        self.ve_bin = self.script.scratch_path / 'VE' / bindir
+        self.script.run(self.ve_bin / 'pip', 'uninstall', '-y', 'pip')
         self.script.run(
-            self.ve_bin/'python', 'setup.py', 'install',
+            self.ve_bin / 'python', 'setup.py', 'install',
             cwd=pip_src,
             expect_stderr=True,
         )
@@ -322,13 +322,13 @@ class TestUpgradeSetuptools(object):
             self, script, data, virtualenv):
         self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-use-wheel', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-use-wheel', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert (
             "Found existing installation: setuptools 0.6c11" in result.stdout
         )
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
     def test_py2_py3_from_distribute_6_to_setuptools_7(
@@ -337,37 +337,37 @@ class TestUpgradeSetuptools(object):
             script, '1.9.1', virtualenv.pip_source_dir, distribute=True
         )
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert (
             "Found existing installation: distribute 0.6.34" in result.stdout
         )
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
         "distribute (0.7.3)" in result.stdout
 
     def test_from_setuptools_7_to_setuptools_7(self, script, data, virtualenv):
         self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
     def test_from_setuptools_7_to_setuptools_7_using_wheel(
             self, script, data, virtualenv):
         self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--use-wheel', '--no-index',
+            self.ve_bin / 'pip', 'install', '--use-wheel', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         # only wheels use dist-info
         assert 'setuptools-0.9.8.dist-info' in str(result.files_created)
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
 
     # disabling intermittent travis failure:
@@ -379,21 +379,21 @@ class TestUpgradeSetuptools(object):
             script, '1.9.1', virtualenv.pip_source_dir, distribute=True
         )
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, 'setuptools==0.9.6'
         )
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.6)" in result.stdout
         "distribute (0.7.3)" in result.stdout
         result = self.script.run(
-            self.ve_bin/'pip', 'install', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert "Found existing installation: setuptools 0.9.6" in result.stdout
-        result = self.script.run(self.ve_bin/'pip', 'list')
+        result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout
         "distribute (0.7.3)" in result.stdout

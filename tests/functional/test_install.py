@@ -100,15 +100,15 @@ def test_download_editable_to_custom_path(script, tmpdir):
         '--download',
         'customdl',
     )
-    customsrc = Path('scratch')/'customsrc'/'initools'
+    customsrc = Path('scratch') / 'customsrc' / 'initools'
     assert customsrc in result.files_created, (
         sorted(result.files_created.keys())
     )
-    assert customsrc/'setup.py' in result.files_created, (
+    assert customsrc / 'setup.py' in result.files_created, (
         sorted(result.files_created.keys())
     )
 
-    customdl = Path('scratch')/'customdl'/'initools'
+    customdl = Path('scratch') / 'customdl' / 'initools'
     customdl_files_created = [
         filename for filename in result.files_created
         if filename.startswith(customdl)
@@ -156,10 +156,10 @@ def test_no_install_followed_by_no_download(script):
     --no-download).
     """
     egg_info_folder = (
-        script.site_packages/'INITools-0.2-py%s.egg-info' % pyversion
+        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
-    initools_folder = script.site_packages/'initools'
-    build_dir = script.venv/'build'/'INITools'
+    initools_folder = script.site_packages / 'initools'
+    build_dir = script.venv / 'build' / 'INITools'
 
     result1 = script.pip(
         'install', 'INITools==0.2', '--no-install', expect_error=True,
@@ -169,7 +169,7 @@ def test_no_install_followed_by_no_download(script):
         sorted(result1.files_created)
     )
     assert build_dir in result1.files_created, result1.files_created
-    assert build_dir/'INITools.egg-info' in result1.files_created
+    assert build_dir / 'INITools.egg-info' in result1.files_created
 
     result2 = script.pip(
         'install', 'INITools==0.2', '--no-download', expect_error=True,
@@ -179,7 +179,7 @@ def test_no_install_followed_by_no_download(script):
         sorted(result2.files_created)
     )
     assert build_dir not in result2.files_created
-    assert build_dir/'INITools.egg-info' not in result2.files_created
+    assert build_dir / 'INITools.egg-info' not in result2.files_created
 
 
 def test_bad_install_with_no_download(script):
@@ -304,9 +304,9 @@ def test_install_from_local_directory(script, data):
     """
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, expect_error=False)
-    fspkg_folder = script.site_packages/'fspkg'
+    fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -319,9 +319,9 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     """
     to_install = data.packages.join("symlinks")
     result = script.pip('install', to_install, expect_error=False)
-    pkg_folder = script.site_packages/'symlinks'
+    pkg_folder = script.site_packages / 'symlinks'
     egg_info_folder = (
-        script.site_packages/'symlinks-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'symlinks-0.1dev-py%s.egg-info' % pyversion
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -353,8 +353,8 @@ def test_install_as_egg(script, data):
     """
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
-    fspkg_folder = script.site_packages/'fspkg'
-    egg_folder = script.site_packages/'FSPkg-0.1dev-py%s.egg' % pyversion
+    fspkg_folder = script.site_packages / 'fspkg'
+    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
@@ -370,9 +370,9 @@ def test_install_curdir(script, data):
     if os.path.isdir(egg_info):
         rmtree(egg_info)
     result = script.pip('install', curdir, cwd=run_from, expect_error=False)
-    fspkg_folder = script.site_packages/'fspkg'
+    fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -384,9 +384,9 @@ def test_install_pardir(script, data):
     """
     run_from = data.packages.join("FSPkg", "fspkg")
     result = script.pip('install', pardir, cwd=run_from, expect_error=False)
-    fspkg_folder = script.site_packages/'fspkg'
+    fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages/'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -432,7 +432,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
         '--install-option=--script-dir=%s' % folder
     )
     virtualenv_bin = (
-        script.venv/'src'/'virtualenv'/folder/'virtualenv'+script.exe
+        script.venv / 'src' / 'virtualenv' / folder / 'virtualenv' + script.exe
     )
     assert virtualenv_bin in result.files_created
 
@@ -470,7 +470,7 @@ def test_install_folder_using_dot_slash(script):
     Test installing a folder using pip install ./foldername
     """
     script.scratch_path.join("mock").mkdir()
-    pkg_path = script.scratch_path/'mock'
+    pkg_path = script.scratch_path / 'mock'
     pkg_path.join("setup.py").write(mock100_setup_py)
     result = script.pip('install', './mock')
     egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
@@ -482,7 +482,7 @@ def test_install_folder_using_slash_in_the_end(script):
     Test installing a folder using pip install foldername/ or foldername\
     """
     script.scratch_path.join("mock").mkdir()
-    pkg_path = script.scratch_path/'mock'
+    pkg_path = script.scratch_path / 'mock'
     pkg_path.join("setup.py").write(mock100_setup_py)
     result = script.pip('install', 'mock' + os.path.sep)
     egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
@@ -495,9 +495,9 @@ def test_install_folder_using_relative_path(script):
     """
     script.scratch_path.join("initools").mkdir()
     script.scratch_path.join("initools", "mock").mkdir()
-    pkg_path = script.scratch_path/'initools'/'mock'
+    pkg_path = script.scratch_path / 'initools' / 'mock'
     pkg_path.join("setup.py").write(mock100_setup_py)
-    result = script.pip('install', Path('initools')/'mock')
+    result = script.pip('install', Path('initools') / 'mock')
     egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
 
@@ -507,9 +507,10 @@ def test_install_package_which_contains_dev_in_name(script):
     Test installing package from pypi which contains 'dev' in name
     """
     result = script.pip('install', 'django-devserver==0.0.4')
-    devserver_folder = script.site_packages/'devserver'
+    devserver_folder = script.site_packages / 'devserver'
     egg_info_folder = (
-        script.site_packages/'django_devserver-0.0.4-py%s.egg-info' % pyversion
+        script.site_packages / 'django_devserver-0.0.4-py%s.egg-info' %
+        pyversion
     )
     assert devserver_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -519,9 +520,9 @@ def test_install_package_with_target(script):
     """
     Test installing a package using pip install --target
     """
-    target_dir = script.scratch_path/'target'
+    target_dir = script.scratch_path / 'target'
     result = script.pip('install', '-t', target_dir, "initools==0.1")
-    assert Path('scratch')/'target'/'initools' in result.files_created, (
+    assert Path('scratch') / 'target' / 'initools' in result.files_created, (
         str(result)
     )
 
@@ -530,7 +531,7 @@ def test_install_package_with_root(script, data):
     """
     Test installing a package using pip install --root
     """
-    root_dir = script.scratch_path/'root'
+    root_dir = script.scratch_path / 'root'
     result = script.pip(
         'install', '--root', root_dir, '-f', data.find_links, '--no-index',
         'simple==1.0',
@@ -609,11 +610,11 @@ def test_compiles_pyc(script):
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
     exists = [
-        os.path.exists(script.site_packages_path/"initools/__init__.pyc"),
+        os.path.exists(script.site_packages_path / "initools/__init__.pyc"),
     ]
 
     exists += glob.glob(
-        script.site_packages_path/"initools/__pycache__/__init__*.pyc"
+        script.site_packages_path / "initools/__pycache__/__init__*.pyc"
     )
 
     assert any(exists)
@@ -629,11 +630,11 @@ def test_no_compiles_pyc(script, data):
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
     exists = [
-        os.path.exists(script.site_packages_path/"initools/__init__.pyc"),
+        os.path.exists(script.site_packages_path / "initools/__init__.pyc"),
     ]
 
     exists += glob.glob(
-        script.site_packages_path/"initools/__pycache__/__init__*.pyc"
+        script.site_packages_path / "initools/__pycache__/__init__*.pyc"
     )
 
     assert not any(exists)
