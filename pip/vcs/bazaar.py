@@ -85,7 +85,9 @@ class Bazaar(VersionControl):
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
-                      'parent branch: '):
+                      'parent branch: ',
+                      'push branch: ',
+                      'submit branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
                     if self._is_local_repository(repo):
@@ -112,7 +114,7 @@ class Bazaar(VersionControl):
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
-        if not repo.lower().startswith('bzr:'):
+        if not repo[:4] in ['bzr:', 'bzr+']:
             repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
         if not repo:
