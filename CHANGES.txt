@@ -2,6 +2,10 @@
 
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
+* Removed the deprecated support for dependency links and the
+  ``--process-dependency-links`` flag that turned them on. For alternatives to
+  dependency links please see http://www.pip-installer.org/en/latest/installing.html
+
 
 **1.5.4 (2014-02-21)**
 
@@ -79,6 +83,9 @@
 
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
+
+* **DEPRECATION** ``pip install --process-dependency-links`` and the ability to
+  use dependency links at all has been deprecated and will be removed in 1.6.
 
 * **DEPRECATION** ``pip install --no-install`` and ``pip install
   --no-download`` are now formally deprecated.  See Issue #906 for discussion on

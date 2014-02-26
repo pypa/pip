@@ -38,10 +38,9 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
                  use_wheel=True, allow_external=[], allow_unverified=[],
                  allow_all_external=False, allow_all_prereleases=False,
-                 process_dependency_links=False, session=None):
+                 session=None):
         self.find_links = find_links
         self.index_urls = index_urls
-        self.dependency_links = []
         self.cache = PageCache()
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
@@ -73,27 +72,8 @@ class PackageFinder(object):
         # Do we want to allow _all_ pre-releases?
         self.allow_all_prereleases = allow_all_prereleases
 
-        # Do we process dependency links?
-        self.process_dependency_links = process_dependency_links
-        self._have_warned_dependency_links = False
-
         # The Session we'll use to make requests
         self.session = session or PipSession()
-
-    def add_dependency_links(self, links):
-        ## FIXME: this shouldn't be global list this, it should only
-        ## apply to requirements of the package that specifies the
-        ## dependency_links value
-        ## FIXME: also, we should track comes_from (i.e., use Link)
-        if self.process_dependency_links:
-            if not self._have_warned_dependency_links:
-                logger.deprecated(
-                    "1.6",
-                    "Dependency Links processing has been deprecated with an "
-                    "accelerated time schedule and will be removed in pip 1.6",
-                )
-                self._have_warned_dependency_links = True
-            self.dependency_links.extend(links)
 
     def _sort_locations(self, locations):
         """
@@ -222,15 +202,10 @@ class PackageFinder(object):
                     posixpath.join(main_index_url.url, version)] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
-        _flocations, _ulocations = self._sort_locations(self.dependency_links)
-        file_locations.extend(_flocations)
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
         locations = [Link(url, trusted=True) for url in url_locations]
-
-        # We explicitly do not trust links that came from dependency_links
-        locations.extend([Link(url) for url in _ulocations])
 
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
@@ -280,15 +255,6 @@ class PackageFinder(object):
                 )
             finally:
                 logger.indent -= 2
-        dependency_versions = list(self._package_versions(
-            [Link(url) for url in self.dependency_links], req.name.lower()))
-        if dependency_versions:
-            logger.info(
-                'dependency_links found: %s' %
-                ', '.join([
-                    link.url for parsed, link, version in dependency_versions
-                ])
-            )
         file_versions = list(
             self._package_versions(
                 [Link(url) for url in file_locations],
@@ -297,7 +263,6 @@ class PackageFinder(object):
         )
         if (not found_versions
                 and not page_versions
-                and not dependency_versions
                 and not file_versions):
             logger.fatal(
                 'Could not find any downloads that satisfy the requirement'
@@ -334,7 +299,7 @@ class PackageFinder(object):
             )
         #this is an intentional priority ordering
         all_versions = installed_version + file_versions + found_versions \
-            + page_versions + dependency_versions
+            + page_versions
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
