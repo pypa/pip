@@ -9,8 +9,7 @@ def authors():
 
     # Get our list of authors
     print("[generate.authors] Collecting author names")
-    # <%aE>
-    r = invoke.run("git log --use-mailmap --format'=%aN'", hide=True)
+    r = invoke.run("git log --use-mailmap --format'=%aN <%aE>'", hide=True)
     authors = []
     seen_authors = set()
     for author in r.stdout.splitlines():
