@@ -4,7 +4,7 @@
 
 * Removed the deprecated support for dependency links and the
   ``--process-dependency-links`` flag that turned them on. For alternatives to
-  dependency links please see http://www.pip-installer.org/en/latest/installing.html
+  dependency links please see http://www.pip-installer.org/en/latest/dependency_links.html
 
 
 **1.5.4 (2014-02-21)**
