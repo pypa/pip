@@ -1,6 +1,8 @@
 import base64
 import io
 import os
+import shutil
+import tempfile
 import zipfile
 
 import invoke
@@ -159,16 +161,22 @@ if __name__ == "__main__":
                     )
                 )
 
-    # Write the pip files to the zip archive
-    print("[generate.installer] Generate the bundled zip of pip")
-    with zipfile.ZipFile(
-            installer_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
-        for filename in all_files:
-            z.write(os.path.join(paths.PROJECT_ROOT, filename), filename)
+    tmpdir = tempfile.mkdtemp()
+    try:
+        # Get a temporary path to use as as staging for the pip zip
+        zpth = os.path.join(tmpdir, "pip.zip")
 
-    # Get the binary data that compromises our zip file
-    with open(installer_path, "rb") as fp:
-        data = fp.read()
+        # Write the pip files to the zip archive
+        print("[generate.installer] Generate the bundled zip of pip")
+        with zipfile.ZipFile(zpth, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for filename in all_files:
+                z.write(os.path.join(paths.PROJECT_ROOT, filename), filename)
+
+        # Get the binary data that compromises our zip file
+        with open(zpth, "rb") as fp:
+            data = fp.read()
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     # Write out the wrapper script that will take the place of the zip script
     # The reason we need to do this instead of just directly executing the
