@@ -7,3 +7,4 @@ recursive-include docs *.rst
 recursive-include docs *.html
 recursive-exclude docs/_build *.rst
 prune docs/_build/_sources
+prune tasks
