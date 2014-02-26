@@ -1,13 +1,18 @@
+Adam Wentz
 Alex Gaynor
 Alex Grönholm
 Alex Morega
 Alexandre Conrad
+Anatoly Techtonik
+Andrei Geacar
 Andrey Bulgakov
 Anrs Hu
 Anton Patrushev
 Antti Kaihola
 Armin Ronacher
-Aziz Köksal
+Ashley Manton
+Baptiste Mispelon
+Ben Darnell
 Ben Rosser
 Bernardo B. Marques
 Bradley Ayers
@@ -21,14 +26,15 @@ Craig Kerstiens
 Cristian Sorinel
 Dan Sully
 Daniel Holth
+Daniel Jost
 Dave Abrahams
-David (d1b)
+david
 David Aguilar
 David Evans
 David Pursehouse
-dengzhp
 Dmitry Gladkov
 Donald Stufft
+Dongweiming
 Endoh Takanao
 enoch
 Erik M. Bray
@@ -39,22 +45,23 @@ Geoffrey Lehée
 George Song
 Georgi Valkov
 Herbert Pfennig
-hetmankp
+Hsiaoming Yang
 Hugo Lopes Tavares
 Hynek Schlawack
 Ian Bicking
 Igor Sobreira
+Ilya Baryshev
 Ionel Maries Cristian
+Jakub Stasiak
 Jakub Vysoky
 James Cleveland
 Jannis Leidel
-Jakub Stasiak
 Jay Graves
 Jeff Dairiki
+Jim Garrison
 John-Scott Atlakson
 Jon Parise
 Jonas Nockert
-Jon Parise
 Jorge Niedbalski
 Josh Bronson
 Josh Hansen
@@ -67,12 +74,13 @@ Kumar McMillan
 Lev Givon
 Lincoln de Sousa
 Luke Macken
-Masklinn
 Marc Abramowitz
 Marc Tamlyn
 Marcus Smith
 Markus Hametner
+Masklinn
 Matt Maker
+Matthew Iversen
 Maxime Rouyrre
 Michael Williamson
 Miguel Araujo Perez
@@ -83,8 +91,9 @@ Oliver Tonnhofer
 Olivier Girardot
 Ollie Rutherfurd
 Oren Held
-Patrick Jenkins
+Oscar Benjamin
 Patrick Dubroy
+Patrick Jenkins
 Paul Moore
 Paul Nasrat
 Paul Oswald
@@ -97,6 +106,7 @@ Preston Holmes
 Przemek Wrzos
 Qiangning Hong
 Rafael Caricio
+Ralf Schmitt
 Rene Dudfield
 Roey Berman
 Ronny Pfannschmidt
@@ -106,8 +116,9 @@ Sergey Vasilyev
 Seth Woodworth
 Simon Cross
 Stavros Korokithakis
-Stéphane Klein
+Stefan Scherfke
 Steven Myint
+Stéphane Klein
 Takayuki SHIMIZUKAWA
 Thomas Fenzl
 Thomas Johansson
@@ -117,4 +128,7 @@ Vinay Sajip
 Vitaly Babiy
 W. Trevor King
 Wil Tan
-Hsiaoming Yang
+Yoval P
+Yu Jian
+Zearin
+Zhiping Deng

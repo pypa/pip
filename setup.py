@@ -66,7 +66,7 @@ setup(
     author_email='python-virtualenv@groups.google.com',
     url='http://www.pip-installer.org',
     license='MIT',
-    packages=find_packages(exclude=["contrib", "docs", "tests*"]),
+    packages=find_packages(exclude=["contrib", "docs", "tests*", "tasks"]),
     package_data={
         'pip._vendor.requests': ['*.pem'],
         'pip._vendor.distlib._backport': ['sysconfig.cfg'],
