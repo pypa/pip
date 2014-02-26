@@ -28,8 +28,8 @@ Dan Sully <daniel-github@electricrain.com>
 Daniel Holth <dholth@fastmail.fm>
 Daniel Jost <torpedojost@gmail.com>
 Dave Abrahams <dave@boostpro.com>
-david <db@d1b.org>
 David Aguilar <davvid@gmail.com>
+David Black <db@d1b.org>
 David Evans <d@drhevans.com>
 David Pursehouse <david.pursehouse@gmail.com>
 Dmitry Gladkov <dmitry.gladkov@gmail.com>
