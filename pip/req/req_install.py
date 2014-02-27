@@ -251,9 +251,7 @@ class InstallRequirement(object):
     @property
     def setup_py(self):
         try:
-            import setuptools
-            # Small hack to make flake8 not complain about an unused import
-            setuptools
+            import setuptools  # noqa
         except ImportError:
             # Setuptools is not available
             raise InstallationError(
@@ -318,9 +316,13 @@ class InstallRequirement(object):
                 if not os.path.exists(egg_info_dir):
                     os.makedirs(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
+            cwd = self.source_dir
+            if self.editable_options and \
+                    'subdirectory' in self.editable_options:
+                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 egg_info_cmd + egg_base_option,
-                cwd=self.source_dir,
+                cwd=cwd,
                 filter_stdout=self._filter_install,
                 show_stdout=False,
                 command_level=logger.VERBOSE_DEBUG,
@@ -826,6 +828,10 @@ exec(compile(
         logger.indent += 2
         try:
             ## FIXME: should we do --install-headers here too?
+            cwd = self.source_dir
+            if self.editable_options and \
+                    'subdirectory' in self.editable_options:
+                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 [
                     sys.executable,
@@ -838,7 +844,7 @@ exec(compile(
                 + ['develop', '--no-deps']
                 + list(install_options),
 
-                cwd=self.source_dir, filter_stdout=self._filter_install,
+                cwd=cwd, filter_stdout=self._filter_install,
                 show_stdout=False)
         finally:
             logger.indent -= 2
