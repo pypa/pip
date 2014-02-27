@@ -1,4 +1,3 @@
-
 .. _`pip install`:
 
 pip install
@@ -153,7 +152,7 @@ the :ref:`--editable <install_--editable>` option) or not.
 * For non-editable installs, the project is built locally in a temp dir and then
   installed normally.
 
-The url suffix "egg=<project name>" is used by pip in it's dependency logic to
+The url suffix "egg=<project name>" is used by pip in its dependency logic to
 identify the project prior to pip downloading and analyzing the metadata.
 
 Git
