@@ -167,14 +167,14 @@ def parseopts(args):
     return cmd_name, cmd_args
 
 
-def main(initial_args=None):
-    if initial_args is None:
-        initial_args = sys.argv[1:]
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
 
     autocomplete()
 
     try:
-        cmd_name, cmd_args = parseopts(initial_args)
+        cmd_name, cmd_args = parseopts(args)
     except PipError as exc:
         sys.stderr.write("ERROR: %s" % exc)
         sys.stderr.write(os.linesep)
@@ -184,22 +184,8 @@ def main(initial_args=None):
     return command.main(cmd_args)
 
 
-def bootstrap():
-    """
-    Bootstrapping function to be called from install-pip.py script.
-    """
-    pkgs = ['pip']
-    try:
-        import setuptools
-        # Dumb hack
-        setuptools
-    except ImportError:
-        pkgs.append('setuptools')
-    return main(['install', '--upgrade'] + pkgs + sys.argv[1:])
-
 ############################################################
 ## Writing freeze files
-
 
 class FrozenRequirement(object):
 
@@ -260,6 +246,4 @@ class FrozenRequirement(object):
 
 
 if __name__ == '__main__':
-    exit = main()
-    if exit:
-        sys.exit(exit)
+    sys.exit(main())
