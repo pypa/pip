@@ -247,7 +247,6 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
             'git+http://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
-        # @todo: Why do other tests specify `expect_error=True`?
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
     assert 'Found existing installation: pip-test-package 0.1' in result.stdout
