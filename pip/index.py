@@ -615,7 +615,7 @@ class PackageFinder(object):
                 and not link.verifiable
                 and not (normalize_name(search_name).lower()
                          in self.allow_unverified)):
-            # We have a link that we are sure we cannot verify it's integrity,
+            # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
             logger.debug("Skipping %s because it is an insecure and "
