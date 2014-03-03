@@ -38,8 +38,7 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-long_description = "\n" + "\n".join([read('PROJECT.txt'),
-                                     read('docs', 'quickstart.rst')])
+long_description = read('README.rst')
 
 tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock']
 
@@ -57,9 +56,10 @@ setup(
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.1",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: Implementation :: PyPy"
     ],
     keywords='easy_install distutils setuptools egg virtualenv',
     author='The pip developers',

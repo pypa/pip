@@ -1,7 +1,7 @@
 include AUTHORS.txt
 include LICENSE.txt
 include CHANGES.txt
-include PROJECT.txt
+include README.rst
 include pip/cacert.pem
 recursive-include docs *.rst
 recursive-include docs *.html
