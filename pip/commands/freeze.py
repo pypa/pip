@@ -25,7 +25,7 @@ class FreezeCommand(Command):
             action='store',
             default=None,
             metavar='file',
-            help="Use the order in the given requirements file and it's comments when generating output.")
+            help="Use the order in the given requirements file and its comments when generating output.")
         self.cmd_opts.add_option(
             '-f', '--find-links',
             dest='find_links',

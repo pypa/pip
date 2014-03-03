@@ -403,7 +403,7 @@ class PyPIRPCLocator(Locator):
 class PyPIJSONLocator(Locator):
     """
     This locator uses PyPI's JSON interface. It's very limited in functionality
-    nad probably not worth using.
+    and probably not worth using.
     """
     def __init__(self, url, **kwargs):
         super(PyPIJSONLocator, self).__init__(**kwargs)

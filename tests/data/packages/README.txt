@@ -44,7 +44,7 @@ for testing finder logic when name *contains* the name of the package specified
 
 HackedEggInfo
 -------------
-has it's own egg_info class
+has its own egg_info class
 
 LineEndings
 -----------

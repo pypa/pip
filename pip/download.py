@@ -501,7 +501,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
         if not os.path.exists(already_downloaded):
             already_downloaded = None
 
-    # If already downloaded, does it's hash match?
+    # If already downloaded, does its hash match?
     if already_downloaded:
         temp_location = already_downloaded
         content_type = mimetypes.guess_type(already_downloaded)[0]

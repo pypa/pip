@@ -502,7 +502,7 @@ def test_finder_finds_external_links_without_hashes_scraped_insecure(data):
 
 class test_link_package_versions(object):
 
-    # patch this for travis which has distribute in it's base env for now
+    # patch this for travis which has distribute in its base env for now
     @patch('pip.wheel.pkg_resources.get_distribution', lambda x: Distribution(project_name='setuptools', version='0.9'))
     def setup(self):
         self.version = '1.0'

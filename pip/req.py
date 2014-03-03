@@ -1384,7 +1384,7 @@ class RequirementSet(object):
 
         # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
         # move the distribute-0.7.X wrapper to the end because it does not
-        # install a setuptools package. by moving it to the end, we ensure it's
+        # install a setuptools package. by moving it to the end, we ensure its
         # setuptools dependency is handled first, which will provide the
         # setuptools package
         # TODO: take this out later

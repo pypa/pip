@@ -10,7 +10,7 @@
 # might want to install, especially if they're looking to run this get-pip.py
 # script. Pip has a lot of code to deal with the security of installing
 # packages, various edge cases on various platforms, and other such sort of
-# "tribal knowledge" that has been encoded in it's code base. Because of this
+# "tribal knowledge" that has been encoded in its code base. Because of this
 # we basically include an entire copy of pip inside this blob. We do this
 # because the alternatives are attempt to implement a "minipip" that probably
 # doesn't do things correctly and has weird edge cases, or compress pip itself
