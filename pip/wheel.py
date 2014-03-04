@@ -543,10 +543,10 @@ class WheelBuilder(object):
         if not buildset:
             return
 
-        #build the wheels
+        # Build the wheels.
         logger.notify(
             'Building wheels for collected packages: %s' %
-            ','.join([req.name for req in buildset])
+            ', '.join([req.name for req in buildset])
         )
         logger.indent += 2
         build_success, build_failure = [], []
