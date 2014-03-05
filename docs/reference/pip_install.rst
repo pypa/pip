@@ -353,7 +353,7 @@ Options
 Examples
 ********
 
-1) Install `SomePackage` and it's dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+1) Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
   ::
 
