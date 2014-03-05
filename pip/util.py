@@ -544,6 +544,23 @@ def unzip_file(filename, location, flatten=True):
         zipfp.close()
 
 
+def has_lzma():
+    """Test for lzma module in Python >= 3.3"""
+    try:
+        import lzma
+        return True
+    except ImportError:
+        return False
+
+
+def decompress_xz(filename):
+    """Decompress a .xz file without removing the original. Returns the
+    decompress filename without the '.xz' extension.
+    """
+    call_subprocess(["xz", "-dk", filename])
+    return filename[:-3]
+
+
 def untar_file(filename, location):
     """
     Untar the file (with path `filename`) to the destination `location`.
@@ -553,6 +570,7 @@ def untar_file(filename, location):
     written.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
+    remove_file = False
     if not os.path.exists(location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
@@ -560,6 +578,15 @@ def untar_file(filename, location):
     elif (filename.lower().endswith('.bz2')
             or filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
+    elif filename.lower().endswith('.xz'):
+        if has_lzma():
+            mode = 'r:xz'
+        else:
+            # extract to (temporary) .tar file since the tarfile module does not
+            # support xz compression
+            mode = 'r'
+            filename = decompress_xz(filename)
+            remove_file = True
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
@@ -617,7 +644,8 @@ def untar_file(filename, location):
                     os.chmod(path, (0o777 - current_umask() | 0o111))
     finally:
         tar.close()
-
+        if remove_file:
+            os.unlink(filename)
 
 def create_download_cache_folder(folder):
     logger.indent -= 2
@@ -651,7 +679,7 @@ def unpack_file(filename, location, content_type, link):
     elif (content_type == 'application/x-gzip'
             or tarfile.is_tarfile(filename)
             or splitext(filename)[1].lower() in (
-                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz', '.tar.xz')):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html')
             and is_svn_page(file_contents(filename))):

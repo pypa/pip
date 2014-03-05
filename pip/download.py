@@ -332,7 +332,8 @@ def path_to_url(path):
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
     archives = (
-        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle', '.whl'
+        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle', '.whl',
+        '.tar.xz',
     )
     ext = splitext(name)[1].lower()
     if ext in archives:

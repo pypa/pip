@@ -504,7 +504,7 @@ class PackageFinder(object):
                 yield v
 
     def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip', '.tar.xz')
         if self.use_wheel:
             return extensions + (wheel_ext,)
         return extensions
@@ -742,7 +742,7 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip', '.tar.xz']:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
                             url, session=session,

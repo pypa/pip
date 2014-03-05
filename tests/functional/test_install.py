@@ -6,7 +6,8 @@ from os.path import join, curdir, pardir
 
 import pytest
 
-from pip.util import rmtree
+from pip.util import rmtree, find_command
+from pip.exceptions import BadCommand
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -408,6 +409,28 @@ def test_install_with_pax_header(script, data):
     test installing from a tarball with pax header for python<2.6
     """
     script.pip('install', 'paxpkg.tar.bz2', cwd=data.packages)
+
+
+def support_xz():
+    """Check if system supports xz compression."""
+    try:
+        import lzma
+        return True
+    except ImportError:
+        try:
+            find_command('xz')
+            return True
+        except BadCommand:
+            pass
+    return False
+
+
+@pytest.mark.skipif("not support_xz()")
+def test_install_with_tar_xz(script, data):
+    """
+    test installing from a .tar.xz tarball
+    """
+    script.pip('install', 'xzpkg-1.0.tar.xz', cwd=data.packages)
 
 
 def test_install_with_hacked_egg_info(script, data):
