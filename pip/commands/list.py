@@ -14,10 +14,6 @@ class ListCommand(Command):
       %prog [options]"""
     summary = 'List installed packages.'
 
-    # distributions to skip (python itself is reported by
-    # pkg_resources.working_set)
-    skip = ['python', 'wsgiref']
-
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
 
@@ -122,7 +118,6 @@ class ListCommand(Command):
         installed_packages = get_installed_distributions(
             local_only=options.local,
             include_editables=False,
-            skip=self.skip,
         )
         for dist in installed_packages:
             req = InstallRequirement.from_line(dist.key, None)
@@ -149,7 +144,6 @@ class ListCommand(Command):
     def run_listing(self, options):
         installed_packages = get_installed_distributions(
             local_only=options.local,
-            skip=self.skip,
         )
         self.output_package_listing(installed_packages)
 

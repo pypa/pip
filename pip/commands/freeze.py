@@ -2,10 +2,14 @@ import re
 import sys
 import pip
 
+from pip.backwardcompat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
 from pip.util import get_installed_distributions
+
+# packages to exclude from freeze output
+freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 
 
 class FreezeCommand(Command):
@@ -64,7 +68,8 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
-        for dist in get_installed_distributions(local_only=local_only):
+        for dist in get_installed_distributions(local_only=local_only,
+                                                skip=freeze_excludes):
             req = pip.FrozenRequirement.from_dist(dist, find_tags=find_tags)
             installations[req.name] = req
         if requirement:

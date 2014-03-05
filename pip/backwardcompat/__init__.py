@@ -156,3 +156,13 @@ def get_path_uid(path):
                 "%s is a symlink; Will not return uid for symlinks" % path
             )
     return file_uid
+
+
+# packages in the stdlib that may have installation metadata, but should not be
+# considered 'installed'.  this theoretically could be determined based on
+# dist.location (py27:`sysconfig.get_paths()['stdlib']`,
+# py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
+# make this ineffective, so hard-coding
+stdlib_pkgs = ['python', 'wsgiref']
+if sys.version_info >= (2, 7):
+    stdlib_pkgs.extend(['argparse'])
