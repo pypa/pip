@@ -5,7 +5,7 @@ Development
 Pull Requests
 =============
 
-Submit Pull Requests against the `develop` branch.
+Submit Pull Requests against the default `develop <https://github.com/pypa/pip/tree/develop>`_ branch.
 
 Provide a good description of what you're doing and why.
 
