@@ -223,6 +223,11 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--proxy', 'path'])
         assert options1.proxy == options2.proxy == 'path'
 
+    def test_retries(self):
+        options1, args1 = main(['--retries', '-1', 'fake'])
+        options2, args2 = main(['fake', '--retries', '-1'])
+        assert options1.retries == options2.retries == -1
+
     def test_timeout(self):
         options1, args1 = main(['--timeout', '-1', 'fake'])
         options2, args2 = main(['fake', '--timeout', '-1'])
