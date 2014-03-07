@@ -81,13 +81,19 @@ def get_supported(versions=None, noarch=False):
     if not noarch:
         arch = get_platform()
         if sys.platform == 'darwin':
-            # support macosx-10.6-intel on macosx-10.9-intel
+            # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
                 name, major, minor, actual_arch = match.groups()
                 actual_arches = [actual_arch]
+                if actual_arch in ('i386', 'ppc'):
+                    actual_arches.append('fat')
                 if actual_arch in ('i386', 'x86_64'):
                     actual_arches.append('intel')
+                if actual_arch in ('i386', 'ppc', 'x86_64'):
+                    actual_arches.append('fat3')
+                if actual_arch in ('ppc64', 'x86_64'):
+                    actual_arches.append('fat64')
                 if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
                     actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
