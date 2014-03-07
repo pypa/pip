@@ -732,11 +732,11 @@ def call_subprocess(cmd, show_stdout=True,
                     '\n----------------------------------------'
                 )
             raise InstallationError(
-                "Command %s failed with error code %s in %s"
+                'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
         else:
             logger.warn(
-                "Command %s had error code %s in %s"
+                'Command "%s" had error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
         return ''.join(all_output)
