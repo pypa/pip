@@ -166,6 +166,15 @@ cert = OptionMaker(
     metavar='path',
     help="Path to alternate CA bundle.")
 
+client_cert = OptionMaker(
+    '--client-cert',
+    dest='client_cert',
+    type='str',
+    default=None,
+    metavar='path',
+    help="Path to SSL client certificate, a single file containing the "
+         "private key and the certificate in PEM format.")
+
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
@@ -357,6 +366,7 @@ general_group = {
         skip_requirements_regex,
         exists_action,
         cert,
+        client_cert,
     ]
 }
 

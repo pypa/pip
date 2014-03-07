@@ -60,6 +60,10 @@ class Command(object):
         if options.cert:
             session.verify = options.cert
 
+        # Handle SSL client certificate
+        if options.client_cert:
+            session.cert = options.client_cert
+
         # Handle timeouts
         if options.timeout:
             session.timeout = options.timeout
