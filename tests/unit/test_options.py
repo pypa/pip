@@ -254,6 +254,11 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--cert', 'path'])
         assert options1.cert == options2.cert == 'path'
 
+    def test_client_cert(self):
+        options1, args1 = main(['--client-cert', 'path', 'fake'])
+        options2, args2 = main(['fake', '--client-cert', 'path'])
+        assert options1.client_cert == options2.client_cert == 'path'
+
 
 class TestOptionsConfigFiles(object):
 

@@ -9,6 +9,8 @@
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
   freeze` (PR #1606, #1369)
 
+* Fixed #1424. Add ``--client-cert`` option for SSL client certificates.
+
 **1.5.4 (2014-02-21)**
 
 
