@@ -13,7 +13,11 @@ freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 
 
 class FreezeCommand(Command):
-    """Output installed packages in requirements format."""
+    """
+    Output installed packages in requirements format.
+
+    packages are listed in a case-insensitive sorted order.
+    """
     name = 'freeze'
     usage = """
       %prog [options]"""

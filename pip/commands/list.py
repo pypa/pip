@@ -8,7 +8,11 @@ from pip.cmdoptions import make_option_group, index_group
 
 
 class ListCommand(Command):
-    """List installed packages, including editables."""
+    """
+    List installed packages, including editables.
+
+    Packages are listed in a case-insensitive sorted order.
+    """
     name = 'list'
     usage = """
       %prog [options]"""

@@ -180,10 +180,10 @@ To list installed packages:
 ::
 
   $ pip list
-  Pygments (1.5)
   docutils (0.9.1)
-  Sphinx (1.1.2)
   Jinja2 (2.6)
+  Pygments (1.5)
+  Sphinx (1.1.2)
 
 To list outdated packages, and show the latest version available:
 
