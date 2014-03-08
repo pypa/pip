@@ -30,6 +30,7 @@ def _check_output(result, expected):
 
     def banner(msg):
         return '\n========== %s ==========\n' % msg
+
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner('EXPECTED') + expected + banner('ACTUAL') + actual +
         banner(6 * '=')
@@ -50,7 +51,7 @@ def test_freeze_basic(script):
         # and something else to test out:
         simple2<=3.0
         """))
-    result = script.pip_install_local(
+    script.pip_install_local(
         '-r', script.scratch_path / 'initools-req.txt',
     )
     result = script.pip('freeze', expect_stderr=True)
@@ -70,10 +71,11 @@ def test_freeze_svn(script, tmpdir):
         'svn+http://svn.colorstudy.com/INITools/trunk',
         tmpdir.join("cache"),
     )
-    #svn internally stores windows drives as uppercase; we'll match that.
+    # svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
 
-    result = script.run(
+    # Checkout
+    script.run(
         'svn', 'co', '-r10',
         local_repo(
             'svn+http://svn.colorstudy.com/INITools/trunk',
@@ -81,16 +83,18 @@ def test_freeze_svn(script, tmpdir):
         ),
         'initools-trunk',
     )
-    result = script.run(
+    # Install with develop
+    script.run(
         'python', 'setup.py', 'develop',
         cwd=script.scratch_path / 'initools-trunk',
         expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
+
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze
+        Script result: pip freeze
         -- stdout: --------------------
-        -e %s@10#egg=INITools-0.3.1dev...-dev_r10
+        ...-e %s@10#egg=INITools-0.3.1dev...-dev_r10
         ...""" % checkout_path)
     _check_output(result, expected)
 
