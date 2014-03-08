@@ -130,11 +130,14 @@ class TestPipResult(object):
 
     def assert_installed(self, pkg_name, editable=True, with_files=[],
                          without_files=[], without_egg_link=False,
-                         use_user_site=False):
+                         use_user_site=False, sub_dir=False):
         e = self.test_env
 
         if editable:
             pkg_dir = e.venv / 'src' / pkg_name.lower()
+            # If package was installed in a sub directory
+            if sub_dir:
+                pkg_dir = pkg_dir / sub_dir
         else:
             without_egg_link = True
             pkg_dir = e.site_packages / pkg_name
@@ -159,18 +162,19 @@ class TestPipResult(object):
 
             egg_link_file = self.files_created[egg_link_path]
 
-            if not (  # FIXME: I don't understand why there's a trailing . here
-                    egg_link_file.bytes.endswith('.')
-                    and egg_link_file.bytes[:-1].strip().endswith(pkg_dir)):
+            # FIXME: I don't understand why there's a trailing . here
+            if not (egg_link_file.bytes.endswith('\n.')
+                    and egg_link_file.bytes[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u('''\
-                Incorrect egg_link file %r
-                Expected ending: %r
-                ------- Actual contents -------
-                %s
-                -------------------------------''' % (
+                    Incorrect egg_link file %r
+                    Expected ending: %r
+                    ------- Actual contents -------
+                    %s
+                    -------------------------------''' % (
                     egg_link_file,
-                    pkg_dir + u('\n.'),
-                    egg_link_file.bytes))))
+                    pkg_dir + '\n.',
+                    repr(egg_link_file.bytes))
+                )))
 
         if use_user_site:
             pth_file = e.user_site / 'easy-install.pth'
