@@ -349,10 +349,10 @@ class PackageFinder(object):
                 (
                     req,
                     ', '.join(
-                        sorted(list(set([
+                        sorted(set([
                             version
                             for parsed_version, link, version in all_versions
-                        ]))))
+                        ])))
                 )
             )
 
