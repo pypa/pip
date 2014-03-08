@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 
 import py
 import pytest
@@ -7,6 +8,8 @@ from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
+
+SKIP_IF_MISSING_MEMOIZE = {}
 
 
 @pytest.fixture
@@ -98,3 +101,53 @@ def script(tmpdir, virtualenv):
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
+
+
+def pytest_addoption(parser):
+    parser.addoption('--ignore-dep-checks', action="store_true",
+                     help="ignore system dependency checks before each test")
+
+
+def pytest_runtest_setup(item):
+    # Test for @pytest.mark.skip_if_missing(...), and act accordingly.
+    dep_marker = item.get_marker("skip_if_missing")
+
+    if dep_marker is not None:
+        ignore = item.config.getoption('--ignore-dep-checks')
+        if not ignore and not _has_reqs(dep_marker.args):
+            pytest.skip("Skipping-- dependency not met")
+
+
+def _has_reqs(reqs):
+    """
+    Return whether all requirements are present on system. Valid requirements
+    are: bzr, git, hg, svn. To add more, edit the test_commands dict below.
+    """
+    test_commands = {
+        'bzr': 'bzr --version',
+        'git': 'git --version',
+        'hg': 'hg -v',
+        'svn': 'svn --version'
+    }
+
+    memoize = SKIP_IF_MISSING_MEMOIZE
+
+    for req in reqs:
+        # Add to memoize dict if not already present
+        if req not in memoize:
+            try:
+                command = test_commands[req]
+            except KeyError:
+                raise ValueError('Requirement "{0}" is invalid'.format(req))
+
+            try:
+                subprocess.call(command.split())  # split okay, cmds are simple
+                memoize[req] = True
+            except OSError:
+                memoize[req] = False
+
+        # If memoize dict says requirement is missing, return negative
+        if not memoize[req]:
+            return False
+
+    return True

@@ -1,10 +1,12 @@
 import zipfile
 import textwrap
+import pytest
 from os.path import exists, join
 from pip.download import path_to_url
 from tests.lib.local_repos import local_checkout
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_create_bundle(script, tmpdir, data):
     """
     Test making a bundle.  We'll grab one package from the filesystem
@@ -44,6 +46,7 @@ def test_create_bundle(script, tmpdir, data):
     assert 'build/pip/' in files
 
 
+@pytest.mark.skip_if_missing('git', 'svn')
 def test_cleanup_after_create_bundle(script, tmpdir, data):
     """
     Test clean up after making a bundle. Make sure (build|src)-bundle/ dirs are

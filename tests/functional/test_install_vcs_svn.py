@@ -1,7 +1,9 @@
+import pytest
 from mock import patch
 from pip.vcs.subversion import Subversion
 
 
+@pytest.mark.skip_if_missing('svn')
 @patch('pip.vcs.subversion.call_subprocess')
 def test_obtain_should_recognize_auth_info_url(call_subprocess_mock, script):
     svn = Subversion(url='svn+http://username:password@svn.example.com/')
@@ -13,6 +15,7 @@ def test_obtain_should_recognize_auth_info_url(call_subprocess_mock, script):
     ])
 
 
+@pytest.mark.skip_if_missing('svn')
 @patch('pip.vcs.subversion.call_subprocess')
 def test_export_should_recognize_auth_info_url(call_subprocess_mock, script):
     svn = Subversion(url='svn+http://username:password@svn.example.com/')

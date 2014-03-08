@@ -73,6 +73,7 @@ def test_relative_requirements_file(script, data):
     )
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
@@ -130,6 +131,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
 
+@pytest.mark.skip_if_missing('git')
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
                                                               'version_subpkg')

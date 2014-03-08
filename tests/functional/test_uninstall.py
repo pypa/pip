@@ -6,6 +6,7 @@ import sys
 from os.path import join, normpath
 from tempfile import mkdtemp
 from mock import patch
+import pytest
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
@@ -162,6 +163,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     )
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.
@@ -206,6 +208,7 @@ def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
         rmtree(temp)
 
 
+@pytest.mark.skip_if_missing('git')
 def _test_uninstall_editable_with_source_outside_venv(
         script, tmpdir, cache_dir):
     result = script.run(
@@ -229,6 +232,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.

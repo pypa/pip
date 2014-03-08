@@ -2,6 +2,7 @@ import os
 
 from os.path import exists
 
+import pytest
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 from pip.locations import write_delete_marker_file
@@ -27,6 +28,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     Test --no-clean option blocks cleaning after install
     """
     result = script.pip(
+
         'install', '--no-clean', '--no-index',
         '--find-links=%s' % data.find_links, 'simple'
     )
@@ -34,6 +36,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
+@pytest.mark.skip_if_missing('hg')
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.

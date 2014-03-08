@@ -66,6 +66,7 @@ def test_editable_install(script):
     assert not result.files_updated, result.files_updated
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_install_editable_from_svn(script, tmpdir):
     """
     Test checking out from svn.
@@ -82,6 +83,7 @@ def test_install_editable_from_svn(script, tmpdir):
     result.assert_installed('INITools', with_files=['.svn'])
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_download_editable_to_custom_path(script, tmpdir):
     """
     Test downloading an editable using a relative custom src folder.
@@ -116,6 +118,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     assert customdl_files_created
 
 
+@pytest.mark.skip_if_missing('svn')
 def test_editable_no_install_followed_by_no_download(script, tmpdir):
     """
     Test installing an editable in two steps (first with --no-install, then
@@ -211,6 +214,7 @@ def test_install_dev_version_from_pypi(script):
     )
 
 
+@pytest.mark.skip_if_missing('git')
 def test_install_editable_from_git(script, tmpdir):
     """
     Test cloning from Git.
@@ -228,6 +232,7 @@ def test_install_editable_from_git(script, tmpdir):
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
+@pytest.mark.skip_if_missing('hg')
 def test_install_editable_from_hg(script, tmpdir):
     """
     Test cloning from Mercurial.
@@ -244,6 +249,7 @@ def test_install_editable_from_hg(script, tmpdir):
     result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
+@pytest.mark.skip_if_missing('hg')
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
@@ -262,6 +268,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     )
 
 
+@pytest.mark.skip_if_missing('bzr')
 def test_install_editable_from_bazaar(script, tmpdir):
     """
     Test checking out from Bazaar.
@@ -279,6 +286,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
     result.assert_installed('django-wikiapp', with_files=['.bzr'])
 
 
+@pytest.mark.skip_if_missing('bzr')
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -419,6 +427,7 @@ def test_install_with_hacked_egg_info(script, data):
     assert 'Successfully installed hackedegginfo\n' in result.stdout
 
 
+@pytest.mark.skip_if_missing('git')
 def test_install_using_install_option_and_editable(script, tmpdir):
     """
     Test installing a tool using -e and --install-option
@@ -437,6 +446,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     assert virtualenv_bin in result.files_created
 
 
+@pytest.mark.skip_if_missing('hg')
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation

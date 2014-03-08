@@ -1,6 +1,8 @@
 import os
+import pytest
 
 
+@pytest.mark.skip_if_missing('git')
 def test_list_command(script, data):
     """
     Test default behavior of list command.
@@ -15,6 +17,7 @@ def test_list_command(script, data):
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
+@pytest.mark.skip_if_missing('git')
 def test_local_flag(script, data):
     """
     Test the behavior of --local flag in the list command
@@ -25,6 +28,7 @@ def test_local_flag(script, data):
     assert 'simple (1.0)' in result.stdout
 
 
+@pytest.mark.skip_if_missing('git')
 def test_uptodate_flag(script, data):
     """
     Test the behavior of --uptodate flag in the list command
@@ -46,6 +50,7 @@ def test_uptodate_flag(script, data):
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
+@pytest.mark.skip_if_missing('git')
 def test_outdated_flag(script, data):
     """
     Test the behavior of --outdated flag in the list command
@@ -67,6 +72,7 @@ def test_outdated_flag(script, data):
     assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
 
 
+@pytest.mark.skip_if_missing('git')
 def test_editables_flag(script, data):
     """
     Test the behavior of --editables flag in the list command

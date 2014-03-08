@@ -260,6 +260,7 @@ def test_install_with_ignoreinstalled_requested(script):
     )
 
 
+@pytest.mark.skip_if_missing('git')
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
@@ -271,6 +272,7 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     assert not result.returncode
 
 
+@pytest.mark.skip_if_missing('git')
 def test_upgrade_vcs_req_with_dist_found(script):
     """It can upgrade a VCS requirement that has distributions on the index."""
     # TODO(pnasrat) Using local_checkout fails on windows - oddness with the

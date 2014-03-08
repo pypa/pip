@@ -4,10 +4,9 @@ tests specific to "pip install --user"
 import imp
 import os
 import textwrap
+import pytest
 
 from os.path import curdir, isdir, isfile
-
-import pytest
 
 from pip.backwardcompat import uses_pycache
 
@@ -57,6 +56,7 @@ class Tests_UserSite:
             project_name
         )
 
+    @pytest.mark.skip_if_missing('svn')
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, virtualenv, tmpdir):
         """
