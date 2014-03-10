@@ -459,23 +459,24 @@ def _download_url(resp, link, temp_location):
                     if not chunk:
                         break
                     yield chunk
-        
+
         # Below are the registers to calculate network transfer rate
         time_register = time()
         speed = 0.0
         bytes_register = 0.0
-        
+
         for chunk in resp_read(4096):
-            if time() - time_register > 0.5: # Update Download Speed every 0.5 seconds
-                speed = (downloaded - bytes_register) / (time() - time_register)
+            if time() - time_register > 0.5:   # Update Speed every 0.5s
+                speed = (downloaded - bytes_register)/(time() - time_register)
                 # Set registers properly for future loops
                 time_register = time()
                 bytes_register = downloaded
-                
+
             downloaded += len(chunk)
             if show_progress:
                 if not total_length:
-                    logger.show_progress('%s | %s/s' % (format_size(downloaded), format_size(speed)))
+                    logger.show_progress('%s | %s/s'%(format_size(downloaded),
+                                                      format_size(speed)))
                 else:
                     logger.show_progress(
                         '%3i%%  %s | %s/s' %
