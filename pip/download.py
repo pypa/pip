@@ -16,7 +16,8 @@ from pip.backwardcompat import urllib, urlparse, raw_input
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download)
+                      create_download_cache_folder, cache_download,
+                      xz_supported)
 from pip.vcs import vcs
 from pip.log import logger
 from pip._vendor import requests, six
@@ -331,10 +332,11 @@ def path_to_url(path):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = (
+    archives = [
         '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle', '.whl',
-        '.tar.xz',
-    )
+    ]
+    if xz_supported():
+        archives.append('.tar.xz')
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True

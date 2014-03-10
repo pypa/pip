@@ -7,7 +7,8 @@ import mimetypes
 import posixpath
 
 from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
+from pip.util import (Inf, normalize_name, splitext, is_prerelease,
+    xz_supported)
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
@@ -504,7 +505,9 @@ class PackageFinder(object):
                 yield v
 
     def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip', '.tar.xz')
+        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+        if xz_supported():
+            extensions += ('.tar.xz',)
         if self.use_wheel:
             return extensions + (wheel_ext,)
         return extensions
@@ -742,7 +745,10 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip', '.tar.xz']:
+                extensions = ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']
+                if xz_supported():
+                    extensions.append('.tar.xz')
+                for bad_ext in extensions:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
                             url, session=session,

@@ -31,7 +31,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'cache_download', 'unpack_file', 'call_subprocess', 'xz_supported']
 
 
 def get_prog():
@@ -557,8 +557,23 @@ def decompress_xz(filename):
     """Decompress a .xz file without removing the original. Returns the
     decompress filename without the '.xz' extension.
     """
-    call_subprocess(["xz", "-dk", filename])
+    xz_cmd = find_command("xz")
+    call_subprocess([xz_cmd, "-dk", filename])
     return filename[:-3]
+
+
+def xz_supported():
+    """Determine if the current system supports handling .xz files,
+    either by using the Python lzma module or the 'xz' commandline tool.
+    """
+    if has_lzma():
+        return True
+    try:
+        find_command("xz")
+        return True
+    except BadCommand:
+        pass
+    return False
 
 
 def untar_file(filename, location):
@@ -578,7 +593,7 @@ def untar_file(filename, location):
     elif (filename.lower().endswith('.bz2')
             or filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
-    elif filename.lower().endswith('.xz'):
+    elif filename.lower().endswith('.xz') and xz_supported():
         if has_lzma():
             mode = 'r:xz'
         else:
@@ -666,6 +681,9 @@ def cache_download(target_file, temp_location, content_type):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
+    tar_extensions = ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz']
+    if xz_supported():
+        tar_extensions.append('.tar.xz')
     if (content_type == 'application/zip'
             or filename.endswith('.zip')
             or filename.endswith('.pybundle')
@@ -678,8 +696,7 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip'
             or tarfile.is_tarfile(filename)
-            or splitext(filename)[1].lower() in (
-                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz', '.tar.xz')):
+            or splitext(filename)[1].lower() in tar_extensions):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html')
             and is_svn_page(file_contents(filename))):
