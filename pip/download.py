@@ -476,7 +476,7 @@ def _download_url(resp, link, temp_location):
             if show_progress:
                 if not total_length:
                     logger.show_progress(
-                        '%s | %s/s' % 
+                        '%s | %s/s' %
                         (
                             format_size(downloaded),
                             format_size(speed)
