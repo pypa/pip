@@ -132,11 +132,11 @@ def test_respect_order_in_requirements_file(script, data):
 
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
-                                                              'version_subpkg')
+                                                              'version_subdir')
     result = script.pip(
         'install', '-e',
-        '%s#egg=version_subpkg&subdirectory=version_subpkg' %
+        '%s#egg=version_subpkg&subdirectory=version_subdir' %
         ('git+file://%s' % version_pkg_path,)
     )
 
-    result.assert_installed('version-subpkg')
+    result.assert_installed('version-subpkg', sub_dir='version_subdir')
