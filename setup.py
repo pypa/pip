@@ -45,7 +45,7 @@ tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock']
 setup(
     name="pip",
     version=find_version("pip", "__init__.py"),
-    description="A tool for installing and managing Python packages.",
+    description="The PyPA recommended tool for installing Python packages.",
     long_description=long_description,
     classifiers=[
         "Development Status :: 5 - Production/Stable",

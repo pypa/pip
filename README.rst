@@ -3,7 +3,7 @@ pip
 
 The `PyPA recommended
 <https://python-packaging-user-guide.readthedocs.org/en/latest/current.html>`_
-tool for installing and managing Python packages.
+tool for installing Python packages.
 
 * `Installation <http://www.pip-installer.org/en/latest/installing.html>`_
 * `Documentation <http://www.pip-installer.org>`_
