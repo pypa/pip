@@ -179,6 +179,10 @@ def distutils_scheme(dist_name, user=False, home=None, root=None):
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, 'install_' + key)
 
+    if i.install_lib is not None:
+        # install_lib takes precedence over purelib and platlib
+        scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
+
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(
             sys.prefix,
