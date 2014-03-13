@@ -166,7 +166,7 @@ class TestDisutilsScheme:
 
         for key, value in norm_scheme.items():
             expected = os.path.join("/test/root/", os.path.abspath(value)[1:])
-            assert root_scheme[key] == expected
+            assert os.path.abspath(root_scheme[key]) == expected
 
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
         f = tmpdir.mkdir("config").join("setup.cfg")
@@ -180,3 +180,17 @@ class TestDisutilsScheme:
         )
         scheme = distutils_scheme('example')
         assert scheme['scripts'] == '/somewhere/else'
+
+    def test_install_lib_takes_precedence(self, tmpdir, monkeypatch):
+        f = tmpdir.mkdir("config").join("setup.cfg")
+        f.write("[install]\ninstall-lib=/somewhere/else/")
+        from distutils.dist import Distribution
+        # patch the function that returns what config files are present
+        monkeypatch.setattr(
+            Distribution,
+            'find_config_files',
+            lambda self: [f],
+        )
+        scheme = distutils_scheme('example')
+        assert scheme['platlib'] == '/somewhere/else/'
+        assert scheme['purelib'] == '/somewhere/else/'
