@@ -166,7 +166,7 @@ class TestDisutilsScheme:
 
         for key, value in norm_scheme.items():
             expected = os.path.join("/test/root/", os.path.abspath(value)[1:])
-            assert root_scheme[key] == expected
+            assert os.path.abspath(root_scheme[key]) == expected
 
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
         f = tmpdir.mkdir("config").join("setup.cfg")
