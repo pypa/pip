@@ -379,7 +379,9 @@ $ pip install --no-index --find-links=[file://]<DIR> -r requirements.txt
 Non-recursive upgrades
 ************************
 
-``pip install --upgrade`` is currently written to perform a recursive upgrade.
+``pip install --upgrade`` is currently written to perform a "recursive upgrade",
+i.e. it upgrades all dependencies regardless of whether they still satisfy the
+new parent requirements.
 
 E.g. supposing:
 
@@ -388,15 +390,22 @@ E.g. supposing:
 * `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
-Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and* `AnotherPackage`
-despite `AnotherPackage` already being satisifed.
+Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
+`AnotherPackage` despite `AnotherPackage` already being satisifed.
 
-If you would like to perform a non-recursive upgrade perform these 2 steps::
+pip doesn't currently have an option to do a "non-recursive" upgrade, but you
+can achieve it using these 2 steps::
 
   pip install --upgrade --no-deps SomePackage
   pip install SomePackage
 
-The first line will upgrade `SomePackage`, but not dependencies like `AnotherPackage`.  The 2nd line will fill in new dependencies like `OneMorePackage`.
+The first line will upgrade `SomePackage`, but not dependencies like
+`AnotherPackage`.  The 2nd line will fill in new dependencies like
+`OneMorePackage`.
+
+Finally, to be clear, "non-recursive" in this context does not simply mean
+:ref:`--no-deps <install_--no-deps>`. A "non-recursive" will upgrade
+dependencies, but only if needed to fulfill parent requirements.
 
 
 User Installs
