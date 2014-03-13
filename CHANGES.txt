@@ -11,6 +11,9 @@
 
 * Fixed #1424. Add ``--client-cert`` option for SSL client certificates.
 
+* Fixed #1641. install_lib should take precedence when reading distutils config.
+  (PR #1642)
+
 **1.5.4 (2014-02-21)**
 
 
