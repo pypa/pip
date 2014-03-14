@@ -554,7 +554,8 @@ def untar_file(filename, location, mode=None):
     no-ops per the python docs.
 
     :param mode: override the tarfile.open(filename, mode), optional.
-                 If None, then autodetermine base on the filename extension
+                 If None, then autodetermine based on the filename extension
+                 (e.g. *.tar.gz should be gzip decompressed with mode="r:gz")
     """
     if not os.path.exists(location):
         os.makedirs(location)
