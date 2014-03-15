@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath(os.pardir))
 extensions = ['docs.pipext', 'docs.wikify']
 
 # setup wikify extension to convert issue references to links
-from wikify import create_regexp_rule, create_tracker_link_rule
+from docs.wikify import create_regexp_rule, create_tracker_link_rule
 wikify_html_rules = [
     # PR #123 or pull request #123
     create_regexp_rule('(PR|pull request)\s+#(\d+)',
