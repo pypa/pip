@@ -207,9 +207,11 @@ class PackageFinder(object):
 
 
 
-    def find_requirement(self, req, upgrade):
+    def _get_locations_from_indexes(self, req):
+        locations = []
 
         url_name = req.url_name
+
         # Only check main index if index URL is given:
         main_index_url = None
         if self.index_urls:
@@ -227,16 +229,31 @@ class PackageFinder(object):
                     url_name, req
                 ) or req.url_name
 
+
+        for version in req.absolute_versions:
+            if url_name is not None and main_index_url is not None:
+                locations = [
+                    posixpath.join(main_index_url.url, version)] + locations
+
+
+        logger.debug("_get_locations_from_indexes: %s", locations)
+
+        return locations
+
+
+    def find_requirement(self, req, upgrade):
+        url_name = req.url_name
+
         if url_name is not None:
             locations = [
                 mkurl_pypi_url(url, url_name)
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
-                locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
+
+
+        locations = self._get_locations_from_indexes(req) + locations
+
 
         file_locations, url_locations = self._sort_locations(locations)
 
