@@ -59,7 +59,6 @@ def warn_if_location_is_insecure(location):
                         ctx)
 
 
-
 def mkurl_pypi_url(url, url_name):
     loc = posixpath.join(url, url_name)
     # For maximum compatibility with easy_install, ensure the path
@@ -70,7 +69,6 @@ def mkurl_pypi_url(url, url_name):
     if not loc.endswith('/'):
         loc = loc + '/'
     return loc
-
 
 
 class PackageFinder(object):
@@ -204,9 +202,6 @@ class PackageFinder(object):
             reverse=True
         )
 
-
-
-
     # TODO: Why is this needed?  Wouldn't it be better to just
     #       fail and force the user to specify the correct
     #       package name?  I recommend that we just remove
@@ -219,7 +214,6 @@ class PackageFinder(object):
         req_name = req.url_name
 
         if self.index_urls:
-            
             # This line suggests that the req_name can *never*
             # be None.  Otherwise, it seems like the previous
             # versions of the code would have exploded.
@@ -250,7 +244,6 @@ class PackageFinder(object):
 
         return req_name
 
-
     # The previous version of this code only generated URL's
     # for the primary index url.  This version searches the
     # primary index and all extra indexes.
@@ -258,7 +251,6 @@ class PackageFinder(object):
         """
         Generates URLs that append the version number to the path
         """
-
         # Yeah, I'm sure there's a better way to do this.
         locations = []
         for url in self.index_urls:
@@ -266,10 +258,7 @@ class PackageFinder(object):
                 locations = [
                     posixpath.join(url, req_name, version)] + locations
 
-
         return locations
-
-
 
     def find_requirement(self, req, upgrade):
         # FIXME: This does not belong here!  We should instead require
@@ -284,11 +273,10 @@ class PackageFinder(object):
             logger.debug("req_name is None for req: %s", req)
         else:
             locations += self._get_locations_for_versions(req, req_name)
-            locations += [mkurl_pypi_url(url, req_name) for url in self.index_urls]
+            locations += [mkurl_pypi_url(url, req_name)
+                            for url in self.index_urls]
 
         locations += list(self.find_links)
-
-
 
         file_locations, url_locations = self._sort_locations(locations)
 
@@ -300,7 +288,6 @@ class PackageFinder(object):
         for location in locations:
             logger.debug('* %s' % location)
             warn_if_location_is_insecure(location)
-
 
         found_versions = []
         found_versions.extend(
