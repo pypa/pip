@@ -274,7 +274,7 @@ class PackageFinder(object):
         else:
             locations += self._get_locations_for_versions(req, req_name)
             locations += [mkurl_pypi_url(url, req_name)
-                            for url in self.index_urls]
+                          for url in self.index_urls]
 
         locations += list(self.find_links)
 
