@@ -58,6 +58,21 @@ def warn_if_location_is_insecure(location):
             logger.warn("%s uses an insecure transport scheme (%s)." %
                         ctx)
 
+
+
+def mkurl_pypi_url(url, url_name):
+    loc = posixpath.join(url, url_name)
+    # For maximum compatibility with easy_install, ensure the path
+    # ends in a trailing slash.  Although this isn't in the spec
+    # (and PyPI can handle it without the slash) some other index
+    # implementations might break if they relied on easy_install's
+    # behavior.
+    if not loc.endswith('/'):
+        loc = loc + '/'
+    return loc
+
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -189,18 +204,10 @@ class PackageFinder(object):
             reverse=True
         )
 
-    def find_requirement(self, req, upgrade):
 
-        def mkurl_pypi_url(url):
-            loc = posixpath.join(url, url_name)
-            # For maximum compatibility with easy_install, ensure the path
-            # ends in a trailing slash.  Although this isn't in the spec
-            # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's
-            # behavior.
-            if not loc.endswith('/'):
-                loc = loc + '/'
-            return loc
+
+
+    def find_requirement(self, req, upgrade):
 
         url_name = req.url_name
         # Only check main index if index URL is given:
@@ -208,7 +215,7 @@ class PackageFinder(object):
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
             main_index_url = Link(
-                mkurl_pypi_url(self.index_urls[0]),
+                mkurl_pypi_url(self.index_urls[0], url_name),
                 trusted=True,
             )
             # This will also cache the page, so it's okay that we get it again
@@ -222,7 +229,7 @@ class PackageFinder(object):
 
         if url_name is not None:
             locations = [
-                mkurl_pypi_url(url)
+                mkurl_pypi_url(url, url_name)
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
