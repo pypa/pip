@@ -207,6 +207,44 @@ class PackageFinder(object):
 
 
 
+    # TODO: Why is this needed?  Wouldn't it be better to just
+    #       fail and force the user to specify the correct
+    #       package name?  I recommend that we just remove
+    #       this functionality.
+    def _fix_the_req_name(self, req):
+        """
+        Attempts to find the "correct" name for the req by
+        scraping the first index page.
+        """
+        url_name = req.url_name
+
+        if self.index_urls:
+            # Check that we have the url_name correctly spelled:
+            main_index_url = Link(
+                mkurl_pypi_url(self.index_urls[0], url_name),
+                trusted=True,
+            )
+
+            # If we get a page hit for this URL, then we can
+            # assume that the name was correct.
+            page = self._get_page(main_index_url, req)
+            if page is None:
+
+                # Oh snap.  It failed.  So, let's search the
+                # index URL and see if there are any "close"
+                # matches.
+                fixed_name = self._find_url_name(
+                    Link(self.index_urls[0], trusted=True),
+                    url_name, req
+                )
+
+                if fixed_name:
+                    url_name = fixed_name
+
+        return url_name
+
+
+
     def _get_locations_from_indexes(self, req):
         locations = []
 
@@ -242,7 +280,7 @@ class PackageFinder(object):
 
 
     def find_requirement(self, req, upgrade):
-        url_name = req.url_name
+        url_name = self._fix_the_req_name(req)
 
         if url_name is not None:
             locations = [
@@ -254,6 +292,7 @@ class PackageFinder(object):
 
         locations = self._get_locations_from_indexes(req) + locations
 
+        logger.info("locations: %s", locations)
 
         file_locations, url_locations = self._sort_locations(locations)
 
@@ -459,7 +498,7 @@ class PackageFinder(object):
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
-                logger.notify(
+                logger.warn(
                     'Real name of requirement %s is %s' % (url_name, base)
                 )
                 return base
