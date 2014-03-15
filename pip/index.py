@@ -216,12 +216,15 @@ class PackageFinder(object):
         Attempts to find the "correct" name for the req by
         scraping the first index page.
         """
-        url_name = req.url_name
+        req_name = req.url_name
 
         if self.index_urls:
-            # Check that we have the url_name correctly spelled:
+            
+            # This line suggests that the req_name can *never*
+            # be None.  Otherwise, it seems like the previous
+            # versions of the code would have exploded.
             main_index_url = Link(
-                mkurl_pypi_url(self.index_urls[0], url_name),
+                mkurl_pypi_url(self.index_urls[0], req_name),
                 trusted=True,
             )
 
@@ -235,17 +238,17 @@ class PackageFinder(object):
                 # matches.
                 fixed_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
-                    url_name, req
+                    req_name, req
                 )
 
                 if fixed_name:
-                    url_name = fixed_name
+                    req_name = fixed_name
 
                 # And, if that failed... I guess we just assume
                 # that another package index will have it?
                 # That seems dangerous...
 
-        return url_name
+        return req_name
 
 
     # The previous version of this code only generated URL's
@@ -271,12 +274,17 @@ class PackageFinder(object):
     def find_requirement(self, req, upgrade):
         # FIXME: This does not belong here!  We should instead require
         #        end-users to specify the correct names for requirements!
-        url_name = self._fix_the_req_name(req)
+        req_name = self._fix_the_req_name(req)
 
-        locations = self._get_locations_for_versions(req, url_name)
+        locations = []
 
-        if url_name is not None:
-            locations += [mkurl_pypi_url(url, url_name) for url in self.index_urls]
+        if req_name is None:
+            # Can this ever actually happen?  Seems like this
+            # would just break things further downstream...
+            logger.debug("req_name is None for req: %s", req)
+        else:
+            locations += self._get_locations_for_versions(req, req_name)
+            locations += [mkurl_pypi_url(url, req_name) for url in self.index_urls]
 
         locations += list(self.find_links)
 
