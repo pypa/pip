@@ -28,6 +28,36 @@ INSECURE_SCHEMES = {
 }
 
 
+def warn_if_location_is_insecure(location):
+    """
+    Logs a warning if the location uses an insecure transport mechanism
+    """
+    # Determine if this url used a secure transport mechanism
+    parsed = urlparse.urlparse(str(location))
+    if parsed.scheme in INSECURE_SCHEMES:
+        secure_schemes = INSECURE_SCHEMES[parsed.scheme]
+
+        if len(secure_schemes) == 1:
+            ctx = (location, parsed.scheme, secure_schemes[0],
+                   parsed.netloc)
+            logger.warn("%s uses an insecure transport scheme (%s). "
+                        "Consider using %s if %s has it available" %
+                        ctx)
+        elif len(secure_schemes) > 1:
+            ctx = (
+                location,
+                parsed.scheme,
+                ", ".join(secure_schemes),
+                parsed.netloc,
+            )
+            logger.warn("%s uses an insecure transport scheme (%s). "
+                        "Consider using one of %s if %s has any of "
+                        "them available" % ctx)
+        else:
+            ctx = (location, parsed.scheme)
+            logger.warn("%s uses an insecure transport scheme (%s)." %
+                        ctx)
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -210,32 +240,8 @@ class PackageFinder(object):
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
+            warn_if_location_is_insecure(location)
 
-            # Determine if this url used a secure transport mechanism
-            parsed = urlparse.urlparse(str(location))
-            if parsed.scheme in INSECURE_SCHEMES:
-                secure_schemes = INSECURE_SCHEMES[parsed.scheme]
-
-                if len(secure_schemes) == 1:
-                    ctx = (location, parsed.scheme, secure_schemes[0],
-                           parsed.netloc)
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using %s if %s has it available" %
-                                ctx)
-                elif len(secure_schemes) > 1:
-                    ctx = (
-                        location,
-                        parsed.scheme,
-                        ", ".join(secure_schemes),
-                        parsed.netloc,
-                    )
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using one of %s if %s has any of "
-                                "them available" % ctx)
-                else:
-                    ctx = (location, parsed.scheme)
-                    logger.warn("%s uses an insecure transport scheme (%s)." %
-                                ctx)
 
         found_versions = []
         found_versions.extend(
