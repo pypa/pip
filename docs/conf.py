@@ -22,12 +22,25 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath(os.pardir))
 #sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
-# -- General configuration ----------------------------------------------------
+# -- Setup extensions ---------------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 #extensions = ['sphinx.ext.autodoc']
-extensions = ['docs.pipext']
+extensions = ['docs.pipext', 'docs.wikify']
+
+# setup wikify extension to convert issue references to links
+from wikify import create_regexp_rule, create_tracker_link_rule
+wikify_html_rules = [
+    # PR #123 or pull request #123
+    create_regexp_rule('(PR|pull request)\s+#(\d+)',
+                      '<a href="https://github.com/pypa/pip/pull/\\2">\\0</a>'),
+    # issue #123 or just #123
+    create_tracker_link_rule('https://github.com/pypa/pip/issues/')
+]
+wikify_html_pages = ['news']
+
+# -- General configuration ----------------------------------------------------
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
