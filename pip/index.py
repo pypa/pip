@@ -241,6 +241,10 @@ class PackageFinder(object):
                 if fixed_name:
                     url_name = fixed_name
 
+                # And, if that failed... I guess we just assume
+                # that another package index will have it?
+                # That seems dangerous...
+
         return url_name
 
 
@@ -265,7 +269,8 @@ class PackageFinder(object):
 
 
     def find_requirement(self, req, upgrade):
-        # FIXME: This does not belong here!
+        # FIXME: This does not belong here!  We should instead require
+        #        end-users to specify the correct names for requirements!
         url_name = self._fix_the_req_name(req)
 
         locations = self._get_locations_for_versions(req, url_name)
@@ -276,7 +281,6 @@ class PackageFinder(object):
         locations += list(self.find_links)
 
 
-        logger.info("locations: %s", locations)
 
         file_locations, url_locations = self._sort_locations(locations)
 
