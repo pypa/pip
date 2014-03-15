@@ -244,53 +244,37 @@ class PackageFinder(object):
         return url_name
 
 
+    # The previous version of this code only generated URL's
+    # for the primary index url.  This version searches the
+    # primary index and all extra indexes.
+    def _get_locations_for_versions(self, req, req_name):
+        """
+        Generates URLs that append the version number to the path
+        """
 
-    def _get_locations_from_indexes(self, req):
+        # Yeah, I'm sure there's a better way to do this.
         locations = []
-
-        url_name = req.url_name
-
-        # Only check main index if index URL is given:
-        main_index_url = None
-        if self.index_urls:
-            # Check that we have the url_name correctly spelled:
-            main_index_url = Link(
-                mkurl_pypi_url(self.index_urls[0], url_name),
-                trusted=True,
-            )
-            # This will also cache the page, so it's okay that we get it again
-            # later:
-            page = self._get_page(main_index_url, req)
-            if page is None:
-                url_name = self._find_url_name(
-                    Link(self.index_urls[0], trusted=True),
-                    url_name, req
-                ) or req.url_name
-
-
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
+        for url in self.index_urls:
+            for version in req.absolute_versions:
                 locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
+                    posixpath.join(url, req_name, version)] + locations
 
-
-        logger.debug("_get_locations_from_indexes: %s", locations)
 
         return locations
 
 
+
     def find_requirement(self, req, upgrade):
+        # FIXME: This does not belong here!
         url_name = self._fix_the_req_name(req)
 
+        locations = self._get_locations_for_versions(req, url_name)
+
         if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url, url_name)
-                for url in self.index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
+            locations += [mkurl_pypi_url(url, url_name) for url in self.index_urls]
 
+        locations += list(self.find_links)
 
-        locations = self._get_locations_from_indexes(req) + locations
 
         logger.info("locations: %s", locations)
 
