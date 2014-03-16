@@ -8,14 +8,14 @@
   dependency links please see http://www.pip-installer.org/en/latest/dependency_links.html
 
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
-  freeze` (PR #1606, #1369)
+  freeze` (:pull:`1606`, :pull:`1369`)
 
-* Fixed #1424. Add ``--client-cert`` option for SSL client certificates.
+* Fixed :issue:`1424`. Add ``--client-cert`` option for SSL client certificates.
 
-* Fixed #1641. install_lib should take precedence when reading distutils config.
-  (PR #1642)
+* Fixed :issue:`1641`. install_lib should take precedence when reading distutils config.
+  (:pull:`1642`)
 
-* Fixed #1484. `pip show --files` was broken for wheel installs. (PR #1635)
+* Fixed :issue:`1484`. `pip show --files` was broken for wheel installs. (:pull:`1635`)
 
 
 **1.5.4 (2014-02-21)**
@@ -29,23 +29,23 @@
 
 
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
-  deprecated.  See Issue #906 for discussion.
+  deprecated.  See :issue:`906` for discussion.
 
-* Fixed #1112. Couldn't download directly from wheel paths/urls, and when wheel
+* Fixed :issue:`1112`. Couldn't download directly from wheel paths/urls, and when wheel
   downloads did occur using requirement specifiers, dependencies weren't
-  downloaded (PR #1527)
+  downloaded (:pull:`1527`)
 
-* Fixed #1320. ``pip wheel`` was not downloading wheels that already existed (PR
-  #1524)
+* Fixed :issue:`1320`. ``pip wheel`` was not downloading wheels that already existed (PR
+  :issue:`1524`)
 
-* Fixed #1111. ``pip install --download`` was failing using local
-  ``--find-links`` (PR #1524)
+* Fixed :issue:`1111`. ``pip install --download`` was failing using local
+  ``--find-links`` (:pull:`1524`)
 
-* Workaround for Python bug http://bugs.python.org/issue20053 (PR #1544)
+* Workaround for Python bug http://bugs.python.org/issue20053 (:pull:`1544`)
 
-* Don't pass a unicode __file__ to setup.py on Python 2.x (PR #1583)
+* Don't pass a unicode __file__ to setup.py on Python 2.x (:pull:`1583`)
 
-* Verify that the Wheel version is compatible with this pip (PR #1569)
+* Verify that the Wheel version is compatible with this pip (:pull:`1569`)
 
 
 **1.5.2 (2014-01-26)**
@@ -64,19 +64,19 @@
 
 
 * pip now only requires setuptools (any setuptools, not a certain version) when
-  installing distributions from src (i.e. not from wheel). (Pull #1434).
+  installing distributions from src (i.e. not from wheel). (:pull:`1434`).
 
-* `get-pip.py` now installs setuptools, when it's not already installed (Pull
-  #1475)
+* `get-pip.py` now installs setuptools, when it's not already installed
+  (:pull:`1475`)
 
-* Don't decode downloaded files that have a ``Content-Encoding`` header. (Pull
-  #1435)
+* Don't decode downloaded files that have a ``Content-Encoding`` header.
+  (:pull:`1435`)
 
-* Fix to correctly parse wheel filenames with single digit versions. (Pull
-  #1445)
+* Fix to correctly parse wheel filenames with single digit versions.
+  (:pull:`1445`)
 
-* If `--allow-unverified` is used assume it also means `--allow-external`. (Pull
-  #1457)
+* If `--allow-unverified` is used assume it also means `--allow-external`.
+  (:pull:`1457`)
 
 
 **1.5 (2014-01-01)**
@@ -85,12 +85,12 @@
 * **BACKWARD INCOMPATIBLE** pip no longer supports the ``--use-mirrors``,
   ``-M``, and ``--mirrors`` flags. The mirroring support has been removed. In
   order to use a mirror specify it as the primary index with ``-i`` or
-  ``--index-url``, or as an additional index with ``--extra-index-url``. (Pull #1098, CVE-2013-5123)
+  ``--index-url``, or as an additional index with ``--extra-index-url``. (:pull:`1098`, CVE-2013-5123)
 
 * **BACKWARD INCOMPATIBLE** pip no longer will scrape insecure external urls by
   default nor will it install externally hosted files by default. Users may opt
   into installing externally hosted or insecure files or urls using
-  ``--allow-external PROJECT`` and ``--allow-unverified PROJECT``. (Pull #1055)
+  ``--allow-external PROJECT`` and ``--allow-unverified PROJECT``. (:pull:`1055`)
 
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
@@ -99,64 +99,64 @@
   use dependency links at all has been deprecated and will be removed in 1.6.
 
 * **DEPRECATION** ``pip install --no-install`` and ``pip install
-  --no-download`` are now formally deprecated.  See Issue #906 for discussion on
+  --no-download`` are now formally deprecated.  See :issue:`906` for discussion on
   possible alternatives, or lack thereof, in future releases.
 
 * **DEPRECATION** ``pip zip`` and ``pip unzip`` are now formally deprecated.
 
-* pip will now install Mac OSX platform wheels from PyPI. (Pull #1278)
+* pip will now install Mac OSX platform wheels from PyPI. (:pull:`1278`)
 
 * pip now generates the appropriate platform-specific console scripts when
-  installing wheels. (Pull #1251)
+  installing wheels. (:pull:`1251`)
 
 * Pip now confirms a wheel is supported when installing directly from a path or
-  url. (Pull #1315)
+  url. (:pull:`1315`)
 
-* Fixed #1097, ``--ignore-installed`` now behaves again as designed, after it was
-  unintentionally broke in v0.8.3 when fixing Issue #14 (Pull #1352).
+* Fixed :issue:`1097`, ``--ignore-installed`` now behaves again as designed, after it was
+  unintentionally broke in v0.8.3 when fixing :issue:`14` (:pull:`1352`).
 
 * Fixed a bug where global scripts were being removed when uninstalling --user
-  installed packages (Pull #1353).
+  installed packages (:pull:`1353`).
 
-* Fixed #1163, --user wasn't being respected when installing scripts from wheels (Pull #1176).
+* Fixed :issue:`1163`, --user wasn't being respected when installing scripts from wheels (:pull:`1176`).
 
-* Fixed #1150, we now assume '_' means '-' in versions from wheel filenames (Pull #1158).
+* Fixed :issue:`1150`, we now assume '_' means '-' in versions from wheel filenames (:pull:`1158`).
 
-* Fixed #219, error when using --log with a failed install (Pull #1205).
+* Fixed :issue:`219`, error when using --log with a failed install (:pull:`1205`).
 
-* Fixed #1131, logging was buffered and choppy in Python 3.
+* Fixed :issue:`1131`, logging was buffered and choppy in Python 3.
 
-* Fixed #70,  --timeout was being ignored (Pull #1202).
+* Fixed :issue:`70`,  --timeout was being ignored (:pull:`1202`).
 
-* Fixed #772, error when setting PIP_EXISTS_ACTION (Pull #1201).
+* Fixed :issue:`772`, error when setting PIP_EXISTS_ACTION (:pull:`1201`).
 
 * Added colors to the logging output in order to draw attention to important
-  warnings and errors. (Pull #1109)
+  warnings and errors. (:pull:`1109`)
 
-* Added warnings when using an insecure index, find-link, or dependency link. (Pull #1121)
+* Added warnings when using an insecure index, find-link, or dependency link. (:pull:`1121`)
 
 * Added support for installing packages from a subdirectory using the ``subdirectory``
-  editable option. ( Pull #1082 )
+  editable option. ( :pull:`1082` )
 
-* Fixed #1192. "TypeError: bad operand type for unary" in some cases when
-  installing wheels using --find-links (Pull #1218).
+* Fixed :issue:`1192`. "TypeError: bad operand type for unary" in some cases when
+  installing wheels using --find-links (:pull:`1218`).
 
-* Fixed #1133 and #317. Archive contents are now written based on system
+* Fixed :issue:`1133` and :issue:`317`. Archive contents are now written based on system
   defaults and umask (i.e. permissions are not preserved), except that regular
   files with any execute permissions have the equivalent of "chmod +x" applied
-  after being written (Pull #1146).
+  after being written (:pull:`1146`).
 
 * PreviousBuildDirError now returns a non-zero exit code and prevents the
-  previous build dir from being cleaned in all cases (Pull #1162).
+  previous build dir from being cleaned in all cases (:pull:`1162`).
 
 * Renamed --allow-insecure to --allow-unverified, however the old name will
-  continue to work for a period of time (Pull #1257).
+  continue to work for a period of time (:pull:`1257`).
 
-* Fixed #1006, error when installing local projects with symlinks in
-  Python 3. (Pull #1311)
+* Fixed :issue:`1006`, error when installing local projects with symlinks in
+  Python 3. (:pull:`1311`)
 
 * The previously hidden ``--log-file`` otion, is now shown as a general option.
-  (Pull #1316)
+  (:pull:`1316`)
 
 
 **1.4.1 (2013-08-07)**
@@ -164,12 +164,12 @@
 
 * **New Signing Key** Release 1.4.1 is using a different key than normal with
   fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
-* Fixed issues with installing from pybundle files (Pull #1116).
-* Fixed error when sysconfig module throws an exception (Pull #1095).
-* Don't ignore already installed pre-releases (Pull #1076).
-* Fixes related to upgrading setuptools (Pull #1092).
-* Fixes so that --download works with wheel archives (Pull #1113).
-* Fixes related to recognizing and cleaning global build dirs (Pull #1080).
+* Fixed issues with installing from pybundle files (:pull:`1116`).
+* Fixed error when sysconfig module throws an exception (:pull:`1095`).
+* Don't ignore already installed pre-releases (:pull:`1076`).
+* Fixes related to upgrading setuptools (:pull:`1092`).
+* Fixes so that --download works with wheel archives (:pull:`1113`).
+* Fixes related to recognizing and cleaning global build dirs (:pull:`1080`).
 
 
 **1.4 (2013-07-23)**
@@ -177,49 +177,49 @@
 
 * **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
   and offers a new ``--pre`` option to also find pre-release and development
-  versions. (Pull #834)
+  versions. (:pull:`834`)
 
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 2.5. The minimum
   supported Python version for pip 1.4 is Python 2.6.
 
 * Added support for installing and building wheel archives.
   Thanks Daniel Holth, Marcus Smith, Paul Moore, and Michele Lacchia
-  (Pull #845)
+  (:pull:`845`)
 
 * Applied security patch to pip's ssl support related to certificate DNS
   wildcard matching (http://bugs.python.org/issue17980).
 
 * To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
   not distribute. setuptools and distribute are now merged into one project
-  called 'setuptools'. (Pull #1003)
+  called 'setuptools'. (:pull:`1003`)
 
 * pip will now warn when installing a file that is either hosted externally to
   the index or cannot be verified with a hash. In the future pip will default
   to not installing them and will require the flags --allow-external NAME, and
-  --allow-insecure NAME respectively. (Pull #985)
+  --allow-insecure NAME respectively. (:pull:`985`)
 
 * If an already-downloaded or cached file has a bad hash, re-download it rather
-  than erroring out. (Issue #963).
+  than erroring out. (:issue:`963`).
 
 * ``pip bundle`` and support for installing from pybundle files is now
   considered deprecated and will be removed in pip v1.5.
 
-* Fixed a number of issues (#413, #709, #634, #602, and #939) related to
-  cleaning up and not reusing build directories. (Pull #865, #948)
+* Fixed a number of issues (:issue:`413`, :issue:`709`, :issue:`634`, :issue:`602`, and :issue:`939`) related to
+  cleaning up and not reusing build directories. (:pull:`865`, :issue:`948`)
 
-* Added a User Agent so that pip is identifiable in logs. (Pull #901)
+* Added a User Agent so that pip is identifiable in logs. (:pull:`901`)
 
 * Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis.
-  (Pull #895)
+  (:pull:`895`)
 
-* Fixed the proxy support, which was broken in pip 1.3.x (Pull #840)
+* Fixed the proxy support, which was broken in pip 1.3.x (:pull:`840`)
 
-* Fixed issue #32 - pip fails when server does not send content-type header.
-  Thanks Hugo Lopes Tavares and Kelsey Hightower (Pull #872).
+* Fixed :issue:`32` - pip fails when server does not send content-type header.
+  Thanks Hugo Lopes Tavares and Kelsey Hightower (:pull:`872`).
 
 * "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org/).
 
-* Fixed git VCS backend with git 1.8.3. (Pull #967)
+* Fixed git VCS backend with git 1.8.3. (:pull:`967`)
 
 
 **1.3.1 (2013-03-08)**
@@ -233,46 +233,46 @@
 
 
 * SSL Cert Verification; Make https the default for PyPI access.
-  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (Pull #791, CVE-2013-1629).
+  Thanks James Cleveland, Giovanni Bajo, Marcus Smith and many others (:pull:`791`, CVE-2013-1629).
 
 * Added "pip list" for listing installed packages and the latest version
-  available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (Pull #752)
+  available. Thanks Rafael Caricio, Miguel Araujo, Dmitry Gladkov (:pull:`752`)
 
 * Fixed security issues with pip's use of temp build directories.
-  Thanks David (d1b) and Thomas Guttler. (Pull #780, CVE-2013-1888)
+  Thanks David (d1b) and Thomas Guttler. (:pull:`780`, CVE-2013-1888)
 
-* Improvements to sphinx docs and cli help. (Pull #773)
+* Improvements to sphinx docs and cli help. (:pull:`773`)
 
-* Fixed issue #707, dealing with OS X temp dir handling, which was causing
-  global NumPy installs to fail. (Pull #768)
+* Fixed :issue:`707`, dealing with OS X temp dir handling, which was causing
+  global NumPy installs to fail. (:pull:`768`)
 
 * Split help output into general vs command-specific option groups.
-  Thanks Georgi Valkov. (Pull #744; Pull #721 contains preceding refactor)
+  Thanks Georgi Valkov. (:pull:`744`; :pull:`721` contains preceding refactor)
 
 * Fixed dependency resolution when installing from archives with uppercase
-  project names. (Pull #724)
+  project names. (:pull:`724`)
 
 * Fixed problem where re-installs always occurred when using file:// find-links.
-  (Pulls #683/#702)
+  (Pulls :issue:`683`/:issue:`702`)
 
 * "pip install -v" now shows the full download url, not just the archive name.
-  Thanks Marc Abramowitz (Pull #687)
+  Thanks Marc Abramowitz (:pull:`687`)
 
-* Fix to prevent unnecessary PyPI redirects. Thanks Alex Gronholm (Pull #695)
+* Fix to prevent unnecessary PyPI redirects. Thanks Alex Gronholm (:pull:`695`)
 
-* Fixed issue #670 - install failure under Python 3 when the same version
-  of a package is found under 2 different URLs.  Thanks Paul Moore (Pull #671)
+* Fixed :issue:`670` - install failure under Python 3 when the same version
+  of a package is found under 2 different URLs.  Thanks Paul Moore (:pull:`671`)
 
-* Fix git submodule recursive updates.  Thanks Roey Berman. (Pulls #674)
+* Fix git submodule recursive updates.  Thanks Roey Berman. (Pulls :issue:`674`)
 
 * Explicitly ignore rel='download' links while looking for html pages.
-  Thanks Maxime R. (Pull #677)
+  Thanks Maxime R. (:pull:`677`)
 
 * --user/--upgrade install options now work together. Thanks 'eevee' for
-  discovering the problem. (Pull #705)
+  discovering the problem. (:pull:`705`)
 
 * Added check in ``install --download`` to prevent re-downloading if the target
-  file already exists. Thanks Andrey Bulgakov. (Pull #669)
+  file already exists. Thanks Andrey Bulgakov. (:pull:`669`)
 
 * Added support for bare paths (including relative paths) as argument to
   `--find-links`. Thanks Paul Moore for draft patch.
@@ -280,11 +280,11 @@
 * Added support for --no-index in requirements files.
 
 * Added "pip show" command to get information about an installed package.
-  Fixes #131. Thanks Kelsey Hightower and Rafael Caricio.
+  Fixes :issue:`131`. Thanks Kelsey Hightower and Rafael Caricio.
 
 * Added `--root` option for "pip install" to specify root directory. Behaves
   like the same option in distutils but also plays nice with pip's egg-info.
-  Thanks Przemek Wrzos.  (Issue #253 / Pull #693)
+  Thanks Przemek Wrzos.  (:issue:`253` / :pull:`693`)
 
 
 **1.2.1 (2012-09-06)**
@@ -301,63 +301,63 @@
 * **Dropped support for Python 2.4** The minimum supported Python version is
   now Python 2.5.
 
-* Fixed issue #605 - pypi mirror support broken on some DNS responses. Thanks
+* Fixed :issue:`605` - pypi mirror support broken on some DNS responses. Thanks
   philwhin.
 
-* Fixed issue #355 - pip uninstall removes files it didn't install. Thanks
+* Fixed :issue:`355` - pip uninstall removes files it didn't install. Thanks
   pjdelport.
 
-* Fixed issues #493, #494, #440, and #573 related to improving support for the
+* Fixed issues :issue:`493`, :issue:`494`, :issue:`440`, and :issue:`573` related to improving support for the
   user installation scheme. Thanks Marcus Smith.
 
 * Write failure log to temp file if default location is not writable. Thanks
   andreigc.
 
-* Pull in submodules for git editable checkouts. Fixes #289 and #421. Thanks
+* Pull in submodules for git editable checkouts. Fixes :issue:`289` and :issue:`421`. Thanks
   Hsiaoming Yang and Markus Hametner.
 
 * Use a temporary directory as the default build location outside of a
-  virtualenv. Fixes issues #339 and #381. Thanks Ben Rosser.
+  virtualenv. Fixes issues :issue:`339` and :issue:`381`. Thanks Ben Rosser.
 
 * Added support for specifying extras with local editables. Thanks Nick
   Stenning.
 
 * Added ``--egg`` flag to request egg-style rather than flat installation. Refs
-  issue #3. Thanks Kamal Bin Mustafa.
+  :issue:`3`. Thanks Kamal Bin Mustafa.
 
-* Fixed issue #510 - prevent e.g. ``gmpy2-2.0.tar.gz`` from matching a request
+* Fixed :issue:`510` - prevent e.g. ``gmpy2-2.0.tar.gz`` from matching a request
   to ``pip install gmpy``; sdist filename must begin with full project name
   followed by a dash. Thanks casevh for the report.
 
-* Fixed issue #504 - allow package URLS to have querystrings. Thanks W.
+* Fixed :issue:`504` - allow package URLS to have querystrings. Thanks W.
   Trevor King.
 
-* Fixed issue #58 - pip freeze now falls back to non-editable format rather
+* Fixed :issue:`58` - pip freeze now falls back to non-editable format rather
   than blowing up if it can't determine the origin repository of an editable.
   Thanks Rory McCann.
 
 * Added a `__main__.py` file to enable `python -m pip` on Python versions
   that support it. Thanks Alexey Luchko.
 
-* Fixed issue #487 - upgrade from VCS url of project that does exist on
+* Fixed :issue:`487` - upgrade from VCS url of project that does exist on
   index. Thanks Andrew Knapp for the report.
 
-* Fixed issue #486 - fix upgrade from VCS url of project with no distribution
+* Fixed :issue:`486` - fix upgrade from VCS url of project with no distribution
   on index.  Thanks Andrew Knapp for the report.
 
-* Fixed issue #427 - clearer error message on a malformed VCS url. Thanks
+* Fixed :issue:`427` - clearer error message on a malformed VCS url. Thanks
   Thomas Fenzl.
 
 * Added support for using any of the built in guaranteed algorithms in
   ``hashlib`` as a checksum hash.
 
-* Fixed issue #321 - Raise an exception if current working directory can't be
+* Fixed :issue:`321` - Raise an exception if current working directory can't be
   found or accessed.
 
-* Fixed issue #82 - Removed special casing of the user directory and use the
+* Fixed :issue:`82` - Removed special casing of the user directory and use the
   Python default instead.
 
-* Fixed #436 - Only warn about version conflicts if there is actually one.
+* Fixed :issue:`436` - Only warn about version conflicts if there is actually one.
   This re-enables using ``==dev`` in requirements files.
 
 * Moved tests to be run on Travis CI: http://travis-ci.org/pypa/pip
@@ -368,7 +368,7 @@
 **1.1 (2012-02-16)**
 
 
-* Fixed issue #326 - don't crash when a package's setup.py emits UTF-8 and
+* Fixed :issue:`326` - don't crash when a package's setup.py emits UTF-8 and
   then fails. Thanks Marc Abramowitz.
 
 * Added ``--target`` option for installing directly to arbitrary directory.
@@ -377,37 +377,37 @@
 * Added support for authentication with Subversion repositories. Thanks
   Qiangning Hong.
 
-* Fixed issue #315 - ``--download`` now downloads dependencies as well.
+* Fixed :issue:`315` - ``--download`` now downloads dependencies as well.
   Thanks Qiangning Hong.
 
 * Errors from subprocesses will display the current working directory.
   Thanks Antti Kaihola.
 
-* Fixed issue #369 - compatibility with Subversion 1.7. Thanks Qiangning
+* Fixed :issue:`369` - compatibility with Subversion 1.7. Thanks Qiangning
   Hong. Note that setuptools remains incompatible with Subversion 1.7; to
   get the benefits of pip's support you must use Distribute rather than
   setuptools.
 
-* Fixed issue #57 - ignore py2app-generated OS X mpkg zip files in finder.
+* Fixed :issue:`57` - ignore py2app-generated OS X mpkg zip files in finder.
   Thanks Rene Dudfield.
 
-* Fixed issue #182 - log to ~/Library/Logs/ by default on OS X framework
+* Fixed :issue:`182` - log to ~/Library/Logs/ by default on OS X framework
   installs. Thanks Dan Callahan for report and patch.
 
-* Fixed issue #310 - understand version tags without minor version ("py3")
+* Fixed :issue:`310` - understand version tags without minor version ("py3")
   in sdist filenames. Thanks Stuart Andrews for report and Olivier Girardot for
   patch.
 
-* Fixed issue #7 - Pip now supports optionally installing setuptools
+* Fixed :issue:`7` - Pip now supports optionally installing setuptools
   "extras" dependencies; e.g. "pip install Paste[openid]". Thanks Matt Maker
   and Olivier Girardot.
 
-* Fixed issue #391 - freeze no longer borks on requirements files with
+* Fixed :issue:`391` - freeze no longer borks on requirements files with
   --index-url or --find-links. Thanks Herbert Pfennig.
 
-* Fixed issue #288 - handle symlinks properly. Thanks lebedov for the patch.
+* Fixed :issue:`288` - handle symlinks properly. Thanks lebedov for the patch.
 
-* Fixed issue #49 - pip install -U no longer reinstalls the same versions of
+* Fixed :issue:`49` - pip install -U no longer reinstalls the same versions of
   packages. Thanks iguananaut for the pull request.
 
 * Removed ``-E``/``--environment`` option and ``PIP_RESPECT_VIRTUALENV``;
@@ -416,11 +416,11 @@
   path/to/venv install Foo`` with ``virtualenv path/to/venv &&
   path/to/venv/pip install Foo``.
 
-* Fixed issue #366 - pip throws IndexError when it calls `scraped_rel_links`
+* Fixed :issue:`366` - pip throws IndexError when it calls `scraped_rel_links`
 
-* Fixed issue #22 - pip search should set and return a userful shell status code
+* Fixed :issue:`22` - pip search should set and return a userful shell status code
 
-* Fixed issue #351 and #365 - added global ``--exists-action`` command line
+* Fixed :issue:`351` and :issue:`365` - added global ``--exists-action`` command line
   option to easier script file exists conflicts, e.g. from editable
   requirements from VCS that have a changed repo URL.
 
@@ -429,23 +429,23 @@
 
 
 * Fixed docs issues.
-* Fixed issue #295 - Reinstall a package when using the ``install -I`` option
-* Fixed issue #283 - Finds a Git tag pointing to same commit as origin/master
-* Fixed issue #279 - Use absolute path for path to docs in setup.py
-* Fixed issue #314 - Correctly handle exceptions on Python3.
-* Fixed issue #320 - Correctly parse ``--editable`` lines in requirements files
+* Fixed :issue:`295` - Reinstall a package when using the ``install -I`` option
+* Fixed :issue:`283` - Finds a Git tag pointing to same commit as origin/master
+* Fixed :issue:`279` - Use absolute path for path to docs in setup.py
+* Fixed :issue:`314` - Correctly handle exceptions on Python3.
+* Fixed :issue:`320` - Correctly parse ``--editable`` lines in requirements files
 
 
 **1.0.1 (2011-04-30)**
 
 
 * Start to use git-flow.
-* Fixed issue #274 - `find_command` should not raise AttributeError
-* Fixed issue #273 - respect Content-Disposition header. Thanks Bradley Ayers.
-* Fixed issue #233 - pathext handling on Windows.
-* Fixed issue #252 - svn+svn protocol.
-* Fixed issue #44 - multiple CLI searches.
-* Fixed issue #266 - current working directory when running setup.py clean.
+* Fixed :issue:`274` - `find_command` should not raise AttributeError
+* Fixed :issue:`273` - respect Content-Disposition header. Thanks Bradley Ayers.
+* Fixed :issue:`233` - pathext handling on Windows.
+* Fixed :issue:`252` - svn+svn protocol.
+* Fixed :issue:`44` - multiple CLI searches.
+* Fixed :issue:`266` - current working directory when running setup.py clean.
 
 
 **1.0 (2011-04-04)**
@@ -484,15 +484,15 @@
 
 * Transferred primary maintenance from Ian to Jannis Leidel, Carl Meyer, Brian Rosner
 
-* Fixed issue #14 - No uninstall-on-upgrade with URL package. Thanks Oliver Tonnhofer
+* Fixed :issue:`14` - No uninstall-on-upgrade with URL package. Thanks Oliver Tonnhofer
 
-* Fixed issue #163 - Egg name not properly resolved. Thanks Igor Sobreira
+* Fixed :issue:`163` - Egg name not properly resolved. Thanks Igor Sobreira
 
-* Fixed issue #178 - Non-alphabetical installation of requirements. Thanks Igor Sobreira
+* Fixed :issue:`178` - Non-alphabetical installation of requirements. Thanks Igor Sobreira
 
-* Fixed issue #199 - Documentation mentions --index instead of --index-url. Thanks Kelsey Hightower
+* Fixed :issue:`199` - Documentation mentions --index instead of --index-url. Thanks Kelsey Hightower
 
-* Fixed issue #204 - rmtree undefined in mercurial.py. Thanks Kelsey Hightower
+* Fixed :issue:`204` - rmtree undefined in mercurial.py. Thanks Kelsey Hightower
 
 * Fixed bug in Git vcs backend that would break during reinstallation.
 
@@ -506,15 +506,15 @@
 
 * Avoid redundant unpacking of bundles (from pwaller)
 
-* Fixed issue #32, #150, #161 - Fixed checking out the correct
+* Fixed :issue:`32`, :issue:`150`, :issue:`161` - Fixed checking out the correct
   tag/branch/commit when updating an editable Git requirement.
 
-* Fixed issue #49 - Added ability to install version control requirements
+* Fixed :issue:`49` - Added ability to install version control requirements
   without making them editable, e.g.::
 
     pip install git+https://github.com/pypa/pip/
 
-* Fixed issue #175 - Correctly locate build and source directory on Mac OS X.
+* Fixed :issue:`175` - Correctly locate build and source directory on Mac OS X.
 
 * Added ``git+https://`` scheme to Git VCS backend.
 
@@ -529,13 +529,13 @@
   defined in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_, from
   Jannis Leidel.
 
-* Fixed issue #138 - Git revisions ignored. Thanks John-Scott Atlakson.
+* Fixed :issue:`138` - Git revisions ignored. Thanks John-Scott Atlakson.
 
-* Fixed issue #95 - Initial editable install of github package from a tag fails. Thanks John-Scott Atlakson.
+* Fixed :issue:`95` - Initial editable install of github package from a tag fails. Thanks John-Scott Atlakson.
 
-* Fixed issue #107 - Can't install if a directory in cwd has the same name as the package you're installing.
+* Fixed :issue:`107` - Can't install if a directory in cwd has the same name as the package you're installing.
 
-* Fixed issue #39 - --install-option="--prefix=~/.local" ignored with -e.
+* Fixed :issue:`39` - --install-option="--prefix=~/.local" ignored with -e.
   Thanks Ronny Pfannschmidt and Wil Tan.
 
 
