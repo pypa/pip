@@ -38,7 +38,7 @@ class InstallRequirement(object):
                  editable_options=None, from_bundle=False, pycompile=True):
         self.extras = ()
         if isinstance(req, string_types):
-            req = pkg_resources.Requirement.parse(req)
+            req = pkg_resources.Requirement.parse(self.fix_utf8(req))
             self.extras = req.extras
         self.req = req
         self.comes_from = comes_from
@@ -175,6 +175,11 @@ class InstallRequirement(object):
                 s += ' (from %s)' % comes_from
         return s
 
+    def fix_utf8(self, text):
+        if six.PY2 and isinstance(text, six.text_type):
+            return text.encode('utf-8')
+        return text
+
     def from_path(self):
         if self.req is None:
             return None
@@ -270,10 +275,7 @@ class InstallRequirement(object):
             setup_py = os.path.join(self.source_dir, setup_file)
 
         # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(setup_py, six.text_type):
-            setup_py = setup_py.encode(sys.getfilesystemencoding())
-
-        return setup_py
+        return self.fix_utf8(setup_py)
 
     def run_egg_info(self, force_root_egg_info=False):
         assert self.source_dir
@@ -445,7 +447,7 @@ exec(compile(
                 'No PKG-INFO file found in %s' %
                 display_path(self.egg_info_path('PKG-INFO'))
             )
-        p.feed(data or '')
+        p.feed(self.fix_utf8(data) or '')
         return p.close()
 
     _requirements_section_re = re.compile(r'\[(.*?)\]')
