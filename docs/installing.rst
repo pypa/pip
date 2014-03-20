@@ -32,6 +32,9 @@ install `setuptools`_ for you. [2]_
 
 To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
 
+.. note::
+  Windows users may be told that ``'pip' is not recognized as an internal or external command``.
+  You need to add ``C:\PythonXX\Scripts`` to your Environment Variables path for the ``pip`` command to be recognized in a command window.
 
 Using Package Managers
 ----------------------
