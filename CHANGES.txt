@@ -17,6 +17,8 @@
 
 * Fixed :issue:`1484`. `pip show --files` was broken for wheel installs. (:pull:`1635`)
 
+* Added a virtualenv-specific configuration file. (:pull:`1364`)
+
 
 **1.5.4 (2014-02-21)**
 
