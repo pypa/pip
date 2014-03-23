@@ -38,4 +38,4 @@ branches:
     - 1.5.X
 
 notifications:
-  irc: "irc.freenode.org#pip"
+  irc: "irc.freenode.org#pypa-dev"

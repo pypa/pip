@@ -11,8 +11,8 @@ tool for installing Python packages.
 * `Github Page <https://github.com/pypa/pip>`_
 * `Issue Tracking <https://github.com/pypa/pip/issues>`_
 * `Mailing list <http://groups.google.com/group/python-virtualenv>`_
-* User IRC: #pip on Freenode.
-* Dev IRC: #pypa on Freenode.
+* User IRC: #pypa on Freenode.
+* Dev IRC: #pypa-dev on Freenode.
 
 
 .. image:: https://pypip.in/v/pip/badge.png
