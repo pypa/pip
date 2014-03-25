@@ -435,6 +435,40 @@ Examples
   $ pip install --pre SomePackage
 
 
+Build System Interface
+**********************
+
+In order for pip to install a package from source, ``setup.py`` must implement
+the following commands::
+
+    setup.py egg_info [--egg-base XXX]
+    setup.py install --record XXX [--single-version-externally-managed] [--root XXX] [--compile|--no-compile] [--install-headers XXX]
+
+The ``egg_info`` command should create egg metadata for the package, as
+described in the setuptools documentation at
+http://pythonhosted.org/setuptools/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
+
+The ``install`` command should implement the complete process of installing the
+package to the target directory XXX.
+
+To install a package in "editable" mode (``pip install -e``), ``setup.py`` must
+implement the following command::
+
+    setup.py develop --no-deps
+
+This should implement the complete process of installing the package in
+"editable" mode.
+
+One further ``setup.py`` command is invoked by ``pip install``::
+
+    setup.py clean
+
+This command is invoked to clean up temporary commands from the build. (TODO:
+Investigate in more detail when this command is required).
+
+No other build system commands are invoked by the ``pip install`` command.
+
+Installing a package from a wheel does not invoke the build system at all.
 
 .. _PyPI: http://pypi.python.org/pypi/
 .. _setuptools extras: http://packages.python.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
