@@ -268,6 +268,9 @@ class InstallCommand(Command):
 
         session = self._build_session(options)
 
+
+        # --- find package names and versions ---
+
         finder = self._build_package_finder(options, index_urls, session)
 
         requirement_set = RequirementSet(
@@ -311,6 +314,17 @@ class InstallCommand(Command):
             logger.warn(msg)
             return
 
+
+        # --- download and install ---
+        
+        # pseudocode to solve issue #1299
+        #if 'pip' in requirement_set:
+        #    logger.notify('Attempt to update itself.')
+        #    if pip_exe:
+        #        logger.warn('Restarting pip with python.exe:')
+        #        logger.warn('  python -m pip ...')
+        #        os.execv(sys.executable, ['-m', 'pip', 'install'] + args)
+        
         try:
             if not options.no_download:
                 requirement_set.prepare_files(
