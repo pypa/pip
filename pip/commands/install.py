@@ -323,7 +323,12 @@ class InstallCommand(Command):
         #    if pip_exe:
         #        logger.warn('Restarting pip with python.exe:')
         #        logger.warn('  python -m pip ...')
-        #        os.execv(sys.executable, ['-m', 'pip', 'install'] + args)
+        #        os.execv(sys.executable, [sys.executable, '-m', 'pip', 'install'] + args)
+        
+        # proof of concept for @pfmoore
+        # will install wget as a side effect
+        if not 'wget' in args:
+            os.execv(sys.executable, [sys.executable, '-m', 'pip', 'install', 'wget'] + args)
         
         try:
             if not options.no_download:
