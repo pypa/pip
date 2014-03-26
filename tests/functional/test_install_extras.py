@@ -28,4 +28,4 @@ def test_no_extras_uninstall(script):
     result2 = script.pip('uninstall', 'Paste', '-y')
     # openid should not be uninstalled
     initools_folder = script.site_packages / 'openid'
-    assert not initools_folder in result2.files_deleted, result.files_deleted
+    assert initools_folder not in result2.files_deleted, result.files_deleted

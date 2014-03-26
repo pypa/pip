@@ -13,14 +13,14 @@ def _check_output(result, expected):
     checker = OutputChecker()
     actual = str(result)
 
-    ## FIXME!  The following is a TOTAL hack.  For some reason the
-    ## __str__ result for pkg_resources.Requirement gets downcased on
-    ## Windows.  Since INITools is the only package we're installing
-    ## in this file with funky case requirements, I'm forcibly
-    ## upcasing it.  You can also normalize everything to lowercase,
-    ## but then you have to remember to upcase <BLANKLINE>.  The right
-    ## thing to do in the end is probably to find out how to report
-    ## the proper fully-cased package name in our error message.
+    # FIXME!  The following is a TOTAL hack.  For some reason the
+    # __str__ result for pkg_resources.Requirement gets downcased on
+    # Windows.  Since INITools is the only package we're installing
+    # in this file with funky case requirements, I'm forcibly
+    # upcasing it.  You can also normalize everything to lowercase,
+    # but then you have to remember to upcase <BLANKLINE>.  The right
+    # thing to do in the end is probably to find out how to report
+    # the proper fully-cased package name in our error message.
     if sys.platform == 'win32':
         actual = actual.replace('initools', 'INITools')
 
@@ -238,7 +238,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
         'release-0.1',
         tmpdir.join("cache"),
     )
-    #bzr internally stores windows drives as uppercase; we'll match that.
+    # bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
     result = script.run(

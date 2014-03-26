@@ -89,7 +89,7 @@ class TestLocations:
         from pip import locations
         assert locations._get_build_prefix() == self.get_build_dir_location()
 
-    #skip on windows, build dir is not created
+    # skip on windows, build dir is not created
     @pytest.mark.skipif("sys.platform == 'win32'")
     @pytest.mark.skipif("not hasattr(os, 'O_NOFOLLOW')")
     def test_dir_created(self):
@@ -103,7 +103,7 @@ class TestLocations:
         assert os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should now exist!"
 
-    #skip on windows, build dir is not created
+    # skip on windows, build dir is not created
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_dir_created_without_NOFOLLOW(self, monkeypatch):
         """ test that the build_prefix directory is generated when
@@ -118,7 +118,7 @@ class TestLocations:
         assert os.path.exists(self.get_build_dir_location()), \
             "the build_prefix directory should now exist!"
 
-    #skip on windows; this exception logic only runs on linux
+    # skip on windows; this exception logic only runs on linux
     @pytest.mark.skipif("sys.platform == 'win32'")
     @pytest.mark.skipif("not hasattr(os, 'O_NOFOLLOW')")
     def test_error_raised_when_owned_by_another(self):
@@ -132,7 +132,7 @@ class TestLocations:
         with pytest.raises(pip.exceptions.InstallationError):
             locations._get_build_prefix()
 
-    #skip on windows; this exception logic only runs on linux
+    # skip on windows; this exception logic only runs on linux
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_error_raised_when_owned_by_another_without_NOFOLLOW(
             self, monkeypatch):

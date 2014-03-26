@@ -91,7 +91,7 @@ class RequirementSet(object):
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
         if not name:
-            #url or path requirement w/o an egg fragment
+            # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
         else:
             if self.has_requirement(name):
@@ -99,7 +99,7 @@ class RequirementSet(object):
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
             self.requirements[name] = install_req
-            ## FIXME: what about other normalizations?  E.g., _ vs. -?
+            # FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
                 self.requirement_aliases[name.lower()] = name
 
@@ -148,8 +148,8 @@ class RequirementSet(object):
             req.commit_uninstall()
 
     def locate_files(self):
-        ## FIXME: duplicates code from prepare_files; relevant code should
-        ##        probably be factored out into a separate method
+        # FIXME: duplicates code from prepare_files; relevant code should
+        #        probably be factored out into a separate method
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
         while reqs or unnamed:
@@ -213,9 +213,9 @@ class RequirementSet(object):
             best_installed = False
             not_found = None
 
-            ###############################################
-            ## Search for archive to fulfill requirement ##
-            ###############################################
+            # ############################################# #
+            # # Search for archive to fulfill requirement # #
+            # ############################################# #
 
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
@@ -267,9 +267,9 @@ class RequirementSet(object):
                     logger.notify('Downloading/unpacking %s' % req_to_install)
             logger.indent += 2
 
-            ##################################
-            ## vcs update or unpack archive ##
-            ##################################
+            # ################################ #
+            # # vcs update or unpack archive # #
+            # ################################ #
 
             try:
                 is_bundle = False
@@ -289,10 +289,10 @@ class RequirementSet(object):
                     else:
                         req_to_install.run_egg_info()
                 elif install:
-                    ##@@ if filesystem packages are not marked
-                    ##editable in a req, a non deterministic error
-                    ##occurs when the script attempts to unpack the
-                    ##build directory
+                    # @@ if filesystem packages are not marked
+                    # editable in a req, a non deterministic error
+                    # occurs when the script attempts to unpack the
+                    # build directory
 
                     # NB: This call can result in the creation of a temporary
                     # build directory
@@ -320,7 +320,7 @@ class RequirementSet(object):
                             (req_to_install, location)
                         )
                     else:
-                        ## FIXME: this won't upgrade when there's an existing
+                        # FIXME: this won't upgrade when there's an existing
                         # package unpacked in `location`
                         if req_to_install.url is None:
                             if not_found:
@@ -330,7 +330,7 @@ class RequirementSet(object):
                                 upgrade=self.upgrade,
                             )
                         else:
-                            ## FIXME: should req_to_install.url already be a
+                            # FIXME: should req_to_install.url already be a
                             # link?
                             url = Link(req_to_install.url)
                             assert url
@@ -395,8 +395,8 @@ class RequirementSet(object):
                                     force_root_egg_info=True,
                                 )
                             req_to_install.assert_source_matches_version()
-                            #@@ sketchy way of identifying packages not grabbed
-                            # from an index
+                            # @@ sketchy way of identifying packages not
+                            # grabbed from an index
                             if bundle and req_to_install.url:
                                 self.copy_to_build_dir(req_to_install)
                                 install = False
@@ -423,9 +423,9 @@ class RequirementSet(object):
                                 )
                                 install = False
 
-                ########################
-                ## parse dependencies ##
-                ########################
+                # ###################### #
+                # # parse dependencies # #
+                # ###################### #
 
                 if is_wheel:
                     dist = list(
@@ -460,7 +460,7 @@ class RequirementSet(object):
                                     req
                                 ).project_name
                             except ValueError as exc:
-                                ## FIXME: proper warning
+                                # FIXME: proper warning
                                 logger.error(
                                     'Invalid requirement: %r (%s) in '
                                     'requirement %s' %
@@ -468,13 +468,13 @@ class RequirementSet(object):
                                 )
                                 continue
                             if self.has_requirement(name):
-                                ## FIXME: check for conflict
+                                # FIXME: check for conflict
                                 continue
                             subreq = InstallRequirement(req, req_to_install)
                             reqs.append(subreq)
                             self.add_requirement(subreq)
                     if not self.has_requirement(req_to_install.name):
-                        #'unnamed' requirements will get added here
+                        # 'unnamed' requirements will get added here
                         self.add_requirement(req_to_install)
 
                 # cleanup tmp src
@@ -652,13 +652,13 @@ class RequirementSet(object):
         self.successfully_installed = to_install
 
     def create_bundle(self, bundle_filename):
-        ## FIXME: can't decide which is better; zip is easier to read
-        ## random files from, but tar.bz2 is smaller and not as lame a
-        ## format.
+        # FIXME: can't decide which is better; zip is easier to read
+        # random files from, but tar.bz2 is smaller and not as lame a
+        # format.
 
-        ## FIXME: this file should really include a manifest of the
-        ## packages, maybe some other metadata files.  It would make
-        ## it easier to detect as well.
+        # FIXME: this file should really include a manifest of the
+        # packages, maybe some other metadata files.  It would make
+        # it easier to detect as well.
         zip = zipfile.ZipFile(bundle_filename, 'w', zipfile.ZIP_DEFLATED)
         vcs_dirs = []
         for dir, basename in (self.build_dir, 'build'), (self.src_dir, 'src'):
@@ -720,7 +720,7 @@ class RequirementSet(object):
         for req in [req for req in self.requirements.values()
                     if req.comes_from]:
             parts.append('%s==%s\n' % (req.name, req.installed_version))
-        ## FIXME: should we do something with self.unnamed_requirements?
+        # FIXME: should we do something with self.unnamed_requirements?
         return ''.join(parts)
 
     def _clean_zip_name(self, name, prefix):

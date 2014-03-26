@@ -297,7 +297,7 @@ class PackageFinder(object):
                     for parsed, link, version in file_versions
                 ])
             )
-        #this is an intentional priority ordering
+        # this is an intentional priority ordering
         all_versions = installed_version + file_versions + found_versions \
             + page_versions
         applicable_versions = []
@@ -419,7 +419,7 @@ class PackageFinder(object):
         """
         if not index_url.url.endswith('/'):
             # Vaguely part of the PyPI API... weird but true.
-            ## FIXME: bad to modify this?
+            # FIXME: bad to modify this?
             index_url.url += '/'
         page = self._get_page(index_url, req)
         if page is None:
@@ -458,7 +458,7 @@ class PackageFinder(object):
             for link in page.rel_links():
                 normalized = normalize_name(req.name).lower()
 
-                if (not normalized in self.allow_external
+                if (normalized not in self.allow_external
                         and not self.allow_all_external):
                     self.need_warn_external = True
                     logger.debug("Not searching %s for files because external "
@@ -467,7 +467,7 @@ class PackageFinder(object):
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalized in self.allow_unverified):
+                        and normalized not in self.allow_unverified):
                     logger.debug(
                         "Not searching %s for urls, it is an "
                         "untrusted link and cannot produce safe or "
@@ -695,7 +695,7 @@ class PageCache(object):
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
-    ## FIXME: these regexes are horrible hacks:
+    # FIXME: these regexes are horrible hacks:
     _homepage_re = re.compile(r'<th>\s*home\s*page', re.I)
     _download_re = re.compile(r'<th>\s*download\s+url', re.I)
     _href_re = re.compile(
@@ -832,9 +832,9 @@ class HTMLPage(object):
             session = PipSession()
 
         scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
+        if scheme not in ('http', 'https', 'ftp', 'ftps'):
+            # FIXME: some warning or something?
+            # assertion error?
             return ''
 
         resp = session.head(url, allow_redirects=True)

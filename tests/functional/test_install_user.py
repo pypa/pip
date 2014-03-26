@@ -118,7 +118,7 @@ class Tests_UserSite:
 
         result2 = script.pip('install', '--user', 'INITools==0.1')
 
-        #usersite has 0.1
+        # usersite has 0.1
         egg_info_folder = (
             script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
         )
@@ -155,7 +155,7 @@ class Tests_UserSite:
 
         result2 = script.pip('install', '--user', 'INITools==0.1')
 
-        #usersite has 0.1
+        # usersite has 0.1
         egg_info_folder = (
             script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
         )
@@ -163,7 +163,7 @@ class Tests_UserSite:
         assert egg_info_folder in result2.files_created, str(result2)
         assert initools_folder in result2.files_created, str(result2)
 
-        #site still has 0.2 (can't look in result1; have to check)
+        # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
             'INITools-0.2-py%s.egg-info' % pyversion
@@ -196,7 +196,7 @@ class Tests_UserSite:
         script.pip('install', 'INITools==0.2')
         result2 = script.pip('install', '--user', '--upgrade', 'INITools')
 
-        #usersite has 0.3.1
+        # usersite has 0.3.1
         egg_info_folder = (
             script.user_site / 'INITools-0.3.1-py%s.egg-info' % pyversion
         )
@@ -204,7 +204,7 @@ class Tests_UserSite:
         assert egg_info_folder in result2.files_created, str(result2)
         assert initools_folder in result2.files_created, str(result2)
 
-        #site still has 0.2 (can't look in result1; have to check)
+        # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
             'INITools-0.2-py%s.egg-info' % pyversion
@@ -240,7 +240,7 @@ class Tests_UserSite:
 
         result3 = script.pip('install', '--user', 'INITools==0.1')
 
-        #usersite has 0.1
+        # usersite has 0.1
         egg_info_folder = (
             script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
         )
@@ -252,7 +252,7 @@ class Tests_UserSite:
         assert egg_info_folder in result3.files_created, str(result3)
         assert not isfile(initools_v3_file), initools_v3_file
 
-        #site still has 0.2 (can't just look in result1; have to check)
+        # site still has 0.2 (can't just look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
             'INITools-0.2-py%s.egg-info' % pyversion

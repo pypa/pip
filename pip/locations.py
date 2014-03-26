@@ -108,7 +108,7 @@ else:
     # See https://github.com/pypa/pip/issues/906 for plan to move to mkdtemp
     build_prefix = _get_build_prefix()
 
-    ## FIXME: keep src in cwd for now (it is not a temporary folder)
+    # FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
         src_prefix = os.path.join(os.getcwd(), 'src')
     except OSError:

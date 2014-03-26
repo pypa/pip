@@ -94,7 +94,7 @@ def test_pip_wheel_ignore_wheels_editables(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
     assert "Failed to build" not in result.stdout, result.stdout
     ignore_editable = "ignoring %s" % path_to_url(local_editable)
-    #TODO: understand this divergence
+    # TODO: understand this divergence
     if sys.platform == 'win32':
         ignore_editable = "ignoring %s" % path_to_url_d(local_editable)
     assert ignore_editable in result.stdout, result.stdout

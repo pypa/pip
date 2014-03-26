@@ -272,7 +272,7 @@ def get_file_content(url, comes_from=None, session=None):
                 path = '/' + path.lstrip('/')
             url = path
         else:
-            ## FIXME: catch some errors
+            # FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
 
@@ -428,7 +428,7 @@ def _download_url(resp, link, temp_location):
     show_url = link.show_url
     try:
         if show_progress:
-            ## FIXME: the URL can get really long in this message:
+            # FIXME: the URL can get really long in this message:
             if total_length:
                 logger.start_progress(
                     'Downloading %s (%s): ' %

@@ -143,7 +143,7 @@ class ZipCommand(Command):
                 'Module %s (in %s) isn\'t located in a zip file in %s'
                 % (module_name, filename, zip_filename))
         package_path = os.path.dirname(zip_filename)
-        if not package_path in self.paths():
+        if package_path not in self.paths():
             logger.warn(
                 'Unpacking %s into %s, but %s is not on sys.path'
                 % (display_path(zip_filename), display_path(package_path),
@@ -158,7 +158,7 @@ class ZipCommand(Command):
             return
         logger.indent += 2
         try:
-            ## FIXME: this should be undoable:
+            # FIXME: this should be undoable:
             zip = zipfile.ZipFile(zip_filename)
             to_save = []
             for info in zip.infolist():
@@ -206,7 +206,7 @@ class ZipCommand(Command):
         else:
             dest_filename = filename + '.zip'
         try:
-            ## FIXME: I think this needs to be undoable:
+            # FIXME: I think this needs to be undoable:
             if filename == dest_filename:
                 filename = backup_dir(orig_filename)
                 logger.notify(
@@ -247,9 +247,9 @@ class ZipCommand(Command):
                 if not self.simulate:
                     rmtree(filename)
             except:
-                ## FIXME: need to do an undo here
+                # FIXME: need to do an undo here
                 raise
-            ## FIXME: should also be undone:
+            # FIXME: should also be undone:
             self.add_filename_to_pth(dest_filename)
         finally:
             logger.indent -= 2
@@ -326,7 +326,7 @@ class ZipCommand(Command):
                     zip.close()
                     return package, full
                 zip.close()
-        ## FIXME: need special error for package.py case:
+        # FIXME: need special error for package.py case:
         raise InstallationError(
             'No package with the name %s found' % package)
 

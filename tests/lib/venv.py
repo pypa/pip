@@ -56,8 +56,8 @@ class VirtualEnvironment(object):
         p = subprocess.Popen(
             cmd,
             cwd=self.pip_source_dir,
-            #stderr=subprocess.STDOUT,
-            #stdout=DEVNULL,
+            # stderr=subprocess.STDOUT,
+            # stdout=DEVNULL,
         )
         p.communicate()
         if p.returncode != 0:

@@ -59,7 +59,7 @@ class FreezeCommand(Command):
         requirement = options.requirement
         find_links = options.find_links or []
         local_only = options.local
-        ## FIXME: Obviously this should be settable:
+        # FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
 

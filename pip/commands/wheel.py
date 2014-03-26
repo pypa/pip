@@ -171,7 +171,7 @@ class WheelCommand(Command):
         if not os.path.exists(options.wheel_dir):
             os.makedirs(options.wheel_dir)
 
-        #parse args and/or requirements files
+        # parse args and/or requirements files
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
@@ -187,7 +187,7 @@ class WheelCommand(Command):
                     continue
                 requirement_set.add_requirement(req)
 
-        #fail if no requirements
+        # fail if no requirements
         if not requirement_set.has_requirements:
             opts = {'name': self.name}
             msg = ('You must give at least one requirement '
@@ -196,7 +196,7 @@ class WheelCommand(Command):
             return
 
         try:
-            #build wheels
+            # build wheels
             wb = WheelBuilder(
                 requirement_set,
                 finder,

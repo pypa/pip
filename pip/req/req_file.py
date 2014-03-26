@@ -60,8 +60,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 line = line[2:].strip()
             else:
                 line = line[len('--find-links'):].strip().lstrip('=')
-            ## FIXME: it would be nice to keep track of the source of
-            ## the find_links:
+            # FIXME: it would be nice to keep track of the source of
+            # the find_links:
             # support a find-links local path relative to a requirements file
             relative_to_reqs_file = os.path.join(reqs_file_dir, line)
             if os.path.exists(relative_to_reqs_file):
