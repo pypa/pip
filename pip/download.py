@@ -582,7 +582,30 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     # let's download to a tmp dir
     if not temp_location:
         try:
-            resp = session.get(target_url, stream=True)
+            resp = session.get(
+                target_url,
+                # We use Accept-Encoding: identity here because requests
+                # defaults to accepting compressed responses. This breaks in
+                # a variety of ways depending on how the server is configured.
+                # - Some servers will notice that the file isn't a compressible
+                #   file and will leave the file alone and with an empty
+                #   Content-Encoding
+                # - Some servers will notice that the file is already
+                #   compressed and will leave the file alone and will add a
+                #   Content-Encoding: gzip header
+                # - Some servers won't notice anything at all and will take
+                #   a file that's already been compressed and compress it again
+                #   and set the Content-Encoding: gzip header
+                # By setting this to request only the identity encoding We're
+                # hoping to eliminate the third case. Hopefully there does not
+                # exist a server which when given a file will notice it is
+                # already compressed and that you're not asking for a
+                # compressed file and will then decompress it before sending
+                # because if that's the case I don't think it'll ever be
+                # possible to make this work.
+                headers={"Accept-Encoding": "identity"},
+                stream=True,
+            )
             resp.raise_for_status()
         except requests.HTTPError as exc:
             logger.fatal("HTTP error %s while getting %s" %

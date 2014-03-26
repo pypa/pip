@@ -19,6 +19,10 @@
 
 * Added a virtualenv-specific configuration file. (:pull:`1364`)
 
+* Send `Accept-Encoding: identity` when downloading files in an attempt to
+  convince some servers who double compress the downloaded file to stop doing
+  so. (:pull:`1688`)
+
 
 **1.5.4 (2014-02-21)**
 
