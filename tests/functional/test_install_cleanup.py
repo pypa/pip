@@ -91,10 +91,10 @@ def test_cleanup_req_satisifed_no_name(script, data):
     """
     Test cleanup when req is already satisfied, and req has no 'name'
     """
-    #this test confirms Issue #420 is fixed
-    #reqs with no 'name' that were already satisfied were leaving behind tmp
+    # this test confirms Issue #420 is fixed
+    # reqs with no 'name' that were already satisfied were leaving behind tmp
     # build dirs
-    #2 examples of reqs that would do this
+    # 2 examples of reqs that would do this
     # 1) https://bitbucket.org/ianb/initools/get/tip.zip
     # 2) parent-0.1.tar.gz
     dist = data.packages.join("parent-0.1.tar.gz")
@@ -129,7 +129,7 @@ def test_cleanup_after_install_exception(script, data):
     """
     Test clean up after a 'setup.py install' exception.
     """
-    #broken==0.2broken fails during install; see packages readme file
+    # broken==0.2broken fails during install; see packages readme file
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken==0.2broken',
         expect_error=True,
@@ -143,7 +143,7 @@ def test_cleanup_after_egg_info_exception(script, data):
     """
     Test clean up after a 'setup.py egg_info' exception.
     """
-    #brokenegginfo fails during egg_info; see packages readme file
+    # brokenegginfo fails during egg_info; see packages readme file
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'brokenegginfo==0.1',
         expect_error=True,

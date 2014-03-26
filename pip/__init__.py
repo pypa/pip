@@ -151,7 +151,7 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0].lower()
 
-    #all the args without the subcommand
+    # all the args without the subcommand
     cmd_args = args[:]
     cmd_args.remove(args_else[0].lower())
 
@@ -184,8 +184,8 @@ def main(args=None):
     return command.main(cmd_args)
 
 
-############################################################
-## Writing freeze files
+# ###########################################################
+# # Writing freeze files
 
 class FrozenRequirement(object):
 

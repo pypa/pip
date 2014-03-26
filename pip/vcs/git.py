@@ -200,8 +200,8 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. Github). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
-        if not '://' in self.url:
-            assert not 'file:' in self.url
+        if '://' not in self.url:
+            assert 'file:' not in self.url
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
             url = url.replace('ssh://', '')

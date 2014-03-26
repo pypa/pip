@@ -593,7 +593,7 @@ def test_url_req_case_mismatch(script, data):
         'install', '--no-index', '-f', data.find_links, Upper, 'requiresupper'
     )
 
-    #only Upper-1.0.tar.gz should get installed.
+    # only Upper-1.0.tar.gz should get installed.
     egg_folder = script.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
     egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion

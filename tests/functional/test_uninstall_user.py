@@ -69,7 +69,7 @@ class Tests_UninstallUserSite:
         virtualenv.system_site_packages = True
         script.user_site_path.makedirs()
 
-        #install
+        # install
         to_install = data.packages.join("FSPkg")
         result1 = script.pip(
             'install', '--user', '-e', to_install, expect_error=False,
@@ -77,7 +77,7 @@ class Tests_UninstallUserSite:
         egg_link = script.user_site / 'FSPkg.egg-link'
         assert egg_link in result1.files_created, str(result1.stdout)
 
-        #uninstall
+        # uninstall
         result2 = script.pip('uninstall', '-y', 'FSPkg')
         assert not isfile(script.base_path / egg_link)
 

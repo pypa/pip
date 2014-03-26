@@ -36,7 +36,7 @@ class Tests_EgglinkPath:
             '%s.egg-link' % project,
         )
 
-        #patches
+        # patches
         from pip import util
         self.old_site_packages = util.site_packages
         self.mock_site_packages = util.site_packages = 'SITE_PACKAGES'
@@ -66,9 +66,9 @@ class Tests_EgglinkPath:
     def eggLinkInSitePackages(self, egglink):
         return egglink == self.site_packages_egglink
 
-    #########################
-    ## egglink in usersite ##
-    #########################
+    # ####################### #
+    # # egglink in usersite # #
+    # ####################### #
     def test_egglink_in_usersite_notvenv(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
@@ -87,9 +87,9 @@ class Tests_EgglinkPath:
         self.mock_isfile.side_effect = self.eggLinkInUserSite
         assert egg_link_path(self.mock_dist) == self.user_site_egglink
 
-    #########################
-    ## egglink in sitepkgs ##
-    #########################
+    # ####################### #
+    # # egglink in sitepkgs # #
+    # ####################### #
     def test_egglink_in_sitepkgs_notvenv(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
@@ -108,9 +108,9 @@ class Tests_EgglinkPath:
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
         assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
-    ####################################
-    ## egglink in usersite & sitepkgs ##
-    ####################################
+    # ################################## #
+    # # egglink in usersite & sitepkgs # #
+    # ################################## #
     def test_egglink_in_both_notvenv(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
@@ -129,9 +129,9 @@ class Tests_EgglinkPath:
         self.mock_isfile.return_value = True
         assert egg_link_path(self.mock_dist) == self.site_packages_egglink
 
-    ################
-    ## no egglink ##
-    ################
+    # ############## #
+    # # no egglink # #
+    # ############## #
     def test_noegglink_in_sitepkgs_notvenv(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False

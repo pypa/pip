@@ -142,7 +142,7 @@ class Logger(object):
             rendered = msg
         rendered = ' ' * self.indent + rendered
         if self.explicit_levels:
-            ## FIXME: should this be a name, not a level number?
+            # FIXME: should this be a name, not a level number?
             rendered = '%02i %s' % (level, rendered)
 
         for consumer_level, consumer in self.consumers:

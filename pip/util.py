@@ -361,7 +361,7 @@ def dist_in_site_packages(dist):
 
 def dist_is_editable(dist):
     """Is distribution an editable install?"""
-    #TODO: factor out determining editableness out of FrozenRequirement
+    # TODO: factor out determining editableness out of FrozenRequirement
     from pip import FrozenRequirement
     req = FrozenRequirement.from_dist(dist, [])
     return req.editable
@@ -659,8 +659,8 @@ def unpack_file(filename, location, content_type, link):
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)
     else:
-        ## FIXME: handle?
-        ## FIXME: magic signatures?
+        # FIXME: handle?
+        # FIXME: magic signatures?
         logger.fatal(
             'Cannot unpack file %s (downloaded from %s, content-type: %s); '
             'cannot detect archive format' %

@@ -533,7 +533,7 @@ class WheelBuilder(object):
     def build(self):
         """Build wheels."""
 
-        #unpack and constructs req set
+        # unpack and constructs req set
         self.requirement_set.prepare_files(self.finder)
 
         reqset = self.requirement_set.requirements.values()
@@ -557,7 +557,7 @@ class WheelBuilder(object):
                 build_failure.append(req)
         logger.indent -= 2
 
-        #notify sucess/failure
+        # notify sucess/failure
         if build_success:
             logger.notify(
                 'Successfully built %s' %

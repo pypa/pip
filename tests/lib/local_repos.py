@@ -73,7 +73,7 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
 def local_checkout(remote_repo, directory):
     if not os.path.exists(directory):
         os.mkdir(directory)
-        #os.makedirs(directory)
+        # os.makedirs(directory)
 
     if remote_repo.startswith('svn'):
         _create_svn_repository_for_initools(directory)

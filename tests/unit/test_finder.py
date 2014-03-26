@@ -54,7 +54,7 @@ def test_finder_detects_latest_find_links(data):
 def test_finder_detects_latest_already_satisfied_find_links(data):
     """Test PackageFinder detects latest already satisified using find-links"""
     req = InstallRequirement.from_line('simple', None)
-    #the latest simple in local pkgs is 3.0
+    # the latest simple in local pkgs is 3.0
     latest_version = "3.0"
     satisfied_by = Mock(
         location="/path",
@@ -71,7 +71,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
 def test_finder_detects_latest_already_satisfied_pypi_links():
     """Test PackageFinder detects latest already satisified using pypi links"""
     req = InstallRequirement.from_line('initools', None)
-    #the latest initools on pypi is 0.3.1
+    # the latest initools on pypi is 0.3.1
     latest_version = "0.3.1"
     satisfied_by = Mock(
         location="/path",
@@ -97,7 +97,7 @@ class TestWheel:
         log = []
         logger.add_consumers((logger.DEBUG, log.append))
         req = InstallRequirement.from_line("invalid")
-        #data.find_links contains "invalid.whl", which is an invalid wheel
+        # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder([data.find_links], [], use_wheel=True)
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)

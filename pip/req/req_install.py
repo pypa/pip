@@ -334,8 +334,8 @@ class InstallRequirement(object):
                 "%(Name)s==%(Version)s" % self.pkg_info())
             self.correct_build_location()
 
-    ## FIXME: This is a lame hack, entirely for PasteScript which has
-    ## a self-provided entry point that causes this awkwardness
+    # FIXME: This is a lame hack, entirely for PasteScript which has
+    # a self-provided entry point that causes this awkwardness
     _run_setup_py = """
 __file__ = __SETUP_PY__
 from setuptools.command import egg_info
@@ -745,8 +745,8 @@ exec(compile(
                 install_args += ["--no-compile"]
 
             if running_under_virtualenv():
-                ## FIXME: I'm not sure if this is a reasonable location;
-                ## probably not but we can't put it in the default location, as
+                # FIXME: I'm not sure if this is a reasonable location;
+                # probably not but we can't put it in the default location, as
                 # that is a virtualenv symlink that isn't writable
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
@@ -789,8 +789,8 @@ exec(compile(
                     '%s' % self
                 )
                 f.close()
-                ## FIXME: put the record somewhere
-                ## FIXME: should this be an error?
+                # FIXME: put the record somewhere
+                # FIXME: should this be an error?
                 return
             f.close()
             new_lines = []
@@ -827,7 +827,7 @@ exec(compile(
         logger.notify('Running setup.py develop for %s' % self.name)
         logger.indent += 2
         try:
-            ## FIXME: should we do --install-headers here too?
+            # FIXME: should we do --install-headers here too?
             cwd = self.source_dir
             if self.editable_options and \
                     'subdirectory' in self.editable_options:
@@ -916,7 +916,7 @@ exec(compile(
             return self._is_bundle
         base = self._temp_build_dir
         if not base:
-            ## FIXME: this doesn't seem right:
+            # FIXME: this doesn't seem right:
             return False
         self._is_bundle = (
             os.path.exists(os.path.join(base, 'pip-manifest.txt'))
@@ -927,7 +927,7 @@ exec(compile(
     def bundle_requirements(self):
         for dest_dir in self._bundle_editable_dirs:
             package = os.path.basename(dest_dir)
-            ## FIXME: svnism:
+            # FIXME: svnism:
             for vcs_backend in vcs.backends:
                 url = rev = None
                 vcs_bundle_file = os.path.join(
@@ -1005,7 +1005,7 @@ def _strip_postfix(req):
     """
         Strip req postfix ( -dev, 0.2, etc )
     """
-    ## FIXME: use package_to_requirement?
+    # FIXME: use package_to_requirement?
     match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
     if match:
         # Strip off -dev, -0.2, etc.

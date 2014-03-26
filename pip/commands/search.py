@@ -133,8 +133,8 @@ def compare_versions(version1, version2):
     try:
         return cmp(LooseVersion(version1), LooseVersion(version2))
     except TypeError:
-    # certain LooseVersion comparions raise due to unorderable types,
-    # fallback to string comparison
+        # certain LooseVersion comparions raise due to unorderable types,
+        # fallback to string comparison
         return cmp([str(v) for v in LooseVersion(version1).version],
                    [str(v) for v in LooseVersion(version2).version])
 

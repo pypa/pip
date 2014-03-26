@@ -284,7 +284,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)
-    assert not "pypi.python.org" in result.stdout, result.stdout
+    assert "pypi.python.org" not in result.stdout, result.stdout
 
 
 class TestUpgradeSetuptools(object):

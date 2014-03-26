@@ -154,7 +154,7 @@ class TestPipResult(object):
                     (egg_link_path, self)
                 )
         else:
-            if not egg_link_path in self.files_created:
+            if egg_link_path not in self.files_created:
                 raise TestFailure(
                     'expected egg link file missing: %r\n%s' %
                     (egg_link_path, self)

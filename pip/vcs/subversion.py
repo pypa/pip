@@ -113,7 +113,7 @@ class Subversion(VersionControl):
             dirs.remove(self.dirname)
             entries_fn = os.path.join(base, self.dirname, 'entries')
             if not os.path.exists(entries_fn):
-                ## FIXME: should we warn?
+                # FIXME: should we warn?
                 continue
 
             dirurl, localrev = self._get_svn_url_rev(base)
@@ -221,7 +221,7 @@ class Subversion(VersionControl):
         if repo is None:
             return None
         parts = repo.split('/')
-        ## FIXME: why not project name?
+        # FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
         rev = self.get_revision(location)
         if parts[-2] in ('tags', 'tag'):
