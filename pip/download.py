@@ -447,7 +447,7 @@ def _download_url(resp, link, temp_location):
                 # Special case for urllib3.
                 try:
                     for chunk in resp.iter_content(chunk_size):
-                        if chunk: # filter out keep-alive new chunks
+                        if chunk:  # Filter out keep-alive new chunks
                             yield chunk
                 except IncompleteRead as e:
                     raise ChunkedEncodingError(e)
