@@ -17,20 +17,38 @@ pip works on Unix/Linux, OS X, and Windows.
 
 .. _`get-pip`:
 
-Install or Upgrade pip
-----------------------
+Install pip
+-----------
 
 To install or upgrade pip, securely download `get-pip.py
 <https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [1]_
 
 Then run the following (which may require administrator access)::
 
- $ python get-pip.py
+ python get-pip.py
 
 If `setuptools`_ (or `distribute`_) is not already installed, ``get-pip.py`` will
 install `setuptools`_ for you. [2]_
 
 To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
+
+
+Upgrade pip
+-----------
+
+On Linux or OS X:
+
+::
+
+ pip install -U pip
+
+
+On Windows [4]_:
+
+::
+
+ python -m pip install -U pip
+
 
 
 Using Package Managers
@@ -42,12 +60,14 @@ unavailable.
 
 On Debian and Ubuntu::
 
-   $ sudo apt-get install python-pip
+   sudo apt-get install python-pip
 
 On Fedora::
 
-   $ sudo yum install python-pip
+   sudo yum install python-pip
 
+
+----
 
 .. [1] "Secure" in this context means using a modern browser or a
        tool like `curl` that verifies SSL certificates when downloading from
@@ -61,6 +81,8 @@ On Fedora::
        "ImportError: No module named setuptools" when using pip<1.4 to upgrade a
        package that depends on setuptools or distribute. See :doc:`here for
        details <distribute_setuptools>`.
+
+.. [4] https://github.com/pypa/pip/issues/1299
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
