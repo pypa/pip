@@ -447,7 +447,30 @@ def _download_url(resp, link, temp_location):
                 # Special case for urllib3.
                 try:
                     for chunk in resp.raw.stream(
-                            chunk_size, decode_content=False):
+                            chunk_size,
+                            # We use decode_content=False here because we do
+                            # want urllib3 to mess with the raw bytes we get
+                            # from the server. If we decompress inside of
+                            # urllib3 then we cannot verify the checksum
+                            # because the checksum will be of the compressed
+                            # file. This breakage will only occur if the
+                            # server adds a Content-Encoding header, which
+                            # depends on how the server was configured:
+                            # - Some servers will notice that the file isn't a
+                            #   compressible file and will leave the file alone
+                            #   and with an empty Content-Encoding
+                            # - Some servers will notice that the file is
+                            #   already compressed and will leave the file
+                            #   alone and will add a Content-Encoding: gzip
+                            #   header
+                            # - Some servers won't notice anything at all and
+                            #   will take a file that's already been compressed
+                            #   and compress it again and set the
+                            #   Content-Encoding: gzip header
+                            #
+                            # By setting this not to decode automatically we
+                            # hope to eliminate problems with the second case.
+                            decode_content=False):
                         yield chunk
                 except IncompleteRead as e:
                     raise ChunkedEncodingError(e)
@@ -582,7 +605,30 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     # let's download to a tmp dir
     if not temp_location:
         try:
-            resp = session.get(target_url, stream=True)
+            resp = session.get(
+                target_url,
+                # We use Accept-Encoding: identity here because requests
+                # defaults to accepting compressed responses. This breaks in
+                # a variety of ways depending on how the server is configured.
+                # - Some servers will notice that the file isn't a compressible
+                #   file and will leave the file alone and with an empty
+                #   Content-Encoding
+                # - Some servers will notice that the file is already
+                #   compressed and will leave the file alone and will add a
+                #   Content-Encoding: gzip header
+                # - Some servers won't notice anything at all and will take
+                #   a file that's already been compressed and compress it again
+                #   and set the Content-Encoding: gzip header
+                # By setting this to request only the identity encoding We're
+                # hoping to eliminate the third case. Hopefully there does not
+                # exist a server which when given a file will notice it is
+                # already compressed and that you're not asking for a
+                # compressed file and will then decompress it before sending
+                # because if that's the case I don't think it'll ever be
+                # possible to make this work.
+                headers={"Accept-Encoding": "identity"},
+                stream=True,
+            )
             resp.raise_for_status()
         except requests.HTTPError as exc:
             logger.fatal("HTTP error %s while getting %s" %

@@ -109,6 +109,7 @@ def test_unpack_http_url_bad_cache_checksum(mock_unpack_file):
         # despite existence of cached file with bad hash, downloaded again
         session.get.assert_called_once_with(
             "http://www.example.com/somepackage.tgz",
+            headers={"Accept-Encoding": "identity"},
             stream=True,
         )
         # cached file is replaced with newly downloaded file
@@ -151,6 +152,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         # despite existence of downloaded file with bad hash, downloaded again
         session.get.assert_called_once_with(
             'http://www.example.com/somepackage.tgz',
+            headers={"Accept-Encoding": "identity"},
             stream=True,
         )
         # cached file is replaced with newly downloaded file
