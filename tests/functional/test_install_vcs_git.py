@@ -107,6 +107,7 @@ def test_check_submodule_addition(script):
     update_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg',
         '--upgrade',
+        '--uncommited-action=c',
         expect_error=True,
     )
 
