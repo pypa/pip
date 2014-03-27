@@ -446,9 +446,9 @@ def _download_url(resp, link, temp_location):
             try:
                 # Special case for urllib3.
                 try:
-                    for chunk in resp.raw.stream(
-                            chunk_size, decode_content=False):
-                        yield chunk
+                    for chunk in resp.iter_content(chunk_size):
+                        if chunk:  # Filter out keep-alive new chunks
+                            yield chunk
                 except IncompleteRead as e:
                     raise ChunkedEncodingError(e)
             except AttributeError:
