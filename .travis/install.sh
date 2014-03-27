@@ -49,8 +49,14 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
       brew install mercurial
     fi
 
-    # Install setuptools, and tox
-    pip install --upgrade setuptools tox
+    # Rehash our pyenv
+    pyenv rehash
+
+    # Install setuptools
+    pip install --upgrade setuptools
+
+    # Install tox
+    pip install --upgrade tox
 
     # Rehash our pyenv
     pyenv rehash
@@ -82,8 +88,11 @@ else
             ;;
     esac
 
-    # Install setuptools, and tox
-    sudo pip install --upgrade setuptools tox
+    # Install setuptools
+    sudo pip install --upgrade setuptools
+
+    # Install tox
+    sudo pip install --upgrade tox
 
     # Install all the required VCSs
     sudo apt-get install subversion bzr mercurial
