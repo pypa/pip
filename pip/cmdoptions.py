@@ -165,8 +165,8 @@ uncommited_action = OptionMaker(
     type='choice',
     choices=['c', 's'],
     default=None,
-    help="Default action if there are uncommited files in an editable package: "
-    "(c)continue, (s)skip.")
+    help=("Default action if there are uncommited files "
+          "in an editable package: (c)continue, (s)skip."))
 
 cert = OptionMaker(
     '--cert',

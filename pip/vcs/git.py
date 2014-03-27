@@ -110,17 +110,24 @@ class Git(VersionControl):
                 rev_options[0], dest, rev_options,
             )
 
-        result = call_subprocess([self.cmd, 'status', '--porcelain', '--untracked-files=no'],
+        result = call_subprocess([self.cmd, 'status',
+                                  '--porcelain', '--untracked-files=no'],
                                  show_stdout=False,
                                  cwd=dest)
 
-        logger.warn('Uncommited files were detected in "%s".' % dest)
-        logger.warn('I\'m planning to run \'git reset --hard%s\' which will wipe all these changes.' % (' ' + ' '.join(rev_options) if rev_options else ''))
+        if result:
+            logger.warn('Uncommited files were detected in "%s".' % dest)
+            logger.warn('I\'m planning to run \'git reset --hard%s\' '
+                        'which will wipe all these changes.' %
+                        (' ' + ' '.join(rev_options) if rev_options else ''))
 
-        options = ('c', 's')
-        response = os.environ.get('PIP_UNCOMMITED_ACTION')
-        if response not in options:
-            response = ask('Do you want to (c)ontinue or (s)kip? ', options)
+            options = ('c', 's')
+            response = os.environ.get('PIP_UNCOMMITED_ACTION')
+            if response not in options:
+                response = ask('Do you want to (c)ontinue or (s)kip? ',
+                               options)
+        else:
+            response = 'c'
 
         if response == 'c':
             call_subprocess(

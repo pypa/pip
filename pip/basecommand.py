@@ -114,7 +114,8 @@ class Command(object):
             os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
         if options.uncommited_action:
-            os.environ['PIP_UNCOMMITED_ACTION'] = ' '.join(options.uncommited_action)
+            os.environ['PIP_UNCOMMITED_ACTION'] = ' '.join(
+                options.uncommited_action)
 
         if options.require_venv:
             # If a venv is required check if it can really be found

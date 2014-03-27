@@ -202,25 +202,27 @@ def test_git_works_with_editable_non_origin_repo(script):
 
 def test_git_should_care_about_uncommited_changes(script):
     """
-    Git backend should be able to understand if there is uncommited changes in repo
+    Git backend should be able to understand if there is uncommited changes
+    in repository
     """
     version_pkg_path = _create_test_package(script)
     script.pip('install', '-e',
-               'git+file://' + version_pkg_path.abspath.replace('\\', '/') + '#egg=version_pkg')
+               'git+file://' +
+               version_pkg_path.abspath.replace('\\', '/') +
+               '#egg=version_pkg')
 
     # now we'll modify some file
     installed_repo_dir = os.path.join(script.venv_path, 'src', 'version-pkg')
     with open(os.path.join(installed_repo_dir, 'version_pkg.py'), 'w') as f:
-        f.write('# BLAH')
+        f.write('# BLAH AGAIN')
 
     # now install package again
     script.pip('install', '--uncommited-action=s', '-e',
-               'git+file://' + version_pkg_path.abspath.replace('\\', '/') + '#egg=version_pkg')
+               'git+file://' +
+               version_pkg_path.abspath.replace('\\', '/') +
+               '#egg=version_pkg')
 
     # and check that nothing happened with modified file
     result = script.run('git', 'status', '--porcelain', '--untracked-files=no',
-                         cwd=installed_repo_dir)
+                        cwd=installed_repo_dir)
     assert ' M version_pkg.py' in result.stdout
-
-
-
