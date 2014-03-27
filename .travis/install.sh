@@ -40,8 +40,20 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
             ;;
     esac
 
-    # Install all the required VCSs
-    brew install subversion bazaar mercurial
+    # Install subversion
+    if [[ "$(brew list | grep subversion)" != "subversion" ]]; then
+      brew install subversion
+    fi
+
+    # Install bazaar
+    if [[ "$(brew list | grep bazaar)" != "bazaar" ]]; then
+      brew install bazaar
+    fi
+
+    # Install mercurial
+    if [[ "$(brew list | grep mercurial)" != "mercurial" ]]; then
+      brew install mercurial
+    fi
 
     # Rehash our pyenv
     pyenv rehash
