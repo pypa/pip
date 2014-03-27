@@ -1,3 +1,5 @@
+import os
+
 from tests.lib import _create_test_package, _change_test_package_version
 from tests.lib.local_repos import local_checkout
 
@@ -196,3 +198,29 @@ def test_git_works_with_editable_non_origin_repo(script):
     assert "Error when trying to get requirement" in result.stderr
     assert "Could not determine repository location" in result.stdout
     assert "version-pkg==0.1" in result.stdout
+
+
+def test_git_should_care_about_uncommited_changes(script):
+    """
+    Git backend should be able to understand if there is uncommited changes in repo
+    """
+    version_pkg_path = _create_test_package(script)
+    script.pip('install', '-e',
+               'git+file://' + version_pkg_path.abspath.replace('\\', '/') + '#egg=version_pkg')
+
+    # now we'll modify some file
+    installed_repo_dir = os.path.join(script.venv_path, 'src', 'version-pkg')
+    script.writefile(os.path.join(installed_repo_dir, 'version_pkg.py'),
+                     content='# BLAH')
+
+    # now install package again
+    script.pip('install', '--uncommited-action=s', '-e',
+               'git+file://' + version_pkg_path.abspath.replace('\\', '/') + '#egg=version_pkg')
+
+    # and check that nothing happened with modified file
+    result = script.run('git', 'status', '--porcelain', '--untracked-files=no',
+                         cwd=installed_repo_dir)
+    assert ' M version_pkg.py' in result.stdout
+
+
+

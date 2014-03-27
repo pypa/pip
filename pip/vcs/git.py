@@ -2,7 +2,7 @@ import tempfile
 import re
 import os.path
 from pip.util import call_subprocess
-from pip.util import display_path, rmtree
+from pip.util import display_path, rmtree, ask
 from pip.vcs import vcs, VersionControl
 from pip.log import logger
 from pip.backwardcompat import url2pathname, urlparse
@@ -109,11 +109,27 @@ class Git(VersionControl):
             rev_options = self.check_rev_options(
                 rev_options[0], dest, rev_options,
             )
-        call_subprocess(
-            [self.cmd, 'reset', '--hard', '-q'] + rev_options,
-            cwd=dest,
-        )
-        #: update submodules
+
+        result = call_subprocess([self.cmd, 'status', '--porcelain', '--untracked-files=no'],
+                                 show_stdout=False,
+                                 cwd=dest)
+
+        logger.warn('Uncommited files were detected in "%s".' % dest)
+        logger.warn('I\'m planning to run \'git reset --hard%s\' which will wipe all these changes.' % (' ' + ' '.join(rev_options) if rev_options else ''))
+
+        options = ('c', 's')
+        response = os.environ.get('PIP_UNCOMMITED_ACTION')
+        if response not in options:
+            response = ask('Do you want to (c)ontinue or (s)kip? ', options)
+
+        if response == 'c':
+            call_subprocess(
+                [self.cmd, 'reset', '--hard', '-q'] + rev_options,
+                cwd=dest,
+            )
+        else:
+            logger.warn('Repository "%s" was not updated.' % dest)
+
         self.update_submodules(dest)
 
     def obtain(self, dest):

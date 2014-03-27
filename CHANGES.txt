@@ -23,6 +23,10 @@
   convince some servers who double compress the downloaded file to stop doing
   so. (:pull:`1688`)
 
+* Now pip does not wipe uncommited changes in editable git repositories silently,
+  it asks if you want to do this or skip update. A new command line option
+  ``--uncommited-action`` allows to set default action for non-interactive case.
+
 
 **1.5.4 (2014-02-21)**
 

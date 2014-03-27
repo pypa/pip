@@ -158,6 +158,16 @@ exists_action = OptionMaker(
     help="Default action when a path already exists: "
     "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
 
+uncommited_action = OptionMaker(
+    # Option when there are uncommited files in editable package
+    '--uncommited-action',
+    dest='uncommited_action',
+    type='choice',
+    choices=['c', 's'],
+    default=None,
+    help="Default action if there are uncommited files in an editable package: "
+    "(c)continue, (s)skip.")
+
 cert = OptionMaker(
     '--cert',
     dest='cert',
@@ -365,6 +375,7 @@ general_group = {
         default_vcs,
         skip_requirements_regex,
         exists_action,
+        uncommited_action,
         cert,
         client_cert,
     ]
