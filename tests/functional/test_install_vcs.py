@@ -210,8 +210,8 @@ def test_git_should_care_about_uncommited_changes(script):
 
     # now we'll modify some file
     installed_repo_dir = os.path.join(script.venv_path, 'src', 'version-pkg')
-    script.writefile(os.path.join(installed_repo_dir, 'version_pkg.py'),
-                     content='# BLAH')
+    with open(os.path.join(installed_repo_dir, 'version_pkg.py'), 'w') as f:
+        f.write('# BLAH')
 
     # now install package again
     script.pip('install', '--uncommited-action=s', '-e',
