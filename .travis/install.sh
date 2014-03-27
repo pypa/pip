@@ -81,6 +81,10 @@ else
     echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
 fi
 
+# Create a virtualenv
+virtualenv ~/.venv
+source ~/.venv/bin/activate
+
 # Upgrade our setuptools
 pip install --upgrade setuptools
 
