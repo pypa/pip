@@ -64,7 +64,7 @@ else
             sudo apt-get install python3.4 python3.4-dev
             ;;
         py3pep8)
-            sudo apt-get install python3.4 python3.4-dev
+            sudo apt-get install python3 python3-dev
             ;;
         pypy)
             sudo add-apt-repository -y ppa:pypy/ppa
