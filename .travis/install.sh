@@ -11,32 +11,26 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         py26)
             pyenv install 2.6.9
             pyenv global 2.6.9
-            pip install virtualenv
             ;;
         py27)
             pyenv install 2.7.6
             pyenv global 2.7.6
-            pip install virtualenv
             ;;
         pypy)
             pyenv install pypy-2.2.1
             pyenv global pypy-2.2.1
-            pip install virtualenv
             ;;
         py32)
             pyenv install 3.2.5
             pyenv global 3.2.5
-            pip install virtualenv
             ;;
         py33)
             pyenv install 3.3.5
             pyenv global 3.3.5
-            pip install virtualenv
             ;;
         py34)
             pyenv install 3.4.0
             pyenv global 3.4.0
-            pip install virtualenv
             ;;
     esac
 
@@ -54,6 +48,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     if [[ "$(brew list | grep mercurial)" != "mercurial" ]]; then
       brew install mercurial
     fi
+
+    # Install virtualenv
+    pip install virtualenv
 
     # Rehash our pyenv
     pyenv rehash
@@ -84,6 +81,8 @@ else
             sudo apt-get install -y --force-yes pypy pypy-dev
             ;;
     esac
+
+    # Install virtualenv
     sudo pip install virtualenv
 
     # Install all the required VCSs
