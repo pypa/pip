@@ -49,8 +49,8 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
       brew install mercurial
     fi
 
-    # Install virtualenv
-    pip install virtualenv
+    # Install setuptools, and tox
+    pip install --upgrade setuptools tox
 
     # Rehash our pyenv
     pyenv rehash
@@ -82,8 +82,8 @@ else
             ;;
     esac
 
-    # Install virtualenv
-    sudo pip install virtualenv
+    # Install setuptools, and tox
+    sudo pip install --upgrade setuptools tox
 
     # Install all the required VCSs
     sudo apt-get install subversion bzr mercurial
@@ -91,13 +91,3 @@ else
     # Check the SSL Certificates for HG
     echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
 fi
-
-# Create a virtualenv
-virtualenv ~/.venv
-source ~/.venv/bin/activate
-
-# Upgrade our setuptools
-pip install --upgrade setuptools
-
-# Install the latest tox
-pip install --upgrade tox

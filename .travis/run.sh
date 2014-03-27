@@ -3,9 +3,6 @@
 set -e
 set -x
 
-# Activate our virtual environment
-source ~/.venv/bin/activate
-
 # Display the activated python version
 python --version
 
