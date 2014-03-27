@@ -47,3 +47,14 @@ notifications:
       - "irc.freenode.org#pypa-dev"
     use_notice: true
     skip_join: true
+
+matrix:
+    exclude:
+      # These jobs are not OS specific in any way and thus don't need run
+      # multiple times
+      - os: osx
+        env: TOXENV=pep8
+      - os: osx
+        env: TOXENV=py3pep8
+      - os: osx
+        env: TOXENV=docs
