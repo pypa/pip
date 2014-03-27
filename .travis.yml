@@ -20,7 +20,7 @@ before_install:
 
 install: ./.travis/install.sh
 
-script: tox
+script: source ~/.venv/bin/activate && tox
 
 branches:
   only:
