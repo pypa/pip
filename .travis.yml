@@ -1,4 +1,8 @@
-language: python
+language: c
+
+os:
+  - linux
+  - osx
 
 env:
   - TOXENV=pep8
@@ -14,21 +18,9 @@ env:
 before_install:
   - "[ -d ~/.distlib ] && sudo chown -R travis:travis ~/.distlib || true"
 
-install:
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo add-apt-repository -y ppa:pypy/ppa; fi"
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo apt-get -y update && sudo apt-get -y install pypy; fi"
-  # This is required because we need to get rid of the Travis installed PyPy
-  # or it'll take precedence over the PPA installed one.
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo rm -rf /usr/local/pypy/bin; fi"
-  - "if [[ $TOXENV == 'py34' ]]; then .travis/py34.sh; fi"
-  - sudo apt-get install subversion bzr mercurial
-  - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
-  - git config --global user.email "python-virtualenv@googlegroups.com"
-  - git config --global user.name "Pip"
-  - pip install --upgrade setuptools
-  - pip install tox
+install: ./.travis/install.sh
 
-script: tox
+script: ./.travis/run.sh
 
 branches:
   only:
@@ -43,3 +35,14 @@ notifications:
       - "irc.freenode.org#pypa-dev"
     use_notice: true
     skip_join: true
+
+matrix:
+    exclude:
+      # These jobs are not OS specific in any way and thus don't need run
+      # multiple times
+      - os: osx
+        env: TOXENV=pep8
+      - os: osx
+        env: TOXENV=py3pep8
+      - os: osx
+        env: TOXENV=docs

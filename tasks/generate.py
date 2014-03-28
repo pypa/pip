@@ -6,6 +6,7 @@ import tempfile
 import zipfile
 
 import invoke
+import six
 
 from . import paths
 
@@ -31,8 +32,8 @@ def authors():
     # Write our authors to the AUTHORS file
     print("[generate.authors] Writing AUTHORS")
     with io.open("AUTHORS.txt", "w", encoding="utf8") as fp:
-        fp.write(u"\n".join(authors))
-        fp.write(u"\n")
+        fp.write(six.text_type("\n").join(authors))
+        fp.write(six.text_type("\n"))
 
 
 @invoke.task
@@ -153,7 +154,8 @@ if __name__ == "__main__":
     all_files = []
     for root, dirs, files in os.walk(os.path.join(paths.PROJECT_ROOT, "pip")):
         for pyfile in files:
-            if os.path.splitext(pyfile)[1] in {".py", ".pem", ".cfg", ".exe"}:
+            if os.path.splitext(pyfile)[1] in set([
+                    ".py", ".pem", ".cfg", ".exe"]):
                 path = os.path.join(root, pyfile)
                 all_files.append(
                     "/".join(
