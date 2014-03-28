@@ -74,12 +74,15 @@ else
             ;;
         py33)
             sudo apt-get install python3.3 python3.3-dev
+            ln -sf /usr/bin/python3.3 /usr/bin/python3
             ;;
         py34)
             sudo apt-get install python3.4 python3.4-dev
+            ln -sf /usr/bin/python3.4 /usr/bin/python3
             ;;
         py3pep8)
-            sudo apt-get install python3 python3-dev
+            sudo apt-get install python3.4 python3.4-dev
+            ln -sf /usr/bin/python3.4 /usr/bin/python3
             ;;
         pypy)
             sudo add-apt-repository -y ppa:pypy/ppa
