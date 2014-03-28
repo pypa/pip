@@ -4,9 +4,13 @@ set -e
 set -x
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
+    # Install pyenv
     brew update
     brew install pyenv
+
+    # Activate pyenv
     if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
+
     case "${TOX_ENV}" in
         py26)
             pyenv install 2.6.9
