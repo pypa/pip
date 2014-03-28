@@ -401,7 +401,7 @@ exec(compile(
                                 )):
                             dirs.remove(dir)
                         # Also don't search through tests
-                        if dir == 'test' or dir == 'tests':
+                        elif dir == 'test' or dir == 'tests':
                             dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
                                      for dir in dirs])
