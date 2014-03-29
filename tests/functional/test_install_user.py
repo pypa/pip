@@ -7,8 +7,6 @@ import textwrap
 
 from os.path import curdir, isdir, isfile
 
-import pytest
-
 from pip.backwardcompat import uses_pycache
 
 from tests.lib.local_repos import local_checkout

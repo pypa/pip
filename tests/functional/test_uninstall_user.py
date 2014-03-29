@@ -3,8 +3,6 @@ tests specific to uninstalling --user installs
 """
 from os.path import isdir, isfile
 
-import pytest
-
 from tests.lib import pyversion, assert_all_changes
 from tests.functional.test_install_user import _patch_dist_in_site_packages
 
