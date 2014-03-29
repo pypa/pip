@@ -505,9 +505,7 @@ class PackageFinder(object):
                 yield v
 
     def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
-        if xz_supported():
-            extensions += ('.tar.xz',)
+        extensions = get_supported_package_extensions()
         if self.use_wheel:
             return extensions + (wheel_ext,)
         return extensions
@@ -745,9 +743,7 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                extensions = ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']
-                if xz_supported():
-                    extensions.append('.tar.xz')
+                extensions = get_supported_package_extensions()
                 for bad_ext in extensions:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
@@ -1110,3 +1106,11 @@ def package_to_requirement(package_name):
         return '%s==%s' % (name, version)
     else:
         return name
+
+
+def get_supported_package_extensions():
+    """Get a tuple of supported file extensions for packages."""
+    extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+    if xz_supported():
+        extensions += ('.tar.xz',)
+    return extensions
