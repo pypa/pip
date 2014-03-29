@@ -35,8 +35,6 @@ def _patch_dist_in_site_packages(script):
             os.remove(cache_path)
 
 
-# --user option is broken in pypy
-@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 class Tests_UserSite:
 
     def test_reset_env_system_site_packages_usersite(self, script, virtualenv):

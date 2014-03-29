@@ -149,8 +149,6 @@ def test_install_from_wheel_no_deps(script, data):
     assert pkg_folder not in result.files_created
 
 
-# --user option is broken in pypy
-@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 def test_install_user_wheel(script, virtualenv, data):
     """
     Test user install from wheel (that has a script)
