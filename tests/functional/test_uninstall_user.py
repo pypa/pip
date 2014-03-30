@@ -3,14 +3,10 @@ tests specific to uninstalling --user installs
 """
 from os.path import isdir, isfile
 
-import pytest
-
 from tests.lib import pyversion, assert_all_changes
 from tests.functional.test_install_user import _patch_dist_in_site_packages
 
 
-# --user option is broken in pypy
-@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 class Tests_UninstallUserSite:
 
     def test_uninstall_from_usersite(self, script, virtualenv):
