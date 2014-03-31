@@ -27,7 +27,7 @@ try:
 except NameError:
     PermissionError = NeverUsedException
 
-console_encoding = sys.__stdout__.encoding
+console_encoding = sys.stdout.encoding
 
 
 try:
