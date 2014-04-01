@@ -80,7 +80,7 @@ class MultiDomainBasicAuth(AuthBase):
         parsed = urlparse.urlparse(req.url)
 
         # Get the netloc without any embedded credentials
-        netloc = parsed.netloc.split("@", 1)[-1]
+        netloc = parsed.netloc.rsplit("@", 1)[-1]
 
         # Set the url of the request to the url without any credentials
         req.url = urlparse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
