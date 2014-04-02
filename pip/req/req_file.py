@@ -24,8 +24,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         comes_from=comes_from,
         session=session,
     )
-    for line_number, line in enumerate(content.splitlines()):
-        line_number += 1
+    for line_number, line in enumerate(content.splitlines(), 1):
         line = line.strip()
 
         # Remove comments from file
