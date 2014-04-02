@@ -8,7 +8,7 @@ from os.path import exists
 from pip.download import path_to_url as path_to_url_d
 from pip.locations import write_delete_marker_file
 from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
-from tests.lib import pyversion_nodot, path_to_url
+from tests.lib import pyversion, path_to_url
 
 
 def test_pip_wheel_fails_without_wheel(script, data):
@@ -30,7 +30,7 @@ def test_pip_wheel_success(script, data):
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
     )
-    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
+    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
@@ -58,7 +58,7 @@ def test_pip_wheel_fail(script, data):
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links, 'wheelbroken==0.1',
     )
-    wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion_nodot
+    wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path not in result.files_created, (
         wheel_file_path,
@@ -85,7 +85,7 @@ def test_pip_wheel_ignore_wheels_editables(script, data):
         'wheel', '--no-index', '-f', data.find_links, '-r',
         script.scratch_path / 'reqs.txt',
     )
-    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion_nodot
+    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, (
         wheel_file_path,
@@ -124,7 +124,7 @@ def test_pip_wheel_source_deps(script, data):
         'wheel', '--use-wheel', '--no-index', '-f', data.find_links,
         'requires_source',
     )
-    wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion_nodot
+    wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout

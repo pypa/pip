@@ -1,4 +1,3 @@
-# #!/usr/bin/env python
 from __future__ import absolute_import
 
 import os
@@ -16,7 +15,6 @@ DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 SRC_DIR = Path(__file__).abspath.folder.folder.folder
 
 pyversion = sys.version[:3]
-pyversion_nodot = "%d%d" % (sys.version_info[0], sys.version_info[1])
 
 
 def path_to_url(path):
