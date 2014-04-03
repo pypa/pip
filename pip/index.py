@@ -294,7 +294,7 @@ class PackageFinder(object):
                 'Local files found: %s' %
                 ', '.join([
                     url_to_path(link.url)
-                    for parsed, link, version in file_versions
+                    for _, link, _ in file_versions
                 ])
             )
         # this is an intentional priority ordering
