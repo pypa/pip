@@ -21,4 +21,3 @@ tool for installing Python packages.
 .. image:: https://secure.travis-ci.org/pypa/pip.png?branch=develop
    :target: http://travis-ci.org/pypa/pip
 
-
