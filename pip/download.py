@@ -193,16 +193,22 @@ class LocalFSAdapter(BaseAdapter):
         resp.status_code = 200
         resp.url = real_url
 
-        stats = os.stat(pathname)
-        modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
-        resp.headers = CaseInsensitiveDict({
-            "Content-Type": mimetypes.guess_type(pathname)[0] or "text/plain",
-            "Content-Length": stats.st_size,
-            "Last-Modified": modified,
-        })
+        try:
+            stats = os.stat(pathname)
+        except OSError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+        else:
+            modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
+            content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
+            resp.headers = CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": stats.st_size,
+                "Last-Modified": modified,
+            })
 
-        resp.raw = LocalFSResponse(open(pathname, "rb"))
-        resp.close = resp.raw.close
+            resp.raw = LocalFSResponse(open(pathname, "rb"))
+            resp.close = resp.raw.close
 
         return resp
 
