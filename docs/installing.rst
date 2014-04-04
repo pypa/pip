@@ -32,6 +32,10 @@ install `setuptools`_ for you. [2]_
 
 To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
 
+``get-pip.py`` supports the usual pip options (see :ref:`General Options` reference).
+In this way, it is possible to get pip behind a proxy, running the following::
+
+  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 Upgrade pip
 -----------
