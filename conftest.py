@@ -146,7 +146,7 @@ def _has_reqs(reqs):
             except OSError:
                 memoize[req] = False
 
-        # If memoize dict says requirement is missing, return negative
+        # If memoize dict says requirement is missing, return false
         if not memoize[req]:
             return False
 
