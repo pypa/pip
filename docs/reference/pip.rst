@@ -138,8 +138,9 @@ Build Options
 ~~~~~~~~~~~~~
 
 The ``--global-option`` and ``--build-option`` arguments to the ``pip install``
-and ``pip wheel`` inject additional arguments into the ``setup.py`` command.
-These arguments are included in the command as follows::
+and ``pip wheel`` inject additional arguments into the ``setup.py`` command
+(``--build-option`` is only available in ``pip wheel``).  These arguments are
+included in the command as follows::
 
     python setup.py <global_options> BUILD COMMAND <build_options>
 
