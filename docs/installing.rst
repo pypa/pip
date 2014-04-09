@@ -30,24 +30,27 @@ Then run the following (which may require administrator access)::
 If `setuptools`_ (or `distribute`_) is not already installed, ``get-pip.py`` will
 install `setuptools`_ for you. [2]_
 
-Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
-install Options>` and the :ref:`General Options`. Below are some examples:
-
-::
-
-  # Install from local copies of pip and setuptools
-  python get-pip.py --no-index --find-links=/local/copies
-
-  # Install to the user site
-  python get-pip.py --user
-
-  # Install behind a proxy
-  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
+To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U
+setuptools``. [3]_
 
 To enable the use of pip from the command line, ensure the ``Scripts`` subdirectory of
 your Python installation is available on the system PATH. (This is not done automatically.)
 
-To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
+Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
+install Options>` and the :ref:`general options <General Options>`. Below are
+some examples:
+
+Install from local copies of pip and setuptools::
+
+  python get-pip.py --no-index --find-links=/local/copies
+
+Install to the user site [4]_::
+
+  python get-pip.py --user
+
+Install behind a proxy::
+
+  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
 Upgrade pip
@@ -60,7 +63,7 @@ On Linux or OS X:
  pip install -U pip
 
 
-On Windows [4]_:
+On Windows [5]_:
 
 ::
 
@@ -99,7 +102,13 @@ On Fedora::
        package that depends on setuptools or distribute. See :doc:`here for
        details <distribute_setuptools>`.
 
-.. [4] https://github.com/pypa/pip/issues/1299
+.. [4] The pip developers are considering making ``--user`` the default for all
+       installs, including ``get-pip.py`` installs of pip, but at this time,
+       ``--user`` installs for pip itself, should not be considered to be fully
+       tested or endorsed. For discussion, see `Issue 1668
+       <https://github.com/pypa/pip/issues/1668>`_.
+
+.. [5] https://github.com/pypa/pip/issues/1299
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
