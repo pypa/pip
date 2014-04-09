@@ -32,12 +32,23 @@ Then run the following (which may require administrator access):
 If `setuptools`_ (or `distribute`_) is not already installed, ``get-pip.py`` will
 install `setuptools`_ for you. [2]_
 
+Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
+install Options>` and the :ref:`General Options`. Below are some examples:
+
+::
+
+  # Install from local copies of pip and setuptools
+  python get-pip.py --no-index --find-links=/local/copies
+
+  # Install to the user site
+  python get-pip.py --user
+
+  # Install behind a proxy
+  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
+
+
 To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
 
-``get-pip.py`` supports the usual pip options (see :ref:`General Options` reference).
-In this way, it is possible to get pip behind a proxy, running the following::
-
-  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 Upgrade pip
 -----------
