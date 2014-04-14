@@ -9,7 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import build_prefix, default_log_file
+from pip.locations import build_prefix, default_log_file, user_dir
 
 
 def make_option_group(group, parser):
@@ -90,14 +90,19 @@ log_explicit_levels = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
+
 log_file = OptionMaker(
     # The default log file
+    # The path to the logfile is relative to the user's homedir
+    # It is not safe to print that if it contains non-ASCII characters
+    # So we replace the homedir full path with ~
     '--log-file', '--local-log',
     dest='log_file',
     metavar='path',
     default=default_log_file,
     help='Path to a verbose non-appending log, that only logs failures. This '
-         'log is active by default at %default.')
+         'log is active by default at {0}.'.format(
+            default_log_file.replace(user_dir, '~')))
 
 no_input = OptionMaker(
     # Don't ask for input

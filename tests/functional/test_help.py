@@ -4,7 +4,9 @@ from pip.exceptions import CommandError
 from pip.basecommand import ERROR, SUCCESS
 from pip.commands.help import HelpCommand
 from pip.commands import commands
-from mock import Mock
+from pip import create_main_parser
+from mock import Mock, patch
+from os import path
 
 
 def test_run_method_should_return_sucess_when_finds_command_name():
@@ -87,3 +89,18 @@ def test_help_commands_equally_functional(script):
             script.pip('help', name).stdout
             == script.pip(name, '--help').stdout
         )
+
+
+def test_help_prints_when_default_logfile_path_contains_unicode_character():
+    """
+    Regession for issue #1713: handling unicode characters in default logfile
+    """
+    problematic_character = '\xc3\x81'
+    default_log_file = path.join(problematic_character, '.pip', 'pip.log')
+    relatlive_log_file = path.join('.pip', 'pip.log')
+    with patch("pip.cmdoptions.user_dir", new=problematic_character):
+        with patch("pip.cmdoptions.default_log_file", new=default_log_file):
+            parser = create_main_parser()
+            help_message = parser.format_help()
+    assert problematic_character not in help_message
+    assert relatlive_log_file in help_message
