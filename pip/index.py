@@ -23,6 +23,7 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['PackageFinder']
 
 
+LOCAL_HOSTNAMES = ('localhost', )
 INSECURE_SCHEMES = {
     "http": ["https"],
 }
@@ -216,7 +217,10 @@ class PackageFinder(object):
             if parsed.scheme in INSECURE_SCHEMES:
                 secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
-                if len(secure_schemes) == 1:
+                if parsed.hostname in LOCAL_HOSTNAMES:
+                    # localhost is not a security risk
+                    pass
+                elif len(secure_schemes) == 1:
                     ctx = (location, parsed.scheme, secure_schemes[0],
                            parsed.netloc)
                     logger.warn("%s uses an insecure transport scheme (%s). "
