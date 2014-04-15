@@ -3,7 +3,6 @@ import re
 import os
 import posixpath
 import shutil
-import site
 import stat
 import subprocess
 import sys
@@ -16,7 +15,7 @@ from pip.backwardcompat import(
     PermissionError, stdlib_pkgs
 )
 from pip.locations import (
-    site_packages, running_under_virtualenv, virtualenv_no_global,
+    site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file
 )
 from pip.log import logger
@@ -343,7 +342,7 @@ def dist_in_usersite(dist):
     Return True if given Distribution is installed in user site.
     """
     norm_path = normalize_path(dist_location(dist))
-    return norm_path.startswith(normalize_path(site.USER_SITE))
+    return norm_path.startswith(normalize_path(user_site))
 
 
 def dist_in_site_packages(dist):
