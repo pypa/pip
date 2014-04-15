@@ -425,16 +425,17 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     """
     folder = 'script_folder'
     script.scratch_path.join(folder).mkdir()
-    url = 'git+git://github.com/pypa/virtualenv'
+    url = 'git+git://github.com/pypa/pip-test-package'
     result = script.pip(
-        'install', '-e', '%s#egg=virtualenv' %
+        'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(url, tmpdir.join("cache")),
         '--install-option=--script-dir=%s' % folder
     )
-    virtualenv_bin = (
-        script.venv / 'src' / 'virtualenv' / folder / 'virtualenv' + script.exe
+    script_file = (
+        script.venv / 'src' / 'pip-test-package' /
+        folder / 'pip-test-package' + script.exe
     )
-    assert virtualenv_bin in result.files_created
+    assert script_file in result.files_created
 
 
 def test_install_global_option_using_editable(script, tmpdir):
