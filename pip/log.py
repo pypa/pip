@@ -82,16 +82,22 @@ class Logger(object):
         self.in_progress_hanging = False
 
     def add_consumers(self, *consumers):
-        if sys.platform.startswith("win"):
-            for level, consumer in consumers:
-                if hasattr(consumer, "write"):
-                    self.consumers.append(
-                        (level, colorama.AnsiToWin32(consumer)),
-                    )
-                else:
-                    self.consumers.append((level, consumer))
-        else:
-            self.consumers.extend(consumers)
+        for level, consumer in consumers:
+            # Try to check for duplicate consumers
+            consumer_exists = False
+            for chk_level, chk_consumer in self.consumers:
+                # Account for coloroma wrapped streams
+                if hasattr(chk_consumer, 'wrapped'):
+                    chk_consumer = chk_consumer.wrapped
+                if (level, consumer) == (chk_level, chk_consumer):
+                    consumer_exists = True
+
+            # Colorize consumer for Windows
+            if sys.platform.startswith('win') and hasattr(consumer, 'write'):
+                consumer = colorama.AnsiToWin32(consumer)
+
+            if not consumer_exists:
+                self.consumers.append((level, consumer))
 
     def debug(self, msg, *args, **kw):
         self.log(self.DEBUG, msg, *args, **kw)
