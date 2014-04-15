@@ -5,12 +5,13 @@ import sys
 import tempfile
 import zipfile
 from distutils.util import change_root
+from distutils import sysconfig
 from email.parser import FeedParser
 
 import pip.wheel
 from pip._vendor import pkg_resources, six
 from pip.backwardcompat import (
-    urllib, ConfigParser, string_types, get_python_version,
+    urllib, ConfigParser, string_types,
 )
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
@@ -748,9 +749,10 @@ exec(compile(
                 # FIXME: I'm not sure if this is a reasonable location;
                 # probably not but we can't put it in the default location, as
                 # that is a virtualenv symlink that isn't writable
+                py_ver_str = 'python' + sysconfig.get_python_version()
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
-                                              'python' + get_python_version())]
+                                              py_ver_str)]
             logger.notify('Running setup.py install for %s' % self.name)
             logger.indent += 2
             try:
