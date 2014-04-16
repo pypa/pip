@@ -23,7 +23,7 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['PackageFinder']
 
 
-ALLOWED_DEFAULT_INSECURE_HOSTNAMES = ('localhost', '127.0.0.1')
+LOCAL_HOSTNAMES = ('localhost', '127.0.0.1')
 INSECURE_SCHEMES = {
     "http": ["https"],
 }
@@ -217,7 +217,7 @@ class PackageFinder(object):
             if parsed.scheme in INSECURE_SCHEMES:
                 secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
-                if parsed.hostname in ALLOWED_DEFAULT_INSECURE_HOSTNAMES:
+                if parsed.hostname in LOCAL_HOSTNAMES:
                     # localhost is not a security risk
                     pass
                 elif len(secure_schemes) == 1:
