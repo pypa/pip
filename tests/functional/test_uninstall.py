@@ -196,7 +196,7 @@ def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
 
     try:
         temp = mkdtemp()
-        tmpdir = join(temp, 'virtualenv')
+        tmpdir = join(temp, 'pip-test-package')
         _test_uninstall_editable_with_source_outside_venv(
             script,
             tmpdir,
@@ -211,7 +211,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     result = script.run(
         'git', 'clone',
         local_repo(
-            'git+git://github.com/pypa/virtualenv',
+            'git+git://github.com/pypa/pip-test-package',
             cache_dir,
         ),
         tmpdir,
@@ -219,9 +219,9 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
     result2 = script.pip('install', '-e', tmpdir)
     assert join(
-        script.site_packages, 'virtualenv.egg-link'
+        script.site_packages, 'pip-test-package.egg-link'
     ) in result2.files_created, list(result2.files_created.keys())
-    result3 = script.pip('uninstall', '-y', 'virtualenv', expect_error=True)
+    result3 = script.pip('uninstall', '-y', 'pip-test-package', expect_error=True)
     assert_all_changes(
         result,
         result3,
