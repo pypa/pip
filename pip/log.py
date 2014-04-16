@@ -83,20 +83,21 @@ class Logger(object):
 
     def add_consumers(self, *consumers):
         for level, consumer in consumers:
-            # Try to check for duplicate consumers
-            consumer_exists = False
+            # Try to check for duplicate consumers before adding them
             for chk_level, chk_consumer in self.consumers:
                 # Account for coloroma wrapped streams
-                if hasattr(chk_consumer, 'wrapped'):
+                if isinstance(chk_consumer, colorama.AnsiToWin32):
                     chk_consumer = chk_consumer.wrapped
+
                 if (level, consumer) == (chk_level, chk_consumer):
-                    consumer_exists = True
+                    break
+            # If we didn't find a duplicate, then add it
+            else:
+                # Colorize consumer for Windows
+                if sys.platform.startswith('win') \
+                   and hasattr(consumer, 'write'):
+                    consumer = colorama.AnsiToWin32(consumer)
 
-            # Colorize consumer for Windows
-            if sys.platform.startswith('win') and hasattr(consumer, 'write'):
-                consumer = colorama.AnsiToWin32(consumer)
-
-            if not consumer_exists:
                 self.consumers.append((level, consumer))
 
     def debug(self, msg, *args, **kw):
