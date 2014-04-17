@@ -156,6 +156,7 @@ class WheelCommand(Command):
         )
 
         options.build_dir = os.path.abspath(options.build_dir)
+        options.wheel_dir = normalize_path(options.wheel_dir)
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=None,
