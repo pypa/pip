@@ -23,6 +23,8 @@
   convince some servers who double compress the downloaded file to stop doing
   so. (:pull:`1688`)
 
+* Fixed issue:`1559`. Stop breaking when given pip commands in uppercase (:pull:`1725`)
+
 
 **1.5.4 (2014-02-21)**
 
