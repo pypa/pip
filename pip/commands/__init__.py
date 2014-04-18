@@ -67,14 +67,14 @@ def get_similar_commands(name):
     """Command name auto-correct."""
     from difflib import get_close_matches
 
+    name = name.lower()
+
     close_commands = get_close_matches(name, commands.keys())
 
     if close_commands:
-        guess = close_commands[0]
+        return close_commands[0]
     else:
-        guess = False
-
-    return guess
+        return False
 
 
 def _sort_commands(cmddict, order):
