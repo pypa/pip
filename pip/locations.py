@@ -9,8 +9,16 @@ import getpass
 from pip.backwardcompat import get_python_lib, get_path_uid, user_site
 import pip.exceptions
 
+from pip._vendor import appdirs
+
 # Hack for flake8
 install
+
+
+# Our Platform Specific Application Directories
+USER_CACHE_DIR = appdirs.user_cache_dir("pip", appauthor="PyPA")
+
+DOWNLOAD_CACHE_DIR = os.path.join(USER_CACHE_DIR, "downloads")
 
 
 DELETE_MARKER_MESSAGE = '''\

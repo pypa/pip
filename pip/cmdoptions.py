@@ -9,7 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import build_prefix, default_log_file
+from pip.locations import DOWNLOAD_CACHE_DIR, build_prefix, default_log_file
 
 
 def make_option_group(group, parser):
@@ -298,8 +298,16 @@ download_cache = OptionMaker(
     '--download-cache',
     dest='download_cache',
     metavar='dir',
-    default=None,
-    help='Cache downloaded packages in <dir>.')
+    default=DOWNLOAD_CACHE_DIR,
+    help='Cache downloaded packages in <dir> instead of the default location')
+
+no_download_cache = OptionMaker(
+    "--no-download-cache",
+    dest="no_download_cache",
+    action="store_true",
+    default=False,
+    help="Do not cache downloaded packages",
+)
 
 no_deps = OptionMaker(
     '--no-deps', '--no-dependencies',

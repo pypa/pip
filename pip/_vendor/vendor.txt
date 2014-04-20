@@ -3,3 +3,4 @@ html5lib==1.0b1
 six==1.5.2
 colorama==0.2.7
 requests==2.2.1
+appdirs==1.2.0

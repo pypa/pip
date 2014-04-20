@@ -73,6 +73,7 @@ class InstallCommand(Command):
         )
 
         cmd_opts.add_option(cmdoptions.download_cache.make())
+        cmd_opts.add_option(cmdoptions.no_download_cache.make())
 
         cmd_opts.add_option(
             '--src', '--source', '--source-dir', '--source-directory',
@@ -270,11 +271,16 @@ class InstallCommand(Command):
 
         finder = self._build_package_finder(options, index_urls, session)
 
+        if not options.no_download_cache:
+            download_cache = options.download_cache
+        else:
+            download_cache = None
+
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=options.download_dir,
-            download_cache=options.download_cache,
+            download_cache=download_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,
