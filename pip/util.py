@@ -1,21 +1,21 @@
 import locale
-import sys
-import shutil
-import os
-import stat
 import re
+import os
 import posixpath
-import zipfile
-import tarfile
+import shutil
+import stat
 import subprocess
+import sys
+import tarfile
+import zipfile
 
 from pip.exceptions import InstallationError, BadCommand
 from pip.backwardcompat import(
-    WindowsError, string_types, raw_input, console_to_str, user_site,
+    WindowsError, string_types, raw_input, console_to_str,
     PermissionError, stdlib_pkgs
 )
 from pip.locations import (
-    site_packages, running_under_virtualenv, virtualenv_no_global,
+    site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file
 )
 from pip.log import logger
@@ -341,12 +341,8 @@ def dist_in_usersite(dist):
     """
     Return True if given Distribution is installed in user site.
     """
-    if user_site:
-        return normalize_path(
-            dist_location(dist)
-        ).startswith(normalize_path(user_site))
-    else:
-        return False
+    norm_path = normalize_path(dist_location(dist))
+    return norm_path.startswith(normalize_path(user_site))
 
 
 def dist_in_site_packages(dist):

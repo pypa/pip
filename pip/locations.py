@@ -1,13 +1,17 @@
 """Locations where we look for configs, install stuff, etc"""
 
-import sys
-import site
-import os
-import tempfile
-from distutils.command.install import install, SCHEME_KEYS
 import getpass
-from pip.backwardcompat import get_python_lib, get_path_uid, user_site
+import os
+import site
+import sys
+import tempfile
+
+from distutils import sysconfig
+from distutils.command.install import install, SCHEME_KEYS
+
+from pip.backwardcompat import get_path_uid
 import pip.exceptions
+
 
 # Hack for flake8
 install
@@ -125,15 +129,16 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = get_python_lib()
+site_packages = sysconfig.get_python_lib()
+user_site = site.USER_SITE
 user_dir = os.path.expanduser('~')
 if sys.platform == 'win32':
     bin_py = os.path.join(sys.prefix, 'Scripts')
-    bin_user = os.path.join(user_site, 'Scripts') if user_site else None
+    bin_user = os.path.join(user_site, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-        bin_user = os.path.join(user_site, 'bin') if user_site else None
+        bin_user = os.path.join(user_site, 'bin')
     default_storage_dir = os.path.join(user_dir, 'pip')
     default_config_basename = 'pip.ini'
     default_config_file = os.path.join(
@@ -143,7 +148,7 @@ if sys.platform == 'win32':
     default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    bin_user = os.path.join(user_site, 'bin') if user_site else None
+    bin_user = os.path.join(user_site, 'bin')
     default_storage_dir = os.path.join(user_dir, '.pip')
     default_config_basename = 'pip.conf'
     default_config_file = os.path.join(
