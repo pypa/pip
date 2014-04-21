@@ -221,7 +221,8 @@ def _test_uninstall_editable_with_source_outside_venv(
     assert join(
         script.site_packages, 'pip-test-package.egg-link'
     ) in result2.files_created, list(result2.files_created.keys())
-    result3 = script.pip('uninstall', '-y', 'pip-test-package', expect_error=True)
+    result3 = script.pip('uninstall', '-y',
+                         'pip-test-package', expect_error=True)
     assert_all_changes(
         result,
         result3,
