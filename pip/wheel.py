@@ -192,14 +192,16 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                     and s.lower().startswith(req.project_name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)
-            if files and not os.path.exists(destdir):
-                os.makedirs(destdir)
             for f in files:
                 # Skip unwanted files
                 if filter and filter(f):
                     continue
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
+                # directory creation is lazy and after the file filtering above
+                # to ensure we don't install empty dirs
+                if not os.path.exists(destdir):
+                    os.makedirs(destdir)
                 shutil.move(srcfile, destfile)
                 changed = False
                 if fixer:
