@@ -134,10 +134,11 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-        pycompile=True):
+                     pycompile=True, scheme=None):
     """Install a wheel"""
 
-    scheme = distutils_scheme(name, user=user, home=home, root=root)
+    if not scheme:
+        scheme = distutils_scheme(name, user=user, home=home, root=root)
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
@@ -177,6 +178,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
 
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
+            destdir = os.path.join(dest, basedir)
             if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
                 continue
             for s in subdirs:
@@ -190,8 +192,8 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                     and s.lower().startswith(req.project_name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)
-                if not os.path.exists(destsubdir):
-                    os.makedirs(destsubdir)
+            if files and not os.path.exists(destdir):
+                os.makedirs(destdir)
             for f in files:
                 # Skip unwanted files
                 if filter and filter(f):
