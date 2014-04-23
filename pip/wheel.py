@@ -199,10 +199,14 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
                 # directory creation is lazy and after the file filtering above
-                # to ensure we don't install empty dirs
+                # to ensure we don't install empty dirs; empty dirs can't be
+                # uninstalled.
                 if not os.path.exists(destdir):
                     os.makedirs(destdir)
-                shutil.move(srcfile, destfile)
+                # use copy2 (not move) to be extra sure we're not moving
+                # directories over; copy2 fails for directories.  this would
+                # fail tests (not during released/user execution)
+                shutil.copy2(srcfile, destfile)
                 changed = False
                 if fixer:
                     changed = fixer(destfile)
