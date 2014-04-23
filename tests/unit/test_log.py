@@ -1,5 +1,3 @@
-import sys
-
 from pip.backwardcompat import StringIO
 from pip.log import should_color, should_warn, Logger
 
@@ -54,6 +52,7 @@ def test_ignores_duplicate_consumers():
     """
     logger = Logger()
 
+    import sys
     consumer1 = sys.stdout
     consumer2 = sys.stdout
 
@@ -69,7 +68,7 @@ def test_ignores_duplicate_consumers():
     assert 1 == len(logger.consumers)
 
 
-def test_ignores_Win32_wrapped_consumers():
+def test_ignores_Win32_wrapped_consumers(monkeypatch):
     """
     Test that colorama wrapped duplicate streams are ignored, too.
     """
@@ -79,20 +78,18 @@ def test_ignores_Win32_wrapped_consumers():
     consumer1 = consumer
     consumer2 = consumer
 
-    orig_platform = sys.platform
     # Pretend to be Windows
-    sys.platform = 'win32'
+    monkeypatch.setattr('sys.platform', 'win32')
     logger.add_consumers(
         (logger.NOTIFY, consumer1),
         (logger.NOTIFY, consumer2),
     )
     # Pretend to be linux
-    sys.platform = 'linux2'
+    monkeypatch.setattr('sys.platform', 'linux2')
     logger.add_consumers(
         (logger.NOTIFY, consumer2),
         (logger.NOTIFY, consumer1),
     )
-    sys.platform = orig_platform
 
     assert 1 == len(logger.consumers)
 
