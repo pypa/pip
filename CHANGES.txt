@@ -23,6 +23,9 @@
   convince some servers who double compress the downloaded file to stop doing
   so. (:pull:`1688`)
 
+* Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
+  won't create duplicate output when being called multiple times. (:pull:`1723`)
+
 
 **1.5.4 (2014-02-21)**
 
