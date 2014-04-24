@@ -15,10 +15,10 @@ try:
 except ImportError:
     from dummy_threading import Thread
 
-from distlib import DistlibException
-from distlib.compat import (HTTPBasicAuthHandler, Request, HTTPPasswordMgr,
-                            urlparse, build_opener)
-from distlib.util import cached_property, zip_dir
+from . import DistlibException
+from .compat import (HTTPBasicAuthHandler, Request, HTTPPasswordMgr,
+                     urlparse, build_opener, string_types)
+from .util import cached_property, zip_dir, ServerProxy
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class PackageIndex(object):
         self.ssl_verifier = None
         self.gpg = None
         self.gpg_home = None
+        self.rpc_proxy = None
         with open(os.devnull, 'w') as sink:
             for s in ('gpg2', 'gpg'):
                 try:
@@ -478,3 +479,10 @@ class PackageIndex(object):
             'Content-length': str(len(body))
         }
         return Request(self.url, body, headers)
+
+    def search(self, terms, operator=None):
+        if isinstance(terms, string_types):
+            terms = {'name': terms}
+        if self.rpc_proxy is None:
+            self.rpc_proxy = ServerProxy(self.url, timeout=3.0)
+        return self.rpc_proxy.search(terms, operator or 'and')
