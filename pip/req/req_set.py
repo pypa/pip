@@ -48,11 +48,11 @@ class Requirements(object):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, download_cache=None,
-                 upgrade=False, ignore_installed=False, as_egg=False,
-                 target_dir=None, ignore_dependencies=False,
-                 force_reinstall=False, use_user_site=False, session=None,
-                 pycompile=True, wheel_download_dir=None):
+    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
+                 ignore_installed=False, as_egg=False, target_dir=None,
+                 ignore_dependencies=False, force_reinstall=False,
+                 use_user_site=False, session=None, pycompile=True,
+                 wheel_download_dir=None):
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
@@ -62,9 +62,6 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
-        if download_cache:
-            download_cache = normalize_path(download_cache)
-        self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
@@ -527,7 +524,6 @@ class RequirementSet(object):
             unpack_http_url(
                 link,
                 location,
-                self.download_cache,
                 download_dir,
                 self.session,
             )

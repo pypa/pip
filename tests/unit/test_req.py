@@ -34,7 +34,6 @@ class TestRequirementSet(object):
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            download_cache=os.path.join(self.tempdir, 'download_cache'),
             session=PipSession(),
         )
 

@@ -47,7 +47,7 @@ class PackageFinder(object):
 
         self.find_links = find_links
         self.index_urls = index_urls
-        self.cache = PageCache()
+
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
 
@@ -187,8 +187,7 @@ class PackageFinder(object):
                 mkurl_pypi_url(self.index_urls[0]),
                 trusted=True,
             )
-            # This will also cache the page, so it's okay that we get it again
-            # later:
+
             page = self._get_page(main_index_url, req)
             if page is None:
                 url_name = self._find_url_name(
@@ -662,41 +661,7 @@ class PackageFinder(object):
             return None
 
     def _get_page(self, link, req):
-        return HTMLPage.get_page(
-            link, req,
-            cache=self.cache,
-            session=self.session,
-        )
-
-
-class PageCache(object):
-    """Cache of HTML pages"""
-
-    failure_limit = 3
-
-    def __init__(self):
-        self._failures = {}
-        self._pages = {}
-        self._archives = {}
-
-    def too_many_failures(self, url):
-        return self._failures.get(url, 0) >= self.failure_limit
-
-    def get_page(self, url):
-        return self._pages.get(url)
-
-    def is_archive(self, url):
-        return self._archives.get(url, False)
-
-    def set_is_archive(self, url, value=True):
-        self._archives[url] = value
-
-    def add_page_failure(self, url, level):
-        self._failures[url] = self._failures.get(url, 0) + level
-
-    def add_page(self, urls, page):
-        for url in urls:
-            self._pages[url] = page
+        return HTMLPage.get_page(link, req, session=self.session)
 
 
 class HTMLPage(object):
@@ -721,7 +686,7 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, req, cache=None, skip_archives=True, session=None):
+    def get_page(cls, link, req, skip_archives=True, session=None):
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -729,8 +694,6 @@ class HTMLPage(object):
 
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
-            return None
 
         # Check for VCS schemes that do not support lookup as web pages.
         from pip.vcs import VcsSupport
@@ -741,15 +704,8 @@ class HTMLPage(object):
                 )
                 return None
 
-        if cache is not None:
-            inst = cache.get_page(url)
-            if inst is not None:
-                return inst
         try:
             if skip_archives:
-                if cache is not None:
-                    if cache.is_archive(url):
-                        return None
                 filename = link.filename
                 for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
                     if filename.endswith(bad_ext):
@@ -763,9 +719,8 @@ class HTMLPage(object):
                                 'Skipping page %s because of Content-Type: '
                                 '%s' % (link, content_type)
                             )
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
+                            return
+
             logger.debug('Getting page %s' % url)
 
             # Tack index.html onto file:// URLs that point to directories
@@ -779,7 +734,13 @@ class HTMLPage(object):
                 url = urlparse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s' % url)
 
-            resp = session.get(url, headers={"Accept": "text/html"})
+            resp = session.get(
+                url,
+                headers={
+                    "Accept": "text/html",
+                    "Cache-Control": "max-age=600",
+                },
+            )
             resp.raise_for_status()
 
             # The check for archives above only works if the url ends with
@@ -793,46 +754,37 @@ class HTMLPage(object):
                     'Skipping page %s because of Content-Type: %s' %
                     (link, content_type)
                 )
-                if cache is not None:
-                    cache.set_is_archive(url)
-                return None
+                return
 
             inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(req, link, exc, url, cache=cache, level=level)
+            cls._handle_fail(req, link, exc, url, level=level)
         except requests.ConnectionError as exc:
             cls._handle_fail(
                 req, link, "connection error: %s" % exc, url,
-                cache=cache,
             )
         except requests.Timeout:
-            cls._handle_fail(req, link, "timed out", url, cache=cache)
+            cls._handle_fail(req, link, "timed out", url)
         except SSLError as exc:
             reason = ("There was a problem confirming the ssl certificate: "
                       "%s" % exc)
             cls._handle_fail(
                 req, link, reason, url,
-                cache=cache,
                 level=2,
                 meth=logger.notify,
             )
         else:
-            if cache is not None:
-                cache.add_page([url, resp.url], inst)
             return inst
 
     @staticmethod
-    def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
+    def _handle_fail(req, link, reason, url, level=1, meth=None):
         if meth is None:
             meth = logger.info
 
         meth("Could not fetch URL %s: %s", link, reason)
         meth("Will skip URL %s when looking for download links for %s" %
              (link.url, req))
-
-        if cache is not None:
-            cache.add_page_failure(url, level)
 
     @staticmethod
     def _get_content_type(url, session):

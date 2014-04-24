@@ -19,7 +19,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.util import get_prog
+from pip.util import get_prog, normalize_path
 
 
 __all__ = ['Command']
@@ -54,7 +54,10 @@ class Command(object):
         self.parser.add_option_group(gen_opts)
 
     def _build_session(self, options):
-        session = PipSession(retries=options.retries)
+        session = PipSession(
+            cache=normalize_path(os.path.join(options.cache_dir, "http")),
+            retries=options.retries,
+        )
 
         # Handle custom ca-bundles from the user
         if options.cert:
