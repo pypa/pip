@@ -276,10 +276,10 @@ def test_upgrade_vcs_req_with_dist_found(script):
     # TODO(pnasrat) Using local_checkout fails on windows - oddness with the
     # test path urls/git.
     req = (
-        "%s#egg=virtualenv" %
+        "%s#egg=pretend" %
         (
-            "git+git://github.com/pypa/virtualenv@c21fef2c2d53cf19f49bcc37f9"
-            "c058a33fb50499"
+            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+            "743aad47656b27"
         )
     )
     script.pip("install", req)
