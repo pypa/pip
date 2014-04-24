@@ -35,18 +35,23 @@ class CompletionCommand(Command):
 
     def __init__(self, *args, **kw):
         super(CompletionCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',
             const='bash',
             dest='shell',
             help='Emit completion code for bash')
-        self.parser.add_option(
+        cmd_opts.add_option(
             '--zsh', '-z',
             action='store_const',
             const='zsh',
             dest='shell',
             help='Emit completion code for zsh')
+
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         """Prints the completion code of the given shell"""
