@@ -21,7 +21,7 @@ Install pip
 -----------
 
 To install pip, securely download `get-pip.py
-<https://raw.github.com/pypa/pip/master/contrib/get-pip.py>`_. [1]_
+<https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py>`_. [1]_
 
 Then run the following (which may require administrator access):
 
