@@ -2,18 +2,10 @@ from __future__ import absolute_import
 
 import os
 import sys
-import subprocess
 
 import virtualenv as _virtualenv
 
 from .path import Path
-
-
-# On Python < 3.3 we don't have subprocess.DEVNULL
-try:
-    DEVNULL = subprocess.DEVNULL
-except AttributeError:
-    DEVNULL = open(os.devnull, "wb")
 
 
 class VirtualEnvironment(object):
@@ -22,10 +14,10 @@ class VirtualEnvironment(object):
     virtualenv but in the future it could use pyvenv.
     """
 
-    def __init__(self, location, *args, **kwargs):
+    def __init__(self, location, wheel_dir, system_site_packages=False):
         self.location = Path(location)
-        self.pip_source_dir = kwargs.pop("pip_source_dir")
-        self._system_site_packages = kwargs.pop("system_site_packages", False)
+        self.wheel_dir = wheel_dir
+        self._system_site_packages = system_site_packages
 
         home, lib, inc, bin = _virtualenv.path_locations(self.location)
         # workaround for https://github.com/pypa/virtualenv/issues/306
@@ -34,14 +26,12 @@ class VirtualEnvironment(object):
         self.lib = Path(lib)
         self.bin = Path(bin)
 
-        super(VirtualEnvironment, self).__init__(*args, **kwargs)
-
     def __repr__(self):
         return "<VirtualEnvironment {}>".format(self.location)
 
     @classmethod
-    def create(cls, location, clear=False, pip_source_dir=None):
-        obj = cls(location, pip_source_dir=pip_source_dir)
+    def create(cls, location, clear=False, wheel_dir=None):
+        obj = cls(location, wheel_dir=wheel_dir)
         obj._create(clear=clear)
         return obj
 
@@ -51,26 +41,17 @@ class VirtualEnvironment(object):
             self.location,
             clear=clear,
             never_download=True,
+            no_setuptools=True,
             no_pip=True,
         )
 
         # Install our development version of pip install the virtual
         # environment
-        cmd = [self.bin.join("python"), "setup.py", "develop"]
-        p = subprocess.Popen(
-            cmd,
-            cwd=self.pip_source_dir,
-            # stderr=subprocess.STDOUT,
-            # stdout=DEVNULL,
+        _virtualenv.install_wheel(
+            ["setuptools", "pip"],
+            self.bin.join("python"),
+            [self.wheel_dir] + _virtualenv.file_search_dirs(),
         )
-        p.communicate()
-        if p.returncode != 0:
-            raise Exception(p.stderr)
-            raise subprocess.CalledProcessError(
-                p.returncode,
-                cmd[0],
-                output=p.stdout,
-            )
 
     def clear(self):
         self._create(clear=True)
