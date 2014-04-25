@@ -45,6 +45,55 @@ def test_should_warn_significance():
     assert should_warn("1.4.dev1", "1.6")
 
 
+def test_ignores_duplicate_consumers():
+    """
+    Make sure if the same consumer & level pair are asked to be added,
+    they're ignored.
+    """
+    logger = Logger()
+
+    import sys
+    consumer1 = sys.stdout
+    consumer2 = sys.stdout
+
+    logger.add_consumers(
+        (logger.NOTIFY, consumer1),
+        (logger.NOTIFY, consumer2),
+    )
+    logger.add_consumers(
+        (logger.NOTIFY, consumer1),
+        (logger.NOTIFY, consumer2),
+    )
+
+    assert 1 == len(logger.consumers)
+
+
+def test_ignores_Win32_wrapped_consumers(monkeypatch):
+    """
+    Test that colorama wrapped duplicate streams are ignored, too.
+    """
+    logger = Logger()
+    consumer = StringIO()
+
+    consumer1 = consumer
+    consumer2 = consumer
+
+    # Pretend to be Windows
+    monkeypatch.setattr('sys.platform', 'win32')
+    logger.add_consumers(
+        (logger.NOTIFY, consumer1),
+        (logger.NOTIFY, consumer2),
+    )
+    # Pretend to be linux
+    monkeypatch.setattr('sys.platform', 'linux2')
+    logger.add_consumers(
+        (logger.NOTIFY, consumer2),
+        (logger.NOTIFY, consumer1),
+    )
+
+    assert 1 == len(logger.consumers)
+
+
 def test_log_no_extra_line_break():
     """
     Confirm that multiple `.write()` consumers doesn't result in additional

@@ -25,6 +25,9 @@
 
 * Fixed issue:`1559`. Stop breaking when given pip commands in uppercase (:pull:`1725`)
 
+* Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
+  won't create duplicate output when being called multiple times. (:pull:`1723`)
+
 
 **1.5.4 (2014-02-21)**
 
