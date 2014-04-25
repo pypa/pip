@@ -344,6 +344,7 @@ def test_uninstallpathset_non_local(mock_logger):
     )
     mock_logger.notify.mock_calls
 
+
 def test_uninstall_wheel(script, data):
     """
     Test uninstalling a wheel
