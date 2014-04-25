@@ -288,8 +288,10 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # Ensure the tmp dir exists, things break horribly if it doesn't
         self.temp_path.mkdir()
 
-        # create easy-install.pth in user_site, so we always have it updated
+        # create easy-install.pth in so we always have it updated
         #   instead of created
+        self.site_packages_path.makedirs()
+        self.site_packages_path.join("easy-install.pth").touch()
         self.user_site_path.makedirs()
         self.user_site_path.join("easy-install.pth").touch()
 
