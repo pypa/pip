@@ -1,7 +1,8 @@
 """Tests for wheel binary packages and .dist-info."""
 import pytest
-
 from mock import patch
+
+from pip._vendor import pkg_resources
 from pip import wheel
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.util import unpack_file
@@ -220,3 +221,58 @@ class TestPEP425Tags(object):
 
         with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
             assert len(pip.pep425tags.get_supported())
+
+
+class TestMoveWheelFiles(object):
+    """
+    Tests for moving files from wheel src to scheme paths
+    """
+
+    def prep(self, data, tmpdir):
+        self.name = 'sample'
+        self.wheelpath = data.packages.join('sample-1.2.0-py2.py3-none-any.whl')
+        self.req = pkg_resources.Requirement.parse('sample')
+        self.src = os.path.join(tmpdir,  'src')
+        self.dest = os.path.join(tmpdir,  'dest')
+        unpack_file(self.wheelpath, self.src, None, None)
+        self.scheme = {
+            'scripts': os.path.join(self.dest, 'bin'),
+            'purelib': os.path.join(self.dest, 'lib'),
+            'data': os.path.join(self.dest, 'data'),
+            }
+        self.src_dist_info = os.path.join(
+            self.src, 'sample-1.2.0.dist-info')
+        self.dest_dist_info = os.path.join(
+            self.scheme['purelib'], 'sample-1.2.0.dist-info')
+
+    def assert_installed(self):
+        # lib
+        assert os.path.isdir(
+            os.path.join(self.scheme['purelib'], 'sample'))
+        # dist-info
+        metadata = os.path.join(self.dest_dist_info, 'METADATA')
+        assert os.path.isfile(metadata)
+        # data files
+        data_file = os.path.join(self.scheme['data'], 'my_data', 'data_file')
+        assert os.path.isfile(data_file)
+        # package data
+        pkg_data = os.path.join(self.scheme['purelib'], 'sample', 'package_data.dat')
+
+    def test_std_install(self, data, tmpdir):
+        self.prep(data, tmpdir)
+        wheel.move_wheel_files(self.name, self.req, self.src, scheme=self.scheme)
+        self.assert_installed()
+
+    def test_dist_info_contains_empty_dir(self, data, tmpdir):
+        """
+        Test that empty dirs are not installed
+        """
+        # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
+        self.prep(data, tmpdir)
+        src_empty_dir = os.path.join(self.src_dist_info, 'empty_dir', 'empty_dir')
+        os.makedirs(src_empty_dir)
+        assert os.path.isdir(src_empty_dir)
+        wheel.move_wheel_files(self.name, self.req, self.src, scheme=self.scheme)
+        self.assert_installed()
+        assert not os.path.isdir(os.path.join(self.dest_dist_info, 'empty_dir'))
+

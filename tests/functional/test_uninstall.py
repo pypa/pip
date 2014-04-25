@@ -343,3 +343,14 @@ def test_uninstallpathset_non_local(mock_logger):
         (nonlocal_path, sys.prefix)
     )
     mock_logger.notify.mock_calls
+
+def test_uninstall_wheel(script, data):
+    """
+    Test uninstalling a wheel
+    """
+    package = data.packages.join("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index')
+    dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created
+    result2 = script.pip('uninstall', 'simple.dist', '-y')
+    assert_all_changes(result, result2, [])

@@ -28,7 +28,7 @@ class TestLocations:
         self.username = "example"
         self.patch()
 
-    def tearDown(self):
+    def teardown(self):
         self.revert_patch()
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
