@@ -69,8 +69,11 @@ def test_help_commands_equally_functional(script):
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """
-    results = list(map(script.pip, ('help', '--help')))
-    results.append(script.pip())
+    results = [
+        script.pip('help'),
+        script.pip('--help'),
+        script.pip()
+    ]
 
     out = map(lambda x: x.stdout, results)
     ret = map(lambda x: x.returncode, results)

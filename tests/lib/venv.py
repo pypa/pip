@@ -22,10 +22,11 @@ class VirtualEnvironment(object):
     virtualenv but in the future it could use pyvenv.
     """
 
-    def __init__(self, location, *args, **kwargs):
+    def __init__(self, location, pip_source_dir=None,
+                 system_site_packages=False):
         self.location = Path(location)
-        self.pip_source_dir = kwargs.pop("pip_source_dir")
-        self._system_site_packages = kwargs.pop("system_site_packages", False)
+        self.pip_source_dir = pip_source_dir
+        self._system_site_packages = system_site_packages
 
         home, lib, inc, bin = _virtualenv.path_locations(self.location)
         # workaround for https://github.com/pypa/virtualenv/issues/306
@@ -34,7 +35,7 @@ class VirtualEnvironment(object):
         self.lib = Path(lib)
         self.bin = Path(bin)
 
-        super(VirtualEnvironment, self).__init__(*args, **kwargs)
+        super(VirtualEnvironment, self).__init__()
 
     def __repr__(self):
         return "<VirtualEnvironment {}>".format(self.location)

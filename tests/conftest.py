@@ -1,7 +1,11 @@
 import shutil
 
+from clonevirtualenv import clone_virtualenv
+
 import py
+
 import pytest
+from _pytest.monkeypatch import monkeypatch
 
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
@@ -32,17 +36,12 @@ def tmpdir(request):
     return Path(tmp)
 
 
-@pytest.fixture
-def virtualenv(tmpdir, monkeypatch):
-    """
-    Return a virtual environment which is unique to each test function
-    invocation created inside of a sub directory of the test function's
-    temporary directory. The returned object is a
-    ``tests.lib.venv.VirtualEnvironment`` object.
-    """
+@pytest.fixture(scope="session")
+def cached_virtualenv(tmpdir):
+    m = monkeypatch()
     # Force shutil to use the older method of rmtree that didn't use the fd
     # functions. These seem to fail on Travis (and only on Travis).
-    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
+    m.setattr(shutil, "_use_fd_functions", False, raising=False)
 
     # Copy over our source tree so that each virtual environment is self
     # contained
@@ -62,9 +61,24 @@ def virtualenv(tmpdir, monkeypatch):
     )
 
     # Undo our monkeypatching of shutil
-    monkeypatch.undo()
+    m.undo()
 
     return venv
+
+
+@pytest.fixture
+def virtualenv(tmpdir, cached_virtualenv):
+    """
+    Return a virtual environment which is unique to each test function
+    invocation created inside of a sub directory of the test function's
+    temporary directory. The returned object is a
+    ``tests.lib.venv.VirtualEnvironment`` object.
+    """
+    clone_virtualenv(
+        cached_virtualenv.location,
+        tmpdir.join("workspace", "venv2")
+    )
+    return VirtualEnvironment(tmpdir.join("workspace", "venv2"))
 
 
 @pytest.fixture
