@@ -18,27 +18,8 @@ Description
 .. pip-command-description:: wheel
 
 
-Options
-*******
-
-.. pip-command-options:: wheel
-
-.. pip-index-options::
-
-
-Examples
-********
-
-1. Build wheels for a requirement (and all its dependencies), and then install
-
-  ::
-
-    $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-    $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
-
-
 Build System Interface
-**********************
+++++++++++++++++++++++
 
 In order for pip to build a wheel, ``setup.py`` must implement the
 ``bdist_wheel`` command with the following syntax::
@@ -70,3 +51,25 @@ which passes a preprocessor symbol to the extension build.
 
 Such usage is considered highly build-system specific and more an accident of
 the current implementation than a supported interface.
+
+
+
+Options
+*******
+
+.. pip-command-options:: wheel
+
+.. pip-index-options::
+
+
+Examples
+********
+
+1. Build wheels for a requirement (and all its dependencies), and then install
+
+  ::
+
+    $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+    $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+
+
