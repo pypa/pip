@@ -28,7 +28,7 @@ install:
   - pip install --upgrade setuptools
   - pip install tox
 
-script: tox
+script: .travis/run.sh
 
 branches:
   only:
