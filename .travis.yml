@@ -11,9 +11,6 @@ env:
   - TOXENV=py34
   - TOXENV=pypy
 
-before_install:
-  - "[ -d ~/.distlib ] && sudo chown -R travis:travis ~/.distlib || true"
-
 install: .travis/install.sh
 
 script: .travis/run.sh
