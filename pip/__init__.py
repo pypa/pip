@@ -151,10 +151,6 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0]
 
-    # all the args without the subcommand
-    cmd_args = args[:]
-    cmd_args.remove(args_else[0])
-
     if cmd_name not in commands:
         guess = get_similar_commands(cmd_name)
 
@@ -163,6 +159,10 @@ def parseopts(args):
             msg.append('maybe you meant "%s"' % guess)
 
         raise CommandError(' - '.join(msg))
+
+    # all the args without the subcommand
+    cmd_args = args[:]
+    cmd_args.remove(cmd_name)
 
     return cmd_name, cmd_args
 
