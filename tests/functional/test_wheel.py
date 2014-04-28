@@ -34,7 +34,6 @@ def test_pip_wheel_success(script, data):
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
-    assert result.returncode == 0
 
 
 def test_pip_wheel_downloads_wheels(script, data):
@@ -49,7 +48,6 @@ def test_pip_wheel_downloads_wheels(script, data):
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Saved" in result.stdout, result.stdout
-    assert result.returncode == 0
 
 
 def test_pip_wheel_fail(script, data):
@@ -59,6 +57,7 @@ def test_pip_wheel_fail(script, data):
     script.pip('install', 'wheel')
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links, 'wheelbroken==0.1',
+        expect_error=True,
     )
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
