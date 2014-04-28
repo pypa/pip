@@ -13,7 +13,7 @@ from pip.log import logger
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
-from pip.compat import StringIO
+from pip.compat import StringIO, native_str
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
@@ -170,7 +170,7 @@ class Command(object):
             exit = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
-            text = '\n'.join(complete_log)
+            text = '\n'.join(native_str(l, True) for l in complete_log)
             try:
                 log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:
