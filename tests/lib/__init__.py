@@ -283,6 +283,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             real_name = "%s_path" % name
             setattr(self, name, getattr(self, real_name) - self.base_path)
 
+        # Make sure temp_path is a Path object
+        self.temp_path = Path(self.temp_path)
         # Ensure the tmp dir exists, things break horribly if it doesn't
         self.temp_path.mkdir()
 
