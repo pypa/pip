@@ -7,6 +7,7 @@ import traceback
 import time
 import optparse
 
+from pip._vendor import six
 from pip import cmdoptions
 from pip.locations import running_under_virtualenv
 from pip.log import logger
@@ -25,12 +26,26 @@ from pip.util import get_prog
 __all__ = ['Command']
 
 
-# converts unicode objects to UTF-8, leaves bytestrings untouched
+# On Python 2: converts unicode objects to UTF-8, leaves bytestrings untouched
+# On Python 3: converts bytestrings to unicode, leaves str untouched
+# (we probably won't run into bytestrings on Python 3 that much -- they are no
+# longer the default type for literals)
 def to_utf8(s):
-    if isinstance(s, unicode):
+    if isinstance(s, str):
+        # unicode for PY3 or bytes for PY2 -- ok
+        return s
+    elif isinstance(s, bytes):
+        # bytes and str != bytes
+        # convert to unicode for PY3
+        return s.decode('utf-8', 'replace')
+    elif isinstance(s, six.text_type):
+        # unicode and unicode != str
+        # converts to bytes for PY2
         return s.encode('utf-8')
     else:
-        return s
+        # not a string at all
+        raise TypeError("to_utf8() expected unicode or bytes, got %r" %
+                        type(s))
 
 
 class Command(object):
