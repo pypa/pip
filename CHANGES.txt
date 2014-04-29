@@ -28,6 +28,8 @@
 * Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
   won't create duplicate output when being called multiple times. (:pull:`1723`)
 
+* Fixed :issue:`1769`. `pip wheel` now returns an error code if any wheels
+  fail to build.
 
 **1.5.4 (2014-02-21)**
 
