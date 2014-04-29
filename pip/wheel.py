@@ -549,7 +549,7 @@ class WheelBuilder(object):
         buildset = [req for req in reqset if not req.is_wheel]
 
         if not buildset:
-            return
+            return True
 
         # Build the wheels.
         logger.notify(
@@ -576,3 +576,5 @@ class WheelBuilder(object):
                 'Failed to build %s' %
                 ' '.join([req.name for req in build_failure])
             )
+        # Return True if all builds were successful
+        return len(build_failure) == 0

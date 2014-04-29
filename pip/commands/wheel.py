@@ -204,7 +204,8 @@ class WheelCommand(Command):
                 build_options=options.build_options or [],
                 global_options=options.global_options or [],
             )
-            wb.build()
+            if not wb.build():
+                raise CommandError("Failed to build one or more wheels")
         except PreviousBuildDirError:
             options.no_clean = True
             raise

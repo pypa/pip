@@ -57,6 +57,7 @@ def test_pip_wheel_fail(script, data):
     script.pip('install', 'wheel')
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links, 'wheelbroken==0.1',
+        expect_error=True,
     )
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
@@ -66,6 +67,7 @@ def test_pip_wheel_fail(script, data):
     )
     assert "FakeError" in result.stdout, result.stdout
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
+    assert result.returncode != 0
 
 
 def test_pip_wheel_ignore_wheels_editables(script, data):
