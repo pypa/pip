@@ -67,6 +67,10 @@ class TestData(object):
         return self.root.join("packages2")
 
     @property
+    def packages3(self):
+        return self.root.join("packages3")
+
+    @property
     def indexes(self):
         return self.root.join("indexes")
 
@@ -81,6 +85,10 @@ class TestData(object):
     @property
     def find_links2(self):
         return path_to_url(self.packages2)
+
+    @property
+    def find_links3(self):
+        return path_to_url(self.packages3)
 
     def index_url(self, index="simple"):
         return path_to_url(self.root.join("indexes", index))
