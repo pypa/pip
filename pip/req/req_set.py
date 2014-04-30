@@ -162,7 +162,7 @@ class RequirementSet(object):
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        # don't uninstall conflict if user install and and
+                        # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (self.use_user_site
                                 and not dist_in_usersite(
@@ -313,7 +313,7 @@ class RequirementSet(object):
                     elif os.path.exists(os.path.join(location, 'setup.py')):
                         raise PreviousBuildDirError(
                             "pip can't proceed with requirements '%s' due to a"
-                            " pre-existing buld directory (%s). This is likely"
+                            " pre-existing build directory (%s). This is likely"
                             " due to a previous installation that failed. pip "
                             "is being responsible and not assuming it can "
                             "delete this. Please delete it and try again." %

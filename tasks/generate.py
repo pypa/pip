@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     tmpdir = tempfile.mkdtemp()
     try:
-        # Get a temporary path to use as as staging for the pip zip
+        # Get a temporary path to use as staging for the pip zip
         zpth = os.path.join(tmpdir, "pip.zip")
 
         # Write the pip files to the zip archive

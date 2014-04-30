@@ -558,7 +558,7 @@ def untar_file(filename, location):
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
-        # note: python<=2.5 doesnt seem to know about pax headers, filter them
+        # note: python<=2.5 doesn't seem to know about pax headers, filter them
         leading = has_leading_dir([
             member.name for member in tar.getmembers()
             if member.name != 'pax_global_header'
@@ -756,7 +756,7 @@ def is_prerelease(vers):
 def read_text_file(filename):
     """Return the contents of *filename*.
 
-    Try to decode the file contents with utf-8, the preffered system encoding
+    Try to decode the file contents with utf-8, the preferred system encoding
     (e.g., cp1252 on some Windows machines) and latin1, in that order. Decoding
     a byte string with latin1 will never raise an error. In the worst case, the
     returned string will contain some garbage characters.

@@ -153,7 +153,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     options_mock = Mock()
     options_mock.index = 'https://pypi.python.org/pypi'
     search_cmd = SearchCommand()
-    status = search_cmd.run(options_mock, ('non-existant-package',))
+    status = search_cmd.run(options_mock, ('non-existent-package',))
     assert status == NO_MATCHES_FOUND, status
 
 
@@ -169,5 +169,5 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
     """
-    result = script.pip('search', 'non-existant-package', expect_error=True)
+    result = script.pip('search', 'non-existent-package', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode

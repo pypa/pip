@@ -69,7 +69,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
                 label = 'Commands'
             else:
                 label = 'Description'
-            # some doc strings have inital newlines, some don't
+            # some doc strings have initial newlines, some don't
             description = description.lstrip('\n')
             # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()

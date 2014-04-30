@@ -57,7 +57,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     # set this to make pip load it
     script.environ['PIP_CONFIG_FILE'] = config_file
     # It's important that we test this particular config value ('no-index')
-    # because their is/was a bug which only shows up in cases in which
+    # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
     (script.scratch_path / config_file).write(textwrap.dedent("""\
