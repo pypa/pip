@@ -4,7 +4,7 @@ Changelog
 1.5.5
 -----
 
-* Fixes #1632.  Uninstall issues on debianize pypy, specifically issues with
+* Fixes #1632.  Uninstall issues on debianized pypy, specifically issues with
   setuptools upgrades. (PR #1743)
 
 1.5.4 (2014-02-21)
