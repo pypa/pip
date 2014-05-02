@@ -68,7 +68,7 @@ _cfg_read = False
 def _ensure_cfg_read():
     global _cfg_read
     if not _cfg_read:
-        from distlib.resources import finder
+        from ..resources import finder
         backport_package = __name__.rsplit('.', 1)[0]
         _finder = finder(backport_package)
         _cfgfile = _finder.find('sysconfig.cfg')

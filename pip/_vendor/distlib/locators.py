@@ -534,6 +534,11 @@ class SimpleScrapingLocator(Locator):
         self.skip_externals = False
         self.num_workers = num_workers
         self._lock = threading.RLock()
+        # See issue #45: we need to be resilient when the locator is used
+        # in a thread, e.g. with concurrent.futures. We can't use self._lock
+        # as it is for coordinating our internal threads - the ones created
+        # in _prepare_threads.
+        self._gplock = threading.RLock()
 
     def _prepare_threads(self):
         """
@@ -562,19 +567,21 @@ class SimpleScrapingLocator(Locator):
         self._threads = []
 
     def _get_project(self, name):
-        self.result = result = {}
-        self.project_name = name
-        url = urljoin(self.base_url, '%s/' % quote(name))
-        self._seen.clear()
-        self._page_cache.clear()
-        self._prepare_threads()
-        try:
-            logger.debug('Queueing %s', url)
-            self._to_fetch.put(url)
-            self._to_fetch.join()
-        finally:
-            self._wait_threads()
-        del self.result
+        result = {}
+        with self._gplock:
+            self.result = result
+            self.project_name = name
+            url = urljoin(self.base_url, '%s/' % quote(name))
+            self._seen.clear()
+            self._page_cache.clear()
+            self._prepare_threads()
+            try:
+                logger.debug('Queueing %s', url)
+                self._to_fetch.put(url)
+                self._to_fetch.join()
+            finally:
+                self._wait_threads()
+            del self.result
         return result
 
     platform_dependent = re.compile(r'\b(linux-(i\d86|x86_64|arm\w+)|'
