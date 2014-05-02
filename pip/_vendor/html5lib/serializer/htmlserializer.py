@@ -92,15 +92,17 @@ class HTMLSerializer(object):
     resolve_entities = True
 
     # miscellaneous options
+    alphabetical_attributes = False
     inject_meta_charset = True
     strip_whitespace = False
     sanitize = False
 
     options = ("quote_attr_values", "quote_char", "use_best_quote_char",
-               "minimize_boolean_attributes", "use_trailing_solidus",
-               "space_before_trailing_solidus", "omit_optional_tags",
-               "strip_whitespace", "inject_meta_charset", "escape_lt_in_attrs",
-               "escape_rcdata", "resolve_entities", "sanitize")
+               "omit_optional_tags", "minimize_boolean_attributes",
+               "use_trailing_solidus", "space_before_trailing_solidus",
+               "escape_lt_in_attrs", "escape_rcdata", "resolve_entities",
+               "alphabetical_attributes", "inject_meta_charset",
+               "strip_whitespace", "sanitize")
 
     def __init__(self, **kwargs):
         """Initialize HTMLSerializer.
@@ -143,6 +145,8 @@ class HTMLSerializer(object):
           See `html5lib user documentation`_
         omit_optional_tags=True|False
           Omit start/end tags that are optional.
+        alphabetical_attributes=False|True
+          Reorder attributes to be in alphabetical order.
 
         .. _html5lib user documentation: http://code.google.com/p/html5lib/wiki/UserDocumentation
         """
@@ -171,10 +175,11 @@ class HTMLSerializer(object):
         self.encoding = encoding
         in_cdata = False
         self.errors = []
+
         if encoding and self.inject_meta_charset:
             from ..filters.inject_meta_charset import Filter
             treewalker = Filter(treewalker, encoding)
-        # XXX: WhitespaceFilter should be used before OptionalTagFilter
+        # WhitespaceFilter should be used before OptionalTagFilter
         # for maximum efficiently of this latter filter
         if self.strip_whitespace:
             from ..filters.whitespace import Filter
@@ -185,6 +190,12 @@ class HTMLSerializer(object):
         if self.omit_optional_tags:
             from ..filters.optionaltags import Filter
             treewalker = Filter(treewalker)
+        # Alphabetical attributes must be last, as other filters
+        # could add attributes and alter the order
+        if self.alphabetical_attributes:
+            from ..filters.alphabeticalattributes import Filter
+            treewalker = Filter(treewalker)
+
         for token in treewalker:
             type = token["type"]
             if type == "Doctype":

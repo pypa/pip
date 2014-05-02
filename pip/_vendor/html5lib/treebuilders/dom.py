@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
 
-from xml.dom import minidom, Node, XML_NAMESPACE, XMLNS_NAMESPACE
+from xml.dom import minidom, Node
 import weakref
 
 from . import _base
@@ -219,69 +219,6 @@ def getDomBuilder(DomImplementation):
         serializeElement(element, 0)
 
         return "\n".join(rv)
-
-    def dom2sax(node, handler, nsmap={'xml': XML_NAMESPACE}):
-        if node.nodeType == Node.ELEMENT_NODE:
-            if not nsmap:
-                handler.startElement(node.nodeName, node.attributes)
-                for child in node.childNodes:
-                    dom2sax(child, handler, nsmap)
-                handler.endElement(node.nodeName)
-            else:
-                attributes = dict(node.attributes.itemsNS())
-
-                # gather namespace declarations
-                prefixes = []
-                for attrname in list(node.attributes.keys()):
-                    attr = node.getAttributeNode(attrname)
-                    if (attr.namespaceURI == XMLNS_NAMESPACE or
-                       (attr.namespaceURI is None and attr.nodeName.startswith('xmlns'))):
-                        prefix = (attr.nodeName != 'xmlns' and attr.nodeName or None)
-                        handler.startPrefixMapping(prefix, attr.nodeValue)
-                        prefixes.append(prefix)
-                        nsmap = nsmap.copy()
-                        nsmap[prefix] = attr.nodeValue
-                        del attributes[(attr.namespaceURI, attr.nodeName)]
-
-                # apply namespace declarations
-                for attrname in list(node.attributes.keys()):
-                    attr = node.getAttributeNode(attrname)
-                    if attr.namespaceURI is None and ':' in attr.nodeName:
-                        prefix = attr.nodeName.split(':')[0]
-                        if prefix in nsmap:
-                            del attributes[(attr.namespaceURI, attr.nodeName)]
-                            attributes[(nsmap[prefix], attr.nodeName)] = attr.nodeValue
-
-                # SAX events
-                ns = node.namespaceURI or nsmap.get(None, None)
-                handler.startElementNS((ns, node.nodeName), node.nodeName, attributes)
-                for child in node.childNodes:
-                    dom2sax(child, handler, nsmap)
-                handler.endElementNS((ns, node.nodeName), node.nodeName)
-                for prefix in prefixes:
-                    handler.endPrefixMapping(prefix)
-
-        elif node.nodeType in [Node.TEXT_NODE, Node.CDATA_SECTION_NODE]:
-            handler.characters(node.nodeValue)
-
-        elif node.nodeType == Node.DOCUMENT_NODE:
-            handler.startDocument()
-            for child in node.childNodes:
-                dom2sax(child, handler, nsmap)
-            handler.endDocument()
-
-        elif node.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
-            for child in node.childNodes:
-                dom2sax(child, handler, nsmap)
-
-        else:
-            # ATTRIBUTE_NODE
-            # ENTITY_NODE
-            # PROCESSING_INSTRUCTION_NODE
-            # COMMENT_NODE
-            # DOCUMENT_TYPE_NODE
-            # NOTATION_NODE
-            pass
 
     return locals()
 
