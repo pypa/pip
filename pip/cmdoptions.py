@@ -175,6 +175,14 @@ client_cert = OptionMaker(
     help="Path to SSL client certificate, a single file containing the "
          "private key and the certificate in PEM format.")
 
+no_check_certificate = OptionMaker(
+    "--no-check-certificate",
+    dest="no_check_certificate",
+    action="store_true",
+    default=False,
+    help="Don't validate SSL certificates.",
+)
+
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
@@ -367,6 +375,7 @@ general_group = {
         exists_action,
         cert,
         client_cert,
+        no_check_certificate,
     ]
 }
 
