@@ -10,6 +10,9 @@ Changelog
 * Update documentation to point at https://bootstrap.pypa.io/get-pip.py for
   bootstrapping pip.
 
+* Update docs to point to https://pip.pypa.io/
+
+
 1.5.4 (2014-02-21)
 ------------------
 

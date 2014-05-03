@@ -63,7 +63,7 @@ setup(name="pip",
       keywords='easy_install distutils setuptools egg virtualenv',
       author='The pip developers',
       author_email='python-virtualenv@groups.google.com',
-      url='http://www.pip-installer.org',
+      url='https://pip.pypa.io/',
       license='MIT',
       packages=find_packages(exclude=["contrib", "docs", "tests*"]),
       package_data={
