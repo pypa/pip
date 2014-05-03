@@ -580,7 +580,7 @@ def test_install_package_with_latin1_setup(script, data):
     script.pip('install', to_install)
 
 
-def test_url_req_case_mismatch(script, data):
+def test_url_req_case_mismatch_no_index(script, data):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper
     case project names, should be considered equal to later requirements that
@@ -599,6 +599,67 @@ def test_url_req_case_mismatch(script, data):
     assert egg_folder in result.files_created, str(result)
     egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
     assert egg_folder not in result.files_created, str(result)
+
+
+def test_url_req_case_mismatch_file_index(script, data):
+    """
+    tar ball url requirements (with no egg fragment), that happen to have upper
+    case project names, should be considered equal to later requirements that
+    reference the project name using lower case.
+
+    tests/packages3 contains Dinner-1.0.tar.gz and Dinner-2.0.tar.gz
+    'requiredinner' has install_requires = ['dinner']
+
+    This test is similar to test_url_req_case_mismatch_no_index; that test
+    tests behaviour when using "--no-index -f", while this one does the same
+    test when using "--index-url". Unfortunately this requires a different
+    set of packages as it requires a prepared index.html file and
+    subdirectory-per-package structure.
+    """
+    Dinner = os.path.join(data.find_links3, 'Dinner', 'Dinner-1.0.tar.gz')
+    result = script.pip(
+        'install', '--index-url', data.find_links3, Dinner, 'requiredinner'
+    )
+
+    # only Upper-1.0.tar.gz should get installed.
+    egg_folder = script.site_packages / 'Dinner-1.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+    egg_folder = script.site_packages / 'Dinner-2.0-py%s.egg-info' % pyversion
+    assert egg_folder not in result.files_created, str(result)
+
+
+def test_url_incorrect_case_no_index(script, data):
+    """
+    Same as test_url_req_case_mismatch_no_index, except testing for the case
+    where the incorrect case is given in the name of the package to install
+    rather than in a requirements file.
+    """
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, "upper",
+    )
+
+    # only Upper-2.0.tar.gz should get installed.
+    egg_folder = script.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
+    assert egg_folder not in result.files_created, str(result)
+    egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
+
+
+def test_url_incorrect_case_file_index(script, data):
+    """
+    Same as test_url_req_case_mismatch_file_index, except testing for the case
+    where the incorrect case is given in the name of the package to install
+    rather than in a requirements file.
+    """
+    result = script.pip(
+        'install', '--index-url', data.find_links3, "dinner",
+    )
+
+    # only Upper-2.0.tar.gz should get installed.
+    egg_folder = script.site_packages / 'Dinner-1.0-py%s.egg-info' % pyversion
+    assert egg_folder not in result.files_created, str(result)
+    egg_folder = script.site_packages / 'Dinner-2.0-py%s.egg-info' % pyversion
+    assert egg_folder in result.files_created, str(result)
 
 
 def test_compiles_pyc(script):
