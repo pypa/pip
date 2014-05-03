@@ -7,6 +7,7 @@ from .winterm import WinTerm, WinColor, WinStyle
 from .win32 import windll
 
 
+winterm = None
 if windll is not None:
     winterm = WinTerm()
 
@@ -123,7 +124,7 @@ class AnsiToWin32(object):
     def reset_all(self):
         if self.convert:
             self.call_win32('m', (0,))
-        elif is_a_tty(self.wrapped):
+        elif not self.wrapped.closed and is_a_tty(self.wrapped):
             self.wrapped.write(Style.RESET_ALL)
 
 

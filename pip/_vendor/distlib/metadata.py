@@ -1006,7 +1006,18 @@ class Metadata(object):
         if self._legacy:
             self._legacy.add_requirements(requirements)
         else:
-            self._data.setdefault('run_requires', []).extend(requirements)
+            run_requires = self._data.setdefault('run_requires', [])
+            always = None
+            for entry in run_requires:
+                if 'environment' not in entry and 'extra' not in entry:
+                    always = entry
+                    break
+            if always is None:
+                always = { 'requires': requirements }
+                run_requires.insert(0, always)
+            else:
+                rset = set(always['requires']) | set(requirements)
+                always['requires'] = sorted(rset)
 
     def __repr__(self):
         name = self.name or '(no name)'
