@@ -1,12 +1,21 @@
+import os
 import shutil
+import subprocess
+import sys
+import tempfile
 
 import py
 import pytest
 
-from tests.lib import SRC_DIR, TestData
+from tests.lib import TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
+
+try:
+    from subprocess import DEVNULL
+except ImportError:
+    DEVNULL = open(os.devnull, "wb")
 
 
 @pytest.fixture
@@ -32,8 +41,25 @@ def tmpdir(request):
     return Path(str(tmp))
 
 
+@pytest.fixture(scope="session")
+def wheel_dir(request):
+    wheel_dir = tempfile.mkdtemp()
+
+    @request.addfinalizer
+    def finalize():
+        shutil.rmtree(wheel_dir, ignore_errors=True)
+
+    subprocess.check_call(
+        [sys.executable, "setup.py", "bdist_wheel", "--dist-dir", wheel_dir],
+        stderr=subprocess.STDOUT,
+        stdout=DEVNULL,
+    )
+
+    return wheel_dir
+
+
 @pytest.fixture
-def virtualenv(tmpdir, monkeypatch):
+def virtualenv(wheel_dir, tmpdir, monkeypatch):
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
@@ -44,21 +70,10 @@ def virtualenv(tmpdir, monkeypatch):
     # functions. These seem to fail on Travis (and only on Travis).
     monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
 
-    # Copy over our source tree so that each virtual environment is self
-    # contained
-    pip_src = tmpdir.join("pip_src").abspath
-    shutil.copytree(
-        SRC_DIR,
-        pip_src,
-        ignore=shutil.ignore_patterns(
-            "*.pyc", "tests", "pip.egg-info", "build", "dist", ".tox",
-        ),
-    )
-
     # Create the virtual environment
     venv = VirtualEnvironment.create(
         tmpdir.join("workspace", "venv"),
-        pip_source_dir=pip_src,
+        wheel_dir=wheel_dir,
     )
 
     # Undo our monkeypatching of shutil

@@ -3,6 +3,7 @@ import sys
 import textwrap
 
 import pytest
+import virtualenv as _virtualenv
 
 from tests.lib import (
     assert_all_changes, pyversion, _create_test_package,
@@ -295,7 +296,7 @@ class TestUpgradeSetuptools(object):
     note: virtualenv-1.10 contains setuptools-0.9.7
     """
 
-    def prep_ve(self, script, version, pip_src, distribute=False):
+    def prep_ve(self, script, version, wheel_dir, distribute=False):
         self.script = script
         self.script.pip_install_local('virtualenv==%s' % version)
         args = ['virtualenv', self.script.scratch_path / 'VE']
@@ -311,16 +312,17 @@ class TestUpgradeSetuptools(object):
             bindir = "bin"
         self.ve_bin = self.script.scratch_path / 'VE' / bindir
         self.script.run(self.ve_bin / 'pip', 'uninstall', '-y', 'pip')
-        self.script.run(
-            self.ve_bin / 'python', 'setup.py', 'install',
-            cwd=pip_src,
-            expect_stderr=True,
+
+        _virtualenv.install_wheel(
+            ["pip"],
+            self.ve_bin / 'python',
+            [wheel_dir] + _virtualenv.file_search_dirs(),
         )
 
     @pytest.mark.skipif("sys.version_info >= (3,0)")
     def test_py2_from_setuptools_6_to_setuptools_7(
             self, script, data, virtualenv):
-        self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
+        self.prep_ve(script, '1.9.1', virtualenv.wheel_dir)
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-use-wheel', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
@@ -334,7 +336,7 @@ class TestUpgradeSetuptools(object):
     def test_py2_py3_from_distribute_6_to_setuptools_7(
             self, script, data, virtualenv):
         self.prep_ve(
-            script, '1.9.1', virtualenv.pip_source_dir, distribute=True
+            script, '1.9.1', virtualenv.wheel_dir, distribute=True
         )
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
@@ -348,7 +350,7 @@ class TestUpgradeSetuptools(object):
         "distribute (0.7.3)" in result.stdout
 
     def test_from_setuptools_7_to_setuptools_7(self, script, data, virtualenv):
-        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
+        self.prep_ve(script, '1.10', virtualenv.wheel_dir)
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
@@ -359,7 +361,7 @@ class TestUpgradeSetuptools(object):
 
     def test_from_setuptools_7_to_setuptools_7_using_wheel(
             self, script, data, virtualenv):
-        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
+        self.prep_ve(script, '1.10', virtualenv.wheel_dir)
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--use-wheel', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
@@ -376,7 +378,7 @@ class TestUpgradeSetuptools(object):
     def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(
             self, script, data, virtualenv):
         self.prep_ve(
-            script, '1.9.1', virtualenv.pip_source_dir, distribute=True
+            script, '1.9.1', virtualenv.wheel_dir, distribute=True
         )
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
