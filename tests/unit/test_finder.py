@@ -52,7 +52,7 @@ def test_finder_detects_latest_find_links(data):
 
 
 def test_finder_detects_latest_already_satisfied_find_links(data):
-    """Test PackageFinder detects latest already satisified using find-links"""
+    """Test PackageFinder detects latest already satisfied using find-links"""
     req = InstallRequirement.from_line('simple', None)
     # the latest simple in local pkgs is 3.0
     latest_version = "3.0"
@@ -69,7 +69,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
 
 
 def test_finder_detects_latest_already_satisfied_pypi_links():
-    """Test PackageFinder detects latest already satisified using pypi links"""
+    """Test PackageFinder detects latest already satisfied using pypi links"""
     req = InstallRequirement.from_line('initools', None)
     # the latest initools on pypi is 0.3.1
     latest_version = "0.3.1"

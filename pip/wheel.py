@@ -565,7 +565,7 @@ class WheelBuilder(object):
                 build_failure.append(req)
         logger.indent -= 2
 
-        # notify sucess/failure
+        # notify success/failure
         if build_success:
             logger.notify(
                 'Successfully built %s' %
