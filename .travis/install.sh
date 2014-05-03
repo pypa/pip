@@ -44,6 +44,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     pip install virtualenv
 
     pyenv rehash
+
+    # Configure a RAMFS directory to use for our temporary files
+    diskutil erasevolume HFS+ 'Temporary' `hdiutil attach -nomount ram://2097152`
 else
     # add mega-python ppa
     sudo add-apt-repository -y ppa:fkrull/deadsnakes
@@ -73,6 +76,12 @@ else
     esac
 
     sudo pip install virtualenv
+
+    # Configure a RAMFS directory to use for our temporary files
+    sudo mkdir -p /mnt/ramdisk
+    sudo mount -t tmpfs none /mnt/ramdisk
+    sudo chmod 777 /mnt
+    sudo chmod 777 /mnt/ramdisk
 fi
 
 git config --global user.email "python-virtualenv@googlegroups.com"
