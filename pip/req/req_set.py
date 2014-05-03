@@ -58,7 +58,7 @@ class RequirementSet(object):
         self.src_dir = src_dir
         self.download_dir = download_dir
         if download_cache:
-            download_cache = os.path.expanduser(download_cache)
+            download_cache = normalize_path(download_cache)
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
