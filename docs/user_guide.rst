@@ -244,13 +244,6 @@ platforms.
 
 You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
 
-In a virtual environment, an additional config file will be read from the base
-directory of the virtualenv (``sys.prefix`` as reported by Python). The base
-name of the file is the same as the user configuration file (:file:`pip.conf`
-on Unix and OSX, :file:`pip.ini` on Windows). Values in the virtualenv-specific
-configuration file take precedence over those in the user's configuration file
-(whether from the user home or specified via ``PIP_CONFIG_FILE``).
-
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the
 HTTP timeout (``--default-timeout``) to 60 seconds your config file would

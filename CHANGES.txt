@@ -31,6 +31,21 @@
 * Fixed :issue:`1769`. `pip wheel` now returns an error code if any wheels
   fail to build.
 
+
+**1.5.5 (2014-05-03)**
+
+* Fixes #1632.  Uninstall issues on debianized pypy, specifically issues with
+  setuptools upgrades. (PR #1743)
+
+* Update documentation to point at https://bootstrap.pypa.io/get-pip.py for
+  bootstrapping pip.
+
+* Update docs to point to https://pip.pypa.io/
+
+* Upgrade the bundled projects (distlib==0.1.8, html5lib==1.0b3, six==1.6.1,
+  colorama==0.3.1, setuptools==3.4.4).
+
+
 **1.5.4 (2014-02-21)**
 
 

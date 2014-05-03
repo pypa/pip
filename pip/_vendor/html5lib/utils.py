@@ -8,6 +8,10 @@ except ImportError:
     import xml.etree.ElementTree as default_etree
 
 
+__all__ = ["default_etree", "MethodDispatcher", "isSurrogatePair",
+           "surrogatePairToCodepoint", "moduleFactoryFactory"]
+
+
 class MethodDispatcher(dict):
     """Dict with 2 special properties:
 
