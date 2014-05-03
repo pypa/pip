@@ -1,5 +1,12 @@
 from __future__ import absolute_import, division, unicode_literals
 
+try:
+    from collections import OrderedDict
+except ImportError:
+    try:
+        from ordereddict import OrderedDict
+    except ImportError:
+        OrderedDict = dict
 import gettext
 _ = gettext.gettext
 
@@ -61,7 +68,7 @@ def getETreeBuilder(ElementTreeImplementation):
                 else:
                     namespace = None
                     tag = node.tag
-                attrs = {}
+                attrs = OrderedDict()
                 for name, value in list(node.attrib.items()):
                     match = tag_regexp.match(name)
                     if match:

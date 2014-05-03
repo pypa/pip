@@ -92,8 +92,10 @@ class ScriptMaker(object):
         return executable
 
     def _get_shebang(self, encoding, post_interp=b'', options=None):
+        enquote = True
         if self.executable:
             executable = self.executable
+            enquote = False     # assume this will be taken care of
         elif not sysconfig.is_python_build():
             executable = get_executable()
         elif in_venv():
@@ -107,6 +109,10 @@ class ScriptMaker(object):
         if options:
             executable = self._get_alternate_executable(executable, options)
 
+        # If the user didn't specify an executable, it may be necessary to
+        # cater for executable paths with spaces (not uncommon on Windows)
+        if enquote and ' ' in executable:
+            executable = '"%s"' % executable
         executable = fsencode(executable)
         shebang = b'#!' + executable + post_interp + b'\n'
         # Python parser starts to read a script using UTF-8 until

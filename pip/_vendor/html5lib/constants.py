@@ -433,6 +433,24 @@ mathmlTextIntegrationPointElements = frozenset((
     (namespaces["mathml"], "mtext")
 ))
 
+adjustForeignAttributes = {
+    "xlink:actuate": ("xlink", "actuate", namespaces["xlink"]),
+    "xlink:arcrole": ("xlink", "arcrole", namespaces["xlink"]),
+    "xlink:href": ("xlink", "href", namespaces["xlink"]),
+    "xlink:role": ("xlink", "role", namespaces["xlink"]),
+    "xlink:show": ("xlink", "show", namespaces["xlink"]),
+    "xlink:title": ("xlink", "title", namespaces["xlink"]),
+    "xlink:type": ("xlink", "type", namespaces["xlink"]),
+    "xml:base": ("xml", "base", namespaces["xml"]),
+    "xml:lang": ("xml", "lang", namespaces["xml"]),
+    "xml:space": ("xml", "space", namespaces["xml"]),
+    "xmlns": (None, "xmlns", namespaces["xmlns"]),
+    "xmlns:xlink": ("xmlns", "xlink", namespaces["xmlns"])
+}
+
+unadjustForeignAttributes = dict([((ns, local), qname) for qname, (prefix, local, ns) in
+                                  adjustForeignAttributes.items()])
+
 spaceCharacters = frozenset((
     "\t",
     "\n",
