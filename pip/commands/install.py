@@ -43,16 +43,7 @@ class InstallCommand(Command):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(
-            '-e', '--editable',
-            dest='editables',
-            action='append',
-            default=[],
-            metavar='path/url',
-            help=('Install a project in editable mode (i.e. setuptools '
-                  '"develop mode") from a local project path or a VCS url.'),
-        )
-
+        cmd_opts.add_option(cmdoptions.editable.make())
         cmd_opts.add_option(cmdoptions.requirements.make())
         cmd_opts.add_option(cmdoptions.build_dir.make())
 

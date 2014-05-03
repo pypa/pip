@@ -31,6 +31,9 @@
 * Fixed :issue:`1769`. `pip wheel` now returns an error code if any wheels
   fail to build.
 
+* Fixed :issue:`1775`. `pip wheel` wasn't building wheels for dependencies of
+  editable requirements.
+
 
 **1.5.5 (2014-05-03)**
 

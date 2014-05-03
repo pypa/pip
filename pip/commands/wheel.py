@@ -34,8 +34,8 @@ class WheelCommand(Command):
     usage = """
       %prog [options] <requirement specifier> ...
       %prog [options] -r <requirements file> ...
-      %prog [options] <vcs project url> ...
-      %prog [options] <local project path> ...
+      %prog [options] [-e] <vcs project url> ...
+      %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
     summary = 'Build wheels from your requirements.'
@@ -61,6 +61,7 @@ class WheelCommand(Command):
             metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+        cmd_opts.add_option(cmdoptions.editable.make())
         cmd_opts.add_option(cmdoptions.requirements.make())
         cmd_opts.add_option(cmdoptions.download_cache.make())
         cmd_opts.add_option(cmdoptions.no_deps.make())
@@ -175,16 +176,19 @@ class WheelCommand(Command):
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name, None))
-
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(
+                    name,
+                    default_vcs=options.default_vcs
+                )
+            )
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
                     finder=finder,
                     options=options,
                     session=session):
-                if req.editable:
-                    logger.notify("ignoring %s" % req.url)
-                    continue
                 requirement_set.add_requirement(req)
 
         # fail if no requirements

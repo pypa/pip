@@ -546,7 +546,16 @@ class WheelBuilder(object):
 
         reqset = self.requirement_set.requirements.values()
 
-        buildset = [req for req in reqset if not req.is_wheel]
+        buildset = []
+        for req in reqset:
+            if req.is_wheel:
+                logger.notify(
+                    'Skipping %s, due to already being wheel.' % req.name)
+            elif req.editable:
+                logger.notify(
+                    'Skipping %s, due to being editable' % req.name)
+            else:
+                buildset.append(req)
 
         if not buildset:
             return True

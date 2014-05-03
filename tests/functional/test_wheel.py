@@ -1,14 +1,11 @@
 """'pip wheel' tests"""
 import os
-import sys
-import textwrap
 
 from os.path import exists
 
-from pip.download import path_to_url as path_to_url_d
 from pip.locations import write_delete_marker_file
 from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
-from tests.lib import pyversion, path_to_url
+from tests.lib import pyversion
 
 
 def test_pip_wheel_fails_without_wheel(script, data):
@@ -50,6 +47,20 @@ def test_pip_wheel_downloads_wheels(script, data):
     assert "Saved" in result.stdout, result.stdout
 
 
+def test_pip_wheel_builds_editable_deps(script, data):
+    """
+    Test 'pip wheel' finds and builds dependencies of editables
+    """
+    script.pip('install', 'wheel')
+    editable_path = os.path.join(data.src, 'requires_simple')
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links, '-e', editable_path
+    )
+    wheel_file_name = 'simple-1.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+
+
 def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
@@ -68,38 +79,6 @@ def test_pip_wheel_fail(script, data):
     assert "FakeError" in result.stdout, result.stdout
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
     assert result.returncode != 0
-
-
-def test_pip_wheel_ignore_wheels_editables(script, data):
-    """
-    Test 'pip wheel' ignores editables
-    """
-    script.pip('install', 'wheel')
-
-    local_wheel = '%s/simple.dist-0.1-py2.py3-none-any.whl' % data.find_links
-    local_editable = data.packages.join("FSPkg")
-    script.scratch_path.join("reqs.txt").write(textwrap.dedent("""\
-        %s
-        -e %s
-        simple
-        """ % (local_wheel, local_editable)))
-    result = script.pip(
-        'wheel', '--no-index', '-f', data.find_links, '-r',
-        script.scratch_path / 'reqs.txt',
-    )
-    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
-    assert wheel_file_path in result.files_created, (
-        wheel_file_path,
-        result.files_created,
-    )
-    assert "Successfully built simple" in result.stdout, result.stdout
-    assert "Failed to build" not in result.stdout, result.stdout
-    ignore_editable = "ignoring %s" % path_to_url(local_editable)
-    # TODO: understand this divergence
-    if sys.platform == 'win32':
-        ignore_editable = "ignoring %s" % path_to_url_d(local_editable)
-    assert ignore_editable in result.stdout, result.stdout
 
 
 def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
@@ -153,4 +132,4 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     )
 
     # Then I see that the error code is the right one
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result

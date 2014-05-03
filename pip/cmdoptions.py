@@ -286,6 +286,16 @@ requirements = OptionMaker(
     help='Install from the given requirements file. '
     'This option can be used multiple times.')
 
+editable = OptionMaker(
+    '-e', '--editable',
+    dest='editables',
+    action='append',
+    default=[],
+    metavar='path/url',
+    help=('Install a project in editable mode (i.e. setuptools '
+          '"develop mode") from a local project path or a VCS url.'),
+)
+
 use_wheel = OptionMaker(
     '--use-wheel',
     dest='use_wheel',
