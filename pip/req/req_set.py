@@ -313,11 +313,11 @@ class RequirementSet(object):
                     elif os.path.exists(os.path.join(location, 'setup.py')):
                         raise PreviousBuildDirError(
                             "pip can't proceed with requirements '%s' due to a"
-                            " pre-existing build directory (%s). This is likely"
-                            " due to a previous installation that failed. pip "
-                            "is being responsible and not assuming it can "
-                            "delete this. Please delete it and try again." %
-                            (req_to_install, location)
+                            " pre-existing build directory (%s). This is "
+                            "likely due to a previous installation that failed"
+                            ". pip is being responsible and not assuming it "
+                            "can delete this. Please delete it and try again."
+                            % (req_to_install, location)
                         )
                     else:
                         # FIXME: this won't upgrade when there's an existing
