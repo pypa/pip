@@ -7,6 +7,9 @@ Changelog
 * Fixes #1632.  Uninstall issues on debianized pypy, specifically issues with
   setuptools upgrades. (PR #1743)
 
+* Update documentation to point at https://bootstrap.pypa.io/get-pip.py for
+  bootstrapping pip.
+
 1.5.4 (2014-02-21)
 ------------------
 
