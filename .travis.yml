@@ -1,4 +1,8 @@
-language: python
+language: c
+
+os:
+  - osx
+  - linux
 
 env:
   - TOXENV=pep8
@@ -28,3 +32,15 @@ notifications:
       - "irc.freenode.org#pypa-dev"
     use_notice: true
     skip_join: true
+
+# When building an exclude matrix on Travis you must supply the exact variable
+# combinations you want to exclude from your build matrix. There is no
+# (current) way to make this less verbose.
+matrix:
+  exclude:
+    - os: osx
+      env: TOXENV=pep8
+    - os: osx
+      env: TOXENV=py3pep8
+    - os: osx
+      env: TOXENV=docs
