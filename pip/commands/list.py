@@ -164,14 +164,17 @@ class ListCommand(Command):
             key=lambda dist: dist.project_name.lower(),
         )
         for dist in installed_packages:
-            if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (
-                    dist.project_name,
-                    dist.version,
-                    dist.location,
-                )
-            else:
-                line = '%s (%s)' % (dist.project_name, dist.version)
+            try:
+                if dist_is_editable(dist):
+                    line = '%s (%s, %s)' % (
+                        dist.project_name,
+                        dist.version,
+                        dist.location,
+                    )
+                else:
+                    line = '%s (%s)' % (dist.project_name, dist.version)
+            except:
+                logger.notify(str(dist))
             logger.notify(line)
 
     def run_uptodate(self, options):
