@@ -44,3 +44,9 @@ matrix:
       env: TOXENV=py3pep8
     - os: osx
       env: TOXENV=docs
+    # We exclude these because they take so long, theortically an issue could
+    # show up only on 3.2 or PyPy on OSX. However (hopefully) that is unlikely.
+    - os: osx
+      env: TOXENV=py32
+    - os: osx
+      env: TOXENV=pypy
