@@ -164,15 +164,19 @@ class ListCommand(Command):
             key=lambda dist: dist.project_name.lower(),
         )
         for dist in installed_packages:
-            if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (
-                    dist.project_name,
-                    dist.version,
-                    dist.location,
-                )
+            try:
+                if dist_is_editable(dist):
+                    line = '%s (%s, %s)' % (
+                        dist.project_name,
+                        dist.version,
+                        dist.location,
+                    )
+                else:
+                    line = '%s (%s)' % (dist.project_name, dist.version)
+            except:
+                logger.notify(str(dist))
             else:
-                line = '%s (%s)' % (dist.project_name, dist.version)
-            logger.notify(line)
+                logger.notify(line)
 
     def run_uptodate(self, options):
         uptodate = []
@@ -181,3 +185,4 @@ class ListCommand(Command):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)
+
