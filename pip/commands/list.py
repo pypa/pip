@@ -175,7 +175,8 @@ class ListCommand(Command):
                     line = '%s (%s)' % (dist.project_name, dist.version)
             except:
                 logger.notify(str(dist))
-            logger.notify(line)
+            else:
+                logger.notify(line)
 
     def run_uptodate(self, options):
         uptodate = []
@@ -184,3 +185,4 @@ class ListCommand(Command):
             if dist.parsed_version == remote_version_parsed:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)
+
