@@ -4,7 +4,7 @@ import zipfile
 
 from pip._vendor import pkg_resources
 from pip.backwardcompat import HTTPError
-from pip.download import (PipSession, url_to_path, unpack_vcs_link, is_vcs_url,
+from pip.download import (url_to_path, unpack_vcs_link, is_vcs_url,
                           is_file_url, unpack_file_url, unpack_http_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
@@ -54,6 +54,12 @@ class RequirementSet(object):
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, wheel_download_dir=None):
+        if session is None:
+            raise TypeError(
+                "RequirementSet() missing 1 required keyword argument: "
+                "'session'"
+            )
+
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.download_dir = download_dir
@@ -74,7 +80,7 @@ class RequirementSet(object):
         self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
-        self.session = session or PipSession()
+        self.session = session
         self.pycompile = pycompile
         self.wheel_download_dir = wheel_download_dir
 

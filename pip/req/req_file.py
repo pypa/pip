@@ -2,7 +2,7 @@ import os
 import re
 
 from pip.backwardcompat import urlparse
-from pip.download import PipSession, get_file_content
+from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.util import normalize_name
 
@@ -12,7 +12,10 @@ _scheme_re = re.compile(r'^(http|https|file):', re.I)
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
                        session=None):
     if session is None:
-        session = PipSession()
+        raise TypeError(
+            "parse_requirements() missing 1 required keyword argument: "
+            "'session'"
+        )
 
     skip_match = None
     skip_regex = options.skip_requirements_regex if options else None
