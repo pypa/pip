@@ -23,7 +23,7 @@ from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.compat import IncompleteRead
-from pip._vendor.requests.exceptions import InvalidURL, ChunkedEncodingError
+from pip._vendor.requests.exceptions import ChunkedEncodingError
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
@@ -148,21 +148,11 @@ class LocalFSAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
-        parsed_url = urlparse.urlparse(request.url)
-
-        # We only work for requests with a host of localhost
-        if parsed_url.netloc.lower() != "localhost":
-            raise InvalidURL(
-                "Invalid URL %r: Only localhost is allowed" %
-                request.url
-            )
-
-        real_url = urlparse.urlunparse(parsed_url[:1] + ("",) + parsed_url[2:])
-        pathname = url_to_path(real_url)
+        pathname = url_to_path(request.url)
 
         resp = Response()
         resp.status_code = 200
-        resp.url = real_url
+        resp.url = request.url
 
         try:
             stats = os.stat(pathname)
@@ -212,11 +202,6 @@ class PipSession(requests.Session):
         self.mount("file://", LocalFSAdapter())
 
     def request(self, method, url, *args, **kwargs):
-        # Make file:// urls not fail due to lack of a hostname
-        parsed = urlparse.urlparse(url)
-        if parsed.scheme == "file":
-            url = urlparse.urlunparse(parsed[:1] + ("localhost",) + parsed[2:])
-
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 
