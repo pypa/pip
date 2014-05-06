@@ -144,6 +144,20 @@ class MultiDomainBasicAuth(AuthBase):
         return None, None
 
 
+class FakeMessage(object):
+    def getheaders(self, header):
+        return []
+
+    def get_all(self, header, default):
+        return []
+
+
+class FakeResponse(object):
+    @property
+    def msg(self):
+        return FakeMessage()
+
+
 class LocalFSResponse(object):
 
     def __init__(self, fileobj):
@@ -158,18 +172,6 @@ class LocalFSResponse(object):
     # Insert Hacks to Make Cookie Jar work w/ Requests
     @property
     def _original_response(self):
-        class FakeMessage(object):
-            def getheaders(self, header):
-                return []
-
-            def get_all(self, header, default):
-                return []
-
-        class FakeResponse(object):
-            @property
-            def msg(self):
-                return FakeMessage()
-
         return FakeResponse()
 
 
