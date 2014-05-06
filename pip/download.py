@@ -144,35 +144,6 @@ class MultiDomainBasicAuth(AuthBase):
         return None, None
 
 
-class LocalFSResponse(object):
-
-    def __init__(self, fileobj):
-        self.fileobj = fileobj
-
-    def __getattr__(self, name):
-        return getattr(self.fileobj, name)
-
-    def read(self, amt=None, decode_content=None, cache_content=False):
-        return self.fileobj.read(amt)
-
-    # Insert Hacks to Make Cookie Jar work w/ Requests
-    @property
-    def _original_response(self):
-        class FakeMessage(object):
-            def getheaders(self, header):
-                return []
-
-            def get_all(self, header, default):
-                return []
-
-        class FakeResponse(object):
-            @property
-            def msg(self):
-                return FakeMessage()
-
-        return FakeResponse()
-
-
 class LocalFSAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
@@ -207,7 +178,7 @@ class LocalFSAdapter(BaseAdapter):
                 "Last-Modified": modified,
             })
 
-            resp.raw = LocalFSResponse(open(pathname, "rb"))
+            resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
 
         return resp
