@@ -448,7 +448,7 @@ setup(name='version_subpkg',
     script.run('git', 'add', '.', cwd=version_pkg_path)
     script.run(
         'git', 'commit', '-q',
-        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '--author', 'pip <pypa-dev@googlegroups.com>',
         '-am', 'initial version', cwd=version_pkg_path
     )
 
@@ -476,7 +476,7 @@ def _create_test_package(script):
     script.run('git', 'add', '.', cwd=version_pkg_path)
     script.run(
         'git', 'commit', '-q',
-        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '--author', 'pip <pypa-dev@googlegroups.com>',
         '-am', 'initial version', cwd=version_pkg_path,
     )
     return version_pkg_path
@@ -493,7 +493,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     script.run(
         'git', 'commit', '-q',
-        '--author', 'Pip <python-virtualenv@googlegroups.com>',
+        '--author', 'pip <pypa-dev@googlegroups.com>',
         '-am', 'messed version',
         cwd=version_pkg_path,
         expect_stderr=True,

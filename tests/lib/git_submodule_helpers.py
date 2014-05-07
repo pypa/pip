@@ -10,7 +10,7 @@ def _create_test_package_submodule(env):
     env.run('git', 'init', cwd=submodule_path)
     env.run('git', 'add', '.', cwd=submodule_path)
     env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'initial version / submodule', cwd=submodule_path)
     return submodule_path
 
@@ -20,7 +20,7 @@ def _change_test_package_submodule(env, submodule_path):
     submodule_path.join("testfile2").write("this is an added file")
     env.run('git', 'add', '.', cwd=submodule_path)
     env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'submodule change', cwd=submodule_path)
 
 
@@ -34,7 +34,7 @@ def _pull_in_submodule_changes_to_module(env, module_path):
         cwd=module_path / 'testpkg/static/',
     )
     env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'submodule change', cwd=module_path)
 
 
@@ -59,7 +59,7 @@ def _create_test_package_with_submodule(env):
     env.run('git', 'init', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'add', '.', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'initial version', cwd=version_pkg_path,
             expect_error=True)
 
@@ -75,7 +75,7 @@ def _create_test_package_with_submodule(env):
         expect_error=True,
     )
     env.run('git', 'commit', '-q',
-            '--author', 'Pip <python-virtualenv@googlegroups.com>',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'initial version w submodule', cwd=version_pkg_path,
             expect_error=True)
 
