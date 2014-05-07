@@ -74,7 +74,7 @@ def test_no_install_and_download_should_not_leave_build_dir(script):
     It should remove build/ dir if it was pip that created
     """
     script.scratch_path.join("downloaded_packages").mkdir()
-    assert not os.path.exists(script.venv_path / '/build')
+    assert not os.path.exists(script.venv_path / 'build')
     result = script.pip(
         'install', '--no-install', 'INITools==0.2', '-d', 'downloaded_packages'
     )
@@ -82,7 +82,7 @@ def test_no_install_and_download_should_not_leave_build_dir(script):
         Path('scratch') / 'downloaded_packages/build'
         not in result.files_created
     ), 'pip should not leave build/ dir'
-    assert not os.path.exists(script.venv_path / '/build'), (
+    assert not os.path.exists(script.venv_path / 'build'), (
         "build/ dir should be deleted"
     )
 
