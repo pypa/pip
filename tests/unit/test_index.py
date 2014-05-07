@@ -1,3 +1,4 @@
+from pip.download import PipSession
 from pip.index import package_to_requirement, HTMLPage
 from pip.index import PackageFinder, Link, INSTALLED_VERSION
 
@@ -36,7 +37,7 @@ def test_sort_locations_file_find_link(data):
     """
     Test that a file:// find-link dir gets listdir run
     """
-    finder = PackageFinder([data.find_links], [])
+    finder = PackageFinder([data.find_links], [], session=PipSession())
     files, urls = finder._sort_locations([data.find_links])
     assert files and not urls, (
         "files and not urls should have been found at find-links url: %s" %
@@ -49,7 +50,7 @@ def test_sort_locations_file_not_find_link(data):
     Test that a file:// url dir that's not a find-link, doesn't get a listdir
     run
     """
-    finder = PackageFinder([], [])
+    finder = PackageFinder([], [], session=PipSession())
     files, urls = finder._sort_locations(data.index_url("empty_with_pkg"))
     assert urls and not files, "urls, but not files should have been found"
 

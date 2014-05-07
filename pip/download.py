@@ -213,7 +213,9 @@ def get_file_content(url, comes_from=None, session=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode."""
     if session is None:
-        session = PipSession()
+        raise TypeError(
+            "get_file_content() missing 1 required keyword argument: 'session'"
+        )
 
     match = _scheme_re.search(url)
     if match:
@@ -494,7 +496,9 @@ def _copy_file(filename, location, content_type, link):
 def unpack_http_url(link, location, download_cache, download_dir=None,
                     session=None):
     if session is None:
-        session = PipSession()
+        raise TypeError(
+            "unpack_http_url() missing 1 required keyword argument: 'session'"
+        )
 
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     temp_location = None

@@ -8,6 +8,7 @@ from mock import Mock, patch, mock_open
 from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
 )
+from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet,
@@ -34,6 +35,7 @@ class TestRequirementSet(object):
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             download_cache=os.path.join(self.tempdir, 'download_cache'),
+            session=PipSession(),
         )
 
     def test_no_reuse_existing_build_dir(self, data):
@@ -45,7 +47,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             PreviousBuildDirError,
             "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
@@ -181,7 +183,7 @@ def test_remote_reqs_parse():
     # previously this has failed in py3: https://github.com/pypa/pip/issues/760
     for req in parse_requirements(
             'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
-            'tests/req_just_comment.txt'):
+            'tests/req_just_comment.txt', session=PipSession()):
         pass
 
 
@@ -189,9 +191,10 @@ def test_req_file_parse_use_wheel(data):
     """
     Test parsing --use-wheel from a req file
     """
-    finder = PackageFinder([], [])
+    finder = PackageFinder([], [], session=PipSession())
     for req in parse_requirements(
-            data.reqfiles.join("supported_options.txt"), finder):
+            data.reqfiles.join("supported_options.txt"), finder,
+            session=PipSession()):
         pass
     assert finder.use_wheel
 
@@ -203,8 +206,9 @@ def test_req_file_parse_comment_start_of_line(tmpdir):
     with open(tmpdir.join("req1.txt"), "w") as fp:
         fp.write("# Comment ")
 
-    finder = PackageFinder([], [])
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+    finder = PackageFinder([], [], session=PipSession())
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                session=PipSession()))
 
     assert not reqs
 
@@ -216,8 +220,9 @@ def test_req_file_parse_comment_end_of_line_with_url(tmpdir):
     with open(tmpdir.join("req1.txt"), "w") as fp:
         fp.write("https://example.com/foo.tar.gz # Comment ")
 
-    finder = PackageFinder([], [])
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+    finder = PackageFinder([], [], session=PipSession())
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                session=PipSession()))
 
     assert len(reqs) == 1
     assert reqs[0].url == "https://example.com/foo.tar.gz"
@@ -230,8 +235,9 @@ def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):
     with open(tmpdir.join("req1.txt"), "w") as fp:
         fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-    finder = PackageFinder([], [])
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder))
+    finder = PackageFinder([], [], session=PipSession())
+    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                session=PipSession()))
 
     assert len(reqs) == 1
     assert reqs[0].name == "wat"

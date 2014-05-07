@@ -13,7 +13,7 @@ from pip.exceptions import (
     UnsupportedWheel,
 )
 from pip.backwardcompat import urlparse, url2pathname
-from pip.download import PipSession, url_to_path, path_to_url
+from pip.download import url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests, pkg_resources
@@ -39,6 +39,12 @@ class PackageFinder(object):
                  use_wheel=True, allow_external=[], allow_unverified=[],
                  allow_all_external=False, allow_all_prereleases=False,
                  session=None):
+        if session is None:
+            raise TypeError(
+                "PackageFinder() missing 1 required keyword argument: "
+                "'session'"
+            )
+
         self.find_links = find_links
         self.index_urls = index_urls
         self.cache = PageCache()
@@ -73,7 +79,7 @@ class PackageFinder(object):
         self.allow_all_prereleases = allow_all_prereleases
 
         # The Session we'll use to make requests
-        self.session = session or PipSession()
+        self.session = session
 
     def _sort_locations(self, locations):
         """
@@ -717,7 +723,9 @@ class HTMLPage(object):
     @classmethod
     def get_page(cls, link, req, cache=None, skip_archives=True, session=None):
         if session is None:
-            session = PipSession()
+            raise TypeError(
+                "get_page() missing 1 required keyword argument: 'session'"
+            )
 
         url = link.url
         url = url.split('#', 1)[0]
@@ -827,11 +835,8 @@ class HTMLPage(object):
             cache.add_page_failure(url, level)
 
     @staticmethod
-    def _get_content_type(url, session=None):
+    def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
-        if session is None:
-            session = PipSession()
-
         scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
         if scheme not in ('http', 'https', 'ftp', 'ftps'):
             # FIXME: some warning or something?
