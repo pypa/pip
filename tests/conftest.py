@@ -1,3 +1,4 @@
+import os
 import shutil
 
 import py
@@ -30,6 +31,58 @@ def tmpdir(request):
     request.addfinalizer(lambda: shutil.rmtree(str(tmp), ignore_errors=True))
 
     return Path(str(tmp))
+
+
+@pytest.fixture(autouse=True)
+def isolate(tmpdir):
+    """
+    Isolate our tests so that things like global configuration files and the
+    like do not affect our test results.
+
+    We use an autouse function scoped fixture because we want to ensure that
+    every test has it's own isolated home directory.
+    """
+    # TODO: Ensure Windows will respect $HOME, including for the cache
+    #       directory
+
+    # TODO: Figure out how to isolate from *system* level configuration files
+    #       as well as user level configuration files.
+
+    # Create a directory to use as our home location.
+    home_dir = os.path.join(str(tmpdir), "home")
+    os.makedirs(home_dir)
+
+    # Create a directory to use as a fake root
+    fake_root = os.path.join(str(tmpdir), "fake-root")
+    os.makedirs(fake_root)
+
+    # Set our home directory to our temporary directory, this should force all
+    # of our relative configuration files to be read from here instead of the
+    # user's actual $HOME directory.
+    os.environ["HOME"] = home_dir
+
+    # Isolate ourselves from XDG directories
+    os.environ["XDG_DATA_HOME"] = os.path.join(home_dir, ".local", "share")
+    os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
+    os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
+    os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
+    os.environ["XDG_DATA_DIRS"] = ":".join([
+        os.path.join(fake_root, "usr", "local", "share"),
+        os.path.join(fake_root, "usr", "share"),
+    ])
+    os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
+
+    # Configure git, because without an author name/email git will complain
+    # and cause test failures.
+    os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
+    os.environ["GIT_AUTHOR_NAME"] = "pip"
+    os.environ["GIT_AUTHOR_EMAIL"] = "pypa-dev@googlegroups.com"
+
+    os.makedirs(os.path.join(home_dir, ".config", "git"))
+    with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
+        fp.write(
+            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
+        )
 
 
 @pytest.fixture

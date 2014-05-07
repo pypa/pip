@@ -75,8 +75,8 @@ else
     sudo pip install virtualenv
 fi
 
-git config --global user.email "python-virtualenv@googlegroups.com"
-git config --global user.name "Pip"
+git config --global user.email "pypa-dev@googlegroups.com"
+git config --global user.name "pip"
 
 virtualenv ~/.venv
 source ~/.venv/bin/activate
