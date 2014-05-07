@@ -63,10 +63,6 @@ def installer(installer_path=os.path.join(paths.CONTRIB, "get-pip.py")):
 # in tasks/generate.py called "installer". It can be invoked by using
 # ``invoke generate.installer``.
 
-ZIPFILE = b\"\"\"
-{zipfile}
-\"\"\"
-
 import os.path
 import pkgutil
 import shutil
@@ -179,7 +175,7 @@ def main():
         # Unpack the zipfile into the temporary directory
         pip_zip = os.path.join(tmpdir, "pip.zip")
         with open(pip_zip, "wb") as fp:
-            fp.write(b85decode(ZIPFILE.replace(b"\\n", b"")))
+            fp.write(b85decode(DATA.replace(b"\\n", b"")))
 
         # Add the zipfile to sys.path so that we can import it
         sys.path.insert(0, pip_zip)
@@ -190,6 +186,11 @@ def main():
         # Clean up our temporary working directory
         if tmpdir:
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+DATA = b\"\"\"
+{zipfile}
+\"\"\"
 
 
 if __name__ == "__main__":
