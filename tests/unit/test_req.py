@@ -180,8 +180,8 @@ def test_remote_reqs_parse():
     # this requirements file just contains a comment
     # previously this has failed in py3: https://github.com/pypa/pip/issues/760
     for req in parse_requirements(
-            'https://raw.github.com/pypa/pip-test-package/master/tests/'
-            'req_just_comment.txt'):
+            'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
+            'tests/req_just_comment.txt'):
         pass
 
 
