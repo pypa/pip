@@ -14,7 +14,7 @@ from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix,
 from pip.log import logger
 from pip.req.req_install import InstallRequirement
 from pip.util import (display_path, rmtree, dist_in_usersite, call_subprocess,
-                      _make_build_dir)
+                      _make_build_dir, normalize_path)
 from pip.vcs import vcs
 from pip.wheel import wheel_ext
 
@@ -64,7 +64,7 @@ class RequirementSet(object):
         self.src_dir = src_dir
         self.download_dir = download_dir
         if download_cache:
-            download_cache = os.path.expanduser(download_cache)
+            download_cache = normalize_path(download_cache)
         self.download_cache = download_cache
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -82,6 +82,8 @@ class RequirementSet(object):
         self.target_dir = target_dir  # set from --target option
         self.session = session
         self.pycompile = pycompile
+        if wheel_download_dir:
+            wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
 
     def __str__(self):
