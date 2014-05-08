@@ -7,7 +7,8 @@ import mimetypes
 import posixpath
 
 from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
+from pip.util import (Inf, normalize_name, splitext, is_prerelease,
+    xz_supported)
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
@@ -511,7 +512,7 @@ class PackageFinder(object):
                 yield v
 
     def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+        extensions = get_supported_package_extensions()
         if self.use_wheel:
             return extensions + (wheel_ext,)
         return extensions
@@ -751,7 +752,8 @@ class HTMLPage(object):
                     if cache.is_archive(url):
                         return None
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                extensions = get_supported_package_extensions()
+                for bad_ext in extensions:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
                             url, session=session,
@@ -1110,3 +1112,11 @@ def package_to_requirement(package_name):
         return '%s==%s' % (name, version)
     else:
         return name
+
+
+def get_supported_package_extensions():
+    """Get a tuple of supported file extensions for packages."""
+    extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
+    if xz_supported():
+        extensions += ('.tar.xz',)
+    return extensions

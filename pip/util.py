@@ -30,7 +30,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'cache_download', 'unpack_file', 'call_subprocess', 'xz_supported']
 
 
 def get_prog():
@@ -535,6 +535,38 @@ def unzip_file(filename, location, flatten=True):
         zipfp.close()
 
 
+def has_lzma():
+    """Test for lzma module in Python >= 3.3"""
+    try:
+        import lzma
+        return True
+    except ImportError:
+        return False
+
+
+def decompress_xz(filename):
+    """Decompress a .xz file without removing the original. Returns the
+    decompress filename without the '.xz' extension.
+    """
+    xz_cmd = find_command("xz")
+    call_subprocess([xz_cmd, "-dk", filename])
+    return filename[:-3]
+
+
+def xz_supported():
+    """Determine if the current system supports handling .xz files,
+    either by using the Python lzma module or the 'xz' commandline tool.
+    """
+    if has_lzma():
+        return True
+    try:
+        find_command("xz")
+        return True
+    except BadCommand:
+        pass
+    return False
+
+
 def untar_file(filename, location):
     """
     Untar the file (with path `filename`) to the destination `location`.
@@ -544,6 +576,7 @@ def untar_file(filename, location):
     written.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
+    remove_file = False
     if not os.path.exists(location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
@@ -551,6 +584,15 @@ def untar_file(filename, location):
     elif (filename.lower().endswith('.bz2')
             or filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
+    elif filename.lower().endswith('.xz') and xz_supported():
+        if has_lzma():
+            mode = 'r:xz'
+        else:
+            # extract to (temporary) .tar file since the tarfile module does not
+            # support xz compression
+            mode = 'r'
+            filename = decompress_xz(filename)
+            remove_file = True
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
@@ -608,7 +650,8 @@ def untar_file(filename, location):
                     os.chmod(path, (0o777 - current_umask() | 0o111))
     finally:
         tar.close()
-
+        if remove_file:
+            os.unlink(filename)
 
 def create_download_cache_folder(folder):
     logger.indent -= 2
@@ -629,6 +672,9 @@ def cache_download(target_file, temp_location, content_type):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
+    tar_extensions = ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz']
+    if xz_supported():
+        tar_extensions.append('.tar.xz')
     if (content_type == 'application/zip'
             or filename.endswith('.zip')
             or filename.endswith('.pybundle')
@@ -641,8 +687,7 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip'
             or tarfile.is_tarfile(filename)
-            or splitext(filename)[1].lower() in (
-                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+            or splitext(filename)[1].lower() in tar_extensions):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html')
             and is_svn_page(file_contents(filename))):
