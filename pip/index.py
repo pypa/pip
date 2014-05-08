@@ -276,8 +276,11 @@ class PackageFinder(object):
             )
 
             if self.need_warn_external:
-                logger.warn("Some externally hosted files were ignored (use "
-                            "--allow-external %s to allow)." % req.name)
+                logger.warn(
+                    "Some externally hosted files were ignored as access to "
+                    "them may be unreliable (use --allow-external %s to "
+                    "allow)." % req.name
+                )
 
             if self.need_warn_unverified:
                 logger.warn("Some insecure and unverifiable files were ignored"
@@ -363,8 +366,10 @@ class PackageFinder(object):
             )
 
             if self.need_warn_external:
-                logger.warn("Some externally hosted files were ignored (use "
-                            "--allow-external to allow).")
+                logger.warn(
+                    "Some externally hosted files were ignored as access to "
+                    "them may be unreliable (use --allow-external to allow)."
+                )
 
             if self.need_warn_unverified:
                 logger.warn("Some insecure and unverifiable files were ignored"
@@ -398,11 +403,6 @@ class PackageFinder(object):
             )
 
         selected_version = applicable_versions[0][1]
-
-        if (selected_version.internal is not None
-                and not selected_version.internal):
-            logger.warn("%s is an externally hosted file and access to it may "
-                        "be unreliable" % req.name)
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
