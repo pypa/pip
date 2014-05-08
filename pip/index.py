@@ -401,8 +401,8 @@ class PackageFinder(object):
 
         if (selected_version.internal is not None
                 and not selected_version.internal):
-            logger.warn("%s an externally hosted file and may be "
-                        "unreliable" % req.name)
+            logger.warn("%s is an externally hosted file and access to it may "
+                        "be unreliable" % req.name)
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
