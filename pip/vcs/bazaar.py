@@ -12,13 +12,10 @@ class Bazaar(VersionControl):
     name = 'bzr'
     dirname = '.bzr'
     repo_name = 'branch'
-    bundle_file = 'bzr-branch.txt'
     schemes = (
         'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
         'bzr+lp',
     )
-    guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
-             'bzr branch -r %(rev)s %(url)s .\n')
 
     def __init__(self, url=None, *args, **kwargs):
         super(Bazaar, self).__init__(url, *args, **kwargs)
@@ -27,19 +24,6 @@ class Bazaar(VersionControl):
         if getattr(urlparse, 'uses_fragment', None):
             urlparse.uses_fragment.extend(['lp'])
             urlparse.non_hierarchical.extend(['lp'])
-
-    def parse_vcs_bundle_file(self, content):
-        url = rev = None
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            match = re.search(r'^bzr\s*branch\s*-r\s*(\d*)', line)
-            if match:
-                rev = match.group(1).strip()
-            url = line[match.end():].strip().split(None, 1)[0]
-            if url and rev:
-                return url, rev
-        return None, None
 
     def export(self, location):
         """

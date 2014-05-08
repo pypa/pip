@@ -1,6 +1,5 @@
 import os
 import shutil
-import zipfile
 
 from pip._vendor import pkg_resources
 from pip.backwardcompat import HTTPError
@@ -206,7 +205,7 @@ class RequirementSet(object):
                     (req_to_install, req_to_install.source_dir)
                 )
 
-    def prepare_files(self, finder, force_root_egg_info=False, bundle=False):
+    def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
@@ -280,7 +279,6 @@ class RequirementSet(object):
             # ################################ #
 
             try:
-                is_bundle = False
                 is_wheel = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
@@ -311,14 +309,10 @@ class RequirementSet(object):
                     unpack = True
                     url = None
 
-                    # In the case where the req comes from a bundle, we should
-                    # assume a build dir exists and move on
-                    if req_to_install.from_bundle:
-                        pass
                     # If a checkout exists, it's unwise to keep going.  version
                     # inconsistencies are logged later, but do not fail the
                     # installation.
-                    elif os.path.exists(os.path.join(location, 'setup.py')):
+                    if os.path.exists(os.path.join(location, 'setup.py')):
                         raise PreviousBuildDirError(
                             "pip can't proceed with requirements '%s' due to a"
                             " pre-existing build directory (%s). This is "
@@ -372,17 +366,8 @@ class RequirementSet(object):
                         else:
                             unpack = False
                     if unpack:
-                        is_bundle = req_to_install.is_bundle
                         is_wheel = url and url.filename.endswith(wheel_ext)
-                        if is_bundle:
-                            req_to_install.move_bundle_files(
-                                self.build_dir,
-                                self.src_dir,
-                            )
-                            for subreq in req_to_install.bundle_requirements():
-                                reqs.append(subreq)
-                                self.add_requirement(subreq)
-                        elif self.is_download:
+                        if self.is_download:
                             req_to_install.source_dir = location
                             if not is_wheel:
                                 # FIXME:https://github.com/pypa/pip/issues/1112
@@ -395,19 +380,7 @@ class RequirementSet(object):
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()
-                            if force_root_egg_info:
-                                # We need to run this to make sure that the
-                                # .egg-info/ directory is created for packing
-                                # in the bundle
-                                req_to_install.run_egg_info(
-                                    force_root_egg_info=True,
-                                )
                             req_to_install.assert_source_matches_version()
-                            # @@ sketchy way of identifying packages not
-                            # grabbed from an index
-                            if bundle and req_to_install.url:
-                                self.copy_to_build_dir(req_to_install)
-                                install = False
                         # req_to_install.req is only avail after unpack for URL
                         # pkgs repeat check_if_exists to uninstall-on-upgrade
                         # (#14)
@@ -454,7 +427,7 @@ class RequirementSet(object):
                             self.add_requirement(subreq)
 
                 # sdists
-                elif not is_bundle:
+                else:
                     if (req_to_install.extras):
                         logger.notify(
                             "Installing extra requirements: %r" %
@@ -486,24 +459,17 @@ class RequirementSet(object):
                         self.add_requirement(req_to_install)
 
                 # cleanup tmp src
-                if not is_bundle:
-                    if (
-                        self.is_download or
-                        req_to_install._temp_build_dir is not None
-                    ):
-                        self.reqs_to_cleanup.append(req_to_install)
+                if (self.is_download or
+                        req_to_install._temp_build_dir is not None):
+                    self.reqs_to_cleanup.append(req_to_install)
+
                 if install:
                     self.successfully_downloaded.append(req_to_install)
-                    if (bundle
-                            and (
-                                req_to_install.url
-                                and req_to_install.url.startswith('file:///')
-                            )):
-                        self.copy_to_build_dir(req_to_install)
+
             finally:
                 logger.indent -= 2
 
-    def cleanup_files(self, bundle=False):
+    def cleanup_files(self):
         """Clean up files, remove builds."""
         logger.notify('Cleaning up...')
         logger.indent += 2
@@ -513,11 +479,6 @@ class RequirementSet(object):
         remove_dir = []
         if self._pip_has_created_build_dir():
             remove_dir.append(self.build_dir)
-
-        # The source dir of a bundle can always be removed.
-        # FIXME: not if it pre-existed the bundle!
-        if bundle:
-            remove_dir.append(self.src_dir)
 
         for dir in remove_dir:
             if os.path.exists(dir):
@@ -658,83 +619,3 @@ class RequirementSet(object):
         finally:
             logger.indent -= 2
         self.successfully_installed = to_install
-
-    def create_bundle(self, bundle_filename):
-        # FIXME: can't decide which is better; zip is easier to read
-        # random files from, but tar.bz2 is smaller and not as lame a
-        # format.
-
-        # FIXME: this file should really include a manifest of the
-        # packages, maybe some other metadata files.  It would make
-        # it easier to detect as well.
-        zip = zipfile.ZipFile(bundle_filename, 'w', zipfile.ZIP_DEFLATED)
-        vcs_dirs = []
-        for dir, basename in (self.build_dir, 'build'), (self.src_dir, 'src'):
-            dir = os.path.normcase(os.path.abspath(dir))
-            for dirpath, dirnames, filenames in os.walk(dir):
-                for backend in vcs.backends:
-                    vcs_backend = backend()
-                    vcs_url = vcs_rev = None
-                    if vcs_backend.dirname in dirnames:
-                        for vcs_dir in vcs_dirs:
-                            if dirpath.startswith(vcs_dir):
-                                # vcs bundle file already in parent directory
-                                break
-                        else:
-                            vcs_url, vcs_rev = vcs_backend.get_info(
-                                os.path.join(dir, dirpath))
-                            vcs_dirs.append(dirpath)
-                        vcs_bundle_file = vcs_backend.bundle_file
-                        vcs_guide = vcs_backend.guide % {'url': vcs_url,
-                                                         'rev': vcs_rev}
-                        dirnames.remove(vcs_backend.dirname)
-                        break
-                if 'pip-egg-info' in dirnames:
-                    dirnames.remove('pip-egg-info')
-                for dirname in dirnames:
-                    dirname = os.path.join(dirpath, dirname)
-                    name = self._clean_zip_name(dirname, dir)
-                    zip.writestr(basename + '/' + name + '/', '')
-                for filename in filenames:
-                    if filename == PIP_DELETE_MARKER_FILENAME:
-                        continue
-                    filename = os.path.join(dirpath, filename)
-                    name = self._clean_zip_name(filename, dir)
-                    zip.write(filename, basename + '/' + name)
-                if vcs_url:
-                    name = os.path.join(dirpath, vcs_bundle_file)
-                    name = self._clean_zip_name(name, dir)
-                    zip.writestr(basename + '/' + name, vcs_guide)
-
-        zip.writestr('pip-manifest.txt', self.bundle_requirements())
-        zip.close()
-
-    BUNDLE_HEADER = '''\
-# This is a pip bundle file, that contains many source packages
-# that can be installed as a group.  You can install this like:
-#     pip this_file.zip
-# The rest of the file contains a list of all the packages included:
-'''
-
-    def bundle_requirements(self):
-        parts = [self.BUNDLE_HEADER]
-        for req in [req for req in self.requirements.values()
-                    if not req.comes_from]:
-            parts.append('%s==%s\n' % (req.name, req.installed_version))
-        parts.append(
-            '# These packages were installed to satisfy the above '
-            'requirements:\n'
-        )
-        for req in [req for req in self.requirements.values()
-                    if req.comes_from]:
-            parts.append('%s==%s\n' % (req.name, req.installed_version))
-        # FIXME: should we do something with self.unnamed_requirements?
-        return ''.join(parts)
-
-    def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
-        )
-        name = name[len(prefix) + 1:]
-        name = name.replace(os.path.sep, '/')
-        return name

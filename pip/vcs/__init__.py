@@ -153,14 +153,6 @@ class VersionControl(object):
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
 
-    def parse_vcs_bundle_file(self, content):
-        """
-        Takes the contents of the bundled text file that explains how to revert
-        the stripped off version control data of the given package and returns
-        the URL and revision of it.
-        """
-        raise NotImplementedError
-
     def obtain(self, dest):
         """
         Called when installing or updating an editable package, takes the

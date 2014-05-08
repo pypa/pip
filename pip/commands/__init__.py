@@ -3,7 +3,6 @@ Package containing all pip commands
 """
 
 
-from pip.commands.bundle import BundleCommand
 from pip.commands.completion import CompletionCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.help import HelpCommand
@@ -18,7 +17,6 @@ from pip.commands.wheel import WheelCommand
 
 
 commands = {
-    BundleCommand.name: BundleCommand,
     CompletionCommand.name: CompletionCommand,
     FreezeCommand.name: FreezeCommand,
     HelpCommand.name: HelpCommand,
@@ -43,7 +41,6 @@ commands_order = [
     WheelCommand,
     ZipCommand,
     UnzipCommand,
-    BundleCommand,
     HelpCommand,
 ]
 

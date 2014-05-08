@@ -36,7 +36,6 @@ class InstallCommand(Command):
       %prog [options] <archive url/path> ..."""
 
     summary = 'Install packages.'
-    bundle = False
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
@@ -313,15 +312,11 @@ class InstallCommand(Command):
 
         try:
             if not options.no_download:
-                requirement_set.prepare_files(
-                    finder,
-                    force_root_egg_info=self.bundle,
-                    bundle=self.bundle,
-                )
+                requirement_set.prepare_files(finder)
             else:
                 requirement_set.locate_files()
 
-            if not options.no_install and not self.bundle:
+            if not options.no_install:
                 requirement_set.install(
                     install_options,
                     global_options,
@@ -331,15 +326,12 @@ class InstallCommand(Command):
                                       requirement_set.successfully_installed])
                 if installed:
                     logger.notify('Successfully installed %s' % installed)
-            elif not self.bundle:
+            else:
                 downloaded = ' '.join([
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
                     logger.notify('Successfully downloaded %s' % downloaded)
-            elif self.bundle:
-                requirement_set.create_bundle(self.bundle_filename)
-                logger.notify('Created bundle in %s' % self.bundle_filename)
         except PreviousBuildDirError:
             options.no_clean = True
             raise
@@ -347,7 +339,7 @@ class InstallCommand(Command):
             # Clean up
             if ((not options.no_clean)
                     and ((not options.no_install) or options.download_dir)):
-                requirement_set.cleanup_files(bundle=self.bundle)
+                requirement_set.cleanup_files()
 
         if options.target_dir:
             if not os.path.exists(options.target_dir):

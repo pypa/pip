@@ -631,13 +631,12 @@ def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
     if (content_type == 'application/zip'
             or filename.endswith('.zip')
-            or filename.endswith('.pybundle')
             or filename.endswith('.whl')
             or zipfile.is_zipfile(filename)):
         unzip_file(
             filename,
             location,
-            flatten=not filename.endswith(('.pybundle', '.whl'))
+            flatten=not filename.endswith('.whl')
         )
     elif (content_type == 'application/x-gzip'
             or tarfile.is_tarfile(filename)
