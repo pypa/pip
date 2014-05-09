@@ -28,6 +28,49 @@ INSECURE_SCHEMES = {
 }
 
 
+def warn_if_location_is_insecure(location):
+    """
+    Logs a warning if the location uses an insecure transport mechanism
+    """
+    # Determine if this url used a secure transport mechanism
+    parsed = urlparse.urlparse(str(location))
+    if parsed.scheme in INSECURE_SCHEMES:
+        secure_schemes = INSECURE_SCHEMES[parsed.scheme]
+
+        if len(secure_schemes) == 1:
+            ctx = (location, parsed.scheme, secure_schemes[0],
+                   parsed.netloc)
+            logger.warn("%s uses an insecure transport scheme (%s). "
+                        "Consider using %s if %s has it available" %
+                        ctx)
+        elif len(secure_schemes) > 1:
+            ctx = (
+                location,
+                parsed.scheme,
+                ", ".join(secure_schemes),
+                parsed.netloc,
+            )
+            logger.warn("%s uses an insecure transport scheme (%s). "
+                        "Consider using one of %s if %s has any of "
+                        "them available" % ctx)
+        else:
+            ctx = (location, parsed.scheme)
+            logger.warn("%s uses an insecure transport scheme (%s)." %
+                        ctx)
+
+
+def mkurl_pypi_url(url, url_name):
+    loc = posixpath.join(url, url_name)
+    # For maximum compatibility with easy_install, ensure the path
+    # ends in a trailing slash.  Although this isn't in the spec
+    # (and PyPI can handle it without the slash) some other index
+    # implementations might break if they relied on easy_install's
+    # behavior.
+    if not loc.endswith('/'):
+        loc = loc + '/'
+    return loc
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -165,47 +208,81 @@ class PackageFinder(object):
             reverse=True
         )
 
-    def find_requirement(self, req, upgrade):
+    # TODO: Why is this needed?  Wouldn't it be better to just
+    #       fail and force the user to specify the correct
+    #       package name?  I recommend that we just remove
+    #       this functionality.
+    def _fix_the_req_name(self, req):
+        """
+        Attempts to find the "correct" name for the req by
+        scraping the first index page.
+        """
+        req_name = req.url_name
 
-        def mkurl_pypi_url(url):
-            loc = posixpath.join(url, url_name)
-            # For maximum compatibility with easy_install, ensure the path
-            # ends in a trailing slash.  Although this isn't in the spec
-            # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's
-            # behavior.
-            if not loc.endswith('/'):
-                loc = loc + '/'
-            return loc
-
-        url_name = req.url_name
-        # Only check main index if index URL is given:
-        main_index_url = None
         if self.index_urls:
-            # Check that we have the url_name correctly spelled:
+            # This line suggests that the req_name can *never*
+            # be None.  Otherwise, it seems like the previous
+            # versions of the code would have exploded.
             main_index_url = Link(
-                mkurl_pypi_url(self.index_urls[0]),
+                mkurl_pypi_url(self.index_urls[0], req_name),
                 trusted=True,
             )
-            # This will also cache the page, so it's okay that we get it again
-            # later:
+
+            # If we get a page hit for this URL, then we can
+            # assume that the name was correct.
             page = self._get_page(main_index_url, req)
             if page is None:
-                url_name = self._find_url_name(
-                    Link(self.index_urls[0], trusted=True),
-                    url_name, req
-                ) or req.url_name
 
-        if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url)
-                for url in self.index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
+                # Oh snap.  It failed.  So, let's search the
+                # index URL and see if there are any "close"
+                # matches.
+                fixed_name = self._find_url_name(
+                    Link(self.index_urls[0], trusted=True),
+                    req_name, req
+                )
+
+                if fixed_name:
+                    req_name = fixed_name
+
+                # And, if that failed... I guess we just assume
+                # that another package index will have it?
+                # That seems dangerous...
+
+        return req_name
+
+    # The previous version of this code only generated URL's
+    # for the primary index url.  This version searches the
+    # primary index and all extra indexes.
+    def _get_locations_for_versions(self, req, req_name):
+        """
+        Generates URLs that append the version number to the path
+        """
+        # Yeah, I'm sure there's a better way to do this.
+        locations = []
+        for url in self.index_urls:
+            for version in req.absolute_versions:
                 locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
+                    posixpath.join(url, req_name, version)] + locations
+
+        return locations
+
+    def find_requirement(self, req, upgrade):
+        # FIXME: This does not belong here!  We should instead require
+        #        end-users to specify the correct names for requirements!
+        req_name = self._fix_the_req_name(req)
+
+        locations = []
+
+        if req_name is None:
+            # Can this ever actually happen?  Seems like this
+            # would just break things further downstream...
+            logger.debug("req_name is None for req: %s", req)
+        else:
+            locations += self._get_locations_for_versions(req, req_name)
+            locations += [mkurl_pypi_url(url, req_name)
+                          for url in self.index_urls]
+
+        locations += list(self.find_links)
 
         file_locations, url_locations = self._sort_locations(locations)
 
@@ -216,32 +293,7 @@ class PackageFinder(object):
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
-
-            # Determine if this url used a secure transport mechanism
-            parsed = urlparse.urlparse(str(location))
-            if parsed.scheme in INSECURE_SCHEMES:
-                secure_schemes = INSECURE_SCHEMES[parsed.scheme]
-
-                if len(secure_schemes) == 1:
-                    ctx = (location, parsed.scheme, secure_schemes[0],
-                           parsed.netloc)
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using %s if %s has it available" %
-                                ctx)
-                elif len(secure_schemes) > 1:
-                    ctx = (
-                        location,
-                        parsed.scheme,
-                        ", ".join(secure_schemes),
-                        parsed.netloc,
-                    )
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using one of %s if %s has any of "
-                                "them available" % ctx)
-                else:
-                    ctx = (location, parsed.scheme)
-                    logger.warn("%s uses an insecure transport scheme (%s)." %
-                                ctx)
+            warn_if_location_is_insecure(location)
 
         found_versions = []
         found_versions.extend(
@@ -436,7 +488,7 @@ class PackageFinder(object):
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
-                logger.notify(
+                logger.warn(
                     'Real name of requirement %s is %s' % (url_name, base)
                 )
                 return base
