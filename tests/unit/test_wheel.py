@@ -2,7 +2,7 @@
 import os
 
 import pytest
-from mock import patch
+from mock import patch, Mock
 
 from pip._vendor import pkg_resources
 from pip import wheel
@@ -283,3 +283,28 @@ class TestMoveWheelFiles(object):
         self.assert_installed()
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
+
+
+class TestWheelBuilder(object):
+
+    @patch('pip.log.Logger.log')
+    @patch('pip.wheel.WheelBuilder._build_one')
+    def test_skip_building_wheels(self, mock_build_one, mock_log):
+        wheel_req = Mock(is_wheel=True, editable=False)
+        reqset = Mock(requirements=Mock(values=lambda: [wheel_req]))
+        wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
+        wb.build()
+        name, args, kwargs = mock_log.mock_calls[0]
+        assert "due to already being wheel" in args[1]
+        assert mock_build_one.mock_calls == []
+
+    @patch('pip.log.Logger.log')
+    @patch('pip.wheel.WheelBuilder._build_one')
+    def test_skip_building_editables(self, mock_build_one, mock_log):
+        editable_req = Mock(editable=True, is_wheel=False)
+        reqset = Mock(requirements=Mock(values=lambda: [editable_req]))
+        wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
+        wb.build()
+        name, args, kwargs = mock_log.mock_calls[0]
+        assert "due to being editable" in args[1]
+        assert mock_build_one.mock_calls == []

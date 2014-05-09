@@ -71,6 +71,10 @@ class TestData(object):
         return self.root.join("packages3")
 
     @property
+    def src(self):
+        return self.root.join("src")
+
+    @property
     def indexes(self):
         return self.root.join("indexes")
 

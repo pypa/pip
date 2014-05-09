@@ -4,7 +4,7 @@ import shutil
 
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.log import logger
-from pip.locations import (src_prefix, virtualenv_no_global, distutils_scheme,
+from pip.locations import (virtualenv_no_global, distutils_scheme,
                            build_prefix)
 from pip.basecommand import Command
 from pip.index import PackageFinder
@@ -42,16 +42,7 @@ class InstallCommand(Command):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(
-            '-e', '--editable',
-            dest='editables',
-            action='append',
-            default=[],
-            metavar='path/url',
-            help=('Install a project in editable mode (i.e. setuptools '
-                  '"develop mode") from a local project path or a VCS url.'),
-        )
-
+        cmd_opts.add_option(cmdoptions.editable.make())
         cmd_opts.add_option(cmdoptions.requirements.make())
         cmd_opts.add_option(cmdoptions.build_dir.make())
 
@@ -72,15 +63,7 @@ class InstallCommand(Command):
         )
 
         cmd_opts.add_option(cmdoptions.download_cache.make())
-
-        cmd_opts.add_option(
-            '--src', '--source', '--source-dir', '--source-directory',
-            dest='src_dir',
-            metavar='dir',
-            default=src_prefix,
-            help='Directory to check out editable projects into. '
-            'The default in a virtualenv is "<venv path>/src". '
-            'The default for global installs is "<current dir>/src".')
+        cmd_opts.add_option(cmdoptions.src.make())
 
         cmd_opts.add_option(
             '-U', '--upgrade',
