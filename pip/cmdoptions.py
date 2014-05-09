@@ -9,7 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import build_prefix, default_log_file
+from pip.locations import build_prefix, default_log_file, src_prefix
 
 
 def make_option_group(group, parser):
@@ -294,6 +294,16 @@ editable = OptionMaker(
     metavar='path/url',
     help=('Install a project in editable mode (i.e. setuptools '
           '"develop mode") from a local project path or a VCS url.'),
+)
+
+src = OptionMaker(
+    '--src', '--source', '--source-dir', '--source-directory',
+    dest='src_dir',
+    metavar='dir',
+    default=src_prefix,
+    help='Directory to check out editable projects into. '
+    'The default in a virtualenv is "<venv path>/src". '
+    'The default for global installs is "<current dir>/src".'
 )
 
 use_wheel = OptionMaker(

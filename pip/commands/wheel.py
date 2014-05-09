@@ -64,6 +64,7 @@ class WheelCommand(Command):
         cmd_opts.add_option(cmdoptions.editable.make())
         cmd_opts.add_option(cmdoptions.requirements.make())
         cmd_opts.add_option(cmdoptions.download_cache.make())
+        cmd_opts.add_option(cmdoptions.src.make())
         cmd_opts.add_option(cmdoptions.no_deps.make())
         cmd_opts.add_option(cmdoptions.build_dir.make())
 
@@ -159,7 +160,7 @@ class WheelCommand(Command):
         options.build_dir = os.path.abspath(options.build_dir)
         requirement_set = RequirementSet(
             build_dir=options.build_dir,
-            src_dir=None,
+            src_dir=options.src_dir,
             download_dir=None,
             download_cache=options.download_cache,
             ignore_dependencies=options.ignore_dependencies,
