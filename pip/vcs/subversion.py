@@ -18,9 +18,6 @@ class Subversion(VersionControl):
     dirname = '.svn'
     repo_name = 'checkout'
     schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn')
-    bundle_file = 'svn-checkout.txt'
-    guide = ('# This was an svn checkout; to make it a checkout again run:\n'
-             'svn checkout --force -r %(rev)s %(url)s .\n')
 
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
@@ -48,18 +45,6 @@ class Subversion(VersionControl):
             logger.info('Output that cannot be parsed: \n%s' % output)
             return url, None
         return url, match.group(1)
-
-    def parse_vcs_bundle_file(self, content):
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            match = re.search(r'^-r\s*([^ ])?', line)
-            if not match:
-                return None, None
-            rev = match.group(1)
-            rest = line[match.end():].strip().split(None, 1)[0]
-            return rest, rev
-        return None, None
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""

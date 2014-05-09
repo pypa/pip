@@ -36,7 +36,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options=None, from_bundle=False, pycompile=True):
+                 editable_options=None, pycompile=True):
         self.extras = ()
         if isinstance(req, string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -60,7 +60,6 @@ class InstallRequirement(object):
         # conflicts with another installed distribution:
         self.conflicts_with = None
         self._temp_build_dir = None
-        self._is_bundle = None
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
@@ -69,7 +68,6 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
-        self.from_bundle = from_bundle
 
         self.pycompile = pycompile
 
@@ -276,7 +274,7 @@ class InstallRequirement(object):
 
         return setup_py
 
-    def run_egg_info(self, force_root_egg_info=False):
+    def run_egg_info(self):
         assert self.source_dir
         if self.name:
             logger.notify(
@@ -310,7 +308,7 @@ class InstallRequirement(object):
             # We can't put the .egg-info files at the root, because then the
             # source code will be mistaken for an installed egg, causing
             # problems
-            if self.editable or force_root_egg_info:
+            if self.editable:
                 egg_base_option = []
             else:
                 egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
@@ -816,7 +814,7 @@ exec(compile(
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
-        if self.is_bundle or os.path.exists(self.delete_marker_filename):
+        if os.path.exists(self.delete_marker_filename):
             logger.info('Removing source in %s' % self.source_dir)
             if self.source_dir:
                 rmtree(self.source_dir)
@@ -911,82 +909,6 @@ exec(compile(
     @property
     def is_wheel(self):
         return self.url and '.whl' in self.url
-
-    @property
-    def is_bundle(self):
-        if self._is_bundle is not None:
-            return self._is_bundle
-        base = self._temp_build_dir
-        if not base:
-            # FIXME: this doesn't seem right:
-            return False
-        self._is_bundle = (
-            os.path.exists(os.path.join(base, 'pip-manifest.txt'))
-            or os.path.exists(os.path.join(base, 'pyinstall-manifest.txt'))
-        )
-        return self._is_bundle
-
-    def bundle_requirements(self):
-        for dest_dir in self._bundle_editable_dirs:
-            package = os.path.basename(dest_dir)
-            # FIXME: svnism:
-            for vcs_backend in vcs.backends:
-                url = rev = None
-                vcs_bundle_file = os.path.join(
-                    dest_dir, vcs_backend.bundle_file)
-                if os.path.exists(vcs_bundle_file):
-                    vc_type = vcs_backend.name
-                    fp = open(vcs_bundle_file)
-                    content = fp.read()
-                    fp.close()
-                    url, rev = vcs_backend().parse_vcs_bundle_file(content)
-                    break
-            if url:
-                url = '%s+%s@%s' % (vc_type, url, rev)
-            else:
-                url = None
-            yield InstallRequirement(
-                package, self, editable=True, url=url,
-                update=False, source_dir=dest_dir, from_bundle=True)
-        for dest_dir in self._bundle_build_dirs:
-            package = os.path.basename(dest_dir)
-            yield InstallRequirement(
-                package,
-                self,
-                source_dir=dest_dir,
-                from_bundle=True,
-            )
-
-    def move_bundle_files(self, dest_build_dir, dest_src_dir):
-        base = self._temp_build_dir
-        assert base
-        src_dir = os.path.join(base, 'src')
-        build_dir = os.path.join(base, 'build')
-        bundle_build_dirs = []
-        bundle_editable_dirs = []
-        for source_dir, dest_dir, dir_collection in [
-                (src_dir, dest_src_dir, bundle_editable_dirs),
-                (build_dir, dest_build_dir, bundle_build_dirs)]:
-            if os.path.exists(source_dir):
-                for dirname in os.listdir(source_dir):
-                    dest = os.path.join(dest_dir, dirname)
-                    dir_collection.append(dest)
-                    if os.path.exists(dest):
-                        logger.warn(
-                            'The directory %s (containing package %s) already '
-                            'exists; cannot move source from bundle %s' %
-                            (dest, dirname, self)
-                        )
-                        continue
-                    if not os.path.exists(dest_dir):
-                        logger.info('Creating directory %s' % dest_dir)
-                        os.makedirs(dest_dir)
-                    shutil.move(os.path.join(source_dir, dirname), dest)
-                if not os.listdir(source_dir):
-                    os.rmdir(source_dir)
-        self._temp_build_dir = None
-        self._bundle_build_dirs = bundle_build_dirs
-        self._bundle_editable_dirs = bundle_editable_dirs
 
     def move_wheel_files(self, wheeldir, root=None):
         move_wheel_files(

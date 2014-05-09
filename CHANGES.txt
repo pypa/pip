@@ -3,6 +3,9 @@
 
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
+* **BACKWARD INCOMPATIBLE** Removed the bundle support which was deprecated in
+  1.4. (:pull:`1806`)
+
 * Removed the deprecated support for dependency links and the
   ``--process-dependency-links`` flag that turned them on. For alternatives to
   dependency links please see http://www.pip-installer.org/en/latest/dependency_links.html
