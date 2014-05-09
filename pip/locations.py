@@ -9,12 +9,16 @@ import tempfile
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS
 
+from pip import appdirs
 from pip.backwardcompat import get_path_uid
 import pip.exceptions
 
 
 # Hack for flake8
 install
+
+# Application Directories
+USER_CACHE_DIR = appdirs.user_cache_dir("pip")
 
 
 DELETE_MARKER_MESSAGE = '''\

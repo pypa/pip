@@ -9,7 +9,9 @@ pass on state. To be consistent, all options will follow this design.
 """
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import build_prefix, default_log_file, src_prefix
+from pip.locations import (
+    USER_CACHE_DIR, build_prefix, default_log_file, src_prefix,
+)
 
 
 def make_option_group(group, parser):
@@ -322,12 +324,26 @@ no_use_wheel = OptionMaker(
           'find-links locations.'),
 )
 
+cache_dir = OptionMaker(
+    "--cache-dir",
+    dest="cache_dir",
+    default=USER_CACHE_DIR,
+    metavar="dir",
+    help="Store the cache data in <dir>."
+)
+
+no_cache = OptionMaker(
+    "--no-cache-dir",
+    dest="cache_dir",
+    action="store_false",
+    help="Disable the cache.",
+)
+
 download_cache = OptionMaker(
     '--download-cache',
     dest='download_cache',
-    metavar='dir',
     default=None,
-    help='Cache downloaded packages in <dir>.')
+    help=SUPPRESS_HELP)
 
 no_deps = OptionMaker(
     '--no-deps', '--no-dependencies',
@@ -396,6 +412,8 @@ general_group = {
         cert,
         client_cert,
         no_check_certificate,
+        cache_dir,
+        no_cache,
     ]
 }
 

@@ -248,6 +248,14 @@ class InstallCommand(Command):
             )
             index_urls += options.mirrors
 
+        if options.download_cache:
+            logger.deprecated(
+                "1.8",
+                "--download-cache has been deprecated and will be removed in "
+                " the future. Pip now automatically uses and configures its "
+                "cache."
+            )
+
         session = self._build_session(options)
 
         finder = self._build_package_finder(options, index_urls, session)
@@ -256,7 +264,6 @@ class InstallCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=options.download_dir,
-            download_cache=options.download_cache,
             upgrade=options.upgrade,
             as_egg=options.as_egg,
             ignore_installed=options.ignore_installed,

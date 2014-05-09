@@ -29,8 +29,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
-           'unzip_file', 'untar_file', 'create_download_cache_folder',
-           'cache_download', 'unpack_file', 'call_subprocess']
+           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess']
 
 
 def get_prog():
@@ -608,23 +607,6 @@ def untar_file(filename, location):
                     os.chmod(path, (0o777 - current_umask() | 0o111))
     finally:
         tar.close()
-
-
-def create_download_cache_folder(folder):
-    logger.indent -= 2
-    logger.notify('Creating supposed download cache at %s' % folder)
-    logger.indent += 2
-    os.makedirs(folder)
-
-
-def cache_download(target_file, temp_location, content_type):
-    logger.notify(
-        'Storing download in cache at %s' % display_path(target_file)
-    )
-    shutil.copyfile(temp_location, target_file)
-    fp = open(target_file + '.content-type', 'w')
-    fp.write(content_type)
-    fp.close()
 
 
 def unpack_file(filename, location, content_type, link):

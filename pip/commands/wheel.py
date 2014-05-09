@@ -144,6 +144,14 @@ class WheelCommand(Command):
             )
             index_urls += options.mirrors
 
+        if options.download_cache:
+            logger.deprecated(
+                "1.8",
+                "--download-cache has been deprecated and will be removed in "
+                " the future. Pip now automatically uses and configures its "
+                "cache."
+            )
+
         session = self._build_session(options)
 
         finder = PackageFinder(
@@ -162,7 +170,6 @@ class WheelCommand(Command):
             build_dir=options.build_dir,
             src_dir=options.src_dir,
             download_dir=None,
-            download_cache=options.download_cache,
             ignore_dependencies=options.ignore_dependencies,
             ignore_installed=True,
             session=session,

@@ -249,6 +249,36 @@ Starting with v1.3, pip provides SSL certificate verification over https, for th
 of providing secure, certified downloads from PyPI.
 
 
+.. _`Caching`:
+
+Caching
++++++++
+
+Starting with v1.6, pip provides an on by default cache which functions
+similarly to that of a web browser. While the cache is on by default and is
+designed do the right thing by default you can disable the cache and always
+access PyPI by utilizing the ``--no-cache-dir`` option.
+
+When making any HTTP request pip will first check it's local cache to determine
+if it has a suitable response stored for that request which has not expired. If
+it does then it simply returns that response and doesn't make the request.
+
+If it has a response stored, but it has expired, then it will attempt to make a
+conditional request to refresh the cache which will either return an empty
+response telling pip to simply use the cached item (and refresh the expiration
+timer) or it will return a whole new response which pip can then store in the
+cache.
+
+When storing items in the cache pip will respect the ``CacheControl`` header
+if it exists, or it will fall back to the ``Expires`` header if that exists.
+This allows pip to function as a browser would, and allows the index server
+to communicate to pip how long it is reasonable to cache any particular item.
+
+While this cache attempts to minimize network activity, it does not prevent
+network access all together. If you want a fast/local install solution that
+circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
+
+
 Hash Verification
 +++++++++++++++++
 
@@ -262,26 +292,6 @@ The hash fragment is case sensitive (i.e. sha1 not SHA1).
 This check is only intended to provide basic download corruption protection.
 It is not intended to provide security against tampering. For that,
 see :ref:`SSL Certificate Verification`
-
-
-Download Cache
-++++++++++++++
-
-pip offers a :ref:`--download-cache <install_--download-cache>` option for
-installs to prevent redundant downloads of archives from PyPI.
-
-The point of this cache is *not* to circumvent the index crawling process, but
-to *just* prevent redundant downloads.
-
-Items are stored in this cache based on the url the archive was found at, not
-simply the archive name.
-
-If you want a fast/local install solution that circumvents crawling PyPI, see
-the :ref:`Fast & Local Installs`.
-
-Like all options, :ref:`--download-cache <install_--download-cache>`, can also
-be set as an environment variable, or placed into the pip config file.  See the
-:ref:`Configuration` section.
 
 
 .. _`editable-installs`:

@@ -15,17 +15,20 @@ import pip
 from pip.backwardcompat import urllib, urlparse, raw_input
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
-                      backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download)
+                      backup_dir, ask_path_exists, unpack_file)
 from pip.vcs import vcs
 from pip.log import logger
 from pip._vendor import requests, six
-from pip._vendor.requests.adapters import BaseAdapter
+from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.compat import IncompleteRead
 from pip._vendor.requests.exceptions import ChunkedEncodingError
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.lockfile import LockError
+
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
@@ -177,12 +180,47 @@ class LocalFSAdapter(BaseAdapter):
         pass
 
 
+class SafeFileCache(FileCache):
+    """
+    A file based cache which is safe to use even when the target directory may
+    not be accessible or writable.
+    """
+
+    def get(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).get(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+    def set(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).set(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+    def delete(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).delete(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+
 class PipSession(requests.Session):
 
     timeout = None
 
     def __init__(self, *args, **kwargs):
-        retries = kwargs.pop('retries', None)
+        retries = kwargs.pop("retries", 0)
+        cache = kwargs.pop("cache", None)
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -192,11 +230,16 @@ class PipSession(requests.Session):
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth()
 
-        # Configure retries
-        if retries:
-            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
-            self.mount("http://", http_adapter)
-            self.mount("https://", http_adapter)
+        if cache:
+            http_adapter = CacheControlAdapter(
+                cache=SafeFileCache(cache),
+                max_retries=retries,
+            )
+        else:
+            http_adapter = HTTPAdapter(max_retries=retries)
+
+        self.mount("http://", http_adapter)
+        self.mount("https://", http_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
@@ -383,6 +426,7 @@ def _download_url(resp, link, temp_location):
                 "Unsupported hash name %s for package %s" %
                 (link.hash_name, link)
             )
+
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -493,8 +537,7 @@ def _copy_file(filename, location, content_type, link):
         logger.notify('Saved %s' % display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, download_dir=None,
-                    session=None):
+def unpack_http_url(link, location, download_dir=None, session=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -503,24 +546,8 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
     temp_location = None
     target_url = link.url.split('#', 1)[0]
-    already_cached = False
-    cache_file = None
-    cache_content_type_file = None
-    download_hash = None
 
-    # If a download cache is specified, is the file cached there?
-    if download_cache:
-        cache_file = os.path.join(
-            download_cache,
-            urllib.quote(target_url, '')
-        )
-        cache_content_type_file = cache_file + '.content-type'
-        already_cached = (
-            os.path.exists(cache_file) and
-            os.path.exists(cache_content_type_file)
-        )
-        if not os.path.isdir(download_cache):
-            create_download_cache_folder(download_cache)
+    download_hash = None
 
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded = None
@@ -547,27 +574,6 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
                 os.unlink(already_downloaded)
                 already_downloaded = None
 
-    # If not a valid download, let's confirm the cached file is valid
-    if already_cached and not temp_location:
-        with open(cache_content_type_file) as fp:
-            content_type = fp.read().strip()
-        temp_location = cache_file
-        logger.notify('Using download cache from %s' % cache_file)
-        if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(cache_file, link)
-            try:
-                _check_hash(download_hash, link)
-            except HashMismatch:
-                logger.warn(
-                    'Cached file %s has bad hash, '
-                    're-downloading.' % temp_location
-                )
-                temp_location = None
-                os.unlink(cache_file)
-                os.unlink(cache_content_type_file)
-                already_cached = False
-
-    # We don't have either a cached or a downloaded copy
     # let's download to a tmp dir
     if not temp_location:
         try:
@@ -632,11 +638,7 @@ def unpack_http_url(link, location, download_cache, download_dir=None,
     # archives, they have to be unpacked to parse dependencies
     unpack_file(temp_location, location, content_type, link)
 
-    # if using a download cache, cache it, if needed
-    if cache_file and not already_cached:
-        cache_download(cache_file, temp_location, content_type)
-
-    if not (already_cached or already_downloaded):
+    if not already_downloaded:
         os.unlink(temp_location)
 
     os.rmdir(temp_dir)

@@ -37,6 +37,14 @@
 * Fixed :issue:`1775`. `pip wheel` wasn't building wheels for dependencies of
   editable requirements.
 
+* **DEPRECATION** ``pip install --download-cache`` and
+  ``pip wheel --download-cache`` command line flags have been deprecated and
+  the functionality removed. Since pip now automatically configures and uses
+  it's internal HTTP cache which supplants the ``--download-cache`` the
+  existing options have been made non functional but will still be accepted
+  until their removal in pip v1.8. For more information please see
+  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+
 
 **1.5.5 (2014-05-03)**
 
