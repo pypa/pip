@@ -130,23 +130,33 @@ class Git(VersionControl):
             [self.cmd, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_refs(self, location):
+    def _get_typed_refs(self, location):
         """Return map of named refs (branches or tags) to commit hashes."""
         output = call_subprocess([self.cmd, 'show-ref'],
                                  show_stdout=False, cwd=location)
-        rv = {}
+        ref_list = []
         for line in output.strip().splitlines():
             commit, ref = line.split(' ', 1)
             ref = ref.strip()
             ref_name = None
+            ref_type = None
             if ref.startswith('refs/remotes/'):
                 ref_name = ref[len('refs/remotes/'):]
+                ref_type = "remotes"
             elif ref.startswith('refs/heads/'):
                 ref_name = ref[len('refs/heads/'):]
+                ref_type = "heads"
             elif ref.startswith('refs/tags/'):
                 ref_name = ref[len('refs/tags/'):]
+                ref_type = "tags"
             if ref_name is not None:
-                rv[ref_name] = commit.strip()
+                ref_list.append((ref_name, ref_type, commit.strip()))
+        return ref_list
+
+    def get_refs(self, location):
+        rv = {}
+        for ref_name, ref_type, commit in self._get_typed_refs(location):
+            rv[ref_name] = commit
         return rv
 
     def get_src_requirement(self, dist, location, find_tags):
@@ -157,10 +167,17 @@ class Git(VersionControl):
         if not repo:
             return None
         current_rev = self.get_revision(location)
-        refs = self.get_refs(location)
+        refs = self._get_typed_refs(location)
         # refs maps names to commit hashes; we need the inverse
         # if multiple names map to a single commit, this arbitrarily picks one
-        names_by_commit = dict((commit, ref) for ref, commit in refs.items())
+        # if the ref points to a remote, strips the first part
+        names_by_commit = {}
+        for ref, ref_type, commit in refs:
+            if ref_type == 'remotes':
+                ref = ref.partition('/')[2]
+                ref = ref.replace('/', '_')
+            if len(ref) != 0:
+                names_by_commit[commit] = ref
 
         if current_rev in names_by_commit:
             # It's a tag
