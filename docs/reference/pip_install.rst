@@ -40,8 +40,6 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`--no-index <--no-index>`
   *  :ref:`-f, --find-links <--find-links>`
   *  :ref:`--allow-external <--allow-external>`
-  *  :ref:`--allow-all-external <--allow-external>`
-  *  :ref:`--allow-unverified <--allow-unverified>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
@@ -105,31 +103,28 @@ that will enable installing pre-releases and development releases.
 Externally Hosted Files
 +++++++++++++++++++++++
 
-Starting with v1.4, pip will warn about installing any file that does not come
-from the primary index. As of version 1.5, pip defaults to ignoring these files
-unless asked to consider them.
+When searching an index for a file pip will, by default, ignore any externally
+hosted files. This has been done because generally externally hosted files
+are unsafely hosted in a way that pip cannot verify the contents before
+installing them.
 
 The ``pip install`` command supports a
-:ref:`--allow-external PROJECT <--allow-external>` option that will enable
-installing links that are linked directly from the simple index but to an
-external host that also have a supported hash fragment. Externally hosted
-files for all projects may be enabled using the
-:ref:`--allow-all-external <--allow-all-external>` flag to the ``pip install``
-command.
+:ref:`--allow-external PROJECT <--allow-external>` options which will enable
+installing files which are externally hosted. These files may be hosted on a
+host which is unreliable, they may be able to be safely downloaded however they
+may not be able to be safely downloaded and will then propose a security risk
+installing them.
 
-The ``pip install`` command also supports a
-:ref:`--allow-unverified PROJECT <--allow-unverified>` option that will enable
-installing insecurely linked files. These are either directly linked (as above)
-files without a hash, or files that are linked from either the home page or the
-download url of a package.
-
-These options can be used in a requirements file.  Assuming some fictional
-`ExternalPackage` that is hosted external and unverified, then your requirements
-file would be like so::
+This option can be used in a requirements file.  Assuming some fictional
+`ExternalPackage` that is hosted externally, then your requirements file would
+be like so::
 
     --allow-external ExternalPackage
-    --allow-unverified ExternalPackage
     ExternalPackage
+
+This would be equivalent to executing::
+
+    pip install --allow-external ExternalPackage ExternalPackage
 
 
 .. _`VCS Support`:

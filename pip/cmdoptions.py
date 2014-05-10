@@ -240,18 +240,10 @@ allow_external = OptionMaker(
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of externally hosted files",
+    help="Allow the installation of externally and potentially unsafely "
+         "hosted files",
 )
 
-allow_all_external = OptionMaker(
-    "--allow-all-external",
-    dest="allow_all_external",
-    action="store_true",
-    default=False,
-    help="Allow the installation of all externally hosted files",
-)
-
-# Remove after 1.7
 no_allow_external = OptionMaker(
     "--no-allow-external",
     dest="allow_all_external",
@@ -260,14 +252,13 @@ no_allow_external = OptionMaker(
     help=SUPPRESS_HELP,
 )
 
-# Remove --allow-insecure after 1.7
 allow_unsafe = OptionMaker(
     "--allow-unverified", "--allow-insecure",
     dest="allow_unverified",
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of insecure and unverifiable files",
+    help=SUPPRESS_HELP,
 )
 
 # Remove after 1.7
@@ -427,7 +418,6 @@ index_group = {
         use_mirrors,
         mirrors,
         allow_external,
-        allow_all_external,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,
