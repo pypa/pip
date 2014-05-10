@@ -700,3 +700,14 @@ def test_no_compiles_pyc(script, data):
     )
 
     assert not any(exists)
+
+
+def test_capital_install_is_legal(script):
+    result = script.run(
+        "python", "-c",
+        "import pip; pip.main(['Install', 'INITools==0.2'])",
+    )
+    assert (
+        "ERROR: unknown command"
+        not in result.stdout
+    )

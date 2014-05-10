@@ -3,8 +3,10 @@ import pytest
 import pip.baseparser
 from pip import main
 from pip import cmdoptions
+from pip import parseopts
 from pip.basecommand import Command
 from pip.commands import commands
+from pip.exceptions import CommandError
 
 
 class FakeCommand(Command):
@@ -285,3 +287,49 @@ class TestOptionsConfigFiles(object):
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip.baseparser.ConfigOptionParser()
         assert len(cp.get_config_files()) == 2
+
+
+class TestParseOpts(object):
+
+    def test_install(self):
+        cmd_name, cmd_args = parseopts(['install', 'foobar'])
+        assert cmd_name == 'install'
+        assert cmd_args == ['foobar']
+
+    def test_INSTALL_is_valid_replacement_for_install(self):
+        cmd_name, cmd_args = parseopts(['INSTALL', 'foobar'])
+        assert cmd_name == 'install'
+        assert cmd_args == ['foobar']
+
+    def test_invalid_command(self):
+        try:
+            parseopts(['yoyo', 'foobar'])
+            assert False
+        except CommandError:
+            # desired
+            pass
+
+    def test_capital_invalid_command(self):
+        # Issue #1561.
+        try:
+            parseopts(['Yoyo', 'foobar'])
+            assert False
+        except CommandError:
+            # desired
+            pass
+
+    def test_exit_on_empty_args(self):
+        try:
+            parseopts([])
+            assert False
+        except SystemExit:
+            # desired
+            pass
+
+    def test_exit_on_help(self):
+        try:
+            parseopts(['help'])
+            assert False
+        except SystemExit:
+            # desired
+            pass
