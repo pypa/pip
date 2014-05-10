@@ -41,6 +41,7 @@ commands_order = [
     WheelCommand,
     ZipCommand,
     UnzipCommand,
+    CompletionCommand,
     HelpCommand,
 ]
 
