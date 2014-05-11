@@ -138,7 +138,7 @@ class UninstallPathSet(object):
             tmp_path = self._stash(path)
             logger.info('Replacing %s' % path)
             renames(tmp_path, path)
-        for pth in self.pth:
+        for pth in self.pth.values():
             pth.rollback()
 
     def commit(self):
