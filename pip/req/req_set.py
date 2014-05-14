@@ -2,7 +2,7 @@ import os
 import shutil
 
 from pip._vendor import pkg_resources
-from pip.backwardcompat import HTTPError
+from pip.compat import HTTPError
 from pip.download import (url_to_path, unpack_vcs_link, is_vcs_url,
                           is_file_url, unpack_file_url, unpack_http_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,

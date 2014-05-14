@@ -1,4 +1,4 @@
-from pip.backwardcompat import StringIO
+from pip.compat import StringIO
 from pip.log import should_color, should_warn, Logger
 
 

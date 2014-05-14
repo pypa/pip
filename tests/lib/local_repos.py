@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 import subprocess
 from pip.vcs import subversion, git, bazaar, mercurial
-from pip.backwardcompat import urlretrieve
+from pip.compat import urlretrieve
 from tests.lib import path_to_url
 
 

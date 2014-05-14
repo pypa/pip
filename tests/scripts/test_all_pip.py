@@ -4,7 +4,7 @@ import sys
 import subprocess
 from os.path import dirname, abspath
 
-from pip.backwardcompat import urllib
+from pip.compat import urllib
 from pip.util import rmtree
 
 

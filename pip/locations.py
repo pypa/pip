@@ -10,7 +10,7 @@ from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS
 
 from pip import appdirs
-from pip.backwardcompat import get_path_uid
+from pip.compat import get_path_uid
 import pip.exceptions
 
 

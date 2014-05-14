@@ -1,5 +1,5 @@
 import os
-from pip.backwardcompat import get_path_uid
+from pip.compat import get_path_uid
 import pytest
 
 

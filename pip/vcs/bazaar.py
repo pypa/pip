@@ -1,7 +1,7 @@
 import os
 import tempfile
 import re
-from pip.backwardcompat import urlparse
+from pip.compat import urlparse
 from pip.log import logger
 from pip.util import rmtree, display_path, call_subprocess
 from pip.vcs import vcs, VersionControl

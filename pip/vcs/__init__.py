@@ -3,7 +3,7 @@
 import os
 import shutil
 
-from pip.backwardcompat import urlparse, urllib
+from pip.compat import urlparse, urllib
 from pip.log import logger
 from pip.util import (display_path, backup_dir, find_command,
                       rmtree, ask_path_exists)

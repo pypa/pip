@@ -6,7 +6,7 @@ import os
 import textwrap
 from distutils.util import strtobool
 
-from pip.backwardcompat import ConfigParser, string_types
+from pip.compat import ConfigParser, string_types
 from pip.locations import (
     default_config_file, default_config_basename, running_under_virtualenv,
 )

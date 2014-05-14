@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 
-from pip.backwardcompat import uses_pycache, b
+from pip.compat import uses_pycache, b
 from pip.exceptions import UninstallationError
 from pip.log import logger
 from pip.util import (rmtree, ask, is_local, dist_is_local, renames,

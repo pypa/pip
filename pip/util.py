@@ -10,7 +10,7 @@ import tarfile
 import zipfile
 
 from pip.exceptions import InstallationError, BadCommand
-from pip.backwardcompat import(
+from pip.compat import(
     string_types, raw_input, console_to_str, stdlib_pkgs
 )
 from pip.locations import (
