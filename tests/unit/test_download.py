@@ -7,7 +7,7 @@ from mock import Mock, patch
 import pytest
 
 import pip
-from pip.backwardcompat import BytesIO, b, pathname2url
+from pip.compat import BytesIO, b, pathname2url
 from pip.exceptions import HashMismatch
 from pip.download import (
     PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,

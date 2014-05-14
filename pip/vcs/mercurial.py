@@ -7,7 +7,7 @@ from pip.util import display_path, rmtree
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
-from pip.backwardcompat import ConfigParser
+from pip.compat import ConfigParser
 
 
 class Mercurial(VersionControl):

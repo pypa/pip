@@ -15,7 +15,7 @@ import sys
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip.backwardcompat import ConfigParser, StringIO, binary
+from pip.compat import ConfigParser, StringIO, binary
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger

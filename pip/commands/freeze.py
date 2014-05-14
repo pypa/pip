@@ -2,7 +2,7 @@ import re
 import sys
 import pip
 
-from pip.backwardcompat import stdlib_pkgs
+from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command

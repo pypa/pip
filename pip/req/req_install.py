@@ -10,7 +10,7 @@ from email.parser import FeedParser
 
 import pip.wheel
 from pip._vendor import pkg_resources, six
-from pip.backwardcompat import (
+from pip.compat import (
     urllib, ConfigParser, string_types,
 )
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file

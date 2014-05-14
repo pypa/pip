@@ -12,7 +12,7 @@ import tempfile
 
 import pip
 
-from pip.backwardcompat import urllib, urlparse, raw_input
+from pip.compat import urllib, urlparse, raw_input
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file)

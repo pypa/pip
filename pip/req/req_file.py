@@ -1,7 +1,7 @@
 import os
 import re
 
-from pip.backwardcompat import urlparse
+from pip.compat import urlparse
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.util import normalize_name

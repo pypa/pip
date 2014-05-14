@@ -1,6 +1,6 @@
 import textwrap
 
-from pip.backwardcompat import urllib
+from pip.compat import urllib
 
 from tests.lib import pyversion
 
