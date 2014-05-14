@@ -20,7 +20,7 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
-from pip.util import call_subprocess, normalize_path, make_path_relative
+from pip.util import call_subprocess, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 
@@ -513,7 +513,7 @@ class WheelBuilder(object):
                  global_options=[]):
         self.requirement_set = requirement_set
         self.finder = finder
-        self.wheel_dir = normalize_path(wheel_dir)
+        self.wheel_dir = wheel_dir
         self.build_options = build_options
         self.global_options = global_options
 
