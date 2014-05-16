@@ -16,6 +16,7 @@ from pip.compat import urllib, urlparse
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file)
+from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip.log import logger
 from pip._vendor import requests, six
@@ -34,7 +35,8 @@ from pip._vendor.six.moves import xmlrpc_client
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
+           'unpack_file_url', 'is_vcs_url', 'is_file_url',
+           'unpack_http_url', 'unpack_url']
 
 
 def user_agent():
@@ -722,3 +724,34 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             logger.fatal("HTTP error {0} while getting {1}".format(
                          exc.response.status_code, url))
             raise
+
+
+def unpack_url(link, location, download_dir=None,
+               only_download=False, session=None):
+    """Unpack link into location
+       If only_download is True, the unpacked directory will be
+       marked by pip for deletion.
+    """
+    if session is None:
+        session = PipSession()
+
+    # non-editable vcs urls
+    if is_vcs_url(link):
+        unpack_vcs_link(link, location, only_download)
+
+    # file urls
+    elif is_file_url(link):
+        unpack_file_url(link, location, download_dir)
+        if only_download:
+            write_delete_marker_file(location)
+
+    # http urls
+    else:
+        unpack_http_url(
+            link,
+            location,
+            download_dir,
+            session,
+        )
+        if only_download:
+            write_delete_marker_file(location)
