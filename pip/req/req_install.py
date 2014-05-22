@@ -130,19 +130,15 @@ class InstallRequirement(object):
                 )
             link = Link(path_to_url(name))
 
-        # If the line has an egg= definition, but isn't editable, pull the
-        # requirement out. Otherwise, assume the name is the req for the non
-        # URL/path/archive case.
-        if link and req is None:
-            url = link.url_without_fragment
-            # when fragment is None, this will become an 'unnamed' requirement
-            req = link.egg_fragment
+        # it's a local file, dir, or url
+        if link:
 
+            url = link.url_without_fragment
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', url):
                 url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
 
-            # fail early for invalid or unsupported wheels
+            # wheel file
             if link.ext == wheel_ext:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
                 if not wheel.supported():
@@ -150,7 +146,13 @@ class InstallRequirement(object):
                         "%s is not a supported wheel on this platform." %
                         wheel.filename
                     )
+                req = "%s==%s" % (wheel.name, wheel.version)
+            else:
+                # set the req to the egg fragment.  when it's not there, this
+                # will become an 'unnamed' requirement
+                req = link.egg_fragment
 
+        # a requirement specifier
         else:
             req = name
 
