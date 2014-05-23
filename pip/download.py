@@ -648,6 +648,9 @@ def unpack_http_url(link, location, download_dir=None, session=None):
 
 
 def unpack_file_url(link, location, download_dir=None):
+    """Unpack link into location.
+    If download_dir is provided and link points to a file, make a copy
+    of the link file inside download_dir."""
 
     link_path = url_to_path(link.url_without_fragment)
     already_downloaded = False
@@ -657,6 +660,8 @@ def unpack_file_url(link, location, download_dir=None):
         if os.path.isdir(location):
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
+        if download_dir:
+            logger.notify('Link is a directory, ignoring download_dir')
         return
 
     # if link has a hash, let's confirm it matches
@@ -728,9 +733,14 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 def unpack_url(link, location, download_dir=None,
                only_download=False, session=None):
-    """Unpack link into location
-       If only_download is True, the unpacked directory will be
-       marked by pip for deletion.
+    """Unpack link.
+       If link is a VCS link:
+         if only_download, export into download_dir and ignore location
+          else unpack into location
+       for other types of link:
+         - unpack into location
+         - if download_dir, copy the file into download_dir
+         - if only_download, mark location for deletion
     """
     if session is None:
         session = PipSession()
