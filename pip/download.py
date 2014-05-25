@@ -513,6 +513,8 @@ def _download_url(resp, link, temp_location):
     finally:
         if show_progress:
             logger.end_progress('%s downloaded' % format_size(downloaded))
+        if link.hash and link.hash_name:
+            _check_hash(download_hash, link)
     return download_hash
 
 
@@ -547,102 +549,28 @@ def unpack_http_url(link, location, download_dir=None, session=None):
         )
 
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
-    from_path = None
-    target_url = link.url.split('#', 1)[0]
-
-    download_hash = None
 
     # If a download dir is specified, is the file already downloaded there?
-    already_downloaded = False
+    already_downloaded_path = None
     if download_dir:
-        download_path = os.path.join(download_dir, link.filename)
-        if os.path.exists(download_path):
-            # If already downloaded, does its hash match?
-            content_type = mimetypes.guess_type(download_path)[0]
-            logger.notify('File was already downloaded %s' % download_path)
-            if link.hash:
-                download_hash = _get_hash_from_file(download_path, link)
-                try:
-                    _check_hash(download_hash, link)
-                    already_downloaded = True
-                except HashMismatch:
-                    logger.warn(
-                        'Previously-downloaded file %s has bad hash, '
-                        're-downloading.' % download_path
-                    )
-                    os.unlink(download_path)
-                    already_downloaded = False
-            else:
-                already_downloaded = True
+        already_downloaded_path = _check_download_dir(link, download_dir)
 
-    if already_downloaded:
-        from_path = download_path
+    if already_downloaded_path:
+        from_path = already_downloaded_path
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        try:
-            resp = session.get(
-                target_url,
-                # We use Accept-Encoding: identity here because requests
-                # defaults to accepting compressed responses. This breaks in
-                # a variety of ways depending on how the server is configured.
-                # - Some servers will notice that the file isn't a compressible
-                #   file and will leave the file alone and with an empty
-                #   Content-Encoding
-                # - Some servers will notice that the file is already
-                #   compressed and will leave the file alone and will add a
-                #   Content-Encoding: gzip header
-                # - Some servers won't notice anything at all and will take
-                #   a file that's already been compressed and compress it again
-                #   and set the Content-Encoding: gzip header
-                # By setting this to request only the identity encoding We're
-                # hoping to eliminate the third case. Hopefully there does not
-                # exist a server which when given a file will notice it is
-                # already compressed and that you're not asking for a
-                # compressed file and will then decompress it before sending
-                # because if that's the case I don't think it'll ever be
-                # possible to make this work.
-                headers={"Accept-Encoding": "identity"},
-                stream=True,
-            )
-            resp.raise_for_status()
-        except requests.HTTPError as exc:
-            logger.fatal("HTTP error %s while getting %s" %
-                         (exc.response.status_code, link))
-            raise
-
-        content_type = resp.headers.get('content-type', '')
-        filename = link.filename  # fallback
-        # Have a look at the Content-Disposition header for a better guess
-        content_disposition = resp.headers.get('content-disposition')
-        if content_disposition:
-            type, params = cgi.parse_header(content_disposition)
-            # We use ``or`` here because we don't want to use an "empty" value
-            # from the filename param.
-            filename = params.get('filename') or filename
-        ext = splitext(filename)[1]
-        if not ext:
-            ext = mimetypes.guess_extension(content_type)
-            if ext:
-                filename += ext
-        if not ext and link.url != resp.url:
-            ext = os.path.splitext(resp.url)[1]
-            if ext:
-                filename += ext
-        from_path = os.path.join(temp_dir, filename)
-        download_hash = _download_url(resp, link, from_path)
-        if link.hash and link.hash_name:
-            _check_hash(download_hash, link)
+        from_path, content_type = _download_http_url(link, session, temp_dir)
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
     unpack_file(from_path, location, content_type, link)
 
     # a download dir is specified; let's copy the archive there
-    if download_dir and not already_downloaded:
+    if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, content_type, link)
 
-    if not already_downloaded:
+    if not already_downloaded_path:
         os.unlink(from_path)
     os.rmdir(temp_dir)
 
@@ -653,7 +581,6 @@ def unpack_file_url(link, location, download_dir=None):
     of the link file inside download_dir."""
 
     link_path = url_to_path(link.url_without_fragment)
-    already_downloaded = False
 
     # If it's a url to a local directory
     if os.path.isdir(link_path):
@@ -670,27 +597,12 @@ def unpack_file_url(link, location, download_dir=None):
         _check_hash(link_path_hash, link)
 
     # If a download dir is specified, is the file already there and valid?
+    already_downloaded_path = None
     if download_dir:
-        download_path = os.path.join(download_dir, link.filename)
-        if os.path.exists(download_path):
-            content_type = mimetypes.guess_type(download_path)[0]
-            logger.notify('File was already downloaded %s' % download_path)
-            if link.hash:
-                download_hash = _get_hash_from_file(download_path, link)
-                try:
-                    _check_hash(download_hash, link)
-                    already_downloaded = True
-                except HashMismatch:
-                    logger.warn(
-                        'Previously-downloaded file %s has bad hash, '
-                        're-downloading.' % link_path
-                    )
-                    os.unlink(download_path)
-            else:
-                already_downloaded = True
+        already_downloaded_path = _check_download_dir(link, download_dir)
 
-    if already_downloaded:
-        from_path = download_path
+    if already_downloaded_path:
+        from_path = already_downloaded_path
     else:
         from_path = link_path
 
@@ -701,7 +613,7 @@ def unpack_file_url(link, location, download_dir=None):
     unpack_file(from_path, location, content_type, link)
 
     # a download dir is specified and not already downloaded
-    if download_dir and not already_downloaded:
+    if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, content_type, link)
 
 
@@ -765,3 +677,83 @@ def unpack_url(link, location, download_dir=None,
         )
         if only_download:
             write_delete_marker_file(location)
+
+
+def _download_http_url(link, session, temp_dir):
+    """Download link url into temp_dir using provided session"""
+    target_url = link.url.split('#', 1)[0]
+    try:
+        resp = session.get(
+            target_url,
+            # We use Accept-Encoding: identity here because requests
+            # defaults to accepting compressed responses. This breaks in
+            # a variety of ways depending on how the server is configured.
+            # - Some servers will notice that the file isn't a compressible
+            #   file and will leave the file alone and with an empty
+            #   Content-Encoding
+            # - Some servers will notice that the file is already
+            #   compressed and will leave the file alone and will add a
+            #   Content-Encoding: gzip header
+            # - Some servers won't notice anything at all and will take
+            #   a file that's already been compressed and compress it again
+            #   and set the Content-Encoding: gzip header
+            # By setting this to request only the identity encoding We're
+            # hoping to eliminate the third case. Hopefully there does not
+            # exist a server which when given a file will notice it is
+            # already compressed and that you're not asking for a
+            # compressed file and will then decompress it before sending
+            # because if that's the case I don't think it'll ever be
+            # possible to make this work.
+            headers={"Accept-Encoding": "identity"},
+            stream=True,
+        )
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        logger.fatal("HTTP error %s while getting %s" %
+                     (exc.response.status_code, link))
+        raise
+
+    content_type = resp.headers.get('content-type', '')
+    filename = link.filename  # fallback
+    # Have a look at the Content-Disposition header for a better guess
+    content_disposition = resp.headers.get('content-disposition')
+    if content_disposition:
+        type, params = cgi.parse_header(content_disposition)
+        # We use ``or`` here because we don't want to use an "empty" value
+        # from the filename param.
+        filename = params.get('filename') or filename
+    ext = splitext(filename)[1]
+    if not ext:
+        ext = mimetypes.guess_extension(content_type)
+        if ext:
+            filename += ext
+    if not ext and link.url != resp.url:
+        ext = os.path.splitext(resp.url)[1]
+        if ext:
+            filename += ext
+    file_path = os.path.join(temp_dir, filename)
+    _download_url(resp, link, file_path)
+    return file_path, content_type
+
+
+def _check_download_dir(link, download_dir):
+    """ Check download_dir for previously downloaded file with correct hash
+        If a correct file is found return its path else None
+    """
+    download_path = os.path.join(download_dir, link.filename)
+    if os.path.exists(download_path):
+        # If already downloaded, does its hash match?
+        logger.notify('File was already downloaded %s' % download_path)
+        if link.hash:
+            download_hash = _get_hash_from_file(download_path, link)
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warn(
+                    'Previously-downloaded file %s has bad hash, '
+                    're-downloading.' % download_path
+                )
+                os.unlink(download_path)
+                return None
+        return download_path
+    return None
