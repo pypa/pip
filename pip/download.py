@@ -547,38 +547,39 @@ def unpack_http_url(link, location, download_dir=None, session=None):
         )
 
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
-    temp_location = None
+    from_path = None
     target_url = link.url.split('#', 1)[0]
 
     download_hash = None
 
     # If a download dir is specified, is the file already downloaded there?
-    already_downloaded = None
+    already_downloaded = False
     if download_dir:
-        already_downloaded = os.path.join(download_dir, link.filename)
-        if not os.path.exists(already_downloaded):
-            already_downloaded = None
+        download_path = os.path.join(download_dir, link.filename)
+        if os.path.exists(download_path):
+            # If already downloaded, does its hash match?
+            content_type = mimetypes.guess_type(download_path)[0]
+            logger.notify('File was already downloaded %s' % download_path)
+            if link.hash:
+                download_hash = _get_hash_from_file(download_path, link)
+                try:
+                    _check_hash(download_hash, link)
+                    already_downloaded = True
+                except HashMismatch:
+                    logger.warn(
+                        'Previously-downloaded file %s has bad hash, '
+                        're-downloading.' % download_path
+                    )
+                    os.unlink(download_path)
+                    already_downloaded = False
+            else:
+                already_downloaded = True
 
-    # If already downloaded, does its hash match?
     if already_downloaded:
-        temp_location = already_downloaded
-        content_type = mimetypes.guess_type(already_downloaded)[0]
-        logger.notify('File was already downloaded %s' % already_downloaded)
-        if link.hash:
-            download_hash = _get_hash_from_file(temp_location, link)
-            try:
-                _check_hash(download_hash, link)
-            except HashMismatch:
-                logger.warn(
-                    'Previously-downloaded file %s has bad hash, '
-                    're-downloading.' % temp_location
-                )
-                temp_location = None
-                os.unlink(already_downloaded)
-                already_downloaded = None
-
-    # let's download to a tmp dir
-    if not temp_location:
+        from_path = download_path
+        content_type = mimetypes.guess_type(from_path)[0]
+    else:
+        # let's download to a tmp dir
         try:
             resp = session.get(
                 target_url,
@@ -628,22 +629,21 @@ def unpack_http_url(link, location, download_dir=None, session=None):
             ext = os.path.splitext(resp.url)[1]
             if ext:
                 filename += ext
-        temp_location = os.path.join(temp_dir, filename)
-        download_hash = _download_url(resp, link, temp_location)
+        from_path = os.path.join(temp_dir, filename)
+        download_hash = _download_url(resp, link, from_path)
         if link.hash and link.hash_name:
             _check_hash(download_hash, link)
 
-    # a download dir is specified; let's copy the archive there
-    if download_dir and not already_downloaded:
-        _copy_file(temp_location, download_dir, content_type, link)
-
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
-    unpack_file(temp_location, location, content_type, link)
+    unpack_file(from_path, location, content_type, link)
+
+    # a download dir is specified; let's copy the archive there
+    if download_dir and not already_downloaded:
+        _copy_file(from_path, download_dir, content_type, link)
 
     if not already_downloaded:
-        os.unlink(temp_location)
-
+        os.unlink(from_path)
     os.rmdir(temp_dir)
 
 
