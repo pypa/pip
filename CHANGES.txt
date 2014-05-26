@@ -46,8 +46,13 @@
   https://pip.pypa.io/en/latest/reference/pip_install.html#caching
 
 
-**1.5.6 (2014-05-16)**
+**1.5.7**
 
+* Fixed Issue #1825. When installing directly from wheel paths or urls,
+  previous versions were not uninstalled. (PR #1838)
+
+
+**1.5.6 (2014-05-16)**
 
 * Upgrade requests to 2.3.0 to fix an issue with proxies on Python 3.4.1
   (PR #1821).
