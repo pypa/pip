@@ -8,7 +8,10 @@ import pip.wheel
 
 from pkg_resources import Distribution
 from mock import Mock, patch, mock_open
-from pip.exceptions import PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel
+from pip.exceptions import (
+    PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
+)
+from pip._vendor import pkg_resources
 from pip.index import PackageFinder
 from pip.log import logger
 from pip.req import (read_text_file, InstallRequirement, RequirementSet,
@@ -84,6 +87,10 @@ class TestInstallRequirement(object):
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
             req = InstallRequirement.from_line('invalid.whl')
+
+    def test_wheel_requirement_sets_req_attribute(self):
+        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        assert req.req == pkg_resources.Requirement.parse('simple==0.1')
 
 
 def test_requirements_data_structure_keeps_order():
