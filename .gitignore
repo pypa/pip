@@ -6,4 +6,4 @@ MANIFEST
 .tox
 *.egg
 *.py[cod]
-*.~
+*~
