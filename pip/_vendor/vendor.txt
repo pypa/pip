@@ -1,4 +1,4 @@
-distlib==0.1.8
+distlib==0.1.9
 html5lib==1.0b3
 six==1.6.1
 colorama==0.3.1
