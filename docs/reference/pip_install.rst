@@ -75,8 +75,9 @@ Some Examples:
 
 .. note::
 
-  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being
+  Use single or double quotes around specifiers when using them in a shell to avoid ``>`` and ``<`` being
   interpreted as shell redirects. e.g. ``pip install 'FooProject>=1.2'``.
+  Don't use single or double quotes in a ``requirements.txt`` file.
 
 
 
