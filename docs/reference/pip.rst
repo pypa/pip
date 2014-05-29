@@ -94,29 +94,6 @@ when decision is needed.
     So the most recent backup will be the one with the largest number after ``.bak``.
 
 
-.. _`uncommited-action`:
-
---uncommited-action option
-==========================
-
-This option specifies default behavior when some uncommited files
-were found in an editable repository to be reinstalled. Right now
-this option works only for Git, which previously wiped out all uncommited
-changes.
-
-If you select to continue, then all uncommited changes will be lost due
-to nature of ``git reset --hard``. If you select to ``skip``, then
-pip will skip this destructive operation and leave uncommited changes as is.
-
-If ``--uncommited-action`` is not defined, pip will prompt
-when decision is needed.
-
-*(c)continue*
-    Go and wipe all uncommited changes.
-*(s)skip*
-    Skip current operation. Don't do ``git reset --hard``.
-
-
 .. _`General Options`:
 
 General Options

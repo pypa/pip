@@ -206,7 +206,7 @@ def test_git_should_care_about_uncommited_changes(script):
     in repository
     """
     version_pkg_path = _create_test_package(script)
-    script.pip('install', '-e',
+    result = script.pip('install', '-e',
                'git+file://' +
                version_pkg_path.abspath.replace('\\', '/') +
                '#egg=version_pkg')
@@ -217,10 +217,14 @@ def test_git_should_care_about_uncommited_changes(script):
         f.write('# BLAH AGAIN')
 
     # now install package again
-    script.pip('install', '--uncommited-action=s', '-e',
-               'git+file://' +
-               version_pkg_path.abspath.replace('\\', '/') +
-               '#egg=version_pkg')
+    result = script.pip('install', '-e',
+                        'git+file://' +
+                        version_pkg_path.abspath.replace('\\', '/') +
+                        '#egg=version_pkg',
+                        expect_error=True)
+    
+    assert 'Uncommited files were detected' in result.stdout
+
 
     # and check that nothing happened with modified file
     result = script.run('git', 'status', '--porcelain', '--untracked-files=no',
