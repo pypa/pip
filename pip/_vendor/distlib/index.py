@@ -148,7 +148,8 @@ class PackageIndex(object):
             logger.debug('%s: %s' % (name, s))
         stream.close()
 
-    def get_sign_command(self, filename, signer, sign_password):
+    def get_sign_command(self, filename, signer, sign_password,
+                         keystore=None):
         """
         Return a suitable command for signing a file.
 
@@ -156,12 +157,17 @@ class PackageIndex(object):
         :param signer: The identifier of the signer of the file.
         :param sign_password: The passphrase for the signer's
                               private key used for signing.
+        :param keystore: The path to a directory which contains the keys
+                         used in verification. If not specified, the
+                         instance's ``gpg_home`` attribute is used instead.
         :return: The signing command as a list suitable to be
                  passed to :class:`subprocess.Popen`.
         """
         cmd = [self.gpg, '--status-fd', '2', '--no-tty']
-        if self.gpg_home:
-            cmd.extend(['--homedir', self.gpg_home])
+        if keystore is None:
+            keystore = self.gpg_home
+        if keystore:
+            cmd.extend(['--homedir', keystore])
         if sign_password is not None:
             cmd.extend(['--batch', '--passphrase-fd', '0'])
         td = tempfile.mkdtemp()
@@ -206,7 +212,7 @@ class PackageIndex(object):
         t2.join()
         return p.returncode, stdout, stderr
 
-    def sign_file(self, filename, signer, sign_password):
+    def sign_file(self, filename, signer, sign_password, keystore=None):
         """
         Sign a file.
 
@@ -214,10 +220,14 @@ class PackageIndex(object):
         :param signer: The identifier of the signer of the file.
         :param sign_password: The passphrase for the signer's
                               private key used for signing.
+        :param keystore: The path to a directory which contains the keys
+                         used in signing. If not specified, the instance's
+                         ``gpg_home`` attribute is used instead.
         :return: The absolute pathname of the file where the signature is
                  stored.
         """
-        cmd, sig_file = self.get_sign_command(filename, signer, sign_password)
+        cmd, sig_file = self.get_sign_command(filename, signer, sign_password,
+                                              keystore)
         rc, stdout, stderr = self.run_command(cmd,
                                               sign_password.encode('utf-8'))
         if rc != 0:
@@ -226,7 +236,7 @@ class PackageIndex(object):
         return sig_file
 
     def upload_file(self, metadata, filename, signer=None, sign_password=None,
-                    filetype='sdist', pyversion='source'):
+                    filetype='sdist', pyversion='source', keystore=None):
         """
         Upload a release file to the index.
 
@@ -242,6 +252,9 @@ class PackageIndex(object):
         :param pyversion: The version of Python which the release relates
                           to. For code compatible with any Python, this would
                           be ``source``, otherwise it would be e.g. ``3.2``.
+        :param keystore: The path to a directory which contains the keys
+                         used in signing. If not specified, the instance's
+                         ``gpg_home`` attribute is used instead.
         :return: The HTTP response received from PyPI upon submission of the
                 request.
         """
@@ -255,7 +268,8 @@ class PackageIndex(object):
             if not self.gpg:
                 logger.warning('no signing program available - not signed')
             else:
-                sig_file = self.sign_file(filename, signer, sign_password)
+                sig_file = self.sign_file(filename, signer, sign_password,
+                                          keystore)
         with open(filename, 'rb') as f:
             file_data = f.read()
         md5_digest = hashlib.md5(file_data).hexdigest()
@@ -306,7 +320,8 @@ class PackageIndex(object):
         request = self.encode_request(fields, files)
         return self.send_request(request)
 
-    def get_verify_command(self, signature_filename, data_filename):
+    def get_verify_command(self, signature_filename, data_filename,
+                           keystore=None):
         """
         Return a suitable command for verifying a file.
 
@@ -314,17 +329,23 @@ class PackageIndex(object):
                                    signature.
         :param data_filename: The pathname to the file containing the
                               signed data.
+        :param keystore: The path to a directory which contains the keys
+                         used in verification. If not specified, the
+                         instance's ``gpg_home`` attribute is used instead.
         :return: The verifying command as a list suitable to be
                  passed to :class:`subprocess.Popen`.
         """
         cmd = [self.gpg, '--status-fd', '2', '--no-tty']
-        if self.gpg_home:
-            cmd.extend(['--homedir', self.gpg_home])
+        if keystore is None:
+            keystore = self.gpg_home
+        if keystore:
+            cmd.extend(['--homedir', keystore])
         cmd.extend(['--verify', signature_filename, data_filename])
         logger.debug('invoking: %s', ' '.join(cmd))
         return cmd
 
-    def verify_signature(self, signature_filename, data_filename):
+    def verify_signature(self, signature_filename, data_filename,
+                         keystore=None):
         """
         Verify a signature for a file.
 
@@ -332,12 +353,16 @@ class PackageIndex(object):
                                    signature.
         :param data_filename: The pathname to the file containing the
                               signed data.
+        :param keystore: The path to a directory which contains the keys
+                         used in verification. If not specified, the
+                         instance's ``gpg_home`` attribute is used instead.
         :return: True if the signature was verified, else False.
         """
         if not self.gpg:
             raise DistlibException('verification unavailable because gpg '
                                    'unavailable')
-        cmd = self.get_verify_command(signature_filename, data_filename)
+        cmd = self.get_verify_command(signature_filename, data_filename,
+                                      keystore)
         rc, stdout, stderr = self.run_command(cmd)
         if rc not in (0, 1):
             raise DistlibException('verify command failed with error '
