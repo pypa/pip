@@ -22,7 +22,7 @@ def test_proxy_detection_and_url_with_embedded_login_password():
     make the url too long.
     This may happen with localshop mirror.
     """
-    url = "https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy@localhost/simple/"
+    url = "https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx:" \
+        "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy@localhost/simple/"
     from pip._vendor.requests.utils import get_environ_proxies
-    proxies = get_environ_proxies(url)
-
+    get_environ_proxies(url)
