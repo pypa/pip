@@ -12,7 +12,7 @@ import tempfile
 
 import pip
 
-from pip.compat import urllib, urlparse, raw_input
+from pip.compat import urllib, urlparse
 from pip.exceptions import InstallationError, HashMismatch
 from pip.util import (splitext, rmtree, format_size, display_path,
                       backup_dir, ask_path_exists, unpack_file)
@@ -117,7 +117,7 @@ class MultiDomainBasicAuth(AuthBase):
         parsed = urlparse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
-        username = raw_input("User for %s: " % parsed.netloc)
+        username = six.moves.input("User for %s: " % parsed.netloc)
         password = getpass.getpass("Password: ")
 
         # Store the new username and password to use for future requests

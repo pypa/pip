@@ -15,7 +15,7 @@ import sys
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip.compat import ConfigParser, StringIO, binary
+from pip.compat import StringIO, binary
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
@@ -23,6 +23,7 @@ from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
+from pip._vendor.six.moves import configparser
 
 
 wheel_ext = '.whl'
@@ -114,7 +115,7 @@ def get_entrypoints(filename):
             data.write("\n")
         data.seek(0)
 
-    cp = ConfigParser.RawConfigParser()
+    cp = configparser.RawConfigParser()
     cp.readfp(data)
 
     console = {}

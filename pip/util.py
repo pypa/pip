@@ -11,15 +11,16 @@ import zipfile
 
 from pip.exceptions import InstallationError, BadCommand
 from pip.compat import(
-    string_types, raw_input, console_to_str, stdlib_pkgs
+    console_to_str, stdlib_pkgs
 )
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file
 )
 from pip.log import logger
-from pip._vendor import pkg_resources
+from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
+from pip._vendor.six.moves import input
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -85,7 +86,7 @@ def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
     if paths is None:
         paths = os.environ.get('PATH', '').split(os.pathsep)
-    if isinstance(paths, string_types):
+    if isinstance(paths, six.string_types):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
@@ -131,7 +132,7 @@ def ask(message, options):
                 'No input was expected ($PIP_NO_INPUT set); question: %s' %
                 message
             )
-        response = raw_input(message)
+        response = input(message)
         response = response.strip().lower()
         if response not in options:
             print(

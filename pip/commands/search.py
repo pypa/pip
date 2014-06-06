@@ -4,10 +4,11 @@ import textwrap
 from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size
 from pip.log import logger
-from pip.compat import xmlrpclib, reduce, cmp
+from pip.compat import reduce, cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 from pip._vendor import pkg_resources
+from pip._vendor.six.moves import xmlrpc_client
 from distutils.version import StrictVersion, LooseVersion
 
 
@@ -48,7 +49,7 @@ class SearchCommand(Command):
         return NO_MATCHES_FOUND
 
     def search(self, query, index_url):
-        pypi = xmlrpclib.ServerProxy(index_url)
+        pypi = xmlrpc_client.ServerProxy(index_url)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
