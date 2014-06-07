@@ -241,6 +241,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
             clobber(source, dest, False, fixer=fixer, filter=filter)
 
     maker = ScriptMaker(None, scheme['scripts'])
+    
+    # Ensure old scripts are overwritten.
+    # See https://github.com/pypa/pip/issues/1800
+    maker.clobber = True
 
     # Ensure we don't generate any variants for scripts because this is almost
     # never what somebody wants.
