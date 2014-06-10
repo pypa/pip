@@ -148,10 +148,10 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         [global]
         index-url = http://download.zope.org/ppix
         [install]
-        index-url = http://pypi.appspot.com/
+        index-url = https://pypi.gocept.com/
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page http://pypi.appspot.com/INITools" in result.stdout
+    assert "Getting page https://pypi.gocept.com/INITools" in result.stdout
     result = script.pip(
         'install', '-vvv', '--index-url', 'http://pypi.python.org/simple',
         'INITools',
@@ -161,7 +161,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         "Getting page http://download.zope.org/ppix/INITools"
         not in result.stdout
     )
-    assert "Getting page http://pypi.appspot.com/INITools" not in result.stdout
+    assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
     assert (
         "Getting page http://pypi.python.org/simple/INITools" in result.stdout
     )
