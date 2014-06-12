@@ -1,3 +1,4 @@
+import hashlib
 import re
 import sys
 import pip
@@ -67,7 +68,19 @@ class FreezeCommand(Command):
         if skip_regex:
             skip_match = re.compile(skip_regex)
 
-        f = sys.stdout
+        class FileWithMD5(object):
+            def __init__(self, f):
+                self.f = f
+                self.md5 = hashlib.md5()
+
+            def write(self, data):
+                self.f.write(data)
+                self.md5.update(data.encode('utf-8'))
+
+            def hexdigest(self):
+                return self.md5.hexdigest()
+
+        f = FileWithMD5(sys.stdout)
 
         for link in find_links:
             f.write('-f %s\n' % link)
@@ -131,3 +144,5 @@ class FreezeCommand(Command):
         for installation in sorted(
                 installations.values(), key=lambda x: x.name.lower()):
             f.write(str(installation))
+
+        f.write("\n# MD5 for package list: %s\n" % f.hexdigest())
