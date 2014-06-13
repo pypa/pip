@@ -48,6 +48,9 @@
 * Fixed :issue:`1680`. Attempt to locate system TLS certificates to use instead
   of the included CA Bundle if possible. (:pull:`1866`)
 
+* Fixed :issue:`1319`. Allow use of Zip64 extension in Wheels and other zip
+  files. (:pull:`1868`)
+
 
 **1.5.7**
 

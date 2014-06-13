@@ -680,7 +680,10 @@ exec(compile(
                 )
                 shutil.move(archive_path, dest_file)
         if create_archive:
-            zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED)
+            zip = zipfile.ZipFile(
+                archive_path, 'w', zipfile.ZIP_DEFLATED,
+                allowZip64=True
+            )
             dir = os.path.normcase(os.path.abspath(self.source_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
