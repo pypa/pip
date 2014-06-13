@@ -160,7 +160,7 @@ class Git(VersionControl):
         refs = self.get_refs(location)
         # refs maps names to commit hashes; we need the inverse
         # if multiple names map to a single commit, this arbitrarily picks one
-        names_by_commit = dict((commit, ref) for ref, commit in refs.items())
+        names_by_commit = dict((commit, ref) for ref, commit in sorted(refs.items()))
 
         if current_rev in names_by_commit:
             # It's a tag
