@@ -501,7 +501,7 @@ def unzip_file(filename, location, flatten=True):
         os.makedirs(location)
     zipfp = open(filename, 'rb')
     try:
-        zip = zipfile.ZipFile(zipfp)
+        zip = zipfile.ZipFile(zipfp, allowZip64=True)
         leading = has_leading_dir(zip.namelist()) and flatten
         for info in zip.infolist():
             name = info.filename
