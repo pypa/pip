@@ -820,9 +820,12 @@ class HTMLPage(object):
     @property
     def base_url(self):
         if not hasattr(self, "_base_url"):
-            base = self.parsed.find(".//base")
-            if base is not None and base.get("href"):
-                self._base_url = base.get("href")
+            bases = [
+                x for x in self.parsed.findall(".//base")
+                if x.get("href") is not None
+            ]
+            if bases and bases[0].get("href"):
+                self._base_url = bases[0].get("href")
             else:
                 self._base_url = self.url
         return self._base_url

@@ -1,3 +1,5 @@
+import pytest
+
 from pip.download import PipSession
 from pip.index import package_to_requirement, HTMLPage
 from pip.index import PackageFinder, Link, INSTALLED_VERSION
@@ -80,3 +82,27 @@ class TestLink(object):
 
     def test_ext_query(self):
         assert '.whl' == Link('http://yo/wheel.whl?a=b').ext
+
+
+@pytest.mark.parametrize(
+    ("html", "url", "expected"),
+    [
+        ("<html></html>", "https://example.com/", "https://example.com/"),
+        (
+            "<html><head>"
+            "<base href=\"https://foo.example.com/\">"
+            "</head></html>",
+            "https://example.com/",
+            "https://foo.example.com/",
+        ),
+        (
+            "<html><head>"
+            "<base><base href=\"https://foo.example.com/\">"
+            "</head></html>",
+            "https://example.com/",
+            "https://foo.example.com/",
+        ),
+    ],
+)
+def test_base_url(html, url, expected):
+    assert HTMLPage(html, url).base_url == expected
