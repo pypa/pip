@@ -45,6 +45,9 @@
   until their removal in pip v1.8. For more information please see
   https://pip.pypa.io/en/latest/reference/pip_install.html#caching
 
+* Fixed :issue:`1680`. Attempt to locate system TLS certificates to use instead
+  of the included CA Bundle if possible. (:pull:`1866`)
+
 
 **1.5.7**
 
