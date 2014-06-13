@@ -10,7 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
 from pip.locations import (
-    USER_CACHE_DIR, build_prefix, default_log_file, src_prefix,
+    CA_BUNDLE_PATH, USER_CACHE_DIR, build_prefix, default_log_file, src_prefix,
 )
 
 
@@ -164,7 +164,7 @@ cert = OptionMaker(
     '--cert',
     dest='cert',
     type='str',
-    default='',
+    default=CA_BUNDLE_PATH,
     metavar='path',
     help="Path to alternate CA bundle.")
 

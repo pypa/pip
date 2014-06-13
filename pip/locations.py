@@ -2,6 +2,7 @@
 
 import getpass
 import os
+import os.path
 import site
 import sys
 import tempfile
@@ -11,11 +12,45 @@ from distutils.command.install import install, SCHEME_KEYS
 
 from pip import appdirs
 from pip.compat import get_path_uid
+
 import pip.exceptions
 
 
 # Hack for flake8
 install
+
+
+# CA Bundle Locations
+CA_BUNDLE_PATHS = [
+    # Debian/Ubuntu/Gentoo etc.
+    "/etc/ssl/certs/ca-certificates.crt",
+
+    # Fedora/RHEL
+    "/etc/pki/tls/certs/ca-bundle.crt",
+
+    # OpenSUSE
+    "/etc/ssl/ca-bundle.pem",
+
+    # OpenBSD
+    "/etc/ssl/cert.pem",
+
+    # FreeBSD/DragonFly
+    "/usr/local/share/certs/ca-root-nss.crt",
+
+    # Homebrew on OSX
+    "/usr/local/etc/openssl/cert.pem",
+]
+
+# Attempt to locate a CA Bundle that we can pass into requests, we have a list
+# of possible ones from various systems. If we cannot find one then we'll set
+# this to None so that we default to whatever requests is setup to handle.
+#
+# Note to Downstream: If you wish to disable this autodetection and simply use
+#                     whatever requests does (likely you've already patched
+#                     requests.certs.where()) then simply edit this line so
+#                     that it reads ``CA_BUNDLE_PATH = None``.
+CA_BUNDLE_PATH = next((x for x in CA_BUNDLE_PATHS if os.path.exists(x)), None)
+
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
