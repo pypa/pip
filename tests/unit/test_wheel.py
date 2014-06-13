@@ -5,7 +5,7 @@ import pytest
 from mock import patch, Mock
 
 from pip._vendor import pkg_resources
-from pip import wheel
+from pip import pep425tags, wheel
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.util import unpack_file
 
@@ -148,6 +148,90 @@ class TestWheelFile(object):
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert not w.supported(tags=[('py1', 'none', 'any')])
+
+    @patch('sys.platform', 'darwin')
+    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
+    def test_supported_osx_version(self):
+        """
+        Wheels built for OS X 10.6 are supported on 10.9
+        """
+        tags = pep425tags.get_supported(['27'], False)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
+        assert w.supported(tags=tags)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
+        assert w.supported(tags=tags)
+
+    @patch('sys.platform', 'darwin')
+    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
+    def test_not_supported_osx_version(self):
+        """
+        Wheels built for OS X 10.9 are not supported on 10.6
+        """
+        tags = pep425tags.get_supported(['27'], False)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
+        assert not w.supported(tags=tags)
+
+    @patch('sys.platform', 'darwin')
+    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    def test_supported_multiarch_darwin(self):
+        """
+        Multi-arch wheels (intel) are supported on components (i386, x86_64)
+        """
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_universal'):
+            universal = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_intel'):
+            intel = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_x86_64'):
+            x64 = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_i386'):
+            i386 = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_ppc'):
+            ppc = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_ppc64'):
+            ppc64 = pep425tags.get_supported(['27'], False)
+
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
+        assert w.supported(tags=intel)
+        assert w.supported(tags=x64)
+        assert w.supported(tags=i386)
+        assert not w.supported(tags=universal)
+        assert not w.supported(tags=ppc)
+        assert not w.supported(tags=ppc64)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_universal.whl')
+        assert w.supported(tags=universal)
+        assert w.supported(tags=intel)
+        assert w.supported(tags=x64)
+        assert w.supported(tags=i386)
+        assert w.supported(tags=ppc)
+        assert w.supported(tags=ppc64)
+
+    @patch('sys.platform', 'darwin')
+    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    def test_not_supported_multiarch_darwin(self):
+        """
+        Single-arch wheels (x86_64) are not supported on multi-arch (intel)
+        """
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_universal'):
+            universal = pep425tags.get_supported(['27'], False)
+        with patch('pip.pep425tags.get_platform',
+                   lambda: 'macosx_10_5_intel'):
+            intel = pep425tags.get_supported(['27'], False)
+
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')
+        assert not w.supported(tags=intel)
+        assert not w.supported(tags=universal)
+        w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_x86_64.whl')
+        assert not w.supported(tags=intel)
+        assert not w.supported(tags=universal)
 
     def test_support_index_min(self):
         """
