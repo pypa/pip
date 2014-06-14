@@ -10,7 +10,7 @@ def test_html_page_should_be_able_to_scrap_rel_links():
     Test scraping page looking for url in href
     """
     page = HTMLPage(
-        """
+        b"""
 <!-- The <th> elements below are a terrible terrible hack for setuptools -->
 <li>
 <strong>Home Page:</strong>

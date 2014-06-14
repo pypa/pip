@@ -110,6 +110,9 @@
 
 * Automatically retry failed HTTP requests by default. (:pull:`1444`, pull:`2147`)
 
+* Fixed :issue:`1100` - Handle HTML Encoding better using a method that is more
+  similar to how browsers handle it. (:pull:`1874`)
+
 
 **1.5.6 (2014-05-16)**
 
