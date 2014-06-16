@@ -45,7 +45,6 @@ except NameError:
 
 if sys.version_info >= (3,):
     from io import StringIO
-    from functools import reduce
     from urllib.error import URLError, HTTPError
     from urllib.request import url2pathname, urlretrieve, pathname2url
     import urllib.parse as urllib
@@ -91,7 +90,6 @@ else:
         result = http_message.getparam(param)
         return result or default_value
 
-    reduce = reduce
     cmp = cmp
 
 
