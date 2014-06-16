@@ -3,11 +3,12 @@ import os
 import sys
 import tempfile
 
-from pip.compat import uses_pycache, b
+from pip.compat import uses_pycache
 from pip.exceptions import UninstallationError
 from pip.log import logger
 from pip.util import (rmtree, ask, is_local, dist_is_local, renames,
                       normalize_path)
+from pip._vendor.six import b
 
 
 class UninstallPathSet(object):
