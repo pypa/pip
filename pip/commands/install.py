@@ -172,13 +172,21 @@ class InstallCommand(Command):
         This method is meant to be overridden by subclasses, not
         called directly.
         """
+
+        allow_external = options.allow_external
+        if options.allow_unverified:
+            logger.deprecated(
+                "1.8",
+                "--allow-unverified/--allow-insecure have been deprecated and "
+                "folded into --allow-external."
+            )
+            allow_external.extend(options.allow_unverified)
+
         return PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls,
             use_wheel=options.use_wheel,
-            allow_external=options.allow_external,
-            allow_unverified=options.allow_unverified,
-            allow_all_external=options.allow_all_external,
+            allow_external=allow_external,
             allow_all_prereleases=options.pre,
             session=session,
         )
