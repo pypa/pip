@@ -10,9 +10,8 @@ from email.parser import FeedParser
 
 import pip.wheel
 from pip._vendor import pkg_resources, six
-from pip.compat import (
-    urllib, ConfigParser, string_types,
-)
+from pip._vendor.six.moves import configparser
+from pip.compat import urllib
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
@@ -38,7 +37,7 @@ class InstallRequirement(object):
                  url=None, as_egg=False, update=True, prereleases=None,
                  editable_options=None, pycompile=True):
         self.extras = ()
-        if isinstance(req, string_types):
+        if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
         self.req = req
@@ -168,7 +167,7 @@ class InstallRequirement(object):
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
-            if isinstance(self.comes_from, string_types):
+            if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
@@ -181,7 +180,7 @@ class InstallRequirement(object):
             return None
         s = str(self.req)
         if self.comes_from:
-            if isinstance(self.comes_from, string_types):
+            if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
@@ -619,7 +618,7 @@ exec(compile(
 
         # find console_scripts
         if dist.has_metadata('entry_points.txt'):
-            config = ConfigParser.SafeConfigParser()
+            config = configparser.SafeConfigParser()
             config.readfp(
                 FakeFile(dist.get_metadata_lines('entry_points.txt'))
             )

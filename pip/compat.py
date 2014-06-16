@@ -44,18 +44,13 @@ except NameError:
 
 
 if sys.version_info >= (3,):
-    from io import StringIO, BytesIO
+    from io import StringIO
     from functools import reduce
     from urllib.error import URLError, HTTPError
-    from queue import Queue, Empty
     from urllib.request import url2pathname, urlretrieve, pathname2url
-    from email import message as emailmessage
     import urllib.parse as urllib
     import urllib.request as urllib2
-    import configparser as ConfigParser
-    import xmlrpc.client as xmlrpclib
     import urllib.parse as urlparse
-    import http.client as httplib
 
     def cmp(a, b):
         return (a > b) - (a < b)
@@ -75,21 +70,13 @@ if sys.version_info >= (3,):
     def get_http_message_param(http_message, param, default_value):
         return http_message.get_param(param, default_value)
 
-    bytes = bytes
-    string_types = (str,)
-    raw_input = input
 else:
     from cStringIO import StringIO
     from urllib2 import URLError, HTTPError
-    from Queue import Queue, Empty
     from urllib import url2pathname, urlretrieve, pathname2url
-    from email import Message as emailmessage
     import urllib
     import urllib2
     import urlparse
-    import ConfigParser
-    import xmlrpclib
-    import httplib
 
     def b(s):
         return s
@@ -104,12 +91,8 @@ else:
         result = http_message.getparam(param)
         return result or default_value
 
-    bytes = str
-    string_types = (basestring,)
     reduce = reduce
     cmp = cmp
-    raw_input = raw_input
-    BytesIO = StringIO
 
 
 def get_path_uid(path):

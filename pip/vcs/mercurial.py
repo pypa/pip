@@ -7,7 +7,7 @@ from pip.util import display_path, rmtree
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
-from pip.compat import ConfigParser
+from pip._vendor.six.moves import configparser
 
 
 class Mercurial(VersionControl):
@@ -29,14 +29,14 @@ class Mercurial(VersionControl):
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
             config_file = open(repo_config, 'w')
             config.write(config_file)
             config_file.close()
-        except (OSError, ConfigParser.NoSectionError) as exc:
+        except (OSError, configparser.NoSectionError) as exc:
             logger.warn(
                 'Could not switch Mercurial repository to %s: %s'
                 % (url, exc))

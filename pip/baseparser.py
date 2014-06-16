@@ -6,7 +6,8 @@ import os
 import textwrap
 from distutils.util import strtobool
 
-from pip.compat import ConfigParser, string_types
+from pip._vendor.six import string_types
+from pip._vendor.six.moves import configparser
 from pip.locations import (
     default_config_file, default_config_basename, running_under_virtualenv,
 )
@@ -128,7 +129,7 @@ class ConfigOptionParser(CustomOptionParser):
     configuration files and environmental variables"""
 
     def __init__(self, *args, **kwargs):
-        self.config = ConfigParser.RawConfigParser()
+        self.config = configparser.RawConfigParser()
         self.name = kwargs.pop('name')
         self.files = self.get_config_files()
         if self.files:
