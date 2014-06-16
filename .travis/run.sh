@@ -10,6 +10,9 @@ case $TOXENV in
     py32)
         tox
         ;;
+    py33)
+        tox
+        ;;
     *)
         tox -- -n 8
         ;;
