@@ -1,15 +1,17 @@
 import sys
 import textwrap
 
+from distutils.version import StrictVersion, LooseVersion
+from functools import reduce
+
 from pip.basecommand import Command, SUCCESS
 from pip.util import get_terminal_size
 from pip.log import logger
-from pip.compat import reduce, cmp
+from pip.compat import cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import xmlrpc_client
-from distutils.version import StrictVersion, LooseVersion
 
 
 class SearchCommand(Command):
