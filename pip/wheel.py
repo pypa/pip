@@ -23,7 +23,6 @@ from pip import pep425tags
 from pip.util import call_subprocess, normalize_path, make_path_relative
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
-from pip._vendor.six import b
 from pip._vendor.six.moves import configparser
 
 
@@ -66,10 +65,10 @@ def fix_script(path):
         script = open(path, 'rb')
         try:
             firstline = script.readline()
-            if not firstline.startswith(b('#!python')):
+            if not firstline.startswith(b'#!python'))
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = b('#!') + exename + b(os.linesep)
+            firstline = b'#!' + exename + os.linesep.encode("ascii")
             rest = script.read()
         finally:
             script.close()
