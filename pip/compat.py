@@ -54,12 +54,6 @@ if sys.version_info >= (3,):
     def cmp(a, b):
         return (a > b) - (a < b)
 
-    def b(s):
-        return s.encode('utf-8')
-
-    def u(s):
-        return s.decode('utf-8')
-
     def console_to_str(s):
         try:
             return s.decode(console_encoding)
@@ -76,12 +70,6 @@ else:
     import urllib
     import urllib2
     import urlparse
-
-    def b(s):
-        return s
-
-    def u(s):
-        return s
 
     def console_to_str(s):
         return s

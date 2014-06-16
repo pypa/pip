@@ -8,13 +8,14 @@ from mock import Mock, patch
 import pytest
 
 import pip
-from pip.compat import b, pathname2url
+from pip.compat import pathname2url
 from pip.exceptions import HashMismatch
 from pip.download import (
     PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
     unpack_file_url,
 )
 from pip.index import Link
+from pip._vendor.six import b
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
