@@ -65,7 +65,7 @@ def fix_script(path):
         script = open(path, 'rb')
         try:
             firstline = script.readline()
-            if not firstline.startswith(b'#!python'))
+            if not firstline.startswith(b'#!python'):
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
             firstline = b'#!' + exename + os.linesep.encode("ascii")
