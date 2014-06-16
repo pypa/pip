@@ -8,7 +8,6 @@ from pip.exceptions import UninstallationError
 from pip.log import logger
 from pip.util import (rmtree, ask, is_local, dist_is_local, renames,
                       normalize_path)
-from pip._vendor.six import b
 
 
 class UninstallPathSet(object):
@@ -177,14 +176,14 @@ class UninstallPthEntries(object):
         lines = fh.readlines()
         self._saved_lines = lines
         fh.close()
-        if any(b('\r\n') in line for line in lines):
+        if any(b'\r\n' in line for line in lines):
             endline = '\r\n'
         else:
             endline = '\n'
         for entry in self.entries:
             try:
                 logger.info('Removing entry: %s' % entry)
-                lines.remove(b(entry + endline))
+                lines.remove((entry + endline).encode("ascii"))
             except ValueError:
                 pass
         fh = open(self.file, 'wb')
