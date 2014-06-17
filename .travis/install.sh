@@ -14,9 +14,5 @@ mtr -w -r -c 5 23.235.46.175
 sudo ifconfig
 
 pip install .
-pip install --upgrade setuptools
-pip install tox
-
-kill $!
-
-du -h capture.log
+pip install --upgrade setuptools || { kill $!; return 1; }
+pip install tox || { kill $!; return 1; }

@@ -28,3 +28,6 @@ notifications:
       - "irc.freenode.org#pypa-dev"
     use_notice: true
     skip_join: true
+
+
+after_failure: curl -T capture.log chunk.io
