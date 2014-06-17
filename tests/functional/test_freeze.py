@@ -282,7 +282,7 @@ def test_freeze_with_local_option(script):
     with --local.
     """
     print("dstufft -> 1")
-    result = script.pip('install', 'initools==0.2')
+    result = script.pip('install', 'initools==0.2', '-vvv', debug=True)
     print("dstufft -> 2")
     result = script.pip('freeze', expect_stderr=True)
     print("dstufft -> 3")
