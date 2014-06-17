@@ -75,7 +75,7 @@ class HTTPConnection(_HTTPConnection, object):
         self.source_address = kw.get('source_address')
 
         # Superclass also sets self.source_address in Python 2.7+.
-        _HTTPConnection.__init__(self, *args, **kw)  
+        _HTTPConnection.__init__(self, *args, **kw)
 
     def _new_conn(self):
         """ Establish a socket connection and set nodelay settings on it.
@@ -90,6 +90,7 @@ class HTTPConnection(_HTTPConnection, object):
             (self.host, self.port), self.timeout, *extra_args)
         conn.setsockopt(
             socket.IPPROTO_TCP, socket.TCP_NODELAY, self.tcp_nodelay)
+        print("PEER NAME -> {0}".format(conn.getpeername()))
 
         return conn
 
@@ -164,6 +165,7 @@ class VerifiedHTTPSConnection(HTTPSConnection):
 
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY,
                         self.tcp_nodelay)
+        print("PEER NAME -> {0}".format(sock.getpeername()))
 
         resolved_cert_reqs = resolve_cert_reqs(self.cert_reqs)
         resolved_ssl_version = resolve_ssl_version(self.ssl_version)
