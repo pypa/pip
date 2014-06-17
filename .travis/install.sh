@@ -5,5 +5,6 @@ set -x
 git config --global user.email "pypa-dev@googlegroups.com"
 git config --global user.name "pip"
 
+pip install .
 pip install --upgrade setuptools
 pip install tox
