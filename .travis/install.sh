@@ -14,5 +14,5 @@ mtr -w -r -c 5 23.235.46.175
 sudo ifconfig
 
 pip install .
-pip install --upgrade setuptools || { kill $!; return 1; }
-pip install tox || { kill $!; return 1; }
+pip install --upgrade setuptools || { kill $!; exit 1; }
+pip install tox || { kill $!; exit 1; }
