@@ -480,7 +480,9 @@ class RequirementSet(object):
         for dir in remove_dir:
             if os.path.exists(dir):
                 logger.info('Removing temporary dir %s...' % dir)
+                print("wat -> 1")
                 rmtree(dir)
+                print("wat -> 2")
 
         logger.indent -= 2
 

@@ -135,7 +135,9 @@ class Command(object):
         exit = SUCCESS
         store_log = False
         try:
+            print("syke -> 1")
             status = self.run(options, args)
+            #print("syke -> 2")
             # FIXME: all commands should return an exit status
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
