@@ -11,7 +11,7 @@ case $TOXENV in
         tox
         ;;
     py33)
-        tox -- -v
+        tox -- -v -s
         ;;
     *)
         tox -- -n 8
