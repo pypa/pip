@@ -281,14 +281,18 @@ def test_freeze_with_local_option(script):
     Test that wsgiref (from global site-packages) is reported normally, but not
     with --local.
     """
-    result = script.pip('install', 'initools==0.2')
+    print("dstufft -> 1")
+    result = script.pip('install', 'initools==0.2', '-vvv', debug=True)
+    print("dstufft -> 2")
     result = script.pip('freeze', expect_stderr=True)
+    print("dstufft -> 3")
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
         INITools==0.2
         wsgiref==...
         <BLANKLINE>""")
+    print("dstufft -> 4")
 
     # The following check is broken (see
     # http://bitbucket.org/ianb/pip/issue/110).  For now we are simply
@@ -298,12 +302,15 @@ def test_freeze_with_local_option(script):
     # _check_output(result, expected)
 
     result = script.pip('freeze', '--local', expect_stderr=True)
+    print("dstufft -> 5")
     expected = textwrap.dedent("""\
         Script result: ...pip freeze --local
         -- stdout: --------------------
         INITools==0.2
         <BLANKLINE>""")
+    print("dstufft -> 6")
     _check_output(result, expected)
+    print("dstufft -> 7")
 
 
 def test_freeze_with_requirement_option(script):

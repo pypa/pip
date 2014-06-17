@@ -329,7 +329,9 @@ class InstallCommand(Command):
             # Clean up
             if ((not options.no_clean)
                     and ((not options.no_install) or options.download_dir)):
+                print("ooookay -> 1")
                 requirement_set.cleanup_files()
+                print("ooookay -> 2")
 
         if options.target_dir:
             if not os.path.exists(options.target_dir):
