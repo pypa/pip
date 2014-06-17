@@ -183,7 +183,7 @@ class UninstallPthEntries(object):
         for entry in self.entries:
             try:
                 logger.info('Removing entry: %s' % entry)
-                lines.remove((entry + endline).encode("ascii"))
+                lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass
         fh = open(self.file, 'wb')
