@@ -115,35 +115,35 @@ class ListCommand(Command):
             )
             index_urls += options.mirrors
 
-        session = self._build_session(options)
+        with self._build_session(options) as session:
+            finder = self._build_package_finder(options, index_urls, session)
 
-        finder = self._build_package_finder(options, index_urls, session)
+            installed_packages = get_installed_distributions(
+                local_only=options.local,
+                include_editables=False,
+            )
+            for dist in installed_packages:
+                req = InstallRequirement.from_line(dist.key, None)
+                try:
+                    link = finder.find_requirement(req, True)
 
-        installed_packages = get_installed_distributions(
-            local_only=options.local,
-            include_editables=False,
-        )
-        for dist in installed_packages:
-            req = InstallRequirement.from_line(dist.key, None)
-            try:
-                link = finder.find_requirement(req, True)
-
-                # If link is None, means installed version is most up-to-date
-                if link is None:
+                    # If link is None, means installed version is most
+                    # up-to-date
+                    if link is None:
+                        continue
+                except DistributionNotFound:
                     continue
-            except DistributionNotFound:
-                continue
-            except BestVersionAlreadyInstalled:
-                remote_version = req.installed_version
-            else:
-                # It might be a good idea that link or finder had a public
-                # method that returned version
-                remote_version = finder._link_package_versions(
-                    link, req.name
-                )[0]
-                remote_version_raw = remote_version[2]
-                remote_version_parsed = remote_version[0]
-            yield dist, remote_version_raw, remote_version_parsed
+                except BestVersionAlreadyInstalled:
+                    remote_version = req.installed_version
+                else:
+                    # It might be a good idea that link or finder had a public
+                    # method that returned version
+                    remote_version = finder._link_package_versions(
+                        link, req.name
+                    )[0]
+                    remote_version_raw = remote_version[2]
+                    remote_version_parsed = remote_version[0]
+                yield dist, remote_version_raw, remote_version_parsed
 
     def run_listing(self, options):
         installed_packages = get_installed_distributions(

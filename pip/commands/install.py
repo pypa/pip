@@ -256,89 +256,96 @@ class InstallCommand(Command):
                 "cache."
             )
 
-        session = self._build_session(options)
+        with self._build_session(options) as session:
 
-        finder = self._build_package_finder(options, index_urls, session)
+            finder = self._build_package_finder(options, index_urls, session)
 
-        requirement_set = RequirementSet(
-            build_dir=options.build_dir,
-            src_dir=options.src_dir,
-            download_dir=options.download_dir,
-            upgrade=options.upgrade,
-            as_egg=options.as_egg,
-            ignore_installed=options.ignore_installed,
-            ignore_dependencies=options.ignore_dependencies,
-            force_reinstall=options.force_reinstall,
-            use_user_site=options.use_user_site,
-            target_dir=temp_target_dir,
-            session=session,
-            pycompile=options.compile,
-        )
-        for name in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(name, None))
-        for name in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(
-                    name,
-                    default_vcs=options.default_vcs
-                )
+            requirement_set = RequirementSet(
+                build_dir=options.build_dir,
+                src_dir=options.src_dir,
+                download_dir=options.download_dir,
+                upgrade=options.upgrade,
+                as_egg=options.as_egg,
+                ignore_installed=options.ignore_installed,
+                ignore_dependencies=options.ignore_dependencies,
+                force_reinstall=options.force_reinstall,
+                use_user_site=options.use_user_site,
+                target_dir=temp_target_dir,
+                session=session,
+                pycompile=options.compile,
             )
-        for filename in options.requirements:
-            for req in parse_requirements(
-                    filename, finder=finder, options=options, session=session):
-                requirement_set.add_requirement(req)
-        if not requirement_set.has_requirements:
-            opts = {'name': self.name}
-            if options.find_links:
-                msg = ('You must give at least one requirement to %(name)s '
-                       '(maybe you meant "pip %(name)s %(links)s"?)' %
-                       dict(opts, links=' '.join(options.find_links)))
-            else:
-                msg = ('You must give at least one requirement '
-                       'to %(name)s (see "pip help %(name)s")' % opts)
-            logger.warn(msg)
-            return
-
-        try:
-            if not options.no_download:
-                requirement_set.prepare_files(finder)
-            else:
-                requirement_set.locate_files()
-
-            if not options.no_install:
-                requirement_set.install(
-                    install_options,
-                    global_options,
-                    root=options.root_path,
+            for name in args:
+                requirement_set.add_requirement(
+                    InstallRequirement.from_line(name, None))
+            for name in options.editables:
+                requirement_set.add_requirement(
+                    InstallRequirement.from_editable(
+                        name,
+                        default_vcs=options.default_vcs
+                    )
                 )
-                installed = ' '.join([req.name for req in
-                                      requirement_set.successfully_installed])
-                if installed:
-                    logger.notify('Successfully installed %s' % installed)
-            else:
-                downloaded = ' '.join([
-                    req.name for req in requirement_set.successfully_downloaded
-                ])
-                if downloaded:
-                    logger.notify('Successfully downloaded %s' % downloaded)
-        except PreviousBuildDirError:
-            options.no_clean = True
-            raise
-        finally:
-            # Clean up
-            if ((not options.no_clean)
-                    and ((not options.no_install) or options.download_dir)):
-                requirement_set.cleanup_files()
+            for filename in options.requirements:
+                for req in parse_requirements(
+                        filename,
+                        finder=finder, options=options, session=session):
+                    requirement_set.add_requirement(req)
+            if not requirement_set.has_requirements:
+                opts = {'name': self.name}
+                if options.find_links:
+                    msg = ('You must give at least one requirement to %(name)s'
+                           ' (maybe you meant "pip %(name)s %(links)s"?)' %
+                           dict(opts, links=' '.join(options.find_links)))
+                else:
+                    msg = ('You must give at least one requirement '
+                           'to %(name)s (see "pip help %(name)s")' % opts)
+                logger.warn(msg)
+                return
 
-        if options.target_dir:
-            if not os.path.exists(options.target_dir):
-                os.makedirs(options.target_dir)
-            lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
-            for item in os.listdir(lib_dir):
-                shutil.move(
-                    os.path.join(lib_dir, item),
-                    os.path.join(options.target_dir, item),
-                )
-            shutil.rmtree(temp_target_dir)
-        return requirement_set
+            try:
+                if not options.no_download:
+                    requirement_set.prepare_files(finder)
+                else:
+                    requirement_set.locate_files()
+
+                if not options.no_install:
+                    requirement_set.install(
+                        install_options,
+                        global_options,
+                        root=options.root_path,
+                    )
+                    installed = ' '.join([
+                        req.name for req in
+                        requirement_set.successfully_installed
+                    ])
+                    if installed:
+                        logger.notify('Successfully installed %s' % installed)
+                else:
+                    downloaded = ' '.join([
+                        req.name
+                        for req in requirement_set.successfully_downloaded
+                    ])
+                    if downloaded:
+                        logger.notify(
+                            'Successfully downloaded %s' % downloaded
+                        )
+            except PreviousBuildDirError:
+                options.no_clean = True
+                raise
+            finally:
+                # Clean up
+                if ((not options.no_clean)
+                        and ((not options.no_install)
+                             or options.download_dir)):
+                    requirement_set.cleanup_files()
+
+            if options.target_dir:
+                if not os.path.exists(options.target_dir):
+                    os.makedirs(options.target_dir)
+                lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
+                for item in os.listdir(lib_dir):
+                    shutil.move(
+                        os.path.join(lib_dir, item),
+                        os.path.join(options.target_dir, item),
+                    )
+                shutil.rmtree(temp_target_dir)
+            return requirement_set
