@@ -19,4 +19,4 @@ pip install tox
 
 kill $!
 
-cat capture.log
+du -h capture.log
