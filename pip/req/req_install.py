@@ -451,6 +451,10 @@ exec(compile(
     _requirements_section_re = re.compile(r'\[(.*?)\]')
 
     def requirements(self, extras=()):
+        if self.satisfied_by:
+            for r in self.satisfied_by.requires(extras):
+                yield str(r)
+            return
         in_extra = None
         for line in self.egg_info_lines('requires.txt'):
             match = self._requirements_section_re.match(line.lower())

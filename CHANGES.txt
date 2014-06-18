@@ -54,6 +54,9 @@
 * Fixed :issue:`1101`. Properly handle an index or --find-links target which
   has a <base> without a href attribute. (:pull:`1869`)
 
+* Fixed :issue:`1885`. Will properly handle extras when a project is installed
+  via Wheel. (:pull:`1896`)
+
 
 **1.5.7**
 
