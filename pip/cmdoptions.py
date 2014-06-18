@@ -120,7 +120,7 @@ retries = OptionMaker(
     '--retries',
     dest='retries',
     type='int',
-    default=3,
+    default=0,
     help="Maximum number of retries each connection should attempt "
          "(default %default times).")
 
