@@ -32,6 +32,8 @@ install `setuptools`_ for you. [2]_
 
 To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U setuptools`` [3]_
 
+To enable the use of pip from the command line, ensure the ``Scripts`` subdirectory of
+your Python installation is available on the system PATH. (This is not done automatically.)
 
 Upgrade pip
 -----------
