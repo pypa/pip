@@ -6,6 +6,7 @@ import os
 import sys
 
 from pip._vendor import six
+from pip.compat import WINDOWS
 
 
 def user_cache_dir(appname):
@@ -29,7 +30,7 @@ def user_cache_dir(appname):
 
     OPINION: This function appends "Cache" to the `CSIDL_LOCAL_APPDATA` value.
     """
-    if sys.platform == "win32":
+    if WINDOWS:
         # Get the base path
         path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
 
