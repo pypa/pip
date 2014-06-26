@@ -57,6 +57,8 @@
 * Fixed :issue:`1885`. Will properly handle extras when a project is installed
   via Wheel. (:pull:`1896`)
 
+* Allow the use of ``--no-use-wheel`` within a requirements file. (:pull:`1859`)
+
 
 **1.5.7**
 
