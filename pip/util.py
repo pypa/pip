@@ -21,6 +21,8 @@ from pip.log import logger
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
+from pip._vendor.six.moves import urllib
+from pip._vendor.six.moves import xmlrpc_client
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -781,3 +783,41 @@ class FakeFile(object):
 
     def __iter__(self):
         return self._gen
+
+
+class UrllibTransport(xmlrpc_client.Transport):
+    """Provides HTTP proxy support for Python's xmlrpclib, via urllib.
+
+     Original code borrowed from https://gist.github.com/nathforge/980961
+     """
+    def __init__(self, index_url, proxy_url=None, use_datetime=False,
+                 use_builtin_types=False):
+        # initialize its own and parent's attributes
+        xmlrpc_client.Transport.__init__(self, use_datetime)
+        self._use_builtin_types = use_builtin_types
+        index_parts = urllib.parse.urlsplit(index_url)
+        self._index_scheme = index_parts.scheme
+        # build the opener and set up the proxy settings
+        opener = urllib.request.build_opener()
+        if not proxy_url is None:
+            proxies = {}
+            if len(proxy_url) > 0:
+                proxies[self._index_scheme] = proxy_url
+            opener.add_handler(urllib.request.ProxyHandler(proxies))
+        self._opener = opener
+
+    def request(self, host, handler, request_body, verbose=False):
+        # collect request's params
+        index_netloc, extra_headers, x509 = self.get_host_info(host)
+        request_parts = (self._index_scheme, index_netloc, handler, None, None)
+        request_url = urllib.parse.urlunsplit(request_parts)
+        # build a request object
+        request = urllib.request.Request(request_url, request_body)
+        request.add_header('Content-Type', 'text/xml')
+        request.add_header('User-Agent', self.user_agent)
+        if not extra_headers is None:
+            for header, value in extra_headers:
+                request.add_header(header, value)
+        # send the request and parse it
+        self.verbose = verbose
+        return self.parse_response(self._opener.open(request))

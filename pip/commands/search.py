@@ -5,7 +5,7 @@ from distutils.version import StrictVersion, LooseVersion
 from functools import reduce
 
 from pip.basecommand import Command, SUCCESS
-from pip.util import get_terminal_size
+from pip.util import get_terminal_size, UrllibTransport
 from pip.log import logger
 from pip.compat import cmp
 from pip.exceptions import CommandError
@@ -37,8 +37,9 @@ class SearchCommand(Command):
             raise CommandError('Missing required argument (search query).')
         query = args
         index_url = options.index
+        proxy_url = options.proxy
 
-        pypi_hits = self.search(query, index_url)
+        pypi_hits = self.search(query, index_url, proxy_url)
         hits = transform_hits(pypi_hits)
 
         terminal_width = None
@@ -50,8 +51,11 @@ class SearchCommand(Command):
             return SUCCESS
         return NO_MATCHES_FOUND
 
-    def search(self, query, index_url):
-        pypi = xmlrpc_client.ServerProxy(index_url)
+    def search(self, query, index_url, proxy_url=None):
+        transport = None
+        if not proxy_url is None:
+            transport = UrllibTransport(index_url, proxy_url)
+        pypi = xmlrpc_client.ServerProxy(index_url, transport)
         hits = pypi.search({'name': query, 'summary': query}, 'or')
         return hits
 
