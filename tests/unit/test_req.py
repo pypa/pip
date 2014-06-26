@@ -191,16 +191,16 @@ def test_remote_reqs_parse():
         pass
 
 
-def test_req_file_parse_use_wheel(data):
+def test_req_file_parse_no_use_wheel(data):
     """
-    Test parsing --use-wheel from a req file
+    Test parsing --no-use-wheel from a req file
     """
     finder = PackageFinder([], [], session=PipSession())
     for req in parse_requirements(
             data.reqfiles.join("supported_options.txt"), finder,
             session=PipSession()):
         pass
-    assert finder.use_wheel
+    assert not finder.use_wheel
 
 
 def test_req_file_parse_comment_start_of_line(tmpdir):

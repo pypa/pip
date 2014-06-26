@@ -82,7 +82,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             if finder:
                 finder.index_urls.append(line)
         elif line.startswith('--use-wheel'):
-            finder.use_wheel = True
+            # Default in 1.6
+            pass
+        elif line.startswith('--no-use-wheel'):
+            finder.use_wheel = False
         elif line.startswith('--no-index'):
             finder.index_urls = []
         elif line.startswith("--allow-external"):
