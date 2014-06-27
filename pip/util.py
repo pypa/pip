@@ -10,9 +10,7 @@ import tarfile
 import zipfile
 
 from pip.exceptions import InstallationError, BadCommand
-from pip.compat import(
-    console_to_str, stdlib_pkgs
-)
+from pip.compat import console_to_str, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file
