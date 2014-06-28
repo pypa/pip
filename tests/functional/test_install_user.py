@@ -48,10 +48,7 @@ class Tests_UserSite:
             "('initools').project_name)",
         )
         project_name = result.stdout.strip()
-        assert (
-            'INITools' == project_name, "'%s' should be 'INITools'" %
-            project_name
-        )
+        assert 'INITools' == project_name
 
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, virtualenv, tmpdir):
@@ -280,5 +277,5 @@ class Tests_UserSite:
         assert (
             "Will not install to the user site because it will lack sys.path "
             "precedence to %s in %s" %
-            ('INITools', dist_location) in result2.stdout, result2.stdout
+            ('INITools', dist_location) in result2.stdout
         )
