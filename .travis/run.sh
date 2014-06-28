@@ -22,4 +22,14 @@ if [ -z "$TOXENV" ]; then
 fi
 
 # Actually run our tests
-tox
+case $TOXENV in
+    pypy-integration)
+        # The PyPy integration tests take a long time and often times time out
+        # on Travis. We only use this on PyPy because it causes strange errors
+        # and it is being used as a last resort.
+        tox -- -n 8
+        ;;
+    *)
+        tox
+        ;;
+esac
