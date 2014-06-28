@@ -1,6 +1,7 @@
 import io
 import itertools
 import os.path
+import re
 
 import invoke
 import yaml
@@ -9,6 +10,12 @@ from . import paths
 
 TRAVIS = """
 language: python
+
+python:
+{python}
+
+env:
+{env}
 
 install: .travis/install.sh
 
@@ -27,8 +34,6 @@ notifications:
     use_notice: true
     skip_join: true
 
-env:
-{envlist}
 """
 
 
@@ -100,13 +105,47 @@ def matrix():
     with io.open(
             os.path.join(paths.PROJECT_ROOT, ".travis.yml"), "w",
             encoding="utf8") as fp:
+
+        evars = [
+            dict(i)
+            for i in set(
+                tuple((k, v) for k, v in e.items() if k != "python")
+                for _, e in sorted(envs)
+            )
+        ]
+
+        pythons = []
+        for python in matrix_config["python"]:
+            m = re.search(r"^py([23])([0-9])$", python)
+            if m:
+                pythons.append(".".join(m.groups()))
+            else:
+                pythons.append(python)
+
+        env = "\n".join([
+            "  - {0}".format(
+                " ".join("{0}={1}".format(k.upper(), v) for k, v in e.items())
+            )
+            for e in evars
+        ])
+
+        includes = [
+            "    - python: \"2.7\"\n      env: TOXENV={0}\n".format(e)
+            for e in sorted(extras)
+        ]
+
         fp.write(
             TRAVIS.format(
-                envlist="\n".join(
-                    itertools.chain(
-                        ["  - TOXENV={0}".format(e) for e, _ in (envs)],
-                        ["  - TOXENV={0}".format(e) for e in sorted(extras)],
-                    ),
-                )
-            )
+                env=env,
+                python="\n".join([
+                    "  - \"{0}\"".format(i) for i in sorted(pythons)
+                ]),
+            ),
         )
+
+        # If we have any includes, write them to the file
+        if includes:
+            fp.write("matrix:\n")
+            fp.write("  include:\n")
+            fp.write("\n".join(includes))
+            fp.write("\n")

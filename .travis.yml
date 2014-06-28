@@ -1,6 +1,18 @@
 
 language: python
 
+python:
+  - "2.6"
+  - "2.7"
+  - "3.2"
+  - "3.3"
+  - "3.4"
+  - "pypy"
+
+env:
+  - SUITE=unit
+  - SUITE=integration
+
 install: .travis/install.sh
 
 script: .travis/run.sh
@@ -18,19 +30,14 @@ notifications:
     use_notice: true
     skip_join: true
 
-env:
-  - TOXENV=py26-integration
-  - TOXENV=py26-unit
-  - TOXENV=py27-integration
-  - TOXENV=py27-unit
-  - TOXENV=py32-integration
-  - TOXENV=py32-unit
-  - TOXENV=py33-integration
-  - TOXENV=py33-unit
-  - TOXENV=py34-integration
-  - TOXENV=py34-unit
-  - TOXENV=pypy-integration
-  - TOXENV=pypy-unit
-  - TOXENV=docs
-  - TOXENV=pep8
-  - TOXENV=py2pep8
+matrix:
+  include:
+    - python: "2.7"
+      env: TOXENV=docs
+
+    - python: "2.7"
+      env: TOXENV=pep8
+
+    - python: "2.7"
+      env: TOXENV=py2pep8
+
