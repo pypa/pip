@@ -6,11 +6,5 @@ set -x
 # our tests use.
 export LC_CTYPE=en_US.UTF-8
 
-case $TOXENV in
-    py32)
-        tox
-        ;;
-    *)
-        tox -- -n 8
-        ;;
-esac
+# Actually run our tests
+tox

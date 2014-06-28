@@ -29,7 +29,6 @@ base:
   deps:
     - pretend
     - pytest
-    - pytest-xdist
     - mock
     - scripttest>=1.3
     - "https://github.com/pypa/virtualenv/archive/develop.zip#egg=virtualenv"
