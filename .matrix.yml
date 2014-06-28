@@ -23,12 +23,13 @@ suite:
 
   integration:
     commands:
-      - "py.test -m integration []"
+      - "py.test -m integration --timeout 60 []"
 
 base:
   deps:
     - pretend
     - pytest
+    - pytest-timeout
     - mock
     - scripttest>=1.3
     - "https://github.com/pypa/virtualenv/archive/develop.zip#egg=virtualenv"
