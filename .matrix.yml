@@ -24,7 +24,7 @@ suite:
 
   integration:
     commands:
-      - "py.test --capture=no --strict --timeout 120 -m integration {posargs}"
+      - "py.test --capture=no --strict --timeout 300 -m integration {posargs}"
 
 base:
   deps:
