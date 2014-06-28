@@ -6,6 +6,8 @@ set -x
 # our tests use.
 export LC_CTYPE=en_US.UTF-8
 
+export PYTHONDONTWRITEBYTECODE=1
+
 # We'll set the tox env based on the Travis Python version but only if we do
 # not have an explicit TOXENV
 if [ -z "$TOXENV" ]; then
