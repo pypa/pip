@@ -24,7 +24,7 @@ suite:
 
   integration:
     commands:
-      - "py.test -m integration --timeout 60 {posargs}"
+      - "py.test -m integration --timeout 120 {posargs}"
 
 base:
   deps:

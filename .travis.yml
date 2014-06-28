@@ -10,8 +10,8 @@ python:
   - "pypy"
 
 env:
-  - SUITE=integration
   - SUITE=unit
+  - SUITE=integration
 
 install: .travis/install.sh
 
