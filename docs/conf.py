@@ -195,8 +195,8 @@ latex_documents = [
     (
         'index',
         'pip.tex',
-        u'pip Documentation',
-        u'The pip developers',
+        'pip Documentation',
+        'The pip developers',
         'manual',
     ),
 ]
