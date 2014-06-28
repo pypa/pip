@@ -7,6 +7,30 @@ import yaml
 
 from . import paths
 
+TRAVIS = """
+language: python
+
+install: .travis/install.sh
+
+script: .travis/run.sh
+
+branches:
+  only:
+    - master
+    - develop
+    - /^[0-9]+\.[0-9]+\.X$/
+
+notifications:
+  irc:
+    channels:
+      - "irc.freenode.org#pypa-dev"
+    use_notice: true
+    skip_join: true
+
+env:
+{envlist}
+"""
+
 
 def _write_tox_env(fp, config):
     for config, value in sorted(config.items()):
@@ -32,14 +56,20 @@ def matrix():
     key_format = "-".join(["{" + k + "}" for k in labels])
     axes = [[(a, i) for i in sorted(matrix_config[a])] for a in labels]
 
+    envs = [
+        (key_format.format(**dict(a)), dict(a))
+        for a in itertools.product(*axes)
+    ]
+
+    extras = matrix_config.get("extra", {})
+
+    # Write the tox.ini file
     with io.open(
             os.path.join(paths.PROJECT_ROOT, "tox.ini"), "w",
             encoding="utf8") as fp:
 
         # Add an environment for each of our matrix rows
-        for key, items in [
-                (key_format.format(**dict(a)), dict(a))
-                for a in itertools.product(*axes)]:
+        for key, items in envs:
             # Write out a section header for this environment
             fp.write("[testenv:{0}]\n".format(key))
 
@@ -56,7 +86,7 @@ def matrix():
             fp.write("\n")
 
         # Add any extra environments we have
-        for key, config in sorted(matrix_config.get("extra", {}).items()):
+        for key, config in sorted(extras.items()):
             # Write out a section header for this environment
             fp.write("[testenv:{0}]\n".format(key))
 
@@ -65,3 +95,18 @@ def matrix():
 
             # Add an empty line at the end of this environment section
             fp.write("\n")
+
+    # Write the .travis.yml file
+    with io.open(
+            os.path.join(paths.PROJECT_ROOT, ".travis.yml"), "w",
+            encoding="utf8") as fp:
+        fp.write(
+            TRAVIS.format(
+                envlist="\n".join(
+                    itertools.chain(
+                        ["  - TOXENV={0}".format(e) for e, _ in (envs)],
+                        ["  - TOXENV={0}".format(e) for e in sorted(extras)],
+                    ),
+                )
+            )
+        )

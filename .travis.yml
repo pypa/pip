@@ -1,15 +1,5 @@
-language: python
 
-env:
-  - TOXENV=pep8
-  - TOXENV=py3pep8
-  - TOXENV=docs
-  - TOXENV=py26
-  - TOXENV=py27
-  - TOXENV=py32
-  - TOXENV=py33
-  - TOXENV=py34
-  - TOXENV=pypy
+language: python
 
 install: .travis/install.sh
 
@@ -17,10 +7,9 @@ script: .travis/run.sh
 
 branches:
   only:
+    - master
     - develop
-    - 1.3.X
-    - 1.4.X
-    - 1.5.X
+    - /^[0-9]+\.[0-9]+\.X$/
 
 notifications:
   irc:
@@ -28,3 +17,20 @@ notifications:
       - "irc.freenode.org#pypa-dev"
     use_notice: true
     skip_join: true
+
+env:
+  - TOXENV=py26-integration
+  - TOXENV=py26-unit
+  - TOXENV=py27-integration
+  - TOXENV=py27-unit
+  - TOXENV=py32-integration
+  - TOXENV=py32-unit
+  - TOXENV=py33-integration
+  - TOXENV=py33-unit
+  - TOXENV=py34-integration
+  - TOXENV=py34-unit
+  - TOXENV=pypy-integration
+  - TOXENV=pypy-unit
+  - TOXENV=docs
+  - TOXENV=pep8
+  - TOXENV=py2pep8
