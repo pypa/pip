@@ -1,0 +1,57 @@
+matrix:
+  - python
+  - suite
+
+python:
+  py26:
+    basepython: python2.6
+  py27:
+    basepython: python2.7
+  py32:
+    basepython: python3.2
+  py33:
+    basepython: python3.3
+  py34:
+    basepython: python3.4
+  pypy:
+    basepython: pypy
+
+suite:
+  unit:
+    commands:
+      - coverage run --source=pip/ -m pytest --capture=no --strict -m unit {posargs}
+      - coverage report -m
+
+  integration:
+    commands:
+      - "py.test --capture=no --strict --timeout 300 --assert=plain -m integration {posargs}"
+
+base:
+  deps:
+    - coverage
+    - pretend
+    - pytest
+    - pytest-timeout
+    - pytest-xdist
+    - mock
+    - scripttest>=1.3
+    - "https://github.com/pypa/virtualenv/archive/develop.zip#egg=virtualenv"
+
+extra:
+  docs:
+    basepython: python2.7
+    commands:
+      - "sphinx-build -W -b html -d {envtmpdir}/doctrees docs docs/_build/html"
+    deps: sphinx
+
+  pep8:
+    basepython: python3.2
+    commands:
+      - flake8 .
+    deps: flake8
+
+  py2pep8:
+    basepython: python2.6
+    commands:
+      - flake8 .
+    deps: flake8

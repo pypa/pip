@@ -239,17 +239,17 @@ class Tests_get_installed_distributions:
         assert len(dists) == 0
 
 
-def test_find_command_folder_in_path(script):
+def test_find_command_folder_in_path(tmpdir):
     """
     If a folder named e.g. 'git' is in PATH, and find_command is looking for
     the 'git' executable, it should not match the folder, but rather keep
     looking.
     """
-    script.scratch_path.join("path_one").mkdir()
-    path_one = script.scratch_path / 'path_one'
+    tmpdir.join("path_one").mkdir()
+    path_one = tmpdir / 'path_one'
     path_one.join("foo").mkdir()
-    script.scratch_path.join("path_two").mkdir()
-    path_two = script.scratch_path / 'path_two'
+    tmpdir.join("path_two").mkdir()
+    path_two = tmpdir / 'path_two'
     path_two.join("foo").write("# nothing")
     found_path = find_command('foo', map(str, [path_one, path_two]))
     assert found_path == path_two / 'foo'
@@ -293,10 +293,7 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     with pytest.raises(BadCommand):
         find_command("foo", "path_one")
 
-    assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
-        (mock_isfile.call_args_list, expected)
-    )
+    assert mock_isfile.call_args_list == expected
     assert getpath_mock.called, "Should call get_pathext"
 
 
@@ -321,10 +318,7 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     with pytest.raises(BadCommand):
         find_command("foo", "path_one", pathext)
 
-    assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
-        (mock_isfile.call_args_list, expected)
-    )
+    assert mock_isfile.call_args_list == expected
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
