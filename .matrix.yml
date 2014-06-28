@@ -19,14 +19,16 @@ python:
 suite:
   unit:
     commands:
-      - "py.test -m unit []"
+      - coverage run --source=pip/ -m pytest --capture=no --strict -m unit {posargs}
+      - coverage report -m
 
   integration:
     commands:
-      - "py.test -m integration --timeout 60 []"
+      - "py.test -m integration --timeout 60 {posargs}"
 
 base:
   deps:
+    - coverage
     - pretend
     - pytest
     - pytest-timeout

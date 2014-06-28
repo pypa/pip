@@ -1,0 +1,5 @@
+[run]
+branch = True
+omit =
+  pip/compat.py
+  pip/_vendor/*
