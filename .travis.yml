@@ -17,10 +17,9 @@ script: .travis/run.sh
 
 branches:
   only:
+    - master
     - develop
-    - 1.3.X
-    - 1.4.X
-    - 1.5.X
+    - /^[0-9]+\.[0-9]+\.[Xx]$/
 
 notifications:
   irc:
