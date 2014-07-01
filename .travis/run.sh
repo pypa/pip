@@ -25,10 +25,16 @@ if [[ $TRAVIS_PULL_REQUEST != "false" ]]
 then
     # If this is a pull request then run our diff-cover to get the difference
     # in coverage that this PR introduces
-    git fetch origin $TRAVIS_BRANCH:refs/remotes/origin/$TRAVIS_BRANCH
-    diff-cover --compare-branch=origin/$TRAVIS_BRANCH coverage.xml
+    if [ -f coverage.xml ]
+    then
+        git fetch origin $TRAVIS_BRANCH:refs/remotes/origin/$TRAVIS_BRANCH
+        diff-cover --compare-branch=origin/$TRAVIS_BRANCH coverage.xml
+    fi
 else
     # If this is not a PR, but is being run against a branch, then just report
     # the coverage results for the entire code base.
-    coverage report -m
+    if [ -f .coverage ]
+    then
+        coverage report -m
+    fi
 fi
