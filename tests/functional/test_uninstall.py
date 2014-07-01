@@ -8,6 +8,7 @@ from tempfile import mkdtemp
 from mock import patch
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
+from tests.lib.path import Path
 
 from pip.util import rmtree
 
@@ -354,4 +355,31 @@ def test_uninstall_wheel(script, data):
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created
     result2 = script.pip('uninstall', 'simple.dist', '-y')
+    assert_all_changes(result, result2, [])
+
+
+def test_uninstall_package_with_target(script, data):
+    """
+    Test uninstalling a package from a target.
+    """
+    target_dir = script.scratch_path / 'target'
+    result = script.pip('install', '-t', target_dir, 'initools==0.1')
+    pkg_path = Path('scratch') / 'target' / 'initools'
+    assert pkg_path in result.files_created, (str(result))
+    result2 = script.pip('uninstall', 'initools', '-y', '-t', target_dir)
+    assert_all_changes(result, result2, [])
+
+
+def test_uninstall_wheel_with_target(script, data):
+    """
+    Test uninstalling a package from a target.
+    """
+    target_dir = script.scratch_path / 'target'
+    package = data.packages.join("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index', '-t', target_dir)
+    pkg_path = Path('scratch') / 'target' / 'simpledist'
+    assert pkg_path in result.files_created, (str(result))
+    dist_info_folder = Path('scratch') / 'target' / 'simple.dist-0.1.dist-info'
+    assert dist_info_folder in result.files_created
+    result2 = script.pip('uninstall', 'simple.dist', '-y', '-t', target_dir)
     assert_all_changes(result, result2, [])
