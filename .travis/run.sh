@@ -6,11 +6,16 @@ set -x
 # our tests use.
 export LC_CTYPE=en_US.UTF-8
 
+# Run the unit tests
+tox -- -m unit
+
+# Run our integration tests, typically with pytest-xdist to speed things up
+# except on Python 3.2 where it doesn't work quite right.
 case $TOXENV in
     py32)
-        tox
+        tox -- -m integration
         ;;
     *)
-        tox -- -n 8
+        tox -- -m integration -n 8
         ;;
 esac
