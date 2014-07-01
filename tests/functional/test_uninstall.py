@@ -253,7 +253,12 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -f http://www.example.com
             -i http://www.example.com
             --extra-index-url http://www.example.com
-
+            --use-wheel
+            --no-index
+            --allow-external dummypackage
+            --allow-all-external
+            --allow-insecure dummypackage
+            --allow-unverified dummypackage
             -e %s#egg=initools-dev
             # and something else to test out:
             PyLogo<0.4

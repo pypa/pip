@@ -1,6 +1,7 @@
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
+from pip.index import PackageFinder
 
 
 class UninstallCommand(Command):
@@ -47,12 +48,15 @@ class UninstallCommand(Command):
             download_dir=None,
             session=session,
         )
+        # Need a finder so we can ignore
+        finder = PackageFinder(find_links=[], index_urls=[], session=session)
         for name in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(name))
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
+                    finder=finder,
                     options=options,
                     session=session):
                 requirement_set.add_requirement(req)
