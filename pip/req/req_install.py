@@ -519,12 +519,16 @@ exec(compile(
                 'Unexpected version control type (in %s): %s'
                 % (self.url, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, target=None):
         """
         Uninstall the distribution currently satisfying this requirement.
 
         Prompts before removing or modifying files unless
         ``auto_confirm`` is True.
+
+        The `target` parameter optionally defines a target folder
+        which is considered for deinstallation instead of the
+        system site packages.
 
         Refuses to delete or modify files outside of ``sys.prefix`` -
         thus uninstallation within a virtual environment can only
@@ -532,13 +536,13 @@ exec(compile(
         linked to global site-packages.
 
         """
-        if not self.check_if_exists():
+        if not self.check_if_exists(target=target):
             raise UninstallationError(
                 "Cannot uninstall requirement %s, not installed" % (self.name,)
             )
         dist = self.satisfied_by or self.conflicts_with
 
-        paths_to_remove = UninstallPathSet(dist)
+        paths_to_remove = UninstallPathSet(dist, target=target)
 
         pip_egg_info_path = os.path.join(dist.location,
                                          dist.egg_name()) + '.egg-info'
@@ -875,13 +879,29 @@ exec(compile(
                 break
         return (level, line)
 
-    def check_if_exists(self):
+    def check_if_exists(self, target=None):
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately."""
 
         if self.req is None:
             return False
+
+        if target is not None:
+            working_set = pkg_resources.WorkingSet()
+            working_set.add_entry(target)
+        else:
+            working_set = pkg_resources.working_set
+
+        def _get_dist(req):
+            # This does pretty much exactly the same logic as the
+            # get_distribution function in pkg_resources through two
+            # layers of indirection but it works with an explicit working
+            # set instead.
+            if isinstance(req, six.string_types):
+                req = pkg_resources.Requirement.parse(req)
+            return working_set.find(req) or working_set.require(str(req))[0]
+
         try:
             # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
             # if we've already set distribute as a conflict to setuptools
@@ -893,13 +913,11 @@ exec(compile(
                     and self.conflicts_with.project_name == 'distribute'):
                 return True
             else:
-                self.satisfied_by = pkg_resources.get_distribution(self.req)
+                self.satisfied_by = _get_dist(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(
-                self.req.project_name
-            )
+            existing_dist = _get_dist(self.req.project_name)
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist

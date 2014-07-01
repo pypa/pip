@@ -13,9 +13,10 @@ from pip.util import (rmtree, ask, is_local, dist_is_local, renames,
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
-    def __init__(self, dist):
+    def __init__(self, dist, target=None):
         self.paths = set()
         self._refuse = set()
+        self.target = target
         self.pth = {}
         self.dist = dist
         self.save_dir = None
@@ -27,10 +28,10 @@ class UninstallPathSet(object):
         remove/modify, False otherwise.
 
         """
-        return is_local(path)
+        return is_local(path, target=self.target)
 
     def _can_uninstall(self):
-        if not dist_is_local(self.dist):
+        if not dist_is_local(self.dist, self.target):
             logger.notify(
                 "Not uninstalling %s at %s, outside environment %s" %
                 (
@@ -115,7 +116,7 @@ class UninstallPathSet(object):
                     new_path = self._stash(path)
                     logger.info('Removing file or directory %s' % path)
                     self._moved_paths.append(path)
-                    renames(path, new_path)
+                    renames(path, new_path, preserve=self.target)
                 for pth in self.pth.values():
                     pth.remove()
                 logger.notify(

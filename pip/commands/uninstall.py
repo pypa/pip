@@ -35,6 +35,12 @@ class UninstallCommand(Command):
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
+        self.cmd_opts.add_option(
+            '-t', '--target',
+            dest='target',
+            default=None,
+            help="Uninstall from a target directory.  This is similar to the "
+                 "flag of same name on the install command.")
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -61,4 +67,5 @@ class UninstallCommand(Command):
                 'You must give at least one requirement to %(name)s (see "pip '
                 'help %(name)s")' % dict(name=self.name)
             )
-        requirement_set.uninstall(auto_confirm=options.yes)
+        requirement_set.uninstall(auto_confirm=options.yes,
+                                  target=options.target)

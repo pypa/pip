@@ -146,9 +146,9 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, target=None):
         for req in self.requirements.values():
-            req.uninstall(auto_confirm=auto_confirm)
+            req.uninstall(auto_confirm=auto_confirm, target=target)
             req.commit_uninstall()
 
     def locate_files(self):

@@ -292,8 +292,11 @@ def splitext(path):
     return base, ext
 
 
-def renames(old, new):
-    """Like os.renames(), but handles renaming across devices."""
+def renames(old, new, preserve=None):
+    """Like os.renames(), but handles renaming across devices.  The
+    preserve flag can be used to define a directory that will not be
+    deleted.
+    """
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
     if head and tail and not os.path.exists(head):
@@ -302,14 +305,15 @@ def renames(old, new):
     shutil.move(old, new)
 
     head, tail = os.path.split(old)
-    if head and tail:
+    if head and tail and (preserve is None or
+                          normalize_path(head) == normalize_path(preserve)):
         try:
             os.removedirs(head)
         except OSError:
             pass
 
 
-def is_local(path):
+def is_local(path, target=None):
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
 
@@ -318,10 +322,16 @@ def is_local(path):
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    norm_path = normalize_path(path)
+    for valid_root in sys.prefix, target:
+        if valid_root is None:
+            continue
+        if norm_path.startswith(normalize_path(valid_root)):
+            return True
+    return False
 
 
-def dist_is_local(dist):
+def dist_is_local(dist, target=None):
     """
     Return True if given Distribution object is installed locally
     (i.e. within current virtualenv).
@@ -329,7 +339,7 @@ def dist_is_local(dist):
     Always True if we're not in a virtualenv.
 
     """
-    return is_local(dist_location(dist))
+    return is_local(dist_location(dist), target=target)
 
 
 def dist_in_usersite(dist):
