@@ -306,7 +306,7 @@ def renames(old, new, preserve=None):
 
     head, tail = os.path.split(old)
     if head and tail and (preserve is None or
-                          normalize_path(head) == normalize_path(preserve)):
+                          normalize_path(head) != normalize_path(preserve)):
         try:
             os.removedirs(head)
         except OSError:
