@@ -8,3 +8,4 @@ MANIFEST
 *.py[cod]
 *~
 .coverage
+coverage.xml
