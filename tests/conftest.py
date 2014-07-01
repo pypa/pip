@@ -10,6 +10,33 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
+def pytest_collection_modifyitems(items):
+    for item in items:
+        module_path = os.path.relpath(
+            item.module.__file__,
+            os.path.commonprefix([__file__, item.module.__file__]),
+        )
+
+        if (module_path.startswith("functional/")
+                or module_path.startswith("integration/")
+                or module_path.startswith("lib/")):
+            item.add_marker(pytest.mark.integration)
+        elif module_path.startswith("unit/"):
+            item.add_marker(pytest.mark.unit)
+
+            # We don't want to allow using the script resource if this is a
+            # unit test, as unit tests should not need all that heavy lifting
+            if set(getattr(item, "funcargnames", [])) & set(["script"]):
+                raise RuntimeError(
+                    "Cannot use the ``script`` funcarg in a unit test: "
+                    "(filename = {0}, item = {1})".format(module_path, item)
+                )
+        else:
+            raise RuntimeError(
+                "Unknown test type (filename = {0})".format(module_path)
+            )
+
+
 @pytest.fixture
 def tmpdir(request):
     """
