@@ -6,4 +6,4 @@ git config --global user.email "pypa-dev@googlegroups.com"
 git config --global user.name "pip"
 
 pip install --upgrade setuptools
-pip install tox diff_cover
+pip install coverage diff_cover tox
