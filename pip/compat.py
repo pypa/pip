@@ -30,19 +30,6 @@ except NameError:
 console_encoding = sys.__stdout__.encoding
 
 
-try:
-    unicode
-
-    def binary(s):
-        if isinstance(s, unicode):
-            return s.encode('ascii')
-        return s
-except NameError:
-    def binary(s):
-        if isinstance(s, str):
-            return s.encode('ascii')
-
-
 if sys.version_info >= (3,):
     from io import StringIO
     from urllib.error import URLError, HTTPError
@@ -53,12 +40,6 @@ if sys.version_info >= (3,):
 
     def cmp(a, b):
         return (a > b) - (a < b)
-
-    def b(s):
-        return s.encode('utf-8')
-
-    def u(s):
-        return s.decode('utf-8')
 
     def console_to_str(s):
         try:
@@ -76,12 +57,6 @@ else:
     import urllib
     import urllib2
     import urlparse
-
-    def b(s):
-        return s
-
-    def u(s):
-        return s
 
     def console_to_str(s):
         return s

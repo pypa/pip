@@ -15,7 +15,7 @@ import sys
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip.compat import StringIO, binary
+from pip.compat import StringIO
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
@@ -65,10 +65,10 @@ def fix_script(path):
         script = open(path, 'rb')
         try:
             firstline = script.readline()
-            if not firstline.startswith(binary('#!python')):
+            if not firstline.startswith(b'#!python'):
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = binary('#!') + exename + binary(os.linesep)
+            firstline = b'#!' + exename + os.linesep.encode("ascii")
             rest = script.read()
         finally:
             script.close()

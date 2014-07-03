@@ -8,7 +8,7 @@ from mock import Mock, patch
 import pytest
 
 import pip
-from pip.compat import b, pathname2url
+from pip.compat import pathname2url
 from pip.exceptions import HashMismatch
 from pip.download import (
     PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
@@ -84,7 +84,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     If already-downloaded file has bad checksum, re-download.
     """
     base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b('downloaded')
+    contents = b'downloaded'
     download_hash = hashlib.new('sha1', contents)
     link = Link(base_url + '#sha1=' + download_hash.hexdigest())
 
