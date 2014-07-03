@@ -3,5 +3,5 @@ html5lib==1.0b3
 six==1.6.1
 colorama==0.3.1
 requests==2.3.0
-CacheControl==0.10.1
+CacheControl==0.10.2
 lockfile==0.9.1
