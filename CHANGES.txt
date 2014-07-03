@@ -59,6 +59,9 @@
 
 * Allow the use of ``--no-use-wheel`` within a requirements file. (:pull:`1859`)
 
+* Fixed :issue:`1180`. Added support to respect proxies in ``pip search``. It
+  also fixes :issue:`932` and :issue:`1104`. (:pull:`1902`)
+
 
 **1.5.7**
 
