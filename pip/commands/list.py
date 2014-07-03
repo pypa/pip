@@ -100,12 +100,11 @@ class ListCommand(Command):
             self.run_listing(options)
 
     def run_outdated(self, options):
-        for dist, remote_version_raw, remote_version_parsed in \
-                self.find_packages_latests_versions(options):
-            if remote_version_parsed > dist.parsed_version:
+        for dist, version in self.find_packages_latests_versions(options):
+            if version > dist.parsed_version:
                 logger.info(
                     '%s (Current: %s Latest: %s)',
-                    dist.project_name, dist.version, remote_version_raw,
+                    dist.project_name, dist.version, version,
                 )
 
     def find_packages_latests_versions(self, options):
@@ -162,14 +161,10 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
-                    # It might be a good idea that link or finder had a public
-                    # method that returned version
                     remote_version = finder._link_package_versions(
                         link, req.name
-                    )[0]
-                    remote_version_raw = remote_version[2]
-                    remote_version_parsed = remote_version[0]
-                yield dist, remote_version_raw, remote_version_parsed
+                    ).version
+                yield dist, remote_version
 
     def run_listing(self, options):
         installed_packages = get_installed_distributions(
@@ -204,8 +199,7 @@ class ListCommand(Command):
 
     def run_uptodate(self, options):
         uptodate = []
-        for dist, remote_version_raw, remote_version_parsed in \
-                self.find_packages_latests_versions(options):
-            if dist.parsed_version == remote_version_parsed:
+        for dist, version in self.find_packages_latests_versions(options):
+            if dist.parsed_version == version:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)

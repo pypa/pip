@@ -24,19 +24,19 @@ from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
 )
-from pip.index import Link
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
 )
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
-    call_subprocess, is_prerelease, read_text_file, FakeFile, _make_build_dir,
+    call_subprocess, read_text_file, FakeFile, _make_build_dir,
 )
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip._vendor.packaging.version import Version
 
 
 logger = logging.getLogger(__name__)
@@ -45,13 +45,13 @@ logger = logging.getLogger(__name__)
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options=None, pycompile=True, markers=None,
-                 isolated=False):
+                 url=None, as_egg=False, update=True, editable_options=None,
+                 pycompile=True, markers=None, isolated=False):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
             self.extras = req.extras
+
         self.req = req
         self.comes_from = comes_from
         self.source_dir = source_dir
@@ -85,16 +85,6 @@ class InstallRequirement(object):
 
         self.isolated = isolated
 
-        # True if pre-releases are acceptable
-        if prereleases:
-            self.prereleases = True
-        elif self.req is not None:
-            self.prereleases = any([
-                is_prerelease(x[1]) and x[0] != "!=" for x in self.req.specs
-            ])
-        else:
-            self.prereleases = False
-
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
@@ -108,8 +98,7 @@ class InstallRequirement(object):
                   editable=True,
                   url=url,
                   editable_options=extras_override,
-                  isolated=isolated,
-                  prereleases=True)
+                  isolated=isolated)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -117,11 +106,12 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None, prereleases=None,
-                  isolated=False):
+    def from_line(cls, name, comes_from=None, isolated=False):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
+        from pip.index import Link
+
         url = None
         if is_url(name):
             marker_sep = '; '
@@ -184,8 +174,8 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url, prereleases=prereleases,
-                   markers=markers, isolated=isolated)
+        return cls(req, comes_from, url=url, markers=markers,
+                   isolated=isolated)
 
     def __str__(self):
         if self.req:
@@ -204,6 +194,10 @@ class InstallRequirement(object):
             if comes_from:
                 s += ' (from %s)' % comes_from
         return s
+
+    @property
+    def specifier(self):
+        return self.req.specifier
 
     def from_path(self):
         if self.req is None:
@@ -361,8 +355,18 @@ class InstallRequirement(object):
                 command_desc='python setup.py egg_info')
 
         if not self.req:
+            if isinstance(
+                    pkg_resources.parse_version(self.pkg_info()["Version"]),
+                    Version):
+                op = "=="
+            else:
+                op = "==="
             self.req = pkg_resources.Requirement.parse(
-                "%(Name)s==%(Version)s" % self.pkg_info())
+                "".join([
+                    self.pkg_info()["Name"],
+                    op,
+                    self.pkg_info()["Version"],
+                ]))
             self.correct_build_location()
 
     # FIXME: This is a lame hack, entirely for PasteScript which has

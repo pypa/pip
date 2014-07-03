@@ -10,7 +10,6 @@ from pip._vendor import requests
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.index import Link
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (display_path, rmtree, dist_in_usersite, call_subprocess,
@@ -219,6 +218,8 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        from pip.index import Link
+
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
         while reqs or unnamed:

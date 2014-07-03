@@ -187,7 +187,7 @@ def test_uninstall_rollback(script, data):
         result.files_created.keys()
     )
     result2 = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken==0.2broken',
+        'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)

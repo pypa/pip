@@ -287,7 +287,7 @@ def test_uninstall_as_egg(script, data):
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
 
-    result2 = script.pip('uninstall', 'FSPkg', '-y', expect_error=True)
+    result2 = script.pip('uninstall', 'FSPkg', '-y')
     assert_all_changes(
         result,
         result2,

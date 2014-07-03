@@ -132,7 +132,6 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 req = InstallRequirement.from_line(
                     line,
                     comes_from,
-                    prereleases=getattr(options, "pre", None),
                     isolated=options.isolated_mode if options else False,
                 )
             yield req

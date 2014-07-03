@@ -14,9 +14,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
-from pip.utils import (
-    Inf, cached_property, normalize_name, splitext, is_prerelease,
-)
+from pip.utils import Inf, cached_property, normalize_name, splitext
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -26,7 +24,9 @@ from pip.exceptions import (
 from pip.download import url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
+from pip.req.req_requirement import InstallationCandidate
 from pip._vendor import html5lib, requests, pkg_resources, six
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
 
 
@@ -164,7 +164,7 @@ class PackageFinder(object):
 
         return files, urls
 
-    def _link_sort_key(self, link_tuple):
+    def _candidate_sort_key(self, candidate):
         """
         Function used to generate link sort key for link tuples.
         The greater the return value, the more preferred it is.
@@ -177,13 +177,13 @@ class PackageFinder(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        parsed_version, link, _ = link_tuple
         if self.use_wheel:
             support_num = len(supported_tags)
-            if link == INSTALLED_VERSION:
+            if candidate.location == INSTALLED_VERSION:
                 pri = 1
-            elif link.ext == wheel_ext:
-                wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
+            elif candidate.location.ext == wheel_ext:
+                # can raise InvalidWheelFilename
+                wheel = Wheel(candidate.location.filename)
                 if not wheel.supported():
                     raise UnsupportedWheel(
                         "%s is not a supported wheel for this platform. It "
@@ -192,9 +192,9 @@ class PackageFinder(object):
                 pri = -(wheel.support_index_min())
             else:  # sdist
                 pri = -(support_num)
-            return (parsed_version, pri)
+            return (candidate.version, pri)
         else:
-            return parsed_version
+            return candidate.version
 
     def _sort_versions(self, applicable_versions):
         """
@@ -204,7 +204,7 @@ class PackageFinder(object):
         """
         return sorted(
             applicable_versions,
-            key=self._link_sort_key,
+            key=self._candidate_sort_key,
             reverse=True
         )
 
@@ -398,54 +398,52 @@ class PackageFinder(object):
             )
         installed_version = []
         if req.satisfied_by is not None:
-            installed_version = [(
-                req.satisfied_by.parsed_version,
-                INSTALLED_VERSION,
-                req.satisfied_by.version,
-            )]
+            installed_version = [
+                InstallationCandidate(
+                    req.name,
+                    req.satisfied_by.version,
+                    INSTALLED_VERSION,
+                ),
+            ]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
                 'Local files found: %s',
                 ', '.join([
-                    url_to_path(link.url)
-                    for _, link, _ in file_versions
+                    url_to_path(candidate.location.url)
+                    for candidate in file_versions
                 ])
             )
-        # this is an intentional priority ordering
-        all_versions = installed_version + file_versions + found_versions \
-            + page_versions + dependency_versions
-        applicable_versions = []
-        for (parsed_version, link, version) in all_versions:
-            if version not in req.req:
-                logger.debug(
-                    "Ignoring link %s, version %s doesn't match %s",
-                    link,
-                    version,
-                    ','.join([''.join(s) for s in req.req.specs]),
-                )
-                continue
-            elif (is_prerelease(version)
-                    and not (self.allow_all_prereleases or req.prereleases)):
-                # If this version isn't the already installed one, then
-                #   ignore it if it's a pre-release.
-                if link is not INSTALLED_VERSION:
-                    logger.debug(
-                        "Ignoring link %s, version %s is a pre-release (use "
-                        "--pre to allow).",
-                        link,
-                        version,
-                    )
-                    continue
-            applicable_versions.append((parsed_version, link, version))
+
+        # This is an intentional priority ordering
+        all_versions = (
+            file_versions + found_versions + page_versions
+            + dependency_versions
+        )
+
+        # Filter out anything which doesn't match our specifier
+        _versions = set(
+            req.specifier.filter(
+                [x.version for x in all_versions],
+                prereleases=(
+                    self.allow_all_prereleases
+                    if self.allow_all_prereleases else None
+                ),
+            )
+        )
+        all_versions = [x for x in all_versions if x.version in _versions]
+
+        # Finally add our existing versions to the front of our versions.
+        applicable_versions = installed_version + all_versions
+
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = bool([
-            link
-            for parsed_version, link, version in applicable_versions
-            if link is INSTALLED_VERSION
-        ])
+        existing_applicable = any(
+            i.location is INSTALLED_VERSION
+            for i in applicable_versions
+        )
+
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is INSTALLED_VERSION:
+            if applicable_versions[0].location is INSTALLED_VERSION:
                 logger.debug(
                     'Existing installed version (%s) is most up-to-date and '
                     'satisfies requirement',
@@ -459,16 +457,18 @@ class PackageFinder(object):
                     applicable_versions[0][2],
                 )
             return None
+
         if not applicable_versions:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
                 ', '.join(
-                    sorted(set([
-                        version
-                        for parsed_version, link, version in all_versions
-                    ]))),
+                    sorted(
+                        set(str(i.version) for i in all_versions),
+                        key=parse_version,
+                    )
+                )
             )
 
             if self.need_warn_external:
@@ -487,28 +487,26 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions matching the version for %s' % req
             )
-        if applicable_versions[0][1] is INSTALLED_VERSION:
+
+        if applicable_versions[0].location is INSTALLED_VERSION:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: '
+                'Installed version (%s) is most up-to-date (past versions: ',
                 '%s)',
                 req.satisfied_by.version,
-                ', '.join([
-                    version for parsed_version, link, version
-                    in applicable_versions[1:]
-                ]) or 'none'),
+                ', '.join(str(i.version) for i in applicable_versions[1:])
+                or "none",
+            )
             raise BestVersionAlreadyInstalled
+
         if len(applicable_versions) > 1:
             logger.debug(
                 'Using version %s (newest of versions: %s)',
-                applicable_versions[0][2],
-                ', '.join([
-                    version for parsed_version, link, version
-                    in applicable_versions
-                ])
+                applicable_versions[0].version,
+                ', '.join(str(i.version) for i in applicable_versions)
             )
 
-        selected_version = applicable_versions[0][1]
+        selected_version = applicable_versions[0].location
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
@@ -618,7 +616,8 @@ class PackageFinder(object):
 
     def _package_versions(self, links, search_name):
         for link in self._sort_links(links):
-            for v in self._link_package_versions(link, search_name):
+            v = self._link_package_versions(link, search_name)
+            if v is not None:
                 yield v
 
     def _known_extensions(self):
@@ -646,7 +645,7 @@ class PackageFinder(object):
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; not a file', link)
                     self.logged_links.add(link)
-                return []
+                return
             if egg_info.endswith('.tar'):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
@@ -659,12 +658,12 @@ class PackageFinder(object):
                         ext,
                     )
                     self.logged_links.add(link)
-                return []
+                return
             if "macosx10" in link.path and ext == '.zip':
                 if link not in self.logged_links:
                     logger.debug('Skipping link %s; macosx10 one', link)
                     self.logged_links.add(link)
-                return []
+                return
             if ext == wheel_ext:
                 try:
                     wheel = Wheel(link.filename)
@@ -673,21 +672,22 @@ class PackageFinder(object):
                         'Skipping %s because the wheel filename is invalid',
                         link
                     )
-                    return []
-                if wheel.name.lower() != search_name.lower():
+                    return
+                if (pkg_resources.safe_name(wheel.name).lower()
+                        != pkg_resources.safe_name(search_name).lower()):
                     logger.debug(
                         'Skipping link %s; wrong project name (not %s)',
                         link,
                         search_name,
                     )
-                    return []
+                    return
                 if not wheel.supported():
                     logger.debug(
                         'Skipping %s because it is not compatible with this '
                         'Python',
                         link,
                     )
-                    return []
+                    return
                 # This is a dirty hack to prevent installing Binary Wheels from
                 # PyPI unless it is a Windows or Mac Binary Wheel. This is
                 # paired with a change to PyPI disabling uploads for the
@@ -711,7 +711,7 @@ class PackageFinder(object):
                             "Wheel on an unsupported platform",
                             link,
                         )
-                        return []
+                        return
                 version = wheel.version
 
         if not version:
@@ -722,7 +722,7 @@ class PackageFinder(object):
                 link,
                 search_name,
             )
-            return []
+            return
 
         if (link.internal is not None
                 and not link.internal
@@ -733,7 +733,7 @@ class PackageFinder(object):
             #   it unless we are allowing externals
             logger.debug("Skipping %s because it is externally hosted.", link)
             self.need_warn_external = True
-            return []
+            return
 
         if (link.verifiable is not None
                 and not link.verifiable
@@ -747,7 +747,7 @@ class PackageFinder(object):
                 link,
             )
             self.need_warn_unverified = True
-            return []
+            return
 
         match = self._py_version_re.search(version)
         if match:
@@ -757,13 +757,10 @@ class PackageFinder(object):
                 logger.debug(
                     'Skipping %s because Python version is incorrect', link
                 )
-                return []
+                return
         logger.debug('Found link %s, version: %s', link, version)
-        return [(
-            pkg_resources.parse_version(version),
-            link,
-            version,
-        )]
+
+        return InstallationCandidate(search_name, version, link)
 
     def _egg_info_matches(self, egg_info, search_name, link):
         match = self._egg_info_re.search(egg_info)
