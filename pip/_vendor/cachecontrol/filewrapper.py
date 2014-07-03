@@ -32,4 +32,11 @@ class CallbackFileWrapper(object):
         if is_fp_closed(self.__fp):
             self.__callback(self.__buf.getvalue())
 
+            # We assign this to None here, because otherwise we can get into
+            # really tricky problems where the CPython interpreter dead locks
+            # because the callback is holding a reference to something which
+            # has a __del__ method. Setting this to None breaks the cycle
+            # and allows the garbage collector to do it's thing normally.
+            self.__callback = None
+
         return data
