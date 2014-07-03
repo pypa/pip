@@ -15,6 +15,9 @@ case $TOXENV in
     py32)
         tox -- -m integration
         ;;
+    py33)
+        tox
+        ;;
     *)
         tox -- -m integration -n 8
         ;;
