@@ -51,11 +51,11 @@ class SearchCommand(Command):
 
     def search(self, query, options):
         index_url = options.index
-        session = self._build_session(options)
-        transport = PipXmlrpcTransport(index_url, session)
-        pypi = xmlrpc_client.ServerProxy(index_url, transport)
-        hits = pypi.search({'name': query, 'summary': query}, 'or')
-        return hits
+        with self._build_session(options) as session:
+            transport = PipXmlrpcTransport(index_url, session)
+            pypi = xmlrpc_client.ServerProxy(index_url, transport)
+            hits = pypi.search({'name': query, 'summary': query}, 'or')
+            return hits
 
 
 def transform_hits(hits):
