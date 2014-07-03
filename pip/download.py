@@ -28,6 +28,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
+from pip._vendor.six.moves import xmlrpc_client
 
 
 __all__ = ['get_file_content',
@@ -695,3 +696,29 @@ def unpack_file_url(link, location, download_dir=None):
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded:
         _copy_file(from_path, download_dir, content_type, link)
+
+
+class PipXmlrpcTransport(xmlrpc_client.Transport):
+    """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
+    object.
+    """
+    def __init__(self, index_url, session, use_datetime=False):
+        xmlrpc_client.Transport.__init__(self, use_datetime)
+        index_parts = urlparse.urlparse(index_url)
+        self._scheme = index_parts.scheme
+        self._session = session
+
+    def request(self, host, handler, request_body, verbose=False):
+        parts = (self._scheme, host, handler, None, None, None)
+        url = urlparse.urlunparse(parts)
+        try:
+            headers = {'Content-Type': 'text/xml'}
+            response = self._session.post(url, data=request_body,
+                                          headers=headers, stream=True)
+            response.raise_for_status()
+            self.verbose = verbose
+            return self.parse_response(response.raw)
+        except requests.HTTPError as exc:
+            logger.fatal("HTTP error {0} while getting {1}".format(
+                         exc.response.status_code, url))
+            raise

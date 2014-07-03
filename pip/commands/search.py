@@ -5,6 +5,7 @@ from distutils.version import StrictVersion, LooseVersion
 from functools import reduce
 
 from pip.basecommand import Command, SUCCESS
+from pip.download import PipXmlrpcTransport
 from pip.util import get_terminal_size
 from pip.log import logger
 from pip.compat import cmp
@@ -36,9 +37,7 @@ class SearchCommand(Command):
         if not args:
             raise CommandError('Missing required argument (search query).')
         query = args
-        index_url = options.index
-
-        pypi_hits = self.search(query, index_url)
+        pypi_hits = self.search(query, options)
         hits = transform_hits(pypi_hits)
 
         terminal_width = None
@@ -50,10 +49,13 @@ class SearchCommand(Command):
             return SUCCESS
         return NO_MATCHES_FOUND
 
-    def search(self, query, index_url):
-        pypi = xmlrpc_client.ServerProxy(index_url)
-        hits = pypi.search({'name': query, 'summary': query}, 'or')
-        return hits
+    def search(self, query, options):
+        index_url = options.index
+        with self._build_session(options) as session:
+            transport = PipXmlrpcTransport(index_url, session)
+            pypi = xmlrpc_client.ServerProxy(index_url, transport)
+            hits = pypi.search({'name': query, 'summary': query}, 'or')
+            return hits
 
 
 def transform_hits(hits):
