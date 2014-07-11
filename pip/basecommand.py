@@ -206,7 +206,11 @@ def open_logfile(filename, mode='a'):
         os.makedirs(dirname)
     exists = os.path.exists(filename)
 
-    log_fp = open(filename, mode)
+    kw = {}
+    if sys.version_info[0] != 2:
+        kw['errors'] = 'replace'
+
+    log_fp = open(filename, mode, **kw)
     if exists:
         log_fp.write('%s\n' % ('-' * 60))
         log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))

@@ -11,7 +11,7 @@ from email.parser import FeedParser
 import pip.wheel
 from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import configparser
-from pip.compat import urllib
+from pip.compat import urllib, native_str
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
@@ -240,7 +240,7 @@ class InstallRequirement(object):
     def name(self):
         if self.req is None:
             return None
-        return self.req.project_name
+        return native_str(self.req.project_name)
 
     @property
     def url_name(self):

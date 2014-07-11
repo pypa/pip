@@ -64,6 +64,9 @@ def display_path(path):
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
+    if sys.version_info[0] == 2:
+        path = path.decode(sys.getfilesystemencoding(), 'replace')
+        path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]
     return path

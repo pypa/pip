@@ -47,6 +47,11 @@ if sys.version_info >= (3,):
         except UnicodeDecodeError:
             return s.decode('utf_8')
 
+    def native_str(s):
+        if isinstance(s, bytes):
+            return s.decode('utf-8')
+        return s
+
     def get_http_message_param(http_message, param, default_value):
         return http_message.get_param(param, default_value)
 
@@ -59,6 +64,11 @@ else:
     import urlparse
 
     def console_to_str(s):
+        return s
+
+    def native_str(s):
+        if isinstance(s, unicode):
+            return s.encode('utf-8')
         return s
 
     def get_http_message_param(http_message, param, default_value):
