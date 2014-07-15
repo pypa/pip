@@ -52,12 +52,14 @@ def should_warn(current_version, removal_version):
     return (pkg_resources.parse_version(current_version)
             < pkg_resources.parse_version(warn_version))
 
+
 def sanitize(write_content, encoding=sys.getdefaultencoding()):
     # Important for certain values of LANG
     if sys.version_info[0] == 2:
         return write_content
     write_content = write_content.encode(encoding, 'replace')
     return write_content.decode(encoding)
+
 
 class Logger(object):
     """
