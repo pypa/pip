@@ -101,11 +101,11 @@ class Bazaar(VersionControl):
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
+        if not repo:
+            return None
         if not repo.lower().startswith('bzr:'):
             repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
-        if not repo:
-            return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
 
