@@ -65,6 +65,7 @@ Jonas Nockert <jonasnockert@gmail.com>
 Jorge Niedbalski <niedbalski@gmail.com>
 Josh Bronson <jabronson@gmail.com>
 Josh Hansen <josh@skwash.net>
+Josh Schneier <josh.schneier@gmail.com>
 Kamal Bin Mustafa <kamal@smach.net>
 Kelsey Hightower <kelsey.hightower@gmail.com>
 Kenneth Belitzky <kenny@belitzky.com>

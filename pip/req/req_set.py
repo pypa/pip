@@ -507,11 +507,7 @@ class RequirementSet(object):
 
         # non-editable vcs urls
         if is_vcs_url(link):
-            if only_download:
-                loc = download_dir
-            else:
-                loc = location
-            unpack_vcs_link(link, loc, only_download)
+            unpack_vcs_link(link, location, only_download)
 
         # file urls
         elif is_file_url(link):
