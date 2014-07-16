@@ -57,12 +57,14 @@ def search_packages_info(query):
                 lines = dist.get_metadata_lines('RECORD')
                 paths = [l.split(',')[0] for l in lines]
                 paths = [os.path.join(dist.location, p) for p in paths]
-                file_list = [os.path.relpath(p, dist.egg_info)
-                             for p in paths]
+                file_list = [os.path.relpath(p, dist.location) for p in paths]
         else:
             # Otherwise use pip's log for .egg-info's
             if dist.has_metadata('installed-files.txt'):
-                file_list = dist.get_metadata_lines('installed-files.txt')
+                paths = dist.get_metadata_lines('installed-files.txt')
+                paths = [os.path.join(dist.egg_info, p) for p in paths]
+                file_list = [os.path.relpath(p, dist.location) for p in paths]
+
         # use and short-circuit to check for None
         package['files'] = file_list and sorted(file_list)
         yield package
