@@ -504,11 +504,11 @@ def unzip_file(filename, location, flatten=True):
         os.makedirs(location)
     zipfp = open(filename, 'rb')
     try:
-        zip = zipfile.ZipFile(zipfp, allowZip64=True)
-        leading = has_leading_dir(zip.namelist()) and flatten
-        for info in zip.infolist():
+        zp = zipfile.ZipFile(zipfp, allowZip64=True)
+        leading = has_leading_dir(zp.namelist()) and flatten
+        for info in zp.infolist():
             name = info.filename
-            data = zip.read(name)
+            data = zp.read(name)
             fn = name
             if leading:
                 fn = split_leading_dir(name)[1]
