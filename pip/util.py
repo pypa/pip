@@ -40,8 +40,11 @@ def get_prog():
     return 'pip'
 
 
-def rmtree(dir, ignore_errors=False):
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
+def rmtree(dir_=None, ignore_errors=False, **kwargs):
+    _dir = kwargs.pop('dir', dir_)
+    if _dir is None:
+        raise TypeError('dir cannot be None')
+    shutil.rmtree(_dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
 
@@ -72,15 +75,18 @@ def display_path(path):
     return path
 
 
-def backup_dir(dir, ext='.bak'):
+def backup_dir(dir_=None, ext='.bak', **kwargs):
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
+    _dir = kwargs.pop('dir', dir_)
+    if _dir is None:
+        raise TypeError('dir cannot be None')
     n = 1
     extension = ext
-    while os.path.exists(dir + extension):
+    while os.path.exists(dir_ + extension):
         n += 1
         extension = ext + str(n)
-    return dir + extension
+    return dir_ + extension
 
 
 def find_command(cmd, paths=None, pathext=None):
@@ -183,15 +189,18 @@ def normalize_name(name):
     return _normalize_re.sub('-', name.lower())
 
 
-def format_size(bytes):
-    if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
-    elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
-    elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
-    else:
-        return '%ibytes' % bytes
+def format_size(b):
+    """
+    params:
+        b - bytes
+    """
+    if b > 1000 * 1000:
+        return '%.1fMB' % (b / 1000.0 / 1000)
+    elif b > 10 * 1000:
+        return '%ikB' % (b / 1000)
+    elif b > 1000:
+        return '%.1fkB' % (b / 1000.0)
+    return '%ibytes' % b
 
 
 def is_installable_dir(path):
@@ -467,8 +476,6 @@ def get_terminal_size():
             return None
         if cr == (0, 0):
             return None
-        if cr == (0, 0):
-            return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not cr:
@@ -503,18 +510,18 @@ def unzip_file(filename, location, flatten=True):
         os.makedirs(location)
     zipfp = open(filename, 'rb')
     try:
-        zip = zipfile.ZipFile(zipfp, allowZip64=True)
-        leading = has_leading_dir(zip.namelist()) and flatten
-        for info in zip.infolist():
+        zp = zipfile.ZipFile(zipfp, allowZip64=True)
+        leading = has_leading_dir(zp.namelist()) and flatten
+        for info in zp.infolist():
             name = info.filename
-            data = zip.read(name)
+            data = zp.read(name)
             fn = name
             if leading:
                 fn = split_leading_dir(name)[1]
             fn = os.path.join(location, fn)
-            dir = os.path.dirname(fn)
-            if not os.path.exists(dir):
-                os.makedirs(dir)
+            dirname = os.path.dirname(fn)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
                 if not os.path.exists(fn):
