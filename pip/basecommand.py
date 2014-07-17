@@ -170,7 +170,6 @@ class Command(object):
             exit = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
-            text = '\n'.join(complete_log)
             try:
                 log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:
@@ -178,7 +177,8 @@ class Command(object):
                 log_file_fn = temp.name
                 log_file_fp = open_logfile(log_file_fn, 'w')
             logger.fatal('Storing debug log for failure in %s' % log_file_fn)
-            log_file_fp.write(text)
+            for line in complete_log:
+                log_file_fp.write(line + '\n')
             log_file_fp.close()
         if log_fp is not None:
             log_fp.close()
