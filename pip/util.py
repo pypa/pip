@@ -513,9 +513,9 @@ def unzip_file(filename, location, flatten=True):
             if leading:
                 fn = split_leading_dir(name)[1]
             fn = os.path.join(location, fn)
-            dir = os.path.dirname(fn)
-            if not os.path.exists(dir):
-                os.makedirs(dir)
+            dirname = os.path.dirname(fn)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
                 if not os.path.exists(fn):
