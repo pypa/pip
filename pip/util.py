@@ -40,8 +40,11 @@ def get_prog():
     return 'pip'
 
 
-def rmtree(dir, ignore_errors=False):
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
+def rmtree(dir_=None, ignore_errors=False, **kwargs):
+    _dir = kwargs.pop('dir', dir_)
+    if _dir is None:
+        raise TypeError('dir cannot be None')
+    shutil.rmtree(_dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
 
