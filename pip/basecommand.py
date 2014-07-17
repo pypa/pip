@@ -132,42 +132,42 @@ class Command(object):
         else:
             log_fp = None
 
-        exit = SUCCESS
+        ret = SUCCESS
         store_log = False
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
-                exit = status
+                ret = status
         except PreviousBuildDirError as exc:
             logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = PREVIOUS_BUILD_DIR_ERROR
+            ret = PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError) as exc:
             logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = ERROR
+            ret = ERROR
         except BadCommand as exc:
             logger.fatal(str(exc))
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = ERROR
+            ret = ERROR
         except CommandError as exc:
             logger.fatal('ERROR: %s' % exc)
             logger.info('Exception information:\n%s' % format_exc())
-            exit = ERROR
+            ret = ERROR
         except KeyboardInterrupt:
             logger.fatal('Operation cancelled by user')
             logger.info('Exception information:\n%s' % format_exc())
             store_log = True
-            exit = ERROR
+            ret = ERROR
         except:
             logger.fatal('Exception:\n%s' % format_exc())
             store_log = True
-            exit = UNKNOWN_ERROR
+            ret = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
             text = '\n'.join(complete_log)
@@ -182,7 +182,7 @@ class Command(object):
             log_file_fp.close()
         if log_fp is not None:
             log_fp.close()
-        return exit
+        return ret
 
 
 def format_exc(exc_info=None):
