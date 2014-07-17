@@ -186,15 +186,18 @@ def normalize_name(name):
     return _normalize_re.sub('-', name.lower())
 
 
-def format_size(bytes):
-    if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
-    elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
-    elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
-    else:
-        return '%ibytes' % bytes
+def format_size(b):
+    """
+    params:
+        b - bytes
+    """
+    if b > 1000 * 1000:
+        return '%.1fMB' % (b / 1000.0 / 1000)
+    elif b > 10 * 1000:
+        return '%ikB' % (b / 1000)
+    elif b > 1000:
+        return '%.1fkB' % (b / 1000.0)
+    return '%ibytes' % b
 
 
 def is_installable_dir(path):
