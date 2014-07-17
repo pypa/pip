@@ -72,15 +72,18 @@ def display_path(path):
     return path
 
 
-def backup_dir(dir, ext='.bak'):
+def backup_dir(dir_=None, ext='.bak', **kwargs):
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
+    _dir = kwargs.pop('dir', dir_)
+    if _dir is None:
+        raise TypeError('dir cannot be None')
     n = 1
     extension = ext
-    while os.path.exists(dir + extension):
+    while os.path.exists(dir_ + extension):
         n += 1
         extension = ext + str(n)
-    return dir + extension
+    return dir_ + extension
 
 
 def find_command(cmd, paths=None, pathext=None):
