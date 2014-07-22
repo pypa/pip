@@ -10,6 +10,14 @@
   rooted at the location reported by show, rather than one (unstated)
   directory lower. (:pull:`1933`)
 
+* **DEPRECATION** ``pip install --download-cache`` and
+  ``pip wheel --download-cache`` command line flags have been deprecated and
+  the functionality removed. Since pip now automatically configures and uses
+  it's internal HTTP cache which supplants the ``--download-cache`` the
+  existing options have been made non functional but will still be accepted
+  until their removal in pip v1.8. For more information please see
+  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+
 * Removed the deprecated support for dependency links and the
   ``--process-dependency-links`` flag that turned them on. For alternatives to
   dependency links please see http://www.pip-installer.org/en/latest/dependency_links.html
@@ -30,7 +38,7 @@
   convince some servers who double compress the downloaded file to stop doing
   so. (:pull:`1688`)
 
-* Fixed issue:`1559`. Stop breaking when given pip commands in uppercase (:pull:`1725`)
+* Fixed :issue:`1559`. Stop breaking when given pip commands in uppercase (:pull:`1725`)
 
 * Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
   won't create duplicate output when being called multiple times. (:pull:`1723`)
@@ -40,14 +48,6 @@
 
 * Fixed :issue:`1775`. `pip wheel` wasn't building wheels for dependencies of
   editable requirements.
-
-* **DEPRECATION** ``pip install --download-cache`` and
-  ``pip wheel --download-cache`` command line flags have been deprecated and
-  the functionality removed. Since pip now automatically configures and uses
-  it's internal HTTP cache which supplants the ``--download-cache`` the
-  existing options have been made non functional but will still be accepted
-  until their removal in pip v1.8. For more information please see
-  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
 
 * Fixed :issue:`1680`. Attempt to locate system TLS certificates to use instead
   of the included CA Bundle if possible. (:pull:`1866`)
