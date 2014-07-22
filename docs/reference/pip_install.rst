@@ -338,6 +338,7 @@ To have the dependency located from a local directory and not crawl PyPI, add th
   find_links = file:///path/to/local/archives
 
 
+.. _`pip install Options`:
 
 Options
 *******
