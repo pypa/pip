@@ -7,9 +7,28 @@ from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
 from pip.util import get_installed_distributions
+from pip._vendor import pkg_resources
+
 
 # packages to exclude from freeze output
 freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
+
+
+def recursive_dependencies(query):
+    """Return list of dependencies of ``dists``, recursively."""
+    dependencies = set()
+    installed = dict(
+        [(p.project_name.lower(), p) for p in pkg_resources.working_set])
+    query_names = [name.lower() for name in query]
+    for pkg in query_names:
+        try:
+            dist = installed[pkg]
+            for dep in dist.requires():
+                dependencies.add(dep.project_name)
+                dependencies.update(recursive_dependencies([dep.project_name]))
+        except KeyError:
+            pass  # pkg is not installed.
+    return dependencies
 
 
 class FreezeCommand(Command):
@@ -20,7 +39,7 @@ class FreezeCommand(Command):
     """
     name = 'freeze'
     usage = """
-      %prog [options]"""
+      %prog [options] [PACKAGE PACKAGE...]"""
     summary = 'Output installed packages in requirements format.'
 
     def __init__(self, *args, **kw):
@@ -72,10 +91,19 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
+
+        only_dists = []
+        if args:
+            only_dists = args
+            only_dists.extend(recursive_dependencies(only_dists))
+            only_dists = [name.lower() for name in only_dists]
+
         for dist in get_installed_distributions(local_only=local_only,
                                                 skip=freeze_excludes):
-            req = pip.FrozenRequirement.from_dist(dist, find_tags=find_tags)
-            installations[req.name] = req
+            if not only_dists or dist.project_name.lower() in only_dists:
+                req = pip.FrozenRequirement.from_dist(
+                    dist, find_tags=find_tags)
+                installations[req.name] = req
         if requirement:
             req_f = open(requirement)
             for line in req_f:
