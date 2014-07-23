@@ -15,6 +15,7 @@ def test_show(script):
     assert lines[2] == 'Version: %s' % __version__, lines[2]
     assert lines[3].startswith('Location: '), lines[3]
     assert lines[4] == 'Requires: '
+    assert lines[5] == 'Requires recursive: '
 
 
 def test_show_with_files_not_found(script, data):
@@ -32,6 +33,7 @@ def test_show_with_files_not_found(script, data):
     assert lines[2] == 'Version: 0.0.0', lines[2]
     assert lines[3].startswith('Location: '), lines[3]
     assert lines[4] == 'Requires: ', lines[4]
+    assert lines[4] == 'Requires recursive: ', lines[5]
     assert lines[5] == 'Files:', lines[5]
     assert lines[6] == 'Cannot locate installed-files.txt', lines[6]
 

@@ -6,29 +6,11 @@ from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
-from pip.util import get_installed_distributions
-from pip._vendor import pkg_resources
+from pip.util import get_installed_distributions, recursive_dependencies
 
 
 # packages to exclude from freeze output
 freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
-
-
-def recursive_dependencies(query):
-    """Return list of dependencies of ``dists``, recursively."""
-    dependencies = set()
-    installed = dict(
-        [(p.project_name.lower(), p) for p in pkg_resources.working_set])
-    query_names = [name.lower() for name in query]
-    for pkg in query_names:
-        try:
-            dist = installed[pkg]
-            for dep in dist.requires():
-                dependencies.add(dep.project_name)
-                dependencies.update(recursive_dependencies([dep.project_name]))
-        except KeyError:
-            pass  # pkg is not installed.
-    return dependencies
 
 
 class FreezeCommand(Command):
