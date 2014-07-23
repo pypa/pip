@@ -420,6 +420,23 @@ def get_installed_distributions(local_only=True,
             ]
 
 
+def recursive_dependencies(query):
+    """Return list of dependencies of dists in ``query``, recursively."""
+    dependencies = set()
+    installed = dict(
+        [(p.project_name.lower(), p) for p in pkg_resources.working_set])
+    query_names = [name.lower() for name in query]
+    for pkg in query_names:
+        try:
+            dist = installed[pkg]
+            for dep in dist.requires():
+                dependencies.add(dep.project_name)
+                dependencies.update(recursive_dependencies([dep.project_name]))
+        except KeyError:
+            pass  # pkg is not installed.
+    return dependencies
+
+
 def egg_link_path(dist):
     """
     Return the path for the .egg-link file if it exists, otherwise, None.

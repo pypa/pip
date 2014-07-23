@@ -6,23 +6,6 @@ from pip.basecommand import Command
 from pip.operations.freeze import freeze
 
 
-def recursive_dependencies(query):
-    """Return list of dependencies of ``dists``, recursively."""
-    dependencies = set()
-    installed = dict(
-        [(p.project_name.lower(), p) for p in pkg_resources.working_set])
-    query_names = [name.lower() for name in query]
-    for pkg in query_names:
-        try:
-            dist = installed[pkg]
-            for dep in dist.requires():
-                dependencies.add(dep.project_name)
-                dependencies.update(recursive_dependencies([dep.project_name]))
-        except KeyError:
-            pass  # pkg is not installed.
-    return dependencies
-
-
 class FreezeCommand(Command):
     """
     Output installed packages in requirements format.
