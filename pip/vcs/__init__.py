@@ -165,7 +165,7 @@ class VersionControl(object):
         """
         Switch the repo at ``dest`` to point to ``URL``.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def update(self, dest, rev_options):
         """
