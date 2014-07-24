@@ -420,20 +420,22 @@ def get_installed_distributions(local_only=True,
             ]
 
 
-def recursive_dependencies(query):
-    """Return list of dependencies of dists in ``query``, recursively."""
+def get_recursive_dependencies(*names):
+    """Return set of dependencies of dists in ``names``, recursively."""
     dependencies = set()
     installed = dict(
         [(p.project_name.lower(), p) for p in pkg_resources.working_set])
-    query_names = [name.lower() for name in query]
+    query_names = [name.lower() for name in names]
     for pkg in query_names:
         try:
             dist = installed[pkg]
-            for dep in dist.requires():
-                dependencies.add(dep.project_name)
-                dependencies.update(recursive_dependencies([dep.project_name]))
         except KeyError:
             pass  # pkg is not installed.
+        else:
+            for dep in dist.requires():
+                name = dep.project_name
+                dependencies.add(name)
+                dependencies.update(get_recursive_dependencies(name))
     return dependencies
 
 

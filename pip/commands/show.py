@@ -6,7 +6,7 @@ import os
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
-from pip.utils import recursive_dependencies
+from pip.utils import get_recursive_dependencies
 from pip._vendor import pkg_resources
 
 
@@ -118,7 +118,7 @@ def print_results(distributions, list_all_files):
         logger.info("Location: %s" % dist['location'])
         logger.info("Requires: %s" % ', '.join(dist['requires']))
         logger.info("Requires recursive: %s" % ', '.join(
-            recursive_dependencies([dist['name']])))
+            get_recursive_dependencies([dist['name']])))
         if list_all_files:
             logger.info("Files:")
             if dist['files'] is not None:
