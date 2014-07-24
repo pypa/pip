@@ -6,7 +6,7 @@ from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.log import logger
 from pip.basecommand import Command
-from pip.util import get_installed_distributions, recursive_dependencies
+from pip.util import get_installed_distributions, get_recursive_dependencies
 
 
 # packages to exclude from freeze output
@@ -77,7 +77,7 @@ class FreezeCommand(Command):
         only_dists = []
         if args:
             only_dists = args
-            only_dists.extend(recursive_dependencies(only_dists))
+            only_dists.extend(get_recursive_dependencies(*only_dists))
             only_dists = [name.lower() for name in only_dists]
 
         for dist in get_installed_distributions(local_only=local_only,

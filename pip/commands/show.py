@@ -2,7 +2,7 @@ import os
 
 from pip.basecommand import Command
 from pip.log import logger
-from pip.util import recursive_dependencies
+from pip.util import get_recursive_dependencies
 from pip._vendor import pkg_resources
 
 
@@ -80,7 +80,7 @@ def print_results(distributions, list_all_files):
         logger.notify("Location: %s" % dist['location'])
         logger.notify("Requires: %s" % ', '.join(dist['requires']))
         logger.notify("Requires recursive: %s" % ', '.join(
-            recursive_dependencies([dist['name']])))
+            get_recursive_dependencies(dist['name'])))
         if list_all_files:
             logger.notify("Files:")
             if dist['files'] is not None:
