@@ -101,6 +101,10 @@ As an example, the instructions assume we're releasing pip-1.4, and virtualenv-1
  #. Merge ``virtualenv/release-1.10`` to ``virtualenv/master``
  #. Build and upload pip and virtualenv sdists to PyPI.
 
+Release process scripts that automatically update files at https://bootstrap.pypa.io/
+so in case anything breaks, the process is
+`described here <https://github.com/pypa/pip/issues/1945#issuecomment-50029243>`_.
+
 .. _`Refresh virtualenv`:
 
 Refresh virtualenv
