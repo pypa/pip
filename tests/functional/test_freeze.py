@@ -302,6 +302,8 @@ def test_freeze_with_local_option(script):
         Script result: ...pip freeze --local
         -- stdout: --------------------
         INITools==0.2
+        <BLANKLINE>
+        # MD5 for package list: 6a93c9c4b618caf5643d9a82b86fe4b4
         <BLANKLINE>""")
     _check_output(result, expected)
 
