@@ -279,6 +279,15 @@ no_allow_unsafe = OptionMaker(
     help=SUPPRESS_HELP
 )
 
+# Remove after 1.5
+process_dependency_links = OptionMaker(
+    "--process-dependency-links",
+    dest="process_dependency_links",
+    action="store_true",
+    default=False,
+    help="Enable the processing of dependency links.",
+)
+
 requirements = OptionMaker(
     '-r', '--requirement',
     dest='requirements',
@@ -431,5 +440,6 @@ index_group = {
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,
+        process_dependency_links,
     ]
 }

@@ -425,6 +425,10 @@ class RequirementSet(object):
 
                 # sdists
                 else:
+                    # FIXME: shouldn't be globally added:
+                    finder.add_dependency_links(
+                        req_to_install.dependency_links
+                    )
                     if (req_to_install.extras):
                         logger.notify(
                             "Installing extra requirements: %r" %

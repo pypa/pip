@@ -448,6 +448,10 @@ exec(compile(
         p.feed(data or '')
         return p.close()
 
+    @property
+    def dependency_links(self):
+        return self.egg_info_lines('dependency_links.txt')
+
     _requirements_section_re = re.compile(r'\[(.*?)\]')
 
     def requirements(self, extras=()):
