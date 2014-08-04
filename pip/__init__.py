@@ -199,7 +199,7 @@ class FrozenRequirement(object):
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
     @classmethod
-    def from_dist(cls, dist, find_tags=False):
+    def from_dist(cls, dist, dependency_links, find_tags=False):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
@@ -227,7 +227,38 @@ class FrozenRequirement(object):
             req = dist.as_requirement()
             specs = req.specs
             assert len(specs) == 1 and specs[0][0] == '=='
-
+            version = specs[0][1]
+            ver_match = cls._rev_re.search(version)
+            date_match = cls._date_re.search(version)
+            if ver_match or date_match:
+                svn_backend = vcs.get_backend('svn')
+                if svn_backend:
+                    svn_location = svn_backend().get_location(
+                        dist,
+                        dependency_links,
+                    )
+                if not svn_location:
+                    logger.warn(
+                        'Warning: cannot find svn location for %s' % req)
+                    comments.append(
+                        '## FIXME: could not find svn URL in dependency_links '
+                        'for this package:'
+                    )
+                else:
+                    comments.append(
+                        '# Installing as editable to satisfy requirement %s:' %
+                        req
+                    )
+                    if ver_match:
+                        rev = ver_match.group(1)
+                    else:
+                        rev = '{%s}' % date_match.group(1)
+                    editable = True
+                    req = '%s@%s#egg=%s' % (
+                        svn_location,
+                        rev,
+                        cls.egg_name(dist)
+                    )
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod

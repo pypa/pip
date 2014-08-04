@@ -1,6 +1,8 @@
 import os
 import re
+
 from pip.compat import urlparse
+from pip.index import Link
 from pip.util import rmtree, display_path, call_subprocess
 from pip.log import logger
 from pip.vcs import vcs, VersionControl
@@ -34,6 +36,7 @@ class Subversion(VersionControl):
                 'Cannot determine URL of svn checkout %s' %
                 display_path(location)
             )
+            logger.info('Output that cannot be parsed: \n%s' % output)
             return None, None
         url = match.group(1).strip()
         match = _svn_revision_re.search(output)
@@ -83,6 +86,20 @@ class Subversion(VersionControl):
                           % (url, rev_display, display_path(dest)))
             call_subprocess(
                 [self.cmd, 'checkout', '-q'] + rev_options + [url, dest])
+
+    def get_location(self, dist, dependency_links):
+        for url in dependency_links:
+            egg_fragment = Link(url).egg_fragment
+            if not egg_fragment:
+                continue
+            if '-' in egg_fragment:
+                # FIXME: will this work when a package has - in the name?
+                key = '-'.join(egg_fragment.split('-')[:-1]).lower()
+            else:
+                key = egg_fragment
+            if key == dist.key:
+                return url.split('#', 1)[0]
+        return None
 
     def get_revision(self, location):
         """

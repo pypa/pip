@@ -50,6 +50,10 @@ LineEndings
 -----------
 contains DOS line endings
 
+LocalExtras
+-----------
+has an extra in a local file:// dependency link
+
 parent/child-0.1.tar.gz
 -----------------------
 The parent-0.1.tar.gz and child-0.1.tar.gz packages are used by

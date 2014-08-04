@@ -14,10 +14,6 @@
   until their removal in pip v1.8. For more information please see
   https://pip.pypa.io/en/latest/reference/pip_install.html#caching
 
-* Removed the deprecated support for dependency links and the
-  ``--process-dependency-links`` flag that turned them on. For alternatives to
-  dependency links please see http://www.pip-installer.org/en/latest/dependency_links.html
-
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
   freeze` (:pull:`1606`, :pull:`1369`)
 
@@ -166,9 +162,6 @@
 
 * **BACKWARD INCOMPATIBLE** pip no longer respects dependency links by default.
   Users may opt into respecting them again using ``--process-dependency-links``.
-
-* **DEPRECATION** ``pip install --process-dependency-links`` and the ability to
-  use dependency links at all has been deprecated and will be removed in 1.6.
 
 * **DEPRECATION** ``pip install --no-install`` and ``pip install
   --no-download`` are now formally deprecated.  See :issue:`906` for discussion on

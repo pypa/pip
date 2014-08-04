@@ -70,6 +70,7 @@ class ListCommand(Command):
             allow_unverified=options.allow_unverified,
             allow_all_external=options.allow_all_external,
             allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
             session=session,
         )
 
@@ -115,8 +116,16 @@ class ListCommand(Command):
             )
             index_urls += options.mirrors
 
+        dependency_links = []
+        for dist in get_installed_distributions(local_only=options.local):
+            if dist.has_metadata('dependency_links.txt'):
+                dependency_links.extend(
+                    dist.get_metadata_lines('dependency_links.txt'),
+                )
+
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, index_urls, session)
+            finder.add_dependency_links(dependency_links)
 
             installed_packages = get_installed_distributions(
                 local_only=options.local,
