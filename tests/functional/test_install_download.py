@@ -125,3 +125,17 @@ def test_download_should_skip_existing_files(script):
     assert Path('scratch') / 'INITools-0.1.tar.gz' not in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
     assert script.site_packages / 'openid' not in result.files_created
+
+
+def test_download_vcs_link(script):
+    """
+    It should allow -d flag for vcs links, regression test for issue #798.
+    """
+    result = script.pip(
+        'install', '-d', '.', 'git+git://github.com/pypa/pip-test-package.git'
+    )
+    assert (
+        Path('scratch') / 'pip-test-package-0.1.1.zip'
+        in result.files_created
+    )
+    assert script.site_packages / 'piptestpackage' not in result.files_created

@@ -1,5 +1,7 @@
 **1.6.0.dev1 (unreleased)**
 
+* Fixed :issue:`798` and :issue:`1060`. `pip install --download` works with vcs links.
+  (:pull:`1926`)
 
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
