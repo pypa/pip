@@ -25,12 +25,16 @@ def test_install_noneditable_git(script, tmpdir):
     """
     result = script.pip(
         'install',
-        'git+https://github.com/pypa/pip-test-package.git@0.1.1#egg=pip-test-package'
-        )
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1.1#egg=pip-test-package'
+    )
     egg_info_folder = (
-            script.site_packages / 'pip_test_package-0.1.1-py%s.egg-info' % pyversion
-        )
-    result.assert_installed('piptestpackage', without_egg_link=True, editable=False)
+        script.site_packages /
+        'pip_test_package-0.1.1-py%s.egg-info' % pyversion
+    )
+    result.assert_installed('piptestpackage',
+                            without_egg_link=True,
+                            editable=False)
     assert egg_info_folder in result.files_created, str(result)
 
 
