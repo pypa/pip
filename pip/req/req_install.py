@@ -132,7 +132,7 @@ class InstallRequirement(object):
         # it's a local file, dir, or url
         if link:
 
-            url = link.url_without_fragment
+            url = link.url
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', url):
                 url = path_to_url(os.path.normpath(os.path.abspath(link.path)))

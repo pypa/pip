@@ -79,7 +79,7 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         fragment = '#egg=bar'
         req = InstallRequirement.from_line(url + fragment)
-        assert req.url == url, req.url
+        assert req.url == url + fragment, req.url
 
     def test_unsupported_wheel_requirement_raises(self):
         with pytest.raises(UnsupportedWheel):
@@ -94,6 +94,18 @@ class TestInstallRequirement(object):
     def test_wheel_requirement_sets_req_attribute(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
         assert req.req == pkg_resources.Requirement.parse('simple==0.1')
+
+    def test_url_preserved_line_req(self):
+        """Confirm the url is preserved in a non-editable requirement"""
+        url = 'git+http://foo.com@ref#egg=foo'
+        req = InstallRequirement.from_line(url)
+        assert req.url == url
+
+    def test_url_preserved_editable_req(self):
+        """Confirm the url is preserved in a editable requirement"""
+        url = 'git+http://foo.com@ref#egg=foo'
+        req = InstallRequirement.from_editable(url)
+        assert req.url == url
 
 
 def test_requirements_data_structure_keeps_order():

@@ -1,4 +1,5 @@
-from tests.lib import _create_test_package, _change_test_package_version
+from tests.lib import (_create_test_package, _change_test_package_version,
+                       pyversion)
 from tests.lib.local_repos import local_checkout
 
 
@@ -16,6 +17,25 @@ def test_install_editable_from_git_with_https(script, tmpdir):
         expect_error=True,
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
+
+
+def test_install_noneditable_git(script, tmpdir):
+    """
+    Test installing from a non-editable git URL with a given tag.
+    """
+    result = script.pip(
+        'install',
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1.1#egg=pip-test-package'
+    )
+    egg_info_folder = (
+        script.site_packages /
+        'pip_test_package-0.1.1-py%s.egg-info' % pyversion
+    )
+    result.assert_installed('piptestpackage',
+                            without_egg_link=True,
+                            editable=False)
+    assert egg_info_folder in result.files_created, str(result)
 
 
 def test_git_with_sha1_revisions(script):
