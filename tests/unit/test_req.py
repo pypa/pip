@@ -97,13 +97,13 @@ class TestInstallRequirement(object):
 
     def test_url_preserved_line_req(self):
         """Confirm the url is preserved in a non-editable requirement"""
-        url = 'http://foo.com@ref#egg=foo'
+        url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_line(url)
         assert req.url == url
 
     def test_url_preserved_editable_req(self):
         """Confirm the url is preserved in a editable requirement"""
-        url = 'http://foo.com@ref#egg=foo'
+        url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_editable(url)
         assert req.url == url
 
