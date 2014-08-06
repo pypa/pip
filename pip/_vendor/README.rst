@@ -17,7 +17,7 @@ Modifications
 Markerlib and pkg_resources
 ===========================
 
-Markerlib and pkg_resources has been pulled in from setuptools 3.4.4
+Markerlib and pkg_resources has been pulled in from setuptools 5.4.2
 
 
 Note to Downstream Distributors
