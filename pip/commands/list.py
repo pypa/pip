@@ -149,9 +149,9 @@ class ListCommand(Command):
                     # method that returned version
                     remote_version = finder._link_package_versions(
                         link, req.name
-                    )[0]
-                    remote_version_raw = remote_version[2]
-                    remote_version_parsed = remote_version[0]
+                    )
+                    remote_version_raw = remote_version.version
+                    remote_version_parsed = remote_version.parsed_version
                 yield dist, remote_version_raw, remote_version_parsed
 
     def run_listing(self, options):

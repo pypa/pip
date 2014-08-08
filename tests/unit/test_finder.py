@@ -208,16 +208,12 @@ class TestWheel:
         Test link sorting
         """
         links = [
-            (parse_version('2.0'), Link(Inf), '2.0'),
-            (parse_version('2.0'), Link('simple-2.0.tar.gz'), '2.0'),
-            (
-                parse_version('1.0'),
-                Link('simple-1.0-pyT-none-TEST.whl'),
-                '1.0',
-            ),
-            (parse_version('1.0'), Link('simple-1.0-pyT-TEST-any.whl'), '1.0'),
-            (parse_version('1.0'), Link('simple-1.0-pyT-none-any.whl'), '1.0'),
-            (parse_version('1.0'), Link('simple-1.0.tar.gz'), '1.0'),
+            Link(Inf, version='2.0'),
+            Link('simple-2.0.tar.gz', version='2.0'),
+            Link('simple-1.0-pyT-none-TEST.whl', version='1.0'),
+            Link('simple-1.0-pyT-TEST-any.whl', version='1.0'),
+            Link('simple-1.0-pyT-none-any.whl', version='1.0'),
+            Link('simple-1.0.tar.gz', version='1.0'),
         ]
 
         finder = PackageFinder([], [], session=PipSession())
@@ -231,11 +227,7 @@ class TestWheel:
     @patch('pip.pep425tags.supported_tags', [])
     def test_link_sorting_raises_when_wheel_unsupported(self):
         links = [
-            (
-                parse_version('1.0'),
-                Link('simple-1.0-py2.py3-none-TEST.whl'),
-                '1.0',
-            ),
+            Link('simple-1.0-py2.py3-none-TEST.whl', version='1.0'),
         ]
         finder = PackageFinder([], [], use_wheel=True, session=PipSession())
         with pytest.raises(InstallationError):
