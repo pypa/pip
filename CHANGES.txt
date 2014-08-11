@@ -67,21 +67,21 @@
 
 **1.5.7**
 
-* Fixed Issue #1825. When installing directly from wheel paths or urls,
-  previous versions were not uninstalled. (PR #1838)
+* Fixed :issue:`1825`. When installing directly from wheel paths or urls,
+  previous versions were not uninstalled. (:pull:`1838`)
 
 
 **1.5.6 (2014-05-16)**
 
 * Upgrade requests to 2.3.0 to fix an issue with proxies on Python 3.4.1
-  (PR #1821).
+  (:pull:`1821`).
 
 
 **1.5.5 (2014-05-03)**
 
 
-* Fixes #1632.  Uninstall issues on debianized pypy, specifically issues with
-  setuptools upgrades. (PR #1743)
+* Fixes :issue:`1632`.  Uninstall issues on debianized pypy, specifically issues with
+  setuptools upgrades. (:pull:`1743`)
 
 * Update documentation to point at https://bootstrap.pypa.io/get-pip.py for
   bootstrapping pip.
