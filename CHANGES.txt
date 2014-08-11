@@ -1,8 +1,5 @@
 **1.6.0.dev1 (unreleased)**
 
-* Fixed :issue:`798` and :issue:`1060`. `pip install --download` works with vcs links.
-  (:pull:`1926`)
-
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
 * **BACKWARD INCOMPATIBLE** Removed the bundle support which was deprecated in
@@ -19,18 +16,18 @@
   existing options have been made non functional but will still be accepted
   until their removal in pip v1.8. For more information please see
   https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+  
+* Added a virtualenv-specific configuration file. (:pull:`1364`)
 
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
   freeze` (:pull:`1606`, :pull:`1369`)
 
 * Fixed :issue:`1424`. Add ``--client-cert`` option for SSL client certificates.
 
-* Fixed :issue:`1641`. install_lib should take precedence when reading distutils config.
-  (:pull:`1642`)
-
 * Fixed :issue:`1484`. `pip show --files` was broken for wheel installs. (:pull:`1635`)
 
-* Added a virtualenv-specific configuration file. (:pull:`1364`)
+* Fixed :issue:`1641`. install_lib should take precedence when reading distutils config.
+  (:pull:`1642`)
 
 * Send `Accept-Encoding: identity` when downloading files in an attempt to
   convince some servers who double compress the downloaded file to stop doing
@@ -47,6 +44,8 @@
 * Fixed :issue:`1775`. `pip wheel` wasn't building wheels for dependencies of
   editable requirements.
 
+* Allow the use of ``--no-use-wheel`` within a requirements file. (:pull:`1859`)
+
 * Fixed :issue:`1680`. Attempt to locate system TLS certificates to use instead
   of the included CA Bundle if possible. (:pull:`1866`)
 
@@ -56,13 +55,14 @@
 * Fixed :issue:`1101`. Properly handle an index or --find-links target which
   has a <base> without a href attribute. (:pull:`1869`)
 
-* Fixed :issue:`1885`. Will properly handle extras when a project is installed
+* Fixed :issue:`1885`. Properly handle extras when a project is installed
   via Wheel. (:pull:`1896`)
-
-* Allow the use of ``--no-use-wheel`` within a requirements file. (:pull:`1859`)
 
 * Fixed :issue:`1180`. Added support to respect proxies in ``pip search``. It
   also fixes :issue:`932` and :issue:`1104`. (:pull:`1902`)
+  
+* Fixed :issue:`798` and :issue:`1060`. `pip install --download` works with vcs links.
+  (:pull:`1926`)
 
 
 **1.5.7**
