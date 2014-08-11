@@ -23,6 +23,7 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['PackageFinder']
 
 
+LOCAL_HOSTNAMES = ('localhost', '127.0.0.1')
 INSECURE_SCHEMES = {
     "http": ["https"],
 }
@@ -185,6 +186,36 @@ class PackageFinder(object):
             reverse=True
         )
 
+    def _warn_about_insecure_transport_scheme(self, logger, location):
+        # Determine if this url used a secure transport mechanism
+        parsed = urlparse.urlparse(str(location))
+        if parsed.scheme in INSECURE_SCHEMES:
+            secure_schemes = INSECURE_SCHEMES[parsed.scheme]
+
+            if parsed.hostname in LOCAL_HOSTNAMES:
+                # localhost is not a security risk
+                pass
+            elif len(secure_schemes) == 1:
+                ctx = (location, parsed.scheme, secure_schemes[0],
+                       parsed.netloc)
+                logger.warn("%s uses an insecure transport scheme (%s). "
+                            "Consider using %s if %s has it available" %
+                            ctx)
+            elif len(secure_schemes) > 1:
+                ctx = (
+                    location,
+                    parsed.scheme,
+                    ", ".join(secure_schemes),
+                    parsed.netloc,
+                )
+                logger.warn("%s uses an insecure transport scheme (%s). "
+                            "Consider using one of %s if %s has any of "
+                            "them available" % ctx)
+            else:
+                ctx = (location, parsed.scheme)
+                logger.warn("%s uses an insecure transport scheme (%s)." %
+                            ctx)
+
     def find_requirement(self, req, upgrade):
 
         def mkurl_pypi_url(url):
@@ -240,32 +271,7 @@ class PackageFinder(object):
         logger.debug('URLs to search for versions for %s:' % req)
         for location in locations:
             logger.debug('* %s' % location)
-
-            # Determine if this url used a secure transport mechanism
-            parsed = urlparse.urlparse(str(location))
-            if parsed.scheme in INSECURE_SCHEMES:
-                secure_schemes = INSECURE_SCHEMES[parsed.scheme]
-
-                if len(secure_schemes) == 1:
-                    ctx = (location, parsed.scheme, secure_schemes[0],
-                           parsed.netloc)
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using %s if %s has it available" %
-                                ctx)
-                elif len(secure_schemes) > 1:
-                    ctx = (
-                        location,
-                        parsed.scheme,
-                        ", ".join(secure_schemes),
-                        parsed.netloc,
-                    )
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using one of %s if %s has any of "
-                                "them available" % ctx)
-                else:
-                    ctx = (location, parsed.scheme)
-                    logger.warn("%s uses an insecure transport scheme (%s)." %
-                                ctx)
+            self._warn_about_insecure_transport_scheme(logger, location)
 
         found_versions = []
         found_versions.extend(

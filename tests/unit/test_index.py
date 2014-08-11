@@ -106,3 +106,35 @@ class TestLink(object):
 )
 def test_base_url(html, url, expected):
     assert HTMLPage(html, url).base_url == expected
+
+
+class MockLogger(object):
+    def __init__(self):
+        self.called = False
+
+    def warn(self, *args, **kwargs):
+        self.called = True
+
+
+class TestInsecureTransport(object):
+    def _assert_call_to_logger(self, location, expected_result):
+        finder = PackageFinder([], [], session=[])
+        logger = MockLogger()
+        finder._warn_about_insecure_transport_scheme(logger, location)
+        assert logger.called == expected_result
+
+    def test_pypi_http(self):
+        location = 'http://pypi.python.org/something'
+        self._assert_call_to_logger(location, expected_result=True)
+
+    def test_pypi_https(self):
+        location = 'https://pypi.python.org/something'
+        self._assert_call_to_logger(location, expected_result=False)
+
+    def test_localhost_http(self):
+        location = 'http://localhost'
+        self._assert_call_to_logger(location, expected_result=False)
+
+    def test_localhost_by_ip(self):
+        location = 'http://127.0.0.1'
+        self._assert_call_to_logger(location, expected_result=False)
