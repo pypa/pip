@@ -390,6 +390,13 @@ no_clean = OptionMaker(
     default=False,
     help="Don't clean up build directories.")
 
+disable_self_check = OptionMaker(
+    "--disable-self-check",
+    dest="disable_self_check",
+    action="store_true",
+    default=False,
+    help="Don't periodically check PyPI to determine whether a new version "
+         "of pip is available for download.")
 
 ##########
 # groups #
@@ -417,6 +424,7 @@ general_group = {
         no_check_certificate,
         cache_dir,
         no_cache,
+        disable_self_check,
     ]
 }
 
