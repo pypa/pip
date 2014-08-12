@@ -64,7 +64,7 @@
 * Fixed :issue:`798` and :issue:`1060`. `pip install --download` works with vcs links.
   (:pull:`1926`)
 
-* Disabled warning about insecure index host when using localhost. Based off of Guy Rozendorn's work in :pull:`1718`. (:pull:`1967`)
+* Fixed :issue:`1456`. Disabled warning about insecure index host when using localhost. Based off of Guy Rozendorn's work in :pull:`1718`. (:pull:`1967`)
 
 
 **1.5.7**
