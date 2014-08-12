@@ -127,7 +127,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 
     return buf.value
 
-if sys.platform == "win32":
+if WINDOWS:
     try:
         import win32com.shell  # noqa
         _get_win_folder = _get_win_folder_with_pywin32
