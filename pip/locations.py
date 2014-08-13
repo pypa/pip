@@ -103,7 +103,7 @@ def virtualenv_no_global():
 
 def __get_username():
     """ Returns the effective username of the current process. """
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' or os._name == 'nt':
         return getpass.getuser()
     import pwd
     return pwd.getpwuid(os.geteuid()).pw_name
