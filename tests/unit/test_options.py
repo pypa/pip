@@ -275,6 +275,9 @@ class TestOptionsConfigFiles(object):
             lambda self: None,
         )
 
+        # strict limit on the site_config_files list
+        monkeypatch.setattr(pip.baseparser, 'site_config_files', ['/a/place'])
+
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
         monkeypatch.setattr(
@@ -284,4 +287,4 @@ class TestOptionsConfigFiles(object):
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip.baseparser.ConfigOptionParser()
-        assert len(cp.get_config_files()) == 2
+        assert len(cp.get_config_files()) == 3

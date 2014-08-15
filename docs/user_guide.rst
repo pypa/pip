@@ -237,12 +237,45 @@ pip allows you to set all command line option defaults in a standard ini
 style config file.
 
 The names and locations of the configuration files vary slightly across
-platforms.
+platforms. You may have per-user, per-virtualenv or site-wide (shared amongst
+all users) configuration:
+
+**Per-user**:
 
 * On Unix and Mac OS X the configuration file is: :file:`$HOME/.pip/pip.conf`
-* On Windows, the configuration file is: :file:`%HOME%\\pip\\pip.ini`
+* On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
-You can set a custom path location for the config file using the environment variable ``PIP_CONFIG_FILE``.
+You can set a custom path location for this config file using the environment
+variable ``PIP_CONFIG_FILE``.
+
+**Inside a virtualenv**:
+
+* On Unix and Mac OS X the file is :file:`$VIRTUAL_ENV/pip.conf`
+* On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
+
+**Site-wide**:
+
+* On Unix the file may be located in in :file:`/etc/pip.conf`. Alternatively
+  it may be in a "pip" subdirectory of any of the paths set in the
+  environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
+  :file:`/etc/xdg/pip/pip.conf`.
+* On Mac OS X the file is: :file:`/Library/Application Support/pip/pip.conf`
+* On Windows XP the file is:
+  :file:`C:\\Documents and Settings\\All Users\\Application Data\\PyPA\\pip\\pip.conf`
+* On Windows 7 and later the file is hidden, but writeable at
+  :file:`C:\\ProgramData\\PyPA\\pip\\pip.conf`
+* Site-wide configuration is not supported on Windows Vista
+
+If multiple configuration files are found by pip then they are combined in
+the following order:
+
+1. Firstly the site-wide file is read, then
+2. The per-user file is read, and finally
+3. The virtualenv-specific file is read.
+
+Each file read overrides any values read from previous files, so if the
+global timeout is specified in both the site-wide file and the per-user file
+then the latter value is the one that will be used.
 
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the

@@ -51,6 +51,46 @@ def user_cache_dir(appname):
     return path
 
 
+# for the discussion regarding site_config_dirs locations
+# see <https://github.com/pypa/pip/issues/1733>
+def site_config_dirs(appname):
+    """Return a list of potential user-shared config dirs for this application.
+
+        "appname" is the name of application.
+
+    Typical user config directories are:
+        Mac OS X:   /Library/Application Support/<AppName>/
+        Unix:       /etc or $XDG_CONFIG_DIRS[i]/<AppName>/ for each value in
+                    $XDG_CONFIG_DIRS
+        Win XP:     C:\Documents and Settings\All Users\Application ...
+                    ...Data\<AppName>\
+        Vista:      (Fail! "C:\ProgramData" is a hidden *system* directory
+                    on Vista.)
+        Win 7:      Hidden, but writeable on Win 7:
+                    C:\ProgramData\<AppName>\
+    """
+    if sys.platform == "win32":
+        path = os.path.normpath(_get_win_folder("CSIDL_COMMON_APPDATA"))
+        pathlist = [os.path.join(path, appname)]
+    elif sys.platform == 'darwin':
+        pathlist = [os.path.join('/Library/Application Support', appname)]
+    else:
+        # try looking in $XDG_CONFIG_DIRS
+        xdg_config_dirs = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+        if xdg_config_dirs:
+            pathlist = [
+                os.sep.join([os.path.expanduser(x), appname])
+                for x in xdg_config_dirs.split(os.pathsep)
+            ]
+        else:
+            pathlist = []
+
+        # always look in /etc directly as well
+        pathlist.append('/etc')
+
+    return pathlist
+
+
 # -- Windows support functions --
 
 def _get_win_folder_from_registry(csidl_name):
