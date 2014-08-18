@@ -30,7 +30,7 @@ __all__ = ['Command']
 # On Python 3: converts bytestrings to unicode, leaves str untouched
 # (we probably won't run into bytestrings on Python 3 that much -- they are no
 # longer the default type for literals)
-def to_utf8(s):
+def to_native_str_type(s):
     if isinstance(s, str):
         # unicode for PY3 or bytes for PY2 -- ok
         return s
@@ -188,7 +188,7 @@ class Command(object):
             exit = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
-            text = '\n'.join(to_utf8(l) for l in complete_log)
+            text = '\n'.join(to_native_str_type(l) for l in complete_log)
             try:
                 log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:
