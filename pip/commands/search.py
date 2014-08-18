@@ -127,7 +127,7 @@ def print_results(hits, query, name_column_width=25, terminal_width=None):
                         logger.notify('LATEST:    %s' % latest)
                 finally:
                     logger.indent -= 2
-             elif in_case_insensitive(name, query):
+            elif in_case_insensitive(name, query):
                 latest = highest_version(hit['versions'])
                 logger.notify('  LATEST:    %s (uninstalled)' % latest)
         except UnicodeEncodeError:
