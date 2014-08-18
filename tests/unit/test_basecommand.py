@@ -1,5 +1,5 @@
 import os
-from pip.basecommand import Command
+from pip.basecommand import Command, to_native_str_type
 from pip.log import logger
 
 
@@ -83,3 +83,9 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '-vqq'])
         console_level = logger.consumers[0][0]
         assert console_level == logger.WARN
+
+def test_to_native_str_type():
+    some_bytes = b"test\xE9 et approuv\xC3\xE9"
+    some_unicode = b"test\xE9 et approuv\xE9".decode('iso-8859-15')
+    assert isinstance(to_native_str_type(some_bytes), str)
+    assert isinstance(to_native_str_type(some_unicode), str)
