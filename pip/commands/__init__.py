@@ -14,6 +14,7 @@ from pip.commands.uninstall import UninstallCommand
 from pip.commands.unzip import UnzipCommand
 from pip.commands.zip import ZipCommand
 from pip.commands.wheel import WheelCommand
+from pip.commands.open import OpenCommand
 
 
 commands = {
@@ -28,6 +29,7 @@ commands = {
     ZipCommand.name: ZipCommand,
     ListCommand.name: ListCommand,
     WheelCommand.name: WheelCommand,
+    OpenCommand.name: OpenCommand,
 }
 
 
@@ -37,6 +39,7 @@ commands_order = [
     FreezeCommand,
     ListCommand,
     ShowCommand,
+    OpenCommand,
     SearchCommand,
     WheelCommand,
     ZipCommand,
