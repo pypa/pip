@@ -1,5 +1,7 @@
 **1.6.0.dev1 (unreleased)**
 
+* Fixed :issue:`1873`. Silence byte compile errors when installation succeed.
+
 * **BACKWARD INCOMPATIBLE** Dropped support for Python 3.1.
 
 * **BACKWARD INCOMPATIBLE** Removed the bundle support which was deprecated in

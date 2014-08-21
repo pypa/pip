@@ -1,3 +1,4 @@
+import contextlib
 import locale
 import re
 import os
@@ -28,7 +29,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess']
+           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
+           'captured_stdout']
 
 
 def get_prog():
@@ -780,3 +782,31 @@ class FakeFile(object):
 
     def __iter__(self):
         return self._gen
+
+
+@contextlib.contextmanager
+def captured_output(stream_name):
+    """Return a context manager used by captured_stdout/stdin/stderr
+    that temporarily replaces the sys stream *stream_name* with a StringIO.
+
+    Taken from Lib/support/__init__.py in the CPython repo.
+    """
+    from pip._vendor.six.moves import cStringIO
+    orig_stdout = getattr(sys, stream_name)
+    setattr(sys, stream_name, cStringIO())
+    try:
+        yield getattr(sys, stream_name)
+    finally:
+        setattr(sys, stream_name, orig_stdout)
+
+
+def captured_stdout():
+    """Capture the output of sys.stdout:
+
+       with captured_stdout() as stdout:
+           print('hello')
+       self.assertEqual(stdout.getvalue(), 'hello\n')
+
+    Taken from Lib/support/__init__.py in the CPython repo.
+    """
+    return captured_output('stdout')
