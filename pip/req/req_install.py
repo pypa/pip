@@ -771,6 +771,7 @@ exec(compile(
                     cwd=self.source_dir,
                     filter_stdout=self._filter_install,
                     show_stdout=False,
+                    show_stderr=False,
                 )
             finally:
                 logger.indent -= 2
