@@ -17,7 +17,7 @@
 # down into a single file.
 #
 # If you're wondering how this is created, the secret is
-# "contrib/build-installer" from the pip repository.
+# "tasks/generate.py" from the pip repository.
 
 ZIPFILE = b"""
 UEsDBBQAAAAIAHeDxEQMVWtseQwAAOokAAAPAAAAcGlwL19faW5pdF9fLnB5pRprb+M28rt/BTdp
