@@ -1,4 +1,5 @@
 import contextlib
+import io
 import locale
 import re
 import os
@@ -645,12 +646,17 @@ def unpack_file(filename, location, content_type, link):
         )
 
 
+def remove_tracebacks(output):
+    pattern = (r'\W+File "(.*)", line (.*)\W+(.*)\W+\^\W+'
+               r'Syntax(Error|Warning): (.*)')
+    return re.sub(pattern, '', output)
+
+
 def call_subprocess(cmd, show_stdout=True,
                     filter_stdout=None, cwd=None,
                     raise_on_returncode=True,
                     command_level=logger.DEBUG, command_desc=None,
-                    extra_environ=None,
-                    show_stderr=True):
+                    extra_environ=None):
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -662,17 +668,13 @@ def call_subprocess(cmd, show_stdout=True,
         stdout = None
     else:
         stdout = subprocess.PIPE
-    if show_stderr:
-        stderr = subprocess.STDOUT
-    else:
-        stderr = subprocess.PIPE
     logger.log(command_level, "Running command %s" % command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=stderr, stdin=None, stdout=stdout,
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
             cwd=cwd, env=env)
     except Exception as exc:
         logger.fatal(
@@ -680,9 +682,10 @@ def call_subprocess(cmd, show_stdout=True,
         raise
     all_output = []
     if stdout is not None:
-        stdout = proc.stdout
+        stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
+        stdout = io.StringIO(stdout)
         while 1:
-            line = console_to_str(stdout.readline())
+            line = stdout.readline()
             if not line:
                 break
             line = line.rstrip()
@@ -718,7 +721,7 @@ def call_subprocess(cmd, show_stdout=True,
                 'Command "%s" had error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
-        return ''.join(all_output)
+        return remove_tracebacks(''.join(all_output))
 
 
 def is_prerelease(vers):
