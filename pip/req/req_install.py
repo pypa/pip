@@ -872,6 +872,8 @@ exec(compile(
                 r'^reading .*',
                 r"^removing .*\.egg-info' \(and everything under it\)$",
                 r'^byte-compiling ',
+                r'^SyntaxError:',
+                r'^SyntaxWarning:',
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
             if re.search(regex, line.strip()):

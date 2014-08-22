@@ -1,5 +1,4 @@
 import contextlib
-import io
 import locale
 import re
 import os
@@ -21,6 +20,7 @@ from pip.log import logger
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
+from pip._vendor.six.moves import cStringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -31,7 +31,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout']
+           'captured_stdout', 'remove_tracebacks']
 
 
 def get_prog():
@@ -683,7 +683,7 @@ def call_subprocess(cmd, show_stdout=True,
     all_output = []
     if stdout is not None:
         stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
-        stdout = io.StringIO(stdout)
+        stdout = cStringIO(stdout)
         while 1:
             line = stdout.readline()
             if not line:
@@ -799,7 +799,6 @@ def captured_output(stream_name):
 
     Taken from Lib/support/__init__.py in the CPython repo.
     """
-    from pip._vendor.six.moves import cStringIO
     orig_stdout = getattr(sys, stream_name)
     setattr(sys, stream_name, cStringIO())
     try:
