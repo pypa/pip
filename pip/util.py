@@ -21,6 +21,12 @@ from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
+from pip._vendor.six import PY2
+
+if PY2:
+    from io import BytesIO as StringIO
+else:
+    from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -649,7 +655,12 @@ def unpack_file(filename, location, content_type, link):
 def remove_tracebacks(output):
     pattern = (r'\W+File "(.*)", line (.*)\W+(.*)\W+\^\W+'
                r'Syntax(Error|Warning): (.*)')
-    return re.sub(pattern, '', output)
+    output = re.sub(pattern, '', output)
+    if PY2:
+        return output
+    # compileall.compile_dir() prints different messages to stdout
+    # in Python 3
+    return re.sub(r"\*\*\* Error compiling (.*)", '', output)
 
 
 def call_subprocess(cmd, show_stdout=True,
@@ -792,6 +803,19 @@ class FakeFile(object):
         return self._gen
 
 
+class StreamWrapper(StringIO):
+
+    @classmethod
+    def from_stream(cls, orig_stream):
+        cls.orig_stream = orig_stream
+        return cls()
+
+    # compileall.compile_dir() needs stdout.encoding to print to stdout
+    @property
+    def encoding(self):
+        return self.orig_stream.encoding
+
+
 @contextlib.contextmanager
 def captured_output(stream_name):
     """Return a context manager used by captured_stdout/stdin/stderr
@@ -800,7 +824,7 @@ def captured_output(stream_name):
     Taken from Lib/support/__init__.py in the CPython repo.
     """
     orig_stdout = getattr(sys, stream_name)
-    setattr(sys, stream_name, cStringIO())
+    setattr(sys, stream_name, StreamWrapper.from_stream(orig_stdout))
     try:
         yield getattr(sys, stream_name)
     finally:
