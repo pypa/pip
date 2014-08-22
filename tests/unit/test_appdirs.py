@@ -43,3 +43,50 @@ class TestUserCacheDir:
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.user_cache_dir("pip") == "/home/test/.other-cache/pip"
+
+    def test_site_config_dirs_win(self, monkeypatch):
+        @pretend.call_recorder
+        def _get_win_folder(base):
+            return "C:\\ProgramData"
+
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder",
+            _get_win_folder,
+            raising=False,
+        )
+        monkeypatch.setattr(sys, "platform", "win32")
+
+        result = [
+            e.replace("/", "\\")
+            for e in appdirs.site_config_dirs("pip")
+        ]
+        assert result == ["C:\\ProgramData\\pip"]
+        assert _get_win_folder.calls == [pretend.call("CSIDL_COMMON_APPDATA")]
+
+    def test_site_config_dirs_osx(self, monkeypatch):
+        monkeypatch.setenv("HOME", "/home/test")
+        monkeypatch.setattr(sys, "platform", "darwin")
+
+        assert appdirs.site_config_dirs("pip") == \
+            ["/Library/Application Support/pip"]
+
+    def test_site_config_dirs_linux(self, monkeypatch):
+        monkeypatch.delenv("XDG_CONFIG_DIRS")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.site_config_dirs("pip") == [
+            '/etc/xdg/pip',
+            '/etc'
+        ]
+
+    def test_site_config_dirs_linux_override(self, monkeypatch):
+        monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.site_config_dirs("pip") == [
+            '/spam/pip',
+            '/etc/pip',
+            '/etc/xdg/pip',
+            '/etc'
+        ]

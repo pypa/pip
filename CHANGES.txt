@@ -19,6 +19,8 @@
   
 * Added a virtualenv-specific configuration file. (:pull:`1364`)
 
+* Added site-wide configuation files. (:pull:`1978`)
+
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
   freeze` (:pull:`1606`, :pull:`1369`)
 

@@ -202,6 +202,11 @@ else:
         bin_py = '/usr/local/bin'
         default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
 
+site_config_files = [
+    os.path.join(path, default_config_basename)
+    for path in appdirs.site_config_dirs('pip')
+]
+
 
 def distutils_scheme(dist_name, user=False, home=None, root=None):
     """

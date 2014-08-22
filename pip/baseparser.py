@@ -10,6 +10,7 @@ from pip._vendor.six import string_types
 from pip._vendor.six.moves import configparser
 from pip.locations import (
     default_config_file, default_config_basename, running_under_virtualenv,
+    site_config_files
 )
 from pip.util import get_terminal_size
 
@@ -138,13 +139,23 @@ class ConfigOptionParser(CustomOptionParser):
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
+        # the files returned by this method will be parsed in order with the
+        # first files listed being overridden by later files in standard
+        # ConfigParser fashion
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file == os.devnull:
             return []
+
+        # at the base we have any site-wide configuration
+        files = list(site_config_files)
+
+        # per-user configuration next
         if config_file and os.path.exists(config_file):
-            files = [config_file]
+            files.append(config_file)
         else:
-            files = [default_config_file]
+            files.append(default_config_file)
+
+        # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
             venv_config_file = os.path.join(
                 sys.prefix,
@@ -152,6 +163,7 @@ class ConfigOptionParser(CustomOptionParser):
             )
             if os.path.exists(venv_config_file):
                 files.append(venv_config_file)
+
         return files
 
     def check_default(self, option, key, val):
