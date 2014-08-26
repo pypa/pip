@@ -314,3 +314,9 @@ def test_install_from_wheel_uninstalls_old_version(script, data):
     assert dist_info_folder in result.files_created
     dist_info_folder = script.site_packages / 'simplewheel-1.0.dist-info'
     assert dist_info_folder not in result.files_created
+
+
+def test_wheel_compile_syntax_error(script, data):
+    package = data.packages.join("compilewheel-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', '--compile', package, '--no-index')
+    assert 'SyntaxError: ' not in result.stdout

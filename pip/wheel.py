@@ -20,10 +20,12 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip.log import logger
 from pip import pep425tags
-from pip.util import call_subprocess, normalize_path, make_path_relative
+from pip.util import (call_subprocess, normalize_path, make_path_relative,
+                      captured_stdout, remove_tracebacks)
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import configparser
+from pip._vendor.six import PY2
 
 
 wheel_ext = '.whl'
@@ -153,7 +155,18 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
 
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
-        compileall.compile_dir(source, force=True, quiet=True)
+        with captured_stdout() as stdout:
+            compileall.compile_dir(source, force=True, quiet=True)
+        # compileall.compile_dir() prints different exception to stdout
+        # in Python 2, so we need a new helper to remove tracebacks
+        # for Python 3
+        if PY2:
+            lines = [line for line in stdout.getvalue().splitlines()
+                     if not line.startswith(('SyntaxError:',
+                                             'SyntaxWarning:'))]
+            print('\n'.join(lines))
+        else:
+            print(remove_tracebacks(stdout.getvalue()))
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')

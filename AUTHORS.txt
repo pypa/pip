@@ -14,6 +14,7 @@ Ashley Manton <ajd.manton@googlemail.com>
 Baptiste Mispelon <bmispelon@gmail.com>
 Ben Darnell <ben@bendarnell.com>
 Ben Rosser <rosser.bjr@gmail.com>
+Berker Peksag <berker.peksag@gmail.com>
 Bernardo B. Marques <bernardo.fire@gmail.com>
 Bradley Ayers <bradley.ayers@gmail.com>
 Brian Rosner <brosner@gmail.com>

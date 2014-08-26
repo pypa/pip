@@ -1,3 +1,4 @@
+import contextlib
 import locale
 import re
 import os
@@ -19,6 +20,13 @@ from pip.log import logger
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
+from pip._vendor.six.moves import cStringIO
+from pip._vendor.six import PY2
+
+if PY2:
+    from io import BytesIO as StringIO
+else:
+    from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'find_command', 'ask', 'Inf',
@@ -28,7 +36,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'split_leading_dir', 'has_leading_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess']
+           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
+           'captured_stdout', 'remove_tracebacks']
 
 
 def get_prog():
@@ -643,6 +652,17 @@ def unpack_file(filename, location, content_type, link):
         )
 
 
+def remove_tracebacks(output):
+    pattern = (r'\W+File "(.*)", line (.*)\W+(.*)\W+\^\W+'
+               r'Syntax(Error|Warning): (.*)')
+    output = re.sub(pattern, '', output)
+    if PY2:
+        return output
+    # compileall.compile_dir() prints different messages to stdout
+    # in Python 3
+    return re.sub(r"\*\*\* Error compiling (.*)", '', output)
+
+
 def call_subprocess(cmd, show_stdout=True,
                     filter_stdout=None, cwd=None,
                     raise_on_returncode=True,
@@ -673,9 +693,10 @@ def call_subprocess(cmd, show_stdout=True,
         raise
     all_output = []
     if stdout is not None:
-        stdout = proc.stdout
+        stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
+        stdout = cStringIO(stdout)
         while 1:
-            line = console_to_str(stdout.readline())
+            line = stdout.readline()
             if not line:
                 break
             line = line.rstrip()
@@ -711,7 +732,7 @@ def call_subprocess(cmd, show_stdout=True,
                 'Command "%s" had error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
     if stdout is not None:
-        return ''.join(all_output)
+        return remove_tracebacks(''.join(all_output))
 
 
 def is_prerelease(vers):
@@ -780,3 +801,43 @@ class FakeFile(object):
 
     def __iter__(self):
         return self._gen
+
+
+class StreamWrapper(StringIO):
+
+    @classmethod
+    def from_stream(cls, orig_stream):
+        cls.orig_stream = orig_stream
+        return cls()
+
+    # compileall.compile_dir() needs stdout.encoding to print to stdout
+    @property
+    def encoding(self):
+        return self.orig_stream.encoding
+
+
+@contextlib.contextmanager
+def captured_output(stream_name):
+    """Return a context manager used by captured_stdout/stdin/stderr
+    that temporarily replaces the sys stream *stream_name* with a StringIO.
+
+    Taken from Lib/support/__init__.py in the CPython repo.
+    """
+    orig_stdout = getattr(sys, stream_name)
+    setattr(sys, stream_name, StreamWrapper.from_stream(orig_stdout))
+    try:
+        yield getattr(sys, stream_name)
+    finally:
+        setattr(sys, stream_name, orig_stdout)
+
+
+def captured_stdout():
+    """Capture the output of sys.stdout:
+
+       with captured_stdout() as stdout:
+           print('hello')
+       self.assertEqual(stdout.getvalue(), 'hello\n')
+
+    Taken from Lib/support/__init__.py in the CPython repo.
+    """
+    return captured_output('stdout')
