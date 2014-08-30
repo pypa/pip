@@ -257,3 +257,23 @@ def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):
 
     assert len(reqs) == 1
     assert reqs[0].name == "wat"
+
+
+def test_req_file_no_finder(tmpdir):
+    """
+    Test parsing a requirements file without a finder
+    """
+    with open(tmpdir.join("req.txt"), "w") as fp:
+        fp.write("""
+--find-links https://example.com/
+--index-url https://example.com/
+--extra-index-url https://two.example.com/
+--no-use-wheel
+--no-index
+--allow-external foo
+--allow-all-external
+--allow-insecure foo
+--allow-unverified foo
+        """)
+
+    parse_requirements(tmpdir.join("req.txt"), session=PipSession())
