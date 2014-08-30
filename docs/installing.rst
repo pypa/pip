@@ -70,6 +70,9 @@ On Windows [5]_:
  python -m pip install -U pip
 
 
+.. note::
+  Windows users may be told that ``'pip' is not recognized as an internal or external command``.
+  You need to add ``C:\PythonXX\Scripts`` to your Environment Variables path for the ``pip`` command to be recognized in a command window.
 
 Using Package Managers
 ----------------------
