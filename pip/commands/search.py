@@ -1,3 +1,4 @@
+import os
 import sys
 import textwrap
 
@@ -87,28 +88,41 @@ def transform_hits(hits):
 
 def print_results(hits, name_column_width=25, terminal_width=None):
     installed_packages = [p.project_name for p in pkg_resources.working_set]
+
+    def justify(text, spaces=0):
+        """A special purpose function that both wraps and indents the given text."""
+        if terminal_width:
+            text = textwrap.wrap(text, (terminal_width - name_column_width - 5 - spaces))
+        else:
+            text = [text]
+        return (os.linesep + ' ' * (logger.indent + spaces)).join(text)
+
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
         if terminal_width is not None:
             # wrap and indent summary to fit terminal
-            summary = textwrap.wrap(summary, terminal_width - name_column_width - 5)
-            summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
+            summary = justify(summary)
         line = '%s - %s' % (name.ljust(name_column_width), summary)
         try:
             logger.notify(line)
-            if name in installed_packages:
-                dist = pkg_resources.get_distribution(name)
-                logger.indent += 2
-                try:
+
+            indent = name_column_width + 3
+            logger.indent += indent
+            try:
+                if name in installed_packages:
+                    dist = pkg_resources.get_distribution(name)
                     latest = highest_version(hit['versions'])
                     if dist.version == latest:
                         logger.notify('INSTALLED: %s (latest)' % dist.version)
                     else:
                         logger.notify('INSTALLED: %s' % dist.version)
                         logger.notify('LATEST:    %s' % latest)
-                finally:
-                    logger.indent -= 2
+
+                versions = reversed(hit['versions'])
+                logger.notify('AVAILABLE: %s%s' % (justify(', '.join(versions), 11), os.linesep))
+            finally:
+                logger.indent -= indent
         except UnicodeEncodeError:
             pass
 
