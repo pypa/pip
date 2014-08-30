@@ -7,10 +7,12 @@ between parses. pip parse's general options twice internally, and shouldn't
 pass on state. To be consistent, all options will follow this design.
 
 """
+from __future__ import absolute_import
+
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
 from pip.locations import (
-    CA_BUNDLE_PATH, USER_CACHE_DIR, build_prefix, default_log_file, src_prefix,
+    CA_BUNDLE_PATH, USER_CACHE_DIR, build_prefix, src_prefix,
 )
 
 
@@ -79,10 +81,11 @@ quiet = OptionMaker(
     help='Give less output.')
 
 log = OptionMaker(
-    '--log',
-    dest='log',
-    metavar='path',
-    help='Path to a verbose appending log. This log is inactive by default.')
+    "--log", "--log-file", "--local-log",
+    dest="log",
+    metavar="path",
+    help="Path to a verbose appending log."
+)
 
 log_explicit_levels = OptionMaker(
     # Writes the log levels explicitely to the log'
@@ -91,15 +94,6 @@ log_explicit_levels = OptionMaker(
     action='store_true',
     default=False,
     help=SUPPRESS_HELP)
-
-log_file = OptionMaker(
-    # The default log file
-    '--log-file', '--local-log',
-    dest='log_file',
-    metavar='path',
-    default=default_log_file,
-    help='Path to a verbose non-appending log, that only logs failures. This '
-         'log is active by default at %default.')
 
 no_input = OptionMaker(
     # Don't ask for input
@@ -409,7 +403,6 @@ general_group = {
         verbose,
         version,
         quiet,
-        log_file,
         log,
         log_explicit_levels,
         no_input,

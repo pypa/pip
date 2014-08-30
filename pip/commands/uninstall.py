@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError

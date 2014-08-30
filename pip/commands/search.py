@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+import logging
 import sys
 import textwrap
 
@@ -6,13 +9,16 @@ from functools import reduce
 
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
-from pip.util import get_terminal_size
-from pip.log import logger
+from pip.utils import get_terminal_size
+from pip.utils.logging import indent_log
 from pip.compat import cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import xmlrpc_client
+
+
+logger = logging.getLogger(__name__)
 
 
 class SearchCommand(Command):
@@ -112,19 +118,16 @@ def print_results(hits, name_column_width=25, terminal_width=None):
             summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
         line = '%s - %s' % (name.ljust(name_column_width), summary)
         try:
-            logger.notify(line)
+            logger.info(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
-                logger.indent += 2
-                try:
+                with indent_log():
                     latest = highest_version(hit['versions'])
                     if dist.version == latest:
-                        logger.notify('INSTALLED: %s (latest)' % dist.version)
+                        logger.info('INSTALLED: %s (latest)', dist.version)
                     else:
-                        logger.notify('INSTALLED: %s' % dist.version)
-                        logger.notify('LATEST:    %s' % latest)
-                finally:
-                    logger.indent -= 2
+                        logger.info('INSTALLED: %s', dist.version)
+                        logger.info('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 

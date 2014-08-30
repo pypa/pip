@@ -7,7 +7,7 @@ from mock import patch, Mock
 from pip._vendor import pkg_resources
 from pip import pep425tags, wheel
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip.util import unpack_file
+from pip.utils import unpack_file
 
 
 def test_get_entrypoints(tmpdir):
@@ -255,7 +255,7 @@ class TestWheelFile(object):
         assert w.support_index_min(tags=[]) is None
 
     def test_unpack_wheel_no_flatten(self):
-        from pip import util
+        from pip import utils
         from tempfile import mkdtemp
         from shutil import rmtree
 
@@ -264,7 +264,7 @@ class TestWheelFile(object):
             pytest.skip("%s does not exist" % filepath)
         try:
             tmpdir = mkdtemp()
-            util.unpack_file(filepath, tmpdir, 'application/zip', None)
+            utils.unpack_file(filepath, tmpdir, 'application/zip', None)
             assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
         finally:
             rmtree(tmpdir)
@@ -371,24 +371,20 @@ class TestMoveWheelFiles(object):
 
 class TestWheelBuilder(object):
 
-    @patch('pip.log.Logger.log')
-    @patch('pip.wheel.WheelBuilder._build_one')
-    def test_skip_building_wheels(self, mock_build_one, mock_log):
-        wheel_req = Mock(is_wheel=True, editable=False)
-        reqset = Mock(requirements=Mock(values=lambda: [wheel_req]))
-        wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
-        wb.build()
-        name, args, kwargs = mock_log.mock_calls[0]
-        assert "due to already being wheel" in args[1]
-        assert mock_build_one.mock_calls == []
+    def test_skip_building_wheels(self, caplog):
+        with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
+            wheel_req = Mock(is_wheel=True, editable=False)
+            reqset = Mock(requirements=Mock(values=lambda: [wheel_req]))
+            wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
+            wb.build()
+            assert "due to already being wheel" in caplog.text()
+            assert mock_build_one.mock_calls == []
 
-    @patch('pip.log.Logger.log')
-    @patch('pip.wheel.WheelBuilder._build_one')
-    def test_skip_building_editables(self, mock_build_one, mock_log):
-        editable_req = Mock(editable=True, is_wheel=False)
-        reqset = Mock(requirements=Mock(values=lambda: [editable_req]))
-        wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
-        wb.build()
-        name, args, kwargs = mock_log.mock_calls[0]
-        assert "due to being editable" in args[1]
-        assert mock_build_one.mock_calls == []
+    def test_skip_building_editables(self, caplog):
+        with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
+            editable_req = Mock(editable=True, is_wheel=False)
+            reqset = Mock(requirements=Mock(values=lambda: [editable_req]))
+            wb = wheel.WheelBuilder(reqset, Mock(), '/wheel/dir')
+            wb.build()
+            assert "due to being editable" in caplog.text()
+            assert mock_build_one.mock_calls == []

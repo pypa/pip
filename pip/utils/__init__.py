@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 import contextlib
 import locale
+import logging
 import re
 import os
 import posixpath
@@ -16,7 +19,6 @@ from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file
 )
-from pip.log import logger
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
@@ -38,6 +40,9 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks']
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_prog():
@@ -562,7 +567,9 @@ def untar_file(filename, location):
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
-        logger.warn('Cannot determine compression type for file %s' % filename)
+        logger.warning(
+            'Cannot determine compression type for file %s', filename,
+        )
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
@@ -587,9 +594,10 @@ def untar_file(filename, location):
                 except Exception as exc:
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
-                    logger.warn(
-                        'In the tar file %s the member %s is invalid: %s'
-                        % (filename, member.name, exc))
+                    logger.warning(
+                        'In the tar file %s the member %s is invalid: %s',
+                        filename, member.name, exc,
+                    )
                     continue
             else:
                 try:
@@ -597,9 +605,10 @@ def untar_file(filename, location):
                 except (KeyError, AttributeError) as exc:
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
-                    logger.warn(
-                        'In the tar file %s the member %s is invalid: %s'
-                        % (filename, member.name, exc))
+                    logger.warning(
+                        'In the tar file %s the member %s is invalid: %s',
+                        filename, member.name, exc,
+                    )
                     continue
                 if not os.path.exists(os.path.dirname(path)):
                     os.makedirs(os.path.dirname(path))
@@ -642,10 +651,10 @@ def unpack_file(filename, location, content_type, link):
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
-        logger.fatal(
+        logger.critical(
             'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format' %
-            (filename, location, content_type)
+            'cannot detect archive format',
+            filename, location, content_type,
         )
         raise InstallationError(
             'Cannot determine archive format of %s' % location
@@ -666,7 +675,7 @@ def remove_tracebacks(output):
 def call_subprocess(cmd, show_stdout=True,
                     filter_stdout=None, cwd=None,
                     raise_on_returncode=True,
-                    command_level=logger.DEBUG, command_desc=None,
+                    command_level=logging.DEBUG, command_desc=None,
                     extra_environ=None):
     if command_desc is None:
         cmd_parts = []
@@ -679,7 +688,7 @@ def call_subprocess(cmd, show_stdout=True,
         stdout = None
     else:
         stdout = subprocess.PIPE
-    logger.log(command_level, "Running command %s" % command_desc)
+    logger.log(command_level, "Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -688,8 +697,9 @@ def call_subprocess(cmd, show_stdout=True,
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
             cwd=cwd, env=env)
     except Exception as exc:
-        logger.fatal(
-            "Error %s while executing command %s" % (exc, command_desc))
+        logger.critical(
+            "Error %s while executing command %s", exc, command_desc,
+        )
         raise
     all_output = []
     if stdout is not None:
@@ -706,10 +716,11 @@ def call_subprocess(cmd, show_stdout=True,
                 if isinstance(level, tuple):
                     level, line = level
                 logger.log(level, line)
-                if not logger.stdout_level_matches(level):
-                    logger.show_progress()
+                # if not logger.stdout_level_matches(level) and False:
+                #     # TODO(dstufft): Handle progress bar.
+                #     logger.show_progress()
             else:
-                logger.info(line)
+                logger.debug(line)
     else:
         returned_stdout, returned_stderr = proc.communicate()
         all_output = [returned_stdout or '']
@@ -717,10 +728,10 @@ def call_subprocess(cmd, show_stdout=True,
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
-                logger.notify(
-                    'Complete output from command %s:' % command_desc
+                logger.info(
+                    'Complete output from command %s:', command_desc,
                 )
-                logger.notify(
+                logger.info(
                     '\n'.join(all_output) +
                     '\n----------------------------------------'
                 )
@@ -728,9 +739,10 @@ def call_subprocess(cmd, show_stdout=True,
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
         else:
-            logger.warn(
-                'Command "%s" had error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
+            logger.warning(
+                'Command "%s" had error code %s in %s',
+                command_desc, proc.returncode, cwd,
+            )
     if stdout is not None:
         return remove_tracebacks(''.join(all_output))
 

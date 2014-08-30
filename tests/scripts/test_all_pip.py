@@ -5,7 +5,7 @@ import subprocess
 from os.path import dirname, abspath
 
 from pip.compat import urllib
-from pip.util import rmtree
+from pip.utils import rmtree
 
 
 src_folder = dirname(dirname(abspath(__file__)))

@@ -167,19 +167,6 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
     )
 
 
-def test_log_file_no_directory():
-    """
-    Test opening a log file with no directory name.
-
-    """
-    from pip.basecommand import open_logfile
-    fp = open_logfile('testpip.log')
-    fp.write('can write')
-    fp.close()
-    assert os.path.exists(fp.name)
-    os.remove(fp.name)
-
-
 def test_options_from_venv_config(script, virtualenv):
     """
     Test if ConfigOptionParser reads a virtualenv-local config file

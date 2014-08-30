@@ -1,4 +1,5 @@
 """Locations where we look for configs, install stuff, etc"""
+from __future__ import absolute_import
 
 import getpass
 import os
@@ -184,7 +185,6 @@ if WINDOWS:
         default_storage_dir,
         default_config_basename,
     )
-    default_log_file = os.path.join(default_storage_dir, 'pip.log')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     bin_user = os.path.join(user_site, 'bin')
@@ -194,13 +194,11 @@ else:
         default_storage_dir,
         default_config_basename,
     )
-    default_log_file = os.path.join(default_storage_dir, 'pip.log')
 
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
-        default_log_file = os.path.join(user_dir, 'Library/Logs/pip.log')
 
 site_config_files = [
     os.path.join(path, default_config_basename)

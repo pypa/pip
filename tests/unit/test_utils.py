@@ -12,8 +12,8 @@ import pytest
 
 from mock import Mock, patch
 from pip.exceptions import BadCommand
-from pip.util import (egg_link_path, Inf, get_installed_distributions,
-                      find_command, untar_file, unzip_file)
+from pip.utils import (egg_link_path, Inf, get_installed_distributions,
+                       find_command, untar_file, unzip_file)
 from pip.commands.freeze import freeze_excludes
 
 
@@ -37,26 +37,26 @@ class Tests_EgglinkPath:
         )
 
         # patches
-        from pip import util
-        self.old_site_packages = util.site_packages
-        self.mock_site_packages = util.site_packages = 'SITE_PACKAGES'
-        self.old_running_under_virtualenv = util.running_under_virtualenv
-        self.mock_running_under_virtualenv = util.running_under_virtualenv = \
+        from pip import utils
+        self.old_site_packages = utils.site_packages
+        self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
+        self.old_running_under_virtualenv = utils.running_under_virtualenv
+        self.mock_running_under_virtualenv = utils.running_under_virtualenv = \
             Mock()
-        self.old_virtualenv_no_global = util.virtualenv_no_global
-        self.mock_virtualenv_no_global = util.virtualenv_no_global = Mock()
-        self.old_user_site = util.user_site
-        self.mock_user_site = util.user_site = self.user_site
+        self.old_virtualenv_no_global = utils.virtualenv_no_global
+        self.mock_virtualenv_no_global = utils.virtualenv_no_global = Mock()
+        self.old_user_site = utils.user_site
+        self.mock_user_site = utils.user_site = self.user_site
         from os import path
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
-        from pip import util
-        util.site_packages = self.old_site_packages
-        util.running_under_virtualenv = self.old_running_under_virtualenv
-        util.virtualenv_no_global = self.old_virtualenv_no_global
-        util.user_site = self.old_user_site
+        from pip import utils
+        utils.site_packages = self.old_site_packages
+        utils.running_under_virtualenv = self.old_running_under_virtualenv
+        utils.virtualenv_no_global = self.old_virtualenv_no_global
+        utils.user_site = self.old_user_site
         from os import path
         path.isfile = self.old_isfile
 
@@ -161,8 +161,8 @@ def test_Inf_equals_Inf():
     assert Inf == Inf
 
 
-@patch('pip.util.dist_is_local')
-@patch('pip.util.dist_is_editable')
+@patch('pip.utils.dist_is_local')
+@patch('pip.utils.dist_is_editable')
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
@@ -274,7 +274,7 @@ def test_does_not_find_command_because_there_is_no_path():
 
 
 @patch('os.pathsep', ':')
-@patch('pip.util.get_pathext')
+@patch('pip.utils.get_pathext')
 @patch('os.path.isfile')
 def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     """
@@ -301,7 +301,7 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
 
 @patch('os.pathsep', ':')
-@patch('pip.util.get_pathext')
+@patch('pip.utils.get_pathext')
 @patch('os.path.isfile')
 def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     """

@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import re
 
 from pip.compat import urlparse
 from pip.index import Link
-from pip.util import rmtree, display_path, call_subprocess
-from pip.log import logger
+from pip.utils import rmtree, display_path, call_subprocess
+from pip.utils.logging import indent_log
 from pip.vcs import vcs, VersionControl
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -13,6 +16,9 @@ _svn_url_re = re.compile(r'URL: (.+)')
 _svn_revision_re = re.compile(r'Revision: (.+)')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
+
+
+logger = logging.getLogger(__name__)
 
 
 class Subversion(VersionControl):
@@ -32,20 +38,20 @@ class Subversion(VersionControl):
         )
         match = _svn_url_re.search(output)
         if not match:
-            logger.warn(
-                'Cannot determine URL of svn checkout %s' %
-                display_path(location)
+            logger.warning(
+                'Cannot determine URL of svn checkout %s',
+                display_path(location),
             )
-            logger.info('Output that cannot be parsed: \n%s' % output)
+            logger.debug('Output that cannot be parsed: \n%s', output)
             return None, None
         url = match.group(1).strip()
         match = _svn_revision_re.search(output)
         if not match:
-            logger.warn(
-                'Cannot determine revision of svn checkout %s' %
-                display_path(location)
+            logger.warning(
+                'Cannot determine revision of svn checkout %s',
+                display_path(location),
             )
-            logger.info('Output that cannot be parsed: \n%s' % output)
+            logger.debug('Output that cannot be parsed: \n%s', output)
             return url, None
         return url, match.group(1)
 
@@ -53,9 +59,8 @@ class Subversion(VersionControl):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
         rev_options = get_rev_options(url, rev)
-        logger.notify('Exporting svn repository %s to %s' % (url, location))
-        logger.indent += 2
-        try:
+        logger.info('Exporting svn repository %s to %s', url, location)
+        with indent_log():
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
@@ -63,8 +68,6 @@ class Subversion(VersionControl):
             call_subprocess(
                 [self.cmd, 'export'] + rev_options + [url, location],
                 filter_stdout=self._filter, show_stdout=False)
-        finally:
-            logger.indent -= 2
 
     def switch(self, dest, url, rev_options):
         call_subprocess(
@@ -82,8 +85,12 @@ class Subversion(VersionControl):
         else:
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Checking out %s%s to %s'
-                          % (url, rev_display, display_path(dest)))
+            logger.info(
+                'Checking out %s%s to %s',
+                url,
+                rev_display,
+                display_path(dest),
+            )
             call_subprocess(
                 [self.cmd, 'checkout', '-q'] + rev_options + [url, dest])
 
@@ -146,10 +153,10 @@ class Subversion(VersionControl):
             if location == last_location:
                 # We've traversed up to the root of the filesystem without
                 # finding setup.py
-                logger.warn(
+                logger.warning(
                     "Could not find setup.py for directory %s (tried all "
-                    "parent directories)" %
-                    orig_location
+                    "parent directories)",
+                    orig_location,
                 )
                 return None
 
@@ -240,17 +247,18 @@ class Subversion(VersionControl):
                 tag_revs = self.get_tag_revs(tag_url)
                 match = self.find_tag_match(rev, tag_revs)
                 if match:
-                    logger.notify(
-                        'trunk checkout %s seems to be equivalent to tag %s' %
-                        match
+                    logger.info(
+                        'trunk checkout %s seems to be equivalent to tag %s',
+                        match,
                     )
                     repo = '%s/%s' % (tag_url, match)
                     full_egg_name = '%s-%s' % (egg_project_name, match)
         else:
             # Don't know what it is
-            logger.warn(
+            logger.warning(
                 'svn URL does not fit normal structure (tags/branches/trunk): '
-                '%s' % repo
+                '%s',
+                repo,
             )
             full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
         return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)

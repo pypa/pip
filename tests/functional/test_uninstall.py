@@ -9,7 +9,7 @@ from mock import patch
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
-from pip.util import rmtree
+from pip.utils import rmtree
 
 
 def test_simple_uninstall(script):
@@ -299,8 +299,7 @@ def test_uninstall_as_egg(script, data):
     )
 
 
-@patch('pip.req.req_uninstall.logger')
-def test_uninstallpathset_no_paths(mock_logger):
+def test_uninstallpathset_no_paths(caplog):
     """
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
@@ -313,13 +312,14 @@ def test_uninstallpathset_no_paths(mock_logger):
         mock_dist_is_local.return_value = True
         uninstall_set = UninstallPathSet(test_dist)
         uninstall_set.remove()  # with no files added to set
-    mock_logger.notify.assert_any_call(
-        "Can't uninstall 'pip'. No files were found to uninstall.",
+
+    assert (
+        "Can't uninstall 'pip'. No files were found to uninstall."
+        in caplog.text()
     )
 
 
-@patch('pip.req.req_uninstall.logger')
-def test_uninstallpathset_non_local(mock_logger):
+def test_uninstallpathset_non_local(caplog):
     """
     Test UninstallPathSet logs notification and returns (with no exception)
     when dist is non-local
@@ -338,11 +338,12 @@ def test_uninstallpathset_non_local(mock_logger):
         # with no files added to set; which is the case when trying to remove
         # non-local dists
         uninstall_set.remove()
-    mock_logger.notify.assert_any_call(
-        "Not uninstalling pip at %s, outside environment %s" %
-        (nonlocal_path, sys.prefix)
+
+    assert (
+        "Not uninstalling pip at %s, outside environment %s"
+        % (nonlocal_path, sys.prefix)
+        in caplog.text()
     )
-    mock_logger.notify.mock_calls
 
 
 def test_uninstall_wheel(script, data):

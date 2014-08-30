@@ -1,5 +1,6 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
+from __future__ import absolute_import
 
 # flake8: noqa
 
@@ -28,6 +29,12 @@ except NameError:
     PermissionError = NeverUsedException
 
 console_encoding = sys.__stdout__.encoding
+
+
+try:
+    from logging.config import dictConfig as logging_dictConfig
+except ImportError:
+    from pip.compat.dictconfig import dictConfig as logging_dictConfig
 
 
 if sys.version_info >= (3,):

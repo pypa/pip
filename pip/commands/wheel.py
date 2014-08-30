@@ -1,18 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import logging
 import os
+import warnings
 
 from pip.basecommand import Command
 from pip.index import PackageFinder
-from pip.log import logger
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.util import normalize_path
+from pip.utils import normalize_path
+from pip.utils.deprecation import RemovedInPip17Warning, RemovedInPip18Warning
 from pip.wheel import WheelBuilder
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
+
+
+logger = logging.getLogger(__name__)
 
 
 class WheelCommand(Command):
@@ -124,32 +129,32 @@ class WheelCommand(Command):
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         if options.use_mirrors:
-            logger.deprecated(
-                "1.7",
-                "--use-mirrors has been deprecated and will be removed"
-                " in the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--use-mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
 
         if options.mirrors:
-            logger.deprecated(
-                "1.7",
-                "--mirrors has been deprecated and will be removed in "
-                " the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
             index_urls += options.mirrors
 
         if options.download_cache:
-            logger.deprecated(
-                "1.8",
+            warnings.warn(
                 "--download-cache has been deprecated and will be removed in "
-                " the future. Pip now automatically uses and configures its "
-                "cache."
+                "the future. Pip now automatically uses and configures its "
+                "cache.",
+                RemovedInPip18Warning,
             )
 
         with self._build_session(options) as session:
@@ -202,10 +207,11 @@ class WheelCommand(Command):
 
             # fail if no requirements
             if not requirement_set.has_requirements:
-                opts = {'name': self.name}
-                msg = ('You must give at least one requirement '
-                       'to %(name)s (see "pip help %(name)s")' % opts)
-                logger.error(msg)
+                logger.error(
+                    "You must give at least one requirement to %s "
+                    "(see \"pip help %s\")",
+                    self.name,
+                )
                 return
 
             try:

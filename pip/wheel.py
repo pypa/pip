@@ -1,12 +1,13 @@
 """
 Support for installing and building the "wheel" binary package format.
 """
-from __future__ import with_statement
+from __future__ import absolute_import
 
 import compileall
 import csv
 import functools
 import hashlib
+import logging
 import os
 import re
 import shutil
@@ -18,10 +19,10 @@ from email.parser import Parser
 from pip.compat import StringIO
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
-from pip.log import logger
 from pip import pep425tags
-from pip.util import (call_subprocess, normalize_path, make_path_relative,
-                      captured_stdout, remove_tracebacks)
+from pip.utils import (call_subprocess, normalize_path, make_path_relative,
+                       captured_stdout, remove_tracebacks)
+from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import configparser
@@ -31,6 +32,9 @@ from pip._vendor.six import PY2
 wheel_ext = '.whl'
 
 VERSION_COMPATIBLE = (1, 0)
+
+
+logger = logging.getLogger(__name__)
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):
@@ -411,7 +415,7 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .pyc.
     """
-    from pip.util import FakeFile  # circular import
+    from pip.utils import FakeFile  # circular import
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
         path = os.path.join(dist.location, row[0])
@@ -465,8 +469,10 @@ def check_compatibility(version, name):
             "of pip" % (name, '.'.join(map(str, version)))
         )
     elif version > VERSION_COMPATIBLE:
-        logger.warn('Installing from a newer Wheel-Version (%s)'
-                    % '.'.join(map(str, version)))
+        logger.warning(
+            'Installing from a newer Wheel-Version (%s)',
+            '.'.join(map(str, version)),
+        )
 
 
 class Wheel(object):
@@ -545,15 +551,15 @@ class WheelBuilder(object):
             "__file__, 'exec'))" % req.setup_py
         ] + list(self.global_options)
 
-        logger.notify('Running setup.py bdist_wheel for %s' % req.name)
-        logger.notify('Destination directory: %s' % self.wheel_dir)
+        logger.info('Running setup.py bdist_wheel for %s', req.name)
+        logger.info('Destination directory: %s', self.wheel_dir)
         wheel_args = base_args + ['bdist_wheel', '-d', self.wheel_dir] \
             + self.build_options
         try:
             call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
             return True
         except:
-            logger.error('Failed building wheel for %s' % req.name)
+            logger.error('Failed building wheel for %s', req.name)
             return False
 
     def build(self):
@@ -567,11 +573,13 @@ class WheelBuilder(object):
         buildset = []
         for req in reqset:
             if req.is_wheel:
-                logger.notify(
-                    'Skipping %s, due to already being wheel.' % req.name)
+                logger.info(
+                    'Skipping %s, due to already being wheel.', req.name,
+                )
             elif req.editable:
-                logger.notify(
-                    'Skipping %s, due to being editable' % req.name)
+                logger.info(
+                    'Skipping %s, due to being editable', req.name,
+                )
             else:
                 buildset.append(req)
 
@@ -579,29 +587,28 @@ class WheelBuilder(object):
             return True
 
         # Build the wheels.
-        logger.notify(
-            'Building wheels for collected packages: %s' %
-            ', '.join([req.name for req in buildset])
+        logger.info(
+            'Building wheels for collected packages: %s',
+            ', '.join([req.name for req in buildset]),
         )
-        logger.indent += 2
-        build_success, build_failure = [], []
-        for req in buildset:
-            if self._build_one(req):
-                build_success.append(req)
-            else:
-                build_failure.append(req)
-        logger.indent -= 2
+        with indent_log():
+            build_success, build_failure = [], []
+            for req in buildset:
+                if self._build_one(req):
+                    build_success.append(req)
+                else:
+                    build_failure.append(req)
 
         # notify success/failure
         if build_success:
-            logger.notify(
-                'Successfully built %s' %
-                ' '.join([req.name for req in build_success])
+            logger.info(
+                'Successfully built %s',
+                ' '.join([req.name for req in build_success]),
             )
         if build_failure:
-            logger.notify(
-                'Failed to build %s' %
-                ' '.join([req.name for req in build_failure])
+            logger.info(
+                'Failed to build %s',
+                ' '.join([req.name for req in build_failure]),
             )
         # Return True if all builds were successful
         return len(build_failure) == 0

@@ -1,13 +1,19 @@
+from __future__ import absolute_import
+
 import imp
+import logging
 import os
 import sys
 import tempfile
 
 from pip.compat import uses_pycache, WINDOWS
 from pip.exceptions import UninstallationError
-from pip.log import logger
-from pip.util import (rmtree, ask, is_local, dist_is_local, renames,
-                      normalize_path)
+from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
+                       normalize_path)
+from pip.utils.logging import indent_log
+
+
+logger = logging.getLogger(__name__)
 
 
 class UninstallPathSet(object):
@@ -31,13 +37,11 @@ class UninstallPathSet(object):
 
     def _can_uninstall(self):
         if not dist_is_local(self.dist):
-            logger.notify(
-                "Not uninstalling %s at %s, outside environment %s" %
-                (
-                    self.dist.project_name,
-                    normalize_path(self.dist.location),
-                    sys.prefix
-                ),
+            logger.info(
+                "Not uninstalling %s at %s, outside environment %s",
+                self.dist.project_name,
+                normalize_path(self.dist.location),
+                sys.prefix,
             )
             return False
         return True
@@ -89,54 +93,52 @@ class UninstallPathSet(object):
         if not self._can_uninstall():
             return
         if not self.paths:
-            logger.notify(
-                "Can't uninstall '%s'. No files were found to uninstall." %
-                self.dist.project_name
+            logger.info(
+                "Can't uninstall '%s'. No files were found to uninstall.",
+                self.dist.project_name,
             )
             return
-        logger.notify('Uninstalling %s:' % self.dist.project_name)
-        logger.indent += 2
-        paths = sorted(self.compact(self.paths))
-        try:
+        logger.info('Uninstalling %s:', self.dist.project_name)
+
+        with indent_log():
+            paths = sorted(self.compact(self.paths))
+
             if auto_confirm:
                 response = 'y'
             else:
                 for path in paths:
-                    logger.notify(path)
+                    logger.info(path)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
-                logger.notify('Not removing or modifying (outside of prefix):')
+                logger.info('Not removing or modifying (outside of prefix):')
                 for path in self.compact(self._refuse):
-                    logger.notify(path)
+                    logger.info(path)
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
                 for path in paths:
                     new_path = self._stash(path)
-                    logger.info('Removing file or directory %s' % path)
+                    logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append(path)
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.notify(
-                    'Successfully uninstalled %s' % self.dist.project_name
+                logger.info(
+                    'Successfully uninstalled %s', self.dist.project_name
                 )
-
-        finally:
-            logger.indent -= 2
 
     def rollback(self):
         """Rollback the changes previously made by remove()."""
         if self.save_dir is None:
             logger.error(
-                "Can't roll back %s; was not uninstalled" %
-                self.dist.project_name
+                "Can't roll back %s; was not uninstalled",
+                self.dist.project_name,
             )
             return False
-        logger.notify('Rolling back uninstall of %s' % self.dist.project_name)
+        logger.info('Rolling back uninstall of %s', self.dist.project_name)
         for path in self._moved_paths:
             tmp_path = self._stash(path)
-            logger.info('Replacing %s' % path)
+            logger.debug('Replacing %s', path)
             renames(tmp_path, path)
         for pth in self.pth.values():
             pth.rollback()
@@ -170,7 +172,7 @@ class UninstallPthEntries(object):
         self.entries.add(entry)
 
     def remove(self):
-        logger.info('Removing pth entries from %s:' % self.file)
+        logger.debug('Removing pth entries from %s:', self.file)
         fh = open(self.file, 'rb')
         # windows uses '\r\n' with py3k, but uses '\n' with py2.x
         lines = fh.readlines()
@@ -182,7 +184,7 @@ class UninstallPthEntries(object):
             endline = '\n'
         for entry in self.entries:
             try:
-                logger.info('Removing entry: %s' % entry)
+                logger.debug('Removing entry: %s', entry)
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass
@@ -193,10 +195,10 @@ class UninstallPthEntries(object):
     def rollback(self):
         if self._saved_lines is None:
             logger.error(
-                'Cannot roll back changes to %s, none were made' % self.file
+                'Cannot roll back changes to %s, none were made', self.file
             )
             return False
-        logger.info('Rolling %s back to previous state' % self.file)
+        logger.debug('Rolling %s back to previous state', self.file)
         fh = open(self.file, 'wb')
         fh.writelines(self._saved_lines)
         fh.close()

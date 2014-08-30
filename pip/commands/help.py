@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pip.basecommand import Command, SUCCESS
 from pip.exceptions import CommandError
 

@@ -6,7 +6,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
-from pip.util import rmtree
+from pip.utils import rmtree
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -62,8 +62,8 @@ def test_editable_install(script):
         "INITools==0.2 should either be a path to a local project or a VCS url"
         in result.stdout
     )
-    assert len(result.files_created) == 1, result.files_created
-    assert not result.files_updated, result.files_updated
+    assert not result.files_created
+    assert not result.files_updated
 
 
 def test_install_editable_from_svn(script, tmpdir):
@@ -248,17 +248,13 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    result = script.pip(
+    script.pip(
         'install', '-e',
         '%s/#egg=ScriptTest' %
         local_checkout(
             'hg+https://bitbucket.org/ianb/scripttest',
             tmpdir.join("cache"),
         ),
-        expect_error=True,
-    )
-    assert 'pip-log.txt' not in result.files_created, (
-        result.files_created['pip-log.txt'].bytes
     )
 
 
@@ -283,7 +279,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    result = script.pip(
+    script.pip(
         'install', '-e',
         '%s/#egg=django-wikiapp' %
         local_checkout(
@@ -291,10 +287,6 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
             '/release-0.1',
             tmpdir.join("cache"),
         ),
-        expect_error=True,
-    )
-    assert 'pip-log.txt' not in result.files_created, (
-        result.files_created['pip-log.txt'].bytes
     )
 
 
@@ -332,8 +324,7 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     Test installing from a local directory with no 'setup.py'.
     """
     result = script.pip('install', data.root, expect_error=True)
-    assert len(result.files_created) == 1, result.files_created
-    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert not result.files_created
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 
@@ -342,8 +333,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     Test installing from a local directory with no 'setup.py'.
     """
     result = script.pip('install', '-e', data.root, expect_error=True)
-    assert len(result.files_created) == 1, result.files_created
-    assert 'pip-log.txt' in result.files_created, result.files_created
+    assert not result.files_created
     assert "is not installable. File 'setup.py' not found." in result.stdout
 
 

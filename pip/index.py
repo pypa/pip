@@ -1,13 +1,17 @@
 """Routines related to PyPI, indexes"""
+from __future__ import absolute_import
 
+import logging
 import sys
 import os
 import re
 import mimetypes
 import posixpath
+import warnings
 
-from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
+from pip.utils import Inf, normalize_name, splitext, is_prerelease
+from pip.utils.deprecation import RemovedInPip17Warning
+from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
@@ -27,6 +31,9 @@ LOCAL_HOSTNAMES = ('localhost', '127.0.0.1')
 INSECURE_SCHEMES = {
     "http": ["https"],
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 class PackageFinder(object):
@@ -82,7 +89,6 @@ class PackageFinder(object):
 
         # Do we process dependency links?
         self.process_dependency_links = process_dependency_links
-        self._have_warned_dependency_links = False
 
         # The Session we'll use to make requests
         self.session = session
@@ -93,13 +99,11 @@ class PackageFinder(object):
         # # dependency_links value
         # # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
-            if not self._have_warned_dependency_links:
-                logger.deprecated(
-                    "1.6",
-                    "Dependency Links processing has been deprecated with an "
-                    "accelerated time schedule and will be removed in pip 1.6",
-                )
-                self._have_warned_dependency_links = True
+            warnings.warn(
+                "Dependency Links processing has been deprecated and will be "
+                "removed in a future release.",
+                RemovedInPip17Warning,
+            )
             self.dependency_links.extend(links)
 
     def _sort_locations(self, locations):
@@ -268,9 +272,9 @@ class PackageFinder(object):
         # We explicitly do not trust links that came from dependency_links
         locations.extend([Link(url) for url in _ulocations])
 
-        logger.debug('URLs to search for versions for %s:' % req)
+        logger.debug('URLs to search for versions for %s:', req)
         for location in locations:
-            logger.debug('* %s' % location)
+            logger.debug('* %s', location)
             self._warn_about_insecure_transport_scheme(logger, location)
 
         found_versions = []
@@ -283,19 +287,16 @@ class PackageFinder(object):
         )
         page_versions = []
         for page in self._get_pages(locations, req):
-            logger.debug('Analyzing links from page %s' % page.url)
-            logger.indent += 2
-            try:
+            logger.debug('Analyzing links from page %s', page.url)
+            with indent_log():
                 page_versions.extend(
                     self._package_versions(page.links, req.name.lower())
                 )
-            finally:
-                logger.indent -= 2
         dependency_versions = list(self._package_versions(
             [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
-            logger.info(
-                'dependency_links found: %s' %
+            logger.debug(
+                'dependency_links found: %s',
                 ', '.join([
                     link.url for p, link, version in dependency_versions
                 ])
@@ -310,22 +311,25 @@ class PackageFinder(object):
                 and not page_versions
                 and not dependency_versions
                 and not file_versions):
-            logger.fatal(
-                'Could not find any downloads that satisfy the requirement'
-                ' %s' % req
+            logger.critical(
+                'Could not find any downloads that satisfy the requirement %s',
+                req,
             )
 
             if self.need_warn_external:
-                logger.warn(
+                logger.warning(
                     "Some externally hosted files were ignored as access to "
                     "them may be unreliable (use --allow-external %s to "
-                    "allow)." % req.name
+                    "allow).",
+                    req.name,
                 )
 
             if self.need_warn_unverified:
-                logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-unverified %s to allow)." %
-                            req.name)
+                logger.warning(
+                    "Some insecure and unverifiable files were ignored"
+                    " (use --allow-unverified %s to allow).",
+                    req.name,
+                )
 
             raise DistributionNotFound(
                 'No distributions at all found for %s' % req
@@ -339,8 +343,8 @@ class PackageFinder(object):
             )]
         if file_versions:
             file_versions.sort(reverse=True)
-            logger.info(
-                'Local files found: %s' %
+            logger.debug(
+                'Local files found: %s',
                 ', '.join([
                     url_to_path(link.url)
                     for _, link, _ in file_versions
@@ -352,13 +356,11 @@ class PackageFinder(object):
         applicable_versions = []
         for (parsed_version, link, version) in all_versions:
             if version not in req.req:
-                logger.info(
-                    "Ignoring link %s, version %s doesn't match %s" %
-                    (
-                        link,
-                        version,
-                        ','.join([''.join(s) for s in req.req.specs])
-                    )
+                logger.debug(
+                    "Ignoring link %s, version %s doesn't match %s",
+                    link,
+                    version,
+                    ','.join([''.join(s) for s in req.req.specs]),
                 )
                 continue
             elif (is_prerelease(version)
@@ -366,9 +368,11 @@ class PackageFinder(object):
                 # If this version isn't the already installed one, then
                 #   ignore it if it's a pre-release.
                 if link is not INSTALLED_VERSION:
-                    logger.info(
+                    logger.debug(
                         "Ignoring link %s, version %s is a pre-release (use "
-                        "--pre to allow)." % (link, version)
+                        "--pre to allow).",
+                        link,
+                        version,
                     )
                     continue
             applicable_versions.append((parsed_version, link, version))
@@ -380,80 +384,81 @@ class PackageFinder(object):
         ])
         if not upgrade and existing_applicable:
             if applicable_versions[0][1] is INSTALLED_VERSION:
-                logger.info(
+                logger.debug(
                     'Existing installed version (%s) is most up-to-date and '
-                    'satisfies requirement' % req.satisfied_by.version
+                    'satisfies requirement',
+                    req.satisfied_by.version,
                 )
             else:
-                logger.info(
+                logger.debug(
                     'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)' %
-                    (req.satisfied_by.version, applicable_versions[0][2])
+                    '(most up-to-date version is %s)',
+                    req.satisfied_by.version,
+                    applicable_versions[0][2],
                 )
             return None
         if not applicable_versions:
-            logger.fatal(
+            logger.critical(
                 'Could not find a version that satisfies the requirement %s '
-                '(from versions: %s)' %
-                (
-                    req,
-                    ', '.join(
-                        sorted(set([
-                            version
-                            for parsed_version, link, version in all_versions
-                        ])))
-                )
+                '(from versions: %s)',
+                req,
+                ', '.join(
+                    sorted(set([
+                        version
+                        for parsed_version, link, version in all_versions
+                    ]))),
             )
 
             if self.need_warn_external:
-                logger.warn(
+                logger.warning(
                     "Some externally hosted files were ignored as access to "
                     "them may be unreliable (use --allow-external to allow)."
                 )
 
             if self.need_warn_unverified:
-                logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-unverified %s to allow)." %
-                            req.name)
+                logger.warning(
+                    "Some insecure and unverifiable files were ignored"
+                    " (use --allow-unverified %s to allow).",
+                    req.name,
+                )
 
             raise DistributionNotFound(
                 'No distributions matching the version for %s' % req
             )
         if applicable_versions[0][1] is INSTALLED_VERSION:
             # We have an existing version, and its the best version
-            logger.info(
+            logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
-                '%s)' % (
-                    req.satisfied_by.version,
-                    ', '.join([
-                        version for parsed_version, link, version
-                        in applicable_versions[1:]
-                    ]) or 'none'))
+                '%s)',
+                req.satisfied_by.version,
+                ', '.join([
+                    version for parsed_version, link, version
+                    in applicable_versions[1:]
+                ]) or 'none'),
             raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
-            logger.info(
-                'Using version %s (newest of versions: %s)' %
-                (
-                    applicable_versions[0][2],
-                    ', '.join([
-                        version for parsed_version, link, version
-                        in applicable_versions
-                    ])
-                )
+            logger.debug(
+                'Using version %s (newest of versions: %s)',
+                applicable_versions[0][2],
+                ', '.join([
+                    version for parsed_version, link, version
+                    in applicable_versions
+                ])
             )
 
         selected_version = applicable_versions[0][1]
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
-            logger.warn("%s is potentially insecure and "
-                        "unverifiable." % req.name)
+            logger.warning(
+                "%s is potentially insecure and unverifiable.", req.name,
+            )
 
         if selected_version._deprecated_regex:
-            logger.deprecated(
-                "1.7",
-                "%s discovered using a deprecated method of parsing, "
-                "in the future it will no longer be discovered" % req.name
+            warnings.warn(
+                "%s discovered using a deprecated method of parsing, in the "
+                "future it will no longer be discovered." % req.name,
+                RemovedInPip17Warning,
             )
 
         return selected_version
@@ -470,14 +475,14 @@ class PackageFinder(object):
             index_url.url += '/'
         page = self._get_page(index_url, req)
         if page is None:
-            logger.fatal('Cannot fetch index base URL %s' % index_url)
+            logger.critical('Cannot fetch index base URL %s', index_url)
             return
         norm_name = normalize_name(req.url_name)
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
-                logger.notify(
-                    'Real name of requirement %s is %s' % (url_name, base)
+                logger.debug(
+                    'Real name of requirement %s is %s', url_name, base,
                 )
                 return base
         return None
@@ -508,8 +513,11 @@ class PackageFinder(object):
                 if (normalized not in self.allow_external
                         and not self.allow_all_external):
                     self.need_warn_external = True
-                    logger.debug("Not searching %s for files because external "
-                                 "urls are disallowed." % link)
+                    logger.debug(
+                        "Not searching %s for files because external "
+                        "urls are disallowed.",
+                        link,
+                    )
                     continue
 
                 if (link.trusted is not None
@@ -518,7 +526,8 @@ class PackageFinder(object):
                     logger.debug(
                         "Not searching %s for urls, it is an "
                         "untrusted link and cannot produce safe or "
-                        "verifiable files." % link
+                        "verifiable files.",
+                        link,
                     )
                     self.need_warn_unverified = True
                     continue
@@ -573,7 +582,7 @@ class PackageFinder(object):
             egg_info, ext = link.splitext()
             if not ext:
                 if link not in self.logged_links:
-                    logger.debug('Skipping link %s; not a file' % link)
+                    logger.debug('Skipping link %s; not a file', link)
                     self.logged_links.add(link)
                 return []
             if egg_info.endswith('.tar'):
@@ -583,14 +592,15 @@ class PackageFinder(object):
             if ext not in self._known_extensions():
                 if link not in self.logged_links:
                     logger.debug(
-                        'Skipping link %s; unknown archive format: %s' %
-                        (link, ext)
+                        'Skipping link %s; unknown archive format: %s',
+                        link,
+                        ext,
                     )
                     self.logged_links.add(link)
                 return []
             if "macosx10" in link.path and ext == '.zip':
                 if link not in self.logged_links:
-                    logger.debug('Skipping link %s; macosx10 one' % (link))
+                    logger.debug('Skipping link %s; macosx10 one', link)
                     self.logged_links.add(link)
                 return []
             if ext == wheel_ext:
@@ -598,20 +608,22 @@ class PackageFinder(object):
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
                     logger.debug(
-                        'Skipping %s because the wheel filename is invalid' %
+                        'Skipping %s because the wheel filename is invalid',
                         link
                     )
                     return []
                 if wheel.name.lower() != search_name.lower():
                     logger.debug(
-                        'Skipping link %s; wrong project name (not %s)' %
-                        (link, search_name)
+                        'Skipping link %s; wrong project name (not %s)',
+                        link,
+                        search_name,
                     )
                     return []
                 if not wheel.supported():
                     logger.debug(
                         'Skipping %s because it is not compatible with this '
-                        'Python' % link
+                        'Python',
+                        link,
                     )
                     return []
                 # This is a dirty hack to prevent installing Binary Wheels from
@@ -634,7 +646,8 @@ class PackageFinder(object):
                     if not wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
                             "Skipping %s because it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform" % link
+                            "Wheel on an unsupported platform",
+                            link,
                         )
                         return []
                 version = wheel.version
@@ -643,8 +656,9 @@ class PackageFinder(object):
             version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
             logger.debug(
-                'Skipping link %s; wrong project name (not %s)' %
-                (link, search_name)
+                'Skipping link %s; wrong project name (not %s)',
+                link,
+                search_name,
             )
             return []
 
@@ -655,7 +669,7 @@ class PackageFinder(object):
                 and not self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
-            logger.debug("Skipping %s because it is externally hosted." % link)
+            logger.debug("Skipping %s because it is externally hosted.", link)
             self.need_warn_external = True
             return []
 
@@ -666,8 +680,10 @@ class PackageFinder(object):
             # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
-            logger.debug("Skipping %s because it is an insecure and "
-                         "unverifiable file." % link)
+            logger.debug(
+                "Skipping %s because it is an insecure and unverifiable file.",
+                link,
+            )
             self.need_warn_unverified = True
             return []
 
@@ -677,10 +693,10 @@ class PackageFinder(object):
             py_version = match.group(1)
             if py_version != sys.version[:3]:
                 logger.debug(
-                    'Skipping %s because Python version is incorrect' % link
+                    'Skipping %s because Python version is incorrect', link
                 )
                 return []
-        logger.debug('Found link %s, version: %s' % (link, version))
+        logger.debug('Found link %s, version: %s', link, version)
         return [(
             pkg_resources.parse_version(version),
             link,
@@ -690,7 +706,7 @@ class PackageFinder(object):
     def _egg_info_matches(self, egg_info, search_name, link):
         match = self._egg_info_re.search(egg_info)
         if not match:
-            logger.debug('Could not parse version from link: %s' % link)
+            logger.debug('Could not parse version from link: %s', link)
             return None
         name = match.group(0).lower()
         # To match the "safe" name that pkg_resources creates:
@@ -741,9 +757,7 @@ class HTMLPage(object):
         from pip.vcs import VcsSupport
         for scheme in VcsSupport.schemes:
             if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-                logger.debug(
-                    'Cannot look at %(scheme)s URL %(link)s' % locals()
-                )
+                logger.debug('Cannot look at %s URL %s', scheme, link)
                 return None
 
         try:
@@ -758,12 +772,13 @@ class HTMLPage(object):
                             break
                         else:
                             logger.debug(
-                                'Skipping page %s because of Content-Type: '
-                                '%s' % (link, content_type)
+                                'Skipping page %s because of Content-Type: %s',
+                                link,
+                                content_type,
                             )
                             return
 
-            logger.debug('Getting page %s' % url)
+            logger.debug('Getting page %s', url)
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = \
@@ -774,7 +789,7 @@ class HTMLPage(object):
                 if not url.endswith('/'):
                     url += '/'
                 url = urlparse.urljoin(url, 'index.html')
-                logger.debug(' file: URL is directory, getting %s' % url)
+                logger.debug(' file: URL is directory, getting %s', url)
 
             resp = session.get(
                 url,
@@ -793,8 +808,9 @@ class HTMLPage(object):
             content_type = resp.headers.get('Content-Type', 'unknown')
             if not content_type.lower().startswith("text/html"):
                 logger.debug(
-                    'Skipping page %s because of Content-Type: %s' %
-                    (link, content_type)
+                    'Skipping page %s because of Content-Type: %s',
+                    link,
+                    content_type,
                 )
                 return
 
@@ -814,7 +830,7 @@ class HTMLPage(object):
             cls._handle_fail(
                 req, link, reason, url,
                 level=2,
-                meth=logger.notify,
+                meth=logger.info,
             )
         else:
             return inst
@@ -822,7 +838,7 @@ class HTMLPage(object):
     @staticmethod
     def _handle_fail(req, link, reason, url, level=1, meth=None):
         if meth is None:
-            meth = logger.info
+            meth = logger.debug
 
         meth("Could not fetch URL %s: %s", link, reason)
         meth("Will skip URL %s when looking for download links for %s" %

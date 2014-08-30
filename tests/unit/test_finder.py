@@ -4,13 +4,12 @@ import pip.wheel
 import pip.pep425tags
 
 from pkg_resources import parse_version, Distribution
-from pip.log import logger
 from pip.req import InstallRequirement
 from pip.index import PackageFinder, Link
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
-from pip.util import Inf
+from pip.utils import Inf
 from pip.download import PipSession
 
 from mock import Mock, patch
@@ -96,15 +95,10 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
 
 class TestWheel:
 
-    def teardown(self):
-        logger.consumers = []
-
-    def test_skip_invalid_wheel_link(self, data):
+    def test_skip_invalid_wheel_link(self, caplog, data):
         """
         Test if PackageFinder skips invalid wheel filenames
         """
-        log = []
-        logger.add_consumers((logger.DEBUG, log.append))
         req = InstallRequirement.from_line("invalid")
         # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder(
@@ -115,7 +109,11 @@ class TestWheel:
         )
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
-        "invalid.whl because the wheel filename is invalid" in "".join(log)
+
+        assert (
+            "invalid.whl because the wheel filename is invalid"
+            in caplog.text()
+        )
 
     def test_not_find_wheel_not_supported(self, data, monkeypatch):
         """
