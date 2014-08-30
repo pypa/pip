@@ -320,6 +320,7 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
+    path = path.split('#')[0]
     path = url[len('file:'):].lstrip('/')
     path = urllib.unquote(path)
     if _url_drive_re.match(path):
