@@ -18,7 +18,7 @@ class TestUserCacheDir:
             _get_win_folder,
             raising=False,
         )
-        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(appdirs, "WINDOWS", True)
 
         assert (appdirs.user_cache_dir("pip").replace("/", "\\")
                 == "C:\\Users\\test\\AppData\\Local\\pip\\Cache")

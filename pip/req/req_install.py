@@ -11,7 +11,7 @@ from email.parser import FeedParser
 import pip.wheel
 from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import configparser
-from pip.compat import urllib, native_str
+from pip.compat import urllib, native_str, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
@@ -621,7 +621,7 @@ exec(compile(
                 else:
                     bin_dir = bin_py
                 paths_to_remove.add(os.path.join(bin_dir, script))
-                if sys.platform == 'win32':
+                if WINDOWS:
                     paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
 
         # find console_scripts
@@ -637,7 +637,7 @@ exec(compile(
                     else:
                         bin_dir = bin_py
                     paths_to_remove.add(os.path.join(bin_dir, name))
-                    if sys.platform == 'win32':
+                    if WINDOWS:
                         paths_to_remove.add(
                             os.path.join(bin_dir, name) + '.exe'
                         )

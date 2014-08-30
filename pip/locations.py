@@ -11,7 +11,7 @@ from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS
 
 from pip import appdirs
-from pip.compat import get_path_uid
+from pip.compat import get_path_uid, WINDOWS
 
 import pip.exceptions
 
@@ -103,7 +103,7 @@ def virtualenv_no_global():
 
 def __get_username():
     """ Returns the effective username of the current process. """
-    if sys.platform == 'win32':
+    if WINDOWS:
         return getpass.getuser()
     import pwd
     return pwd.getpwuid(os.geteuid()).pw_name
@@ -115,7 +115,7 @@ def _get_build_prefix():
         tempfile.gettempdir(),
         'pip_build_%s' % __get_username().replace(' ', '_')
     )
-    if sys.platform == 'win32':
+    if WINDOWS:
         """ on windows(tested on 7) temp dirs are isolated """
         return path
     try:
@@ -171,7 +171,7 @@ src_prefix = os.path.abspath(src_prefix)
 site_packages = sysconfig.get_python_lib()
 user_site = site.USER_SITE
 user_dir = os.path.expanduser('~')
-if sys.platform == 'win32':
+if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
     bin_user = os.path.join(user_site, 'Scripts')
     # buildout uses 'bin' on Windows too?

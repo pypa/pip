@@ -115,3 +115,7 @@ def get_path_uid(path):
 stdlib_pkgs = ['python', 'wsgiref']
 if sys.version_info >= (2, 7):
     stdlib_pkgs.extend(['argparse'])
+
+# windows detection, covers cpython and ironpython
+WINDOWS = sys.platform.startswith("win") \
+          or (sys.platform == 'cli' and os.name == 'nt')

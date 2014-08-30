@@ -6,6 +6,7 @@ import os
 import logging
 
 from pip._vendor import colorama, pkg_resources
+from pip.compat import WINDOWS
 
 
 def _color_wrap(*colors):
@@ -102,8 +103,7 @@ class Logger(object):
             # If we didn't find a duplicate, then add it
             else:
                 # Colorize consumer for Windows
-                if sys.platform.startswith('win') \
-                   and hasattr(consumer, 'write'):
+                if WINDOWS and hasattr(consumer, 'write'):
                     consumer = colorama.AnsiToWin32(consumer)
 
                 self.consumers.append((level, consumer))

@@ -625,6 +625,7 @@ class PackageFinder(object):
                         (
                             not platform.startswith('win')
                             and not platform.startswith('macosx')
+                            and not platform == 'cli'
                         )
                         and comes_from is not None
                         and urlparse.urlparse(
