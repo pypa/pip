@@ -13,7 +13,7 @@ import pytest
 from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.util import (egg_link_path, Inf, get_installed_distributions,
-                      find_command, untar_file, unzip_file)
+                      find_command, untar_file, unpack_file, unzip_file)
 from pip.commands.freeze import freeze_excludes
 
 
@@ -293,10 +293,10 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     with pytest.raises(BadCommand):
         find_command("foo", "path_one")
 
-    assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
+    assert mock_isfile.call_args_list == expected,\
+        "Actual: %s\nExpected %s" %\
         (mock_isfile.call_args_list, expected)
-    )
+
     assert getpath_mock.called, "Should call get_pathext"
 
 
@@ -321,10 +321,10 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     with pytest.raises(BadCommand):
         find_command("foo", "path_one", pathext)
 
-    assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
+    assert mock_isfile.call_args_list == expected,\
+        "Actual: %s\nExpected %s" %\
         (mock_isfile.call_args_list, expected)
-    )
+
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
@@ -383,12 +383,42 @@ class TestUnpackArchives(object):
                 "mode: %s, expected mode: %s" % (mode, expected_mode)
             )
 
+    def test_unpack_file_tar_gz_compressed(self, data):
+        """
+        Test unpacking a tar file whose filename ends with tar.gz
+        and already decompressed when the
+        content-type is 'application/x-tar'
+        """
+        test_file = data.packages.join("test-not-really-compressed.tar.gz")
+        unpack_file(test_file,
+                    self.tempdir,
+                    'application/x-tar',
+                    link=None)
+        self.confirm_files()
+
     def test_unpack_tgz(self, data):
         """
         Test unpacking a *.tgz, and setting execute permissions
         """
         test_file = data.packages.join("test_tar.tgz")
         untar_file(test_file, self.tempdir)
+        self.confirm_files()
+
+    def test_unpack_tar(self, data):
+        """
+        Test unpacking a *.tar file and setting execute permissions
+        """
+        test_file = data.packages.join("test.tar")
+        untar_file(test_file, self.tempdir)
+        self.confirm_files()
+
+    def test_unpack_tar_override_mode(self, data):
+        """
+        Test unpackage a *.tar.gz which is not really compressed by overriding
+        the untar mode
+        """
+        test_file = data.packages.join("test-not-really-compressed.tar.gz")
+        untar_file(test_file, self.tempdir, mode="r")
         self.confirm_files()
 
     def test_unpack_zip(self, data):

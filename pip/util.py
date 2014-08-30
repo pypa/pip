@@ -543,7 +543,7 @@ def unzip_file(filename, location, flatten=True):
         zipfp.close()
 
 
-def untar_file(filename, location):
+def untar_file(filename, location, mode=None):
     """
     Untar the file (with path `filename`) to the destination `location`.
     All files are written based on system defaults and umask (i.e. permissions
@@ -551,19 +551,27 @@ def untar_file(filename, location):
     permissions (user, group, or world) have "chmod +x" applied after being
     written.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
+
+    :param mode: override the tarfile.open(filename, mode), optional.
+                 If None, then autodetermine based on the filename extension
+                 (e.g. *.tar.gz should be gzip decompressed with mode="r:gz")
     """
     if not os.path.exists(location):
         os.makedirs(location)
-    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-        mode = 'r:gz'
-    elif (filename.lower().endswith('.bz2')
-            or filename.lower().endswith('.tbz')):
-        mode = 'r:bz2'
-    elif filename.lower().endswith('.tar'):
-        mode = 'r'
-    else:
-        logger.warn('Cannot determine compression type for file %s' % filename)
-        mode = 'r:*'
+
+    if not mode:
+        if filename.lower().endswith('.gz')\
+                or filename.lower().endswith('.tgz'):
+            mode = 'r:gz'
+        elif (filename.lower().endswith('.bz2')
+                or filename.lower().endswith('.tbz')):
+            mode = 'r:bz2'
+        elif filename.lower().endswith('.tar'):
+            mode = 'r'
+        else:
+            logger.warn('Cannot determine compression type for file %s'
+                        % filename)
+            mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
         # note: python<=2.5 doesn't seem to know about pax headers, filter them
@@ -629,6 +637,9 @@ def unpack_file(filename, location, content_type, link):
             location,
             flatten=not filename.endswith('.whl')
         )
+    elif (content_type == 'application/x-tar'):
+        #file server already decompressed it for us
+        untar_file(filename, location, mode='r')
     elif (content_type == 'application/x-gzip'
             or tarfile.is_tarfile(filename)
             or splitext(filename)[1].lower() in (
