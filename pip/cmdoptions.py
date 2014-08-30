@@ -240,7 +240,7 @@ allow_external = OptionMaker(
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of externally hosted files",
+    help="Allow the installation of a package even if it is externally hosted",
 )
 
 allow_all_external = OptionMaker(
@@ -248,7 +248,7 @@ allow_all_external = OptionMaker(
     dest="allow_all_external",
     action="store_true",
     default=False,
-    help="Allow the installation of all externally hosted files",
+    help="Allow the installation of all packages that are externally hosted",
 )
 
 # Remove after 1.7
@@ -267,7 +267,8 @@ allow_unsafe = OptionMaker(
     action="append",
     default=[],
     metavar="PACKAGE",
-    help="Allow the installation of insecure and unverifiable files",
+    help="Allow the installation of a package even if it is hosted "
+    "in an insecure and unverifiable way",
 )
 
 # Remove after 1.7
