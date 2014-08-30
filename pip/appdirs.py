@@ -70,7 +70,7 @@ def site_config_dirs(appname):
         Win 7:      Hidden, but writeable on Win 7:
                     C:\ProgramData\<AppName>\
     """
-    if sys.platform == "win32":
+    if WINDOWS:
         path = os.path.normpath(_get_win_folder("CSIDL_COMMON_APPDATA"))
         pathlist = [os.path.join(path, appname)]
     elif sys.platform == 'darwin':

@@ -55,7 +55,7 @@ class TestUserCacheDir:
             _get_win_folder,
             raising=False,
         )
-        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(appdirs, "WINDOWS", True)
 
         result = [
             e.replace("/", "\\")
