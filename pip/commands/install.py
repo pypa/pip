@@ -357,15 +357,19 @@ class InstallCommand(Command):
                                 % target_item_dir
                             )
                             continue
-                        if not os.path.isdir(target_item_dir):
+                        if os.path.islink(target_item_dir):
                             logger.warn(
                                 'Target directory %s already exists and is '
-                                'not a directory. Please remove in order '
-                                'for replacement.'
+                                'a link. Pip will not automatically replace '
+                                'links, please remove if replacement is '
+                                'desired.'
                                 % target_item_dir
                             )
                             continue
-                        shutil.rmtree(target_item_dir)
+                        if os.path.isdir(target_item_dir):
+                            shutil.rmtree(target_item_dir)
+                        else:
+                            os.remove(target_item_dir)
 
                     shutil.move(
                         os.path.join(lib_dir, item),
