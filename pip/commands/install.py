@@ -51,7 +51,10 @@ class InstallCommand(Command):
             dest='target_dir',
             metavar='dir',
             default=None,
-            help='Install packages into <dir>.')
+            help='Install packages into <dir>. '
+                 'By default this will not replace existing files/folders in <dir>.'
+                 'Use --upgrade to replace existing packages in <dir> with new versions.'
+        )
 
         cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
@@ -344,9 +347,19 @@ class InstallCommand(Command):
                     os.makedirs(options.target_dir)
                 lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
                 for item in os.listdir(lib_dir):
+                    target_item_dir = os.path.join(options.target_dir, item)
+                    if os.path.exists(target_item_dir):
+                        if not options.upgrade:
+                            logger.warn('Target directory %s already exists. Specify --upgrade to force replacement.' % target_item_dir)
+                            continue
+                        if not os.path.isdir(target_item_dir):
+                            logger.warn('Target directory %s already exists and is not a directory. Please remove in order for replacement.' % target_item_dir)
+                            continue
+                        shutil.rmtree(target_item_dir)
+
                     shutil.move(
                         os.path.join(lib_dir, item),
-                        os.path.join(options.target_dir, item),
+                        target_item_dir
                     )
                 shutil.rmtree(temp_target_dir)
             return requirement_set
