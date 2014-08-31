@@ -52,8 +52,9 @@ class InstallCommand(Command):
             metavar='dir',
             default=None,
             help='Install packages into <dir>. '
-                 'By default this will not replace existing files/folders in <dir>.'
-                 'Use --upgrade to replace existing packages in <dir> with new versions.'
+                 'By default this will not replace existing files/folders in '
+                 '<dir>. Use --upgrade to replace existing packages in <dir> '
+                 'with new versions.'
         )
 
         cmd_opts.add_option(
@@ -350,10 +351,19 @@ class InstallCommand(Command):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
                         if not options.upgrade:
-                            logger.warn('Target directory %s already exists. Specify --upgrade to force replacement.' % target_item_dir)
+                            logger.warn(
+                                'Target directory %s already exists. Specify '
+                                '--upgrade to force replacement.'
+                                % target_item_dir
+                            )
                             continue
                         if not os.path.isdir(target_item_dir):
-                            logger.warn('Target directory %s already exists and is not a directory. Please remove in order for replacement.' % target_item_dir)
+                            logger.warn(
+                                'Target directory %s already exists and is '
+                                'not a directory. Please remove in order '
+                                'for replacement.'
+                                % target_item_dir
+                            )
                             continue
                         shutil.rmtree(target_item_dir)
 

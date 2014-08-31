@@ -532,11 +532,14 @@ def test_install_package_with_target(script):
     assert not Path('scratch') / 'target' / 'initools' in result.files_updated
 
     # Test upgrade call, check that new version is installed
-    result = script.pip('install', '--upgrade', '-t', target_dir, "initools==0.2")
+    result = script.pip('install', '--upgrade', '-t',
+                        target_dir, "initools==0.2")
     assert Path('scratch') / 'target' / 'initools' in result.files_updated, (
         str(result)
     )
-    assert Path('scratch') / 'target' / 'INITools-0.2-py%s.egg-info' % pyversion in result.files_created, (
+    egg_folder = (
+        Path('scratch') / 'target' / 'INITools-0.2-py%s.egg-info' % pyversion)
+    assert egg_folder in result.files_created, (
         str(result)
     )
 
