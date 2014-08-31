@@ -55,7 +55,10 @@ class Command(object):
 
     def _build_session(self, options):
         session = PipSession(
-            cache=normalize_path(os.path.join(options.cache_dir, "http")),
+            cache=(
+                normalize_path(os.path.join(options.cache_dir, "http"))
+                if options.cache_dir else None
+            ),
             retries=options.retries,
         )
 
