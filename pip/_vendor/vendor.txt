@@ -5,3 +5,4 @@ colorama==0.3.1
 requests==2.3.0
 CacheControl==0.10.2
 lockfile==0.9.1
+progress==1.2
