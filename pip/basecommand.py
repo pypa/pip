@@ -7,6 +7,7 @@ import traceback
 import time
 import optparse
 
+from pip._vendor import six
 from pip import cmdoptions
 from pip.locations import running_under_virtualenv
 from pip.log import logger
@@ -23,6 +24,28 @@ from pip.util import get_prog, normalize_path
 
 
 __all__ = ['Command']
+
+
+# On Python 2: converts unicode objects to UTF-8, leaves bytestrings untouched
+# On Python 3: converts bytestrings to unicode, leaves str untouched
+# (we probably won't run into bytestrings on Python 3 that much -- they are no
+# longer the default type for literals)
+def to_native_str_type(s):
+    if isinstance(s, str):
+        # unicode for PY3 or bytes for PY2 -- ok
+        return s
+    elif isinstance(s, bytes):
+        # bytes and str != bytes
+        # convert to unicode for PY3
+        return s.decode('utf-8', 'replace')
+    elif isinstance(s, six.text_type):
+        # unicode and unicode != str
+        # converts to bytes for PY2
+        return s.encode('utf-8')
+    else:
+        # not a string at all
+        raise TypeError("to_utf8() expected unicode or bytes, got %r" %
+                        type(s))
 
 
 class Command(object):
@@ -173,7 +196,7 @@ class Command(object):
             exit = UNKNOWN_ERROR
         if store_log:
             log_file_fn = options.log_file
-            text = '\n'.join(complete_log)
+            text = '\n'.join(to_native_str_type(l) for l in complete_log)
             try:
                 log_file_fp = open_logfile(log_file_fn, 'w')
             except IOError:

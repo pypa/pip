@@ -1,5 +1,5 @@
 import os
-from pip.basecommand import Command
+from pip.basecommand import Command, to_native_str_type
 from pip.log import logger
 
 
@@ -15,6 +15,15 @@ class FakeCommand(Command):
         logger.info("fake")
         if self.error:
             raise SystemExit(1)
+
+
+class FakeCommandWithUnicode(FakeCommand):
+    name = 'fake_unicode'
+    summary = name
+
+    def run(self, options, args):
+        logger.info(b"bytes here \xE9")
+        logger.info(b"unicode here \xC3\xA9".decode('utf-8'))
 
 
 class Test_basecommand_logging(object):
@@ -83,3 +92,18 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '-vqq'])
         console_level = logger.consumers[0][0]
         assert console_level == logger.WARN
+
+    def test_unicode_messages(self, tmpdir):
+        """
+        Tests that logging bytestrings and unicode objects don't break logging
+        """
+        cmd = FakeCommandWithUnicode()
+        log_path = tmpdir.join('log')
+        cmd.main(['fake_unicode', '--log', log_path])
+
+
+def test_to_native_str_type():
+    some_bytes = b"test\xE9 et approuv\xC3\xE9"
+    some_unicode = b"test\xE9 et approuv\xE9".decode('iso-8859-15')
+    assert isinstance(to_native_str_type(some_bytes), str)
+    assert isinstance(to_native_str_type(some_unicode), str)
