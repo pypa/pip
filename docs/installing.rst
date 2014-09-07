@@ -71,8 +71,8 @@ On Windows [5]_:
 
 
 
-Using Package Managers
-----------------------
+Using OS Package Managers
+-------------------------
 
 On Linux, pip will generally be available for the system install of python using
 the system package manager, although often the latest version will be
