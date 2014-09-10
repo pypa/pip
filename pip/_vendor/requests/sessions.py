@@ -91,9 +91,16 @@ class SessionRedirectMixin(object):
         """Receives a Response. Returns a generator of Responses."""
 
         i = 0
+        hist = [] # keep track of history
 
         while resp.is_redirect:
             prepared_request = req.copy()
+
+            if i > 0:
+                # Update history and keep track of redirects.
+                hist.append(resp)
+                new_hist = list(hist)
+                resp.history = new_hist
 
             try:
                 resp.content  # Consume socket so it can be released
@@ -118,7 +125,7 @@ class SessionRedirectMixin(object):
             parsed = urlparse(url)
             url = parsed.geturl()
 
-            # Facilitate non-RFC2616-compliant 'location' headers
+            # Facilitate relative 'location' headers, as allowed by RFC 7231.
             # (e.g. '/path/to/resource' instead of 'http://domain.tld/path/to/resource')
             # Compliant with RFC3986, we percent encode the url.
             if not urlparse(url).netloc:
@@ -127,8 +134,11 @@ class SessionRedirectMixin(object):
                 url = requote_uri(url)
 
             prepared_request.url = to_native_string(url)
+            # Cache the url, unless it redirects to itself.
+            if resp.is_permanent_redirect and req.url != prepared_request.url:
+                self.redirect_cache[req.url] = prepared_request.url
 
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.4
+            # http://tools.ietf.org/html/rfc7231#section-6.4.4
             if (resp.status_code == codes.see_other and
                     method != 'HEAD'):
                 method = 'GET'
@@ -146,7 +156,7 @@ class SessionRedirectMixin(object):
             prepared_request.method = method
 
             # https://github.com/kennethreitz/requests/issues/1084
-            if resp.status_code not in (codes.temporary, codes.resume):
+            if resp.status_code not in (codes.temporary_redirect, codes.permanent_redirect):
                 if 'Content-Length' in prepared_request.headers:
                     del prepared_request.headers['Content-Length']
 
@@ -263,7 +273,7 @@ class Session(SessionRedirectMixin):
     __attrs__ = [
         'headers', 'cookies', 'auth', 'timeout', 'proxies', 'hooks',
         'params', 'verify', 'cert', 'prefetch', 'adapters', 'stream',
-        'trust_env', 'max_redirects']
+        'trust_env', 'max_redirects', 'redirect_cache']
 
     def __init__(self):
 
@@ -315,6 +325,8 @@ class Session(SessionRedirectMixin):
         self.adapters = OrderedDict()
         self.mount('https://', HTTPAdapter())
         self.mount('http://', HTTPAdapter())
+
+        self.redirect_cache = {}
 
     def __enter__(self):
         return self
@@ -388,13 +400,16 @@ class Session(SessionRedirectMixin):
             :class:`Request`.
         :param cookies: (optional) Dict or CookieJar object to send with the
             :class:`Request`.
-        :param files: (optional) Dictionary of 'filename': file-like-objects
+        :param files: (optional) Dictionary of ``'filename': file-like-objects``
             for multipart encoding upload.
         :param auth: (optional) Auth tuple or callable to enable
             Basic/Digest/Custom HTTP Auth.
-        :param timeout: (optional) Float describing the timeout of the
-            request in seconds.
-        :param allow_redirects: (optional) Boolean. Set to True by default.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a (`connect timeout, read
+            timeout <user/advanced.html#timeouts>`_) tuple.
+        :type timeout: float or tuple
+        :param allow_redirects: (optional) Set to True by default.
+        :type allow_redirects: bool
         :param proxies: (optional) Dictionary mapping protocol to the URL of
             the proxy.
         :param stream: (optional) whether to immediately download the response
@@ -423,36 +438,16 @@ class Session(SessionRedirectMixin):
 
         proxies = proxies or {}
 
-        # Gather clues from the surrounding environment.
-        if self.trust_env:
-            # Set environment's proxies.
-            env_proxies = get_environ_proxies(url) or {}
-            for (k, v) in env_proxies.items():
-                proxies.setdefault(k, v)
-
-            # Look for configuration.
-            if not verify and verify is not False:
-                verify = os.environ.get('REQUESTS_CA_BUNDLE')
-
-            # Curl compatibility.
-            if not verify and verify is not False:
-                verify = os.environ.get('CURL_CA_BUNDLE')
-
-        # Merge all the kwargs.
-        proxies = merge_setting(proxies, self.proxies)
-        stream = merge_setting(stream, self.stream)
-        verify = merge_setting(verify, self.verify)
-        cert = merge_setting(cert, self.cert)
+        settings = self.merge_environment_settings(
+            prep.url, proxies, stream, verify, cert
+        )
 
         # Send the request.
         send_kwargs = {
-            'stream': stream,
             'timeout': timeout,
-            'verify': verify,
-            'cert': cert,
-            'proxies': proxies,
             'allow_redirects': allow_redirects,
         }
+        send_kwargs.update(settings)
         resp = self.send(prep, **send_kwargs)
 
         return resp
@@ -540,6 +535,9 @@ class Session(SessionRedirectMixin):
         if not isinstance(request, PreparedRequest):
             raise ValueError('You can only send PreparedRequests.')
 
+        while request.url in self.redirect_cache:
+            request.url = self.redirect_cache.get(request.url)
+
         # Set up variables needed for resolve_redirects and dispatching of hooks
         allow_redirects = kwargs.pop('allow_redirects', True)
         stream = kwargs.get('stream')
@@ -596,6 +594,30 @@ class Session(SessionRedirectMixin):
             r.content
 
         return r
+
+    def merge_environment_settings(self, url, proxies, stream, verify, cert):
+        """Check the environment and merge it with some settings."""
+        # Gather clues from the surrounding environment.
+        if self.trust_env:
+            # Set environment's proxies.
+            env_proxies = get_environ_proxies(url) or {}
+            for (k, v) in env_proxies.items():
+                proxies.setdefault(k, v)
+
+            # Look for requests environment configuration and be compatible
+            # with cURL.
+            if verify is True or verify is None:
+                verify = (os.environ.get('REQUESTS_CA_BUNDLE') or
+                          os.environ.get('CURL_CA_BUNDLE'))
+
+        # Merge all the kwargs.
+        proxies = merge_setting(proxies, self.proxies)
+        stream = merge_setting(stream, self.stream)
+        verify = merge_setting(verify, self.verify)
+        cert = merge_setting(cert, self.cert)
+
+        return {'verify': verify, 'proxies': proxies, 'stream': stream,
+                'cert': cert}
 
     def get_adapter(self, url):
         """Returns the appropriate connnection adapter for the given URL."""
