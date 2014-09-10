@@ -1,14 +1,19 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import re
 import shutil
 import sys
 import tempfile
 import zipfile
+
 from distutils.util import change_root
 from distutils import sysconfig
 from email.parser import FeedParser
 
 import pip.wheel
+
 from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import configparser
 from pip.compat import urllib, native_str, WINDOWS
@@ -20,15 +25,18 @@ from pip.index import Link
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
 )
-from pip.log import logger
-from pip.util import (
+from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, is_prerelease, read_text_file, FakeFile, _make_build_dir,
 )
+from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel, wheel_ext
+
+
+logger = logging.getLogger(__name__)
 
 
 class InstallRequirement(object):
@@ -122,7 +130,7 @@ class InstallRequirement(object):
             link = Link(path_to_url(name))
         elif is_archive_file(path):
             if not os.path.isfile(path):
-                logger.warn(
+                logger.warning(
                     'Requirement %r looks like a filename, but the file does '
                     'not exist',
                     name
@@ -221,15 +229,15 @@ class InstallRequirement(object):
             name = self.name
         new_location = os.path.join(new_build_dir, name)
         if not os.path.exists(new_build_dir):
-            logger.debug('Creating directory %s' % new_build_dir)
+            logger.debug('Creating directory %s', new_build_dir)
             _make_build_dir(new_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
                 % display_path(new_location))
         logger.debug(
-            'Moving package %s from %s to new location %s' %
-            (self, display_path(old_location), display_path(new_location))
+            'Moving package %s from %s to new location %s',
+            self, display_path(old_location), display_path(new_location),
         )
         shutil.move(old_location, new_location)
         self._temp_build_dir = new_location
@@ -278,18 +286,17 @@ class InstallRequirement(object):
     def run_egg_info(self):
         assert self.source_dir
         if self.name:
-            logger.notify(
-                'Running setup.py (path:%s) egg_info for package %s' %
-                (self.setup_py, self.name)
+            logger.info(
+                'Running setup.py (path:%s) egg_info for package %s',
+                self.setup_py, self.name,
             )
         else:
-            logger.notify(
-                'Running setup.py (path:%s) egg_info for package from %s' %
-                (self.setup_py, self.url)
+            logger.info(
+                'Running setup.py (path:%s) egg_info for package from %s',
+                self.setup_py, self.url,
             )
-        logger.indent += 2
-        try:
 
+        with indent_log():
             # if it's distribute>=0.7, it won't contain an importable
             # setuptools, and having an egg-info dir blocks the ability of
             # setup.py to find setuptools plugins, so delete the egg-info dir
@@ -325,10 +332,9 @@ class InstallRequirement(object):
                 cwd=cwd,
                 filter_stdout=self._filter_install,
                 show_stdout=False,
-                command_level=logger.VERBOSE_DEBUG,
+                command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
-        finally:
-            logger.indent -= 2
+
         if not self.req:
             self.req = pkg_resources.Requirement.parse(
                 "%(Name)s==%(Version)s" % self.pkg_info())
@@ -441,9 +447,9 @@ exec(compile(
         p = FeedParser()
         data = self.egg_info_data('PKG-INFO')
         if not data:
-            logger.warn(
-                'No PKG-INFO file found in %s' %
-                display_path(self.egg_info_path('PKG-INFO'))
+            logger.warning(
+                'No PKG-INFO file found in %s',
+                display_path(self.egg_info_path('PKG-INFO')),
             )
         p.feed(data or '')
         return p.close()
@@ -466,7 +472,7 @@ exec(compile(
                 in_extra = match.group(1)
                 continue
             if in_extra and in_extra not in extras:
-                logger.debug('skipping extra %s' % in_extra)
+                logger.debug('skipping extra %s', in_extra)
                 # Skip requirement for an extra we aren't requiring
                 continue
             yield line
@@ -485,21 +491,25 @@ exec(compile(
         assert self.source_dir
         version = self.installed_version
         if version not in self.req:
-            logger.warn(
-                'Requested %s, but installing version %s' %
-                (self, self.installed_version)
+            logger.warning(
+                'Requested %s, but installing version %s',
+                self,
+                self.installed_version,
             )
         else:
             logger.debug(
-                'Source in %s has version %s, which satisfies requirement %s' %
-                (display_path(self.source_dir), version, self)
+                'Source in %s has version %s, which satisfies requirement %s',
+                display_path(self.source_dir),
+                version,
+                self,
             )
 
     def update_editable(self, obtain=True):
         if not self.url:
-            logger.info(
+            logger.debug(
                 "Cannot update repository at %s; repository location is "
-                "unknown" % self.source_dir
+                "unknown",
+                self.source_dir,
             )
             return
         assert self.editable
@@ -655,15 +665,17 @@ exec(compile(
         if self.uninstalled:
             self.uninstalled.rollback()
         else:
-            logger.error("Can't rollback %s, nothing uninstalled."
-                         % (self.project_name,))
+            logger.error(
+                "Can't rollback %s, nothing uninstalled.", self.project_name,
+            )
 
     def commit_uninstall(self):
         if self.uninstalled:
             self.uninstalled.commit()
         else:
-            logger.error("Can't commit %s, nothing uninstalled."
-                         % (self.project_name,))
+            logger.error(
+                "Can't commit %s, nothing uninstalled.", self.project_name,
+            )
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -677,13 +689,14 @@ exec(compile(
             if response == 'i':
                 create_archive = False
             elif response == 'w':
-                logger.warn('Deleting %s' % display_path(archive_path))
+                logger.warning('Deleting %s', display_path(archive_path))
                 os.remove(archive_path)
             elif response == 'b':
                 dest_file = backup_dir(archive_path)
-                logger.warn(
-                    'Backing up %s to %s' %
-                    (display_path(archive_path), display_path(dest_file))
+                logger.warning(
+                    'Backing up %s to %s',
+                    display_path(archive_path),
+                    display_path(dest_file),
                 )
                 shutil.move(archive_path, dest_file)
         if create_archive:
@@ -708,8 +721,7 @@ exec(compile(
                     name = self._clean_zip_name(filename, dir)
                     zip.write(filename, self.name + '/' + name)
             zip.close()
-            logger.indent -= 2
-            logger.notify('Saved %s' % display_path(archive_path))
+            logger.info('Saved %s', display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
         assert name.startswith(prefix + os.path.sep), (
@@ -763,19 +775,17 @@ exec(compile(
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
                                               py_ver_str)]
-            logger.notify('Running setup.py install for %s' % self.name)
-            logger.indent += 2
-            try:
+            logger.info('Running setup.py install for %s', self.name)
+            with indent_log():
                 call_subprocess(
                     install_args + install_options,
                     cwd=self.source_dir,
                     filter_stdout=self._filter_install,
                     show_stdout=False,
                 )
-            finally:
-                logger.indent -= 2
+
             if not os.path.exists(record_filename):
-                logger.notify('Record file %s not found' % record_filename)
+                logger.debug('Record file %s not found', record_filename)
                 return
             self.install_succeeded = True
             if self.as_egg:
@@ -796,9 +806,10 @@ exec(compile(
                     egg_info_dir = prepend_root(line)
                     break
             else:
-                logger.warn(
+                logger.warning(
                     'Could not find .egg-info directory in install record for '
-                    '%s' % self
+                    '%s',
+                    self,
                 )
                 f.close()
                 # FIXME: put the record somewhere
@@ -827,7 +838,7 @@ exec(compile(
         """Remove the source files from this requirement, if they are marked
         for deletion"""
         if os.path.exists(self.delete_marker_filename):
-            logger.info('Removing source in %s' % self.source_dir)
+            logger.debug('Removing source in %s', self.source_dir)
             if self.source_dir:
                 rmtree(self.source_dir)
             self.source_dir = None
@@ -836,9 +847,8 @@ exec(compile(
         self._temp_build_dir = None
 
     def install_editable(self, install_options, global_options=()):
-        logger.notify('Running setup.py develop for %s' % self.name)
-        logger.indent += 2
-        try:
+        logger.info('Running setup.py develop for %s', self.name)
+        with indent_log():
             # FIXME: should we do --install-headers here too?
             cwd = self.source_dir
             if self.editable_options and \
@@ -858,12 +868,11 @@ exec(compile(
 
                 cwd=cwd, filter_stdout=self._filter_install,
                 show_stdout=False)
-        finally:
-            logger.indent -= 2
+
         self.install_succeeded = True
 
     def _filter_install(self, line):
-        level = logger.NOTIFY
+        level = logging.INFO
         for regex in [
                 r'^running .*',
                 r'^writing .*',
@@ -877,7 +886,7 @@ exec(compile(
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
             if re.search(regex, line.strip()):
-                level = logger.INFO
+                level = logging.DEBUG
                 break
         return (level, line)
 

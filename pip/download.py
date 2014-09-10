@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+
 import cgi
 import email.utils
 import hashlib
 import getpass
 import json
+import logging
 import mimetypes
 import os
 import platform
@@ -15,11 +18,11 @@ import pip
 
 from pip.compat import urllib, urlparse
 from pip.exceptions import InstallationError, HashMismatch
-from pip.util import (splitext, rmtree, format_size, display_path,
-                      backup_dir, ask_path_exists, unpack_file)
+from pip.utils import (splitext, rmtree, format_size, display_path,
+                       backup_dir, ask_path_exists, unpack_file)
+from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip.log import logger
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -38,6 +41,9 @@ __all__ = ['get_file_content',
            'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url',
            'unpack_http_url', 'unpack_url']
+
+
+logger = logging.getLogger(__name__)
 
 
 def user_agent():
@@ -408,16 +414,16 @@ def is_file_url(link):
 
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
-        logger.fatal(
+        logger.critical(
             "Hash digest size of the package %d (%s) doesn't match the "
-            "expected hash name %s!" %
-            (download_hash.digest_size, link, link.hash_name)
+            "expected hash name %s!",
+            download_hash.digest_size, link, link.hash_name,
         )
         raise HashMismatch('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
-        logger.fatal(
-            "Hash of the package %s (%s) doesn't match the expected hash %s!" %
-            (link, download_hash.hexdigest(), link.hash)
+        logger.critical(
+            "Hash of the package %s (%s) doesn't match the expected hash %s!",
+            link, download_hash.hexdigest(), link.hash,
         )
         raise HashMismatch(
             'Bad %s hash for package %s' % (link.hash_name, link)
@@ -428,8 +434,8 @@ def _get_hash_from_file(target_file, link):
     try:
         download_hash = hashlib.new(link.hash_name)
     except (ValueError, TypeError):
-        logger.warn(
-            "Unsupported hash name %s for package %s" % (link.hash_name, link)
+        logger.warning(
+            "Unsupported hash name %s for package %s", link.hash_name, link,
         )
         return None
 
@@ -450,34 +456,29 @@ def _download_url(resp, link, temp_location):
         try:
             download_hash = hashlib.new(link.hash_name)
         except ValueError:
-            logger.warn(
-                "Unsupported hash name %s for package %s" %
-                (link.hash_name, link)
+            logger.warning(
+                "Unsupported hash name %s for package %s",
+                link.hash_name, link,
             )
 
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
         total_length = 0
-    downloaded = 0
-    show_progress = total_length > 40 * 1000 or not total_length
+
+    cached_resp = getattr(resp, "from_cache", False)
+
+    if cached_resp:
+        show_progress = False
+    elif total_length > (40 * 1000):
+        show_progress = True
+    elif not total_length:
+        show_progress = True
+    else:
+        show_progress = False
+
     show_url = link.show_url
     try:
-        if show_progress:
-            # FIXME: the URL can get really long in this message:
-            if total_length:
-                logger.start_progress(
-                    'Downloading %s (%s): ' %
-                    (show_url, format_size(total_length))
-                )
-            else:
-                logger.start_progress(
-                    'Downloading %s (unknown size): ' % show_url
-                )
-        else:
-            logger.notify('Downloading %s' % show_url)
-        logger.info('Downloading from URL %s' % link)
-
         def resp_read(chunk_size):
             try:
                 # Special case for urllib3.
@@ -518,26 +519,32 @@ def _download_url(resp, link, temp_location):
                         break
                     yield chunk
 
-        for chunk in resp_read(4096):
-            downloaded += len(chunk)
-            if show_progress:
-                if not total_length:
-                    logger.show_progress('%s' % format_size(downloaded))
-                else:
-                    logger.show_progress(
-                        '%3i%%  %s' %
-                        (
-                            100 * downloaded / total_length,
-                            format_size(downloaded)
-                        )
-                    )
+        progress_indicator = lambda x, *a, **k: x
+
+        if show_progress:  # We don't show progress on cached responses
+            if total_length:
+                logger.info(
+                    "Downloading %s (%s)", show_url, format_size(total_length),
+                )
+                progress_indicator = DownloadProgressBar(
+                    max=total_length,
+                ).iter
+            else:
+                logger.info("Downloading %s", show_url)
+                progress_indicator = DownloadProgressSpinner().iter
+        elif cached_resp:
+            logger.info("Using cached %s", show_url)
+        else:
+            logger.info("Downloading %s", show_url)
+
+        logger.debug('Downloading from URL %s', link)
+
+        for chunk in progress_indicator(resp_read(4096), 4096):
             if download_hash is not None:
                 download_hash.update(chunk)
             fp.write(chunk)
         fp.close()
     finally:
-        if show_progress:
-            logger.end_progress('%s downloaded' % format_size(downloaded))
         if link.hash and link.hash_name:
             _check_hash(download_hash, link)
     return download_hash
@@ -553,18 +560,19 @@ def _copy_file(filename, location, content_type, link):
         if response == 'i':
             copy = False
         elif response == 'w':
-            logger.warn('Deleting %s' % display_path(download_location))
+            logger.warning('Deleting %s', display_path(download_location))
             os.remove(download_location)
         elif response == 'b':
             dest_file = backup_dir(download_location)
-            logger.warn(
-                'Backing up %s to %s' %
-                (display_path(download_location), display_path(dest_file))
+            logger.warning(
+                'Backing up %s to %s',
+                display_path(download_location),
+                display_path(dest_file),
             )
             shutil.move(download_location, dest_file)
     if copy:
         shutil.copy(filename, download_location)
-        logger.notify('Saved %s' % display_path(download_location))
+        logger.info('Saved %s', display_path(download_location))
 
 
 def unpack_http_url(link, location, download_dir=None, session=None):
@@ -613,7 +621,7 @@ def unpack_file_url(link, location, download_dir=None):
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
         if download_dir:
-            logger.notify('Link is a directory, ignoring download_dir')
+            logger.info('Link is a directory, ignoring download_dir')
         return
 
     # if link has a hash, let's confirm it matches
@@ -663,8 +671,10 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             self.verbose = verbose
             return self.parse_response(response.raw)
         except requests.HTTPError as exc:
-            logger.fatal("HTTP error {0} while getting {1}".format(
-                         exc.response.status_code, url))
+            logger.critical(
+                "HTTP error %s while getting %s",
+                exc.response.status_code, url,
+            )
             raise
 
 
@@ -734,8 +744,9 @@ def _download_http_url(link, session, temp_dir):
         )
         resp.raise_for_status()
     except requests.HTTPError as exc:
-        logger.fatal("HTTP error %s while getting %s" %
-                     (exc.response.status_code, link))
+        logger.critical(
+            "HTTP error %s while getting %s", exc.response.status_code, link,
+        )
         raise
 
     content_type = resp.headers.get('content-type', '')
@@ -768,15 +779,16 @@ def _check_download_dir(link, download_dir):
     download_path = os.path.join(download_dir, link.filename)
     if os.path.exists(download_path):
         # If already downloaded, does its hash match?
-        logger.notify('File was already downloaded %s' % download_path)
+        logger.info('File was already downloaded %s', download_path)
         if link.hash:
             download_hash = _get_hash_from_file(download_path, link)
             try:
                 _check_hash(download_hash, link)
             except HashMismatch:
-                logger.warn(
+                logger.warning(
                     'Previously-downloaded file %s has bad hash, '
-                    're-downloading.' % download_path
+                    're-downloading.',
+                    download_path
                 )
                 os.unlink(download_path)
                 return None

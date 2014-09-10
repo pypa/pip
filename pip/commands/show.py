@@ -1,8 +1,13 @@
+from __future__ import absolute_import
+
+import logging
 import os
 
 from pip.basecommand import Command
-from pip.log import logger
 from pip._vendor import pkg_resources
+
+
+logger = logging.getLogger(__name__)
 
 
 class ShowCommand(Command):
@@ -25,7 +30,7 @@ class ShowCommand(Command):
 
     def run(self, options, args):
         if not args:
-            logger.warn('ERROR: Please provide a package name or names.')
+            logger.warning('ERROR: Please provide a package name or names.')
             return
         query = args
 
@@ -75,15 +80,15 @@ def print_results(distributions, list_all_files):
     Print the informations from installed distributions found.
     """
     for dist in distributions:
-        logger.notify("---")
-        logger.notify("Name: %s" % dist['name'])
-        logger.notify("Version: %s" % dist['version'])
-        logger.notify("Location: %s" % dist['location'])
-        logger.notify("Requires: %s" % ', '.join(dist['requires']))
+        logger.info("---")
+        logger.info("Name: %s" % dist['name'])
+        logger.info("Version: %s" % dist['version'])
+        logger.info("Location: %s" % dist['location'])
+        logger.info("Requires: %s" % ', '.join(dist['requires']))
         if list_all_files:
-            logger.notify("Files:")
+            logger.info("Files:")
             if dist['files'] is not None:
                 for line in dist['files']:
-                    logger.notify("  %s" % line.strip())
+                    logger.info("  %s" % line.strip())
             else:
-                logger.notify("Cannot locate installed-files.txt")
+                logger.info("Cannot locate installed-files.txt")

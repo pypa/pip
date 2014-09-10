@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import sys
 
 # If we are running from a wheel, add the wheel to sys.path

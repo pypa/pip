@@ -277,7 +277,6 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if environ is None:
             environ = os.environ.copy()
 
-        environ["PIP_LOG_FILE"] = base_path.join("pip-log.txt")
         environ["PATH"] = Path.pathsep.join(
             [self.bin_path] + [environ.get("PATH", [])],
         )

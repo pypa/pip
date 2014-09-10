@@ -2,6 +2,8 @@
 This code was taken from https://github.com/ActiveState/appdirs and modified
 to suite our purposes.
 """
+from __future__ import absolute_import
+
 import os
 import sys
 
@@ -48,6 +50,82 @@ def user_cache_dir(appname):
 
         # Add our app name to it
         path = os.path.join(path, appname)
+
+    return path
+
+
+def user_data_dir(appname, roaming=False):
+    """
+    Return full path to the user-specific data dir for this application.
+
+        "appname" is the name of application.
+            If None, just the system directory is returned.
+        "roaming" (boolean, default False) can be set True to use the Windows
+            roaming appdata directory. That means that for users on a Windows
+            network setup for roaming profiles, this user data will be
+            sync'd on login. See
+            <http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx>
+            for a discussion of issues.
+
+    Typical user data directories are:
+        Mac OS X:               ~/Library/Application Support/<AppName>
+        Unix:                   ~/.local/share/<AppName>    # or in
+                                $XDG_DATA_HOME, if defined
+        Win XP (not roaming):   C:\Documents and Settings\<username>\ ...
+                                ...Application Data\<AppName>
+        Win XP (roaming):       C:\Documents and Settings\<username>\Local ...
+                                ...Settings\Application Data\<AppName>
+        Win 7  (not roaming):   C:\\Users\<username>\AppData\Local\<AppName>
+        Win 7  (roaming):       C:\\Users\<username>\AppData\Roaming\<AppName>
+
+    For Unix, we follow the XDG spec and support $XDG_DATA_HOME.
+    That means, by default "~/.local/share/<AppName>".
+    """
+    if WINDOWS:
+        const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
+        path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
+    elif sys.platform == "darwin":
+        path = os.path.join(
+            os.path.expanduser('~/Library/Application Support/'),
+            appname,
+        )
+    else:
+        path = os.path.join(
+            os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share")),
+            appname,
+        )
+
+    return path
+
+
+def user_log_dir(appname):
+    """
+    Return full path to the user-specific log dir for this application.
+
+        "appname" is the name of application.
+            If None, just the system directory is returned.
+
+    Typical user cache directories are:
+        Mac OS X:   ~/Library/Logs/<AppName>
+        Unix:       ~/.cache/<AppName>/log  # or under $XDG_CACHE_HOME if
+                    defined
+        Win XP:     C:\Documents and Settings\<username>\Local Settings\ ...
+                    ...Application Data\<AppName>\Logs
+        Vista:      C:\\Users\<username>\AppData\Local\<AppName>\Logs
+
+    On Windows the only suggestion in the MSDN docs is that local settings
+    go in the `CSIDL_LOCAL_APPDATA` directory. (Note: I'm interested in
+    examples of what some windows apps use for a logs dir.)
+
+    OPINION: This function appends "Logs" to the `CSIDL_LOCAL_APPDATA`
+    value for Windows and appends "log" to the user cache dir for Unix.
+    """
+    if WINDOWS:
+        path = os.path.join(user_data_dir(appname), "Logs")
+    elif sys.platform == "darwin":
+        path = os.path.join(os.path.expanduser('~/Library/Logs'), appname)
+    else:
+        path = os.path.join(user_cache_dir(appname), "log")
 
     return path
 

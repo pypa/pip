@@ -1,11 +1,17 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import tempfile
 import re
+
 from pip.compat import urlparse
-from pip.log import logger
-from pip.util import rmtree, display_path, call_subprocess
+from pip.utils import rmtree, display_path, call_subprocess
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
+
+
+logger = logging.getLogger(__name__)
 
 
 class Bazaar(VersionControl):
@@ -56,8 +62,12 @@ class Bazaar(VersionControl):
             rev_options = []
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Checking out %s%s to %s'
-                          % (url, rev_display, display_path(dest)))
+            logger.info(
+                'Checking out %s%s to %s',
+                url,
+                rev_display,
+                display_path(dest),
+            )
             call_subprocess(
                 [self.cmd, 'branch', '-q'] + rev_options + [url, dest])
 

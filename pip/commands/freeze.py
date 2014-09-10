@@ -1,16 +1,23 @@
+from __future__ import absolute_import
+
+import logging
 import re
 import sys
+
+
 import pip
 
 from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
-from pip.log import logger
 from pip.basecommand import Command
-from pip.util import get_installed_distributions
+from pip.utils import get_installed_distributions
 from pip._vendor import pkg_resources
 
 # packages to exclude from freeze output
 freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
+
+
+logger = logging.getLogger(__name__)
 
 
 class FreezeCommand(Command):
@@ -23,6 +30,7 @@ class FreezeCommand(Command):
     usage = """
       %prog [options]"""
     summary = 'Output installed packages in requirements format.'
+    log_stream = "ext://sys.stderr"
 
     def __init__(self, *args, **kw):
         super(FreezeCommand, self).__init__(*args, **kw)
@@ -52,9 +60,6 @@ class FreezeCommand(Command):
                  'globally-installed packages.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
-
-    def setup_logging(self):
-        logger.move_stdout_to_stderr()
 
     def run(self, options, args):
         requirement = options.requirement
@@ -123,19 +128,21 @@ class FreezeCommand(Command):
                 else:
                     line_req = InstallRequirement.from_line(line)
                 if not line_req.name:
-                    logger.notify(
+                    logger.info(
                         "Skipping line because it's not clear what it would "
-                        "install: %s" % line.strip()
+                        "install: %s",
+                        line.strip(),
                     )
-                    logger.notify(
+                    logger.info(
                         "  (add #egg=PackageName to the URL to avoid"
                         " this warning)"
                     )
                     continue
                 if line_req.name not in installations:
-                    logger.warn(
+                    logger.warning(
                         "Requirement file contains %s, but that package is not"
-                        " installed" % line.strip()
+                        " installed",
+                        line.strip(),
                     )
                     continue
                 f.write(str(installations[line_req.name]))

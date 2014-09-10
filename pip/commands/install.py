@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import tempfile
 import shutil
+import warnings
 
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.log import logger
 from pip.locations import (virtualenv_no_global, distutils_scheme,
                            build_prefix)
 from pip.basecommand import Command
@@ -12,6 +15,10 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.utils.deprecation import RemovedInPip17Warning, RemovedInPip18Warning
+
+
+logger = logging.getLogger(__name__)
 
 
 class InstallCommand(Command):
@@ -192,11 +199,10 @@ class InstallCommand(Command):
             (options.build_dir != build_prefix) or
             options.no_clean
         ):
-            logger.deprecated(
-                '1.7',
-                'DEPRECATION: --no-install, --no-download, --build, '
-                'and --no-clean are deprecated.  See '
-                'https://github.com/pypa/pip/issues/906.',
+            warnings.warn(
+                "--no-install, --no-download, --build, and --no-clean are "
+                "deprecated. See https://github.com/pypa/pip/issues/906.",
+                RemovedInPip17Warning,
             )
 
         if options.download_dir:
@@ -229,32 +235,32 @@ class InstallCommand(Command):
         global_options = options.global_options or []
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         if options.use_mirrors:
-            logger.deprecated(
-                "1.7",
-                "--use-mirrors has been deprecated and will be removed"
-                " in the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--use-mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
 
         if options.mirrors:
-            logger.deprecated(
-                "1.7",
-                "--mirrors has been deprecated and will be removed in "
-                " the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
             index_urls += options.mirrors
 
         if options.download_cache:
-            logger.deprecated(
-                "1.8",
+            warnings.warn(
                 "--download-cache has been deprecated and will be removed in "
-                " the future. Pip now automatically uses and configures its "
-                "cache."
+                "the future. Pip now automatically uses and configures its "
+                "cache.",
+                RemovedInPip18Warning,
             )
 
         with self._build_session(options) as session:
@@ -299,7 +305,7 @@ class InstallCommand(Command):
                 else:
                     msg = ('You must give at least one requirement '
                            'to %(name)s (see "pip help %(name)s")' % opts)
-                logger.warn(msg)
+                logger.warning(msg)
                 return
 
             try:
@@ -319,16 +325,14 @@ class InstallCommand(Command):
                         requirement_set.successfully_installed
                     ])
                     if installed:
-                        logger.notify('Successfully installed %s' % installed)
+                        logger.info('Successfully installed %s', installed)
                 else:
                     downloaded = ' '.join([
                         req.name
                         for req in requirement_set.successfully_downloaded
                     ])
                     if downloaded:
-                        logger.notify(
-                            'Successfully downloaded %s' % downloaded
-                        )
+                        logger.info('Successfully downloaded %s', downloaded)
             except PreviousBuildDirError:
                 options.no_clean = True
                 raise

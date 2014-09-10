@@ -11,11 +11,10 @@ from pip.exceptions import (
 from pip.download import PipSession
 from pip._vendor import pkg_resources
 from pip.index import PackageFinder
-from pip.log import logger
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
-from pip.util import read_text_file
+from pip.utils import read_text_file
 from tests.lib import assert_raises_regexp
 
 
@@ -23,11 +22,9 @@ class TestRequirementSet(object):
     """RequirementSet tests"""
 
     def setup(self):
-        logger.consumers = [(logger.NOTIFY, Mock())]
         self.tempdir = tempfile.mkdtemp()
 
     def teardown(self):
-        logger.consumers = []
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def basic_reqset(self):
@@ -66,7 +63,7 @@ def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
     em.return_value = 'cp1252'
-    with patch('pip.util.open', om, create=True):
+    with patch('pip.utils.open', om, create=True):
         with patch('locale.getpreferredencoding', em):
             ret = read_text_file('foo')
     assert ret == expected.decode('utf-8')

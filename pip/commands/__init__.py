@@ -1,7 +1,7 @@
 """
 Package containing all pip commands
 """
-
+from __future__ import absolute_import
 
 from pip.commands.completion import CompletionCommand
 from pip.commands.freeze import FreezeCommand

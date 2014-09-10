@@ -1,34 +1,40 @@
 """Base Command class, and related routines"""
+from __future__ import absolute_import
 
+import logging
 import os
 import sys
-import tempfile
 import traceback
-import time
 import optparse
+import warnings
 
-from pip import cmdoptions
+from pip import appdirs, cmdoptions
 from pip.locations import running_under_virtualenv
-from pip.log import logger
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
-from pip.compat import StringIO, native_str
+from pip.compat import StringIO, logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.util import get_prog, normalize_path
+from pip.utils import get_prog, normalize_path
+from pip.utils.deprecation import RemovedInPip18Warning
+from pip.utils.logging import IndentingFormatter
 
 
 __all__ = ['Command']
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(object):
     name = None
     usage = None
     hidden = False
+    log_stream = "ext://sys.stdout"
 
     def __init__(self):
         parser_kw = {
@@ -88,9 +94,6 @@ class Command(object):
 
         return session
 
-    def setup_logging(self):
-        pass
-
     def parse_args(self, args):
         # factored out for testability
         return self.parser.parse_args(args)
@@ -98,19 +101,84 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        level = 1  # Notify
-        level += options.verbose
-        level -= options.quiet
-        level = logger.level_for_integer(4 - level)
-        complete_log = []
-        logger.add_consumers(
-            (level, sys.stdout),
-            (logger.DEBUG, complete_log.append),
-        )
-        if options.log_explicit_levels:
-            logger.explicit_levels = True
+        if options.quiet:
+            level = "WARNING"
+        elif options.verbose:
+            level = "DEBUG"
+        else:
+            level = "INFO"
 
-        self.setup_logging()
+        logging_dictConfig({
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "indent": {
+                    "()": IndentingFormatter,
+                    "format": (
+                        "%(message)s"
+                        if not options.log_explicit_levels
+                        else "[%(levelname)s] %(message)s"
+                    ),
+                },
+            },
+            "handlers": {
+                "console": {
+                    "level": level,
+                    "class": "pip.utils.logging.ColorizedStreamHandler",
+                    "stream": self.log_stream,
+                    "formatter": "indent",
+                },
+                "debug_log": {
+                    "level": "DEBUG",
+                    "class": "pip.utils.logging.BetterRotatingFileHandler",
+                    "filename": os.path.join(
+                        appdirs.user_log_dir("pip"), "debug.log",
+                    ),
+                    "maxBytes": 10 * 1000 * 1000,  # 10 MB
+                    "backupCount": 1,
+                    "delay": True,
+                    "formatter": "indent",
+                },
+                "user_log": {
+                    "level": "DEBUG",
+                    "class": "pip.utils.logging.BetterRotatingFileHandler",
+                    "filename": options.log or "/dev/null",
+                    "delay": True,
+                    "formatter": "indent",
+                },
+            },
+            "root": {
+                "level": level,
+                "handlers": list(filter(None, [
+                    "console",
+                    "debug_log",
+                    "user_log" if options.log else None,
+                ])),
+            },
+            # Disable any logging besides WARNING unless we have DEBUG level
+            # logging enabled. These use both pip._vendor and the bare names
+            # for the case where someone unbundles our libraries.
+            "loggers": dict(
+                (
+                    name,
+                    {
+                        "level": (
+                            "WARNING"
+                            if level in ["INFO", "ERROR"]
+                            else "DEBUG"
+                        ),
+                    },
+                )
+                for name in ["pip._vendor", "distlib", "requests", "urllib3"]
+            ),
+        })
+
+        if options.log_explicit_levels:
+            warnings.warn(
+                "--log-explicit-levels has been deprecated and will be removed"
+                " in a future version.",
+                RemovedInPip18Warning,
+            )
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
@@ -124,68 +192,43 @@ class Command(object):
         if options.require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.fatal(
+                logger.critical(
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
-        if options.log:
-            log_fp = open_logfile(options.log, 'a')
-            logger.add_consumers((logger.DEBUG, log_fp))
-        else:
-            log_fp = None
-
-        exit = SUCCESS
-        store_log = False
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
-                exit = status
+                return status
         except PreviousBuildDirError as exc:
-            logger.fatal(str(exc))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError) as exc:
-            logger.fatal(str(exc))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
-        except BadCommand as exc:
-            logger.fatal(str(exc))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
+            logger.critical(str(exc))
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return PREVIOUS_BUILD_DIR_ERROR
+        except (InstallationError, UninstallationError, BadCommand) as exc:
+            logger.critical(str(exc))
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
         except CommandError as exc:
-            logger.fatal('ERROR: %s' % exc)
-            logger.info('Exception information:\n%s' % format_exc())
-            exit = ERROR
+            logger.critical('ERROR: %s', exc)
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
         except KeyboardInterrupt:
-            logger.fatal('Operation cancelled by user')
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
+            logger.critical('Operation cancelled by user')
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
         except:
-            logger.fatal('Exception:\n%s' % format_exc())
-            store_log = True
-            exit = UNKNOWN_ERROR
-        if store_log:
-            log_file_fn = options.log_file
-            text = '\n'.join(native_str(l, True) for l in complete_log)
-            try:
-                log_file_fp = open_logfile(log_file_fn, 'w')
-            except IOError:
-                temp = tempfile.NamedTemporaryFile(delete=False)
-                log_file_fn = temp.name
-                log_file_fp = open_logfile(log_file_fn, 'w')
-            logger.fatal('Storing debug log for failure in %s' % log_file_fn)
-            log_file_fp.write(text)
-            log_file_fp.close()
-        if log_fp is not None:
-            log_fp.close()
-        return exit
+            logger.critical('Exception:\n%s', format_exc())
+
+            return UNKNOWN_ERROR
+
+        return SUCCESS
 
 
 def format_exc(exc_info=None):
@@ -194,27 +237,3 @@ def format_exc(exc_info=None):
     out = StringIO()
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
-
-
-def open_logfile(filename, mode='a'):
-    """Open the named log file in append mode.
-
-    If the file already exists, a separator will also be printed to
-    the file to separate past activity from current activity.
-    """
-    filename = os.path.expanduser(filename)
-    filename = os.path.abspath(filename)
-    dirname = os.path.dirname(filename)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    exists = os.path.exists(filename)
-
-    kw = {}
-    if sys.version_info[0] != 2:
-        kw['errors'] = 'replace'
-
-    log_fp = open(filename, mode, **kw)
-    if exists:
-        log_fp.write('%s\n' % ('-' * 60))
-        log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
-    return log_fp

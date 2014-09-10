@@ -1,14 +1,19 @@
+from __future__ import absolute_import
+
+import logging
 import tempfile
 import os.path
 
-from pip.util import call_subprocess
-from pip.util import display_path, rmtree
+from pip.utils import call_subprocess
+from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
-from pip.log import logger
 from pip.compat import url2pathname, urlparse
 
 urlsplit = urlparse.urlsplit
 urlunsplit = urlparse.urlunsplit
+
+
+logger = logging.getLogger(__name__)
 
 
 class Git(VersionControl):
@@ -67,8 +72,8 @@ class Git(VersionControl):
             # a local tag or branch name
             return [revisions[rev]]
         else:
-            logger.warn(
-                "Could not find a tag or branch '%s', assuming commit." % rev,
+            logger.warning(
+                "Could not find a tag or branch '%s', assuming commit.", rev,
             )
             return rev_options
 
@@ -104,8 +109,8 @@ class Git(VersionControl):
             rev_options = ['origin/master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify(
-                'Cloning %s%s to %s' % (url, rev_display, display_path(dest)),
+            logger.info(
+                'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
             #: repo may contain submodules

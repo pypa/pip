@@ -1,4 +1,5 @@
 """Base option parser setup"""
+from __future__ import absolute_import
 
 import sys
 import optparse
@@ -12,7 +13,7 @@ from pip.locations import (
     default_config_file, default_config_basename, running_under_virtualenv,
     site_config_files
 )
-from pip.util import get_terminal_size
+from pip.utils import get_terminal_size
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):

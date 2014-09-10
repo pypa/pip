@@ -89,10 +89,10 @@ class TestOptionPrecedence(object):
         """
         os.environ['PIP_LOG_FILE'] = 'override.log'
         options, args = main(['fake'])
-        assert options.log_file == 'override.log'
+        assert options.log == 'override.log'
         os.environ['PIP_LOCAL_LOG'] = 'override.log'
         options, args = main(['fake'])
-        assert options.log_file == 'override.log'
+        assert options.log == 'override.log'
 
     def test_cli_override_environment(self):
         """
@@ -210,7 +210,7 @@ class TestGeneralOptions(object):
     def test_local_log(self):
         options1, args1 = main(['--local-log', 'path', 'fake'])
         options2, args2 = main(['fake', '--local-log', 'path'])
-        assert options1.log_file == options2.log_file == 'path'
+        assert options1.log == options2.log == 'path'
 
     def test_no_input(self):
         options1, args1 = main(['--no-input', 'fake'])

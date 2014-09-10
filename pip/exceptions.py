@@ -1,4 +1,5 @@
 """Exceptions used throughout package"""
+from __future__ import absolute_import
 
 
 class PipError(Exception):

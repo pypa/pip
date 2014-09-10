@@ -1,16 +1,20 @@
 """Handles all VCS (version control) support"""
+from __future__ import absolute_import
 
+import logging
 import os
 import shutil
 
 from pip.compat import urlparse, urllib
 from pip.exceptions import BadCommand
-from pip.log import logger
-from pip.util import (display_path, backup_dir, find_command,
-                      rmtree, ask_path_exists)
+from pip.utils import (display_path, backup_dir, find_command,
+                       rmtree, ask_path_exists)
 
 
 __all__ = ['vcs', 'get_src_requirement']
+
+
+logger = logging.getLogger(__name__)
 
 
 class VcsSupport(object):
@@ -46,7 +50,7 @@ class VcsSupport(object):
 
     def register(self, cls):
         if not hasattr(cls, 'name'):
-            logger.warn('Cannot register VCS %s' % cls.__name__)
+            logger.warning('Cannot register VCS %s', cls.__name__)
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls
@@ -57,7 +61,7 @@ class VcsSupport(object):
         elif cls in self._registry.values():
             del self._registry[cls.name]
         else:
-            logger.warn('Cannot unregister because no class or name given')
+            logger.warning('Cannot unregister because no class or name given')
 
     def get_backend_name(self, location):
         """
@@ -95,7 +99,7 @@ class VersionControl(object):
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
-        return (logger.INFO, line)
+        return (logging.DEBUG, line)
 
     def _is_local_repository(self, repo):
         """
@@ -110,7 +114,7 @@ class VersionControl(object):
         if self._cmd is not None:
             return self._cmd
         command = find_command(self.name)
-        logger.info('Found command %r at %r' % (self.name, command))
+        logger.debug('Found command %r at %r', self.name, command)
         self._cmd = command
         return command
 
@@ -187,46 +191,67 @@ class VersionControl(object):
             if os.path.exists(os.path.join(dest, self.dirname)):
                 existing_url = self.get_url(dest)
                 if self.compare_urls(existing_url, url):
-                    logger.info('%s in %s exists, and has correct URL (%s)' %
-                                (self.repo_name.title(), display_path(dest),
-                                 url))
-                    logger.notify('Updating %s %s%s' %
-                                  (display_path(dest), self.repo_name,
-                                   rev_display))
+                    logger.debug(
+                        '%s in %s exists, and has correct URL (%s)',
+                        self.repo_name.title(),
+                        display_path(dest),
+                        url,
+                    )
+                    logger.info(
+                        'Updating %s %s%s',
+                        display_path(dest),
+                        self.repo_name,
+                        rev_display,
+                    )
                     self.update(dest, rev_options)
                 else:
-                    logger.warn('%s %s in %s exists with URL %s' %
-                                (self.name, self.repo_name,
-                                 display_path(dest), existing_url))
+                    logger.warning(
+                        '%s %s in %s exists with URL %s',
+                        self.name,
+                        self.repo_name,
+                        display_path(dest),
+                        existing_url,
+                    )
                     prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
                               ('s', 'i', 'w', 'b'))
             else:
-                logger.warn('Directory %s already exists, '
-                            'and is not a %s %s.' %
-                            (dest, self.name, self.repo_name))
+                logger.warning(
+                    'Directory %s already exists, and is not a %s %s.',
+                    dest,
+                    self.name,
+                    self.repo_name,
+                )
                 prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
         if prompt:
-            logger.warn('The plan is to install the %s repository %s' %
-                        (self.name, url))
+            logger.warning(
+                'The plan is to install the %s repository %s',
+                self.name,
+                url,
+            )
             response = ask_path_exists('What to do?  %s' % prompt[0],
                                        prompt[1])
 
             if response == 's':
-                logger.notify('Switching %s %s to %s%s' %
-                              (self.repo_name, display_path(dest), url,
-                               rev_display))
+                logger.info(
+                    'Switching %s %s to %s%s',
+                    self.repo_name,
+                    display_path(dest),
+                    url,
+                    rev_display,
+                )
                 self.switch(dest, url, rev_options)
             elif response == 'i':
                 # do nothing
                 pass
             elif response == 'w':
-                logger.warn('Deleting %s' % display_path(dest))
+                logger.warning('Deleting %s', display_path(dest))
                 rmtree(dest)
                 checkout = True
             elif response == 'b':
                 dest_dir = backup_dir(dest)
-                logger.warn('Backing up %s to %s'
-                            % (display_path(dest), dest_dir))
+                logger.warning(
+                    'Backing up %s to %s', display_path(dest), dest_dir,
+                )
                 shutil.move(dest, dest_dir)
                 checkout = True
         return checkout
@@ -248,12 +273,16 @@ def get_src_requirement(dist, location, find_tags):
                                                          location,
                                                          find_tags)
         except BadCommand:
-            logger.warn('cannot determine version of editable source in %s '
-                        '(%s command not found in path)' % (
-                            location, version_control.name))
+            logger.warning(
+                'cannot determine version of editable source in %s '
+                '(%s command not found in path)',
+                location,
+                version_control.name,
+            )
             return dist.as_requirement()
-    logger.warn(
+    logger.warning(
         'cannot determine version of editable source in %s (is not SVN '
-        'checkout, Git clone, Mercurial clone or Bazaar branch)' % location
+        'checkout, Git clone, Mercurial clone or Bazaar branch)',
+        location,
     )
     return dist.as_requirement()

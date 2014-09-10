@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import shutil
 
@@ -8,12 +11,15 @@ from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.index import Link
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
-from pip.log import logger
 from pip.req.req_install import InstallRequirement
-from pip.util import (display_path, rmtree, dist_in_usersite, call_subprocess,
-                      _make_build_dir, normalize_path)
+from pip.utils import (display_path, rmtree, dist_in_usersite, call_subprocess,
+                       _make_build_dir, normalize_path)
+from pip.utils.logging import indent_log
 from pip.vcs import vcs
 from pip.wheel import wheel_ext
+
+
+logger = logging.getLogger(__name__)
 
 
 class Requirements(object):
@@ -130,7 +136,7 @@ class RequirementSet(object):
             if os.path.exists(self.download_dir):
                 return True
             else:
-                logger.fatal('Could not find download directory')
+                logger.critical('Could not find download directory')
                 raise InstallationError(
                     "Could not find or access download directory '%s'"
                     % display_path(self.download_dir))
@@ -176,9 +182,11 @@ class RequirementSet(object):
                     else:
                         install_needed = False
                 if req_to_install.satisfied_by:
-                    logger.notify('Requirement already satisfied '
-                                  '(use --upgrade to upgrade): %s'
-                                  % req_to_install)
+                    logger.info(
+                        'Requirement already satisfied (use --upgrade to '
+                        'upgrade): %s',
+                        req_to_install,
+                    )
 
             if req_to_install.editable:
                 if req_to_install.source_dir is None:
@@ -250,30 +258,33 @@ class RequirementSet(object):
                         install = False
                 if req_to_install.satisfied_by:
                     if best_installed:
-                        logger.notify('Requirement already up-to-date: %s'
-                                      % req_to_install)
+                        logger.info(
+                            'Requirement already up-to-date: %s',
+                            req_to_install,
+                        )
                     else:
-                        logger.notify('Requirement already satisfied '
-                                      '(use --upgrade to upgrade): %s'
-                                      % req_to_install)
+                        logger.info(
+                            'Requirement already satisfied (use --upgrade to '
+                            'upgrade): %s',
+                            req_to_install,
+                        )
             if req_to_install.editable:
-                logger.notify('Obtaining %s' % req_to_install)
+                logger.info('Obtaining %s', req_to_install)
             elif install:
                 if (req_to_install.url
                         and req_to_install.url.lower().startswith('file:')):
-                    logger.notify(
-                        'Unpacking %s' %
-                        display_path(url_to_path(req_to_install.url))
+                    logger.info(
+                        'Unpacking %s',
+                        display_path(url_to_path(req_to_install.url)),
                     )
                 else:
-                    logger.notify('Downloading/unpacking %s' % req_to_install)
-            logger.indent += 2
+                    logger.info('Downloading/unpacking %s', req_to_install)
 
-            # ################################ #
-            # # vcs update or unpack archive # #
-            # ################################ #
+            with indent_log():
+                # ################################ #
+                # # vcs update or unpack archive # #
+                # ################################ #
 
-            try:
                 is_wheel = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
@@ -349,9 +360,11 @@ class RequirementSet(object):
                                     do_download, session=self.session,
                                 )
                             except HTTPError as exc:
-                                logger.fatal(
+                                logger.critical(
                                     'Could not install requirement %s because '
-                                    'of error %s' % (req_to_install, exc)
+                                    'of error %s',
+                                    req_to_install,
+                                    exc,
                                 )
                                 raise InstallationError(
                                     'Could not install requirement %s because '
@@ -392,10 +405,10 @@ class RequirementSet(object):
                                         req_to_install.satisfied_by
                                 req_to_install.satisfied_by = None
                             else:
-                                logger.notify(
+                                logger.info(
                                     'Requirement already satisfied (use '
-                                    '--upgrade to upgrade): %s' %
-                                    req_to_install
+                                    '--upgrade to upgrade): %s',
+                                    req_to_install,
                                 )
                                 install = False
 
@@ -428,9 +441,9 @@ class RequirementSet(object):
                         req_to_install.dependency_links
                     )
                     if (req_to_install.extras):
-                        logger.notify(
-                            "Installing extra requirements: %r" %
-                            ','.join(req_to_install.extras)
+                        logger.info(
+                            "Installing extra requirements: %r",
+                            ','.join(req_to_install.extras),
                         )
                     if not self.ignore_dependencies:
                         for req in req_to_install.requirements(
@@ -443,8 +456,8 @@ class RequirementSet(object):
                                 # FIXME: proper warning
                                 logger.error(
                                     'Invalid requirement: %r (%s) in '
-                                    'requirement %s' %
-                                    (req, exc, req_to_install)
+                                    'requirement %s',
+                                    req, exc, req_to_install,
                                 )
                                 continue
                             if self.has_requirement(name):
@@ -465,26 +478,21 @@ class RequirementSet(object):
                 if install:
                     self.successfully_downloaded.append(req_to_install)
 
-            finally:
-                logger.indent -= 2
-
     def cleanup_files(self):
         """Clean up files, remove builds."""
-        logger.notify('Cleaning up...')
-        logger.indent += 2
-        for req in self.reqs_to_cleanup:
-            req.remove_temporary_source()
+        logger.info('Cleaning up...')
+        with indent_log():
+            for req in self.reqs_to_cleanup:
+                req.remove_temporary_source()
 
-        remove_dir = []
-        if self._pip_has_created_build_dir():
-            remove_dir.append(self.build_dir)
+            remove_dir = []
+            if self._pip_has_created_build_dir():
+                remove_dir.append(self.build_dir)
 
-        for dir in remove_dir:
-            if os.path.exists(dir):
-                logger.info('Removing temporary dir %s...' % dir)
-                rmtree(dir)
-
-        logger.indent -= 2
+            for dir in remove_dir:
+                if os.path.exists(dir):
+                    logger.debug('Removing temporary dir %s...', dir)
+                    rmtree(dir)
 
     def _pip_has_created_build_dir(self):
         return (
@@ -496,7 +504,7 @@ class RequirementSet(object):
 
     def copy_to_build_dir(self, req_to_install):
         target_dir = req_to_install.editable and self.src_dir or self.build_dir
-        logger.info("Copying %s to %s" % (req_to_install.name, target_dir))
+        logger.debug("Copying %s to %s", req_to_install.name, target_dir)
         dest = os.path.join(target_dir, req_to_install.name)
         shutil.copytree(req_to_install.source_dir, dest)
         call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
@@ -524,12 +532,12 @@ class RequirementSet(object):
                 to_install.append(req)
 
         if to_install:
-            logger.notify(
-                'Installing collected packages: %s' %
-                ', '.join([req.name for req in to_install])
+            logger.info(
+                'Installing collected packages: %s',
+                ', '.join([req.name for req in to_install]),
             )
-        logger.indent += 2
-        try:
+
+        with indent_log():
             for requirement in to_install:
 
                 # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
@@ -559,13 +567,12 @@ class RequirementSet(object):
                         pass
 
                 if requirement.conflicts_with:
-                    logger.notify('Found existing installation: %s'
-                                  % requirement.conflicts_with)
-                    logger.indent += 2
-                    try:
+                    logger.info(
+                        'Found existing installation: %s',
+                        requirement.conflicts_with,
+                    )
+                    with indent_log():
                         requirement.uninstall(auto_confirm=True)
-                    finally:
-                        logger.indent -= 2
                 try:
                     requirement.install(
                         install_options,
@@ -584,6 +591,5 @@ class RequirementSet(object):
                             and requirement.install_succeeded):
                         requirement.commit_uninstall()
                 requirement.remove_temporary_source()
-        finally:
-            logger.indent -= 2
+
         self.successfully_installed = to_install

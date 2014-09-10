@@ -1,10 +1,18 @@
+from __future__ import absolute_import
+
+import logging
+import warnings
+
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
 from pip.index import PackageFinder
-from pip.log import logger
 from pip.req import InstallRequirement
-from pip.util import get_installed_distributions, dist_is_editable
+from pip.utils import get_installed_distributions, dist_is_editable
+from pip.utils.deprecation import RemovedInPip17Warning
 from pip.cmdoptions import make_option_group, index_group
+
+
+logger = logging.getLogger(__name__)
 
 
 class ListCommand(Command):
@@ -88,31 +96,31 @@ class ListCommand(Command):
         for dist, remote_version_raw, remote_version_parsed in \
                 self.find_packages_latests_versions(options):
             if remote_version_parsed > dist.parsed_version:
-                logger.notify(
-                    '%s (Current: %s Latest: %s)' %
-                    (dist.project_name, dist.version, remote_version_raw)
+                logger.info(
+                    '%s (Current: %s Latest: %s)',
+                    dist.project_name, dist.version, remote_version_raw,
                 )
 
     def find_packages_latests_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.notify('Ignoring indexes: %s' % ','.join(index_urls))
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         if options.use_mirrors:
-            logger.deprecated(
-                "1.7",
-                "--use-mirrors has been deprecated and will be removed"
-                " in the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--use-mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
 
         if options.mirrors:
-            logger.deprecated(
-                "1.7",
-                "--mirrors has been deprecated and will be removed in "
-                " the future. Explicit uses of --index-url and/or "
-                "--extra-index-url is suggested."
+            warnings.warn(
+                "--mirrors has been deprecated and will be removed in the "
+                "future. Explicit uses of --index-url and/or --extra-index-url"
+                " is suggested.",
+                RemovedInPip17Warning,
             )
             index_urls += options.mirrors
 
@@ -181,7 +189,7 @@ class ListCommand(Command):
                 )
             else:
                 line = '%s (%s)' % (dist.project_name, dist.version)
-            logger.notify(line)
+            logger.info(line)
 
     def run_uptodate(self, options):
         uptodate = []

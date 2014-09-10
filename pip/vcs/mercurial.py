@@ -1,13 +1,18 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import tempfile
 import re
 
-from pip.util import call_subprocess
-from pip.util import display_path, rmtree
-from pip.log import logger
+from pip.utils import call_subprocess
+from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
 from pip._vendor.six.moves import configparser
+
+
+logger = logging.getLogger(__name__)
 
 
 class Mercurial(VersionControl):
@@ -37,9 +42,9 @@ class Mercurial(VersionControl):
             config.write(config_file)
             config_file.close()
         except (OSError, configparser.NoSectionError) as exc:
-            logger.warn(
-                'Could not switch Mercurial repository to %s: %s'
-                % (url, exc))
+            logger.warning(
+                'Could not switch Mercurial repository to %s: %s', url, exc,
+            )
         else:
             call_subprocess([self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 
@@ -57,8 +62,12 @@ class Mercurial(VersionControl):
             rev_options = []
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Cloning hg %s%s to %s'
-                          % (url, rev_display, display_path(dest)))
+            logger.info(
+                'Cloning hg %s%s to %s',
+                url,
+                rev_display,
+                display_path(dest),
+            )
             call_subprocess([self.cmd, 'clone', '--noupdate', '-q', url, dest])
             call_subprocess([self.cmd, 'update', '-q'] + rev_options, cwd=dest)
 

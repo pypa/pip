@@ -1,13 +1,17 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+
+import logging
 import os
 import optparse
+import warnings
 
 import sys
 import re
 
 from pip.exceptions import InstallationError, CommandError, PipError
-from pip.log import logger
-from pip.util import get_installed_distributions, get_prog
+from pip.utils import get_installed_distributions, get_prog
+from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import commands, get_summaries, get_similar_commands
@@ -20,6 +24,9 @@ cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
 __version__ = "1.6.dev1"
+
+
+logger = logging.getLogger(__name__)
 
 
 def autocomplete():
@@ -171,6 +178,13 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
+    # Enable our Deprecation Warnings
+    for deprecation_warning in deprecation.DEPRECATIONS:
+        warnings.simplefilter("default", deprecation_warning)
+
+    # Configure our deprecation warnings to be sent through loggers
+    deprecation.install_warning_logger()
+
     autocomplete()
 
     try:
@@ -208,14 +222,14 @@ class FrozenRequirement(object):
             try:
                 req = get_src_requirement(dist, location, find_tags)
             except InstallationError as exc:
-                logger.warn(
+                logger.warning(
                     "Error when trying to get requirement for VCS system %s, "
-                    "falling back to uneditable format" % exc
+                    "falling back to uneditable format", exc
                 )
                 req = None
             if req is None:
-                logger.warn(
-                    'Could not determine repository location of %s' % location
+                logger.warning(
+                    'Could not determine repository location of %s', location
                 )
                 comments.append(
                     '## !! Could not determine repository location'
@@ -238,8 +252,8 @@ class FrozenRequirement(object):
                         dependency_links,
                     )
                 if not svn_location:
-                    logger.warn(
-                        'Warning: cannot find svn location for %s' % req)
+                    logger.warning(
+                        'Warning: cannot find svn location for %s', req)
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'

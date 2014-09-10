@@ -12,6 +12,7 @@ Modifications
 * pkg_resources has been modified to import _markerlib from pip._vendor
 * markerlib has been modified to import its API from pip._vendor
 * CacheControl has been modified to import it's dependencies from pip._vendor
+* progress has been modified to not use unicode literals for support for Python 3.2
 
 
 Markerlib and pkg_resources

@@ -197,7 +197,7 @@ def test_uninstall_rollback(script, data):
     assert_all_changes(
         result.files_after,
         result2,
-        [script.venv / 'build', 'pip-log.txt'],
+        [script.venv / 'build'],
     )
 
 
