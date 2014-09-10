@@ -246,10 +246,15 @@ class Logger(object):
         for level, consumer in self.consumers:
             if consumer is sys.stdout:
                 return level
+            elif isinstance(consumer, colorama.AnsiToWin32):
+                return level
         return self.FATAL
 
     def level_matches(self, level, consumer_level):
         """
+        Returns True if given message level > consumer_level,
+        for example message with self.NOTIFY (25) > self.DEBUG (10)
+
         >>> l = Logger()
         >>> l.level_matches(3, 4)
         False
