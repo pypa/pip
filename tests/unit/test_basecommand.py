@@ -17,6 +17,15 @@ class FakeCommand(Command):
             raise SystemExit(1)
 
 
+class FakeCommandWithUnicode(FakeCommand):
+    name = 'fake_unicode'
+    summary = name
+
+    def run(self, options, args):
+        logger.info(b"bytes here \xE9")
+        logger.info(b"unicode here \xC3\xA9".decode('utf-8'))
+
+
 class Test_basecommand_logging(object):
     """
     Test `pip.basecommand.Command` setting up logging consumers based on
@@ -83,3 +92,11 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '-vqq'])
         console_level = logger.consumers[0][0]
         assert console_level == logger.WARN
+
+    def test_unicode_messages(self, tmpdir):
+        """
+        Tests that logging bytestrings and unicode objects don't break logging
+        """
+        cmd = FakeCommandWithUnicode()
+        log_path = tmpdir.join('log')
+        cmd.main(['fake_unicode', '--log', log_path])
