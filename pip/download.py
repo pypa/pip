@@ -2,6 +2,7 @@ import cgi
 import email.utils
 import hashlib
 import getpass
+import json
 import mimetypes
 import os
 import platform
@@ -40,37 +41,61 @@ __all__ = ['get_file_content',
 
 
 def user_agent():
-    """Return a string representing the user agent."""
-    _implementation = platform.python_implementation()
+    """
+    Return a string representing the user agent.
+    """
+    data = {
+        "installer": {"name": "pip", "version": pip.__version__},
+        "python": platform.python_version(),
+        "implementation": {
+            "name": platform.python_implementation(),
+        },
+    }
 
-    if _implementation == 'CPython':
-        _implementation_version = platform.python_version()
-    elif _implementation == 'PyPy':
-        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
-                                                sys.pypy_version_info.minor,
-                                                sys.pypy_version_info.micro)
-        if sys.pypy_version_info.releaselevel != 'final':
-            _implementation_version = ''.join([
-                _implementation_version,
-                sys.pypy_version_info.releaselevel,
-            ])
-    elif _implementation == 'Jython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    elif _implementation == 'IronPython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    else:
-        _implementation_version = 'Unknown'
+    if data["implementation"]["name"] == 'CPython':
+        data["implementation"]["version"] = platform.python_version()
+    elif data["implementation"]["name"] == 'PyPy':
+        if sys.pypy_version_info.releaselevel == 'final':
+            pypy_version_info = sys.pypy_version_info[:3]
+        else:
+            pypy_version_info = sys.pypy_version_info
+        data["implementation"]["version"] = ".".join(
+            [str(x) for x in pypy_version_info]
+        )
+    elif data["implementation"]["name"] == 'Jython':
+        # Complete Guess
+        data["implementation"]["version"] = platform.python_version()
+    elif data["implementation"]["name"] == 'IronPython':
+        # Complete Guess
+        data["implementation"]["version"] = platform.python_version()
 
-    try:
-        p_system = platform.system()
-        p_release = platform.release()
-    except IOError:
-        p_system = 'Unknown'
-        p_release = 'Unknown'
+    if sys.platform.startswith("linux"):
+        distro = dict(filter(
+            lambda x: x[1],
+            zip(["name", "version", "id"], platform.linux_distribution()),
+        ))
+        libc = dict(filter(
+            lambda x: x[1],
+            zip(["lib", "version"], platform.libc_ver()),
+        ))
+        if libc:
+            distro["libc"] = libc
+        if distro:
+            data["distro"] = distro
 
-    return " ".join(['pip/%s' % pip.__version__,
-                     '%s/%s' % (_implementation, _implementation_version),
-                     '%s/%s' % (p_system, p_release)])
+    if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
+        data["distro"] = {"name": "OS X", "version": platform.mac_ver()[0]}
+
+    if platform.system():
+        data.setdefault("system", {})["name"] = platform.system()
+
+    if platform.release():
+        data.setdefault("system", {})["release"] = platform.release()
+
+    if platform.machine():
+        data["cpu"] = platform.machine()
+
+    return json.dumps(data, separators=(",", ":"), sort_keys=True)
 
 
 class MultiDomainBasicAuth(AuthBase):
