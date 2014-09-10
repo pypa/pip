@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
+from time import time
 
 import pip
 
@@ -518,17 +519,35 @@ def _download_url(resp, link, temp_location):
                         break
                     yield chunk
 
+        # Below are the registers to calculate network transfer rate
+        time_reg = time()
+        speed = 0.0
+        bytes_reg = 0.0
+
         for chunk in resp_read(4096):
+            if time() - time_reg > 0.5:   # Update Speed every 0.5s
+                speed = (downloaded - bytes_reg) / (time() - time_reg)
+                # Set registers properly for future loops
+                time_reg = time()
+                bytes_reg = downloaded
+
             downloaded += len(chunk)
             if show_progress:
                 if not total_length:
-                    logger.show_progress('%s' % format_size(downloaded))
+                    logger.show_progress(
+                        '%s | %s/s' %
+                        (
+                            format_size(downloaded),
+                            format_size(speed)
+                        )
+                    )
                 else:
                     logger.show_progress(
-                        '%3i%%  %s' %
+                        '%3i%%  %s | %s/s' %
                         (
                             100 * downloaded / total_length,
-                            format_size(downloaded)
+                            format_size(downloaded),
+                            format_size(speed)
                         )
                     )
             if download_hash is not None:
