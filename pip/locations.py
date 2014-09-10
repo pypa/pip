@@ -11,8 +11,8 @@ import tempfile
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS
 
-from pip import appdirs
 from pip.compat import get_path_uid, WINDOWS
+from pip.utils import appdirs
 
 import pip.exceptions
 
