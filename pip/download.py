@@ -22,7 +22,6 @@ from pip.log import logger
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.exceptions import ChunkedEncodingError
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.cachecontrol import CacheControlAdapter
