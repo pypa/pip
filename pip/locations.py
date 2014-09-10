@@ -179,20 +179,24 @@ if WINDOWS:
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
         bin_user = os.path.join(user_site, 'bin')
-    default_storage_dir = os.path.join(user_dir, 'pip')
-    default_config_basename = 'pip.ini'
-    default_config_file = os.path.join(
-        default_storage_dir,
-        default_config_basename,
+
+    config_basename = 'pip.ini'
+
+    legacy_storage_dir = os.path.join(user_dir, 'pip')
+    legacy_config_file = os.path.join(
+        legacy_storage_dir,
+        config_basename,
     )
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     bin_user = os.path.join(user_site, 'bin')
-    default_storage_dir = os.path.join(user_dir, '.pip')
-    default_config_basename = 'pip.conf'
-    default_config_file = os.path.join(
-        default_storage_dir,
-        default_config_basename,
+
+    config_basename = 'pip.conf'
+
+    legacy_storage_dir = os.path.join(user_dir, '.pip')
+    legacy_config_file = os.path.join(
+        legacy_storage_dir,
+        config_basename,
     )
 
     # Forcing to use /usr/local/bin for standard Mac OS X framework installs
@@ -201,7 +205,7 @@ else:
         bin_py = '/usr/local/bin'
 
 site_config_files = [
-    os.path.join(path, default_config_basename)
+    os.path.join(path, config_basename)
     for path in appdirs.site_config_dirs('pip')
 ]
 

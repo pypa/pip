@@ -153,6 +153,66 @@ class TestUserDataDir:
         assert appdirs.user_data_dir("pip") == "/home/test/.other-share/pip"
 
 
+class TestUserConfigDir:
+
+    def test_user_config_dir_win_no_roaming(self, monkeypatch):
+        @pretend.call_recorder
+        def _get_win_folder(base):
+            return "C:\\Users\\test\\AppData\\Local"
+
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder",
+            _get_win_folder,
+            raising=False,
+        )
+        monkeypatch.setattr(appdirs, "WINDOWS", True)
+
+        assert (
+            appdirs.user_config_dir("pip", roaming=False).replace("/", "\\")
+            == "C:\\Users\\test\\AppData\\Local\\pip"
+        )
+        assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
+
+    def test_user_config_dir_win_yes_roaming(self, monkeypatch):
+        @pretend.call_recorder
+        def _get_win_folder(base):
+            return "C:\\Users\\test\\AppData\\Roaming"
+
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder",
+            _get_win_folder,
+            raising=False,
+        )
+        monkeypatch.setattr(appdirs, "WINDOWS", True)
+
+        assert (appdirs.user_config_dir("pip").replace("/", "\\")
+                == "C:\\Users\\test\\AppData\\Roaming\\pip")
+        assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
+
+    def test_user_config_dir_osx(self, monkeypatch):
+        monkeypatch.setenv("HOME", "/home/test")
+        monkeypatch.setattr(sys, "platform", "darwin")
+
+        assert (appdirs.user_config_dir("pip")
+                == "/home/test/Library/Application Support/pip")
+
+    def test_user_config_dir_linux(self, monkeypatch):
+        monkeypatch.delenv("XDG_CONFIG_HOME")
+        monkeypatch.setenv("HOME", "/home/test")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.user_config_dir("pip") == "/home/test/.config/pip"
+
+    def test_user_config_dir_linux_override(self, monkeypatch):
+        monkeypatch.setenv("XDG_CONFIG_HOME", "/home/test/.other-config")
+        monkeypatch.setenv("HOME", "/home/test")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.user_config_dir("pip") == "/home/test/.other-config/pip"
+
+
 class TestUserLogDir:
 
     def test_user_log_dir_win(self, monkeypatch):

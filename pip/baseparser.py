@@ -10,10 +10,10 @@ from distutils.util import strtobool
 from pip._vendor.six import string_types
 from pip._vendor.six.moves import configparser
 from pip.locations import (
-    default_config_file, default_config_basename, running_under_virtualenv,
+    legacy_config_file, config_basename, running_under_virtualenv,
     site_config_files
 )
-from pip.utils import get_terminal_size
+from pip.utils import appdirs, get_terminal_size
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -154,13 +154,21 @@ class ConfigOptionParser(CustomOptionParser):
         if config_file and os.path.exists(config_file):
             files.append(config_file)
         else:
-            files.append(default_config_file)
+            # This is the legacy config file, we consider it to be a lower
+            # priority than the new file location.
+            files.append(legacy_config_file)
+
+            # This is the new config file, we consider it to be a higher
+            # priority than the legacy file.
+            files.append(
+                os.path.join(appdirs.user_config_dir("pip"), config_basename)
+            )
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
             venv_config_file = os.path.join(
                 sys.prefix,
-                default_config_basename,
+                config_basename,
             )
             if os.path.exists(venv_config_file):
                 files.append(venv_config_file)
