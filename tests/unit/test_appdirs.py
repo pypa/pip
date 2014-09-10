@@ -2,7 +2,7 @@ import sys
 
 import pretend
 
-from pip import appdirs
+from pip.utils import appdirs
 
 
 class TestUserCacheDir:

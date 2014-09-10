@@ -8,7 +8,7 @@ import traceback
 import optparse
 import warnings
 
-from pip import appdirs, cmdoptions
+from pip import cmdoptions
 from pip.locations import running_under_virtualenv
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
@@ -19,7 +19,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import get_prog, normalize_path
+from pip.utils import appdirs, get_prog, normalize_path
 from pip.utils.deprecation import RemovedInPip18Warning
 from pip.utils.logging import IndentingFormatter
 
