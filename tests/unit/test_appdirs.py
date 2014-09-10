@@ -44,6 +44,9 @@ class TestUserCacheDir:
 
         assert appdirs.user_cache_dir("pip") == "/home/test/.other-cache/pip"
 
+
+class TestSiteConfigDirs:
+
     def test_site_config_dirs_win(self, monkeypatch):
         @pretend.call_recorder
         def _get_win_folder(base):
