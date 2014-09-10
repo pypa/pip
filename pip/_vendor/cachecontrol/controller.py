@@ -4,11 +4,11 @@ The httplib2 algorithms ported for use with requests.
 import re
 import calendar
 import time
+from email.utils import parsedate_tz
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
 from .cache import DictCache
-from .compat import parsedate_tz
 from .serialize import Serializer
 
 
@@ -37,15 +37,16 @@ class CacheController(object):
         (scheme, authority, path, query, fragment) = parse_uri(uri)
         if not scheme or not authority:
             raise Exception("Only absolute URIs are allowed. uri = %s" % uri)
-        authority = authority.lower()
+
         scheme = scheme.lower()
+        authority = authority.lower()
+
         if not path:
             path = "/"
 
         # Could do syntax based normalization of the URI before
         # computing the digest. See Section 6.2.2 of Std 66.
         request_uri = query and "?".join([path, query]) or path
-        scheme = scheme.lower()
         defrag_uri = scheme + "://" + authority + request_uri
 
         return defrag_uri
@@ -68,13 +69,20 @@ class CacheController(object):
             parts = headers[cc_header].split(',')
             parts_with_args = [
                 tuple([x.strip().lower() for x in part.split("=", 1)])
-                for part in parts if -1 != part.find("=")]
-            parts_wo_args = [(name.strip().lower(), 1)
-                             for name in parts if -1 == name.find("=")]
+                for part in parts if -1 != part.find("=")
+            ]
+            parts_wo_args = [
+                (name.strip().lower(), 1)
+                for name in parts if -1 == name.find("=")
+            ]
             retval = dict(parts_with_args + parts_wo_args)
         return retval
 
     def cached_request(self, request):
+        """
+        Return a cached response if it exists in the cache, otherwise
+        return False.
+        """
         cache_url = self.cache_url(request.url)
         cc = self.parse_cache_control(request.headers)
 

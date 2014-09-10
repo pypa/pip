@@ -1,7 +1,5 @@
 from io import BytesIO
 
-from .compat import is_fp_closed
-
 
 class CallbackFileWrapper(object):
     """
@@ -23,14 +21,28 @@ class CallbackFileWrapper(object):
     def __getattr__(self, name):
         return getattr(self.__fp, name)
 
+    def __is_fp_closed(self):
+        try:
+            return self.__fp.fp is None
+        except AttributeError:
+            pass
+
+        try:
+            return self.__fp.closed
+        except AttributeError:
+            pass
+
+        # We just don't cache it then.
+        # TODO: Add some logging here...
+        return False
+
     def read(self, amt=None):
         data = self.__fp.read(amt)
         self.__buf.write(data)
 
-        # Is this the best way to figure out if the file has been completely
-        #   consumed?
-        if is_fp_closed(self.__fp):
-            self.__callback(self.__buf.getvalue())
+        if self.__is_fp_closed():
+            if self.__callback:
+                self.__callback(self.__buf.getvalue())
 
             # We assign this to None here, because otherwise we can get into
             # really tricky problems where the CPython interpreter dead locks
