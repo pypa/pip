@@ -517,6 +517,33 @@ def test_install_package_with_target(script):
         str(result)
     )
 
+    # Test repeated call without --upgrade, no files should have changed
+    result = script.pip('install', '-t', target_dir, "initools==0.1")
+    assert not Path('scratch') / 'target' / 'initools' in result.files_updated
+
+    # Test upgrade call, check that new version is installed
+    result = script.pip('install', '--upgrade', '-t',
+                        target_dir, "initools==0.2")
+    assert Path('scratch') / 'target' / 'initools' in result.files_updated, (
+        str(result)
+    )
+    egg_folder = (
+        Path('scratch') / 'target' / 'INITools-0.2-py%s.egg-info' % pyversion)
+    assert egg_folder in result.files_created, (
+        str(result)
+    )
+
+    # Test install and upgrade of single-module package
+    result = script.pip('install', '-t', target_dir, 'six')
+    assert Path('scratch') / 'target' / 'six.py' in result.files_created, (
+        str(result)
+    )
+
+    result = script.pip('install', '-t', target_dir, '--upgrade', 'six')
+    assert Path('scratch') / 'target' / 'six.py' in result.files_updated, (
+        str(result)
+    )
+
 
 def test_install_package_with_root(script, data):
     """
