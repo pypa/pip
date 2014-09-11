@@ -12,15 +12,6 @@ import site
 uses_pycache = hasattr(imp, 'cache_from_source')
 
 
-class NeverUsedException(Exception):
-    """this exception should never be raised"""
-
-try:
-    #new in Python 3.3
-    PermissionError = PermissionError
-except NameError:
-    PermissionError = NeverUsedException
-
 console_encoding = sys.__stdout__.encoding
 
 
