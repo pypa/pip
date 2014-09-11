@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import os
 import imp
 import sys
-import site
 
 
 uses_pycache = hasattr(imp, 'cache_from_source')
