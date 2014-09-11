@@ -20,4 +20,4 @@ from .serializer import serialize
 
 __all__ = ["HTMLParser", "parse", "parseFragment", "getTreeBuilder",
            "getTreeWalker", "serialize"]
-__version__ = "1.0b3"
+__version__ = "0.999"

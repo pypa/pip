@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 from pip._vendor.six import text_type
+from pip._vendor.six.moves import http_client
 
 import codecs
 import re
@@ -118,7 +119,11 @@ class BufferedStream(object):
 
 
 def HTMLInputStream(source, encoding=None, parseMeta=True, chardet=True):
-    if hasattr(source, "read"):
+    if isinstance(source, http_client.HTTPResponse):
+        # Work around Python bug #20007: read(0) closes the connection.
+        # http://bugs.python.org/issue20007
+        isUnicode = False
+    elif hasattr(source, "read"):
         isUnicode = isinstance(source.read(0), text_type)
     else:
         isUnicode = isinstance(source, text_type)
