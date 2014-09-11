@@ -4,7 +4,7 @@ import logging
 import warnings
 
 from pip.basecommand import Command
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
@@ -150,8 +150,6 @@ class ListCommand(Command):
                         continue
                 except DistributionNotFound:
                     continue
-                except BestVersionAlreadyInstalled:
-                    remote_version = req.installed_version
                 else:
                     # It might be a good idea that link or finder had a public
                     # method that returned version
