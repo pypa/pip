@@ -355,19 +355,19 @@ class InstallCommand(Command):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
                         if not options.upgrade:
-                            logger.warn(
+                            logger.warning(
                                 'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.'
-                                % target_item_dir
+                                '--upgrade to force replacement.',
+                                target_item_dir
                             )
                             continue
                         if os.path.islink(target_item_dir):
-                            logger.warn(
+                            logger.warning(
                                 'Target directory %s already exists and is '
                                 'a link. Pip will not automatically replace '
                                 'links, please remove if replacement is '
-                                'desired.'
-                                % target_item_dir
+                                'desired.',
+                                target_item_dir
                             )
                             continue
                         if os.path.isdir(target_item_dir):
