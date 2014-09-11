@@ -9,18 +9,11 @@ import imp
 import sys
 import site
 
-__all__ = ['WindowsError']
-
 uses_pycache = hasattr(imp, 'cache_from_source')
 
 
 class NeverUsedException(Exception):
     """this exception should never be raised"""
-
-try:
-    WindowsError = WindowsError
-except NameError:
-    WindowsError = NeverUsedException
 
 try:
     #new in Python 3.3
