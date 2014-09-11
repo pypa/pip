@@ -9,10 +9,8 @@ import imp
 import sys
 import site
 
+
 uses_pycache = hasattr(imp, 'cache_from_source')
-
-
-console_encoding = sys.__stdout__.encoding
 
 
 try:
@@ -24,7 +22,7 @@ except ImportError:
 if sys.version_info >= (3,):
     def console_to_str(s):
         try:
-            return s.decode(console_encoding)
+            return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
             return s.decode('utf_8')
 
