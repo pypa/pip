@@ -31,7 +31,9 @@ and like arguments to :ref:`pip install`, the following forms are supported::
 
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
-A line beginning with ``#`` is treated as a comment and ignored.
+A line that begins with ``#`` is treated as a comment and ignored. Whitespace
+followed by a ``#`` causes the ``#`` and the remainder of the line to be
+treated as a comment.
 
 Additionally, the following Package Index Options are supported:
 
