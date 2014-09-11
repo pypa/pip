@@ -4,10 +4,9 @@
 STDOUT = -11
 STDERR = -12
 
-import ctypes
-from ctypes import LibraryLoader
-
 try:
+    import ctypes
+    from ctypes import LibraryLoader
     windll = LibraryLoader(ctypes.WinDLL)
     from ctypes import wintypes
 except (AttributeError, ImportError):

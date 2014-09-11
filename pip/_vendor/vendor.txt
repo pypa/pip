@@ -1,7 +1,7 @@
 distlib==0.1.9
-html5lib==1.0b3
+html5lib==0.999  # See: https://github.com/html5lib/html5lib-python/issues/161
 six==1.7.3
-colorama==0.3.1
+colorama==0.3.2
 requests==2.4.1
 certifi==14.05.14
 CacheControl==0.10.3

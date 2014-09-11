@@ -62,7 +62,7 @@ class AnsiToWin32(object):
 
         # should we should convert ANSI sequences into win32 calls?
         if convert is None:
-            convert = on_windows and is_a_tty(wrapped)
+            convert = on_windows and not wrapped.closed and is_a_tty(wrapped)
         self.convert = convert
 
         # dict of ansi codes to win32 functions and parameters
@@ -109,6 +109,7 @@ class AnsiToWin32(object):
                 AnsiBack.WHITE: (winterm.back, WinColor.GREY),
                 AnsiBack.RESET: (winterm.back, ),
             }
+        return dict()
 
 
     def write(self, text):

@@ -3,5 +3,5 @@ from .initialise import init, deinit, reinit
 from .ansi import Fore, Back, Style
 from .ansitowin32 import AnsiToWin32
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
