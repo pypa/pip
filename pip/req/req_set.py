@@ -5,7 +5,8 @@ import os
 import shutil
 
 from pip._vendor import pkg_resources
-from pip.compat import HTTPError
+from pip._vendor import requests
+
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
@@ -359,7 +360,7 @@ class RequirementSet(object):
                                     url, location, download_dir,
                                     do_download, session=self.session,
                                 )
-                            except HTTPError as exc:
+                            except requests.HTTPError as exc:
                                 logger.critical(
                                     'Could not install requirement %s because '
                                     'of error %s',

@@ -22,7 +22,6 @@ except ImportError:
 
 
 if sys.version_info >= (3,):
-    from urllib.error import URLError, HTTPError
     from urllib.request import url2pathname, urlretrieve, pathname2url
     import urllib.parse as urllib
     import urllib.request as urllib2
@@ -46,7 +45,6 @@ if sys.version_info >= (3,):
         return http_message.get_param(param, default_value)
 
 else:
-    from urllib2 import URLError, HTTPError
     from urllib import url2pathname, urlretrieve, pathname2url
     import urllib
     import urllib2
