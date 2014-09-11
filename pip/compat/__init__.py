@@ -2,20 +2,25 @@
 distributions."""
 from __future__ import absolute_import
 
-# flake8: noqa
-
 import os
 import imp
 import sys
 
-
-uses_pycache = hasattr(imp, 'cache_from_source')
-
+from pip._vendor.six import text_type
 
 try:
     from logging.config import dictConfig as logging_dictConfig
 except ImportError:
     from pip.compat.dictconfig import dictConfig as logging_dictConfig
+
+
+__all__ = [
+    "logging_dictConfig", "uses_pycache", "console_to_str", "native_str",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS",
+]
+
+
+uses_pycache = hasattr(imp, 'cache_from_source')
 
 
 if sys.version_info >= (3,):
@@ -36,7 +41,7 @@ else:
 
     def native_str(s, replace=False):
         # Replace is ignored -- unicode to UTF-8 can't fail
-        if isinstance(s, unicode):
+        if isinstance(s, text_type):
             return s.encode('utf-8')
         return s
 
@@ -79,6 +84,7 @@ stdlib_pkgs = ['python', 'wsgiref']
 if sys.version_info >= (2, 7):
     stdlib_pkgs.extend(['argparse'])
 
+
 # windows detection, covers cpython and ironpython
-WINDOWS = sys.platform.startswith("win") \
-          or (sys.platform == 'cli' and os.name == 'nt')
+WINDOWS = (sys.platform.startswith("win")
+           or (sys.platform == 'cli' and os.name == 'nt'))
