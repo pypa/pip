@@ -22,11 +22,6 @@ except ImportError:
 
 
 if sys.version_info >= (3,):
-    from urllib.request import url2pathname, urlretrieve, pathname2url
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-    import urllib.parse as urlparse
-
     def cmp(a, b):
         return (a > b) - (a < b)
 
@@ -45,11 +40,6 @@ if sys.version_info >= (3,):
         return http_message.get_param(param, default_value)
 
 else:
-    from urllib import url2pathname, urlretrieve, pathname2url
-    import urllib
-    import urllib2
-    import urlparse
-
     def console_to_str(s):
         return s
 

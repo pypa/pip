@@ -12,11 +12,13 @@ from distutils.util import change_root
 from distutils import sysconfig
 from email.parser import FeedParser
 
-import pip.wheel
-
 from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import configparser
-from pip.compat import urllib, native_str, WINDOWS
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
+import pip.wheel
+
+from pip.compat import native_str, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
@@ -254,7 +256,7 @@ class InstallRequirement(object):
     def url_name(self):
         if self.req is None:
             return None
-        return urllib.quote(self.req.unsafe_name)
+        return urllib_parse.quote(self.req.unsafe_name)
 
     @property
     def setup_py(self):

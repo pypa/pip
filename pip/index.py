@@ -9,6 +9,9 @@ import mimetypes
 import posixpath
 import warnings
 
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
+
 from pip.utils import Inf, normalize_name, splitext, is_prerelease
 from pip.utils.deprecation import RemovedInPip17Warning
 from pip.utils.logging import indent_log
@@ -16,7 +19,6 @@ from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip.compat import urlparse, url2pathname
 from pip.download import url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
@@ -192,7 +194,7 @@ class PackageFinder(object):
 
     def _warn_about_insecure_transport_scheme(self, logger, location):
         # Determine if this url used a secure transport mechanism
-        parsed = urlparse.urlparse(str(location))
+        parsed = urllib_parse.urlparse(str(location))
         if parsed.scheme in INSECURE_SCHEMES:
             secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
@@ -640,7 +642,7 @@ class PackageFinder(object):
                             and not platform == 'cli'
                         )
                         and comes_from is not None
-                        and urlparse.urlparse(
+                        and urllib_parse.urlparse(
                             comes_from.url
                         ).netloc.endswith("pypi.python.org")):
                     if not wheel.supported(tags=supported_tags_noarch):
@@ -782,13 +784,14 @@ class HTMLPage(object):
 
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = \
-                urlparse.urlparse(url)
-            if scheme == 'file' and os.path.isdir(url2pathname(path)):
+                urllib_parse.urlparse(url)
+            if (scheme == 'file'
+                    and os.path.isdir(urllib_request.url2pathname(path))):
                 # add trailing slash if not present so urljoin doesn't trim
                 # final segment
                 if not url.endswith('/'):
                     url += '/'
-                url = urlparse.urljoin(url, 'index.html')
+                url = urllib_parse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s', url)
 
             resp = session.get(
@@ -847,7 +850,7 @@ class HTMLPage(object):
     @staticmethod
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
+        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
         if scheme not in ('http', 'https', 'ftp', 'ftps'):
             # FIXME: some warning or something?
             # assertion error?
@@ -894,7 +897,9 @@ class HTMLPage(object):
         for anchor in self.parsed.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(urlparse.urljoin(self.base_url, href))
+                url = self.clean_link(
+                    urllib_parse.urljoin(self.base_url, href)
+                )
 
                 # Determine if this link is internal. If that distinction
                 #   doesn't make sense in this context, then we don't make
@@ -928,7 +933,7 @@ class HTMLPage(object):
                 if found_rels & rels:
                     href = anchor.get("href")
                     url = self.clean_link(
-                        urlparse.urljoin(self.base_url, href)
+                        urllib_parse.urljoin(self.base_url, href)
                     )
                     yield Link(url, self, trusted=False)
 
@@ -948,7 +953,7 @@ class HTMLPage(object):
             )
             if not url:
                 continue
-            url = self.clean_link(urlparse.urljoin(self.base_url, url))
+            url = self.clean_link(urllib_parse.urljoin(self.base_url, url))
             yield Link(url, self, trusted=False, _deprecated_regex=True)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
@@ -1003,18 +1008,18 @@ class Link(object):
 
     @property
     def filename(self):
-        _, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
         name = posixpath.basename(path.rstrip('/')) or netloc
         assert name, ('URL %r produced no filename' % self.url)
         return name
 
     @property
     def scheme(self):
-        return urlparse.urlsplit(self.url)[0]
+        return urllib_parse.urlsplit(self.url)[0]
 
     @property
     def path(self):
-        return urlparse.urlsplit(self.url)[2]
+        return urllib_parse.urlsplit(self.url)[2]
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))
@@ -1025,8 +1030,8 @@ class Link(object):
 
     @property
     def url_without_fragment(self):
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
-        return urlparse.urlunsplit((scheme, netloc, path, query, None))
+        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
+        return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 

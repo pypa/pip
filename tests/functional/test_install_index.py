@@ -1,6 +1,6 @@
 import textwrap
 
-from pip.compat import urllib
+from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from tests.lib import pyversion
 
@@ -60,7 +60,7 @@ def test_file_index_url_quoting(script, data):
     """
     Test url quoting of file index url with a space
     """
-    index_url = data.index_url(urllib.quote("in dex"))
+    index_url = data.index_url(urllib_parse.quote("in dex"))
     result = script.pip(
         'install', '-vvv', '--index-url', index_url, 'simple',
         expect_error=False,

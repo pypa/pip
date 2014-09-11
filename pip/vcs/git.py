@@ -4,13 +4,16 @@ import logging
 import tempfile
 import os.path
 
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
+
 from pip.utils import call_subprocess
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
-from pip.compat import url2pathname, urlparse
 
-urlsplit = urlparse.urlsplit
-urlunsplit = urlparse.urlunsplit
+
+urlsplit = urllib_parse.urlsplit
+urlunsplit = urllib_parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +37,8 @@ class Git(VersionControl):
                 initial_slashes = path[:-len(path.lstrip('/'))]
                 newpath = (
                     initial_slashes +
-                    url2pathname(path).replace('\\', '/').lstrip('/')
+                    urllib_request.url2pathname(path)
+                    .replace('\\', '/').lstrip('/')
                 )
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
                 after_plus = scheme.find('+') + 1

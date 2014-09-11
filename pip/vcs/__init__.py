@@ -5,7 +5,8 @@ import logging
 import os
 import shutil
 
-from pip.compat import urlparse, urllib
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip.exceptions import BadCommand
 from pip.utils import (display_path, backup_dir, find_command,
                        rmtree, ask_path_exists)
@@ -24,10 +25,10 @@ class VcsSupport(object):
     def __init__(self):
         # Register more schemes with urlparse for various version control
         # systems
-        urlparse.uses_netloc.extend(self.schemes)
+        urllib_parse.uses_netloc.extend(self.schemes)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment
-        if getattr(urlparse, 'uses_fragment', None):
-            urlparse.uses_fragment.extend(self.schemes)
+        if getattr(urllib_parse, 'uses_fragment', None):
+            urllib_parse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
@@ -130,11 +131,11 @@ class VersionControl(object):
         )
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
-        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
-        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
+        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
     def get_info(self, location):
@@ -150,7 +151,7 @@ class VersionControl(object):
         Normalize a URL for comparison by unquoting it and removing any
         trailing slash.
         """
-        return urllib.unquote(url).rstrip('/')
+        return urllib_parse.unquote(url).rstrip('/')
 
     def compare_urls(self, url1, url2):
         """

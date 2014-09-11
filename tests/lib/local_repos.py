@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import os
 import subprocess
+
+from pip._vendor.six.moves.urllib import request as urllib_request
+
 from pip.vcs import subversion, git, bazaar, mercurial
-from pip.compat import urlretrieve
 from tests.lib import path_to_url
 
 
@@ -18,7 +20,7 @@ def _create_initools_repository(directory):
 
 
 def _dump_initools_repository(directory):
-    filename, _ = urlretrieve(
+    filename, _ = urllib_request.urlretrieve(
         'http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/'
         'INITools_modified.dump'
     )

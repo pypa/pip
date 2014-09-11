@@ -4,7 +4,8 @@ import logging
 import os
 import re
 
-from pip.compat import urlparse
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip.index import Link
 from pip.utils import rmtree, display_path, call_subprocess
 from pip.utils.logging import indent_log
@@ -270,7 +271,7 @@ def get_rev_options(url, rev):
     else:
         rev_options = []
 
-    r = urlparse.urlsplit(url)
+    r = urllib_parse.urlsplit(url)
     if hasattr(r, 'username'):
         # >= Python-2.5
         username, password = r.username, r.password

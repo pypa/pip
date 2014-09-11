@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import os
 import re
 
-from pip.compat import urlparse
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.utils import normalize_name
@@ -46,7 +47,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 req_url = line[len('--requirement'):].strip().strip('=')
             if _scheme_re.search(filename):
                 # Relative to a URL
-                req_url = urlparse.urljoin(filename, req_url)
+                req_url = urllib_parse.urljoin(filename, req_url)
             elif not _scheme_re.search(req_url):
                 req_url = os.path.join(os.path.dirname(filename), req_url)
             for item in parse_requirements(

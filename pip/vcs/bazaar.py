@@ -5,7 +5,12 @@ import os
 import tempfile
 import re
 
-from pip.compat import urlparse
+# TODO: Get this into six.moves.urllib.parse
+try:
+    from urllib import parse as urllib_parse
+except ImportError:
+    import urlparse as urllib_parse
+
 from pip.utils import rmtree, display_path, call_subprocess
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
@@ -27,9 +32,9 @@ class Bazaar(VersionControl):
         super(Bazaar, self).__init__(url, *args, **kwargs)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment or non_hierarchical
         # Register lp but do not expose as a scheme to support bzr+lp.
-        if getattr(urlparse, 'uses_fragment', None):
-            urlparse.uses_fragment.extend(['lp'])
-            urlparse.non_hierarchical.extend(['lp'])
+        if getattr(urllib_parse, 'uses_fragment', None):
+            urllib_parse.uses_fragment.extend(['lp'])
+            urllib_parse.non_hierarchical.extend(['lp'])
 
     def export(self, location):
         """
