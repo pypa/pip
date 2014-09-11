@@ -22,9 +22,6 @@ except ImportError:
 
 
 if sys.version_info >= (3,):
-    def cmp(a, b):
-        return (a > b) - (a < b)
-
     def console_to_str(s):
         try:
             return s.decode(console_encoding)
@@ -52,8 +49,6 @@ else:
     def get_http_message_param(http_message, param, default_value):
         result = http_message.getparam(param)
         return result or default_value
-
-    cmp = cmp
 
 
 def get_path_uid(path):

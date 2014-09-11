@@ -4,14 +4,10 @@ import logging
 import sys
 import textwrap
 
-from distutils.version import StrictVersion, LooseVersion
-from functools import reduce
-
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
 from pip.utils import get_terminal_size
 from pip.utils.logging import indent_log
-from pip.compat import cmp
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
 from pip._vendor import pkg_resources
@@ -132,23 +128,7 @@ def print_results(hits, name_column_width=25, terminal_width=None):
             pass
 
 
-def compare_versions(version1, version2):
-    try:
-        return cmp(StrictVersion(version1), StrictVersion(version2))
-    # in case of abnormal version number, fall back to LooseVersion
-    except ValueError:
-        pass
-    try:
-        return cmp(LooseVersion(version1), LooseVersion(version2))
-    except TypeError:
-        # certain LooseVersion comparions raise due to unorderable types,
-        # fallback to string comparison
-        return cmp([str(v) for v in LooseVersion(version1).version],
-                   [str(v) for v in LooseVersion(version2).version])
-
-
 def highest_version(versions):
-    return reduce(
-        (lambda v1, v2: compare_versions(v1, v2) == 1 and v1 or v2),
-        versions,
-    )
+    return next(iter(
+        sorted(versions, key=pkg_resources.parse_version, reverse=True)
+    ))
