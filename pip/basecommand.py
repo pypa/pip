@@ -8,12 +8,14 @@ import traceback
 import optparse
 import warnings
 
+from pip._vendor.six import StringIO
+
 from pip import cmdoptions
 from pip.locations import running_under_virtualenv
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
-from pip.compat import StringIO, logging_dictConfig
+from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,

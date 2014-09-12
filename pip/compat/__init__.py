@@ -2,34 +2,11 @@
 distributions."""
 from __future__ import absolute_import
 
-# flake8: noqa
-
 import os
 import imp
 import sys
-import site
 
-__all__ = ['WindowsError']
-
-uses_pycache = hasattr(imp, 'cache_from_source')
-
-
-class NeverUsedException(Exception):
-    """this exception should never be raised"""
-
-try:
-    WindowsError = WindowsError
-except NameError:
-    WindowsError = NeverUsedException
-
-try:
-    #new in Python 3.3
-    PermissionError = PermissionError
-except NameError:
-    PermissionError = NeverUsedException
-
-console_encoding = sys.__stdout__.encoding
-
+from pip._vendor.six import text_type
 
 try:
     from logging.config import dictConfig as logging_dictConfig
@@ -37,20 +14,19 @@ except ImportError:
     from pip.compat.dictconfig import dictConfig as logging_dictConfig
 
 
+__all__ = [
+    "logging_dictConfig", "uses_pycache", "console_to_str", "native_str",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS",
+]
+
+
+uses_pycache = hasattr(imp, 'cache_from_source')
+
+
 if sys.version_info >= (3,):
-    from io import StringIO
-    from urllib.error import URLError, HTTPError
-    from urllib.request import url2pathname, urlretrieve, pathname2url
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-    import urllib.parse as urlparse
-
-    def cmp(a, b):
-        return (a > b) - (a < b)
-
     def console_to_str(s):
         try:
-            return s.decode(console_encoding)
+            return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
             return s.decode('utf_8')
 
@@ -59,31 +35,15 @@ if sys.version_info >= (3,):
             return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
-    def get_http_message_param(http_message, param, default_value):
-        return http_message.get_param(param, default_value)
-
 else:
-    from cStringIO import StringIO
-    from urllib2 import URLError, HTTPError
-    from urllib import url2pathname, urlretrieve, pathname2url
-    import urllib
-    import urllib2
-    import urlparse
-
     def console_to_str(s):
         return s
 
     def native_str(s, replace=False):
         # Replace is ignored -- unicode to UTF-8 can't fail
-        if isinstance(s, unicode):
+        if isinstance(s, text_type):
             return s.encode('utf-8')
         return s
-
-    def get_http_message_param(http_message, param, default_value):
-        result = http_message.getparam(param)
-        return result or default_value
-
-    cmp = cmp
 
 
 def get_path_uid(path):
@@ -124,6 +84,7 @@ stdlib_pkgs = ['python', 'wsgiref']
 if sys.version_info >= (2, 7):
     stdlib_pkgs.extend(['argparse'])
 
+
 # windows detection, covers cpython and ironpython
-WINDOWS = sys.platform.startswith("win") \
-          or (sys.platform == 'cli' and os.name == 'nt')
+WINDOWS = (sys.platform.startswith("win")
+           or (sys.platform == 'cli' and os.name == 'nt'))

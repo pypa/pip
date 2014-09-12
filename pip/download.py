@@ -14,9 +14,10 @@ import shutil
 import sys
 import tempfile
 
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 import pip
 
-from pip.compat import urllib, urlparse
 from pip.exceptions import InstallationError, HashMismatch
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
@@ -109,13 +110,13 @@ class MultiDomainBasicAuth(AuthBase):
         self.passwords = {}
 
     def __call__(self, req):
-        parsed = urlparse.urlparse(req.url)
+        parsed = urllib_parse.urlparse(req.url)
 
         # Get the netloc without any embedded credentials
         netloc = parsed.netloc.rsplit("@", 1)[-1]
 
         # Set the url of the request to the url without any credentials
-        req.url = urlparse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
+        req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
 
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
@@ -146,7 +147,7 @@ class MultiDomainBasicAuth(AuthBase):
         if not self.prompting:
             return resp
 
-        parsed = urlparse.urlparse(resp.url)
+        parsed = urllib_parse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
         username = six.moves.input("User for %s: " % parsed.netloc)
@@ -306,7 +307,7 @@ def get_file_content(url, comes_from=None, session=None):
             match = _url_slash_drive_re.match(path)
             if match:
                 path = match.group(1) + ':' + path.split('|', 1)[1]
-            path = urllib.unquote(path)
+            path = urllib_parse.unquote(path)
             if path.startswith('/'):
                 path = '/' + path.lstrip('/')
             url = path
@@ -350,7 +351,7 @@ def url_to_path(url):
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
     path = url[len('file:'):].lstrip('/')
-    path = urllib.unquote(path)
+    path = urllib_parse.unquote(path)
     if _url_drive_re.match(path):
         path = path[0] + ':' + path[2:]
     else:
@@ -370,7 +371,7 @@ def path_to_url(path):
     path = os.path.normpath(os.path.abspath(path))
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
-    url = '/'.join([urllib.quote(part) for part in filepath])
+    url = '/'.join([urllib_parse.quote(part) for part in filepath])
     if not drive:
         url = url.lstrip('/')
     return 'file:///' + drive + url
@@ -651,13 +652,13 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
     """
     def __init__(self, index_url, session, use_datetime=False):
         xmlrpc_client.Transport.__init__(self, use_datetime)
-        index_parts = urlparse.urlparse(index_url)
+        index_parts = urllib_parse.urlparse(index_url)
         self._scheme = index_parts.scheme
         self._session = session
 
     def request(self, host, handler, request_body, verbose=False):
         parts = (self._scheme, host, handler, None, None, None)
-        url = urlparse.urlunparse(parts)
+        url = urllib_parse.urlunparse(parts)
         try:
             headers = {'Content-Type': 'text/xml'}
             response = self._session.post(url, data=request_body,

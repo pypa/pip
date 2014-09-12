@@ -20,13 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from __future__ import absolute_import
+
 import functools
 import operator
 import sys
 import types
 
 __author__ = "Benjamin Peterson <benjamin@python.org>"
-__version__ = "1.7.3"
+__version__ = "1.8.0"
 
 
 # Useful for very coarse version differentiation.
@@ -225,10 +227,12 @@ _moved_attributes = [
     MovedAttribute("filter", "itertools", "builtins", "ifilter", "filter"),
     MovedAttribute("filterfalse", "itertools", "itertools", "ifilterfalse", "filterfalse"),
     MovedAttribute("input", "__builtin__", "builtins", "raw_input", "input"),
+    MovedAttribute("intern", "__builtin__", "sys"),
     MovedAttribute("map", "itertools", "builtins", "imap", "map"),
     MovedAttribute("range", "__builtin__", "builtins", "xrange", "range"),
     MovedAttribute("reload_module", "__builtin__", "imp", "reload"),
     MovedAttribute("reduce", "__builtin__", "functools"),
+    MovedAttribute("shlex_quote", "pipes", "shlex", "quote"),
     MovedAttribute("StringIO", "StringIO", "io"),
     MovedAttribute("UserDict", "UserDict", "collections"),
     MovedAttribute("UserList", "UserList", "collections"),
@@ -248,6 +252,7 @@ _moved_attributes = [
     MovedModule("html_parser", "HTMLParser", "html.parser"),
     MovedModule("http_client", "httplib", "http.client"),
     MovedModule("email_mime_multipart", "email.MIMEMultipart", "email.mime.multipart"),
+    MovedModule("email_mime_nonmultipart", "email.MIMENonMultipart", "email.mime.nonmultipart"),
     MovedModule("email_mime_text", "email.MIMEText", "email.mime.text"),
     MovedModule("email_mime_base", "email.MIMEBase", "email.mime.base"),
     MovedModule("BaseHTTPServer", "BaseHTTPServer", "http.server"),
@@ -317,6 +322,13 @@ _urllib_parse_moved_attributes = [
     MovedAttribute("unquote_plus", "urllib", "urllib.parse"),
     MovedAttribute("urlencode", "urllib", "urllib.parse"),
     MovedAttribute("splitquery", "urllib", "urllib.parse"),
+    MovedAttribute("splittag", "urllib", "urllib.parse"),
+    MovedAttribute("splituser", "urllib", "urllib.parse"),
+    MovedAttribute("uses_fragment", "urlparse", "urllib.parse"),
+    MovedAttribute("uses_netloc", "urlparse", "urllib.parse"),
+    MovedAttribute("uses_params", "urlparse", "urllib.parse"),
+    MovedAttribute("uses_query", "urlparse", "urllib.parse"),
+    MovedAttribute("uses_relative", "urlparse", "urllib.parse"),
 ]
 for attr in _urllib_parse_moved_attributes:
     setattr(Module_six_moves_urllib_parse, attr.name, attr)
@@ -606,6 +618,8 @@ if PY3:
 
 
     def reraise(tp, value, tb=None):
+        if value is None:
+            value = tp()
         if value.__traceback__ is not tb:
             raise value.with_traceback(tb)
         raise value
@@ -687,7 +701,8 @@ if print_ is None:
 _add_doc(reraise, """Reraise an exception.""")
 
 if sys.version_info[0:2] < (3, 4):
-    def wraps(wrapped):
+    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
         def wrapper(f):
             f = functools.wraps(wrapped)(f)
             f.__wrapped__ = wrapped
@@ -711,14 +726,14 @@ def add_metaclass(metaclass):
     """Class decorator for creating a class with a metaclass."""
     def wrapper(cls):
         orig_vars = cls.__dict__.copy()
-        orig_vars.pop('__dict__', None)
-        orig_vars.pop('__weakref__', None)
         slots = orig_vars.get('__slots__')
         if slots is not None:
             if isinstance(slots, str):
                 slots = [slots]
             for slots_var in slots:
                 orig_vars.pop(slots_var)
+        orig_vars.pop('__dict__', None)
+        orig_vars.pop('__weakref__', None)
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
 
