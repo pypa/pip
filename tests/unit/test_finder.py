@@ -55,6 +55,14 @@ def test_finder_detects_latest_find_links(data):
     assert link.url.endswith("simple-3.0.tar.gz")
 
 
+def test_incorrect_case_file_index(data):
+    """Test PackageFinder detects latest using wrong case"""
+    req = InstallRequirement.from_line('dinner', None)
+    finder = PackageFinder([], [data.find_links3], session=PipSession())
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("Dinner-2.0.tar.gz")
+
+
 def test_finder_detects_latest_already_satisfied_find_links(data):
     """Test PackageFinder detects latest already satisfied using find-links"""
     req = InstallRequirement.from_line('simple', None)
