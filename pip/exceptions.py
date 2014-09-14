@@ -45,3 +45,7 @@ class InvalidWheelFilename(InstallationError):
 
 class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
+
+
+class SuspiciousVersion(PipError):
+    """git branch or tag name that looks like commit id."""

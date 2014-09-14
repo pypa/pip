@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import logging
 import tempfile
 import os.path
@@ -9,6 +10,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.utils import call_subprocess
 from pip.utils import display_path, rmtree
+from pip.exceptions import SuspiciousVersion
 from pip.vcs import vcs, VersionControl
 
 
@@ -71,9 +73,15 @@ class Git(VersionControl):
         origin_rev = 'origin/%s' % rev
         if origin_rev in revisions:
             # remote branch
+            if re.match(r"\b[a-f0-9]{40}\b", rev):
+                raise SuspiciousVersion("branch looks like commit id. "
+                                        "Potential security problem, aborting")
             return [revisions[origin_rev]]
         elif rev in revisions:
             # a local tag or branch name
+            if re.match(r"\b[a-f0-9]{40}\b", rev):
+                raise SuspiciousVersion("tag/branch looks like commit id. "
+                                        "Potential security problem, aborting")
             return [revisions[rev]]
         else:
             logger.warning(
@@ -101,7 +109,7 @@ class Git(VersionControl):
             [self.cmd, 'reset', '--hard', '-q'] + rev_options,
             cwd=dest,
         )
-        #: update submodules
+        # : update submodules
         self.update_submodules(dest)
 
     def obtain(self, dest):
@@ -126,7 +134,7 @@ class Git(VersionControl):
                         [self.cmd, 'checkout', '-q'] + rev_options,
                         cwd=dest,
                     )
-            #: repo may contain submodules
+            # : repo may contain submodules
             self.update_submodules(dest)
 
     def get_url(self, location):

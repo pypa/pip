@@ -3,6 +3,7 @@ import pytest
 from mock import patch
 
 from pip.vcs.git import Git
+from pip.exceptions import SuspiciousVersion
 from tests.lib import _create_test_package
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,
@@ -82,6 +83,16 @@ def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
 
     result = git.check_rev_options('0.1', '.', [])
     assert result == ['123456'], result
+
+
+@patch('pip.vcs.git.Git.get_refs')
+def test_check_rev_options_should_abort_suspicious_version(get_refs_mock):
+    get_refs_mock.return_value = {'1b0e77e5048e936fb3fdd1d46a4d03855526f1df':
+                                  '123456'}
+    git = Git()
+
+    pytest.raises(SuspiciousVersion, git.check_rev_options,
+                  '1b0e77e5048e936fb3fdd1d46a4d03855526f1df', '.', [])
 
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
