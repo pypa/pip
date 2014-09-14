@@ -688,9 +688,6 @@ def unpack_url(link, location, download_dir=None,
          - if download_dir, copy the file into download_dir
          - if only_download, mark location for deletion
     """
-    if session is None:
-        session = PipSession()
-
     # non-editable vcs urls
     if is_vcs_url(link):
         unpack_vcs_link(link, location, only_download)
@@ -703,6 +700,9 @@ def unpack_url(link, location, download_dir=None,
 
     # http urls
     else:
+        if session is None:
+            session = PipSession()
+
         unpack_http_url(
             link,
             location,
