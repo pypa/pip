@@ -44,11 +44,6 @@ def _secure_open_write(filename, fmode):
         raise
 
 
-def warning_on_one_line(message, category, filename, lineno, file=None,
-                        line=None):
-    return ' %s:%s: %s' % (filename, lineno, message)
-
-
 class FileCache(object):
     def __init__(self, directory, forever=False, filemode=0o0600,
                  dirmode=0o0700):
@@ -56,7 +51,6 @@ class FileCache(object):
         self.forever = forever
         self.filemode = filemode
         self.dirmode = dirmode
-        self.curr_bytes = 0
 
     @staticmethod
     def encode(x):

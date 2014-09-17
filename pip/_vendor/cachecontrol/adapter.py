@@ -53,7 +53,7 @@ class CacheControlAdapter(HTTPAdapter):
         """
         if not from_cache and request.method == 'GET':
 
-            # apply any expiration heurstics
+            # apply any expiration heuristics
             if response.status == 304:
                 # We must have sent an ETag request. This could mean
                 # that we've been expired already or that we simply
