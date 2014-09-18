@@ -21,7 +21,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import appdirs, get_prog, normalize_path
+from pip.utils import appdirs, get_prog, normalize_path, self_check
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import IndentingFormatter
 
@@ -198,6 +198,11 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        # Check if we're using the latest version of pip available
+        if not options.disable_self_check:
+            with self._build_session(options) as session:
+                self_check(session)
 
         try:
             status = self.run(options, args)
