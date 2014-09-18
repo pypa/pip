@@ -211,7 +211,7 @@ find_links = OptionMaker(
          "If a local path or file:// url that's a directory, then look for "
          "archives in the directory listing.")
 
-# TODO: Remove after 1.6
+# TODO: Remove after 6.0
 use_mirrors = OptionMaker(
     '-M', '--use-mirrors',
     dest='use_mirrors',
@@ -219,7 +219,7 @@ use_mirrors = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
-# TODO: Remove after 1.6
+# TODO: Remove after 6.0
 mirrors = OptionMaker(
     '--mirrors',
     dest='mirrors',
@@ -245,7 +245,7 @@ allow_all_external = OptionMaker(
     help="Allow the installation of all packages that are externally hosted",
 )
 
-# Remove after 1.7
+# Remove after 7.0
 no_allow_external = OptionMaker(
     "--no-allow-external",
     dest="allow_all_external",
@@ -254,7 +254,7 @@ no_allow_external = OptionMaker(
     help=SUPPRESS_HELP,
 )
 
-# Remove --allow-insecure after 1.7
+# Remove --allow-insecure after 7.0
 allow_unsafe = OptionMaker(
     "--allow-unverified", "--allow-insecure",
     dest="allow_unverified",
@@ -265,7 +265,7 @@ allow_unsafe = OptionMaker(
     "in an insecure and unverifiable way",
 )
 
-# Remove after 1.7
+# Remove after 7.0
 no_allow_unsafe = OptionMaker(
     "--no-allow-insecure",
     dest="allow_all_insecure",

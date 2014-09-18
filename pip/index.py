@@ -13,7 +13,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.utils import Inf, normalize_name, splitext, is_prerelease
-from pip.utils.deprecation import RemovedInPip17Warning
+from pip.utils.deprecation import RemovedInPip7Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -104,7 +104,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
             self.dependency_links.extend(links)
 
@@ -460,7 +460,7 @@ class PackageFinder(object):
             warnings.warn(
                 "%s discovered using a deprecated method of parsing, in the "
                 "future it will no longer be discovered." % req.name,
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
 
         return selected_version
