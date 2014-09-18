@@ -9,8 +9,9 @@ import mimetypes
 import posixpath
 import warnings
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.six import moves
+urllib_parse = moves.urllib.parse
+urllib_request = moves.urllib.request
 
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
@@ -25,7 +26,6 @@ from pip.download import url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests, pkg_resources
-from pip._vendor.requests.exceptions import SSLError
 
 
 __all__ = ['PackageFinder']
@@ -48,7 +48,7 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-                 use_wheel=True, allow_external=[], allow_unverified=[],
+                 use_wheel=True, allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
                  process_dependency_links=False, session=None):
         if session is None:
@@ -302,7 +302,7 @@ class PackageFinder(object):
             logger.debug(
                 'dependency_links found: %s',
                 ', '.join([
-                    link.url for p, link, version in dependency_versions
+                    link.url for _, link, version in dependency_versions
                 ])
             )
         file_versions = list(
@@ -438,7 +438,8 @@ class PackageFinder(object):
                 ', '.join([
                     version for parsed_version, link, version
                     in applicable_versions[1:]
-                ]) or 'none'),
+                ]) or 'none'
+            )
             raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.debug(
@@ -785,7 +786,7 @@ class HTMLPage(object):
             logger.debug('Getting page %s', url)
 
             # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = \
+            (scheme, _, path, _, _, _) = \
                 urllib_parse.urlparse(url)
             if (scheme == 'file'
                     and os.path.isdir(urllib_request.url2pathname(path))):
@@ -829,30 +830,24 @@ class HTMLPage(object):
             )
         except requests.Timeout:
             cls._handle_fail(req, link, "timed out", url)
-        except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
-            cls._handle_fail(
-                req, link, reason, url,
-                level=2,
-                meth=logger.info,
-            )
         else:
             return inst
 
     @staticmethod
     def _handle_fail(req, link, reason, url, level=1, meth=None):
+        del url, level
+
         if meth is None:
             meth = logger.debug
 
         meth("Could not fetch URL %s: %s", link, reason)
-        meth("Will skip URL %s when looking for download links for %s" %
-             (link.url, req))
+        meth("Will skip URL %s when looking for download links for %s",
+             link.url, req)
 
     @staticmethod
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+        scheme, _, _, _, _ = urllib_parse.urlsplit(url)
         if scheme not in ('http', 'https', 'ftp', 'ftps'):
             # FIXME: some warning or something?
             # assertion error?
@@ -1027,7 +1022,7 @@ class Link(object):
 
     @property
     def url_without_fragment(self):
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
+        scheme, netloc, path, query, _ = urllib_parse.urlsplit(self.url)
         return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
