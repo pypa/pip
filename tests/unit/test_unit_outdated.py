@@ -3,6 +3,7 @@ import datetime
 import os
 from contextlib import contextmanager
 
+import freezegun
 import pytest
 import pretend
 
@@ -40,20 +41,13 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
         outdated, 'load_selfcheck_statefile', lambda: fake_state
     )
 
-    fake_now = datetime.datetime(1970, 1, 9, 10, 00, 00)
-
-    fake_datetime = pretend.stub(
-        utcnow=pretend.call_recorder(lambda: fake_now),
-        strptime=datetime.datetime.strptime,
-    )
-    monkeypatch.setattr(datetime, 'datetime', fake_datetime)
-
     monkeypatch.setattr(outdated.logger, 'warning',
                         pretend.call_recorder(lambda s: None))
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
 
-    outdated.pip_version_check(session)
+    with freezegun.freeze_time("1970-01-09 10:00:00", ignore=["pip._vendor.six.moves"]):
+        outdated.pip_version_check(session)
 
     assert not outdated.logger.debug.calls
 
@@ -62,7 +56,9 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
             "https://pypi.python.org/pypi/pip/json",
             headers={"Accept": "application/json"}
         )]
-        assert fake_state.save.calls == [pretend.call(newver, fake_now)]
+        assert fake_state.save.calls == [
+            pretend.call(newver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
+        ]
         if warn:
             assert len(outdated.logger.warning.calls) == 1
         else:
