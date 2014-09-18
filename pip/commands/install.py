@@ -15,7 +15,7 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
-from pip.utils.deprecation import RemovedInPip17Warning, RemovedInPip18Warning
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ class InstallCommand(Command):
             warnings.warn(
                 "--no-install, --no-download, --build, and --no-clean are "
                 "deprecated. See https://github.com/pypa/pip/issues/906.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
 
         if options.download_dir:
@@ -247,7 +247,7 @@ class InstallCommand(Command):
                 "--use-mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
 
         if options.mirrors:
@@ -255,7 +255,7 @@ class InstallCommand(Command):
                 "--mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
             index_urls += options.mirrors
 
@@ -264,7 +264,7 @@ class InstallCommand(Command):
                 "--download-cache has been deprecated and will be removed in "
                 "the future. Pip now automatically uses and configures its "
                 "cache.",
-                RemovedInPip18Warning,
+                RemovedInPip8Warning,
             )
 
         with self._build_session(options) as session:

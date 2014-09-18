@@ -23,7 +23,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "1.6.dev1"
+__version__ = "6.0.dev1"
 
 
 logger = logging.getLogger(__name__)

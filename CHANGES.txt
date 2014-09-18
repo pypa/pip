@@ -1,4 +1,7 @@
-**1.6.0.dev1 (unreleased)**
+**6.0.dev1 (unreleased)**
+
+* **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
+  has been dropped.
 
 * Fixed :issue:`1873`. Silence byte compile errors when installation succeed.
 
@@ -16,7 +19,7 @@
   the functionality removed. Since pip now automatically configures and uses
   it's internal HTTP cache which supplants the ``--download-cache`` the
   existing options have been made non functional but will still be accepted
-  until their removal in pip v1.8. For more information please see
+  until their removal in pip v8.0. For more information please see
   https://pip.pypa.io/en/latest/reference/pip_install.html#caching
 
 * Added a virtualenv-specific configuration file. (:pull:`1364`)

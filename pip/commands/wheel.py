@@ -10,7 +10,7 @@ from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.utils import normalize_path
-from pip.utils.deprecation import RemovedInPip17Warning, RemovedInPip18Warning
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.wheel import WheelBuilder
 from pip import cmdoptions
 
@@ -137,7 +137,7 @@ class WheelCommand(Command):
                 "--use-mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
 
         if options.mirrors:
@@ -145,7 +145,7 @@ class WheelCommand(Command):
                 "--mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
             index_urls += options.mirrors
 
@@ -154,7 +154,7 @@ class WheelCommand(Command):
                 "--download-cache has been deprecated and will be removed in "
                 "the future. Pip now automatically uses and configures its "
                 "cache.",
-                RemovedInPip18Warning,
+                RemovedInPip8Warning,
             )
 
         with self._build_session(options) as session:

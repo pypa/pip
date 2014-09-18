@@ -22,7 +22,7 @@ from pip.status_codes import (
     PREVIOUS_BUILD_DIR_ERROR,
 )
 from pip.utils import appdirs, get_prog, normalize_path
-from pip.utils.deprecation import RemovedInPip18Warning
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import IndentingFormatter
 
 
@@ -179,7 +179,7 @@ class Command(object):
             warnings.warn(
                 "--log-explicit-levels has been deprecated and will be removed"
                 " in a future version.",
-                RemovedInPip18Warning,
+                RemovedInPip8Warning,
             )
 
         # TODO: try to get these passing down from the command?

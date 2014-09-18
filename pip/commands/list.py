@@ -8,7 +8,7 @@ from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
-from pip.utils.deprecation import RemovedInPip17Warning
+from pip.utils.deprecation import RemovedInPip7Warning
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -112,7 +112,7 @@ class ListCommand(Command):
                 "--use-mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
 
         if options.mirrors:
@@ -120,7 +120,7 @@ class ListCommand(Command):
                 "--mirrors has been deprecated and will be removed in the "
                 "future. Explicit uses of --index-url and/or --extra-index-url"
                 " is suggested.",
-                RemovedInPip17Warning,
+                RemovedInPip7Warning,
             )
             index_urls += options.mirrors
 

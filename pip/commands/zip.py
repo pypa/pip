@@ -10,7 +10,7 @@ import warnings
 import zipfile
 
 from pip.utils import display_path, backup_dir, rmtree
-from pip.utils.deprecation import RemovedInPip17Warning
+from pip.utils.deprecation import RemovedInPip7Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import InstallationError
 from pip.basecommand import Command
@@ -116,7 +116,7 @@ class ZipCommand(Command):
         warnings.warn(
             "'pip zip' and 'pip unzip` are deprecated, and will be removed in "
             "a future release.",
-            RemovedInPip17Warning,
+            RemovedInPip7Warning,
         )
 
         self.select_paths = options.paths

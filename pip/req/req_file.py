@@ -85,7 +85,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             if finder:
                 finder.index_urls.append(line)
         elif line.startswith('--use-wheel'):
-            # Default in 1.6
+            # Default in 1.5
             pass
         elif line.startswith('--no-use-wheel'):
             if finder:
@@ -100,13 +100,13 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         elif line.startswith("--allow-all-external"):
             if finder:
                 finder.allow_all_external = True
-        # Remove in 1.7
+        # Remove in 7.0
         elif line.startswith("--no-allow-external"):
             pass
-        # Remove in 1.7
+        # Remove in 7.0
         elif line.startswith("--no-allow-insecure"):
             pass
-        # Remove after 1.7
+        # Remove after 7.0
         elif line.startswith("--allow-insecure"):
             line = line[len("--allow-insecure"):].strip().lstrip("=")
             if finder:

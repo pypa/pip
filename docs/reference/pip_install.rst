@@ -258,7 +258,7 @@ of providing secure, certified downloads from PyPI.
 Caching
 +++++++
 
-Starting with v1.6, pip provides an on by default cache which functions
+Starting with v6.0, pip provides an on by default cache which functions
 similarly to that of a web browser. While the cache is on by default and is
 designed do the right thing by default you can disable the cache and always
 access PyPI by utilizing the ``--no-cache-dir`` option.
