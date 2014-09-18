@@ -252,12 +252,9 @@ class PackageFinder(object):
                     url_name, req
                 ) or req.url_name
 
-        if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url)
-                for url in self.index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
+        locations = [
+            mkurl_pypi_url(url)
+            for url in self.index_urls] + self.find_links
         for version in req.absolute_versions:
             if url_name is not None and main_index_url is not None:
                 locations = [
