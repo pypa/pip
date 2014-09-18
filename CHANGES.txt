@@ -26,8 +26,8 @@
 
 * Added site-wide configuation files. (:pull:`1978`)
 
-* Added self-check (automatic and manual) to try to keep pip installations
-  updated (:pull:`1973`) based on @dstufft's work in :pull:`1214`.
+* Added an automatic check to warn if there is an updated version of pip
+  available (:pull:`2049`).
 
 * `wsgiref` and `argparse` (for >py26) are now excluded from `pip list` and `pip
   freeze` (:pull:`1606`, :pull:`1369`)

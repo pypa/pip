@@ -8,7 +8,7 @@ import pretend
 
 import pip
 from pip._vendor import lockfile
-from pip import util
+from pip.utils import outdated
 
 
 @pytest.mark.parametrize(
@@ -20,7 +20,7 @@ from pip import util
         ('1970-01-06T10:00:00Z', '2.0', False, True),
     ]
 )
-def test_self_check(monkeypatch, stored_time, newver, check, warn):
+def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     monkeypatch.setattr(pip, '__version__', '1.0')
 
     resp = pretend.stub(
@@ -36,7 +36,9 @@ def test_self_check(monkeypatch, stored_time, newver, check, warn):
         save=pretend.call_recorder(lambda v, t: None),
     )
 
-    monkeypatch.setattr(util, 'load_selfcheck_statefile', lambda: fake_state)
+    monkeypatch.setattr(
+        outdated, 'load_selfcheck_statefile', lambda: fake_state
+    )
 
     fake_now = datetime.datetime(1970, 1, 9, 10, 00, 00)
 
@@ -46,14 +48,14 @@ def test_self_check(monkeypatch, stored_time, newver, check, warn):
     )
     monkeypatch.setattr(datetime, 'datetime', fake_datetime)
 
-    monkeypatch.setattr(util.logger, 'warn',
+    monkeypatch.setattr(outdated.logger, 'warning',
                         pretend.call_recorder(lambda s: None))
-    monkeypatch.setattr(util.logger, 'debug',
+    monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
 
-    util.self_check(session)
+    outdated.pip_version_check(session)
 
-    assert not util.logger.debug.calls
+    assert not outdated.logger.debug.calls
 
     if check:
         assert session.get.calls == [pretend.call(
@@ -62,9 +64,9 @@ def test_self_check(monkeypatch, stored_time, newver, check, warn):
         )]
         assert fake_state.save.calls == [pretend.call(newver, fake_now)]
         if warn:
-            assert len(util.logger.warn.calls) == 1
+            assert len(outdated.logger.warning.calls) == 1
         else:
-            assert len(util.logger.warn.calls) == 0
+            assert len(outdated.logger.warning.calls) == 0
     else:
         assert session.get.calls == []
         assert fake_state.save.calls == []
@@ -82,17 +84,17 @@ def test_virtualenv_state(monkeypatch):
     def fake_open(filename, mode='r'):
         yield fake_file
 
-    monkeypatch.setattr(util, 'open', fake_open, raising=False)
+    monkeypatch.setattr(outdated, 'open', fake_open, raising=False)
 
-    monkeypatch.setattr(util, 'running_under_virtualenv',
+    monkeypatch.setattr(outdated, 'running_under_virtualenv',
                         pretend.call_recorder(lambda: True))
 
     monkeypatch.setattr(sys, 'prefix', 'virtually_env')
 
-    state = util.load_selfcheck_statefile()
+    state = outdated.load_selfcheck_statefile()
     state.save('2.0', datetime.datetime.utcnow())
 
-    assert len(util.running_under_virtualenv.calls) == 1
+    assert len(outdated.running_under_virtualenv.calls) == 1
 
     expected_path = os.path.join('virtually_env', 'pip-selfcheck.json')
     assert fake_open.calls == [
@@ -117,7 +119,7 @@ def test_global_state(monkeypatch):
     def fake_open(filename, mode='r'):
         yield fake_file
 
-    monkeypatch.setattr(util, 'open', fake_open, raising=False)
+    monkeypatch.setattr(outdated, 'open', fake_open, raising=False)
 
     @pretend.call_recorder
     @contextmanager
@@ -126,16 +128,16 @@ def test_global_state(monkeypatch):
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
 
-    monkeypatch.setattr(util, 'running_under_virtualenv',
+    monkeypatch.setattr(outdated, 'running_under_virtualenv',
                         pretend.call_recorder(lambda: False))
 
-    monkeypatch.setattr(util, 'USER_CACHE_DIR', 'cache_dir')
+    monkeypatch.setattr(outdated, 'USER_CACHE_DIR', 'cache_dir')
     monkeypatch.setattr(sys, 'prefix', 'pip_prefix')
 
-    state = util.load_selfcheck_statefile()
+    state = outdated.load_selfcheck_statefile()
     state.save('2.0', datetime.datetime.utcnow())
 
-    assert len(util.running_under_virtualenv.calls) == 1
+    assert len(outdated.running_under_virtualenv.calls) == 1
 
     expected_path = os.path.join('cache_dir', 'selfcheck.json')
     assert fake_lock.calls == [pretend.call(expected_path)]

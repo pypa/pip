@@ -12,7 +12,7 @@ class FakeCommand(Command):
         super(FakeCommand, self).__init__()
 
     def main(self, args):
-        args.append("--disable-self-check")
+        args.append("--disable-pip-version-check")
         return super(FakeCommand, self).main(args)
 
     def run(self, options, args):
