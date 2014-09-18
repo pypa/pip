@@ -24,6 +24,7 @@ from pip.status_codes import (
 from pip.utils import appdirs, get_prog, normalize_path
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import IndentingFormatter
+from pip.utils.outdated import pip_version_check
 
 
 __all__ = ['Command']
@@ -198,6 +199,11 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        # Check if we're using the latest version of pip available
+        if not options.disable_pip_version_check:
+            with self._build_session(options) as session:
+                pip_version_check(session)
 
         try:
             status = self.run(options, args)

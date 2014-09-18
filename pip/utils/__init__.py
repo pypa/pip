@@ -17,7 +17,7 @@ from pip.exceptions import InstallationError, BadCommand
 from pip.compat import console_to_str, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
-    write_delete_marker_file
+    write_delete_marker_file,
 )
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib import version

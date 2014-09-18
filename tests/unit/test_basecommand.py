@@ -11,6 +11,10 @@ class FakeCommand(Command):
         self.error = error
         super(FakeCommand, self).__init__()
 
+    def main(self, args):
+        args.append("--disable-pip-version-check")
+        return super(FakeCommand, self).main(args)
+
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
         if self.error:
