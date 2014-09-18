@@ -9,6 +9,7 @@ import sys
 from pip._vendor import lockfile
 from pip._vendor import pkg_resources
 
+from pip.compat import total_seconds
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 
 
@@ -97,7 +98,7 @@ def pip_version_check(session):
                 state.state["last_check"],
                 SELFCHECK_DATE_FMT
             )
-            if (current_time - last_check).total_seconds() < 7 * 24 * 60 * 60:
+            if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
                 pypi_version = state.state["pypi_version"]
 
         # Refresh the version if we need to or just see if we need to warn
