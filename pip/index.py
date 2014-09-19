@@ -150,9 +150,9 @@ class PackageFinder(object):
 
         return files, urls
 
-    def _link_sort_key(self, link_tuple):
+    def _link_sort_key(self, version):
         """
-        Function used to generate link sort key for link tuples.
+        Function used to generate link sort key for FoundVersion's.
         The greater the return value, the more preferred it is.
         If not finding wheels, then sorted by version only.
         If finding wheels, then the sort order is by version, then:
@@ -163,13 +163,12 @@ class PackageFinder(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        parsed_version, link, _ = link_tuple
         if self.use_wheel:
             support_num = len(supported_tags)
-            if link == INSTALLED_VERSION:
+            if version.currently_installed:
                 pri = 1
-            elif link.ext == wheel_ext:
-                wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
+            elif version.link.ext == wheel_ext:
+                wheel = Wheel(version.link.filename)  # can raise InvalidWheelFilename
                 if not wheel.supported():
                     raise UnsupportedWheel(
                         "%s is not a supported wheel for this platform. It "
@@ -178,9 +177,9 @@ class PackageFinder(object):
                 pri = -(wheel.support_index_min())
             else:  # sdist
                 pri = -(support_num)
-            return (parsed_version, pri)
+            return (version.parsed_version, pri)
         else:
-            return parsed_version
+            return version.parsed_version
 
     def _sort_versions(self, applicable_versions):
         """
@@ -302,7 +301,7 @@ class PackageFinder(object):
             logger.debug(
                 'dependency_links found: %s',
                 ', '.join([
-                    link.url for p, link, version in dependency_versions
+                    found.link.url for found in dependency_versions
                 ])
             )
         file_versions = list(
@@ -338,56 +337,54 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions at all found for %s' % req
             )
-        installed_version = []
-        if req.satisfied_by is not None:
-            installed_version = [(
-                req.satisfied_by.parsed_version,
-                INSTALLED_VERSION,
-                req.satisfied_by.version,
-            )]
+        if req.satisfied_by is None:
+            installed_version = []
+        else:
+            installed_version = [
+                FoundVersion(req.satisfied_by.version, INSTALLED_VERSION)
+            ]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
                 'Local files found: %s',
                 ', '.join([
-                    url_to_path(link.url)
-                    for _, link, _ in file_versions
+                    url_to_path(found.link.url)
+                    for found in file_versions
                 ])
             )
         # this is an intentional priority ordering
         all_versions = installed_version + file_versions + found_versions \
             + page_versions + dependency_versions
         applicable_versions = []
-        for (parsed_version, link, version) in all_versions:
-            if version not in req.req:
+        for found in all_versions:
+            if found.version not in req.req:
                 logger.debug(
                     "Ignoring link %s, version %s doesn't match %s",
-                    link,
-                    version,
+                    found.link,
+                    found.version,
                     ','.join([''.join(s) for s in req.req.specs]),
                 )
                 continue
-            elif (is_prerelease(version)
+            elif (found.prerelease
                     and not (self.allow_all_prereleases or req.prereleases)):
                 # If this version isn't the already installed one, then
                 #   ignore it if it's a pre-release.
-                if link is not INSTALLED_VERSION:
+                if not found.currently_installed:
                     logger.debug(
                         "Ignoring link %s, version %s is a pre-release (use "
                         "--pre to allow).",
-                        link,
-                        version,
+                        found.link,
+                        found.version,
                     )
                     continue
-            applicable_versions.append((parsed_version, link, version))
+            applicable_versions.append(found)
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = bool([
-            link
-            for parsed_version, link, version in applicable_versions
-            if link is INSTALLED_VERSION
-        ])
+        existing_applicable = any(
+            found.currently_installed
+            for found in applicable_versions
+        )
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is INSTALLED_VERSION:
+            if applicable_versions.currently_installed:
                 logger.debug(
                     'Existing installed version (%s) is most up-to-date and '
                     'satisfies requirement',
@@ -398,7 +395,7 @@ class PackageFinder(object):
                     'Existing installed version (%s) satisfies requirement '
                     '(most up-to-date version is %s)',
                     req.satisfied_by.version,
-                    applicable_versions[0][2],
+                    applicable_versions[0].version,
                 )
             return None
         if not applicable_versions:
@@ -408,8 +405,8 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(set([
-                        version
-                        for parsed_version, link, version in all_versions
+                        found.version
+                        for found in all_versions
                     ]))),
             )
 
@@ -429,28 +426,28 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions matching the version for %s' % req
             )
-        if applicable_versions[0][1] is INSTALLED_VERSION:
-            # We have an existing version, and its the best version
+        if applicable_versions[0].currently_installed:
+            # We have an existing version, and it is the best version
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
                 ', '.join([
-                    version for parsed_version, link, version
+                    found.version for found
                     in applicable_versions[1:]
                 ]) or 'none'),
             raise BestVersionAlreadyInstalled
         if len(applicable_versions) > 1:
             logger.debug(
                 'Using version %s (newest of versions: %s)',
-                applicable_versions[0][2],
+                applicable_versions[0].version,
                 ', '.join([
-                    version for parsed_version, link, version
+                    found.version for found
                     in applicable_versions
                 ])
             )
 
-        selected_version = applicable_versions[0][1]
+        selected_version = applicable_versions[0].link
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
@@ -701,11 +698,7 @@ class PackageFinder(object):
                 )
                 return []
         logger.debug('Found link %s, version: %s', link, version)
-        return [(
-            pkg_resources.parse_version(version),
-            link,
-            version,
-        )]
+        return [FoundVersion(version, link)]
 
     def _egg_info_matches(self, egg_info, search_name, link):
         match = self._egg_info_re.search(egg_info)
@@ -724,6 +717,33 @@ class PackageFinder(object):
 
     def _get_page(self, link, req):
         return HTMLPage.get_page(link, req, session=self.session)
+
+
+class FoundVersion(object):
+    """Represents a version of a package, found at a particular place."""
+
+    def __init__(self, version, link):
+        self.version = version
+        self.link = link
+
+    @cached_property
+    def parsed_version(self):
+        return pkg_resources.parse_version(self.version)
+
+    @cached_property
+    def currently_installed(self):
+        return self.link == INSTALLED_VERSION
+
+    @cached_property
+    def prerelease(self):
+        return is_prerelease(self.version)
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (
+            self.__class__.__name__,
+            self.version,
+            self.link,
+        )
 
 
 class HTMLPage(object):
