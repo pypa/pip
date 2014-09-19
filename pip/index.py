@@ -150,39 +150,6 @@ class PackageFinder(object):
 
         return files, urls
 
-    def _link_sort_key(self, version):
-        """
-        Function used to generate link sort key for FoundVersion's.
-        The greater the return value, the more preferred it is.
-        If not finding wheels, then sorted by version only.
-        If finding wheels, then the sort order is by version, then:
-          1. existing installs
-          2. wheels ordered via Wheel.support_index_min()
-          3. source archives
-        Note: it was considered to embed this logic into the Link
-              comparison operators, but then different sdist links
-              with the same version, would have to be considered equal
-        """
-        if self.use_wheel:
-            support_num = len(supported_tags)
-            if version.currently_installed:
-                pri = 1
-            elif version.link.ext == wheel_ext:
-                wheel = Wheel(
-                    version.link.filename
-                )  # can raise InvalidWheelFilename
-                if not wheel.supported():
-                    raise UnsupportedWheel(
-                        "%s is not a supported wheel for this platform. It "
-                        "can't be sorted." % wheel.filename
-                    )
-                pri = -(wheel.support_index_min())
-            else:  # sdist
-                pri = -(support_num)
-            return (version.parsed_version, pri)
-        else:
-            return version.parsed_version
-
     def _sort_versions(self, applicable_versions):
         """
         Bring the latest version (and wheels) to the front, but maintain the
@@ -191,7 +158,7 @@ class PackageFinder(object):
         """
         return sorted(
             applicable_versions,
-            key=self._link_sort_key,
+            key=FoundVersion.sort_key,
             reverse=True
         )
 
@@ -739,6 +706,36 @@ class FoundVersion(object):
     @cached_property
     def prerelease(self):
         return is_prerelease(self.version)
+
+    def sort_key(self):
+        """
+        Function used to generate link sort key for FoundVersion's.
+        The greater the return value, the more preferred it is.
+        If not finding wheels, then sorted by version only.
+        If finding wheels, then the sort order is by version, then:
+          1. existing installs
+          2. wheels ordered via Wheel.support_index_min()
+          3. source archives
+        Note: it was considered to embed this logic into the Link
+              comparison operators, but then different sdist links
+              with the same version, would have to be considered equal
+        """
+        support_num = len(supported_tags)
+        if self.currently_installed:
+            pri = 1
+        elif self.link.ext == wheel_ext:
+            wheel = Wheel(
+                self.link.filename
+            )  # can raise InvalidWheelFilename
+            if not wheel.supported():
+                raise UnsupportedWheel(
+                    "%s is not a supported wheel for this platform. "
+                    "It can't be sorted." % wheel.filename
+                )
+            pri = -(wheel.support_index_min())
+        else:  # sdist
+            pri = -(support_num)
+        return (self.parsed_version, pri)
 
     def __repr__(self):
         return '%s(%r, %r)' % (
