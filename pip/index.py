@@ -168,7 +168,9 @@ class PackageFinder(object):
             if version.currently_installed:
                 pri = 1
             elif version.link.ext == wheel_ext:
-                wheel = Wheel(version.link.filename)  # can raise InvalidWheelFilename
+                wheel = Wheel(
+                    version.link.filename
+                )  # can raise InvalidWheelFilename
                 if not wheel.supported():
                     raise UnsupportedWheel(
                         "%s is not a supported wheel for this platform. It "
