@@ -15,12 +15,6 @@ install: .travis/install.sh
 
 script: .travis/run.sh
 
-branches:
-  only:
-    - master
-    - develop
-    - /^[0-9]+\.[0-9]+\.[Xx]$/
-
 notifications:
   irc:
     channels:
