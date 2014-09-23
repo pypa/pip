@@ -12,7 +12,9 @@ import warnings
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.utils import Inf, normalize_name, splitext, is_prerelease
+from pip.utils import (
+    Inf, cached_property, normalize_name, splitext, is_prerelease,
+)
 from pip.utils.deprecation import RemovedInPip7Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -861,35 +863,30 @@ class HTMLPage(object):
 
         return resp.headers.get("Content-Type", "")
 
-    @property
+    @cached_property
     def api_version(self):
-        if not hasattr(self, "_api_version"):
-            _api_version = None
+        metas = [
+            x for x in self.parsed.findall(".//meta")
+            if x.get("name", "").lower() == "api-version"
+        ]
+        if metas:
+            try:
+                return int(metas[0].get("value", None))
+            except (TypeError, ValueError):
+                pass
 
-            metas = [
-                x for x in self.parsed.findall(".//meta")
-                if x.get("name", "").lower() == "api-version"
-            ]
-            if metas:
-                try:
-                    _api_version = int(metas[0].get("value", None))
-                except (TypeError, ValueError):
-                    _api_version = None
-            self._api_version = _api_version
-        return self._api_version
+        return None
 
-    @property
+    @cached_property
     def base_url(self):
-        if not hasattr(self, "_base_url"):
-            bases = [
-                x for x in self.parsed.findall(".//base")
-                if x.get("href") is not None
-            ]
-            if bases and bases[0].get("href"):
-                self._base_url = bases[0].get("href")
-            else:
-                self._base_url = self.url
-        return self._base_url
+        bases = [
+            x for x in self.parsed.findall(".//base")
+            if x.get("href") is not None
+        ]
+        if bases and bases[0].get("href"):
+            return bases[0].get("href")
+        else:
+            return self.url
 
     @property
     def links(self):
