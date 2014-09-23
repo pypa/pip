@@ -1,4 +1,4 @@
-"""Routines related to PyPI, indexes"""
+"""Routines related to PyPI, indexes"""  # FIXME:pylint:disable=too-many-lines
 from __future__ import absolute_import
 
 import logging
@@ -9,9 +9,10 @@ import mimetypes
 import posixpath
 import warnings
 
-from pip._vendor.six import moves
-urllib_parse = moves.urllib.parse
-urllib_request = moves.urllib.request
+if True:  # pylint can't deal with the metapath magic in six.moves
+    # pylint:disable=import-error
+    from pip._vendor.six.moves.urllib import parse as urllib_parse
+    from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
@@ -46,11 +47,13 @@ class PackageFinder(object):
     This is meant to match easy_install's technique for looking for
     packages, by reading pages and looking for appropriate links
     """
+    # FIXME:pylint:disable=too-many-instance-attributes
 
     def __init__(self, find_links, index_urls,
                  use_wheel=True, allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
                  process_dependency_links=False, session=None):
+        # FIXME:pylint:disable=too-many-arguments
         if session is None:
             raise TypeError(
                 "PackageFinder() missing 1 required keyword argument: "
@@ -195,6 +198,8 @@ class PackageFinder(object):
         )
 
     def _warn_about_insecure_transport_scheme(self, logger, location):
+        # These smells are enabling testability here:
+        # pylint:disable=no-self-use,redefined-outer-name
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
         if parsed.scheme in INSECURE_SCHEMES:
@@ -225,6 +230,7 @@ class PackageFinder(object):
                             ctx)
 
     def find_requirement(self, req, upgrade):
+        # FIXME:pylint:disable=too-many-locals,too-many-branches,too-many-statements
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -368,7 +374,7 @@ class PackageFinder(object):
                 )
                 continue
             elif (is_prerelease(version)
-                    and not (self.allow_all_prereleases or req.prereleases)):
+                  and not (self.allow_all_prereleases or req.prereleases)):
                 # If this version isn't the already installed one, then
                 #   ignore it if it's a pre-release.
                 if link is not INSTALLED_VERSION:
@@ -459,6 +465,7 @@ class PackageFinder(object):
                 "%s is potentially insecure and unverifiable.", req.name,
             )
 
+        # pylint:disable=protected-access
         if selected_version._deprecated_regex:
             warnings.warn(
                 "%s discovered using a deprecated method of parsing, in the "
@@ -543,7 +550,8 @@ class PackageFinder(object):
     _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
-    def _sort_links(self, links):
+    @staticmethod
+    def _sort_links(links):
         """
         Returns elements of links in order, non-egg links first, egg links
         second, while eliminating duplicates
@@ -578,6 +586,7 @@ class PackageFinder(object):
 
         Meant to be overridden by subclasses, not called by clients.
         """
+        # FIXME:pylint:disable=too-many-return-statements,too-many-branches,too-many-statements
         platform = get_platform()
 
         version = None
@@ -750,6 +759,7 @@ class HTMLPage(object):
 
     @classmethod
     def get_page(cls, link, req, skip_archives=True, session=None):
+        # FIXME:pylint:disable=too-many-locals,too-many-branches
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -786,8 +796,7 @@ class HTMLPage(object):
             logger.debug('Getting page %s', url)
 
             # Tack index.html onto file:// URLs that point to directories
-            (scheme, _, path, _, _, _) = \
-                urllib_parse.urlparse(url)
+            (scheme, _, path, _, _, _) = urllib_parse.urlparse(url)
             if (scheme == 'file'
                     and os.path.isdir(urllib_request.url2pathname(path))):
                 # add trailing slash if not present so urljoin doesn't trim
@@ -835,6 +844,7 @@ class HTMLPage(object):
 
     @staticmethod
     def _handle_fail(req, link, reason, url, level=1, meth=None):
+        # pylint:disable=too-many-arguments
         del url, level
 
         if meth is None:
@@ -847,7 +857,7 @@ class HTMLPage(object):
     @staticmethod
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, _, _, _, _ = urllib_parse.urlsplit(url)
+        scheme = urllib_parse.urlsplit(url)[0]
         if scheme not in ('http', 'https', 'ftp', 'ftps'):
             # FIXME: some warning or something?
             # assertion error?

@@ -1,0 +1,2 @@
+# This file contains python3-only syntax, and won't be fixed:
+./tests/data/src/compilewheel/simple/__init__.py
