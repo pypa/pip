@@ -226,7 +226,7 @@ class TestWheel:
         finder.use_wheel = True
 
         results = finder._sort_versions(links)
-        results2 = finder._sort_versions(sorted(links, reverse=True))
+        results2 = finder._sort_versions(reversed(links))
 
         assert links == results == results2, results2
 

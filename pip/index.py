@@ -313,7 +313,7 @@ class PackageFinder(object):
                 FoundVersion(req.satisfied_by.version, INSTALLED_VERSION)
             ]
         if file_versions:
-            file_versions.sort(reverse=True)
+            file_versions = self._sort_versions(file_versions)
             logger.debug(
                 'Local files found: %s',
                 ', '.join([
