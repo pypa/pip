@@ -1,10 +1,18 @@
 from tests.lib import pyversion
+from pip.vcs import VersionControl
 from pip.vcs.bazaar import Bazaar
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+def test_escape_egg_surname():
+    vc = VersionControl()
+    assert vc.escape_egg_surname("foo") == "foo"
+    assert vc.escape_egg_surname("foo/bar") == "foo_bar"
+    assert vc.escape_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
 def test_bazaar_simple_urls():
