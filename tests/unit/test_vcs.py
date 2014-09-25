@@ -1,4 +1,5 @@
 from tests.lib import pyversion
+from pip.vcs import VersionControl
 from pip.vcs.bazaar import Bazaar
 from pip.vcs.git import Git
 from mock import Mock
@@ -36,6 +37,13 @@ def test_git_get_src_requirements():
         '@5547fa909e83df8bd743d3978d6667497983a4b7',
         '#egg=pip_test_package-bar'
     ])
+
+
+def test_escape_egg_surname():
+    vc = VersionControl()
+    assert vc.escape_egg_surname("foo") == "foo"
+    assert vc.escape_egg_surname("foo/bar") == "foo_bar"
+    assert vc.escape_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
 def test_bazaar_simple_urls():
