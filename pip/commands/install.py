@@ -7,8 +7,7 @@ import shutil
 import warnings
 
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.locations import (virtualenv_no_global, distutils_scheme,
-                           build_prefix)
+from pip.locations import virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import (
@@ -199,13 +198,11 @@ class InstallCommand(Command):
 
         if (
             options.no_install or
-            options.no_download or
-            (options.build_dir != build_prefix) or
-            options.no_clean
+            options.no_download
         ):
             warnings.warn(
-                "--no-install, --no-download, --build, and --no-clean are "
-                "deprecated. See https://github.com/pypa/pip/issues/906.",
+                "--no-install and --no-download are deprecated. "
+                "See https://github.com/pypa/pip/issues/906.",
                 RemovedInPip7Warning,
             )
 
