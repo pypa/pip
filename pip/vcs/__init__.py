@@ -121,7 +121,7 @@ class VersionControl(object):
 
     # See issue #1083 for why this method was introduced:
     # https://github.com/pypa/pip/issues/1083
-    def escape_egg_surname(self, surname):
+    def translate_egg_surname(self, surname):
         # For example, Django has branches of the form "stable/1.7.x".
         return surname.replace('/', '_')
 

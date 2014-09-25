@@ -179,7 +179,7 @@ class Git(VersionControl):
             # It's a tag
             name = names_by_commit[current_rev]
             full_egg_name = (
-                '%s-%s' % (egg_project_name, self.escape_egg_surname(name))
+                '%s-%s' % (egg_project_name, self.translate_egg_surname(name))
             )
         else:
             full_egg_name = '%s-dev' % egg_project_name

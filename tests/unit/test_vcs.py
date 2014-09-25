@@ -39,11 +39,11 @@ def test_git_get_src_requirements():
     ])
 
 
-def test_escape_egg_surname():
+def test_translate_egg_surname():
     vc = VersionControl()
-    assert vc.escape_egg_surname("foo") == "foo"
-    assert vc.escape_egg_surname("foo/bar") == "foo_bar"
-    assert vc.escape_egg_surname("foo/1.2.3") == "foo_1.2.3"
+    assert vc.translate_egg_surname("foo") == "foo"
+    assert vc.translate_egg_surname("foo/bar") == "foo_bar"
+    assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
 def test_bazaar_simple_urls():
