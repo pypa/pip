@@ -83,11 +83,9 @@
 * Allow the use of OS standard user configuration files instead of ones simply
   based around ``$HOME``. (:pull:`2021`)
 
-
-**1.5.7**
-
 * Fixed :issue:`1825`. When installing directly from wheel paths or urls,
-  previous versions were not uninstalled. (:pull:`1838`)
+  previous versions were not uninstalled. This also fixes :issue:`804`
+  specifically for the case of wheel archives (:pull:`1838`)
 
 
 **1.5.6 (2014-05-16)**
