@@ -1105,28 +1105,3 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
-
-
-def get_requirement_from_url(url):
-    """Get a requirement from the URL, if possible.  This looks for #egg
-    in the URL"""
-    link = Link(url)
-    egg_info = link.egg_fragment
-    if not egg_info:
-        egg_info = splitext(link.filename)[0]
-    return package_to_requirement(egg_info)
-
-
-def package_to_requirement(package_name):
-    """Translate a name like Foo-1.2 to Foo==1.3"""
-    match = re.search(r'^(.*?)-(dev|\d.*)', package_name)
-    if match:
-        name = match.group(1)
-        version = match.group(2)
-    else:
-        name = package_name
-        version = ''
-    if version:
-        return '%s==%s' % (name, version)
-    else:
-        return name
