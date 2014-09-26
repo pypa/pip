@@ -15,7 +15,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
 )
-from pip.utils.deprecation import RemovedInPip7Warning
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -238,6 +238,7 @@ class PackageFinder(object):
             return loc
 
         url_name = req.url_name
+
         # Only check main index if index URL is given:
         main_index_url = None
         if self.index_urls:
@@ -249,6 +250,14 @@ class PackageFinder(object):
 
             page = self._get_page(main_index_url, req)
             if page is None:
+                warnings.warn(
+                    "One or more of your dependencies required using a "
+                    "deprecated fallback to looking at /simple/ to discover "
+                    "it's real name. It is suggested to upgrade your index to "
+                    " support normalized names as the name in /simple/{name}.",
+                    RemovedInPip8Warning,
+                )
+
                 url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
                     url_name, req
@@ -260,10 +269,6 @@ class PackageFinder(object):
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
-                locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
         _flocations, _ulocations = self._sort_locations(self.dependency_links)

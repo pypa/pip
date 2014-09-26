@@ -480,12 +480,6 @@ exec(compile(
             yield line
 
     @property
-    def absolute_versions(self):
-        for qualifier, version in self.req.specs:
-            if qualifier == '==':
-                yield version
-
-    @property
     def installed_version(self):
         return self.pkg_info()['version']
 
