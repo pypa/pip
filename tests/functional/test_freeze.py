@@ -165,6 +165,31 @@ def test_freeze_git_clone(script, tmpdir):
     ).strip()
     _check_output(result, expected)
 
+    # Check that slashes in branch or tag names are translated.
+    # See also issue #1083: https://github.com/pypa/pip/issues/1083
+    script.run(
+        'git', 'checkout', '-b', 'branch/name/with/slash',
+        cwd=script.scratch_path / 'pip-test-package',
+        expect_stderr=True,
+    )
+    # Create a new commit to ensure that the commit has only one branch
+    # or tag name associated to it (to avoid the non-determinism reported
+    # in issue #1867).
+    script.run(
+        'git', 'revert', '--no-edit', 'HEAD',
+        cwd=script.scratch_path / 'pip-test-package',
+    )
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            Script result: ...pip freeze
+            -- stdout: --------------------
+            ...-e ...@...#egg=pip_test_package-branch_name_with_slash...
+            ...
+        """
+    ).strip()
+    _check_output(result, expected)
+
 
 def test_freeze_mercurial_clone(script, tmpdir):
     """
