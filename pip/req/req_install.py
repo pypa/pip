@@ -256,7 +256,7 @@ class InstallRequirement(object):
     def url_name(self):
         if self.req is None:
             return None
-        return urllib_parse.quote(self.req.unsafe_name)
+        return urllib_parse.quote(self.req.project_name.lower())
 
     @property
     def setup_py(self):
