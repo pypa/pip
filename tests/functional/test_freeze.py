@@ -113,16 +113,17 @@ def test_freeze_git_clone(script, tmpdir):
         'pip-test-package',
         expect_stderr=True,
     )
+    repo_dir = script.scratch_path / 'pip-test-package'
     result = script.run(
         'git',
         'checkout',
         '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        cwd=script.scratch_path / 'pip-test-package',
+        cwd=repo_dir,
         expect_stderr=True,
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path / 'pip-test-package'
+        cwd=repo_dir
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
@@ -169,7 +170,7 @@ def test_freeze_git_clone(script, tmpdir):
     # See also issue #1083: https://github.com/pypa/pip/issues/1083
     script.run(
         'git', 'checkout', '-b', 'branch/name/with/slash',
-        cwd=script.scratch_path / 'pip-test-package',
+        cwd=repo_dir,
         expect_stderr=True,
     )
     # Create a new commit to ensure that the commit has only one branch
@@ -177,7 +178,7 @@ def test_freeze_git_clone(script, tmpdir):
     # in issue #1867).
     script.run(
         'git', 'revert', '--no-edit', 'HEAD',
-        cwd=script.scratch_path / 'pip-test-package',
+        cwd=repo_dir,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
