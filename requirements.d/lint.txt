@@ -1,0 +1,3 @@
+-r ./dev.txt
+flake8
+pylint

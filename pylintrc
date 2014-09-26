@@ -1,0 +1,25 @@
+[MASTER]
+ignore=_vendor
+
+[MESSAGES CONTROL]
+disable=locally-disabled,missing-docstring,fixme
+
+[REPORTS]
+output-format=colorized
+
+[TYPECHECK]
+ignored-modules=_MovedItems,pip._vendor.six
+ignored-classes=pytest
+
+[DESIGN]
+max-locals=15
+max-returns=6
+max-branches=12
+max-statements=50
+min-public-methods=0
+
+[BASIC]
+const-rgx=(([A-Za-z_][A-Za-z0-9_]*)|(__.*__))$
+function-rgx=[a-z_][a-z0-9_]{2,60}$
+method-rgx=(%(function-rgx)s|%(const-rgx)s)
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
