@@ -17,7 +17,7 @@ if True:  # pylint can't deal with the metapath magic in six.moves
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
 )
-from pip.utils.deprecation import RemovedInPip7Warning
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -244,6 +244,7 @@ class PackageFinder(object):
             return loc
 
         url_name = req.url_name
+
         # Only check main index if index URL is given:
         main_index_url = None
         if self.index_urls:
@@ -255,6 +256,14 @@ class PackageFinder(object):
 
             page = self._get_page(main_index_url, req)
             if page is None:
+                warnings.warn(
+                    "One or more of your dependencies required using a "
+                    "deprecated fallback to looking at /simple/ to discover "
+                    "it's real name. It is suggested to upgrade your index to "
+                    " support normalized names as the name in /simple/{name}.",
+                    RemovedInPip8Warning,
+                )
+
                 url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
                     url_name, req
@@ -266,10 +275,6 @@ class PackageFinder(object):
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
-                locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
         _flocations, _ulocations = self._sort_locations(self.dependency_links)
@@ -1105,28 +1110,3 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
-
-
-def get_requirement_from_url(url):
-    """Get a requirement from the URL, if possible.  This looks for #egg
-    in the URL"""
-    link = Link(url)
-    egg_info = link.egg_fragment
-    if not egg_info:
-        egg_info = splitext(link.filename)[0]
-    return package_to_requirement(egg_info)
-
-
-def package_to_requirement(package_name):
-    """Translate a name like Foo-1.2 to Foo==1.3"""
-    match = re.search(r'^(.*?)-(dev|\d.*)', package_name)
-    if match:
-        name = match.group(1)
-        version = match.group(2)
-    else:
-        name = package_name
-        version = ''
-    if version:
-        return '%s==%s' % (name, version)
-    else:
-        return name

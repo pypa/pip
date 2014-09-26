@@ -25,7 +25,7 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     script.environ['PIP_INDEX_URL'] = 'http://b.pypi.python.org/simple/'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "Getting page http://b.pypi.python.org/simple/INITools"
+        "Getting page http://b.pypi.python.org/simple/initools"
         in result.stdout
     )
     virtualenv.clear()
@@ -141,7 +141,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "Getting page http://download.zope.org/ppix/INITools" in result.stdout
+        "Getting page http://download.zope.org/ppix/initools" in result.stdout
     )
     virtualenv.clear()
     (script.scratch_path / config_file).write(textwrap.dedent("""\
@@ -151,7 +151,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         index-url = https://pypi.gocept.com/
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page https://pypi.gocept.com/INITools" in result.stdout
+    assert "Getting page https://pypi.gocept.com/initools" in result.stdout
     result = script.pip(
         'install', '-vvv', '--index-url', 'http://pypi.python.org/simple',
         'INITools',
@@ -163,7 +163,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
     )
     assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
     assert (
-        "Getting page http://pypi.python.org/simple/INITools" in result.stdout
+        "Getting page http://pypi.python.org/simple/initools" in result.stdout
     )
 
 
