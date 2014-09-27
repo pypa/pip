@@ -159,8 +159,12 @@ class Git(VersionControl):
         current_rev = self.get_revision(location)
         refs = self.get_refs(location)
         # refs maps names to commit hashes; we need the inverse
-        # if multiple names map to a single commit, this arbitrarily picks one
-        names_by_commit = dict((commit, ref) for ref, commit in sorted(refs.items()))
+        # if multiple names map to a single commit, we pick the first one
+        # alphabetically
+        names_by_commit = {}
+        for ref, commit in sorted(refs.items()):
+            if commit not in names_by_commit:
+                names_by_commit[commit] = ref
 
         if current_rev in names_by_commit:
             # It's a tag
