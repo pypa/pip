@@ -1,10 +1,41 @@
 from tests.lib import pyversion
 from pip.vcs.bazaar import Bazaar
+from pip.vcs.git import Git
+from mock import Mock
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+def test_git_get_src_requirements():
+    git_url = 'http://github.com/pypa/pip-test-package'
+    refs = {
+        '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
+        '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
+        '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
+        'foo': '5547fa909e83df8bd743d3978d6667497983a4b7',
+        'bar': '5547fa909e83df8bd743d3978d6667497983a4b7',
+        'master': '5547fa909e83df8bd743d3978d6667497983a4b7',
+        'origin/master': '5547fa909e83df8bd743d3978d6667497983a4b7',
+        'origin/HEAD': '5547fa909e83df8bd743d3978d6667497983a4b7',
+    }
+    sha = refs['foo']
+
+    git = Git()
+    git.get_url = Mock(return_value=git_url)
+    git.get_revision = Mock(return_value=sha)
+    git.get_refs = Mock(return_value=refs)
+    dist = Mock()
+    dist.egg_name = Mock(return_value='pip_test_package')
+    ret = git.get_src_requirement(dist, location='.', find_tags=None)
+
+    assert ret == ''.join([
+        'git+http://github.com/pypa/pip-test-package',
+        '@5547fa909e83df8bd743d3978d6667497983a4b7',
+        '#egg=pip_test_package-origin/master'
+    ])
 
 
 def test_bazaar_simple_urls():
