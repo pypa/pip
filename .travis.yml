@@ -4,6 +4,7 @@ env:
   - TOXENV=pep8
   - TOXENV=py3pep8
   - TOXENV=docs
+  - TOXENV=packaging
   - TOXENV=py26
   - TOXENV=py27
   - TOXENV=py32
