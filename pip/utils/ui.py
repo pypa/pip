@@ -23,6 +23,9 @@ class DownloadProgressMixin(object):
 
     @property
     def download_speed(self):
+        # Avoid zero division errors...
+        if self.avg == 0.0:
+            return "..."
         return format_size(1 / self.avg) + "/s"
 
     @property
