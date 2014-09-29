@@ -68,6 +68,7 @@ setup(
     license='MIT',
     packages=find_packages(exclude=["contrib", "docs", "tests*", "tasks"]),
     package_data={
+        'pip._vendor.certifi': ['*.pem'],
         'pip._vendor.requests': ['*.pem'],
         'pip._vendor.distlib._backport': ['sysconfig.cfg'],
         'pip._vendor.distlib': ['t32.exe', 't64.exe', 'w32.exe', 'w64.exe'],
