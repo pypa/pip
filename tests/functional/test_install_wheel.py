@@ -319,4 +319,5 @@ def test_install_from_wheel_uninstalls_old_version(script, data):
 def test_wheel_compile_syntax_error(script, data):
     package = data.packages.join("compilewheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', '--compile', package, '--no-index')
+    assert 'yield from' not in result.stdout
     assert 'SyntaxError: ' not in result.stdout

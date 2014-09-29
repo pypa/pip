@@ -662,14 +662,14 @@ def unpack_file(filename, location, content_type, link):
 
 
 def remove_tracebacks(output):
-    pattern = (r'\W+File "(.*)", line (.*)\W+(.*)\W+\^\W+'
-               r'Syntax(Error|Warning): (.*)')
+    pattern = (r'(?:\W+File "(?:.*)", line (?:.*)\W+(?:.*)\W+\^\W+)?'
+               r'Syntax(?:Error|Warning): (?:.*)')
     output = re.sub(pattern, '', output)
     if PY2:
         return output
     # compileall.compile_dir() prints different messages to stdout
     # in Python 3
-    return re.sub(r"\*\*\* Error compiling (.*)", '', output)
+    return re.sub(r"\*\*\* Error compiling (?:.*)", '', output)
 
 
 def call_subprocess(cmd, show_stdout=True,
