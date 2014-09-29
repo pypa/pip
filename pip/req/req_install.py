@@ -798,8 +798,10 @@ exec(compile(
             f = open(record_filename)
             for line in f:
                 line = line.strip()
-                if line.endswith('.egg-info'):
-                    egg_info_dir = prepend_root(line)
+                # record doesn't always include directories so scan for
+                # a known filename and then take the directory from that
+                if line.endswith('.egg-info/PKG-INFO'):
+                    egg_info_dir = prepend_root(line[:-9])
                     break
             else:
                 logger.warning(
