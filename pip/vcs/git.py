@@ -172,9 +172,10 @@ class Git(VersionControl):
         names_by_commit = dict((commit, ref) for ref, commit in refs.items())
 
         if current_rev in names_by_commit:
-            # It's a tag
+            # It's a tag or branch.
+            name = names_by_commit[current_rev]
             full_egg_name = (
-                '%s-%s' % (egg_project_name, names_by_commit[current_rev])
+                '%s-%s' % (egg_project_name, self.translate_egg_surname(name))
             )
         else:
             full_egg_name = '%s-dev' % egg_project_name
