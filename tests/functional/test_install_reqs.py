@@ -145,6 +145,15 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
+def test_install_collected_dependancies_first(script):
+    result = script.pip(
+        'install', 'paramiko',
+    )
+    text = [line for line in result.stdout.split('\n')
+            if 'Installing' in line][0]
+    assert text.endswith('paramiko')
+
+
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
                                                               'version_subdir')
