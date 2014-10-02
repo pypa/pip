@@ -189,9 +189,8 @@ class ZipCommand(Command):
                         if not os.path.exists(dest):
                             os.makedirs(dest)
                     else:
-                        f = open(dest, 'wb')
-                        f.write(content)
-                        f.close()
+                        with open(dest, 'wb') as f:
+                            f.write(content)
                 else:
                     to_save.append((name, zip.read(name)))
             zip.close()
@@ -271,9 +270,8 @@ class ZipCommand(Command):
 
     def remove_filename_from_pth(self, filename):
         for pth in self.pth_files():
-            f = open(pth, 'r')
-            lines = f.readlines()
-            f.close()
+            with open(pth, 'r') as f:
+                lines = f.readlines()
             new_lines = [
                 l for l in lines if l.strip() != filename]
             if lines != new_lines:
@@ -290,9 +288,8 @@ class ZipCommand(Command):
                         os.unlink(pth)
                 else:
                     if not self.simulate:
-                        f = open(pth, 'wb')
-                        f.writelines(new_lines)
-                        f.close()
+                        with open(pth, 'wb') as f:
+                            f.writelines(new_lines)
                 return
         logger.warning(
             'Cannot find a reference to %s in any .pth file',
@@ -309,17 +306,15 @@ class ZipCommand(Command):
             )
         if not self.simulate:
             if os.path.exists(dest):
-                f = open(dest)
-                lines = f.readlines()
-                f.close()
+                with open(dest) as f:
+                    lines = f.readlines()
                 if lines and not lines[-1].endswith('\n'):
                     lines[-1] += '\n'
                 lines.append(filename + '\n')
             else:
                 lines = [filename + '\n']
-            f = open(dest, 'wb')
-            f.writelines(lines)
-            f.close()
+            with open(dest, 'wb') as f:
+                f.writelines(lines)
 
     def pth_files(self):
         for path in self.paths():

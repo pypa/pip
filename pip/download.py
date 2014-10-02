@@ -324,14 +324,12 @@ def get_file_content(url, comes_from=None, session=None):
             else:
                 return resp.url, resp.content
     try:
-        f = open(url)
-        content = f.read()
+        with open(url) as f:
+            content = f.read()
     except IOError as exc:
         raise InstallationError(
             'Could not open requirements file: %s' % str(exc)
         )
-    else:
-        f.close()
     return url, content
 
 
@@ -441,18 +439,16 @@ def _get_hash_from_file(target_file, link):
         )
         return None
 
-    fp = open(target_file, 'rb')
-    while True:
-        chunk = fp.read(4096)
-        if not chunk:
-            break
-        download_hash.update(chunk)
-    fp.close()
+    with open(target_file, 'rb') as fp:
+        while True:
+            chunk = fp.read(4096)
+            if not chunk:
+                break
+            download_hash.update(chunk)
     return download_hash
 
 
-def _download_url(resp, link, temp_location):
-    fp = open(temp_location, 'wb')
+def _download_url(resp, link, content_file):
     download_hash = None
     if link.hash and link.hash_name:
         try:
@@ -541,8 +537,7 @@ def _download_url(resp, link, temp_location):
         for chunk in progress_indicator(resp_read(4096), 4096):
             if download_hash is not None:
                 download_hash.update(chunk)
-            fp.write(chunk)
-        fp.close()
+            content_file.write(chunk)
     finally:
         if link.hash and link.hash_name:
             _check_hash(download_hash, link)
@@ -767,7 +762,8 @@ def _download_http_url(link, session, temp_dir):
         if ext:
             filename += ext
     file_path = os.path.join(temp_dir, filename)
-    _download_url(resp, link, file_path)
+    with open(file_path, 'wb') as content_file:
+        _download_url(resp, link, content_file)
     return file_path, content_type
 
 

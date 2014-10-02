@@ -72,9 +72,8 @@ def write_delete_marker_file(directory):
     Write the pip delete marker file into this directory.
     """
     filepath = os.path.join(directory, PIP_DELETE_MARKER_FILENAME)
-    marker_fp = open(filepath, 'w')
-    marker_fp.write(DELETE_MARKER_MESSAGE)
-    marker_fp.close()
+    with open(filepath, 'w') as marker_fp:
+        marker_fp.write(DELETE_MARKER_MESSAGE)
 
 
 def running_under_virtualenv():
