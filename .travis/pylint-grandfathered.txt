@@ -5,7 +5,6 @@
 ./pip.py
 ./pip/__init__.py
 ./pip/basecommand.py
-./pip/baseparser.py
 ./pip/cmdoptions.py
 ./pip/commands/completion.py
 ./pip/commands/freeze.py

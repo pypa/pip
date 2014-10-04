@@ -10,6 +10,8 @@ env:
   - TOXENV=py33
   - TOXENV=py34
   - TOXENV=pypy
+matrix:
+    fast_finish: true
 
 install: .travis/install.sh
 

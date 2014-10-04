@@ -15,8 +15,7 @@ cat .travis/pylint-grandfathered.txt |
     xargs --replace -P8 sh -c '
         set -e
         if pylint {} > /dev/null; then
-            echo {} has no pylint errors!
-            echo but it is still in the grandfather list.
+            echo {} has no pylint errors. Please remove it from .travis/pylint-grandfathered.txt
             exit 1
         fi
     '

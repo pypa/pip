@@ -286,5 +286,4 @@ class TestOptionsConfigFiles(object):
             lambda: True,
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
-        cp = pip.baseparser.ConfigOptionParser()
-        assert len(cp.get_config_files()) == 4
+        assert len(pip.baseparser.get_config_files()) == 4
