@@ -89,7 +89,11 @@
 
 * Fixed :issue:`1825`. When installing directly from wheel paths or urls,
   previous versions were not uninstalled. This also fixes :issue:`804`
-  specifically for the case of wheel archives (:pull:`1838`)
+  specifically for the case of wheel archives. (:pull:`1838`)
+
+* Fixed :issue:`2075`, detect the location of the ``.egg-info`` directory by
+  looking for any file located inside of it instead of relying on the record
+  file listing a directory. (:pull:`2076`)
 
 
 **1.5.6 (2014-05-16)**
