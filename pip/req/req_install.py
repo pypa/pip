@@ -797,9 +797,9 @@ exec(compile(
 
             f = open(record_filename)
             for line in f:
-                line = line.strip()
-                if line.endswith('.egg-info'):
-                    egg_info_dir = prepend_root(line)
+                directory = os.path.dirname(line)
+                if directory.endswith('.egg-info'):
+                    egg_info_dir = prepend_root(directory)
                     break
             else:
                 logger.warning(
