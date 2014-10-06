@@ -148,7 +148,8 @@ class FreezeCommand(Command):
                 f.write(str(installations[line_req.name]))
                 del installations[line_req.name]
             f.write(
-                '## The following requirements were added by pip --freeze:\n'
+                '## The following requirements were added by '
+                'pip %(name)s:\n' % dict(name=self.name)
             )
         for installation in sorted(
                 installations.values(), key=lambda x: x.name.lower()):
