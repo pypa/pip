@@ -100,7 +100,10 @@ def user_agent():
     if platform.machine():
         data["cpu"] = platform.machine()
 
-    return json.dumps(data, separators=(",", ":"), sort_keys=True)
+    return "{data[installer][name]}/{data[installer][version]} {json}".format(
+        data=data,
+        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+    )
 
 
 class MultiDomainBasicAuth(AuthBase):
