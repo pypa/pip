@@ -366,5 +366,5 @@ Requirement file contains NoExist==4.2, but that package is not installed
 
 -- stdout: --------------------
 INITools==0.2
-""" + ignores + "## The following requirements were added by pip --freeze:..."
+""" + ignores + "## The following requirements were added by pip freeze:..."
     _check_output(result, expected)
