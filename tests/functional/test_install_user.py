@@ -280,5 +280,5 @@ class Tests_UserSite:
         assert (
             "Will not install to the user site because it will lack sys.path "
             "precedence to %s in %s" %
-            ('INITools', dist_location) in result2.stdout, result2.stdout
-        )
+            ('INITools', dist_location) in result2.stdout
+        ), result2.stdout

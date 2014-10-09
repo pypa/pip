@@ -294,9 +294,8 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
         find_command("foo", "path_one")
 
     assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
-        (mock_isfile.call_args_list, expected)
-    )
+        mock_isfile.call_args_list == expected
+    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert getpath_mock.called, "Should call get_pathext"
 
 
@@ -320,11 +319,9 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
 
     with pytest.raises(BadCommand):
         find_command("foo", "path_one", pathext)
-
     assert (
-        mock_isfile.call_args_list == expected, "Actual: %s\nExpected %s" %
-        (mock_isfile.call_args_list, expected)
-    )
+        mock_isfile.call_args_list == expected
+    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
     assert not getpath_mock.called, "Should not call get_pathext"
 
 
