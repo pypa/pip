@@ -163,8 +163,8 @@ class TestWheel:
         )
         found = finder.find_requirement(req, True)
         assert (
-            found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl"), found
-        )
+            found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl")
+        ), found
 
     def test_wheel_over_sdist_priority(self, data):
         """
