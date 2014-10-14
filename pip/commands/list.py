@@ -53,6 +53,12 @@ class ListCommand(Command):
             help=('If in a virtualenv that has global access, do not list '
                   'globally-installed packages.'),
         )
+        self.cmd_opts.add_option(
+            '--user',
+            dest='user',
+            action='store_true',
+            default=False,
+            help='Only output packages installed in user-site.')
 
         cmd_opts.add_option(
             '--pre',
@@ -125,7 +131,8 @@ class ListCommand(Command):
             index_urls += options.mirrors
 
         dependency_links = []
-        for dist in get_installed_distributions(local_only=options.local):
+        for dist in get_installed_distributions(local_only=options.local,
+                                                user_only=options.user):
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -137,6 +144,7 @@ class ListCommand(Command):
 
             installed_packages = get_installed_distributions(
                 local_only=options.local,
+                user_only=options.user,
                 include_editables=False,
             )
             for dist in installed_packages:
@@ -163,12 +171,14 @@ class ListCommand(Command):
     def run_listing(self, options):
         installed_packages = get_installed_distributions(
             local_only=options.local,
+            user_only=options.user,
         )
         self.output_package_listing(installed_packages)
 
     def run_editables(self, options):
         installed_packages = get_installed_distributions(
             local_only=options.local,
+            user_only=options.user,
             editables_only=True,
         )
         self.output_package_listing(installed_packages)
