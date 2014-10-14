@@ -368,3 +368,24 @@ Requirement file contains NoExist==4.2, but that package is not installed
 INITools==0.2
 """ + ignores + "## The following requirements were added by pip freeze:..."
     _check_output(result, expected)
+
+
+def test_freeze_user(script, virtualenv):
+    """
+    Testing freeze with --user, first we have to install some stuff.
+    """
+    virtualenv.system_site_packages = True
+    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
+        simple==2.0
+        # and something else to test out:
+        simple2<=3.0
+        """))
+    script.pip_install_local('simple==2.0')
+    script.pip_install_local('--user', 'simple2<=3.0')
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze
+        -- stdout: --------------------
+        ...simple2==3.0...
+        <BLANKLINE>""")
+    _check_output(result, expected)
