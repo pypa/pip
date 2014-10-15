@@ -161,6 +161,7 @@ def test_Inf_equals_Inf():
     assert Inf == Inf
 
 
+@patch('pip.utils.dist_in_usersite')
 @patch('pip.utils.dist_is_local')
 @patch('pip.utils.dist_is_editable')
 class Tests_get_installed_distributions:
@@ -170,6 +171,7 @@ class Tests_get_installed_distributions:
         Mock(test_name="global"),
         Mock(test_name="editable"),
         Mock(test_name="normal"),
+        Mock(test_name="user"),
     ]
 
     workingset_stdlib = [
@@ -187,37 +189,63 @@ class Tests_get_installed_distributions:
         return dist.test_name == "editable"
 
     def dist_is_local(self, dist):
-        return dist.test_name != "global"
+        return dist.test_name != "global" and dist.test_name != 'user'
+
+    def dist_in_usersite(self, dist):
+        return dist.test_name == "user"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_editables_only(self, mock_dist_is_editable, mock_dist_is_local):
+    def test_editables_only(self, mock_dist_is_editable,
+                            mock_dist_is_local,
+                            mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(editables_only=True)
         assert len(dists) == 1, dists
         assert dists[0].test_name == "editable"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_exclude_editables(
-            self, mock_dist_is_editable, mock_dist_is_local):
+    def test_exclude_editables(self, mock_dist_is_editable,
+                               mock_dist_is_local,
+                               mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(include_editables=False)
         assert len(dists) == 1
         assert dists[0].test_name == "normal"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_include_globals(self, mock_dist_is_editable, mock_dist_is_local):
+    def test_include_globals(self, mock_dist_is_editable,
+                             mock_dist_is_local,
+                             mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(local_only=False)
-        assert len(dists) == 3
+        assert len(dists) == 4
+
+    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    def test_user_only(self, mock_dist_is_editable,
+                       mock_dist_is_local,
+                       mock_dist_in_usersite):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        dists = get_installed_distributions(local_only=False,
+                                            user_only=True)
+        assert len(dists) == 1
+        assert dists[0].test_name == "user"
 
     @pytest.mark.skipif("sys.version_info >= (2,7)")
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_py26_excludes(self, mock_dist_is_editable, mock_dist_is_local):
+    def test_py26_excludes(self, mock_dist_is_editable,
+                           mock_dist_is_local,
+                           mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions()
         assert len(dists) == 1
         assert dists[0].key == 'argparse'
@@ -225,16 +253,21 @@ class Tests_get_installed_distributions:
     @pytest.mark.skipif("sys.version_info < (2,7)")
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
     def test_gte_py27_excludes(self, mock_dist_is_editable,
-                               mock_dist_is_local):
+                               mock_dist_is_local,
+                               mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions()
         assert len(dists) == 0
 
     @patch('pip._vendor.pkg_resources.working_set', workingset_freeze)
-    def test_freeze_excludes(self, mock_dist_is_editable, mock_dist_is_local):
+    def test_freeze_excludes(self, mock_dist_is_editable,
+                             mock_dist_is_local,
+                             mock_dist_in_usersite):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(skip=freeze_excludes)
         assert len(dists) == 0
 

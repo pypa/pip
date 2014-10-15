@@ -391,6 +391,9 @@ def get_installed_distributions(local_only=True,
 
     If ``editables_only`` is True , only report editables.
 
+    If ``user_only`` is True , only report installations in the user
+    site directory.
+
     """
     if local_only:
         local_test = dist_is_local
