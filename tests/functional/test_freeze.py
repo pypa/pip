@@ -375,17 +375,13 @@ def test_freeze_user(script, virtualenv):
     Testing freeze with --user, first we have to install some stuff.
     """
     virtualenv.system_site_packages = True
-    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
-        simple==2.0
-        # and something else to test out:
-        simple2<=3.0
-        """))
-    script.pip_install_local('simple==2.0')
-    script.pip_install_local('--user', 'simple2<=3.0')
-    result = script.pip('freeze', expect_stderr=True)
+    script.pip_install_local('--user', 'simple==2.0')
+    script.pip_install_local('simple2==3.0')
+    result = script.pip('freeze', '--user', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze
+        Script result: pip freeze --user
         -- stdout: --------------------
-        ...simple2==3.0...
+        simple==2.0
         <BLANKLINE>""")
     _check_output(result, expected)
+    assert 'simple2' not in result.stdout
