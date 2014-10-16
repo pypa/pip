@@ -58,6 +58,12 @@ class FreezeCommand(Command):
             default=False,
             help='If in a virtualenv that has global access, do not output '
                  'globally-installed packages.')
+        self.cmd_opts.add_option(
+            '--user',
+            dest='user',
+            action='store_true',
+            default=False,
+            help='Only output packages installed in user-site.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -65,6 +71,7 @@ class FreezeCommand(Command):
         requirement = options.requirement
         find_links = options.find_links or []
         local_only = options.local
+        user_only = options.user
         # FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
@@ -89,7 +96,8 @@ class FreezeCommand(Command):
             f.write('-f %s\n' % link)
         installations = {}
         for dist in get_installed_distributions(local_only=local_only,
-                                                skip=freeze_excludes):
+                                                skip=freeze_excludes,
+                                                user_only=user_only):
             req = pip.FrozenRequirement.from_dist(
                 dist,
                 dependency_links,

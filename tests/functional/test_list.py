@@ -25,6 +25,20 @@ def test_local_flag(script, data):
     assert 'simple (1.0)' in result.stdout
 
 
+def test_user_flag(script, data, virtualenv):
+    """
+    Test the behavior of --user flag in the list command
+
+    """
+    virtualenv.system_site_packages = True
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+    script.pip('install', '-f', data.find_links, '--no-index',
+               '--user', 'simple2==2.0')
+    result = script.pip('list', '--user')
+    assert 'simple (1.0)' not in result.stdout
+    assert 'simple2 (2.0)' in result.stdout
+
+
 def test_uptodate_flag(script, data):
     """
     Test the behavior of --uptodate flag in the list command

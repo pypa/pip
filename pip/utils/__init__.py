@@ -376,7 +376,8 @@ def dist_is_editable(dist):
 def get_installed_distributions(local_only=True,
                                 skip=stdlib_pkgs,
                                 include_editables=True,
-                                editables_only=False):
+                                editables_only=False,
+                                user_only=False):
     """
     Return a list of installed Distribution objects.
 
@@ -389,6 +390,9 @@ def get_installed_distributions(local_only=True,
     If ``editables`` is False, don't report editables.
 
     If ``editables_only`` is True , only report editables.
+
+    If ``user_only`` is True , only report installations in the user
+    site directory.
 
     """
     if local_only:
@@ -406,11 +410,17 @@ def get_installed_distributions(local_only=True,
     else:
         editables_only_test = lambda d: True
 
+    if user_only:
+        user_test = dist_in_usersite
+    else:
+        user_test = lambda d: True
+
     return [d for d in pkg_resources.working_set
             if local_test(d)
             and d.key not in skip
             and editable_test(d)
             and editables_only_test(d)
+            and user_test(d)
             ]
 
 
