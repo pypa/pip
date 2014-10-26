@@ -65,6 +65,12 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
+        self.cmd_opts.add_option(
+            '--recursive',
+            dest='recursive',
+            action='store_true',
+            default=False,
+            help="Freeze packages and dependencies, recursively.")
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -73,6 +79,7 @@ class FreezeCommand(Command):
         find_links = options.find_links or []
         local_only = options.local
         user_only = options.user
+        recursive = options.recursive
         # FIXME: Obviously this should be settable:
         find_tags = False
         skip_match = None
@@ -99,19 +106,22 @@ class FreezeCommand(Command):
 
         only_dists = []
         if args:
+            # Freeze only a subset of installed packages.
             only_dists = args
-            only_dists.extend(get_recursive_dependencies(*only_dists))
+            if recursive:  # Freeze dependencies, recursively.
+                only_dists.extend(get_recursive_dependencies(*only_dists))
             only_dists = [name.lower() for name in only_dists]
 
         for dist in get_installed_distributions(local_only=local_only,
                                                 skip=freeze_excludes,
                                                 user_only=user_only):
-            req = pip.FrozenRequirement.from_dist(
-                dist,
-                dependency_links,
-                find_tags=find_tags,
-            )
-            installations[req.name] = req
+            if not only_dists or dist.project_name.lower() in only_dists:
+                req = pip.FrozenRequirement.from_dist(
+                    dist,
+                    dependency_links,
+                    find_tags=find_tags,
+                )
+                installations[req.name] = req
         if requirement:
             req_f = open(requirement)
             for line in req_f:
