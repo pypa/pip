@@ -10,8 +10,9 @@ import pip
 from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.basecommand import Command
-from pip.utils import get_installed_distributions
+from pip.utils import get_installed_distributions, get_recursive_dependencies
 from pip._vendor import pkg_resources
+
 
 # packages to exclude from freeze output
 freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
@@ -28,7 +29,7 @@ class FreezeCommand(Command):
     """
     name = 'freeze'
     usage = """
-      %prog [options]"""
+      %prog [options] [PACKAGE PACKAGE...]"""
     summary = 'Output installed packages in requirements format.'
     log_stream = "ext://sys.stderr"
 
@@ -95,6 +96,13 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
+
+        only_dists = []
+        if args:
+            only_dists = args
+            only_dists.extend(get_recursive_dependencies(*only_dists))
+            only_dists = [name.lower() for name in only_dists]
+
         for dist in get_installed_distributions(local_only=local_only,
                                                 skip=freeze_excludes,
                                                 user_only=user_only):
