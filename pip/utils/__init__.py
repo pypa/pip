@@ -227,11 +227,8 @@ def is_svn_page(html):
 
 
 def file_contents(filename):
-    fp = open(filename, 'rb')
-    try:
+    with open(filename, 'rb') as fp:
         return fp.read().decode('utf-8')
-    finally:
-        fp.close()
 
 
 def split_leading_dir(path):

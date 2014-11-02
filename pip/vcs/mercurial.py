@@ -38,9 +38,8 @@ class Mercurial(VersionControl):
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
-            config_file = open(repo_config, 'w')
-            config.write(config_file)
-            config_file.close()
+            with open(repo_config, 'w') as config_file:
+                config.write(config_file)
         except (OSError, configparser.NoSectionError) as exc:
             logger.warning(
                 'Could not switch Mercurial repository to %s: %s', url, exc,

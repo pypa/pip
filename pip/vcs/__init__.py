@@ -93,6 +93,8 @@ vcs = VcsSupport()
 class VersionControl(object):
     name = ''
     dirname = ''
+    # List of supported schemes for this Version Control
+    schemes = ()
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
@@ -124,6 +126,13 @@ class VersionControl(object):
     def translate_egg_surname(self, surname):
         # For example, Django has branches of the form "stable/1.7.x".
         return surname.replace('/', '_')
+
+    def export(self, location):
+        """
+        Export the repository at the url to the destination location
+        i.e. only download the files, without vcs informations
+        """
+        raise NotImplementedError
 
     def get_url_rev(self):
         """
@@ -264,11 +273,36 @@ class VersionControl(object):
         return checkout
 
     def unpack(self, location):
+        """
+        Clean up current location and download the url repository
+        (and vcs infos) into location
+        """
         if os.path.exists(location):
             rmtree(location)
         self.obtain(location)
 
     def get_src_requirement(self, dist, location, find_tags=False):
+        """
+        Return a string representing the requirement needed to
+        redownload the files currently present in location, something
+        like:
+          {repository_url}@{revision}#egg={project_name}-{version_identifier}
+        If find_tags is True, try to find a tag matching the revision
+        """
+        raise NotImplementedError
+
+    def get_url(self, location):
+        """
+        Return the url used at location
+        Used in get_info or check_destination
+        """
+        raise NotImplementedError
+
+    def get_revision(self, location):
+        """
+        Return the current revision of the files at location
+        Used in get_info
+        """
         raise NotImplementedError
 
 

@@ -604,9 +604,8 @@ exec(compile(
 
         elif develop_egg_link:
             # develop egg
-            fh = open(develop_egg_link, 'r')
-            link_pointer = os.path.normcase(fh.readline().strip())
-            fh.close()
+            with open(develop_egg_link, 'r') as fh:
+                link_pointer = os.path.normcase(fh.readline().strip())
             assert (link_pointer == dist.location), (
                 'Egg-link %s does not match installed location of %s '
                 '(at %s)' % (link_pointer, self.name, dist.location)
@@ -795,36 +794,34 @@ exec(compile(
                 else:
                     return change_root(root, path)
 
-            f = open(record_filename)
-            for line in f:
-                directory = os.path.dirname(line)
-                if directory.endswith('.egg-info'):
-                    egg_info_dir = prepend_root(directory)
-                    break
-            else:
-                logger.warning(
-                    'Could not find .egg-info directory in install record for '
-                    '%s',
-                    self,
-                )
-                f.close()
-                # FIXME: put the record somewhere
-                # FIXME: should this be an error?
-                return
-            f.close()
+            with open(record_filename) as f:
+                for line in f:
+                    directory = os.path.dirname(line)
+                    if directory.endswith('.egg-info'):
+                        egg_info_dir = prepend_root(directory)
+                        break
+                else:
+                    logger.warning(
+                        'Could not find .egg-info directory in install record'
+                        ' for %s',
+                        self,
+                    )
+                    # FIXME: put the record somewhere
+                    # FIXME: should this be an error?
+                    return
             new_lines = []
-            f = open(record_filename)
-            for line in f:
-                filename = line.strip()
-                if os.path.isdir(filename):
-                    filename += os.path.sep
-                new_lines.append(
-                    make_path_relative(prepend_root(filename), egg_info_dir)
-                )
-            f.close()
-            f = open(os.path.join(egg_info_dir, 'installed-files.txt'), 'w')
-            f.write('\n'.join(new_lines) + '\n')
-            f.close()
+            with open(record_filename) as f:
+                for line in f:
+                    filename = line.strip()
+                    if os.path.isdir(filename):
+                        filename += os.path.sep
+                    new_lines.append(
+                        make_path_relative(
+                            prepend_root(filename), egg_info_dir)
+                    )
+            inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+            with open(inst_files_path, 'w') as f:
+                f.write('\n'.join(new_lines) + '\n')
         finally:
             if os.path.exists(record_filename):
                 os.remove(record_filename)

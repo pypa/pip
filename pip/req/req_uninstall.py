@@ -173,11 +173,10 @@ class UninstallPthEntries(object):
 
     def remove(self):
         logger.debug('Removing pth entries from %s:', self.file)
-        fh = open(self.file, 'rb')
-        # windows uses '\r\n' with py3k, but uses '\n' with py2.x
-        lines = fh.readlines()
-        self._saved_lines = lines
-        fh.close()
+        with open(self.file, 'rb') as fh:
+            # windows uses '\r\n' with py3k, but uses '\n' with py2.x
+            lines = fh.readlines()
+            self._saved_lines = lines
         if any(b'\r\n' in line for line in lines):
             endline = '\r\n'
         else:
@@ -188,9 +187,8 @@ class UninstallPthEntries(object):
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass
-        fh = open(self.file, 'wb')
-        fh.writelines(lines)
-        fh.close()
+        with open(self.file, 'wb') as fh:
+            fh.writelines(lines)
 
     def rollback(self):
         if self._saved_lines is None:
@@ -199,7 +197,6 @@ class UninstallPthEntries(object):
             )
             return False
         logger.debug('Rolling %s back to previous state', self.file)
-        fh = open(self.file, 'wb')
-        fh.writelines(self._saved_lines)
-        fh.close()
+        with open(self.file, 'wb') as fh:
+            fh.writelines(self._saved_lines)
         return True

@@ -104,57 +104,54 @@ class FreezeCommand(Command):
                 find_tags=find_tags,
             )
             installations[req.name] = req
+
         if requirement:
-            req_f = open(requirement)
-            for line in req_f:
-                if not line.strip() or line.strip().startswith('#'):
-                    f.write(line)
-                    continue
-                if skip_match and skip_match.search(line):
-                    f.write(line)
-                    continue
-                elif line.startswith('-e') or line.startswith('--editable'):
-                    if line.startswith('-e'):
-                        line = line[2:].strip()
+            with open(requirement) as req_file:
+                for line in req_file:
+                    if (not line.strip()
+                            or line.strip().startswith('#')
+                            or (skip_match and skip_match.search(line))
+                            or line.startswith((
+                                '-r', '--requirement',
+                                '-Z', '--always-unzip',
+                                '-f', '--find-links',
+                                '-i', '--index-url',
+                                '--extra-index-url'))):
+                        f.write(line)
+                        continue
+
+                    if line.startswith('-e') or line.startswith('--editable'):
+                        if line.startswith('-e'):
+                            line = line[2:].strip()
+                        else:
+                            line = line[len('--editable'):].strip().lstrip('=')
+                        line_req = InstallRequirement.from_editable(
+                            line,
+                            default_vcs=options.default_vcs
+                        )
                     else:
-                        line = line[len('--editable'):].strip().lstrip('=')
-                    line_req = InstallRequirement.from_editable(
-                        line,
-                        default_vcs=options.default_vcs
-                    )
-                elif (line.startswith('-r')
-                        or line.startswith('--requirement')
-                        or line.startswith('-Z')
-                        or line.startswith('--always-unzip')
-                        or line.startswith('-f')
-                        or line.startswith('-i')
-                        or line.startswith('--extra-index-url')
-                        or line.startswith('--find-links')
-                        or line.startswith('--index-url')):
-                    f.write(line)
-                    continue
-                else:
-                    line_req = InstallRequirement.from_line(line)
-                if not line_req.name:
-                    logger.info(
-                        "Skipping line because it's not clear what it would "
-                        "install: %s",
-                        line.strip(),
-                    )
-                    logger.info(
-                        "  (add #egg=PackageName to the URL to avoid"
-                        " this warning)"
-                    )
-                    continue
-                if line_req.name not in installations:
-                    logger.warning(
-                        "Requirement file contains %s, but that package is not"
-                        " installed",
-                        line.strip(),
-                    )
-                    continue
-                f.write(str(installations[line_req.name]))
-                del installations[line_req.name]
+                        line_req = InstallRequirement.from_line(line)
+
+                    if not line_req.name:
+                        logger.info(
+                            "Skipping line because it's not clear what it "
+                            "would install: %s",
+                            line.strip(),
+                        )
+                        logger.info(
+                            "  (add #egg=PackageName to the URL to avoid"
+                            " this warning)"
+                        )
+                    elif line_req.name not in installations:
+                        logger.warning(
+                            "Requirement file contains %s, but that package is"
+                            " not installed",
+                            line.strip(),
+                        )
+                    else:
+                        f.write(str(installations[line_req.name]))
+                        del installations[line_req.name]
+
             f.write(
                 '## The following requirements were added by '
                 'pip %(name)s:\n' % dict(name=self.name)

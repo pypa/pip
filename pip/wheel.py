@@ -68,22 +68,16 @@ def fix_script(path):
     Return True if file was changed."""
     # XXX RECORD hashes will need to be updated
     if os.path.isfile(path):
-        script = open(path, 'rb')
-        try:
+        with open(path, 'rb') as script:
             firstline = script.readline()
             if not firstline.startswith(b'#!python'):
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
             firstline = b'#!' + exename + os.linesep.encode("ascii")
             rest = script.read()
-        finally:
-            script.close()
-        script = open(path, 'wb')
-        try:
+        with open(path, 'wb') as script:
             script.write(firstline)
             script.write(rest)
-        finally:
-            script.close()
         return True
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
