@@ -123,6 +123,31 @@ def test_install_wheel_with_root(script, data):
     assert Path('scratch') / 'root' in result.files_created
 
 
+def test_install_wheel_with_recorded_root(script, data):
+    """
+    Test installing a wheel using pip install --root --recorded-root
+    """
+    root_dir = script.scratch_path / 'root'
+    recorded_root = os.path.join(os.path.sep, 'foo')
+    result = script.pip(
+        'install', 'script.wheel1a==0.1', '--root', root_dir, '--use-wheel',
+        '--no-index', '--find-links=' + data.find_links,
+        '--recorded-root=' + recorded_root,
+    )
+    record = None
+    for f in result.files_created:
+        if f.endswith('RECORD'):
+            record = os.path.join(script.base_path, f)
+
+    assert record
+    found_bin = False
+    for line in open(record).read().splitlines():
+        if os.path.isabs(line):
+            assert line.startswith(recorded_root)
+            found_bin = True
+    assert found_bin
+
+
 def test_install_from_wheel_installs_deps(script, data):
     """
     Test can install dependencies of wheels

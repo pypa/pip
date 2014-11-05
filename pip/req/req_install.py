@@ -726,7 +726,8 @@ exec(compile(
         name = name.replace(os.path.sep, '/')
         return name
 
-    def install(self, install_options, global_options=(), root=None):
+    def install(self, install_options, global_options=(), root=None,
+                recorded_root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -734,7 +735,11 @@ exec(compile(
             version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root)
+            self.move_wheel_files(
+                self.source_dir,
+                root=root,
+                recorded_root=recorded_root,
+            )
             self.install_succeeded = True
             return
 
@@ -926,13 +931,14 @@ exec(compile(
     def is_wheel(self):
         return self.url and '.whl' in self.url
 
-    def move_wheel_files(self, wheeldir, root=None):
+    def move_wheel_files(self, wheeldir, root=None, recorded_root=None):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=self.use_user_site,
             home=self.target_dir,
             root=root,
             pycompile=self.pycompile,
+            recorded_root=recorded_root,
         )
 
     @property

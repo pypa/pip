@@ -142,6 +142,12 @@ class InstallCommand(Command):
                  "directory.")
 
         cmd_opts.add_option(
+            '--recorded-root',
+            dest='recorded_root',
+            default=None,
+            help="Override --root value in Wheel RECORD.")
+
+        cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -320,6 +326,7 @@ class InstallCommand(Command):
                         install_options,
                         global_options,
                         root=options.root_path,
+                        recorded_root=options.recorded_root,
                     )
                     installed = ' '.join([
                         req.name for req in
