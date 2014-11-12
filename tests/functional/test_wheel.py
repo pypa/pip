@@ -86,11 +86,12 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
     Test --no-clean option blocks cleaning after wheel build
     """
     script.pip('install', 'wheel')
+    build = script.venv_path / 'build'
     result = script.pip(
-        'wheel', '--no-clean', '--no-index',
+        'wheel', '--no-clean', '--no-index', '--build', build,
         '--find-links=%s' % data.find_links, 'simple',
     )
-    build = script.venv_path / 'build' / 'simple'
+    build = build / 'simple'
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
@@ -128,6 +129,7 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     # When I call pip trying to install things again
     result = script.pip(
         'wheel', '--no-index', '--find-links=%s' % data.find_links,
+        '--build', script.venv_path / 'build',
         'simple==3.0', expect_error=True,
     )
 

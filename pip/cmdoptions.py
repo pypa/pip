@@ -11,9 +11,7 @@ from __future__ import absolute_import
 
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.locations import (
-    CA_BUNDLE_PATH, USER_CACHE_DIR, build_prefix, src_prefix,
-)
+from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
 def make_option_group(group, parser):
@@ -360,10 +358,8 @@ build_dir = OptionMaker(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
-    default=build_prefix,
-    help='Directory to unpack packages into and build in. '
-    'The default in a virtualenv is "<venv path>/build". '
-    'The default for global installs is "<OS temp dir>/pip_build_<username>".')
+    help='Directory to unpack packages into and build in.'
+)
 
 install_options = OptionMaker(
     '--install-option',
