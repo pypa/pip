@@ -283,7 +283,7 @@ def test_uninstall_as_egg(script, data):
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
+    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
 
