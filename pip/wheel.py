@@ -200,10 +200,20 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # uninstalled.
                 if not os.path.exists(destdir):
                     os.makedirs(destdir)
-                # use copy2 (not move) to be extra sure we're not moving
-                # directories over; copy2 fails for directories.  this would
-                # fail tests (not during released/user execution)
-                shutil.copy2(srcfile, destfile)
+
+                # We use copyfile (not move, copy, or copy2) to be extra sure
+                # that we are not moving directories over (copyfile fails for
+                # directories) as well as to ensure that we are not copying
+                # over any metadata because we want more control over what
+                # metadata we actually copy over.
+                shutil.copyfile(srcfile, destfile)
+
+                # Copy over the metadata for the file, currently this only
+                # includes the atime and mtime.
+                st = os.stat(srcfile)
+                if hasattr(os, "utime"):
+                    os.utime(destfile, (st.st_atime, st.st_mtime))
+
                 changed = False
                 if fixer:
                     changed = fixer(destfile)
