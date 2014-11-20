@@ -6,6 +6,13 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
+
+# We support this primarily for downstream distributions. This is NOT intended
+# to be used by end users and any actual use of thus is not considered a
+# supported configuration.
+NO_VENDOR = ("PIP_NO_VENDOR_FOR_DOWNSTREAM" in os.environ)
+
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -42,6 +49,16 @@ long_description = read('README.rst')
 
 tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock']
 
+find_excludes = ["contrib", "docs", "tests*", "tasks"]
+
+py_modules = []
+
+
+if NO_VENDOR:
+    find_excludes += ["pip._vendor", "pip._vendor.*"]
+    py_modules += ["pip._vendor.__init__"]
+
+
 setup(
     name="pip",
     version=find_version("pip", "__init__.py"),
@@ -66,7 +83,8 @@ setup(
     author_email='python-virtualenv@groups.google.com',
     url='https://pip.pypa.io/',
     license='MIT',
-    packages=find_packages(exclude=["contrib", "docs", "tests*", "tasks"]),
+    py_modules=py_modules,
+    packages=find_packages(exclude=find_excludes),
     package_data={
         'pip._vendor.certifi': ['*.pem'],
         'pip._vendor.requests': ['*.pem'],
