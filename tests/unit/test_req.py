@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -103,6 +104,63 @@ class TestInstallRequirement(object):
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_editable(url)
         assert req.url == url
+
+    def test_markers(self):
+        for line in (
+            # recommanded syntax
+            'mock3; python_version >= "3"',
+            # with more spaces
+            'mock3 ; python_version >= "3" ',
+            # without spaces
+            'mock3;python_version >= "3"',
+        ):
+            req = InstallRequirement.from_line(line)
+            assert req.req.project_name == 'mock3'
+            assert req.req.specs == []
+            assert req.markers == 'python_version >= "3"'
+
+    def test_markers_semicolon(self):
+        # check that the markers can contain a semicolon
+        req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
+        assert req.req.project_name == 'semicolon'
+        assert req.req.specs == []
+        assert req.markers == 'os_name == "a; b"'
+
+    def test_markers_url(self):
+        # test "URL; markers" syntax
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        line = '%s; python_version >= "3"' % url
+        req = InstallRequirement.from_line(line)
+        assert req.url == url, req.url
+        assert req.markers == 'python_version >= "3"'
+
+        # without space, markers are part of the URL
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        line = '%s;python_version >= "3"' % url
+        req = InstallRequirement.from_line(line)
+        assert req.url == line, req.url
+        assert req.markers is None
+
+    def test_markers_match(self):
+        # match
+        for markers in (
+            'python_version >= "1.0"',
+            'sys_platform == %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line)
+            assert req.markers == markers
+            assert req.match_markers()
+
+        # don't match
+        for markers in (
+            'python_version >= "5.0"',
+            'sys_platform != %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line)
+            assert req.markers == markers
+            assert not req.match_markers()
 
 
 def test_requirements_data_structure_keeps_order():
