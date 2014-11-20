@@ -858,7 +858,7 @@ class HTMLPage(object):
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-        if scheme not in ('http', 'https', 'ftp', 'ftps'):
+        if scheme not in ('http', 'https'):
             # FIXME: some warning or something?
             # assertion error?
             return ''

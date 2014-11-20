@@ -12,6 +12,10 @@
   rooted at the location reported by show, rather than one (unstated)
   directory lower. (:pull:`1933`)
 
+* **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
+  was accidently lost in pip 1.5 and it has now been decided to not restore
+  that ability.
+
 * **DEPRECATION** ``pip install --download-cache`` and
   ``pip wheel --download-cache`` command line flags have been deprecated and
   the functionality removed. Since pip now automatically configures and uses
