@@ -94,6 +94,11 @@ class RequirementSet(object):
         return ' '.join([str(req.req) for req in reqs])
 
     def add_requirement(self, install_req):
+        if not install_req.match_markers():
+            logger.debug("Ignore %s: markers %r don't match",
+                         install_req.name, install_req.markers)
+            return
+
         name = install_req.name
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site

@@ -29,6 +29,12 @@ and like arguments to :ref:`pip install`, the following forms are supported::
     [-e] <local project path>
     [-e] <vcs project url>
 
+Since version 6.0, pip also supports markers using the "; " separator.
+Examples::
+
+    futures; python_version < '2.7'
+    http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'
+
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
 A line that begins with ``#`` is treated as a comment and ignored. Whitespace
