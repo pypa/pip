@@ -95,8 +95,8 @@ class RequirementSet(object):
 
     def add_requirement(self, install_req):
         if not install_req.match_markers():
-            logger.notify("Ignore %s: markers %r don't match",
-                          install_req.name, install_req.markers)
+            logger.debug("Ignore %s: markers %r don't match",
+                         install_req.name, install_req.markers)
             return
 
         name = install_req.name
