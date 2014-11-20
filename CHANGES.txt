@@ -105,6 +105,9 @@
 * Fixed :issue:`1964`, :issue:`1935`, :issue:`676`, Use a randomized and secure
   default build directory when possible. (:pull:`2122`, CVE-2014-8991)
 
+* Fixed :issue:`1433`. Support environment markers in requirements.txt files.
+  (pull:`2134`)
+
 
 **1.5.6 (2014-05-16)**
 
