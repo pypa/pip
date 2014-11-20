@@ -116,7 +116,7 @@ if NO_VENDOR:
 ##                                                                       ##
 ## This is not an officially supported option for end users and should   ##
 ## only be used by downstream redistributors such as the various Linux   ##
-## distributions. This method of installation is as well tested by the   ##
-## pip team.                                                             ##
+## distributions. This method of installation is not as well tested by   ##
+## the pip team.                                                         ##
 ###########################################################################
 """)

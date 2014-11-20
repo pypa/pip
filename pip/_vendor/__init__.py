@@ -48,9 +48,14 @@ class VendorAlias(object):
                 __import__(name)
                 module = sys.modules[name]
             finally:
+                # Re-add any additions to sys.meta_path that were made while
+                # during the import we just did, otherwise things like
+                # pip._vendor.six.moves will fail.
                 for m in sys.meta_path:
                     if m not in real_meta_path:
                         real_meta_path.append(m)
+
+                # Restore sys.meta_path with any new items.
                 sys.meta_path = real_meta_path
         except ImportError:
             # We can't import the vendor name, so we'll try to import the
