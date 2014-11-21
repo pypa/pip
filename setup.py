@@ -53,10 +53,19 @@ find_excludes = ["contrib", "docs", "tests*", "tasks"]
 
 py_modules = []
 
+package_data = {}
+
 
 if NO_VENDOR:
     find_excludes += ["pip._vendor", "pip._vendor.*"]
     py_modules += ["pip._vendor.__init__"]
+else:
+    package_data.update({
+        "pip._vendor.certifi": ["*.pem"],
+        "pip._vendor.requests": ["*.pem"],
+        "pip._vendor.distlib._backport": ["sysconfig.cfg"],
+        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
+    })
 
 
 setup(
@@ -85,12 +94,7 @@ setup(
     license='MIT',
     py_modules=py_modules,
     packages=find_packages(exclude=find_excludes),
-    package_data={
-        'pip._vendor.certifi': ['*.pem'],
-        'pip._vendor.requests': ['*.pem'],
-        'pip._vendor.distlib._backport': ['sysconfig.cfg'],
-        'pip._vendor.distlib': ['t32.exe', 't64.exe', 'w32.exe', 'w64.exe'],
-    },
+    package_data=package_data,
     entry_points={
         "console_scripts": [
             "pip=pip:main",
