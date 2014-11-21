@@ -6,6 +6,23 @@ set -x
 # our tests use.
 export LC_CTYPE=en_US.UTF-8
 
+# We want to create the virtual environment here, but not actually run anything
+tox --notest
+
+# If we have a VENDOR=no then we want to reinstall pip into the virtual
+# environment without the vendor directory included as well as install the
+# dependencies we need installed.
+if [[ $VENDOR = "no" ]]; then
+    .tox/$TOXENV/bin/pip install -r pip/_vendor/vendor.txt
+    PIP_NO_VENDOR_FOR_DOWNSTREAM=1 .tox/$TOXENV/bin/pip install .
+
+    # Test to make sure that we successfully installed without vendoring
+    if [ -f .tox/$TOXENV/lib/python*/site-packages/pip/_vendor/six.py ]; then
+        echo "Did not successfully unvendor"
+        exit 1
+    fi
+fi
+
 # Run the unit tests
 tox -- -m unit --cov pip/ --cov-report xml
 
