@@ -49,6 +49,17 @@ help_ = OptionMaker(
     action='help',
     help='Show help.')
 
+isolated_mode = OptionMaker(
+    "--isolated",
+    dest="isolated_mode",
+    action="store_true",
+    default=False,
+    help=(
+        "Run pip in an isolated mode, ignoring environment variables and user "
+        "configuration."
+    ),
+)
+
 require_virtualenv = OptionMaker(
     # Run only if inside a virtualenv, bail if not.
     '--require-virtualenv', '--require-venv',
@@ -402,6 +413,7 @@ general_group = {
     'name': 'General Options',
     'options': [
         help_,
+        isolated_mode,
         require_virtualenv,
         verbose,
         version,
