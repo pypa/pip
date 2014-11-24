@@ -130,9 +130,12 @@ class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
 
+    isolated = False
+
     def __init__(self, *args, **kwargs):
         self.config = configparser.RawConfigParser()
         self.name = kwargs.pop('name')
+        self.isolated = kwargs.pop("isolated", False)
         self.files = self.get_config_files()
         if self.files:
             self.config.read(self.files)
@@ -151,18 +154,22 @@ class ConfigOptionParser(CustomOptionParser):
         files = list(site_config_files)
 
         # per-user configuration next
-        if config_file and os.path.exists(config_file):
-            files.append(config_file)
-        else:
-            # This is the legacy config file, we consider it to be a lower
-            # priority than the new file location.
-            files.append(legacy_config_file)
+        if not self.isolated:
+            if config_file and os.path.exists(config_file):
+                files.append(config_file)
+            else:
+                # This is the legacy config file, we consider it to be a lower
+                # priority than the new file location.
+                files.append(legacy_config_file)
 
-            # This is the new config file, we consider it to be a higher
-            # priority than the legacy file.
-            files.append(
-                os.path.join(appdirs.user_config_dir("pip"), config_basename)
-            )
+                # This is the new config file, we consider it to be a higher
+                # priority than the legacy file.
+                files.append(
+                    os.path.join(
+                        appdirs.user_config_dir("pip"),
+                        config_basename,
+                    )
+                )
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
@@ -194,7 +201,8 @@ class ConfigOptionParser(CustomOptionParser):
                 self.normalize_keys(self.get_config_section(section))
             )
         # 2. environmental variables
-        config.update(self.normalize_keys(self.get_environ_vars()))
+        if not self.isolated:
+            config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
         for key, val in config.items():
             option = self.get_option(key)

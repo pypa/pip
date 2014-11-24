@@ -174,6 +174,16 @@ def parseopts(args):
     return cmd_name, cmd_args
 
 
+def check_isolated(args):
+    isolated = False
+
+    if "--isolated" in args:
+        isolated = True
+        args = [a for a in args if a != "--isolated"]
+
+    return args, isolated
+
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
@@ -194,7 +204,9 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    command = commands[cmd_name]()
+    cmd_args, isolated = check_isolated(cmd_args)
+
+    command = commands[cmd_name](isolated=isolated)
     return command.main(cmd_args)
 
 
