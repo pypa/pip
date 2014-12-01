@@ -46,8 +46,13 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
 
-    with freezegun.freeze_time("1970-01-09 10:00:00",
-                               ignore=["pip._vendor.six.moves"]):
+    with freezegun.freeze_time(
+            "1970-01-09 10:00:00",
+            ignore=[
+                "six.moves",
+                "pip._vendor.six.moves",
+                "pip._vendor.requests.packages.urllib3.packages.six.moves",
+            ]):
         outdated.pip_version_check(session)
 
     assert not outdated.logger.debug.calls

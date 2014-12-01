@@ -17,6 +17,7 @@ from base64 import b64encode
 from .compat import urlparse, str
 from .cookies import extract_cookies_to_jar
 from .utils import parse_dict_header, to_native_string
+from .status_codes import codes
 
 CONTENT_TYPE_FORM_URLENCODED = 'application/x-www-form-urlencoded'
 CONTENT_TYPE_MULTI_PART = 'multipart/form-data'
@@ -150,6 +151,11 @@ class HTTPDigestAuth(AuthBase):
 
         return 'Digest %s' % (base)
 
+    def handle_redirect(self, r, **kwargs):
+        """Reset num_401_calls counter on redirects."""
+        if r.is_redirect:
+            setattr(self, 'num_401_calls', 1)
+
     def handle_401(self, r, **kwargs):
         """Takes the given response and tries digest-auth, if needed."""
 
@@ -182,7 +188,7 @@ class HTTPDigestAuth(AuthBase):
 
             return _r
 
-        setattr(self, 'num_401_calls', 1)
+        setattr(self, 'num_401_calls', num_401_calls + 1)
         return r
 
     def __call__(self, r):
@@ -192,6 +198,11 @@ class HTTPDigestAuth(AuthBase):
         try:
             self.pos = r.body.tell()
         except AttributeError:
-            pass
+            # In the case of HTTPDigestAuth being reused and the body of
+            # the previous request was a file-like object, pos has the
+            # file position of the previous body. Ensure it's set to
+            # None.
+            self.pos = None
         r.register_hook('response', self.handle_401)
+        r.register_hook('response', self.handle_redirect)
         return r
