@@ -29,6 +29,7 @@ from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
@@ -265,6 +266,24 @@ class PipSession(requests.Session):
 
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth()
+
+        # Create our urllib3.Retry instance which will allow us to customize
+        # how we handle retries.
+        retries = urllib3.Retry(
+            # Set the total number of retries that a particular request can
+            # have.
+            total=retries,
+
+            # A 503 error from PyPI typically means that the Fastly -> Origin
+            # connection got interupted in some way. A 503 error in general
+            # is typically considered a transient error so we'll go ahead and
+            # retry it.
+            status_forcelist=[503],
+
+            # Add a small amount of back off between failed requests in
+            # order to prevent hammering the service.
+            backoff_factor=0.25,
+        )
 
         if cache:
             http_adapter = CacheControlAdapter(

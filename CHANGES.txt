@@ -108,6 +108,8 @@
 * Fixed :issue:`1433`. Support environment markers in requirements.txt files.
   (pull:`2134`)
 
+* Automatically retry failed HTTP requests by default. (:pull:`1444`, pull:`2147`)
+
 
 **1.5.6 (2014-05-16)**
 
