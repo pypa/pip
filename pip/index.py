@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import logging
+import cgi
 import sys
 import os
 import re
@@ -735,16 +736,28 @@ class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     # FIXME: these regexes are horrible hacks:
-    _homepage_re = re.compile(r'<th>\s*home\s*page', re.I)
-    _download_re = re.compile(r'<th>\s*download\s+url', re.I)
+    _homepage_re = re.compile(b'<th>\\s*home\\s*page', re.I)
+    _download_re = re.compile(b'<th>\\s*download\\s+url', re.I)
     _href_re = re.compile(
-        'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))',
+        b'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))',
         re.I | re.S
     )
 
     def __init__(self, content, url, headers=None, trusted=None):
+        # Determine if we have any encoding information in our headers
+        encoding = None
+        if headers and "Content-Type" in headers:
+            content_type, params = cgi.parse_header(headers["Content-Type"])
+
+            if "charset" in params:
+                encoding = params['charset']
+
         self.content = content
-        self.parsed = html5lib.parse(self.content, namespaceHTMLElements=False)
+        self.parsed = html5lib.parse(
+            self.content,
+            encoding=encoding,
+            namespaceHTMLElements=False,
+        )
         self.url = url
         self.headers = headers
         self.trusted = trusted
@@ -824,7 +837,10 @@ class HTMLPage(object):
                 )
                 return
 
-            inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
+            inst = cls(
+                resp.content, resp.url, resp.headers,
+                trusted=link.trusted,
+            )
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
             cls._handle_fail(req, link, exc, url, level=level)
@@ -954,6 +970,10 @@ class HTMLPage(object):
                 or href_match.group(3)
             )
             if not url:
+                continue
+            try:
+                url = url.decode("ascii")
+            except UnicodeDecodeError:
                 continue
             url = self.clean_link(urllib_parse.urljoin(self.base_url, url))
             yield Link(url, self, trusted=False, _deprecated_regex=True)
