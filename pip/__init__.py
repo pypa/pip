@@ -14,7 +14,11 @@ from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import commands, get_summaries, get_similar_commands
+from pip.commands import get_summaries, get_similar_commands
+from pip.commands import commands_dict
+
+
+# assignment for flake8 to be happy
 
 # This fixes a peculiarity when importing via __import__ - as we are
 # initialising the pip module, "from pip import cmdoptions" is recursive
@@ -72,7 +76,7 @@ def autocomplete():
                     print(dist)
                 sys.exit(1)
 
-        subcommand = commands[subcommand_name]()
+        subcommand = commands_dict[subcommand_name]()
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
@@ -158,7 +162,7 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0]
 
-    if cmd_name not in commands:
+    if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
         msg = ['unknown command "%s"' % cmd_name]
@@ -203,7 +207,7 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    command = commands[cmd_name](isolated=check_isolated(cmd_args))
+    command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
 

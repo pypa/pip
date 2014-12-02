@@ -4,7 +4,7 @@ import pip.baseparser
 from pip import main
 from pip import cmdoptions
 from pip.basecommand import Command
-from pip.commands import commands
+from pip.commands import commands_dict as commands
 
 
 class FakeCommand(Command):
