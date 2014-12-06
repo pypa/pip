@@ -100,7 +100,8 @@ def backup_dir(dir, ext='.bak'):
 def find_command(cmd, paths=None, pathext=None):
     """Searches the PATH for the given command and returns its path"""
     if paths is None:
-        paths = [p.strip('\'" ') for p in os.environ.get('PATH', '').split(os.pathsep)]
+        paths = os.environ.get('PATH', '').split(os.pathsep)
+        paths = [p.strip('\'" ') for p in paths]
     if isinstance(paths, six.string_types):
         paths = [paths]
     # check if there are funny path extensions for executables, e.g. Windows
