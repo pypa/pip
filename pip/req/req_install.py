@@ -491,23 +491,6 @@ exec(compile(
 
     _requirements_section_re = re.compile(r'\[(.*?)\]')
 
-    def requirements(self, extras=()):
-        if self.satisfied_by:
-            for r in self.satisfied_by.requires(extras):
-                yield str(r)
-            return
-        in_extra = None
-        for line in self.egg_info_lines('requires.txt'):
-            match = self._requirements_section_re.match(line.lower())
-            if match:
-                in_extra = match.group(1)
-                continue
-            if in_extra and in_extra not in extras:
-                logger.debug('skipping extra %s', in_extra)
-                # Skip requirement for an extra we aren't requiring
-                continue
-            yield line
-
     @property
     def installed_version(self):
         if self.is_wheel:
@@ -988,6 +971,17 @@ exec(compile(
             pycompile=self.pycompile,
             isolated=self.isolated,
         )
+
+    def get_dist(self):
+        """Return a pkg_resources.Distribution built from self.egg_info_path"""
+        egg_info = self.egg_info_path('')
+        base_dir = os.path.dirname(egg_info)
+        metadata = pkg_resources.PathMetadata(base_dir, egg_info)
+        dist_name = os.path.splitext(os.path.basename(egg_info))[0]
+        return pkg_resources.Distribution(
+            os.path.dirname(egg_info),
+            project_name=dist_name,
+            metadata=metadata)
 
 
 def _strip_postfix(req):

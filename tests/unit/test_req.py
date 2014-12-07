@@ -55,6 +55,23 @@ class TestRequirementSet(object):
             finder,
         )
 
+    def test_environment_marker_extras(self, data):
+        """
+        Test that the environment marker extras are used with
+        non-wheel installs.
+        """
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_editable(
+            data.packages.join("LocalEnvironMarker"))
+        reqset.add_requirement(req)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        reqset.prepare_files(finder)
+        # This is hacky but does test both case in py2 and py3
+        if sys.version_info[:2] in ((2, 7), (3, 4)):
+            assert reqset.has_requirement('simple')
+        else:
+            assert not reqset.has_requirement('simple')
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
