@@ -89,7 +89,8 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
-        name, url, extras_override = parse_editable(editable_req, default_vcs)
+        name, url, extras_override, editable_options = parse_editable(
+            editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
@@ -98,7 +99,7 @@ class InstallRequirement(object):
         res = cls(name, comes_from, source_dir=source_dir,
                   editable=True,
                   url=url,
-                  editable_options=extras_override,
+                  editable_options=editable_options,
                   isolated=isolated)
 
         if extras_override is not None:
@@ -1034,8 +1035,15 @@ def _build_editable_options(req):
 
 
 def parse_editable(editable_req, default_vcs=None):
-    """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
-    (Foobar) and a URL"""
+    """Parses an editable requirement into:
+        - a requirement name
+        - an URL
+        - extras
+        - editable options
+    Accepted requirements:
+        svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
+        .[some_extra]
+    """
 
     url = editable_req
     extras = None
@@ -1065,9 +1073,10 @@ def parse_editable(editable_req, default_vcs=None):
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
                 ).extras,
+                {},
             )
         else:
-            return None, url_no_extras, None
+            return None, url_no_extras, None, {}
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
@@ -1109,4 +1118,4 @@ def parse_editable(editable_req, default_vcs=None):
         req = options['egg']
 
     package = _strip_postfix(req)
-    return package, url, options
+    return package, url, None, options
