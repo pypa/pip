@@ -427,11 +427,8 @@ def get_recursive_dependencies(names):
         [(p.project_name.lower(), p) for p in pkg_resources.working_set])
     query_names = [name.lower() for name in names]
     for pkg in query_names:
-        try:
-            dist = installed[pkg]
-        except KeyError:
-            pass  # pkg is not installed.
-        else:
+        dist = installed.get(pkg)
+        if dist:
             for dep in dist.requires():
                 name = dep.project_name
                 dependencies.add(name)
