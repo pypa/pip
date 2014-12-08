@@ -118,7 +118,7 @@ def print_results(distributions, list_all_files):
         logger.info("Location: %s" % dist['location'])
         logger.info("Requires: %s" % ', '.join(dist['requires']))
         logger.info("Requires recursive: %s" % ', '.join(
-            get_recursive_dependencies([dist['name']])))
+            sorted(get_recursive_dependencies([dist['name']]))))
         if list_all_files:
             logger.info("Files:")
             if dist['files'] is not None:
