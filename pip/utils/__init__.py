@@ -420,7 +420,7 @@ def get_installed_distributions(local_only=True,
             ]
 
 
-def get_recursive_dependencies(*names):
+def get_recursive_dependencies(names):
     """Return set of dependencies of dists in ``names``, recursively."""
     dependencies = set()
     installed = dict(
@@ -435,7 +435,7 @@ def get_recursive_dependencies(*names):
             for dep in dist.requires():
                 name = dep.project_name
                 dependencies.add(name)
-                dependencies.update(get_recursive_dependencies(name))
+                dependencies.update(get_recursive_dependencies([name]))
     return dependencies
 
 
