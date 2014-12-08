@@ -432,7 +432,8 @@ def get_recursive_dependencies(names):
             for dep in dist.requires():
                 name = dep.project_name
                 dependencies.add(name)
-                dependencies.update(get_recursive_dependencies([name]))
+    if dependencies:
+        dependencies.update(get_recursive_dependencies(dependencies))
     return dependencies
 
 
