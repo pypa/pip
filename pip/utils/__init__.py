@@ -430,8 +430,8 @@ def get_recursive_dependencies(names):
         dist = installed.get(pkg)
         if dist:
             for dep in dist.requires():
-                name = dep.project_name
-                dependencies.add(name)
+                dep_dist = pkg_resources.get_distribution(dep.project_name)
+                dependencies.add(dep_dist.project_name)
     if dependencies:
         dependencies.update(get_recursive_dependencies(dependencies))
     return dependencies
