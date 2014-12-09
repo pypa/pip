@@ -50,7 +50,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
                  use_wheel=True, allow_external=[], allow_unverified=[],
-                 allow_all_external=False, allow_all_prereleases=False,
+                 allow_all_external=False, trusted_hosts=[],
+                 allow_all_prereleases=False,
                  process_dependency_links=False, session=None):
         if session is None:
             raise TypeError(
@@ -80,6 +81,11 @@ class PackageFinder(object):
 
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
+
+        # Domains that we won't emit warnings for when not using HTTPS
+        self.trusted_hosts = (
+            list(LOCAL_HOSTNAMES) +
+            trusted_hosts)
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
@@ -201,8 +207,9 @@ class PackageFinder(object):
         if parsed.scheme in INSECURE_SCHEMES:
             secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
-            if parsed.hostname in LOCAL_HOSTNAMES:
-                # localhost is not a security risk
+            if parsed.hostname in self.trusted_hosts:
+                # hostnames that we skips HTTP check for
+                # defaults to localhost only, but user can add more
                 pass
             elif len(secure_schemes) == 1:
                 ctx = (location, parsed.scheme, secure_schemes[0],
