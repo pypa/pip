@@ -13,6 +13,7 @@ import warnings
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip.compat import ipaddress
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
 )
@@ -25,17 +26,22 @@ from pip.exceptions import (
 from pip.download import url_to_path, path_to_url
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests, pkg_resources
+from pip._vendor import html5lib, requests, pkg_resources, six
 from pip._vendor.requests.exceptions import SSLError
 
 
 __all__ = ['PackageFinder']
 
 
-LOCAL_HOSTNAMES = ('localhost', '127.0.0.1')
-INSECURE_SCHEMES = {
-    "http": ["https"],
-}
+# Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
+SECURE_ORIGINS = [
+    # protocol, hostname, port
+    ("https", "*", "*"),
+    ("*", "localhost", "*"),
+    ("*", "127.0.0.0/8", "*"),
+    ("*", "::1/128", "*"),
+    ("file", "*", None),
+]
 
 
 logger = logging.getLogger(__name__)
@@ -51,7 +57,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls,
                  use_wheel=True, allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
-                 process_dependency_links=False, session=None):
+                 trusted_hosts=None, process_dependency_links=False,
+                 session=None):
         if session is None:
             raise TypeError(
                 "PackageFinder() missing 1 required keyword argument: "
@@ -80,6 +87,12 @@ class PackageFinder(object):
 
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
+
+        # Domains that we won't emit warnings for when not using HTTPS
+        self.secure_origins = [
+            ("*", host, "*")
+            for host in (trusted_hosts if trusted_hosts else [])
+        ]
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
@@ -195,35 +208,74 @@ class PackageFinder(object):
             reverse=True
         )
 
-    def _warn_about_insecure_transport_scheme(self, logger, location):
+    def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
-        if parsed.scheme in INSECURE_SCHEMES:
-            secure_schemes = INSECURE_SCHEMES[parsed.scheme]
+        origin = (parsed.scheme, parsed.hostname, parsed.port)
 
-            if parsed.hostname in LOCAL_HOSTNAMES:
-                # localhost is not a security risk
-                pass
-            elif len(secure_schemes) == 1:
-                ctx = (location, parsed.scheme, secure_schemes[0],
-                       parsed.netloc)
-                logger.warn("%s uses an insecure transport scheme (%s). "
-                            "Consider using %s if %s has it available" %
-                            ctx)
-            elif len(secure_schemes) > 1:
-                ctx = (
-                    location,
-                    parsed.scheme,
-                    ", ".join(secure_schemes),
-                    parsed.netloc,
+        # Determine if our origin is a secure origin by looking through our
+        # hardcoded list of secure origins, as well as any additional ones
+        # configured on this PackageFinder instance.
+        for secure_origin in (SECURE_ORIGINS + self.secure_origins):
+            # Check to see if the protocol matches
+            if origin[0] != secure_origin[0] and secure_origin[0] != "*":
+                continue
+
+            try:
+                # We need to do this decode dance to ensure that we have a
+                # unicode object, even on Python 2.x.
+                addr = ipaddress.ip_address(
+                    origin[1]
+                    if (
+                        isinstance(origin[1], six.text_type)
+                        or origin[1] is None
+                    )
+                    else origin[1].decode("utf8")
                 )
-                logger.warn("%s uses an insecure transport scheme (%s). "
-                            "Consider using one of %s if %s has any of "
-                            "them available" % ctx)
+                network = ipaddress.ip_network(
+                    secure_origin[1]
+                    if isinstance(secure_origin[1], six.text_type)
+                    else secure_origin[1].decode("utf8")
+                )
+            except ValueError:
+                # We don't have both a valid address or a valid network, so
+                # we'll check this origin against hostnames.
+                if origin[1] != secure_origin[1] and secure_origin[1] != "*":
+                    continue
             else:
-                ctx = (location, parsed.scheme)
-                logger.warn("%s uses an insecure transport scheme (%s)." %
-                            ctx)
+                # We have a valid address and network, so see if the address
+                # is contained within the network.
+                if addr not in network:
+                    continue
+
+            # Check to see if the port patches
+            if (origin[2] != secure_origin[2]
+                    and secure_origin[2] != "*"
+                    and secure_origin[2] is not None):
+                continue
+
+            # If we've gotten here, then this origin matches the current
+            # secure origin and we should break out of the loop and continue
+            # on.
+            break
+        else:
+            # If the loop successfully completed without a break, that means
+            # that the origin we are testing is not a secure origin.
+            logger.warning(
+                "This repository located at %s is not a trusted host, if "
+                "this repository is available via HTTPS it is recommend to "
+                "use HTTPS instead, otherwise you may silence this warning "
+                "with '--trusted-host %s'.",
+                parsed.hostname,
+                parsed.hostname,
+            )
+
+            warnings.warn(
+                "Implicitly allowing locations which are not hosted at a "
+                "secure origin is deprecated and will require the use of "
+                "--trusted-host in the future.",
+                RemovedInPip7Warning,
+            )
 
     def find_requirement(self, req, upgrade):
 
@@ -285,7 +337,7 @@ class PackageFinder(object):
         logger.debug('URLs to search for versions for %s:', req)
         for location in locations:
             logger.debug('* %s', location)
-            self._warn_about_insecure_transport_scheme(logger, location)
+            self._validate_secure_origin(logger, location)
 
         found_versions = []
         found_versions.extend(

@@ -28,6 +28,10 @@
   *NOT* deprecated.  This reverses the deprecation that occurred in v1.5.3. See
   :issue:`906` for discussion.
 
+* **DEPRECATION** Implicitly accessing URLs which point to an origin which is
+  not a secure origin, instead requiring an opt-in for each host using the new
+  ``--trusted-host`` flag (``pip install --trusted-host example.com foo``).
+
 * Added a ``--user`` flag to ``pip freeze`` and ``pip list`` to check the
   user site diretory only.
 
