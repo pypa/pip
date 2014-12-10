@@ -17,6 +17,7 @@ from pip.utils import (
     Inf, cached_property, normalize_name, splitext, is_prerelease,
 )
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.deprecation import PipDeprecationWarning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -214,9 +215,12 @@ class PackageFinder(object):
             elif len(secure_schemes) == 1:
                 ctx = (location, parsed.scheme, secure_schemes[0],
                        parsed.netloc)
-                logger.warn("%s uses an insecure transport scheme (%s). "
-                            "Consider using %s if %s has it available" %
-                            ctx)
+                warnings.warn("%s uses an insecure transport scheme (%s).\n"
+                              "Consider using %s if %s has it available "
+                              "or whitelist with --trusted-host.\n"
+                              "In the future, pip might require either "
+                              "https or --trusted-host." %
+                              ctx, PipDeprecationWarning)
             elif len(secure_schemes) > 1:
                 ctx = (
                     location,
