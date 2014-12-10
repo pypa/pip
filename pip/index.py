@@ -50,7 +50,8 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls,
                  use_wheel=True, allow_external=[], allow_unverified=[],
-                 allow_all_external=False, allow_all_prereleases=False,
+                 allow_all_external=False, trusted_hosts=[],
+                 allow_all_prereleases=False,
                  process_dependency_links=False, session=None):
         if session is None:
             raise TypeError(
@@ -80,6 +81,11 @@ class PackageFinder(object):
 
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
+
+        # Hosts for which we suppress "insecure transport schema" warnings
+        self.trusted_hosts = (
+            list(LOCAL_HOSTNAMES) +
+            trusted_hosts)
 
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
@@ -201,14 +207,18 @@ class PackageFinder(object):
         if parsed.scheme in INSECURE_SCHEMES:
             secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
-            if parsed.hostname in LOCAL_HOSTNAMES:
-                # localhost is not a security risk
+            if parsed.hostname in self.trusted_hosts:
+                # hostnames for which we won't warn
+                # defaults to localhost only, but user can add more
                 pass
             elif len(secure_schemes) == 1:
                 ctx = (location, parsed.scheme, secure_schemes[0],
                        parsed.netloc)
-                logger.warn("%s uses an insecure transport scheme (%s). "
-                            "Consider using %s if %s has it available" %
+                logger.warn("%s uses an insecure transport scheme (%s).\n"
+                            "Consider using %s if %s has it available "
+                            "or whitelist with --trusted-host.\n"
+                            "In the future, pip might require either "
+                            "https or --trusted-host." %
                             ctx)
             elif len(secure_schemes) > 1:
                 ctx = (

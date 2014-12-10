@@ -254,6 +254,15 @@ allow_all_external = OptionMaker(
     help="Allow the installation of all packages that are externally hosted",
 )
 
+trusted_host = OptionMaker(
+    "--trusted-host",
+    dest="trusted_hosts",
+    action="append",
+    default=[],
+    metavar="HOSTNAME",
+    help="Don't warn about lack of HTTPS for this hostname",
+)
+
 # Remove after 7.0
 no_allow_external = OptionMaker(
     "--no-allow-external",
@@ -447,6 +456,7 @@ index_group = {
         mirrors,
         allow_external,
         allow_all_external,
+        trusted_host,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,
