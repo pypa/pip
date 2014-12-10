@@ -7,7 +7,7 @@ env:
   - TOXENV=packaging
   - TOXENV=py26
   - TOXENV=py27
-  - TOXENV=py32
+  # - TOXENV=py32   # Commented out because py32 is old and takes MUCH longer on Travis vs. other py3 versions
   - TOXENV=py33
   - TOXENV=py34
   - TOXENV=pypy
