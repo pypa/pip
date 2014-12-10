@@ -110,12 +110,14 @@ class FreezeCommand(Command):
             only_dists = args
             if recursive:  # Freeze dependencies, recursively.
                 only_dists.extend(get_recursive_dependencies(only_dists))
-            only_dists = [name.lower() for name in only_dists]
+            only_dists = [pkg_resources.safe_extra(name)
+                          for name in only_dists]
 
         for dist in get_installed_distributions(local_only=local_only,
                                                 skip=freeze_excludes,
                                                 user_only=user_only):
-            if not only_dists or dist.project_name.lower() in only_dists:
+            safe_name = pkg_resources.safe_extra(dist.project_name)
+            if not only_dists or safe_name in only_dists:
                 req = pip.FrozenRequirement.from_dist(
                     dist,
                     dependency_links,
