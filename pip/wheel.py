@@ -528,8 +528,8 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=[],
-                 global_options=[]):
+    def __init__(self, requirement_set, finder, wheel_dir, build_options=(),
+                 global_options=()):
         self.requirement_set = requirement_set
         self.finder = finder
         self.wheel_dir = normalize_path(wheel_dir)
