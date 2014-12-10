@@ -82,7 +82,7 @@ class PackageFinder(object):
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
 
-        # Domains that we won't emit warnings for when not using HTTPS
+        # Hosts for which we suppress "insecure transport schema" warnings
         self.trusted_hosts = (
             list(LOCAL_HOSTNAMES) +
             trusted_hosts)
@@ -208,7 +208,7 @@ class PackageFinder(object):
             secure_schemes = INSECURE_SCHEMES[parsed.scheme]
 
             if parsed.hostname in self.trusted_hosts:
-                # hostnames that we skips HTTP check for
+                # hostnames for which we won't warn
                 # defaults to localhost only, but user can add more
                 pass
             elif len(secure_schemes) == 1:
