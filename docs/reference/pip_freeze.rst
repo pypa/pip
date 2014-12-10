@@ -67,4 +67,4 @@ Examples
 
   $ pip freeze --recursive Jinja2
   Jinja2==2.7.2
-  MarkupSave==0.19
+  MarkupSafe==0.19

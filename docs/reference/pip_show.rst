@@ -35,4 +35,4 @@ Examples
     Version: 1.1.3
     Location: /my/env/lib/pythonx.x/site-packages
     Requires: Pygments, Jinja2, docutils
-    Requires recursive: markupsafe, Pygments, Jinja2, docutils
+    Requires recursive: docutils, Jinja2, MarkupSafe, Pygments
