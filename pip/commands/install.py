@@ -295,17 +295,22 @@ class InstallCommand(Command):
                     target_dir=temp_target_dir,
                     session=session,
                     pycompile=options.compile,
+                    isolated=options.isolated_mode,
                 )
 
                 for name in args:
                     requirement_set.add_requirement(
-                        InstallRequirement.from_line(name, None))
+                        InstallRequirement.from_line(
+                            name, None, isolated=options.isolated_mode,
+                        )
+                    )
 
                 for name in options.editables:
                     requirement_set.add_requirement(
                         InstallRequirement.from_editable(
                             name,
-                            default_vcs=options.default_vcs
+                            default_vcs=options.default_vcs,
+                            isolated=options.isolated_mode,
                         )
                     )
 

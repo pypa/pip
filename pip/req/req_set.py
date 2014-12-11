@@ -57,7 +57,7 @@ class RequirementSet(object):
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
-                 wheel_download_dir=None):
+                 isolated=False, wheel_download_dir=None):
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
@@ -83,6 +83,7 @@ class RequirementSet(object):
         self.target_dir = target_dir  # set from --target option
         self.session = session
         self.pycompile = pycompile
+        self.isolated = isolated
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
@@ -435,8 +436,11 @@ class RequirementSet(object):
                             if self.has_requirement(
                                     subreq.project_name):
                                 continue
-                            subreq = InstallRequirement(str(subreq),
-                                                        req_to_install)
+                            subreq = InstallRequirement(
+                                str(subreq),
+                                req_to_install,
+                                isolated=self.isolated,
+                            )
                             reqs.append(subreq)
                             self.add_requirement(subreq)
 
@@ -469,7 +473,11 @@ class RequirementSet(object):
                             if self.has_requirement(name):
                                 # FIXME: check for conflict
                                 continue
-                            subreq = InstallRequirement(req, req_to_install)
+                            subreq = InstallRequirement(
+                                req,
+                                req_to_install,
+                                isolated=self.isolated,
+                            )
                             reqs.append(subreq)
                             self.add_requirement(subreq)
                     if not self.has_requirement(req_to_install.name):
