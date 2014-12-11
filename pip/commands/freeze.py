@@ -127,10 +127,14 @@ class FreezeCommand(Command):
                             line = line[len('--editable'):].strip().lstrip('=')
                         line_req = InstallRequirement.from_editable(
                             line,
-                            default_vcs=options.default_vcs
+                            default_vcs=options.default_vcs,
+                            isolated=options.isolated_mode,
                         )
                     else:
-                        line_req = InstallRequirement.from_line(line)
+                        line_req = InstallRequirement.from_line(
+                            line,
+                            isolated=options.isolated_mode,
+                        )
 
                     if not line_req.name:
                         logger.info(

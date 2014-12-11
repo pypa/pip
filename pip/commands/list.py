@@ -149,7 +149,9 @@ class ListCommand(Command):
                 include_editables=False,
             )
             for dist in installed_packages:
-                req = InstallRequirement.from_line(dist.key, None)
+                req = InstallRequirement.from_line(
+                    dist.key, None, isolated=options.isolated_mode,
+                )
                 try:
                     link = finder.find_requirement(req, True)
 

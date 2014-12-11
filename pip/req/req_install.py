@@ -46,7 +46,8 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  url=None, as_egg=False, update=True, prereleases=None,
-                 editable_options=None, pycompile=True, markers=None):
+                 editable_options=None, pycompile=True, markers=None,
+                 isolated=False):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -82,6 +83,8 @@ class InstallRequirement(object):
 
         self.pycompile = pycompile
 
+        self.isolated = isolated
+
         # True if pre-releases are acceptable
         if prereleases:
             self.prereleases = True
@@ -93,7 +96,8 @@ class InstallRequirement(object):
             self.prereleases = False
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None, default_vcs=None):
+    def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
+                      isolated=False):
         name, url, extras_override = parse_editable(editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
@@ -104,6 +108,7 @@ class InstallRequirement(object):
                   editable=True,
                   url=url,
                   editable_options=extras_override,
+                  isolated=isolated,
                   prereleases=True)
 
         if extras_override is not None:
@@ -112,7 +117,8 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None, prereleases=None):
+    def from_line(cls, name, comes_from=None, prereleases=None,
+                  isolated=False):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -179,7 +185,7 @@ class InstallRequirement(object):
             req = name
 
         return cls(req, comes_from, url=url, prereleases=prereleases,
-                   markers=markers)
+                   markers=markers, isolated=isolated)
 
     def __str__(self):
         if self.req:
@@ -328,7 +334,10 @@ class InstallRequirement(object):
             script = self._run_setup_py
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
-            egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
+            base_cmd = [sys.executable, '-c', script]
+            if self.isolated:
+                base_cmd += ["--no-user-cfg"]
+            egg_info_cmd = base_cmd + ['egg_info']
             # We can't put the .egg-info files at the root, because then the
             # source code will be mistaken for an installed egg, causing
             # problems
@@ -758,6 +767,9 @@ exec(compile(
             self.install_succeeded = True
             return
 
+        if self.isolated:
+            global_options = list(global_options) + ["--no-user-cfg"]
+
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
@@ -861,6 +873,10 @@ exec(compile(
 
     def install_editable(self, install_options, global_options=()):
         logger.info('Running setup.py develop for %s', self.name)
+
+        if self.isolated:
+            global_options = list(global_options) + ["--no-user-cfg"]
+
         with indent_log():
             # FIXME: should we do --install-headers here too?
             cwd = self.source_dir
@@ -953,6 +969,7 @@ exec(compile(
             home=self.target_dir,
             root=root,
             pycompile=self.pycompile,
+            isolated=self.isolated,
         )
 
     @property

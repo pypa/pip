@@ -179,9 +179,8 @@ def check_isolated(args):
 
     if "--isolated" in args:
         isolated = True
-        args = [a for a in args if a != "--isolated"]
 
-    return args, isolated
+    return isolated
 
 
 def main(args=None):
@@ -204,9 +203,7 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    cmd_args, isolated = check_isolated(cmd_args)
-
-    command = commands[cmd_name](isolated=isolated)
+    command = commands[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
 
