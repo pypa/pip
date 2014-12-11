@@ -453,6 +453,7 @@ Examples
   ::
 
   $ pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
+  $ pip install -e git+file:///home/user/projects/some_pkg#egg=SomePackage    # from a local git repository
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
