@@ -521,7 +521,7 @@ class RequirementSet(object):
         Install everything in this set (after having downloaded and unpacked
         the packages)
         """
-        to_install = [r for r in self.requirements.values()
+        to_install = [r for r in self.requirements.values()[::-1]
                       if not r.satisfied_by]
 
         # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
