@@ -117,6 +117,9 @@
 * Fixed :issue:`1100` - Handle HTML Encoding better using a method that is more
   similar to how browsers handle it. (:pull:`1874`)
 
+* Reduce the verbosity of the pip command by default. (:pull:`2175`,
+  :pull:`2177`, :pull:`2178`)
+
 
 **1.5.6 (2014-05-16)**
 
