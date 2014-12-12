@@ -173,7 +173,8 @@ class Command(object):
                         ),
                     },
                 )
-                for name in ["pip._vendor", "distlib", "requests", "urllib3"]
+                for name in ["pip._vendor", "pip.utils",
+                             "distlib", "requests", "urllib3"]
             ),
         })
 
