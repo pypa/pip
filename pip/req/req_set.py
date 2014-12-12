@@ -494,7 +494,7 @@ class RequirementSet(object):
 
     def cleanup_files(self):
         """Clean up files, remove builds."""
-        logger.info('Cleaning up...')
+        logger.debug('Cleaning up...')
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
