@@ -308,12 +308,12 @@ class InstallRequirement(object):
     def run_egg_info(self):
         assert self.source_dir
         if self.name:
-            logger.info(
+            logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
                 self.setup_py, self.name,
             )
         else:
-            logger.info(
+            logger.debug(
                 'Running setup.py (path:%s) egg_info for package from %s',
                 self.setup_py, self.url,
             )
