@@ -6,7 +6,7 @@ from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
 from textwrap import dedent
-from pip import commands
+from pip.commands import commands_dict as commands
 from pip import cmdoptions
 from pip.utils import get_prog
 

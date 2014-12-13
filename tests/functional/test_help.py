@@ -3,7 +3,7 @@ import pytest
 from pip.exceptions import CommandError
 from pip.basecommand import ERROR, SUCCESS
 from pip.commands.help import HelpCommand
-from pip.commands import commands
+from pip.commands import commands_dict as commands
 from mock import Mock
 
 
