@@ -66,7 +66,7 @@ def test_relative_requirements_file(script, data):
         'install', '-vvv', '-r', script.scratch_path / 'file-egg-req.txt'
     )
     assert (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     ) in result.files_created, str(result)
     assert (script.site_packages / 'fspkg') in result.files_created, (
         str(result.stdout)
