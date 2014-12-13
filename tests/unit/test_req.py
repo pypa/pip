@@ -10,12 +10,12 @@ from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
 )
 from pip.download import PipSession
-from pip._vendor import pkg_resources
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
+from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
 
 
