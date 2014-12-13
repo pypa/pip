@@ -1,8 +1,5 @@
 **6.0.dev1 (unreleased)**
 
-* **BACKWARD INCOMPATIBLE** `pip.commands` dictionary as been mooved to 
-  `pip.commands.commands_dict` to avoid  name collision with `pip.commands` submodule
-
 * **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
   has been dropped.
 
