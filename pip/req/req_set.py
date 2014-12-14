@@ -285,7 +285,7 @@ class RequirementSet(object):
                         display_path(url_to_path(req_to_install.url)),
                     )
                 else:
-                    logger.info('Downloading/unpacking %s', req_to_install)
+                    logger.info('Collecting %s', req_to_install)
 
             with indent_log():
                 # ################################ #
