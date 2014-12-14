@@ -302,12 +302,11 @@ class PackageFinder(object):
             )
 
             page = self._get_page(main_index_url, req)
-            if page is None:
+            if page is None and 'pypi.python.org' not in str(main_index_url):
                 warnings.warn(
-                    "One or more of your dependencies required using a "
-                    "deprecated fallback to looking at /simple/ to discover "
-                    "it's real name. It is suggested to upgrade your index to "
-                    " support normalized names as the name in /simple/{name}.",
+                    "Failed to find %r at %s. It is suggested to upgrade "
+                    "your index to support normalized names as the name in "
+                    "/simple/{name}." % (req.name, main_index_url),
                     RemovedInPip8Warning,
                 )
 
