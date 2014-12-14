@@ -13,8 +13,20 @@ tox --notest
 # environment without the vendor directory included as well as install the
 # dependencies we need installed.
 if [[ $VENDOR = "no" ]]; then
-    .tox/$TOXENV/bin/pip install -r pip/_vendor/vendor.txt
+    # Install our dependencies if we're not installing from wheels
+    if [[ $WHEELS != "yes" ]]; then
+        .tox/$TOXENV/bin/pip install -r pip/_vendor/vendor.txt --no-deps
+    fi
+
+    # Actually install pip without the bundled dependencies
     PIP_NO_VENDOR_FOR_DOWNSTREAM=1 .tox/$TOXENV/bin/pip install .
+
+    # Install our dependencies if we're installing from wheels
+    if [[ $WHEELS = "yes" ]]; then
+        mkdir -p /tmp/wheels
+        pip wheel --wheel-dir /tmp/wheels --no-deps -r pip/_vendor/vendor.txt
+        cp /tmp/wheels/* `echo .tox/$TOXENV/lib/python*/site-packages/pip/_vendor/`
+    fi
 
     # Test to make sure that we successfully installed without vendoring
     if [ -f .tox/$TOXENV/lib/python*/site-packages/pip/_vendor/six.py ]; then
