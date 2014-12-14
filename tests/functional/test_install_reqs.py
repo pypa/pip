@@ -117,7 +117,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
     downloaded = [line for line in result.stdout.split('\n')
-                  if 'Downloading/unpacking' in line]
+                  if 'Collecting' in line]
 
     assert 'parent' in downloaded[0], (
         'First download should be "parent" but was "%s"' % downloaded[0]
