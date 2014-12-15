@@ -912,7 +912,8 @@ exec(compile(
                 r'^byte-compiling ',
                 r'^SyntaxError:',
                 r'^SyntaxWarning:',
-                r'^warning: no previously-included files matching \'.*\'',
+                (r'^(warning: )?no previously-included (files|directories) '
+                 r'(found)? matching \'.*\''),
                 r'^warning: no files found matching \'.*\' under directory',
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
