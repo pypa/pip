@@ -280,10 +280,8 @@ class RequirementSet(object):
             elif install:
                 if (req_to_install.url
                         and req_to_install.url.lower().startswith('file:')):
-                    logger.info(
-                        'Unpacking %s',
-                        display_path(url_to_path(req_to_install.url)),
-                    )
+                    path = url_to_path(req_to_install.url)
+                    logger.info('Processing %s', display_path(path))
                 else:
                     logger.info('Downloading/unpacking %s', req_to_install)
 
