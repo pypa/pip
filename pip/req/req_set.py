@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import os
-import shutil
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
@@ -12,7 +11,7 @@ from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
-from pip.utils import (display_path, rmtree, dist_in_usersite, call_subprocess,
+from pip.utils import (display_path, rmtree, dist_in_usersite,
                        _make_build_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
@@ -126,14 +125,6 @@ class RequirementSet(object):
     @property
     def has_requirements(self):
         return list(self.requirements.values()) or self.unnamed_requirements
-
-    @property
-    def has_editables(self):
-        if any(req.editable for req in self.requirements.values()):
-            return True
-        if any(req.editable for req in self.unnamed_requirements):
-            return True
-        return False
 
     @property
     def is_download(self):
@@ -514,14 +505,6 @@ class RequirementSet(object):
                 os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)
             )
         )
-
-    def copy_to_build_dir(self, req_to_install):
-        target_dir = req_to_install.editable and self.src_dir or self.build_dir
-        logger.debug("Copying %s to %s", req_to_install.name, target_dir)
-        dest = os.path.join(target_dir, req_to_install.name)
-        shutil.copytree(req_to_install.source_dir, dest)
-        call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
-                        command_desc='python setup.py clean')
 
     def install(self, install_options, global_options=(), *args, **kwargs):
         """
