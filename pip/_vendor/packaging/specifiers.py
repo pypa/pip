@@ -461,16 +461,18 @@ class Specifier(_IndividualSpecifier):
         # Less than are defined as exclusive operators, this implies that
         # pre-releases do not match for the same series as the spec. This is
         # implemented by making <V imply !=V.*.
-        return (prospective < Version(spec)
-                and self._get_operator("!=")(prospective, spec + ".*"))
+        spec = Version(spec)
+        return (prospective < spec
+                and self._get_operator("!=")(prospective, str(spec) + ".*"))
 
     @_require_version_compare
     def _compare_greater_than(self, prospective, spec):
         # Greater than are defined as exclusive operators, this implies that
         # pre-releases do not match for the same series as the spec. This is
         # implemented by making >V imply !=V.*.
-        return (prospective > Version(spec)
-                and self._get_operator("!=")(prospective, spec + ".*"))
+        spec = Version(spec)
+        return (prospective > spec
+                and self._get_operator("!=")(prospective, str(spec) + ".*"))
 
     def _compare_arbitrary(self, prospective, spec):
         return str(prospective).lower() == str(spec).lower()

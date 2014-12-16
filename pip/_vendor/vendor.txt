@@ -8,4 +8,4 @@ CacheControl==0.10.4
 lockfile==0.9.1
 progress==1.2
 ipaddress==1.0.7  # Only needed on 2.6, 2.7, and 3.2
-packaging==14.3
+packaging==14.4
