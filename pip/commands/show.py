@@ -4,6 +4,7 @@ import logging
 import os
 
 from pip.basecommand import Command
+from pip.status_codes import SUCCESS, ERROR
 from pip._vendor import pkg_resources
 
 
@@ -31,11 +32,13 @@ class ShowCommand(Command):
     def run(self, options, args):
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
-            return
+            return ERROR
         query = args
 
         results = search_packages_info(query)
-        print_results(results, options.files)
+        if not print_results(results, options.files):
+            return ERROR
+        return SUCCESS
 
 
 def search_packages_info(query):
@@ -79,7 +82,9 @@ def print_results(distributions, list_all_files):
     """
     Print the informations from installed distributions found.
     """
+    results_printed = False
     for dist in distributions:
+        results_printed = True
         logger.info("---")
         logger.info("Name: %s" % dist['name'])
         logger.info("Version: %s" % dist['version'])
@@ -92,3 +97,4 @@ def print_results(distributions, list_all_files):
                     logger.info("  %s" % line.strip())
             else:
                 logger.info("Cannot locate installed-files.txt")
+    return results_printed
