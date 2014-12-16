@@ -11,6 +11,7 @@ from __future__ import absolute_import
 
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
+from pip.index import PyPI
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
@@ -192,7 +193,7 @@ index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
-    default='https://pypi.python.org/simple/',
+    default=PyPI.simple_url,
     help='Base URL of Python Package Index (default %default).')
 
 extra_index_url = OptionMaker(

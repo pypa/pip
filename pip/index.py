@@ -47,6 +47,21 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
+class Index(object):
+    def __init__(self, url):
+        self.url = url
+        self.netloc = urllib_parse.urlsplit(url).netloc
+        self.simple_url = self.url_to_path('simple')
+        self.pypi_url = self.url_to_path('pypi')
+        self.pip_json_url = self.url_to_path('pypi/pip/json')
+
+    def url_to_path(self, path):
+        return urllib_parse.urljoin(self.url, path)
+
+
+PyPI = Index('https://pypi.python.org/')
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -302,7 +317,7 @@ class PackageFinder(object):
             )
 
             page = self._get_page(main_index_url, req)
-            if page is None and 'pypi.python.org' not in str(main_index_url):
+            if page is None and PyPI.netloc not in str(main_index_url):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
                     "your index to support normalized names as the name in "
@@ -703,7 +718,7 @@ class PackageFinder(object):
                         and comes_from is not None
                         and urllib_parse.urlparse(
                             comes_from.url
-                        ).netloc.endswith("pypi.python.org")):
+                        ).netloc.endswith(PyPI.netloc)):
                     if not wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
                             "Skipping %s because it is a pypi-hosted binary "
