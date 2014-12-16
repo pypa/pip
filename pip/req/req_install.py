@@ -916,9 +916,9 @@ exec(compile(
                 r'^byte-compiling ',
                 r'^SyntaxError:',
                 r'^SyntaxWarning:',
-                (r'^(warning: )?no previously-included (files|directories) '
-                 r'(found)? matching \'.*\''),
-                r'^warning: no files found matching \'.*\' under directory',
+                r'^\s*Skipping implicit fixer: ',
+                r'^\s*(warning: )?no previously-included (files|directories) ',
+                r'^\s*warning: no files found matching \'.*\'',
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
             if not line or re.search(regex, line.strip()):
