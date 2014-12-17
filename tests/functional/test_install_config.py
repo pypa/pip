@@ -72,7 +72,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Successfully installed INITools" in result.stdout
+    assert "Successfully installed:\n    INITools==0.3.1" in result.stdout
 
 
 def test_command_line_append_flags(script, virtualenv, data):
