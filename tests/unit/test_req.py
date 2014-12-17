@@ -85,6 +85,12 @@ class TestInstallRequirement(object):
                 'peppercorn-0.4-py2.py3-bogus-any.whl',
             )
 
+    def test_installed_version_not_installed(self):
+        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        # @todo: Maybe this shouldn't be leaking a pkg_resources exception?
+        with pytest.raises(pkg_resources.DistributionNotFound):
+            req.installed_version
+
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
             InstallRequirement.from_line('invalid.whl')
