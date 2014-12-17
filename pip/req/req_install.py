@@ -462,18 +462,6 @@ exec(compile(
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
 
-    def egg_info_lines(self, filename):
-        data = self.egg_info_data(filename)
-        if not data:
-            return []
-        result = []
-        for line in data.splitlines():
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            result.append(line)
-        return result
-
     def pkg_info(self):
         p = FeedParser()
         data = self.egg_info_data('PKG-INFO')
@@ -484,10 +472,6 @@ exec(compile(
             )
         p.feed(data or '')
         return p.close()
-
-    @property
-    def dependency_links(self):
-        return self.egg_info_lines('dependency_links.txt')
 
     _requirements_section_re = re.compile(r'\[(.*?)\]')
 

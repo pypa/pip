@@ -421,14 +421,15 @@ class RequirementSet(object):
                         pkg_resources.find_distributions(location)
                     )[0]
                 else:  # sdists
-                    # FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(
-                        req_to_install.dependency_links
-                    )
                     if req_to_install.satisfied_by:
                         dist = req_to_install.satisfied_by
                     else:
                         dist = req_to_install.get_dist()
+                    # FIXME: shouldn't be globally added:
+                    if dist.has_metadata('dependency_links.txt'):
+                        finder.add_dependency_links(
+                            dist.get_metadata_lines('dependency_links.txt')
+                        )
 
                 if not self.ignore_dependencies:
                     for subreq in dist.requires(
