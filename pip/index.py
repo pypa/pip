@@ -1043,7 +1043,7 @@ class Link(object):
                  _deprecated_regex=False):
 
         # url can be a UNC windows share
-        if hasattr(url, 'startswith') and url.startswith('\\\\'):
+        if url != Inf and url.startswith('\\\\'):
             url = path_to_url(url)
 
         self.url = url
