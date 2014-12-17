@@ -120,6 +120,9 @@
 * Reduce the verbosity of the pip command by default. (:pull:`2175`,
   :pull:`2177`, :pull:`2178`)
 
+* Fixed :issue:`2031` - Respect sys.executable on OSX when installing from
+  Wheels.
+
 
 **1.5.6 (2014-05-16)**
 
