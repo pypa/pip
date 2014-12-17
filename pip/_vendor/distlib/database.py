@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2013 The Python Software Foundation.
+# Copyright (C) 2012-2014 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """PEP 376 implementation."""
@@ -334,6 +334,8 @@ class Distribution(object):
         self.digest = None
         self.extras = None      # additional features requested
         self.context = None     # environment marker overrides
+        self.download_urls = set()
+        self.digests = {}
 
     @property
     def source_url(self):
@@ -925,9 +927,9 @@ class EggInfoDistribution(BaseInstalledDistribution):
                     requires = None
         elif path.endswith('.egg-info'):
             if os.path.isdir(path):
-                path = os.path.join(path, 'PKG-INFO')
                 req_path = os.path.join(path, 'requires.txt')
                 requires = parse_requires_path(req_path)
+                path = os.path.join(path, 'PKG-INFO')
             metadata = Metadata(path=path, scheme='legacy')
         else:
             raise DistlibException('path must end with .egg-info or .egg, '
