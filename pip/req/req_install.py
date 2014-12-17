@@ -23,6 +23,7 @@ from pip.compat import native_str, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
+    DistributionNotFound,
 )
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
@@ -509,7 +510,12 @@ exec(compile(
     @property
     def installed_version(self):
         if self.is_wheel:
-            dist = pkg_resources.get_distribution(self.name)
+            try:
+                dist = pkg_resources.get_distribution(self.name)
+            except pkg_resources.DistributionNotFound as e:
+                # Replace pkg_resources exception with a pip one
+                # to avoid leaking internal details
+                raise DistributionNotFound(*e.args)
             return dist.version
         return self.pkg_info()['version']
 
