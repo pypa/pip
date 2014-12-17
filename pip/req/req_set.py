@@ -489,14 +489,9 @@ class RequirementSet(object):
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
 
-            remove_dir = []
             if self._pip_has_created_build_dir():
-                remove_dir.append(self.build_dir)
-
-            for dir in remove_dir:
-                if os.path.exists(dir):
-                    logger.debug('Removing temporary dir %s...', dir)
-                    rmtree(dir)
+                logger.debug('Removing temporary dir %s...', self.build_dir)
+                rmtree(self.build_dir)
 
     def _pip_has_created_build_dir(self):
         return (
