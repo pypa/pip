@@ -135,15 +135,26 @@ def test_url_to_path_unix():
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///c:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///c:/tmp/file'
+    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
+    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
     path = os.path.join(os.getcwd(), 'file')
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_url_to_path_win():
-    assert url_to_path('file:///c:/tmp/file') == 'c:/tmp/file'
+    assert url_to_path('file:///c:/tmp/file') == 'C:\\tmp\\file'
+    assert url_to_path('file://unc/as/path') == r'\\unc\as\path'
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_url_to_path_path_to_url_symetry_win():
+    path = r'C:\tmp\file'
+    assert url_to_path(path_to_url(path)) == path
+
+    unc_path = r'\\unc\share\path'
+    assert url_to_path(path_to_url(unc_path)) == unc_path
 
 
 class Test_unpack_file_url(object):
