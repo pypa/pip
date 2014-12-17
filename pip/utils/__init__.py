@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import contextlib
+import fnmatch
 import locale
 import logging
 import re
@@ -369,7 +370,8 @@ def dist_is_editable(dist):
     return req.editable
 
 
-def get_installed_distributions(local_only=True,
+def get_installed_distributions(glob_pattern='*',
+                                local_only=True,
                                 skip=stdlib_pkgs,
                                 include_editables=True,
                                 editables_only=False,
@@ -417,6 +419,7 @@ def get_installed_distributions(local_only=True,
             and editable_test(d)
             and editables_only_test(d)
             and user_test(d)
+            and fnmatch.fnmatch(str(d), glob_pattern)
             ]
 
 

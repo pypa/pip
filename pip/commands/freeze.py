@@ -95,15 +95,18 @@ class FreezeCommand(Command):
         for link in find_links:
             f.write('-f %s\n' % link)
         installations = {}
-        for dist in get_installed_distributions(local_only=local_only,
-                                                skip=freeze_excludes,
-                                                user_only=user_only):
-            req = pip.FrozenRequirement.from_dist(
-                dist,
-                dependency_links,
-                find_tags=find_tags,
-            )
-            installations[req.name] = req
+        glob_patterns = args or ['*']
+        for glob_pattern in glob_patterns:
+            for dist in get_installed_distributions(glob_pattern=glob_pattern,
+                                                    local_only=local_only,
+                                                    skip=freeze_excludes,
+                                                    user_only=user_only):
+                req = pip.FrozenRequirement.from_dist(
+                    dist,
+                    dependency_links,
+                    find_tags=find_tags,
+                )
+                installations[req.name] = req
 
         if requirement:
             with open(requirement) as req_file:

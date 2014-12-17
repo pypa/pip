@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
+from pip.utils import get_installed_distributions
 
 
 class UninstallCommand(Command):
@@ -50,7 +51,17 @@ class UninstallCommand(Command):
                 isolated=options.isolated_mode,
                 session=session,
             )
-            for name in args:
+
+            names = []
+
+            for arg in args:
+                if '*' in arg:
+                    matches = get_installed_distributions(glob_pattern=arg)
+                    names.extend([distro.project_name for distro in matches])
+                else:
+                    names.append(arg)
+
+            for name in names:
                 requirement_set.add_requirement(
                     InstallRequirement.from_line(
                         name, isolated=options.isolated_mode,
