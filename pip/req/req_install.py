@@ -212,7 +212,7 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def build_location(self, build_dir, unpack=True):
+    def build_location(self, build_dir):
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:

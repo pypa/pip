@@ -193,7 +193,6 @@ class RequirementSet(object):
             elif install_needed:
                 req_to_install.source_dir = req_to_install.build_location(
                     self.build_dir,
-                    not self.is_download,
                 )
 
             if (req_to_install.source_dir is not None
@@ -307,7 +306,6 @@ class RequirementSet(object):
                     # build directory
                     location = req_to_install.build_location(
                         self.build_dir,
-                        not self.is_download,
                     )
                     unpack = True
                     url = None
