@@ -1,5 +1,10 @@
 language: python
 
+# Use the Travis Docker infrastructure instead of their legacy infrastructure,
+# this will (hopefully) result in faster build times with the downside of not
+# being able to use sudo (which we're not using currently).
+sudo: false
+
 env:
   - TOXENV=pep8
   - TOXENV=py3pep8
