@@ -14,7 +14,7 @@ from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.utils import (egg_link_path, Inf, get_installed_distributions,
                        find_command, untar_file, unzip_file)
-from pip.commands.freeze import freeze_excludes
+from pip.operations.freeze import freeze_excludes
 
 
 class Tests_EgglinkPath:
