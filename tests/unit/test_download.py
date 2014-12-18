@@ -149,7 +149,7 @@ def test_url_to_path_win():
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_url_to_path_path_to_url_symetry_win():
+def test_url_to_path_path_to_url_symmetry_win():
     path = r'C:\tmp\file'
     assert url_to_path(path_to_url(path)) == path
 
