@@ -1041,6 +1041,11 @@ class Link(object):
 
     def __init__(self, url, comes_from=None, internal=None, trusted=None,
                  _deprecated_regex=False):
+
+        # url can be a UNC windows share
+        if url != Inf and url.startswith('\\\\'):
+            url = path_to_url(url)
+
         self.url = url
         self.comes_from = comes_from
         self.internal = internal

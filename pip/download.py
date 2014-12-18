@@ -15,6 +15,7 @@ import sys
 import tempfile
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 
@@ -371,17 +372,15 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urllib_parse.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    else:
-        path = '/' + path
+
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+
+    # if we have a UNC path, prepend UNC share notation
+    if netloc:
+        netloc = '\\\\' + netloc
+
+    path = urllib_request.url2pathname(netloc + path)
     return path
-
-
-_drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 def path_to_url(path):
@@ -390,12 +389,8 @@ def path_to_url(path):
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    drive, path = os.path.splitdrive(path)
-    filepath = path.split(os.path.sep)
-    url = '/'.join([urllib_parse.quote(part) for part in filepath])
-    if not drive:
-        url = url.lstrip('/')
-    return 'file:///' + drive + url
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def is_archive_file(name):
