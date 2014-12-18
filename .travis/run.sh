@@ -26,17 +26,12 @@ fi
 # Run the unit tests
 tox -- -m unit --cov pip/ --cov-report xml
 
-# Run our integration tests, typically with pytest-xdist to speed things up
-# except on Python 3.2 where it doesn't work quite right.
-case $TOXENV in
-    py32)
-        tox -- -m integration
-        ;;
-    *)
-        tox -- -m integration -n 8
-        ;;
-esac
-
+# Run our integration tests
+# Note: There is an issue with Python 3.2 where concurrent imports will corrupt
+#       the generated .pyc files and we'll get very strange errors. However as
+#       long as we continue to run the unit tests first and in a seperate step
+#       then this should work fine.
+tox -- -m integration -n 8
 
 if [[ $TRAVIS_PULL_REQUEST != "false" ]]
 then
