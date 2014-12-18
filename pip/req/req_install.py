@@ -508,6 +508,9 @@ exec(compile(
 
     @property
     def installed_version(self):
+        if self.is_wheel:
+            dist = pkg_resources.get_distribution(self.name)
+            return dist.version
         return self.pkg_info()['version']
 
     def assert_source_matches_version(self):
