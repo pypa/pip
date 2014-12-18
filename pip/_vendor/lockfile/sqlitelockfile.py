@@ -50,7 +50,7 @@ class SQLiteLockFile(LockBase):
             atexit.register(os.unlink, SQLiteLockFile.testdb)
 
     def acquire(self, timeout=None):
-        timeout = timeout or self.timeout
+        timeout = timeout is not None and timeout or self.timeout
         end_time = time.time()
         if timeout is not None and timeout > 0:
             end_time += timeout
