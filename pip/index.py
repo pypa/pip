@@ -22,6 +22,7 @@ from pip.exceptions import (
     UnsupportedWheel,
 )
 from pip.download import url_to_path, path_to_url
+from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip.req.req_requirement import InstallationCandidate
@@ -45,21 +46,6 @@ SECURE_ORIGINS = [
 
 
 logger = logging.getLogger(__name__)
-
-
-class Index(object):
-    def __init__(self, url):
-        self.url = url
-        self.netloc = urllib_parse.urlsplit(url).netloc
-        self.simple_url = self.url_to_path('simple')
-        self.pypi_url = self.url_to_path('pypi')
-        self.pip_json_url = self.url_to_path('pypi/pip/json')
-
-    def url_to_path(self, path):
-        return urllib_parse.urljoin(self.url, path)
-
-
-PyPI = Index('https://pypi.python.org/')
 
 
 class PackageFinder(object):
@@ -1113,6 +1099,10 @@ class Link(object):
     @property
     def scheme(self):
         return urllib_parse.urlsplit(self.url)[0]
+
+    @property
+    def netloc(self):
+        return urllib_parse.urlsplit(self.url)[1]
 
     @property
     def path(self):

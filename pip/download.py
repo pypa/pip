@@ -19,6 +19,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 import pip
 
 from pip.exceptions import InstallationError, HashMismatch
+from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -535,21 +536,26 @@ def _download_url(resp, link, content_file):
 
         progress_indicator = lambda x, *a, **k: x
 
+        if link.netloc == PyPI.netloc:
+            url = show_url
+        else:
+            url = link.url_without_fragment
+
         if show_progress:  # We don't show progress on cached responses
             if total_length:
                 logger.info(
-                    "Downloading %s (%s)", show_url, format_size(total_length),
+                    "Downloading %s (%s)", url, format_size(total_length),
                 )
                 progress_indicator = DownloadProgressBar(
                     max=total_length,
                 ).iter
             else:
-                logger.info("Downloading %s", show_url)
+                logger.info("Downloading %s", url)
                 progress_indicator = DownloadProgressSpinner().iter
         elif cached_resp:
-            logger.info("Using cached %s", show_url)
+            logger.info("Using cached %s", url)
         else:
-            logger.info("Downloading %s", show_url)
+            logger.info("Downloading %s", url)
 
         logger.debug('Downloading from URL %s', link)
 
