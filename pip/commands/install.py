@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import operator
 import os
 import tempfile
 import shutil
@@ -345,10 +346,20 @@ class InstallCommand(Command):
                             global_options,
                             root=options.root_path,
                         )
-                        installed = ' '.join([
-                            req.name for req in
-                            requirement_set.successfully_installed
-                        ])
+                        reqs = sorted(
+                            requirement_set.successfully_installed,
+                            key=operator.attrgetter('name'))
+                        items = []
+                        for req in reqs:
+                            item = req.name
+                            try:
+                                if hasattr(req, 'installed_version'):
+                                    if req.installed_version:
+                                        item += '-' + req.installed_version
+                            except Exception:
+                                pass
+                            items.append(item)
+                        installed = ' '.join(items)
                         if installed:
                             logger.info('Successfully installed %s', installed)
                     else:
