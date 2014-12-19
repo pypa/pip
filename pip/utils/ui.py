@@ -6,7 +6,7 @@ import sys
 
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
-from pip._vendor.progress.bar import Bar
+from pip._vendor.progress.bar import Bar, IncrementalBar
 from pip._vendor.progress.helpers import WritelnMixin
 from pip._vendor.progress.spinner import Spinner
 
@@ -41,11 +41,31 @@ class DownloadProgressMixin(object):
         self.finish()
 
 
-class DownloadProgressBar(DownloadProgressMixin, Bar):
+class _DownloadProgressBar(DownloadProgressMixin, Bar):
 
     file = sys.stdout
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
+
+
+class _DownloadProgressIncrementalBar(DownloadProgressMixin, IncrementalBar):
+
+    file = sys.stdout
+    message = "%(percent)d%%"
+    suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
+
+
+DownloadProgressBar = _DownloadProgressIncrementalBar
+
+
+def set_progress_bar_style(style):
+    global DownloadProgressBar
+    if style == 'ascii':
+        DownloadProgressBar = _DownloadProgressBar
+
+
+def get_progress_bar_class():
+    return DownloadProgressBar
 
 
 class DownloadProgressSpinner(DownloadProgressMixin, WritelnMixin, Spinner):
