@@ -1098,6 +1098,7 @@ class Link(object):
     def filename(self):
         _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
         name = posixpath.basename(path.rstrip('/')) or netloc
+        name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self.url)
         return name
 

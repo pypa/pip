@@ -58,9 +58,19 @@ class TestLink(object):
     def test_splitext(self):
         assert ('wheel', '.whl') == Link('http://yo/wheel.whl').splitext()
 
-    def test_filename(self):
-        assert 'wheel.whl' == Link('http://yo/wheel.whl').filename
-        assert 'wheel' == Link('http://yo/wheel').filename
+    @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            ("http://yo/wheel.whl", "wheel.whl"),
+            ("http://yo/wheel", "wheel"),
+            (
+                "http://yo/myproject-1.0%2Bfoobar.0-py2.py3-none-any.whl",
+                "myproject-1.0+foobar.0-py2.py3-none-any.whl",
+            ),
+        ],
+    )
+    def test_filename(self, url, expected):
+        assert Link(url).filename == expected
 
     def test_no_ext(self):
         assert '' == Link('http://yo/wheel').ext
