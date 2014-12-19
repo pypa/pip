@@ -11,7 +11,8 @@ from pip._vendor import requests
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
+from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix,
+                           write_delete_marker_file)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (display_path, rmtree, dist_in_usersite, normalize_path)
 from pip.utils.logging import indent_log
@@ -460,6 +461,8 @@ class RequirementSet(object):
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, do_download, session=self.session,
                     )
+                    if do_download:
+                        write_delete_marker_file(req_to_install.source_dir)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '

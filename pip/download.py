@@ -27,7 +27,6 @@ from pip.utils import (splitext, rmtree, format_size, display_path,
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
-from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
@@ -803,31 +802,18 @@ def unpack_url(link, location, download_dir=None,
        for other types of link:
          - unpack into location
          - if download_dir, copy the file into download_dir
-         - if only_download, mark location for deletion
     """
     # non-editable vcs urls
     if is_vcs_url(link):
         unpack_vcs_link(link, location, only_download)
-
-    # file urls
+    # file/directory urls
     elif is_file_url(link):
         unpack_file_url(link, location, download_dir)
-        if only_download:
-            write_delete_marker_file(location)
-
     # http urls
     else:
         if session is None:
             session = PipSession()
-
-        unpack_http_url(
-            link,
-            location,
-            download_dir,
-            session,
-        )
-        if only_download:
-            write_delete_marker_file(location)
+        unpack_http_url(link, location, download_dir, session)
 
 
 def _download_http_url(link, session, temp_dir):
