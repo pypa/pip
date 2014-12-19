@@ -875,11 +875,11 @@ exec(compile(
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
-        if os.path.exists(self.delete_marker_filename):
+        if self.source_dir and os.path.exists(
+                os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
             logger.debug('Removing source in %s', self.source_dir)
-            if self.source_dir:
-                rmtree(self.source_dir)
-            self.source_dir = None
+            rmtree(self.source_dir)
+        self.source_dir = None
         if self._temp_build_dir and os.path.exists(self._temp_build_dir):
             rmtree(self._temp_build_dir)
         self._temp_build_dir = None
@@ -987,11 +987,6 @@ exec(compile(
             pycompile=self.pycompile,
             isolated=self.isolated,
         )
-
-    @property
-    def delete_marker_filename(self):
-        assert self.source_dir
-        return os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)
 
 
 def _strip_postfix(req):
