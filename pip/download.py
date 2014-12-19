@@ -23,7 +23,6 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
-from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
@@ -537,6 +536,8 @@ def _download_url(resp, link, content_file):
             url = link.url_without_fragment
 
         if show_progress:  # We don't show progress on cached responses
+            from pip.utils.ui import (
+                DownloadProgressBar, DownloadProgressSpinner)
             if total_length:
                 logger.info(
                     "Downloading %s (%s)", url, format_size(total_length),

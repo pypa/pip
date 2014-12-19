@@ -414,6 +414,21 @@ disable_pip_version_check = OptionMaker(
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download.")
 
+
+def progress_bar_style_callback(option, opt, value, parser):
+    from pip.utils.ui import set_progress_bar_style
+    set_progress_bar_style(value)
+
+progress_bar_style = OptionMaker(
+    "--progress-bar-style",
+    dest="progress_bar_style",
+    action="callback",
+    callback=progress_bar_style_callback,
+    type='choice',
+    choices=['ascii', 'unicode'],
+    help="set progress bar style")
+
+
 ##########
 # groups #
 ##########
@@ -442,6 +457,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        progress_bar_style,
     ]
 }
 
