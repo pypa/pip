@@ -411,7 +411,7 @@ class RequirementSet(object):
                 # # parse dependencies # #
                 # ###################### #
                 if (req_to_install.extras):
-                    logger.info(
+                    logger.debug(
                         "Installing extra requirements: %r",
                         ','.join(req_to_install.extras),
                     )
