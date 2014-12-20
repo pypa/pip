@@ -267,6 +267,7 @@ class PipSession(requests.Session):
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
+        insecure_hosts = kwargs.pop("insecure_hosts", [])
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -312,11 +313,16 @@ class PipSession(requests.Session):
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
 
-        self.mount("http://", secure_adapter)
-        self.mount("https://", insecure_adapter)
+        self.mount("https://", secure_adapter)
+        self.mount("http://", insecure_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
+
+        # We want to use a non-validating adapter for any requests which are
+        # deemed insecure.
+        for host in insecure_hosts:
+            self.mount("https://{0}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
