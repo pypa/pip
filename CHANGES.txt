@@ -126,6 +126,9 @@
 * Display the entire URL of the file that is being downloaded when downloading
   from a non PyPI repository (:pull:`2183`).
 
+* Support setuptools style environment markers in a source distribution
+  (:pull:`2153`).
+
 
 **1.5.6 (2014-05-16)**
 
