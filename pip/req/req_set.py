@@ -11,8 +11,7 @@ from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
-from pip.utils import (display_path, rmtree, dist_in_usersite,
-                       _make_build_dir, normalize_path)
+from pip.utils import (display_path, rmtree, dist_in_usersite, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
 
@@ -177,12 +176,11 @@ class RequirementSet(object):
                         req_to_install.satisfied_by = None
                     else:
                         install_needed = False
-                if req_to_install.satisfied_by:
-                    logger.info(
-                        'Requirement already satisfied (use --upgrade to '
-                        'upgrade): %s',
-                        req_to_install,
-                    )
+                        logger.info(
+                            'Requirement already satisfied (use --upgrade to '
+                            'upgrade): %s',
+                            req_to_install,
+                        )
 
             if req_to_install.editable:
                 if req_to_install.source_dir is None:
@@ -281,18 +279,14 @@ class RequirementSet(object):
                 is_wheel = False
                 if req_to_install.editable:
                     if req_to_install.source_dir is None:
-                        location = req_to_install.build_location(self.src_dir)
-                        req_to_install.source_dir = location
-                    else:
-                        location = req_to_install.source_dir
-                    if not os.path.exists(self.build_dir):
-                        _make_build_dir(self.build_dir)
+                        req_to_install.source_dir = (
+                            req_to_install.build_location(self.src_dir)
+                        )
+                    location = req_to_install.source_dir
                     req_to_install.update_editable(not self.is_download)
+                    req_to_install.run_egg_info()
                     if self.is_download:
-                        req_to_install.run_egg_info()
                         req_to_install.archive(self.download_dir)
-                    else:
-                        req_to_install.run_egg_info()
                 elif install:
                     # @@ if filesystem packages are not marked
                     # editable in a req, a non deterministic error
@@ -361,18 +355,16 @@ class RequirementSet(object):
                             unpack = False
                     if unpack:
                         is_wheel = link and link.is_wheel
+                        req_to_install.source_dir = location
                         if self.is_download:
-                            req_to_install.source_dir = location
                             if not is_wheel:
                                 # FIXME:https://github.com/pypa/pip/issues/1112
                                 req_to_install.run_egg_info()
                             if link and link.scheme in vcs.all_schemes:
                                 req_to_install.archive(self.download_dir)
                         elif is_wheel:
-                            req_to_install.source_dir = location
                             req_to_install.link = link
                         else:
-                            req_to_install.source_dir = location
                             req_to_install.run_egg_info()
                             req_to_install.assert_source_matches_version()
                         # req_to_install.req is only avail after unpack for URL
