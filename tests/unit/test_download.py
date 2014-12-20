@@ -304,10 +304,20 @@ class TestPipSession:
     def test_cache_is_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))
 
-        assert hasattr(session.adapters["http://"], "cache")
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["http://"].cache.directory
-                == tmpdir.join("test-cache"))
         assert (session.adapters["https://"].cache.directory
                 == tmpdir.join("test-cache"))
+
+    def test_http_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(cache=tmpdir.join("test-cache"))
+
+        assert not hasattr(session.adapters["http://"], "cache")
+
+    def test_insecure_host_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(
+            cache=tmpdir.join("test-cache"),
+            insecure_hosts=["example.com"],
+        )
+
+        assert not hasattr(session.adapters["https://example.com/"], "cache")
