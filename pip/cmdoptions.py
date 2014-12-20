@@ -252,7 +252,9 @@ trusted_host = OptionMaker(
     dest="trusted_hosts",
     action="append",
     metavar="HOSTNAME",
-    help="Mark this host as trusted, even though it does not have HTTPS.",
+    default=[],
+    help="Mark this host as trusted, even though it does not have valid or "
+         "any HTTPS.",
 )
 
 # Remove after 7.0
