@@ -181,14 +181,6 @@ client_cert = OptionMaker(
     help="Path to SSL client certificate, a single file containing the "
          "private key and the certificate in PEM format.")
 
-no_check_certificate = OptionMaker(
-    "--no-check-certificate",
-    dest="no_check_certificate",
-    action="store_true",
-    default=False,
-    help="Don't validate SSL certificates.",
-)
-
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
@@ -260,7 +252,9 @@ trusted_host = OptionMaker(
     dest="trusted_hosts",
     action="append",
     metavar="HOSTNAME",
-    help="Mark this host as trusted, even though it does not have HTTPS.",
+    default=[],
+    help="Mark this host as trusted, even though it does not have valid or "
+         "any HTTPS.",
 )
 
 # Remove after 7.0
@@ -436,9 +430,9 @@ general_group = {
         default_vcs,
         skip_requirements_regex,
         exists_action,
+        trusted_host,
         cert,
         client_cert,
-        no_check_certificate,
         cache_dir,
         no_cache,
         disable_pip_version_check,
@@ -456,7 +450,6 @@ index_group = {
         mirrors,
         allow_external,
         allow_all_external,
-        trusted_host,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,

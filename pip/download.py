@@ -253,6 +253,13 @@ class SafeFileCache(FileCache):
             pass
 
 
+class InsecureHTTPAdapter(HTTPAdapter):
+
+    def cert_verify(self, conn, url, verify, cert):
+        conn.cert_reqs = 'CERT_NONE'
+        conn.ca_certs = None
+
+
 class PipSession(requests.Session):
 
     timeout = None
@@ -260,6 +267,7 @@ class PipSession(requests.Session):
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
+        insecure_hosts = kwargs.pop("insecure_hosts", [])
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -287,19 +295,34 @@ class PipSession(requests.Session):
             backoff_factor=0.25,
         )
 
+        # We want to _only_ cache responses on securely fetched origins. We do
+        # this because we can't validate the response of an insecurely fetched
+        # origin, and we don't want someone to be able to poison the cache and
+        # require manual evication from the cache to fix it.
         if cache:
-            http_adapter = CacheControlAdapter(
+            secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
-            http_adapter = HTTPAdapter(max_retries=retries)
+            secure_adapter = HTTPAdapter(max_retries=retries)
 
-        self.mount("http://", http_adapter)
-        self.mount("https://", http_adapter)
+        # Our Insecure HTTPAdapter disables HTTPS validation. It does not
+        # support caching (see above) so we'll use it for all http:// URLs as
+        # well as any https:// host that we've marked as ignoring TLS errors
+        # for.
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+
+        self.mount("https://", secure_adapter)
+        self.mount("http://", insecure_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
+
+        # We want to use a non-validating adapter for any requests which are
+        # deemed insecure.
+        for host in insecure_hosts:
+            self.mount("https://{0}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session

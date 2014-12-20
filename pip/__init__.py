@@ -16,6 +16,9 @@ from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
 from pip.commands import commands_dict
+from pip._vendor.requests.packages.urllib3.exceptions import (
+    InsecureRequestWarning,
+)
 
 
 # assignment for flake8 to be happy
@@ -31,6 +34,9 @@ __version__ = "6.0.dev1"
 
 
 logger = logging.getLogger(__name__)
+
+# Hide the InsecureRequestWArning from urllib3
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 def autocomplete():

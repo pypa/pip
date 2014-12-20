@@ -32,6 +32,9 @@
   not a secure origin, instead requiring an opt-in for each host using the new
   ``--trusted-host`` flag (``pip install --trusted-host example.com foo``).
 
+* Allow the new ``--trusted-host`` flag to also disable TLS verification for
+  a particular hostname.
+
 * Added a ``--user`` flag to ``pip freeze`` and ``pip list`` to check the
   user site diretory only.
 
@@ -62,9 +65,6 @@
 
 * Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
   won't create duplicate output when being called multiple times. (:pull:`1723`)
-
-* Added general flag `--no-check-certificate` to tell pip NOT to verify
-  the security of HTTPS connections. (:pull:`1741`:)
 
 * Fixed :issue:`1769`. `pip wheel` now returns an error code if any wheels
   fail to build.
