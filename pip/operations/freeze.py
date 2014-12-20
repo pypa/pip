@@ -17,6 +17,7 @@ freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 
 
 def freeze(
+        only_dists=None,
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
         find_tags=False,
@@ -41,15 +42,25 @@ def freeze(
     for link in find_links:
         yield '-f %s' % link
     installations = {}
+
+    if only_dists:
+        # Freeze only a subset of installed packages.
+        if recursive:  # Freeze dependencies, recursively.
+            only_dists.extend(get_recursive_dependencies(only_dists))
+        only_dists = [pkg_resources.safe_extra(name)
+                      for name in only_dists]
+
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=freeze_excludes,
                                             user_only=user_only):
-        req = pip.FrozenRequirement.from_dist(
-            dist,
-            dependency_links,
-            find_tags=find_tags,
-        )
-        installations[req.name] = req
+        safe_name = pkg_resources.safe_extra(dist.project_name)
+        if not only_dists or safe_name in only_dists:
+            req = pip.FrozenRequirement.from_dist(
+                dist,
+                dependency_links,
+                find_tags=find_tags,
+            )
+            installations[req.name] = req
 
     if requirement:
         with open(requirement) as req_file:
