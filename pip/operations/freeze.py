@@ -6,7 +6,7 @@ import re
 import pip
 from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
-from pip.utils import get_installed_distributions
+from pip.utils import get_installed_distributions, get_recursive_dependencies
 from pip._vendor import pkg_resources
 
 
@@ -18,6 +18,7 @@ freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 
 def freeze(
         only_dists=None,
+        recursive=False,
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
         find_tags=False,

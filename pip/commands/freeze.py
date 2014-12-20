@@ -61,6 +61,8 @@ class FreezeCommand(Command):
 
     def run(self, options, args):
         freeze_kwargs = dict(
+            only_dists=args,
+            recursive=options.recursive,
             requirement=options.requirement,
             find_links=options.find_links,
             local_only=options.local,
