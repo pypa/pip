@@ -76,8 +76,6 @@ class Command(object):
         # Handle custom ca-bundles from the user
         if options.cert:
             session.verify = options.cert
-        elif options.no_check_certificate:
-            session.verify = False
 
         # Handle SSL client certificate
         if options.client_cert:
