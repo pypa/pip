@@ -89,7 +89,8 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
-        name, url, extras_override = parse_editable(editable_req, default_vcs)
+        name, url, extras_override, editable_options = parse_editable(
+            editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
@@ -98,7 +99,7 @@ class InstallRequirement(object):
         res = cls(name, comes_from, source_dir=source_dir,
                   editable=True,
                   url=url,
-                  editable_options=extras_override,
+                  editable_options=editable_options,
                   isolated=isolated)
 
         if extras_override is not None:
@@ -461,18 +462,6 @@ exec(compile(
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
 
-    def egg_info_lines(self, filename):
-        data = self.egg_info_data(filename)
-        if not data:
-            return []
-        result = []
-        for line in data.splitlines():
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            result.append(line)
-        return result
-
     def pkg_info(self):
         p = FeedParser()
         data = self.egg_info_data('PKG-INFO')
@@ -484,28 +473,7 @@ exec(compile(
         p.feed(data or '')
         return p.close()
 
-    @property
-    def dependency_links(self):
-        return self.egg_info_lines('dependency_links.txt')
-
     _requirements_section_re = re.compile(r'\[(.*?)\]')
-
-    def requirements(self, extras=()):
-        if self.satisfied_by:
-            for r in self.satisfied_by.requires(extras):
-                yield str(r)
-            return
-        in_extra = None
-        for line in self.egg_info_lines('requires.txt'):
-            match = self._requirements_section_re.match(line.lower())
-            if match:
-                in_extra = match.group(1)
-                continue
-            if in_extra and in_extra not in extras:
-                logger.debug('skipping extra %s', in_extra)
-                # Skip requirement for an extra we aren't requiring
-                continue
-            yield line
 
     @property
     def installed_version(self):
@@ -988,6 +956,17 @@ exec(compile(
             isolated=self.isolated,
         )
 
+    def get_dist(self):
+        """Return a pkg_resources.Distribution built from self.egg_info_path"""
+        egg_info = self.egg_info_path('')
+        base_dir = os.path.dirname(egg_info)
+        metadata = pkg_resources.PathMetadata(base_dir, egg_info)
+        dist_name = os.path.splitext(os.path.basename(egg_info))[0]
+        return pkg_resources.Distribution(
+            os.path.dirname(egg_info),
+            project_name=dist_name,
+            metadata=metadata)
+
 
 def _strip_postfix(req):
     """
@@ -1034,8 +1013,15 @@ def _build_editable_options(req):
 
 
 def parse_editable(editable_req, default_vcs=None):
-    """Parses svn+http://blahblah@rev#egg=Foobar into a requirement
-    (Foobar) and a URL"""
+    """Parses an editable requirement into:
+        - a requirement name
+        - an URL
+        - extras
+        - editable options
+    Accepted requirements:
+        svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
+        .[some_extra]
+    """
 
     url = editable_req
     extras = None
@@ -1065,9 +1051,10 @@ def parse_editable(editable_req, default_vcs=None):
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
                 ).extras,
+                {},
             )
         else:
-            return None, url_no_extras, None
+            return None, url_no_extras, None, {}
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
@@ -1109,4 +1096,4 @@ def parse_editable(editable_req, default_vcs=None):
         req = options['egg']
 
     package = _strip_postfix(req)
-    return package, url, options
+    return package, url, None, options

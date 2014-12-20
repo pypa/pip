@@ -410,67 +410,45 @@ class RequirementSet(object):
                 # ###################### #
                 # # parse dependencies # #
                 # ###################### #
+                if (req_to_install.extras):
+                    logger.debug(
+                        "Installing extra requirements: %r",
+                        ','.join(req_to_install.extras),
+                    )
 
                 if is_wheel:
                     dist = list(
                         pkg_resources.find_distributions(location)
                     )[0]
-                    if not req_to_install.req:
-                        req_to_install.req = dist.as_requirement()
-                        self.add_requirement(req_to_install)
-                    if not self.ignore_dependencies:
-                        for subreq in dist.requires(
-                                req_to_install.extras):
-                            if self.has_requirement(
-                                    subreq.project_name):
-                                continue
-                            subreq = InstallRequirement(
-                                str(subreq),
-                                req_to_install,
-                                isolated=self.isolated,
-                            )
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
-
-                # sdists
-                else:
+                else:  # sdists
+                    if req_to_install.satisfied_by:
+                        dist = req_to_install.satisfied_by
+                    else:
+                        dist = req_to_install.get_dist()
                     # FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(
-                        req_to_install.dependency_links
-                    )
-                    if (req_to_install.extras):
-                        logger.info(
-                            "Installing extra requirements: %r",
-                            ','.join(req_to_install.extras),
+                    if dist.has_metadata('dependency_links.txt'):
+                        finder.add_dependency_links(
+                            dist.get_metadata_lines('dependency_links.txt')
                         )
-                    if not self.ignore_dependencies:
-                        for req in req_to_install.requirements(
-                                req_to_install.extras):
-                            try:
-                                name = pkg_resources.Requirement.parse(
-                                    req
-                                ).project_name
-                            except ValueError as exc:
-                                # FIXME: proper warning
-                                logger.error(
-                                    'Invalid requirement: %r (%s) in '
-                                    'requirement %s',
-                                    req, exc, req_to_install,
-                                )
-                                continue
-                            if self.has_requirement(name):
-                                # FIXME: check for conflict
-                                continue
-                            subreq = InstallRequirement(
-                                req,
-                                req_to_install,
-                                isolated=self.isolated,
-                            )
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
-                    if not self.has_requirement(req_to_install.name):
-                        # 'unnamed' requirements will get added here
-                        self.add_requirement(req_to_install)
+
+                if not self.ignore_dependencies:
+                    for subreq in dist.requires(
+                            req_to_install.extras):
+                        if self.has_requirement(
+                                subreq.project_name):
+                            # FIXME: check for conflict
+                            continue
+                        subreq = InstallRequirement(
+                            str(subreq),
+                            req_to_install,
+                            isolated=self.isolated,
+                        )
+                        reqs.append(subreq)
+                        self.add_requirement(subreq)
+
+                if not self.has_requirement(req_to_install.name):
+                    # 'unnamed' requirements will get added here
+                    self.add_requirement(req_to_install)
 
                 # cleanup tmp src
                 if (self.is_download or
