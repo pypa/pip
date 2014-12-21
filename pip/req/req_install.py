@@ -73,7 +73,11 @@ class InstallRequirement(object):
         # This hold the pkg_resources.Distribution object if this requirement
         # conflicts with another installed distribution:
         self.conflicts_with = None
+        # Temporary build location
         self._temp_build_dir = None
+        # Used to store the global directory where the _temp_build_dir should
+        # have been created. Cf _correct_build_location method.
+        self._ideal_global_dir = None
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
@@ -221,6 +225,10 @@ class InstallRequirement(object):
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:
+            # for requirement via a path to a directory: the name of the
+            # package is not available yet so we create a temp directory
+            # Once run_egg_info will have run, we'll be able
+            # to fix it via _correct_build_location
             self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
             self._ideal_build_dir = build_dir
             return self._temp_build_dir
@@ -231,27 +239,28 @@ class InstallRequirement(object):
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
+            logger.debug('Creating directory %s', build_dir)
             _make_build_dir(build_dir)
         return os.path.join(build_dir, name)
 
-    def correct_build_location(self):
-        """If the build location was a temporary directory, this will move it
-        to a new more permanent location"""
+    def _correct_build_location(self):
+        """Move self._temp_build_dir to self._ideal_build_dir/self.req.name
+
+        For some requirements (e.g. a path to a directory), the name of the
+        package is not available until we run egg_info, so the build_location
+        will return a temporary directory and store the _ideal_build_dir.
+
+        This is only called by self.egg_info_path to fix the temporary build
+        directory.
+        """
         if self.source_dir is not None:
             return
         assert self.req is not None
         assert self._temp_build_dir
+        assert self._ideal_build_dir
         old_location = self._temp_build_dir
-        new_build_dir = self._ideal_build_dir
-        del self._ideal_build_dir
-        if self.editable:
-            name = self.name.lower()
-        else:
-            name = self.name
-        new_location = os.path.join(new_build_dir, name)
-        if not os.path.exists(new_build_dir):
-            logger.debug('Creating directory %s', new_build_dir)
-            _make_build_dir(new_build_dir)
+        self._temp_build_dir = None
+        new_location = self.build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
@@ -262,6 +271,7 @@ class InstallRequirement(object):
         )
         shutil.move(old_location, new_location)
         self._temp_build_dir = new_location
+        self._ideal_build_dir = None
         self.source_dir = new_location
         self._egg_info_path = None
 
@@ -372,7 +382,7 @@ class InstallRequirement(object):
                     op,
                     self.pkg_info()["Version"],
                 ]))
-            self.correct_build_location()
+            self._correct_build_location()
 
     # FIXME: This is a lame hack, entirely for PasteScript which has
     # a self-provided entry point that causes this awkwardness
