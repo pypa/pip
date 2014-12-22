@@ -13,8 +13,7 @@ from distutils.command.install import install, SCHEME_KEYS
 
 from pip.compat import get_path_uid, WINDOWS
 from pip.utils import appdirs
-
-import pip.exceptions
+from pip import exceptions
 
 
 # Hack for flake8
@@ -140,7 +139,7 @@ def _get_build_prefix():
                 "pip will not work until the temporary folder is either "
                 "deleted or is a real directory owned by your user account."
             )
-            raise pip.exceptions.InstallationError(msg)
+            raise exceptions.InstallationError(msg)
     return path
 
 if running_under_virtualenv():

@@ -3,6 +3,9 @@
 * Fix executable file permissions for Wheel files when using the distutils
   scripts option.
 
+* Fix a confusing error message when an exceptions was raised at certain
+  points in pip's execution.
+
 
 **6.0 (2014-12-22)**
 
