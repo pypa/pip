@@ -12,6 +12,10 @@
 * Add a warning about the possibly problematic use of > when the given
   specifier doesn't match anything.
 
+* Fix an issue where installing from a directory would not copy over certain
+  directories which were being excluded, however some build systems rely on
+  them.
+
 
 **6.0 (2014-12-22)**
 
