@@ -135,7 +135,7 @@ def bootstrap(tmpdir=None):
                 self.parser.defaults["cert"] = cert_path  # calculated below
             return super(CertInstallCommand, self).parse_args(args)
 
-    pip.command_dict["install"] = CertInstallCommand
+    pip.commands_dict["install"] = CertInstallCommand
 
     # We always want to install pip
     packages = ["pip"]

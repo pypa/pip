@@ -92,7 +92,7 @@ def bootstrap(tmpdir=None):
                 self.parser.defaults["cert"] = cert_path  # calculated below
             return super(CertInstallCommand, self).parse_args(args)
 
-    pip.command_dict["install"] = CertInstallCommand
+    pip.commands_dict["install"] = CertInstallCommand
 
     # We always want to install pip
     packages = ["pip"]
@@ -156,7 +156,7 @@ def main():
 
 
 DATA = b"""
-P)h>@6aWAK2mqUtmPIi<>Mm;y002QK000jF003}la4%n9X>MtBUtcb8d7WDSZ`-yK|J{ED>nxD8+Um0
+P)h>@6aWAK2msiYmPIi<>Mm;y002QK000jF003}la4%n9X>MtBUtcb8d7WDSZ`-yK|J{ED>nxD8+Um0
 5eL?U%Y-m%gK-UIo`}%;?5M+zCxyYhMN=e*p|NFZ;k|Jd(SvL)<CGmK7Jl=hHcgo3=XRTJxR-$^wt6N
 qdnw_jB8zuKF%QkJ(DxPIb>}#nSmanud+lFW6c`~u@OS#>OYU>`Q?(XWQ&Xwlw`7T!#5bAEGK6JE-Pm
 J7J)G5DT^STkT(oXiPN;i2~=J@hLDXC`cx!mvbs<2O&qNY2~q-{jm&EN7S6NU#bvO?%aiB(G?W;9qUx
@@ -19544,7 +19544,7 @@ M!A*pUhe4O3|pAQCsJ3Q(lUUP&s4$GwLo~sc)~;B}}+$=hE8dr1zG=-v&8-_3%2)D0_I9=HJELM>81_
 xdC6_NCVn7)x@7Hxj#<BAFvrD@4^fg-R264BN<D)YgC+y>B#GSL4EP3XT25m>}%)F*wP}3DfK91fk#o
 =zm};T7?HT<8qNruaevz%CwPDJE#2Rkao-K|Mk5TEA$ul$8+iwk<uWHOIAbI^ACnwOEzdcfbAIYSdQE
 eZ)8MBT;q1|w&aYssbu8Vut*^;3W}Vrl9sR;Gu<Xw=utZTWj$zO@jO`R~=Hm))A~tY{cn#cS@^4T}0R
-j{Q6aWAK2mqUtmPIi<>Mm;y002QK000jF0000000000008ZQ00000aA|NaUtei%X>?y-E^v8JO928D0
+j{Q6aWAK2msiYmPIi<>Mm;y002QK000jF0000000000008ZQ00000aA|NaUtei%X>?y-E^v8JO928D0
 ~7!N00;nij+RAWOG0BV0RR9*0ssIH00000000000001_ftU>d0B~t=FJE76VQFq(UoLQYP)h*<6ay3h
 000O8d5)GvsL2bP!3h8W&mRB)5&!@I0000000000q=EAe003}la4%wEb7f<1ZEaz0WG--dP)h*<6ay3
 h000O8d5)Gv24Y8cmkR&@ZY2N!5dZ)H0000000000q=DoZ003}la4%wEb7gR0a&u*JE^v8JO928D0~7
