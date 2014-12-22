@@ -1,4 +1,3 @@
-
 .. _`pip install`:
 
 pip install
@@ -30,9 +29,17 @@ and like arguments to :ref:`pip install`, the following forms are supported::
     [-e] <local project path>
     [-e] <vcs project url>
 
+Since version 6.0, pip also supports markers using the "; " separator.
+Examples::
+
+    futures; python_version < '2.7'
+    http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'
+
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
-A line beginning with ``#`` is treated as a comment and ignored.
+A line that begins with ``#`` is treated as a comment and ignored. Whitespace
+followed by a ``#`` causes the ``#`` and the remainder of the line to be
+treated as a comment.
 
 Additionally, the following Package Index Options are supported:
 
@@ -43,6 +50,7 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`--allow-external <--allow-external>`
   *  :ref:`--allow-all-external <--allow-external>`
   *  :ref:`--allow-unverified <--allow-unverified>`
+  *  :ref:`--no-use-wheel <install_--no-use-wheel>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
@@ -76,8 +84,9 @@ Some Examples:
 
 .. note::
 
-  Use single or double quotes around specifiers to avoid ``>`` and ``<`` being
+  Use single or double quotes around specifiers when using them in a shell to avoid ``>`` and ``<`` being
   interpreted as shell redirects. e.g. ``pip install 'FooProject>=1.2'``.
+  Don't use single or double quotes in a ``requirements.txt`` file.
 
 
 
@@ -153,8 +162,11 @@ the :ref:`--editable <install_--editable>` option) or not.
 * For non-editable installs, the project is built locally in a temp dir and then
   installed normally.
 
-The url suffix "egg=<project name>" is used by pip in it's dependency logic to
-identify the project prior to pip downloading and analyzing the metadata.
+The "project name" component of the url suffix "egg=<project name>-<version>"
+is used by pip in its dependency logic to identify the project prior
+to pip downloading and analyzing the metadata.  The optional "version"
+component of the egg name is not functionally important.  It merely
+provides a human-readable clue as to what version is in use.
 
 Git
 ~~~
@@ -250,6 +262,36 @@ Starting with v1.3, pip provides SSL certificate verification over https, for th
 of providing secure, certified downloads from PyPI.
 
 
+.. _`Caching`:
+
+Caching
++++++++
+
+Starting with v6.0, pip provides an on by default cache which functions
+similarly to that of a web browser. While the cache is on by default and is
+designed do the right thing by default you can disable the cache and always
+access PyPI by utilizing the ``--no-cache-dir`` option.
+
+When making any HTTP request pip will first check it's local cache to determine
+if it has a suitable response stored for that request which has not expired. If
+it does then it simply returns that response and doesn't make the request.
+
+If it has a response stored, but it has expired, then it will attempt to make a
+conditional request to refresh the cache which will either return an empty
+response telling pip to simply use the cached item (and refresh the expiration
+timer) or it will return a whole new response which pip can then store in the
+cache.
+
+When storing items in the cache pip will respect the ``CacheControl`` header
+if it exists, or it will fall back to the ``Expires`` header if that exists.
+This allows pip to function as a browser would, and allows the index server
+to communicate to pip how long it is reasonable to cache any particular item.
+
+While this cache attempts to minimize network activity, it does not prevent
+network access all together. If you want a fast/local install solution that
+circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
+
+
 Hash Verification
 +++++++++++++++++
 
@@ -265,26 +307,6 @@ It is not intended to provide security against tampering. For that,
 see :ref:`SSL Certificate Verification`
 
 
-Download Cache
-++++++++++++++
-
-pip offers a :ref:`--download-cache <install_--download-cache>` option for
-installs to prevent redundant downloads of archives from PyPI.
-
-The point of this cache is *not* to circumvent the index crawling process, but
-to *just* prevent redundant downloads.
-
-Items are stored in this cache based on the url the archive was found at, not
-simply the archive name.
-
-If you want a fast/local install solution that circumvents crawling PyPI, see
-the :ref:`Fast & Local Installs`.
-
-Like all options, :ref:`--download-cache <install_--download-cache>`, can also
-be set as an environment variable, or placed into the pip config file.  See the
-:ref:`Configuration` section.
-
-
 .. _`editable-installs`:
 
 "Editable" Installs
@@ -298,6 +320,8 @@ You can install local projects or VCS projects in "editable" mode::
 
 $ pip install -e path/to/SomeProject
 $ pip install -e git+http://repo/my_project.git#egg=SomeProject
+
+(See the :ref:`VCS Support` section above for more information on VCS-related syntax.)
 
 For local projects, the "SomeProject.egg-info" directory is created relative to
 the project path.  This is one advantage over just using ``setup.py develop``,
@@ -338,6 +362,46 @@ To have the dependency located from a local directory and not crawl PyPI, add th
   find_links = file:///path/to/local/archives
 
 
+Build System Interface
+++++++++++++++++++++++
+
+In order for pip to install a package from source, ``setup.py`` must implement
+the following commands::
+
+    setup.py egg_info [--egg-base XXX]
+    setup.py install --record XXX [--single-version-externally-managed] [--root XXX] [--compile|--no-compile] [--install-headers XXX]
+
+The ``egg_info`` command should create egg metadata for the package, as
+described in the setuptools documentation at
+http://pythonhosted.org/setuptools/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
+
+The ``install`` command should implement the complete process of installing the
+package to the target directory XXX.
+
+To install a package in "editable" mode (``pip install -e``), ``setup.py`` must
+implement the following command::
+
+    setup.py develop --no-deps
+
+This should implement the complete process of installing the package in
+"editable" mode.
+
+One further ``setup.py`` command is invoked by ``pip install``::
+
+    setup.py clean
+
+This command is invoked to clean up temporary commands from the build. (TODO:
+Investigate in more detail when this command is required).
+
+No other build system commands are invoked by the ``pip install`` command.
+
+Installing a package from a wheel does not invoke the build system at all.
+
+.. _PyPI: http://pypi.python.org/pypi/
+.. _setuptools extras: http://packages.python.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+
+
+
 .. _`pip install Options`:
 
 Options
@@ -353,7 +417,7 @@ Options
 Examples
 ********
 
-1) Install `SomePackage` and it's dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+1) Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
   ::
 
@@ -392,7 +456,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-  $ pip install -e git+https://git.repo/some_repo.git@egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
+  $ pip install -e git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 
@@ -435,6 +499,3 @@ Examples
   $ pip install --pre SomePackage
 
 
-
-.. _PyPI: http://pypi.python.org/pypi/
-.. _setuptools extras: http://packages.python.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies

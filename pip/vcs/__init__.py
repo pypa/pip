@@ -1,15 +1,21 @@
 """Handles all VCS (version control) support"""
+from __future__ import absolute_import
 
+import logging
 import os
 import shutil
 
-from pip.backwardcompat import urlparse, urllib
-from pip.log import logger
-from pip.util import (display_path, backup_dir, find_command,
-                      rmtree, ask_path_exists)
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
+from pip.exceptions import BadCommand
+from pip.utils import (display_path, backup_dir, find_command,
+                       rmtree, ask_path_exists)
 
 
 __all__ = ['vcs', 'get_src_requirement']
+
+
+logger = logging.getLogger(__name__)
 
 
 class VcsSupport(object):
@@ -17,11 +23,12 @@ class VcsSupport(object):
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
-        # Register more schemes with urlparse for various version control systems
-        urlparse.uses_netloc.extend(self.schemes)
+        # Register more schemes with urlparse for various version control
+        # systems
+        urllib_parse.uses_netloc.extend(self.schemes)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment
-        if getattr(urlparse, 'uses_fragment', None):
-            urlparse.uses_fragment.extend(self.schemes)
+        if getattr(urllib_parse, 'uses_fragment', None):
+            urllib_parse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
@@ -44,7 +51,7 @@ class VcsSupport(object):
 
     def register(self, cls):
         if not hasattr(cls, 'name'):
-            logger.warn('Cannot register VCS %s' % cls.__name__)
+            logger.warning('Cannot register VCS %s', cls.__name__)
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls
@@ -55,7 +62,7 @@ class VcsSupport(object):
         elif cls in self._registry.values():
             del self._registry[cls.name]
         else:
-            logger.warn('Cannot unregister because no class or name given')
+            logger.warning('Cannot unregister because no class or name given')
 
     def get_backend_name(self, location):
         """
@@ -86,6 +93,8 @@ vcs = VcsSupport()
 class VersionControl(object):
     name = ''
     dirname = ''
+    # List of supported schemes for this Version Control
+    schemes = ()
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
@@ -93,7 +102,7 @@ class VersionControl(object):
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
-        return (logger.INFO, line)
+        return (logging.DEBUG, line)
 
     def _is_local_repository(self, repo):
         """
@@ -108,9 +117,22 @@ class VersionControl(object):
         if self._cmd is not None:
             return self._cmd
         command = find_command(self.name)
-        logger.info('Found command %r at %r' % (self.name, command))
+        logger.debug('Found command %r at %r', self.name, command)
         self._cmd = command
         return command
+
+    # See issue #1083 for why this method was introduced:
+    # https://github.com/pypa/pip/issues/1083
+    def translate_egg_surname(self, surname):
+        # For example, Django has branches of the form "stable/1.7.x".
+        return surname.replace('/', '_')
+
+    def export(self, location):
+        """
+        Export the repository at the url to the destination location
+        i.e. only download the files, without vcs informations
+        """
+        raise NotImplementedError
 
     def get_url_rev(self):
         """
@@ -118,44 +140,39 @@ class VersionControl(object):
         repository URL
         """
         error_message = (
-           "Sorry, '%s' is a malformed VCS url. "
-           "The format is <vcs>+<protocol>://<url>, "
-           "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp")
+            "Sorry, '%s' is a malformed VCS url. "
+            "The format is <vcs>+<protocol>://<url>, "
+            "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
+        )
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
-        scheme, netloc, path, query, frag = urlparse.urlsplit(url)
+        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
-        url = urlparse.urlunsplit((scheme, netloc, path, query, ''))
+        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
     def get_info(self, location):
         """
         Returns (url, revision), where both are strings
         """
-        assert not location.rstrip('/').endswith(self.dirname), 'Bad directory: %s' % location
+        assert not location.rstrip('/').endswith(self.dirname), \
+            'Bad directory: %s' % location
         return self.get_url(location), self.get_revision(location)
 
     def normalize_url(self, url):
         """
-        Normalize a URL for comparison by unquoting it and removing any trailing slash.
+        Normalize a URL for comparison by unquoting it and removing any
+        trailing slash.
         """
-        return urllib.unquote(url).rstrip('/')
+        return urllib_parse.unquote(url).rstrip('/')
 
     def compare_urls(self, url1, url2):
         """
         Compare two repo URLs for identity, ignoring incidental differences.
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
-
-    def parse_vcs_bundle_file(self, content):
-        """
-        Takes the contents of the bundled text file that explains how to revert
-        the stripped off version control data of the given package and returns
-        the URL and revision of it.
-        """
-        raise NotImplementedError
 
     def obtain(self, dest):
         """
@@ -168,7 +185,7 @@ class VersionControl(object):
         """
         Switch the repo at ``dest`` to point to ``URL``.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def update(self, dest, rev_options):
         """
@@ -190,62 +207,123 @@ class VersionControl(object):
             if os.path.exists(os.path.join(dest, self.dirname)):
                 existing_url = self.get_url(dest)
                 if self.compare_urls(existing_url, url):
-                    logger.info('%s in %s exists, and has correct URL (%s)' %
-                                (self.repo_name.title(), display_path(dest),
-                                 url))
-                    logger.notify('Updating %s %s%s' %
-                                  (display_path(dest), self.repo_name,
-                                   rev_display))
+                    logger.debug(
+                        '%s in %s exists, and has correct URL (%s)',
+                        self.repo_name.title(),
+                        display_path(dest),
+                        url,
+                    )
+                    logger.info(
+                        'Updating %s %s%s',
+                        display_path(dest),
+                        self.repo_name,
+                        rev_display,
+                    )
                     self.update(dest, rev_options)
                 else:
-                    logger.warn('%s %s in %s exists with URL %s' %
-                                (self.name, self.repo_name,
-                                 display_path(dest), existing_url))
+                    logger.warning(
+                        '%s %s in %s exists with URL %s',
+                        self.name,
+                        self.repo_name,
+                        display_path(dest),
+                        existing_url,
+                    )
                     prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
                               ('s', 'i', 'w', 'b'))
             else:
-                logger.warn('Directory %s already exists, '
-                            'and is not a %s %s.' %
-                            (dest, self.name, self.repo_name))
+                logger.warning(
+                    'Directory %s already exists, and is not a %s %s.',
+                    dest,
+                    self.name,
+                    self.repo_name,
+                )
                 prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
         if prompt:
-            logger.warn('The plan is to install the %s repository %s' %
-                        (self.name, url))
+            logger.warning(
+                'The plan is to install the %s repository %s',
+                self.name,
+                url,
+            )
             response = ask_path_exists('What to do?  %s' % prompt[0],
                                        prompt[1])
 
             if response == 's':
-                logger.notify('Switching %s %s to %s%s' %
-                              (self.repo_name, display_path(dest), url,
-                               rev_display))
+                logger.info(
+                    'Switching %s %s to %s%s',
+                    self.repo_name,
+                    display_path(dest),
+                    url,
+                    rev_display,
+                )
                 self.switch(dest, url, rev_options)
             elif response == 'i':
                 # do nothing
                 pass
             elif response == 'w':
-                logger.warn('Deleting %s' % display_path(dest))
+                logger.warning('Deleting %s', display_path(dest))
                 rmtree(dest)
                 checkout = True
             elif response == 'b':
                 dest_dir = backup_dir(dest)
-                logger.warn('Backing up %s to %s'
-                            % (display_path(dest), dest_dir))
+                logger.warning(
+                    'Backing up %s to %s', display_path(dest), dest_dir,
+                )
                 shutil.move(dest, dest_dir)
                 checkout = True
         return checkout
 
     def unpack(self, location):
+        """
+        Clean up current location and download the url repository
+        (and vcs infos) into location
+        """
         if os.path.exists(location):
             rmtree(location)
         self.obtain(location)
 
     def get_src_requirement(self, dist, location, find_tags=False):
+        """
+        Return a string representing the requirement needed to
+        redownload the files currently present in location, something
+        like:
+          {repository_url}@{revision}#egg={project_name}-{version_identifier}
+        If find_tags is True, try to find a tag matching the revision
+        """
+        raise NotImplementedError
+
+    def get_url(self, location):
+        """
+        Return the url used at location
+        Used in get_info or check_destination
+        """
+        raise NotImplementedError
+
+    def get_revision(self, location):
+        """
+        Return the current revision of the files at location
+        Used in get_info
+        """
         raise NotImplementedError
 
 
 def get_src_requirement(dist, location, find_tags):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
-        return version_control().get_src_requirement(dist, location, find_tags)
-    logger.warn('cannot determine version of editable source in %s (is not SVN checkout, Git clone, Mercurial clone or Bazaar branch)' % location)
+        try:
+            return version_control().get_src_requirement(dist,
+                                                         location,
+                                                         find_tags)
+        except BadCommand:
+            logger.warning(
+                'cannot determine version of editable source in %s '
+                '(%s command not found in path)',
+                location,
+                version_control.name,
+            )
+            return dist.as_requirement()
+    logger.warning(
+        'cannot determine version of editable source in %s (is not SVN '
+        'checkout, Git clone, Mercurial clone or Bazaar branch)',
+        location,
+    )
     return dist.as_requirement()

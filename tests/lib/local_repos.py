@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import os
 import subprocess
+
+from pip._vendor.six.moves.urllib import request as urllib_request
+
 from pip.vcs import subversion, git, bazaar, mercurial
-from pip.backwardcompat import urlretrieve
 from tests.lib import path_to_url
 
 
@@ -18,11 +20,18 @@ def _create_initools_repository(directory):
 
 
 def _dump_initools_repository(directory):
-    filename, _ = urlretrieve('http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/INITools_modified.dump')
+    filename, _ = urllib_request.urlretrieve(
+        'http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/'
+        'INITools_modified.dump'
+    )
     initools_folder = os.path.join(directory, 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
+    subprocess_call(
+        ['svnadmin', 'load', initools_folder],
+        stdin=dump,
+        stdout=devnull,
+    )
     dump.close()
     devnull.close()
     os.remove(filename)
@@ -47,20 +56,26 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
     branch = ''
     if vcs == 'svn':
         branch = os.path.basename(remote_repository)
-        repository_name = os.path.basename(remote_repository[:-len(branch)-1]) # remove the slash
+        # remove the slash
+        repository_name = os.path.basename(
+            remote_repository[:-len(branch) - 1]
+        )
     else:
         repository_name = os.path.basename(remote_repository)
 
     destination_path = os.path.join(directory, repository_name)
     if not os.path.exists(destination_path):
         vcs_class(remote_repository).obtain(destination_path)
-    return '%s+%s' % (vcs, path_to_url('/'.join([directory, repository_name, branch])))
+    return '%s+%s' % (
+        vcs,
+        path_to_url('/'.join([directory, repository_name, branch])),
+    )
 
 
 def local_checkout(remote_repo, directory):
     if not os.path.exists(directory):
         os.mkdir(directory)
-        #os.makedirs(directory)
+        # os.makedirs(directory)
 
     if remote_repo.startswith('svn'):
         _create_svn_repository_for_initools(directory)

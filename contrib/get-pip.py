@@ -10,14 +10,14 @@
 # might want to install, especially if they're looking to run this get-pip.py
 # script. Pip has a lot of code to deal with the security of installing
 # packages, various edge cases on various platforms, and other such sort of
-# "tribal knowledge" that has been encoded in it's code base. Because of this
+# "tribal knowledge" that has been encoded in its code base. Because of this
 # we basically include an entire copy of pip inside this blob. We do this
 # because the alternatives are attempt to implement a "minipip" that probably
 # doesn't do things correctly and has weird edge cases, or compress pip itself
 # down into a single file.
 #
 # If you're wondering how this is created, the secret is
-# "contrib/build-installer" from the pip repository.
+# "tasks/generate.py" from the pip repository.
 
 ZIPFILE = b"""
 UEsDBBQAAAAIAHeDxEQMVWtseQwAAOokAAAPAAAAcGlwL19faW5pdF9fLnB5pRprb+M28rt/BTdp
@@ -17417,7 +17417,7 @@ def bootstrap(tmpdir=None):
         # We want to see if setuptools is available before attempting to
         # install it
         try:
-            import setuptools
+            import setuptools  # noqa
         except ImportError:
             packages += ["setuptools"]
 
@@ -17460,7 +17460,7 @@ def main():
             fp.write(base64.decodestring(ZIPFILE))
 
         # Add the zipfile to sys.path so that we can import it
-        sys.path = [pip_zip] + sys.path
+        sys.path.insert(0, pip_zip)
 
         # Run the bootstrap
         bootstrap(tmpdir=tmpdir)

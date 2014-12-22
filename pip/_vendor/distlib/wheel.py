@@ -85,6 +85,9 @@ NAME_VERSION_RE = re.compile(r'''
 ''', re.IGNORECASE | re.VERBOSE)
 
 SHEBANG_RE = re.compile(br'\s*#![^\r\n]*')
+SHEBANG_DETAIL_RE = re.compile(br'^(\s*#!("[^"]+"|\S+))\s+(.*)$')
+SHEBANG_PYTHON = b'#!python'
+SHEBANG_PYTHONW = b'#!pythonw'
 
 if os.sep == '/':
     to_posix = lambda o: o
@@ -251,7 +254,20 @@ class Wheel(object):
     def process_shebang(self, data):
         m = SHEBANG_RE.match(data)
         if m:
-            data = b'#!python' + data[m.end():]
+            end = m.end()
+            shebang, data_after_shebang = data[:end], data[end:]
+            # Preserve any arguments after the interpreter
+            if b'pythonw' in shebang.lower():
+                shebang_python = SHEBANG_PYTHONW
+            else:
+                shebang_python = SHEBANG_PYTHON
+            m = SHEBANG_DETAIL_RE.match(shebang)
+            if m:
+                args = b' ' + m.groups()[-1]
+            else:
+                args = b''
+            shebang = shebang_python + args
+            data = shebang + data_after_shebang
         else:
             cr = data.find(b'\r')
             lf = data.find(b'\n')
@@ -262,7 +278,7 @@ class Wheel(object):
                     term = b'\r\n'
                 else:
                     term = b'\r'
-            data = b'#!python' + term + data
+            data = SHEBANG_PYTHON + term + data
         return data
 
     def get_hash(self, data, hash_kind=None):
@@ -383,7 +399,7 @@ class Wheel(object):
         # Now distinfo. Assumed to be flat, i.e. os.listdir is enough.
         files = os.listdir(distinfo)
         for fn in files:
-            if fn not in ('RECORD', 'INSTALLER', 'SHARED'):
+            if fn not in ('RECORD', 'INSTALLER', 'SHARED', 'WHEEL'):
                 p = fsdecode(os.path.join(distinfo, fn))
                 ap = to_posix(os.path.join(info_dir, fn))
                 archive_paths.append((ap, p))
@@ -587,7 +603,9 @@ class Wheel(object):
                         try:
                             with zf.open(metadata_name) as bwf:
                                 wf = wrapper(bwf)
-                                commands = json.load(wf).get('commands')
+                                commands = json.load(wf).get('extensions')
+                                if commands:
+                                    commands = commands.get('python.commands')
                         except Exception:
                             logger.warning('Unable to read JSON metadata, so '
                                            'cannot generate scripts')
@@ -810,11 +828,11 @@ class Wheel(object):
                 v = NormalizedVersion(version)
                 i = version.find('-')
                 if i < 0:
-                    updated = '%s-1' % version
+                    updated = '%s+1' % version
                 else:
                     parts = [int(s) for s in version[i + 1:].split('.')]
                     parts[-1] += 1
-                    updated = '%s-%s' % (version[:i],
+                    updated = '%s+%s' % (version[:i],
                                          '.'.join(str(i) for i in parts))
             except UnsupportedVersionError:
                 logger.debug('Cannot update non-compliant (PEP-440) '

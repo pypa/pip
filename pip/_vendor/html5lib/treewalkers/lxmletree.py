@@ -87,10 +87,6 @@ class FragmentWrapper(object):
             self.tail = ensure_str(self.obj.tail)
         else:
             self.tail = None
-        self.isstring = isinstance(obj, str) or isinstance(obj, bytes)
-        # Support for bytes here is Py2
-        if self.isstring:
-            self.obj = ensure_str(self.obj)
 
     def __getattr__(self, name):
         return getattr(self.obj, name)
@@ -143,7 +139,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
         elif isinstance(node, Doctype):
             return _base.DOCTYPE, node.name, node.public_id, node.system_id
 
-        elif isinstance(node, FragmentWrapper) and node.isstring:
+        elif isinstance(node, FragmentWrapper) and not hasattr(node, "tag"):
             return _base.TEXT, node.obj
 
         elif node.tag == etree.Comment:

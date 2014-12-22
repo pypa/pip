@@ -1,27 +1,42 @@
-import os
+import logging
+
 from pip.basecommand import Command
-from pip.log import logger
 
 
 class FakeCommand(Command):
     name = 'fake'
     summary = name
+
     def __init__(self, error=False):
         self.error = error
         super(FakeCommand, self).__init__()
+
+    def main(self, args):
+        args.append("--disable-pip-version-check")
+        return super(FakeCommand, self).main(args)
+
     def run(self, options, args):
-        logger.info("fake")
+        logging.getLogger("pip.tests").info("fake")
         if self.error:
             raise SystemExit(1)
 
 
+class FakeCommandWithUnicode(FakeCommand):
+    name = 'fake_unicode'
+    summary = name
+
+    def run(self, options, args):
+        logging.getLogger("pip.tests").info(b"bytes here \xE9")
+        logging.getLogger("pip.tests").info(
+            b"unicode here \xC3\xA9".decode("utf-8")
+        )
+
+
 class Test_basecommand_logging(object):
     """
-    Test `pip.basecommand.Command` setting up logging consumers based on options
+    Test `pip.basecommand.Command` setting up logging consumers based on
+    options
     """
-
-    def teardown(self):
-        logger.consumers = []
 
     def test_log_command_success(self, tmpdir):
         """
@@ -41,16 +56,6 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '--log', log_path])
         assert 'fake' == open(log_path).read().strip()[:4]
 
-    def test_log_file_command_success(self, tmpdir):
-        """
-        Test the --log-file option *doesn't* log when command succeeds.
-        (It's just the historical behavior? this just confirms it)
-        """
-        cmd = FakeCommand()
-        log_file_path = tmpdir.join('log_file')
-        cmd.main(['fake', '--log-file', log_file_path])
-        assert not os.path.exists(log_file_path)
-
     def test_log_file_command_error(self, tmpdir):
         """
         Test the --log-file option logs (when there's an error).
@@ -60,22 +65,10 @@ class Test_basecommand_logging(object):
         cmd.main(['fake', '--log-file', log_file_path])
         assert 'fake' == open(log_file_path).read().strip()[:4]
 
-    def test_log_log_file(self, tmpdir):
+    def test_unicode_messages(self, tmpdir):
         """
-        Test the --log and --log-file options log together (when there's an error).
+        Tests that logging bytestrings and unicode objects don't break logging
         """
-        cmd = FakeCommand(error=True)
+        cmd = FakeCommandWithUnicode()
         log_path = tmpdir.join('log')
-        log_file_path = tmpdir.join('log_file')
-        cmd.main(['fake', '--log', log_path, '--log-file', log_file_path])
-        assert 'fake' == open(log_path).read().strip()[:4]
-        assert 'fake' == open(log_file_path).read().strip()[:4]
-
-    def test_verbose_quiet(self):
-        """
-        Test additive quality of -v and -q
-        """
-        cmd = FakeCommand()
-        cmd.main(['fake', '-vqq'])
-        console_level = logger.consumers[0][0]
-        assert console_level == logger.WARN
+        cmd.main(['fake_unicode', '--log', log_path])

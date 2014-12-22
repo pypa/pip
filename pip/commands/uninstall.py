@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
@@ -27,8 +29,9 @@ class UninstallCommand(Command):
             action='append',
             default=[],
             metavar='file',
-            help='Uninstall all the packages listed in the given requirements file.  '
-            'This option can be used multiple times.')
+            help='Uninstall all the packages listed in the given requirements '
+                 'file.  This option can be used multiple times.',
+        )
         self.cmd_opts.add_option(
             '-y', '--yes',
             dest='yes',
@@ -38,22 +41,30 @@ class UninstallCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        session = self._build_session(options)
+        with self._build_session(options) as session:
 
-        requirement_set = RequirementSet(
-            build_dir=None,
-            src_dir=None,
-            download_dir=None,
-            session=session,
-        )
-        for name in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(name))
-        for filename in options.requirements:
-            for req in parse_requirements(filename,
-                    options=options, session=session):
-                requirement_set.add_requirement(req)
-        if not requirement_set.has_requirements:
-            raise InstallationError('You must give at least one requirement '
-                'to %(name)s (see "pip help %(name)s")' % dict(name=self.name))
-        requirement_set.uninstall(auto_confirm=options.yes)
+            requirement_set = RequirementSet(
+                build_dir=None,
+                src_dir=None,
+                download_dir=None,
+                isolated=options.isolated_mode,
+                session=session,
+            )
+            for name in args:
+                requirement_set.add_requirement(
+                    InstallRequirement.from_line(
+                        name, isolated=options.isolated_mode,
+                    )
+                )
+            for filename in options.requirements:
+                for req in parse_requirements(
+                        filename,
+                        options=options,
+                        session=session):
+                    requirement_set.add_requirement(req)
+            if not requirement_set.has_requirements:
+                raise InstallationError(
+                    'You must give at least one requirement to %(name)s (see '
+                    '"pip help %(name)s")' % dict(name=self.name)
+                )
+            requirement_set.uninstall(auto_confirm=options.yes)

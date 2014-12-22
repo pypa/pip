@@ -1,45 +1,45 @@
+from __future__ import absolute_import
+
+import logging
 import os
 import tempfile
 import re
-from pip.backwardcompat import urlparse
-from pip.log import logger
-from pip.util import rmtree, display_path, call_subprocess
+
+# TODO: Get this into six.moves.urllib.parse
+try:
+    from urllib import parse as urllib_parse
+except ImportError:
+    import urlparse as urllib_parse
+
+from pip.utils import rmtree, display_path, call_subprocess
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
+
+
+logger = logging.getLogger(__name__)
 
 
 class Bazaar(VersionControl):
     name = 'bzr'
     dirname = '.bzr'
     repo_name = 'branch'
-    bundle_file = 'bzr-branch.txt'
-    schemes = ('bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp', 'bzr+lp')
-    guide = ('# This was a Bazaar branch; to make it a branch again run:\n'
-             'bzr branch -r %(rev)s %(url)s .\n')
+    schemes = (
+        'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
+        'bzr+lp',
+    )
 
     def __init__(self, url=None, *args, **kwargs):
         super(Bazaar, self).__init__(url, *args, **kwargs)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment or non_hierarchical
         # Register lp but do not expose as a scheme to support bzr+lp.
-        if getattr(urlparse, 'uses_fragment', None):
-            urlparse.uses_fragment.extend(['lp'])
-            urlparse.non_hierarchical.extend(['lp'])
-
-    def parse_vcs_bundle_file(self, content):
-        url = rev = None
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            match = re.search(r'^bzr\s*branch\s*-r\s*(\d*)', line)
-            if match:
-                rev = match.group(1).strip()
-            url = line[match.end():].strip().split(None, 1)[0]
-            if url and rev:
-                return url, rev
-        return None, None
+        if getattr(urllib_parse, 'uses_fragment', None):
+            urllib_parse.uses_fragment.extend(['lp'])
+            urllib_parse.non_hierarchical.extend(['lp'])
 
     def export(self, location):
-        """Export the Bazaar repository at the url to the destination location"""
+        """
+        Export the Bazaar repository at the url to the destination location
+        """
         temp_dir = tempfile.mkdtemp('-export', 'pip-')
         self.unpack(temp_dir)
         if os.path.exists(location):
@@ -67,8 +67,12 @@ class Bazaar(VersionControl):
             rev_options = []
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Checking out %s%s to %s'
-                          % (url, rev_display, display_path(dest)))
+            logger.info(
+                'Checking out %s%s to %s',
+                url,
+                rev_display,
+                display_path(dest),
+            )
             call_subprocess(
                 [self.cmd, 'branch', '-q'] + rev_options + [url, dest])
 
@@ -112,11 +116,11 @@ class Bazaar(VersionControl):
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
+        if not repo:
+            return None
         if not repo.lower().startswith('bzr:'):
             repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
-        if not repo:
-            return None
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
 

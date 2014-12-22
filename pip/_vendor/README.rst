@@ -10,13 +10,15 @@ Modifications
 
 * html5lib has been modified to import six from pip._vendor
 * pkg_resources has been modified to import _markerlib from pip._vendor
-* markerlib has been modified to import it's API from pip._vendor
+* markerlib has been modified to import its API from pip._vendor
+* CacheControl has been modified to import it's dependencies from pip._vendor
+* progress has been modified to not use unicode literals for support for Python 3.2
 
 
 Markerlib and pkg_resources
 ===========================
 
-Markerlib and pkg_resources has been pulled in from setuptools 3.4.4
+Markerlib and pkg_resources has been pulled in from setuptools 8.2.1
 
 
 Note to Downstream Distributors
@@ -27,6 +29,12 @@ end users from needing to manually install packages if they accidently remove
 something that pip depends on.
 
 All bundled packages exist in the ``pip._vendor`` namespace, and the versions
-(fetched from PyPI) that we use are located in vendor.txt. If you remove
-``pip._vendor.*`` you'll also need to update the import statements that import
-these packages.
+(fetched from PyPI) that we use are located in ``vendor.txt``. If you wish
+to debundle these you can do so by either deleting everything in
+``pip/_vendor`` **except** for ``pip/_vendor/__init__.py`` or by running
+``PIP_NO_VENDOR_FOR_DOWNSTREAM=1 setup.py install``. No other changes should
+be required as the ``pip/_vendor/__init__.py`` file will alias the "real"
+names (such as ``import six``) to the bundled names (such as
+``import pip._vendor.six``) automatically. Alternatively if you delete the
+entire ``pip._vendor`` you will need to adjust imports that import from those
+locations.

@@ -1,16 +1,20 @@
 import hashlib
 import os
+from io import BytesIO
 from shutil import rmtree, copy
 from tempfile import mkdtemp
+
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 from mock import Mock, patch
 import pytest
 
 import pip
-from pip.backwardcompat import urllib, BytesIO, b, pathname2url
 from pip.exceptions import HashMismatch
-from pip.download import (PipSession, path_to_url, unpack_http_url,
-                          url_to_path, unpack_file_url)
+from pip.download import (
+    PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
+    unpack_file_url,
+)
 from pip.index import Link
 
 
@@ -32,12 +36,15 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
-        unpack_http_url(link, temp_dir,
-            download_cache=None,
+        unpack_http_url(
+            link,
+            temp_dir,
             download_dir=None,
             session=session,
         )
-        assert set(os.listdir(temp_dir)) == set(['PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'])
+        assert set(os.listdir(temp_dir)) == set([
+            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+        ])
     finally:
         rmtree(temp_dir)
 
@@ -73,53 +80,12 @@ class MockResponse(object):
 
 
 @patch('pip.download.unpack_file')
-def test_unpack_http_url_bad_cache_checksum(mock_unpack_file):
-    """
-    If cached download has bad checksum, re-download.
-    """
-    base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b('downloaded')
-    download_hash = hashlib.new('sha1', contents)
-    link = Link(base_url + '#sha1=' + download_hash.hexdigest())
-
-    session = Mock()
-    session.get = Mock()
-    response = session.get.return_value = MockResponse(contents)
-    response.headers = {'content-type': 'application/x-tar'}
-    response.url = base_url
-
-    cache_dir = mkdtemp()
-    try:
-        cache_file = os.path.join(cache_dir, urllib.quote(base_url, ''))
-        cache_ct_file = cache_file + '.content-type'
-        _write_file(cache_file, 'some contents')
-        _write_file(cache_ct_file, 'application/x-tar')
-
-        unpack_http_url(link, 'location',
-            download_cache=cache_dir,
-            session=session,
-        )
-
-        # despite existence of cached file with bad hash, downloaded again
-        session.get.assert_called_once_with(
-            "http://www.example.com/somepackage.tgz",
-            stream=True,
-        )
-        # cached file is replaced with newly downloaded file
-        with open(cache_file) as fh:
-            assert fh.read() == 'downloaded'
-
-    finally:
-        rmtree(cache_dir)
-
-
-@patch('pip.download.unpack_file')
 def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     """
     If already-downloaded file has bad checksum, re-download.
     """
     base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b('downloaded')
+    contents = b'downloaded'
     download_hash = hashlib.new('sha1', contents)
     link = Link(base_url + '#sha1=' + download_hash.hexdigest())
 
@@ -134,8 +100,9 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
         _write_file(downloaded_file, 'some contents')
 
-        unpack_http_url(link, 'location',
-            download_cache=None,
+        unpack_http_url(
+            link,
+            'location',
             download_dir=download_dir,
             session=session,
         )
@@ -143,6 +110,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         # despite existence of downloaded file with bad hash, downloaded again
         session.get.assert_called_once_with(
             'http://www.example.com/somepackage.tgz',
+            headers={"Accept-Encoding": "identity"},
             stream=True,
         )
         # cached file is replaced with newly downloaded file
@@ -157,7 +125,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 def test_path_to_url_unix():
     assert path_to_url('/tmp/file') == 'file:///tmp/file'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + pathname2url(path)
+    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -167,15 +135,26 @@ def test_url_to_path_unix():
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///c:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///c:/tmp/file'
+    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
+    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + pathname2url(path)
+    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_url_to_path_win():
-    assert url_to_path('file:///c:/tmp/file') == 'c:/tmp/file'
+    assert url_to_path('file:///c:/tmp/file') == 'C:\\tmp\\file'
+    assert url_to_path('file://unc/as/path') == r'\\unc\as\path'
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_url_to_path_path_to_url_symmetry_win():
+    path = r'C:\tmp\file'
+    assert url_to_path(path_to_url(path)) == path
+
+    unc_path = r'\\unc\share\path'
+    assert url_to_path(path_to_url(unc_path)) == unc_path
 
 
 class Test_unpack_file_url(object):
@@ -254,7 +233,7 @@ class Test_unpack_file_url(object):
         self.dist_url.url = "%s#md5=%s" % (
             self.dist_url.url,
             dist_path_md5
-            )
+        )
         unpack_file_url(self.dist_url, self.build_dir,
                         download_dir=self.download_dir)
 
@@ -272,3 +251,73 @@ class Test_unpack_file_url(object):
         unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
+
+
+class TestSafeFileCache:
+
+    def test_cache_roundtrip(self, tmpdir):
+        cache_dir = tmpdir.join("test-cache")
+        cache_dir.makedirs()
+
+        cache = SafeFileCache(cache_dir)
+        assert cache.get("test key") is None
+        cache.set("test key", b"a test string")
+        assert cache.get("test key") == b"a test string"
+        cache.delete("test key")
+        assert cache.get("test key") is None
+
+    def test_safe_get_no_perms(self, tmpdir, monkeypatch):
+        cache_dir = tmpdir.join("unreadable-cache")
+        cache_dir.makedirs()
+        os.chmod(cache_dir, 000)
+
+        monkeypatch.setattr(os.path, "exists", lambda x: True)
+
+        cache = SafeFileCache(cache_dir)
+        cache.get("foo")
+
+    def test_safe_set_no_perms(self, tmpdir):
+        cache_dir = tmpdir.join("unreadable-cache")
+        cache_dir.makedirs()
+        os.chmod(cache_dir, 000)
+
+        cache = SafeFileCache(cache_dir)
+        cache.set("foo", "bar")
+
+    def test_safe_delete_no_perms(self, tmpdir):
+        cache_dir = tmpdir.join("unreadable-cache")
+        cache_dir.makedirs()
+        os.chmod(cache_dir, 000)
+
+        cache = SafeFileCache(cache_dir)
+        cache.delete("foo")
+
+
+class TestPipSession:
+
+    def test_cache_defaults_off(self):
+        session = PipSession()
+
+        assert not hasattr(session.adapters["http://"], "cache")
+        assert not hasattr(session.adapters["https://"], "cache")
+
+    def test_cache_is_enabled(self, tmpdir):
+        session = PipSession(cache=tmpdir.join("test-cache"))
+
+        assert hasattr(session.adapters["https://"], "cache")
+
+        assert (session.adapters["https://"].cache.directory
+                == tmpdir.join("test-cache"))
+
+    def test_http_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(cache=tmpdir.join("test-cache"))
+
+        assert not hasattr(session.adapters["http://"], "cache")
+
+    def test_insecure_host_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(
+            cache=tmpdir.join("test-cache"),
+            insecure_hosts=["example.com"],
+        )
+
+        assert not hasattr(session.adapters["https://example.com/"], "cache")

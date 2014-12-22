@@ -1,5 +1,7 @@
 """Generate and work with PEP 425 Compatibility Tags."""
+from __future__ import absolute_import
 
+import re
 import sys
 import warnings
 
@@ -9,6 +11,8 @@ except ImportError:  # pragma nocover
     # Python < 2.7
     import distutils.sysconfig as sysconfig
 import distutils.util
+
+_osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 
 def get_abbr_impl():
@@ -58,7 +62,7 @@ def get_supported(versions=None, noarch=False):
 
     try:
         soabi = sysconfig.get_config_var('SOABI')
-    except IOError as e: # Issue #1074
+    except IOError as e:  # Issue #1074
         warnings.warn("{0}".format(e), RuntimeWarning)
         soabi = None
 
@@ -77,10 +81,37 @@ def get_supported(versions=None, noarch=False):
 
     if not noarch:
         arch = get_platform()
+        if sys.platform == 'darwin':
+            # support macosx-10.6-intel on macosx-10.9-x86_64
+            match = _osx_arch_pat.match(arch)
+            if match:
+                name, major, minor, actual_arch = match.groups()
+                actual_arches = [actual_arch]
+                if actual_arch in ('i386', 'ppc'):
+                    actual_arches.append('fat')
+                if actual_arch in ('i386', 'x86_64'):
+                    actual_arches.append('intel')
+                if actual_arch in ('i386', 'ppc', 'x86_64'):
+                    actual_arches.append('fat3')
+                if actual_arch in ('ppc64', 'x86_64'):
+                    actual_arches.append('fat64')
+                if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
+                    actual_arches.append('universal')
+                tpl = '{0}_{1}_%i_%s'.format(name, major)
+                arches = []
+                for m in range(int(minor) + 1):
+                    for a in actual_arches:
+                        arches.append(tpl % (m, a))
+            else:
+                # arch pattern didn't match (?!)
+                arches = [arch]
+        else:
+            arches = [arch]
 
         # Current version, current API (built specifically for our Python):
         for abi in abis:
-            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+            for arch in arches:
+                supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):

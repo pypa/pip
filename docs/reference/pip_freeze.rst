@@ -32,10 +32,11 @@ Examples
  ::
 
   $ pip freeze
-  Jinja2==2.6
-  Pygments==1.5
-  Sphinx==1.1.3
-  docutils==0.9.1
+  docutils==0.11
+  Jinja2==2.7.2
+  MarkupSafe==0.19
+  Pygments==1.6
+  Sphinx==1.2.2
 
 
 2) Generate a requirements file and then install from it in another environment.

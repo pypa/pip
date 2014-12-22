@@ -23,8 +23,9 @@ def test_debian_egg_name_workaround(script):
         script.site_packages, "INITools-0.2-py%s.egg-info" % pyversion)
 
     # Debian only removes pyversion for global installs, not inside a venv
-    # so even if this test runs on a Debian/Ubuntu system with broken setuptools,
-    # since our test runs inside a venv we'll still have the normal .egg-info
+    # so even if this test runs on a Debian/Ubuntu system with broken
+    # setuptools, since our test runs inside a venv we'll still have the normal
+    # .egg-info
     assert egg_info in result.files_created, "Couldn't find %s" % egg_info
 
     # The Debian no-pyversion version of the .egg-info
@@ -40,7 +41,7 @@ def test_debian_egg_name_workaround(script):
 
     # Try the uninstall and verify that everything is removed.
     result2 = script.pip("uninstall", "INITools", "-y")
-    assert_all_changes(result, result2, [script.venv/'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
 def test_setup_py_with_dos_line_endings(script, data):

@@ -10,3 +10,4 @@ vendor:
 
 	@# Cleanup .egg-info directories
 	rm -rf *.egg-info
+	rm -rf *.dist-info
