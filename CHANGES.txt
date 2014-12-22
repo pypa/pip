@@ -1,4 +1,4 @@
-**6.0.1 (unreleased)**
+**6.0.1 (2014-12-22)**
 
 * Fix executable file permissions for Wheel files when using the distutils
   scripts option.
