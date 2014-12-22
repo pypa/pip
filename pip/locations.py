@@ -11,6 +11,7 @@ import tempfile
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS
 
+from pip._vendor.six import reraise
 from pip.compat import get_path_uid, WINDOWS
 from pip.utils import appdirs
 
@@ -140,7 +141,11 @@ def _get_build_prefix():
                 "pip will not work until the temporary folder is either "
                 "deleted or is a real directory owned by your user account."
             )
-            raise pip.exceptions.InstallationError(msg)
+            reraise(
+                pip.exceptions.InstallationError,
+                pip.exceptions.InstallationError(msg),
+                sys.exc_info()[2]
+            )
     return path
 
 if running_under_virtualenv():
