@@ -656,10 +656,7 @@ def unpack_file_url(link, location, download_dir=None):
     if os.path.isdir(link_path):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(
-            link_path, location, symlinks=True,
-            ignore=shutil.ignore_patterns(
-                '.tox', '.git', '.hg', '.bzr', '.svn'))
+        shutil.copytree(link_path, location, symlinks=True)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return

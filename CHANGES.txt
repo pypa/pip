@@ -1,3 +1,22 @@
+**6.0.1 (unreleased)**
+
+* Fix executable file permissions for Wheel files when using the distutils
+  scripts option.
+
+* Fix a confusing error message when an exceptions was raised at certain
+  points in pip's execution.
+
+* Fix the missing list of versions when a version cannot be found that matches
+  the specifiers.
+
+* Add a warning about the possibly problematic use of > when the given
+  specifier doesn't match anything.
+
+* Fix an issue where installing from a directory would not copy over certain
+  directories which were being excluded, however some build systems rely on
+  them.
+
+
 **6.0 (2014-12-22)**
 
 * **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
@@ -36,7 +55,7 @@
   a particular hostname.
 
 * Added a ``--user`` flag to ``pip freeze`` and ``pip list`` to check the
-  user site diretory only.
+  user site directory only.
 
 * Fixed :issue:`1873`. Silence byte compile errors when installation succeed.
 

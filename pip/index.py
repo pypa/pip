@@ -431,10 +431,12 @@ class PackageFinder(object):
                 ),
             )
         )
-        all_versions = [x for x in all_versions if x.version in _versions]
+        applicable_versions = [
+            x for x in all_versions if x.version in _versions
+        ]
 
         # Finally add our existing versions to the front of our versions.
-        applicable_versions = installed_version + all_versions
+        applicable_versions = installed_version + applicable_versions
 
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = any(
@@ -459,6 +461,18 @@ class PackageFinder(object):
             return None
 
         if not applicable_versions:
+            # The following check for '>' is designed to prevent confusion like
+            # that in
+            # https://bitbucket.org/pypa/setuptools/issue/301/101-in-requirementparse-foo-10-results
+            str_specifier = str(req.specifier)
+            if '>' in str_specifier and '>=' not in str_specifier:
+                logger.warning(
+                    "The behavior of the `>` version specifier has changed in "
+                    "PEP 440. `>` is now an exclusive operator, meaning that "
+                    "%s does not match %s. "
+                    "Perhaps you want `>=` instead of `>`?",
+                    str_specifier, str_specifier + '.*'
+                )
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
