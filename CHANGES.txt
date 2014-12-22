@@ -45,7 +45,7 @@
   a particular hostname.
 
 * Added a ``--user`` flag to ``pip freeze`` and ``pip list`` to check the
-  user site diretory only.
+  user site directory only.
 
 * Fixed :issue:`1873`. Silence byte compile errors when installation succeed.
 
