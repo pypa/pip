@@ -17404,6 +17404,22 @@ import tempfile
 def bootstrap(tmpdir=None):
     # Import pip so we can use it to install pip and maybe setuptools too
     import pip
+    from pip.commands.install import InstallCommand
+
+    # Wrapper to provide default certificate with the lowest priority
+    class CertInstallCommand(InstallCommand):
+        def parse_args(self, args):
+            # If cert isn't specified in config or environment, we provide our
+            # own certificate through defaults.
+            # This allows user to specify custom cert anywhere one likes:
+            # config, environment variable or argv.
+            if not self.parser.get_default_values().cert:
+                self.parser.defaults["cert"] = cert_path  # calculated below
+            return super(CertInstallCommand, self).parse_args(args)
+
+    # NOTE: Change this to pip.commands.command_dict when bundled pip
+    # version is upgraded
+    pip.commands["cert_install"] = CertInstallCommand
 
     # We always want to install pip
     packages = ["pip"]
@@ -17435,13 +17451,9 @@ def bootstrap(tmpdir=None):
         with open(cert_path, "wb") as cert:
             cert.write(pkgutil.get_data("pip._vendor.requests", "cacert.pem"))
 
-        # Use an environment variable here so that users can still pass
-        # --cert via sys.argv
-        os.environ.setdefault("PIP_CERT", cert_path)
-
         # Execute the included pip and use it to install the latest pip and
         # setuptools from PyPI
-        sys.exit(pip.main(["install", "--upgrade"] + packages + args))
+        sys.exit(pip.main(["cert_install", "--upgrade"] + packages + args))
     finally:
         # Remove our temporary directory
         if delete_tmpdir and tmpdir:
