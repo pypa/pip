@@ -17,6 +17,7 @@ from pip.exceptions import (
 from pip import cmdoptions
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.logging import _color_wrap, colorama
 
 
 logger = logging.getLogger(__name__)
@@ -361,7 +362,12 @@ class InstallCommand(Command):
                             items.append(item)
                         installed = ' '.join(items)
                         if installed:
-                            logger.info('Successfully installed %s', installed)
+                            bright_green = (
+                                _color_wrap(colorama.Style.BRIGHT +
+                                            colorama.Fore.GREEN))
+                            logger.info(
+                                bright_green('Successfully installed %s'),
+                                installed)
                     else:
                         downloaded = ' '.join([
                             req.name
