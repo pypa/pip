@@ -15,10 +15,12 @@ import sys
 import tempfile
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 
 from pip.exceptions import InstallationError, HashMismatch
+from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -29,6 +31,7 @@ from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
@@ -250,6 +253,13 @@ class SafeFileCache(FileCache):
             pass
 
 
+class InsecureHTTPAdapter(HTTPAdapter):
+
+    def cert_verify(self, conn, url, verify, cert):
+        conn.cert_reqs = 'CERT_NONE'
+        conn.ca_certs = None
+
+
 class PipSession(requests.Session):
 
     timeout = None
@@ -257,6 +267,7 @@ class PipSession(requests.Session):
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
+        insecure_hosts = kwargs.pop("insecure_hosts", [])
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -266,19 +277,52 @@ class PipSession(requests.Session):
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth()
 
+        # Create our urllib3.Retry instance which will allow us to customize
+        # how we handle retries.
+        retries = urllib3.Retry(
+            # Set the total number of retries that a particular request can
+            # have.
+            total=retries,
+
+            # A 503 error from PyPI typically means that the Fastly -> Origin
+            # connection got interupted in some way. A 503 error in general
+            # is typically considered a transient error so we'll go ahead and
+            # retry it.
+            status_forcelist=[503],
+
+            # Add a small amount of back off between failed requests in
+            # order to prevent hammering the service.
+            backoff_factor=0.25,
+        )
+
+        # We want to _only_ cache responses on securely fetched origins. We do
+        # this because we can't validate the response of an insecurely fetched
+        # origin, and we don't want someone to be able to poison the cache and
+        # require manual evication from the cache to fix it.
         if cache:
-            http_adapter = CacheControlAdapter(
+            secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
-            http_adapter = HTTPAdapter(max_retries=retries)
+            secure_adapter = HTTPAdapter(max_retries=retries)
 
-        self.mount("http://", http_adapter)
-        self.mount("https://", http_adapter)
+        # Our Insecure HTTPAdapter disables HTTPS validation. It does not
+        # support caching (see above) so we'll use it for all http:// URLs as
+        # well as any https:// host that we've marked as ignoring TLS errors
+        # for.
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+
+        self.mount("https://", secure_adapter)
+        self.mount("http://", insecure_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
+
+        # We want to use a non-validating adapter for any requests which are
+        # deemed insecure.
+        for host in insecure_hosts:
+            self.mount("https://{0}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
@@ -351,17 +395,15 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urllib_parse.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    else:
-        path = '/' + path
+
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+
+    # if we have a UNC path, prepend UNC share notation
+    if netloc:
+        netloc = '\\\\' + netloc
+
+    path = urllib_request.url2pathname(netloc + path)
     return path
-
-
-_drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 def path_to_url(path):
@@ -370,12 +412,8 @@ def path_to_url(path):
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    drive, path = os.path.splitdrive(path)
-    filepath = path.split(os.path.sep)
-    url = '/'.join([urllib_parse.quote(part) for part in filepath])
-    if not drive:
-        url = url.lstrip('/')
-    return 'file:///' + drive + url
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def is_archive_file(name):
@@ -516,21 +554,26 @@ def _download_url(resp, link, content_file):
 
         progress_indicator = lambda x, *a, **k: x
 
+        if link.netloc == PyPI.netloc:
+            url = show_url
+        else:
+            url = link.url_without_fragment
+
         if show_progress:  # We don't show progress on cached responses
             if total_length:
                 logger.info(
-                    "Downloading %s (%s)", show_url, format_size(total_length),
+                    "Downloading %s (%s)", url, format_size(total_length),
                 )
                 progress_indicator = DownloadProgressBar(
                     max=total_length,
                 ).iter
             else:
-                logger.info("Downloading %s", show_url)
+                logger.info("Downloading %s", url)
                 progress_indicator = DownloadProgressSpinner().iter
         elif cached_resp:
-            logger.info("Using cached %s", show_url)
+            logger.info("Using cached %s", url)
         else:
-            logger.info("Downloading %s", show_url)
+            logger.info("Downloading %s", url)
 
         logger.debug('Downloading from URL %s', link)
 
@@ -613,7 +656,10 @@ def unpack_file_url(link, location, download_dir=None):
     if os.path.isdir(link_path):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        shutil.copytree(
+            link_path, location, symlinks=True,
+            ignore=shutil.ignore_patterns(
+                '.tox', '.git', '.hg', '.bzr', '.svn'))
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return

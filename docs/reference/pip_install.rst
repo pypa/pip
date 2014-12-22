@@ -29,6 +29,12 @@ and like arguments to :ref:`pip install`, the following forms are supported::
     [-e] <local project path>
     [-e] <vcs project url>
 
+Since version 6.0, pip also supports markers using the "; " separator.
+Examples::
+
+    futures; python_version < '2.7'
+    http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'
+
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
 A line that begins with ``#`` is treated as a comment and ignored. Whitespace
@@ -450,7 +456,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-  $ pip install -e git+https://git.repo/some_repo.git@egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
+  $ pip install -e git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 

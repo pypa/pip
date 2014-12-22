@@ -135,15 +135,26 @@ def test_url_to_path_unix():
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///c:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///c:/tmp/file'
+    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
+    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
     path = os.path.join(os.getcwd(), 'file')
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_url_to_path_win():
-    assert url_to_path('file:///c:/tmp/file') == 'c:/tmp/file'
+    assert url_to_path('file:///c:/tmp/file') == 'C:\\tmp\\file'
+    assert url_to_path('file://unc/as/path') == r'\\unc\as\path'
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_url_to_path_path_to_url_symmetry_win():
+    path = r'C:\tmp\file'
+    assert url_to_path(path_to_url(path)) == path
+
+    unc_path = r'\\unc\share\path'
+    assert url_to_path(path_to_url(unc_path)) == unc_path
 
 
 class Test_unpack_file_url(object):
@@ -293,10 +304,20 @@ class TestPipSession:
     def test_cache_is_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))
 
-        assert hasattr(session.adapters["http://"], "cache")
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["http://"].cache.directory
-                == tmpdir.join("test-cache"))
         assert (session.adapters["https://"].cache.directory
                 == tmpdir.join("test-cache"))
+
+    def test_http_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(cache=tmpdir.join("test-cache"))
+
+        assert not hasattr(session.adapters["http://"], "cache")
+
+    def test_insecure_host_cache_is_not_enabled(self, tmpdir):
+        session = PipSession(
+            cache=tmpdir.join("test-cache"),
+            insecure_hosts=["example.com"],
+        )
+
+        assert not hasattr(session.adapters["https://example.com/"], "cache")

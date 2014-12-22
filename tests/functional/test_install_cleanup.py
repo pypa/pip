@@ -26,12 +26,12 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     """
     Test --no-clean option blocks cleaning after install
     """
-    result = script.pip(
-        'install', '--no-clean', '--no-index',
-        '--find-links=%s' % data.find_links, 'simple'
+    build = script.base_path / 'pip-build'
+    script.pip(
+        'install', '--no-clean', '--no-index', '--build', build,
+        '--find-links=%s' % data.find_links, 'simple',
     )
-    build = script.venv_path / 'build' / 'simple'
-    assert exists(build), "build/simple should still exist %s" % str(result)
+    assert exists(build)
 
 
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
@@ -157,15 +157,17 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     """
     Test no cleanup occurs after a PreviousBuildDirError
     """
-    build = script.venv_path / 'build' / 'simple'
-    os.makedirs(build)
-    write_delete_marker_file(script.venv_path / 'build')
-    build.join("setup.py").write("#")
+    build = script.venv_path / 'build'
+    build_simple = build / 'simple'
+    os.makedirs(build_simple)
+    write_delete_marker_file(build)
+    build_simple.join("setup.py").write("#")
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
+        '--build', build,
         expect_error=True,
     )
 
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
     assert "pip can't proceed" in result.stdout, result.stdout
-    assert exists(build)
+    assert exists(build_simple)

@@ -187,7 +187,7 @@ def test_uninstall_rollback(script, data):
         result.files_created.keys()
     )
     result2 = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken==0.2broken',
+        'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)
@@ -326,7 +326,7 @@ class TestUpgradeSetuptools(object):
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert (
-            "Found existing installation: setuptools 0.6c11" in result.stdout
+            "Found existing installation: setuptools 0.6rc11" in result.stdout
         )
         result = self.script.run(self.ve_bin / 'pip', 'list')
         "setuptools (0.9.8)" in result.stdout

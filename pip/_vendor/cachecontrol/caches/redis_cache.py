@@ -36,3 +36,6 @@ class RedisCache(object):
         caution!"""
         for key in self.conn.keys():
             self.conn.delete(key)
+
+    def close(self):
+        self.conn.disconnect()

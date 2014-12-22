@@ -1,3 +1,4 @@
+
 import os
 import textwrap
 import glob
@@ -201,7 +202,7 @@ def test_install_dev_version_from_pypi(script):
     Test using package==dev.
     """
     result = script.pip(
-        'install', 'INITools==dev',
+        'install', 'INITools===dev',
         '--allow-external', 'INITools',
         '--allow-unverified', 'INITools',
         expect_error=True,
@@ -298,7 +299,7 @@ def test_install_from_local_directory(script, data):
     result = script.pip('install', to_install, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -313,7 +314,7 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result = script.pip('install', to_install, expect_error=False)
     pkg_folder = script.site_packages / 'symlinks'
     egg_info_folder = (
-        script.site_packages / 'symlinks-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'symlinks-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -344,7 +345,7 @@ def test_install_as_egg(script, data):
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
+    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
@@ -362,7 +363,7 @@ def test_install_curdir(script, data):
     result = script.pip('install', curdir, cwd=run_from, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -376,7 +377,7 @@ def test_install_pardir(script, data):
     result = script.pip('install', pardir, cwd=run_from, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)

@@ -1,4 +1,6 @@
-**6.0.dev1 (unreleased)**
+**7.0.dev1 (unreleased)**
+
+**6.0 (2014-12-22)**
 
 * **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
   has been dropped.
@@ -12,6 +14,10 @@
   rooted at the location reported by show, rather than one (unstated)
   directory lower. (:pull:`1933`)
 
+* **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
+  was accidently lost in pip 1.5 and it has now been decided to not restore
+  that ability.
+
 * **DEPRECATION** ``pip install --download-cache`` and
   ``pip wheel --download-cache`` command line flags have been deprecated and
   the functionality removed. Since pip now automatically configures and uses
@@ -23,6 +29,13 @@
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
   *NOT* deprecated.  This reverses the deprecation that occurred in v1.5.3. See
   :issue:`906` for discussion.
+
+* **DEPRECATION** Implicitly accessing URLs which point to an origin which is
+  not a secure origin, instead requiring an opt-in for each host using the new
+  ``--trusted-host`` flag (``pip install --trusted-host example.com foo``).
+
+* Allow the new ``--trusted-host`` flag to also disable TLS verification for
+  a particular hostname.
 
 * Added a ``--user`` flag to ``pip freeze`` and ``pip list`` to check the
   user site diretory only.
@@ -54,9 +67,6 @@
 
 * Fixed :issue:`1618`. Pip no longer adds duplicate logging consumers, so it
   won't create duplicate output when being called multiple times. (:pull:`1723`)
-
-* Added general flag `--no-check-certificate` to tell pip NOT to verify
-  the security of HTTPS connections. (:pull:`1741`:)
 
 * Fixed :issue:`1769`. `pip wheel` now returns an error code if any wheels
   fail to build.
@@ -97,6 +107,29 @@
 * Fixed :issue:`2075`, detect the location of the ``.egg-info`` directory by
   looking for any file located inside of it instead of relying on the record
   file listing a directory. (:pull:`2076`)
+
+* Fixed :issue:`1964`, :issue:`1935`, :issue:`676`, Use a randomized and secure
+  default build directory when possible. (:pull:`2122`, CVE-2014-8991)
+
+* Fixed :issue:`1433`. Support environment markers in requirements.txt files.
+  (pull:`2134`)
+
+* Automatically retry failed HTTP requests by default. (:pull:`1444`, pull:`2147`)
+
+* Fixed :issue:`1100` - Handle HTML Encoding better using a method that is more
+  similar to how browsers handle it. (:pull:`1874`)
+
+* Reduce the verbosity of the pip command by default. (:pull:`2175`,
+  :pull:`2177`, :pull:`2178`)
+
+* Fixed :issue:`2031` - Respect sys.executable on OSX when installing from
+  Wheels.
+
+* Display the entire URL of the file that is being downloaded when downloading
+  from a non PyPI repository (:pull:`2183`).
+
+* Support setuptools style environment markers in a source distribution
+  (:pull:`2153`).
 
 
 **1.5.6 (2014-05-16)**

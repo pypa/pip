@@ -47,11 +47,15 @@ class UninstallCommand(Command):
                 build_dir=None,
                 src_dir=None,
                 download_dir=None,
+                isolated=options.isolated_mode,
                 session=session,
             )
             for name in args:
                 requirement_set.add_requirement(
-                    InstallRequirement.from_line(name))
+                    InstallRequirement.from_line(
+                        name, isolated=options.isolated_mode,
+                    )
+                )
             for filename in options.requirements:
                 for req in parse_requirements(
                         filename,

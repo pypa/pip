@@ -10,6 +10,7 @@ from pip._vendor import lockfile
 from pip._vendor import pkg_resources
 
 from pip.compat import total_seconds
+from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 
 
@@ -104,7 +105,7 @@ def pip_version_check(session):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             resp = session.get(
-                "https://pypi.python.org/pypi/pip/json",
+                PyPI.pip_json_url,
                 headers={"Accept": "application/json"},
             )
             resp.raise_for_status()

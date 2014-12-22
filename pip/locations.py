@@ -209,14 +209,23 @@ site_config_files = [
 ]
 
 
-def distutils_scheme(dist_name, user=False, home=None, root=None):
+def distutils_scheme(dist_name, user=False, home=None, root=None,
+                     isolated=False):
     """
     Return a distutils install scheme
     """
     from distutils.dist import Distribution
 
     scheme = {}
-    d = Distribution({'name': dist_name})
+
+    if isolated:
+        extra_dist_args = {"script_args": ["--no-user-cfg"]}
+    else:
+        extra_dist_args = {}
+    dist_args = {'name': dist_name}
+    dist_args.update(extra_dist_args)
+
+    d = Distribution(dist_args)
     d.parse_config_files()
     i = d.get_command_obj('install', create=True)
     # NOTE: setting user or home has the side-effect of creating the home dir

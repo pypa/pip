@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -7,14 +8,15 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
+    DistributionNotFound,
 )
 from pip.download import PipSession
-from pip._vendor import pkg_resources
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
+from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
 
 
@@ -53,6 +55,23 @@ class TestRequirementSet(object):
             finder,
         )
 
+    def test_environment_marker_extras(self, data):
+        """
+        Test that the environment marker extras are used with
+        non-wheel installs.
+        """
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_editable(
+            data.packages.join("LocalEnvironMarker"))
+        reqset.add_requirement(req)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        reqset.prepare_files(finder)
+        # This is hacky but does test both case in py2 and py3
+        if sys.version_info[:2] in ((2, 7), (3, 4)):
+            assert reqset.has_requirement('simple')
+        else:
+            assert not reqset.has_requirement('simple')
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
@@ -84,6 +103,11 @@ class TestInstallRequirement(object):
                 'peppercorn-0.4-py2.py3-bogus-any.whl',
             )
 
+    def test_installed_version_not_installed(self):
+        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        with pytest.raises(DistributionNotFound):
+            req.installed_version
+
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
             InstallRequirement.from_line('invalid.whl')
@@ -103,6 +127,63 @@ class TestInstallRequirement(object):
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_editable(url)
         assert req.url == url
+
+    def test_markers(self):
+        for line in (
+            # recommanded syntax
+            'mock3; python_version >= "3"',
+            # with more spaces
+            'mock3 ; python_version >= "3" ',
+            # without spaces
+            'mock3;python_version >= "3"',
+        ):
+            req = InstallRequirement.from_line(line)
+            assert req.req.project_name == 'mock3'
+            assert req.req.specs == []
+            assert req.markers == 'python_version >= "3"'
+
+    def test_markers_semicolon(self):
+        # check that the markers can contain a semicolon
+        req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
+        assert req.req.project_name == 'semicolon'
+        assert req.req.specs == []
+        assert req.markers == 'os_name == "a; b"'
+
+    def test_markers_url(self):
+        # test "URL; markers" syntax
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        line = '%s; python_version >= "3"' % url
+        req = InstallRequirement.from_line(line)
+        assert req.url == url, req.url
+        assert req.markers == 'python_version >= "3"'
+
+        # without space, markers are part of the URL
+        url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
+        line = '%s;python_version >= "3"' % url
+        req = InstallRequirement.from_line(line)
+        assert req.url == line, req.url
+        assert req.markers is None
+
+    def test_markers_match(self):
+        # match
+        for markers in (
+            'python_version >= "1.0"',
+            'sys_platform == %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line)
+            assert req.markers == markers
+            assert req.match_markers()
+
+        # don't match
+        for markers in (
+            'python_version >= "5.0"',
+            'sys_platform != %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line)
+            assert req.markers == markers
+            assert not req.match_markers()
 
 
 def test_requirements_data_structure_keeps_order():
@@ -140,10 +221,10 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    assert parse_editable('.', 'git') == (None, 'file:///some/path', None, {})
     normcase_mock.return_value = "/some/path/foo"
     assert parse_editable('foo', 'git') == (
-        None, 'file:///some/path/foo', None,
+        None, 'file:///some/path/foo', None, {},
     )
 
 
@@ -151,6 +232,7 @@ def test_parse_editable_default_vcs():
     assert parse_editable('https://foo#egg=foo', 'git') == (
         'foo',
         'git+https://foo#egg=foo',
+        None,
         {'egg': 'foo'},
     )
 
@@ -159,6 +241,7 @@ def test_parse_editable_explicit_vcs():
     assert parse_editable('svn+https://foo#egg=foo', 'git') == (
         'foo',
         'svn+https://foo#egg=foo',
+        None,
         {'egg': 'foo'},
     )
 
@@ -167,6 +250,7 @@ def test_parse_editable_vcs_extras():
     assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
+        None,
         {'egg': 'foo[extras]'},
     )
 
@@ -180,11 +264,11 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
-        None, 'file://' + "/some/path", ('extras',),
+        None, 'file://' + "/some/path", ('extras',), {},
     )
     normcase_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
-        None, 'file:///some/path/foo', ('bar', 'baz'),
+        None, 'file:///some/path/foo', ('bar', 'baz'), {},
     )
 
 

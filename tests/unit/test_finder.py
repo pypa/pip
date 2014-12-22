@@ -11,6 +11,7 @@ from pip.exceptions import (
 )
 from pip.utils import Inf
 from pip.download import PipSession
+from pip.req.req_requirement import InstallationCandidate
 
 from mock import Mock, patch
 
@@ -214,33 +215,45 @@ class TestWheel:
         Test link sorting
         """
         links = [
-            (parse_version('2.0'), Link(Inf), '2.0'),
-            (parse_version('2.0'), Link('simple-2.0.tar.gz'), '2.0'),
-            (
-                parse_version('1.0'),
+            InstallationCandidate("simple", "2.0", Link(Inf)),
+            InstallationCandidate("simple", "2.0", Link('simple-2.0.tar.gz')),
+            InstallationCandidate(
+                "simple",
+                "1.0",
                 Link('simple-1.0-pyT-none-TEST.whl'),
-                '1.0',
             ),
-            (parse_version('1.0'), Link('simple-1.0-pyT-TEST-any.whl'), '1.0'),
-            (parse_version('1.0'), Link('simple-1.0-pyT-none-any.whl'), '1.0'),
-            (parse_version('1.0'), Link('simple-1.0.tar.gz'), '1.0'),
+            InstallationCandidate(
+                "simple",
+                '1.0',
+                Link('simple-1.0-pyT-TEST-any.whl'),
+            ),
+            InstallationCandidate(
+                "simple",
+                '1.0',
+                Link('simple-1.0-pyT-none-any.whl'),
+            ),
+            InstallationCandidate(
+                "simple",
+                '1.0',
+                Link('simple-1.0.tar.gz'),
+            ),
         ]
 
         finder = PackageFinder([], [], session=PipSession())
         finder.use_wheel = True
 
         results = finder._sort_versions(links)
-        results2 = finder._sort_versions(sorted(links, reverse=True))
+        results2 = finder._sort_versions(reversed(links))
 
         assert links == results == results2, results2
 
     @patch('pip.pep425tags.supported_tags', [])
     def test_link_sorting_raises_when_wheel_unsupported(self):
         links = [
-            (
-                parse_version('1.0'),
-                Link('simple-1.0-py2.py3-none-TEST.whl'),
+            InstallationCandidate(
+                "simple",
                 '1.0',
+                Link('simple-1.0-py2.py3-none-TEST.whl'),
             ),
         ]
         finder = PackageFinder([], [], use_wheel=True, session=PipSession())
@@ -330,23 +343,35 @@ def test_finder_installs_pre_releases(data):
     Test PackageFinder finds pre-releases if asked to.
     """
 
-    req = InstallRequirement.from_line("bar", None, prereleases=True)
+    req = InstallRequirement.from_line("bar", None)
 
     # using a local index (that has pre & dev releases)
-    finder = PackageFinder([], [data.index_url("pre")], session=PipSession())
+    finder = PackageFinder(
+        [], [data.index_url("pre")],
+        allow_all_prereleases=True,
+        session=PipSession(),
+    )
     link = finder.find_requirement(req, False)
     assert link.url.endswith("bar-2.0b1.tar.gz"), link.url
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
-    finder = PackageFinder(links, [], session=PipSession())
+    finder = PackageFinder(
+        links, [],
+        allow_all_prereleases=True,
+        session=PipSession(),
+    )
 
     with patch.object(finder, "_get_pages", lambda x, y, z: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
-    finder = PackageFinder(links, [], session=PipSession())
+    finder = PackageFinder(
+        links, [],
+        allow_all_prereleases=True,
+        session=PipSession(),
+    )
 
     with patch.object(finder, "_get_pages", lambda x, y, z: []):
         link = finder.find_requirement(req, False)
@@ -358,10 +383,14 @@ def test_finder_installs_dev_releases(data):
     Test PackageFinder finds dev releases if asked to.
     """
 
-    req = InstallRequirement.from_line("bar", None, prereleases=True)
+    req = InstallRequirement.from_line("bar", None)
 
     # using a local index (that has dev releases)
-    finder = PackageFinder([], [data.index_url("dev")], session=PipSession())
+    finder = PackageFinder(
+        [], [data.index_url("dev")],
+        allow_all_prereleases=True,
+        session=PipSession(),
+    )
     link = finder.find_requirement(req, False)
     assert link.url.endswith("bar-2.0.dev1.tar.gz"), link.url
 

@@ -11,6 +11,10 @@ env:
   - TOXENV=py33
   - TOXENV=py34
   - TOXENV=pypy
+  - TOXENV=py27 VENDOR=no
+  - TOXENV=py34 VENDOR=no
+  - TOXENV=py27 VENDOR=no WHEELS=yes
+  - TOXENV=py34 VENDOR=no WHEELS=yes
 
 install: .travis/install.sh
 

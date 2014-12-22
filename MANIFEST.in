@@ -10,6 +10,7 @@ exclude .mailmap
 exclude .travis.yml
 exclude pip/_vendor/Makefile
 exclude tox.ini
+exclude dev-requirements.txt
 
 recursive-include pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat

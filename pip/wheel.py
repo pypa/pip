@@ -128,11 +128,13 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None):
+                     pycompile=True, scheme=None, isolated=False):
     """Install a wheel"""
 
     if not scheme:
-        scheme = distutils_scheme(name, user=user, home=home, root=root)
+        scheme = distutils_scheme(
+            name, user=user, home=home, root=root, isolated=isolated
+        )
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
@@ -200,10 +202,20 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # uninstalled.
                 if not os.path.exists(destdir):
                     os.makedirs(destdir)
-                # use copy2 (not move) to be extra sure we're not moving
-                # directories over; copy2 fails for directories.  this would
-                # fail tests (not during released/user execution)
-                shutil.copy2(srcfile, destfile)
+
+                # We use copyfile (not move, copy, or copy2) to be extra sure
+                # that we are not moving directories over (copyfile fails for
+                # directories) as well as to ensure that we are not copying
+                # over any metadata because we want more control over what
+                # metadata we actually copy over.
+                shutil.copyfile(srcfile, destfile)
+
+                # Copy over the metadata for the file, currently this only
+                # includes the atime and mtime.
+                st = os.stat(srcfile)
+                if hasattr(os, "utime"):
+                    os.utime(destfile, (st.st_atime, st.st_mtime))
+
                 changed = False
                 if fixer:
                     changed = fixer(destfile)
@@ -518,13 +530,13 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=[],
-                 global_options=[]):
+    def __init__(self, requirement_set, finder, wheel_dir, build_options=None,
+                 global_options=None):
         self.requirement_set = requirement_set
         self.finder = finder
         self.wheel_dir = normalize_path(wheel_dir)
-        self.build_options = build_options
-        self.global_options = global_options
+        self.build_options = build_options or []
+        self.global_options = global_options or []
 
     def _build_one(self, req):
         """Build one wheel."""

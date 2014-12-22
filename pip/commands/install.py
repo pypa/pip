@@ -1,19 +1,21 @@
 from __future__ import absolute_import
 
 import logging
+import operator
 import os
 import tempfile
 import shutil
 import warnings
 
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.locations import virtualenv_no_global, distutils_scheme
+from pip.locations import build_prefix, virtualenv_no_global, distutils_scheme
 from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 
 
@@ -189,6 +191,7 @@ class InstallCommand(Command):
             allow_external=options.allow_external,
             allow_unverified=options.allow_unverified,
             allow_all_external=options.allow_all_external,
+            trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
@@ -209,7 +212,16 @@ class InstallCommand(Command):
         if options.download_dir:
             options.no_install = True
             options.ignore_installed = True
-        options.build_dir = os.path.abspath(options.build_dir)
+
+        # If we have --no-install or --no-download and no --build we use the
+        # legacy static build dir
+        if (options.build_dir is None
+                and (options.no_install or options.no_download)):
+            options.build_dir = build_prefix
+
+        if options.build_dir:
+            options.build_dir = os.path.abspath(options.build_dir)
+
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
@@ -268,113 +280,140 @@ class InstallCommand(Command):
 
             finder = self._build_package_finder(options, index_urls, session)
 
-            requirement_set = RequirementSet(
-                build_dir=options.build_dir,
-                src_dir=options.src_dir,
-                download_dir=options.download_dir,
-                upgrade=options.upgrade,
-                as_egg=options.as_egg,
-                ignore_installed=options.ignore_installed,
-                ignore_dependencies=options.ignore_dependencies,
-                force_reinstall=options.force_reinstall,
-                use_user_site=options.use_user_site,
-                target_dir=temp_target_dir,
-                session=session,
-                pycompile=options.compile,
-            )
-            for name in args:
-                requirement_set.add_requirement(
-                    InstallRequirement.from_line(name, None))
-            for name in options.editables:
-                requirement_set.add_requirement(
-                    InstallRequirement.from_editable(
-                        name,
-                        default_vcs=options.default_vcs
-                    )
+            build_delete = (not (options.no_clean or options.build_dir))
+            with BuildDirectory(options.build_dir,
+                                delete=build_delete) as build_dir:
+                requirement_set = RequirementSet(
+                    build_dir=build_dir,
+                    src_dir=options.src_dir,
+                    download_dir=options.download_dir,
+                    upgrade=options.upgrade,
+                    as_egg=options.as_egg,
+                    ignore_installed=options.ignore_installed,
+                    ignore_dependencies=options.ignore_dependencies,
+                    force_reinstall=options.force_reinstall,
+                    use_user_site=options.use_user_site,
+                    target_dir=temp_target_dir,
+                    session=session,
+                    pycompile=options.compile,
+                    isolated=options.isolated_mode,
                 )
-            for filename in options.requirements:
-                for req in parse_requirements(
-                        filename,
-                        finder=finder, options=options, session=session):
-                    requirement_set.add_requirement(req)
-            if not requirement_set.has_requirements:
-                opts = {'name': self.name}
-                if options.find_links:
-                    msg = ('You must give at least one requirement to %(name)s'
-                           ' (maybe you meant "pip %(name)s %(links)s"?)' %
-                           dict(opts, links=' '.join(options.find_links)))
-                else:
-                    msg = ('You must give at least one requirement '
-                           'to %(name)s (see "pip help %(name)s")' % opts)
-                logger.warning(msg)
-                return
 
-            try:
-                if not options.no_download:
-                    requirement_set.prepare_files(finder)
-                else:
-                    requirement_set.locate_files()
-
-                if not options.no_install:
-                    requirement_set.install(
-                        install_options,
-                        global_options,
-                        root=options.root_path,
+                for name in args:
+                    requirement_set.add_requirement(
+                        InstallRequirement.from_line(
+                            name, None, isolated=options.isolated_mode,
+                        )
                     )
-                    installed = ' '.join([
-                        req.name for req in
-                        requirement_set.successfully_installed
-                    ])
-                    if installed:
-                        logger.info('Successfully installed %s', installed)
-                else:
-                    downloaded = ' '.join([
-                        req.name
-                        for req in requirement_set.successfully_downloaded
-                    ])
-                    if downloaded:
-                        logger.info('Successfully downloaded %s', downloaded)
-            except PreviousBuildDirError:
-                options.no_clean = True
-                raise
-            finally:
-                # Clean up
-                if ((not options.no_clean)
-                        and ((not options.no_install)
-                             or options.download_dir)):
-                    requirement_set.cleanup_files()
 
-            if options.target_dir:
-                if not os.path.exists(options.target_dir):
-                    os.makedirs(options.target_dir)
-                lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
-                for item in os.listdir(lib_dir):
-                    target_item_dir = os.path.join(options.target_dir, item)
-                    if os.path.exists(target_item_dir):
-                        if not options.upgrade:
-                            logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.islink(target_item_dir):
-                            logger.warning(
-                                'Target directory %s already exists and is '
-                                'a link. Pip will not automatically replace '
-                                'links, please remove if replacement is '
-                                'desired.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.isdir(target_item_dir):
-                            shutil.rmtree(target_item_dir)
-                        else:
-                            os.remove(target_item_dir)
-
-                    shutil.move(
-                        os.path.join(lib_dir, item),
-                        target_item_dir
+                for name in options.editables:
+                    requirement_set.add_requirement(
+                        InstallRequirement.from_editable(
+                            name,
+                            default_vcs=options.default_vcs,
+                            isolated=options.isolated_mode,
+                        )
                     )
-                shutil.rmtree(temp_target_dir)
-            return requirement_set
+
+                for filename in options.requirements:
+                    for req in parse_requirements(
+                            filename,
+                            finder=finder, options=options, session=session):
+                        requirement_set.add_requirement(req)
+
+                if not requirement_set.has_requirements:
+                    opts = {'name': self.name}
+                    if options.find_links:
+                        msg = ('You must give at least one requirement to '
+                               '%(name)s (maybe you meant "pip %(name)s '
+                               '%(links)s"?)' %
+                               dict(opts, links=' '.join(options.find_links)))
+                    else:
+                        msg = ('You must give at least one requirement '
+                               'to %(name)s (see "pip help %(name)s")' % opts)
+                    logger.warning(msg)
+                    return
+
+                try:
+                    if not options.no_download:
+                        requirement_set.prepare_files(finder)
+                    else:
+                        requirement_set.locate_files()
+
+                    if not options.no_install:
+                        requirement_set.install(
+                            install_options,
+                            global_options,
+                            root=options.root_path,
+                        )
+                        reqs = sorted(
+                            requirement_set.successfully_installed,
+                            key=operator.attrgetter('name'))
+                        items = []
+                        for req in reqs:
+                            item = req.name
+                            try:
+                                if hasattr(req, 'installed_version'):
+                                    if req.installed_version:
+                                        item += '-' + req.installed_version
+                            except Exception:
+                                pass
+                            items.append(item)
+                        installed = ' '.join(items)
+                        if installed:
+                            logger.info('Successfully installed %s', installed)
+                    else:
+                        downloaded = ' '.join([
+                            req.name
+                            for req in requirement_set.successfully_downloaded
+                        ])
+                        if downloaded:
+                            logger.info(
+                                'Successfully downloaded %s', downloaded
+                            )
+                except PreviousBuildDirError:
+                    options.no_clean = True
+                    raise
+                finally:
+                    # Clean up
+                    if ((not options.no_clean)
+                            and ((not options.no_install)
+                                 or options.download_dir)):
+                        requirement_set.cleanup_files()
+
+        if options.target_dir:
+            if not os.path.exists(options.target_dir):
+                os.makedirs(options.target_dir)
+
+            lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
+
+            for item in os.listdir(lib_dir):
+                target_item_dir = os.path.join(options.target_dir, item)
+                if os.path.exists(target_item_dir):
+                    if not options.upgrade:
+                        logger.warning(
+                            'Target directory %s already exists. Specify '
+                            '--upgrade to force replacement.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.islink(target_item_dir):
+                        logger.warning(
+                            'Target directory %s already exists and is '
+                            'a link. Pip will not automatically replace '
+                            'links, please remove if replacement is '
+                            'desired.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.isdir(target_item_dir):
+                        shutil.rmtree(target_item_dir)
+                    else:
+                        os.remove(target_item_dir)
+
+                shutil.move(
+                    os.path.join(lib_dir, item),
+                    target_item_dir
+                )
+            shutil.rmtree(temp_target_dir)
+        return requirement_set

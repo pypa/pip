@@ -147,9 +147,10 @@ class Manifest(object):
 
         elif action == 'exclude':
             for pattern in patterns:
-                if not self._exclude_pattern(pattern, anchor=True):
-                    logger.warning('no previously-included files '
-                                   'found matching %r', pattern)
+                found = self._exclude_pattern(pattern, anchor=True)
+                #if not found:
+                #    logger.warning('no previously-included files '
+                #                   'found matching %r', pattern)
 
         elif action == 'global-include':
             for pattern in patterns:
@@ -159,10 +160,11 @@ class Manifest(object):
 
         elif action == 'global-exclude':
             for pattern in patterns:
-                if not self._exclude_pattern(pattern, anchor=False):
-                    logger.warning('no previously-included files '
-                                   'matching %r found anywhere in '
-                                   'distribution', pattern)
+                found = self._exclude_pattern(pattern, anchor=False)
+                #if not found:
+                #    logger.warning('no previously-included files '
+                #                   'matching %r found anywhere in '
+                #                   'distribution', pattern)
 
         elif action == 'recursive-include':
             for pattern in patterns:
@@ -172,10 +174,11 @@ class Manifest(object):
 
         elif action == 'recursive-exclude':
             for pattern in patterns:
-                if not self._exclude_pattern(pattern, prefix=thedir):
-                    logger.warning('no previously-included files '
-                                   'matching %r found under directory %r',
-                                   pattern, thedir)
+                found = self._exclude_pattern(pattern, prefix=thedir)
+                #if not found:
+                #    logger.warning('no previously-included files '
+                #                   'matching %r found under directory %r',
+                #                   pattern, thedir)
 
         elif action == 'graft':
             if not self._include_pattern(None, prefix=dirpattern):

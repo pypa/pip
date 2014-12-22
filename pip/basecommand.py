@@ -39,7 +39,7 @@ class Command(object):
     hidden = False
     log_stream = "ext://sys.stdout"
 
-    def __init__(self):
+    def __init__(self, isolated=False):
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -47,6 +47,7 @@ class Command(object):
             'add_help_option': False,
             'name': self.name,
             'description': self.__doc__,
+            'isolated': isolated,
         }
 
         self.parser = ConfigOptionParser(**parser_kw)
@@ -69,13 +70,12 @@ class Command(object):
                 if options.cache_dir else None
             ),
             retries=options.retries,
+            insecure_hosts=options.trusted_hosts,
         )
 
         # Handle custom ca-bundles from the user
         if options.cert:
             session.verify = options.cert
-        elif options.no_check_certificate:
-            session.verify = False
 
         # Handle SSL client certificate
         if options.client_cert:
