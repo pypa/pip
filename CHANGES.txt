@@ -9,6 +9,9 @@
 * Fix the missing list of versions when a version cannot be found that matches
   the specifiers.
 
+* Add a warning about the possibly problematic use of > when the given
+  specifier doesn't match anything.
+
 
 **6.0 (2014-12-22)**
 
