@@ -6,6 +6,9 @@
 * Fix a confusing error message when an exceptions was raised at certain
   points in pip's execution.
 
+* Fix the missing list of versions when a version cannot be found that matches
+  the specifiers.
+
 
 **6.0 (2014-12-22)**
 

@@ -431,10 +431,12 @@ class PackageFinder(object):
                 ),
             )
         )
-        all_versions = [x for x in all_versions if x.version in _versions]
+        applicable_versions = [
+            x for x in all_versions if x.version in _versions
+        ]
 
         # Finally add our existing versions to the front of our versions.
-        applicable_versions = installed_version + all_versions
+        applicable_versions = installed_version + applicable_versions
 
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = any(
