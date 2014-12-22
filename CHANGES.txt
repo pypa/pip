@@ -1,4 +1,4 @@
-**6.0.dev1 (unreleased)**
+**6.0 (2014-12-22)**
 
 * **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
   has been dropped.
