@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import sys
 
 from base64 import urlsafe_b64encode
@@ -215,6 +216,15 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 st = os.stat(srcfile)
                 if hasattr(os, "utime"):
                     os.utime(destfile, (st.st_atime, st.st_mtime))
+
+                # If our file is executable, then make our destination file
+                # executable.
+                if os.access(srcfile, os.X_OK):
+                    st = os.stat(srcfile)
+                    permissions = (
+                        st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                    )
+                    os.chmod(destfile, permissions)
 
                 changed = False
                 if fixer:

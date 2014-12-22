@@ -1,3 +1,9 @@
+**6.0.1 (unreleased)**
+
+* Fix executable file permissions for Wheel files when using the distutils
+  scripts option.
+
+
 **6.0 (2014-12-22)**
 
 * **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
