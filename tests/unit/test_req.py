@@ -15,7 +15,7 @@ from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
-from pip.utils import read_text_file
+from pip.utils.misc import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
 
@@ -82,7 +82,7 @@ def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
     em.return_value = 'cp1252'
-    with patch('pip.utils.open', om, create=True):
+    with patch('pip.utils.misc.open', om, create=True):
         with patch('locale.getpreferredencoding', em):
             ret = read_text_file('foo')
     assert ret == expected.decode('utf-8')

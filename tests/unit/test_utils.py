@@ -12,8 +12,8 @@ import pytest
 
 from mock import Mock, patch
 from pip.exceptions import BadCommand
-from pip.utils import (egg_link_path, Inf, get_installed_distributions,
-                       find_command, untar_file, unzip_file)
+from pip.utils.misc import (egg_link_path, Inf, get_installed_distributions,
+                            find_command, untar_file, unzip_file)
 from pip.operations.freeze import freeze_excludes
 
 
@@ -37,7 +37,7 @@ class Tests_EgglinkPath:
         )
 
         # patches
-        from pip import utils
+        from pip.utils import misc as utils
         self.old_site_packages = utils.site_packages
         self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
         self.old_running_under_virtualenv = utils.running_under_virtualenv
@@ -52,7 +52,7 @@ class Tests_EgglinkPath:
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
-        from pip import utils
+        from pip.utils import misc as utils
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
         utils.virtualenv_no_global = self.old_virtualenv_no_global
@@ -161,9 +161,9 @@ def test_Inf_equals_Inf():
     assert Inf == Inf
 
 
-@patch('pip.utils.dist_in_usersite')
-@patch('pip.utils.dist_is_local')
-@patch('pip.utils.dist_is_editable')
+@patch('pip.utils.misc.dist_in_usersite')
+@patch('pip.utils.misc.dist_is_local')
+@patch('pip.utils.misc.dist_is_editable')
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
@@ -290,7 +290,8 @@ def test_find_command_folder_in_path(tmpdir):
 
 def test_does_not_find_command_because_there_is_no_path():
     """
-    Test calling `pip.utils.find_command` when there is no PATH env variable
+    Test calling `pip.utils.misc.find_command` when there is no PATH env
+    variable
     """
     environ_before = os.environ
     os.environ = {}
@@ -307,7 +308,7 @@ def test_does_not_find_command_because_there_is_no_path():
 
 
 @patch('os.pathsep', ':')
-@patch('pip.utils.get_pathext')
+@patch('pip.utils.misc.get_pathext')
 @patch('os.path.isfile')
 def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     """
@@ -333,7 +334,7 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
 
 
 @patch('os.pathsep', ':')
-@patch('pip.utils.get_pathext')
+@patch('pip.utils.misc.get_pathext')
 @patch('os.path.isfile')
 def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     """

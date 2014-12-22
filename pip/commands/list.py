@@ -7,7 +7,7 @@ from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder
 from pip.req import InstallRequirement
-from pip.utils import get_installed_distributions, dist_is_editable
+from pip.utils.misc import get_installed_distributions, dist_is_editable
 from pip.utils.deprecation import RemovedInPip7Warning
 from pip.cmdoptions import make_option_group, index_group
 

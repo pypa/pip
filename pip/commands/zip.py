@@ -9,7 +9,7 @@ import shutil
 import warnings
 import zipfile
 
-from pip.utils import display_path, backup_dir, rmtree
+from pip.utils.misc import display_path, backup_dir, rmtree
 from pip.utils.deprecation import RemovedInPip7Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import InstallationError

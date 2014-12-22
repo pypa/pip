@@ -13,7 +13,8 @@ from pip.locations import (
     legacy_config_file, config_basename, running_under_virtualenv,
     site_config_files
 )
-from pip.utils import appdirs, get_terminal_size
+from pip.utils import appdirs
+from pip.utils.misc import get_terminal_size
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):

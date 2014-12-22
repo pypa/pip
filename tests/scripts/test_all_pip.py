@@ -6,7 +6,7 @@ from os.path import dirname, abspath
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.utils import rmtree
+from pip.utils.misc import rmtree
 
 
 src_folder = dirname(dirname(abspath(__file__)))

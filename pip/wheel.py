@@ -21,8 +21,9 @@ from pip._vendor.six import StringIO
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
-from pip.utils import (call_subprocess, normalize_path, make_path_relative,
-                       captured_stdout, remove_tracebacks)
+from pip.utils.misc import (call_subprocess, normalize_path,
+                            make_path_relative, captured_stdout,
+                            remove_tracebacks, FakeFile)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -412,7 +413,6 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .pyc.
     """
-    from pip.utils import FakeFile  # circular import
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
         path = os.path.join(dist.location, row[0])

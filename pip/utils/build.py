@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import tempfile
 
-from pip.utils import rmtree
+from pip.utils.misc import rmtree
 
 
 class BuildDirectory(object):

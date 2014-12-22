@@ -7,8 +7,8 @@ import os.path
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.utils import call_subprocess
-from pip.utils import display_path, rmtree
+from pip.utils.misc import call_subprocess
+from pip.utils.misc import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 
 

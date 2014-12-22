@@ -4,7 +4,7 @@ from __future__ import division
 import itertools
 import sys
 
-from pip.utils import format_size
+from pip.utils.misc import format_size
 from pip.utils.logging import get_indentation
 from pip._vendor.progress.bar import Bar
 from pip._vendor.progress.helpers import WritelnMixin
