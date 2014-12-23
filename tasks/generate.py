@@ -104,8 +104,9 @@ except ImportError:
             except TypeError:
                 for j, c in enumerate(iterbytes(chunk)):
                     if _b85dec[c] is None:
-                        raise ValueError('bad base85 character at position %d'
-                                        % (i + j))
+                        raise ValueError(
+                            'bad base85 character at position %d' % (i + j)
+                        )
                 raise
             try:
                 out.append(packI(acc))
