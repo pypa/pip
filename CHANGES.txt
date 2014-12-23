@@ -1,5 +1,8 @@
 **6.0.2 (unreleased)**
 
+* Fix an issue where the output saying that a package was installing would
+  report the old version instead of the new version during an upgrade.
+
 * Fix left over merge conflict markers in the documentation.
 
 * Document the backwards incompatible PEP 440 change in the 6.0.0 changelog.
