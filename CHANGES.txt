@@ -3,7 +3,7 @@
 
 **6.0.2 (2014-12-23)**
 
-* Fix an issue where the output saying that a package was installing would
+* Fix an issue where the output saying that a package was installed would
   report the old version instead of the new version during an upgrade.
 
 * Fix left over merge conflict markers in the documentation.
