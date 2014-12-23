@@ -407,7 +407,7 @@ def test_install_with_hacked_egg_info(script, data):
     """
     run_from = data.packages.join("HackedEggInfo")
     result = script.pip('install', '.', cwd=run_from)
-    assert 'Successfully installed hackedegginfo\n' in result.stdout
+    assert 'Successfully installed hackedegginfo-0.0.0\n' in result.stdout
 
 
 def test_install_using_install_option_and_editable(script, tmpdir):
