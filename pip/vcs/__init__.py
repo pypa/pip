@@ -8,8 +8,8 @@ import shutil
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip.exceptions import BadCommand
-from pip.utils import (display_path, backup_dir, find_command,
-                       rmtree, ask_path_exists)
+from pip.utils.misc import (display_path, backup_dir, find_command,
+                            rmtree, ask_path_exists)
 
 
 __all__ = ['vcs', 'get_src_requirement']

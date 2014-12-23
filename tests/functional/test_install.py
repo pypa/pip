@@ -7,7 +7,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
-from pip.utils import rmtree
+from pip.utils.misc import rmtree
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path

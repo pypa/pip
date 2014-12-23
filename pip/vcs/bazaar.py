@@ -11,7 +11,7 @@ try:
 except ImportError:
     import urlparse as urllib_parse
 
-from pip.utils import rmtree, display_path, call_subprocess
+from pip.utils.misc import rmtree, display_path, call_subprocess
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
 

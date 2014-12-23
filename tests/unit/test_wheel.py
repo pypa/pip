@@ -7,7 +7,7 @@ from mock import patch, Mock
 from pip._vendor import pkg_resources
 from pip import pep425tags, wheel
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip.utils import unpack_file
+from pip.utils.misc import unpack_file
 
 
 def test_get_entrypoints(tmpdir):

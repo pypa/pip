@@ -9,7 +9,7 @@ from mock import patch
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
-from pip.utils import rmtree
+from pip.utils.misc import rmtree
 
 
 def test_simple_uninstall(script):

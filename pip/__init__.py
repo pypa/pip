@@ -10,7 +10,7 @@ import sys
 import re
 
 from pip.exceptions import InstallationError, CommandError, PipError
-from pip.utils import get_installed_distributions, get_prog
+from pip.utils.misc import get_installed_distributions, get_prog
 from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter

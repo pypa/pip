@@ -9,7 +9,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.utils import normalize_path
+from pip.utils.misc import normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.wheel import WheelBuilder

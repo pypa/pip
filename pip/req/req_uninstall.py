@@ -8,8 +8,8 @@ import tempfile
 
 from pip.compat import uses_pycache, WINDOWS
 from pip.exceptions import UninstallationError
-from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
-                       normalize_path)
+from pip.utils.misc import (rmtree, ask, is_local, dist_is_local, renames,
+                            normalize_path)
 from pip.utils.logging import indent_log
 
 

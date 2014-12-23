@@ -9,7 +9,7 @@ from pip.index import PackageFinder, Link
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
-from pip.utils import Inf
+from pip.utils.misc import Inf
 from pip.download import PipSession
 from pip.req.req_requirement import InstallationCandidate
 
