@@ -65,12 +65,7 @@ On Linux or OS X:
 
  pip install -U pip
 
-
-<<<<<<< HEAD
-On Windows [5]_:
-=======
 On Windows [6]_:
->>>>>>> develop
 
 ::
 
