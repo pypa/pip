@@ -8,7 +8,6 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
-    DistributionNotFound,
 )
 from pip.download import PipSession
 from pip.index import PackageFinder
@@ -105,8 +104,7 @@ class TestInstallRequirement(object):
 
     def test_installed_version_not_installed(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
-        with pytest.raises(DistributionNotFound):
-            req.installed_version
+        assert req.installed_version is None
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
