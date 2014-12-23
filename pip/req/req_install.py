@@ -23,7 +23,6 @@ from pip.compat import native_str, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
-    DistributionNotFound,
 )
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
@@ -477,19 +476,24 @@ exec(compile(
 
     @property
     def installed_version(self):
-        if self.is_wheel:
-            try:
-                dist = pkg_resources.get_distribution(self.name)
-            except pkg_resources.DistributionNotFound as e:
-                # Replace pkg_resources exception with a pip one
-                # to avoid leaking internal details
-                raise DistributionNotFound(*e.args)
+        # Create a requirement that we'll look for inside of setuptools.
+        req = pkg_resources.Requirement.parse(self.name)
+
+        # We want to avoid having this cached, so we need to construct a new
+        # working set each time.
+        working_set = pkg_resources.WorkingSet()
+
+        # Get the installed distribution from our working set
+        dist = working_set.find(req)
+
+        # Check to see if we got an installed distribution or not, if we did
+        # we want to return it's version.
+        if dist:
             return dist.version
-        return self.pkg_info()['version']
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        version = self.installed_version
+        version = self.pkg_info()['version']
         if version not in self.req:
             logger.warning(
                 'Requested %s, but installing version %s',
@@ -679,7 +683,7 @@ exec(compile(
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True
-        archive_name = '%s-%s.zip' % (self.name, self.installed_version)
+        archive_name = '%s-%s.zip' % (self.name, self.pkg_info()["version"])
         archive_path = os.path.join(build_dir, archive_name)
         if os.path.exists(archive_path):
             response = ask_path_exists(
