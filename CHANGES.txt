@@ -2,6 +2,8 @@
 
 * Fix left over merge conflict markers in the documentation.
 
+* Document the backwards incompatible PEP 440 change in the 6.0.0 changelog.
+
 
 **6.0.1 (2014-12-22)**
 
@@ -39,6 +41,11 @@
 * **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
   was accidently lost in pip 1.5 and it has now been decided to not restore
   that ability.
+
+* **BACKWARD INCOMPATIBLE** PEP 440 is now fully implemented, this means that
+  in some cases versions will sort differently or version specifiers will be
+  interpreted differently than previously. The common cases should all function
+  similarly to before.
 
 * **DEPRECATION** ``pip install --download-cache`` and
   ``pip wheel --download-cache`` command line flags have been deprecated and
