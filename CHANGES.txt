@@ -1,4 +1,4 @@
-**6.0.3 (unreleased)**
+**6.0.3 (2014-12-23)**
 
 * Fix an issue where the implicit version check new in pip 6.0 could cause pip
   to block for up to 75 seconds if PyPI was not accessable.
