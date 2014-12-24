@@ -406,7 +406,7 @@ disable_pip_version_check = OptionMaker(
     action="store_true",
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
-         "of pip is available for download.")
+         "of pip is available for download. Implied with --no-index.")
 
 ##########
 # groups #
