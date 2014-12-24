@@ -63,13 +63,13 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
-    def _build_session(self, options):
+    def _build_session(self, options, retries=None):
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
                 if options.cache_dir else None
             ),
-            retries=options.retries,
+            retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
         )
 
@@ -202,7 +202,7 @@ class Command(object):
 
         # Check if we're using the latest version of pip available
         if not options.disable_pip_version_check:
-            with self._build_session(options) as session:
+            with self._build_session(options, retries=0) as session:
                 pip_version_check(session)
 
         try:
