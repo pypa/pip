@@ -106,6 +106,9 @@ def isolate(tmpdir):
     os.environ["GIT_AUTHOR_NAME"] = "pip"
     os.environ["GIT_AUTHOR_EMAIL"] = "pypa-dev@googlegroups.com"
 
+    # We want to disable the version check from running in the tests
+    os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
+
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(

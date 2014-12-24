@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import sys
 import optparse
 import os
+import re
 import textwrap
 from distutils.util import strtobool
 
@@ -14,6 +15,9 @@ from pip.locations import (
     site_config_files
 )
 from pip.utils import appdirs, get_terminal_size
+
+
+_environ_prefix_re = re.compile(r"^PIP_", re.I)
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -239,11 +243,11 @@ class ConfigOptionParser(CustomOptionParser):
             return self.config.items(name)
         return []
 
-    def get_environ_vars(self, prefix='PIP_'):
+    def get_environ_vars(self):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            if key.startswith(prefix):
-                yield (key.replace(prefix, '').lower(), val)
+            if _environ_prefix_re.search(key):
+                yield (_environ_prefix_re.sub("", key).lower(), val)
 
     def get_default_values(self):
         """Overridding to make updating the defaults after instantiation of
