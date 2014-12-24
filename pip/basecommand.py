@@ -63,13 +63,13 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
-    def _build_session(self, options):
+    def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
                 if options.cache_dir else None
             ),
-            retries=options.retries,
+            retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
         )
 
@@ -82,8 +82,10 @@ class Command(object):
             session.cert = options.client_cert
 
         # Handle timeouts
-        if options.timeout:
-            session.timeout = options.timeout
+        if options.timeout or timeout:
+            session.timeout = (
+                timeout if timeout is not None else options.timeout
+            )
 
         # Handle configured proxies
         if options.proxy:
@@ -201,8 +203,12 @@ class Command(object):
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         # Check if we're using the latest version of pip available
-        if not options.disable_pip_version_check:
-            with self._build_session(options) as session:
+        if (not options.disable_pip_version_check
+                and not getattr(options, "no_index", False)):
+            with self._build_session(
+                    options,
+                    retries=0,
+                    timeout=min(5, options.timeout)) as session:
                 pip_version_check(session)
 
         try:

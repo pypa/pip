@@ -1,5 +1,10 @@
 **6.0.3 (unreleased)**
 
+* Fix an issue where the implicit version check new in pip 6.0 could cause pip
+  to block for up to 75 seconds if PyPI was not accessable.
+
+* Make ``--no-index`` imply ``--disable-pip-version-check``.
+
 
 **6.0.2 (2014-12-23)**
 
