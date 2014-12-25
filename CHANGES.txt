@@ -17,7 +17,10 @@
 * Fix left over merge conflict markers in the documentation.
 
 * Document the backwards incompatible PEP 440 change in the 6.0.0 changelog.
+<<<<<<< HEAD
 >>>>>>> upstream/master
+=======
+>>>>>>> upstream/develop
 
 
 **6.0.1 (2014-12-22)**
