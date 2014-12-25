@@ -1,4 +1,23 @@
-**7.0.dev1 (unreleased)**
+**6.10.0 (unreleased)**
+
+
+**6.0.3 (2014-12-23)**
+
+* Fix an issue where the implicit version check new in pip 6.0 could cause pip
+  to block for up to 75 seconds if PyPI was not accessable.
+
+* Make ``--no-index`` imply ``--disable-pip-version-check``.
+
+
+**6.0.2 (2014-12-23)**
+
+* Fix an issue where the output saying that a package was installed would
+  report the old version instead of the new version during an upgrade.
+
+* Fix left over merge conflict markers in the documentation.
+
+* Document the backwards incompatible PEP 440 change in the 6.0.0 changelog.
+>>>>>>> upstream/master
 
 
 **6.0.1 (2014-12-22)**
@@ -37,6 +56,11 @@
 * **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
   was accidently lost in pip 1.5 and it has now been decided to not restore
   that ability.
+
+* **BACKWARD INCOMPATIBLE** PEP 440 is now fully implemented, this means that
+  in some cases versions will sort differently or version specifiers will be
+  interpreted differently than previously. The common cases should all function
+  similarly to before.
 
 * **DEPRECATION** ``pip install --download-cache`` and
   ``pip wheel --download-cache`` command line flags have been deprecated and
