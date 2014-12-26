@@ -505,7 +505,7 @@ class PackageFinder(object):
         if applicable_versions[0].location is INSTALLED_VERSION:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: ',
+                'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
                 ', '.join(str(i.version) for i in applicable_versions[1:])
