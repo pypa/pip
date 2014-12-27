@@ -1,7 +1,11 @@
+from __future__ import absolute_import
+
 import cgi
 import email.utils
 import hashlib
 import getpass
+import json
+import logging
 import mimetypes
 import os
 import platform
@@ -10,61 +14,99 @@ import shutil
 import sys
 import tempfile
 
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
+
 import pip
 
-from pip.backwardcompat import urllib, urlparse, raw_input
 from pip.exceptions import InstallationError, HashMismatch
-from pip.util import (splitext, rmtree, format_size, display_path,
-                      backup_dir, ask_path_exists, unpack_file,
-                      create_download_cache_folder, cache_download)
+from pip.models import PyPI
+from pip.utils import (splitext, rmtree, format_size, display_path,
+                       backup_dir, ask_path_exists, unpack_file)
+from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
+from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip.log import logger
 from pip._vendor import requests, six
-from pip._vendor.requests.adapters import BaseAdapter
+from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.compat import IncompleteRead
-from pip._vendor.requests.exceptions import InvalidURL, ChunkedEncodingError
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.requests.packages import urllib3
+from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.lockfile import LockError
+from pip._vendor.six.moves import xmlrpc_client
+
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url', 'unpack_http_url']
+           'unpack_file_url', 'is_vcs_url', 'is_file_url',
+           'unpack_http_url', 'unpack_url']
+
+
+logger = logging.getLogger(__name__)
 
 
 def user_agent():
-    """Return a string representing the user agent."""
-    _implementation = platform.python_implementation()
+    """
+    Return a string representing the user agent.
+    """
+    data = {
+        "installer": {"name": "pip", "version": pip.__version__},
+        "python": platform.python_version(),
+        "implementation": {
+            "name": platform.python_implementation(),
+        },
+    }
 
-    if _implementation == 'CPython':
-        _implementation_version = platform.python_version()
-    elif _implementation == 'PyPy':
-        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
-                                                sys.pypy_version_info.minor,
-                                                sys.pypy_version_info.micro)
-        if sys.pypy_version_info.releaselevel != 'final':
-            _implementation_version = ''.join([
-                _implementation_version,
-                sys.pypy_version_info.releaselevel,
-            ])
-    elif _implementation == 'Jython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    elif _implementation == 'IronPython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    else:
-        _implementation_version = 'Unknown'
+    if data["implementation"]["name"] == 'CPython':
+        data["implementation"]["version"] = platform.python_version()
+    elif data["implementation"]["name"] == 'PyPy':
+        if sys.pypy_version_info.releaselevel == 'final':
+            pypy_version_info = sys.pypy_version_info[:3]
+        else:
+            pypy_version_info = sys.pypy_version_info
+        data["implementation"]["version"] = ".".join(
+            [str(x) for x in pypy_version_info]
+        )
+    elif data["implementation"]["name"] == 'Jython':
+        # Complete Guess
+        data["implementation"]["version"] = platform.python_version()
+    elif data["implementation"]["name"] == 'IronPython':
+        # Complete Guess
+        data["implementation"]["version"] = platform.python_version()
 
-    try:
-        p_system = platform.system()
-        p_release = platform.release()
-    except IOError:
-        p_system = 'Unknown'
-        p_release = 'Unknown'
+    if sys.platform.startswith("linux"):
+        distro = dict(filter(
+            lambda x: x[1],
+            zip(["name", "version", "id"], platform.linux_distribution()),
+        ))
+        libc = dict(filter(
+            lambda x: x[1],
+            zip(["lib", "version"], platform.libc_ver()),
+        ))
+        if libc:
+            distro["libc"] = libc
+        if distro:
+            data["distro"] = distro
 
-    return " ".join(['pip/%s' % pip.__version__,
-                     '%s/%s' % (_implementation, _implementation_version),
-                     '%s/%s' % (p_system, p_release)])
+    if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
+        data["distro"] = {"name": "OS X", "version": platform.mac_ver()[0]}
+
+    if platform.system():
+        data.setdefault("system", {})["name"] = platform.system()
+
+    if platform.release():
+        data.setdefault("system", {})["release"] = platform.release()
+
+    if platform.machine():
+        data["cpu"] = platform.machine()
+
+    return "{data[installer][name]}/{data[installer][version]} {json}".format(
+        data=data,
+        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+    )
 
 
 class MultiDomainBasicAuth(AuthBase):
@@ -74,13 +116,13 @@ class MultiDomainBasicAuth(AuthBase):
         self.passwords = {}
 
     def __call__(self, req):
-        parsed = urlparse.urlparse(req.url)
+        parsed = urllib_parse.urlparse(req.url)
 
         # Get the netloc without any embedded credentials
-        netloc = parsed.netloc.split("@", 1)[-1]
+        netloc = parsed.netloc.rsplit("@", 1)[-1]
 
         # Set the url of the request to the url without any credentials
-        req.url = urlparse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
+        req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
 
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
@@ -111,10 +153,10 @@ class MultiDomainBasicAuth(AuthBase):
         if not self.prompting:
             return resp
 
-        parsed = urlparse.urlparse(resp.url)
+        parsed = urllib_parse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
-        username = raw_input("User for %s: " % parsed.netloc)
+        username = six.moves.input("User for %s: " % parsed.netloc)
         password = getpass.getpass("Password: ")
 
         # Store the new username and password to use for future requests
@@ -144,63 +186,32 @@ class MultiDomainBasicAuth(AuthBase):
         return None, None
 
 
-class LocalFSResponse(object):
-
-    def __init__(self, fileobj):
-        self.fileobj = fileobj
-
-    def __getattr__(self, name):
-        return getattr(self.fileobj, name)
-
-    def read(self, amt=None, decode_content=None, cache_content=False):
-        return self.fileobj.read(amt)
-
-    # Insert Hacks to Make Cookie Jar work w/ Requests
-    @property
-    def _original_response(self):
-        class FakeMessage(object):
-            def getheaders(self, header):
-                return []
-
-            def get_all(self, header, default):
-                return []
-
-        class FakeResponse(object):
-            @property
-            def msg(self):
-                return FakeMessage()
-
-        return FakeResponse()
-
-
 class LocalFSAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
-        parsed_url = urlparse.urlparse(request.url)
-
-        # We only work for requests with a host of localhost
-        if parsed_url.netloc.lower() != "localhost":
-            raise InvalidURL("Invalid URL %r: Only localhost is allowed" %
-                request.url)
-
-        real_url = urlparse.urlunparse(parsed_url[:1] + ("",) + parsed_url[2:])
-        pathname = url_to_path(real_url)
+        pathname = url_to_path(request.url)
 
         resp = Response()
         resp.status_code = 200
-        resp.url = real_url
+        resp.url = request.url
 
-        stats = os.stat(pathname)
-        modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
-        resp.headers = CaseInsensitiveDict({
-            "Content-Type": mimetypes.guess_type(pathname)[0] or "text/plain",
-            "Content-Length": stats.st_size,
-            "Last-Modified": modified,
-        })
+        try:
+            stats = os.stat(pathname)
+        except OSError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+        else:
+            modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
+            content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
+            resp.headers = CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": stats.st_size,
+                "Last-Modified": modified,
+            })
 
-        resp.raw = LocalFSResponse(open(pathname, "rb"))
-        resp.close = resp.raw.close
+            resp.raw = open(pathname, "rb")
+            resp.close = resp.raw.close
 
         return resp
 
@@ -208,11 +219,56 @@ class LocalFSAdapter(BaseAdapter):
         pass
 
 
+class SafeFileCache(FileCache):
+    """
+    A file based cache which is safe to use even when the target directory may
+    not be accessible or writable.
+    """
+
+    def get(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).get(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+    def set(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).set(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+    def delete(self, *args, **kwargs):
+        try:
+            return super(SafeFileCache, self).delete(*args, **kwargs)
+        except (LockError, OSError, IOError):
+            # We intentionally silence this error, if we can't access the cache
+            # then we can just skip caching and process the request as if
+            # caching wasn't enabled.
+            pass
+
+
+class InsecureHTTPAdapter(HTTPAdapter):
+
+    def cert_verify(self, conn, url, verify, cert):
+        conn.cert_reqs = 'CERT_NONE'
+        conn.ca_certs = None
+
+
 class PipSession(requests.Session):
 
     timeout = None
 
     def __init__(self, *args, **kwargs):
+        retries = kwargs.pop("retries", 0)
+        cache = kwargs.pop("cache", None)
+        insecure_hosts = kwargs.pop("insecure_hosts", [])
+
         super(PipSession, self).__init__(*args, **kwargs)
 
         # Attach our User Agent to the request
@@ -221,15 +277,54 @@ class PipSession(requests.Session):
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth()
 
+        # Create our urllib3.Retry instance which will allow us to customize
+        # how we handle retries.
+        retries = urllib3.Retry(
+            # Set the total number of retries that a particular request can
+            # have.
+            total=retries,
+
+            # A 503 error from PyPI typically means that the Fastly -> Origin
+            # connection got interupted in some way. A 503 error in general
+            # is typically considered a transient error so we'll go ahead and
+            # retry it.
+            status_forcelist=[503],
+
+            # Add a small amount of back off between failed requests in
+            # order to prevent hammering the service.
+            backoff_factor=0.25,
+        )
+
+        # We want to _only_ cache responses on securely fetched origins. We do
+        # this because we can't validate the response of an insecurely fetched
+        # origin, and we don't want someone to be able to poison the cache and
+        # require manual evication from the cache to fix it.
+        if cache:
+            secure_adapter = CacheControlAdapter(
+                cache=SafeFileCache(cache),
+                max_retries=retries,
+            )
+        else:
+            secure_adapter = HTTPAdapter(max_retries=retries)
+
+        # Our Insecure HTTPAdapter disables HTTPS validation. It does not
+        # support caching (see above) so we'll use it for all http:// URLs as
+        # well as any https:// host that we've marked as ignoring TLS errors
+        # for.
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+
+        self.mount("https://", secure_adapter)
+        self.mount("http://", insecure_adapter)
+
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-    def request(self, method, url, *args, **kwargs):
-        # Make file:// urls not fail due to lack of a hostname
-        parsed = urlparse.urlparse(url)
-        if parsed.scheme == "file":
-            url = urlparse.urlunparse(parsed[:1] + ("localhost",) + parsed[2:])
+        # We want to use a non-validating adapter for any requests which are
+        # deemed insecure.
+        for host in insecure_hosts:
+            self.mount("https://{0}/".format(host), insecure_adapter)
 
+    def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 
@@ -241,13 +336,15 @@ def get_file_content(url, comes_from=None, session=None):
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode."""
     if session is None:
-        session = PipSession()
+        raise TypeError(
+            "get_file_content() missing 1 required keyword argument: 'session'"
+        )
 
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
         if (scheme == 'file' and comes_from
-            and comes_from.startswith('http')):
+                and comes_from.startswith('http')):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
@@ -257,12 +354,12 @@ def get_file_content(url, comes_from=None, session=None):
             match = _url_slash_drive_re.match(path)
             if match:
                 path = match.group(1) + ':' + path.split('|', 1)[1]
-            path = urllib.unquote(path)
+            path = urllib_parse.unquote(path)
             if path.startswith('/'):
                 path = '/' + path.lstrip('/')
             url = path
         else:
-            ## FIXME: catch some errors
+            # FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
 
@@ -271,13 +368,12 @@ def get_file_content(url, comes_from=None, session=None):
             else:
                 return resp.url, resp.content
     try:
-        f = open(url)
-        content = f.read()
-    except IOError:
-        e = sys.exc_info()[1]
-        raise InstallationError('Could not open requirements file: %s' % str(e))
-    else:
-        f.close()
+        with open(url) as f:
+            content = f.read()
+    except IOError as exc:
+        raise InstallationError(
+            'Could not open requirements file: %s' % str(exc)
+        )
     return url, content
 
 
@@ -299,17 +395,15 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urllib.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    else:
-        path = '/' + path
+
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+
+    # if we have a UNC path, prepend UNC share notation
+    if netloc:
+        netloc = '\\\\' + netloc
+
+    path = urllib_request.url2pathname(netloc + path)
     return path
-
-
-_drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 def path_to_url(path):
@@ -318,18 +412,15 @@ def path_to_url(path):
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    drive, path = os.path.splitdrive(path)
-    filepath = path.split(os.path.sep)
-    url = '/'.join([urllib.quote(part) for part in filepath])
-    if not drive:
-        url = url.lstrip('/')
-    return 'file:///' + drive + url
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = ('.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.pybundle',
-               '.whl')
+    archives = (
+        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.whl'
+    )
     ext = splitext(name)[1].lower()
     if ext in archives:
         return True
@@ -342,18 +433,6 @@ def unpack_vcs_link(link, location, only_download=False):
         vcs_backend.export(location)
     else:
         vcs_backend.unpack(location)
-
-
-def unpack_file_url(link, location):
-    source = url_to_path(link.url)
-    content_type = mimetypes.guess_type(source)[0]
-    if os.path.isdir(source):
-        # delete the location since shutil will create it again :(
-        if os.path.isdir(location):
-            rmtree(location)
-        shutil.copytree(source, location, symlinks=True)
-    else:
-        unpack_file(source, location, content_type, link)
 
 
 def _get_used_vcs_backend(link):
@@ -373,67 +452,98 @@ def is_file_url(link):
 
 def _check_hash(download_hash, link):
     if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
-        logger.fatal("Hash digest size of the package %d (%s) doesn't match the expected hash name %s!"
-                    % (download_hash.digest_size, link, link.hash_name))
+        logger.critical(
+            "Hash digest size of the package %d (%s) doesn't match the "
+            "expected hash name %s!",
+            download_hash.digest_size, link, link.hash_name,
+        )
         raise HashMismatch('Hash name mismatch for package %s' % link)
     if download_hash.hexdigest() != link.hash:
-        logger.fatal("Hash of the package %s (%s) doesn't match the expected hash %s!"
-                     % (link, download_hash.hexdigest(), link.hash))
-        raise HashMismatch('Bad %s hash for package %s' % (link.hash_name, link))
+        logger.critical(
+            "Hash of the package %s (%s) doesn't match the expected hash %s!",
+            link, download_hash.hexdigest(), link.hash,
+        )
+        raise HashMismatch(
+            'Bad %s hash for package %s' % (link.hash_name, link)
+        )
 
 
 def _get_hash_from_file(target_file, link):
     try:
         download_hash = hashlib.new(link.hash_name)
     except (ValueError, TypeError):
-        logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+        logger.warning(
+            "Unsupported hash name %s for package %s", link.hash_name, link,
+        )
         return None
 
-    fp = open(target_file, 'rb')
-    while True:
-        chunk = fp.read(4096)
-        if not chunk:
-            break
-        download_hash.update(chunk)
-    fp.close()
+    with open(target_file, 'rb') as fp:
+        while True:
+            chunk = fp.read(4096)
+            if not chunk:
+                break
+            download_hash.update(chunk)
     return download_hash
 
 
-def _download_url(resp, link, temp_location):
-    fp = open(temp_location, 'wb')
+def _download_url(resp, link, content_file):
     download_hash = None
     if link.hash and link.hash_name:
         try:
             download_hash = hashlib.new(link.hash_name)
         except ValueError:
-            logger.warn("Unsupported hash name %s for package %s" % (link.hash_name, link))
+            logger.warning(
+                "Unsupported hash name %s for package %s",
+                link.hash_name, link,
+            )
+
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
         total_length = 0
-    downloaded = 0
-    show_progress = total_length > 40 * 1000 or not total_length
+
+    cached_resp = getattr(resp, "from_cache", False)
+
+    if cached_resp:
+        show_progress = False
+    elif total_length > (40 * 1000):
+        show_progress = True
+    elif not total_length:
+        show_progress = True
+    else:
+        show_progress = False
+
     show_url = link.show_url
     try:
-        if show_progress:
-            ## FIXME: the URL can get really long in this message:
-            if total_length:
-                logger.start_progress('Downloading %s (%s): ' % (show_url, format_size(total_length)))
-            else:
-                logger.start_progress('Downloading %s (unknown size): ' % show_url)
-        else:
-            logger.notify('Downloading %s' % show_url)
-        logger.info('Downloading from URL %s' % link)
-
         def resp_read(chunk_size):
             try:
                 # Special case for urllib3.
-                try:
-                    for chunk in resp.raw.stream(
-                            chunk_size, decode_content=False):
-                        yield chunk
-                except IncompleteRead as e:
-                    raise ChunkedEncodingError(e)
+                for chunk in resp.raw.stream(
+                        chunk_size,
+                        # We use decode_content=False here because we do
+                        # want urllib3 to mess with the raw bytes we get
+                        # from the server. If we decompress inside of
+                        # urllib3 then we cannot verify the checksum
+                        # because the checksum will be of the compressed
+                        # file. This breakage will only occur if the
+                        # server adds a Content-Encoding header, which
+                        # depends on how the server was configured:
+                        # - Some servers will notice that the file isn't a
+                        #   compressible file and will leave the file alone
+                        #   and with an empty Content-Encoding
+                        # - Some servers will notice that the file is
+                        #   already compressed and will leave the file
+                        #   alone and will add a Content-Encoding: gzip
+                        #   header
+                        # - Some servers won't notice anything at all and
+                        #   will take a file that's already been compressed
+                        #   and compress it again and set the
+                        #   Content-Encoding: gzip header
+                        #
+                        # By setting this not to decode automatically we
+                        # hope to eliminate problems with the second case.
+                        decode_content=False):
+                    yield chunk
             except AttributeError:
                 # Standard file-like object.
                 while True:
@@ -442,20 +552,38 @@ def _download_url(resp, link, temp_location):
                         break
                     yield chunk
 
-        for chunk in resp_read(4096):
-            downloaded += len(chunk)
-            if show_progress:
-                if not total_length:
-                    logger.show_progress('%s' % format_size(downloaded))
-                else:
-                    logger.show_progress('%3i%%  %s' % (100 * downloaded / total_length, format_size(downloaded)))
+        progress_indicator = lambda x, *a, **k: x
+
+        if link.netloc == PyPI.netloc:
+            url = show_url
+        else:
+            url = link.url_without_fragment
+
+        if show_progress:  # We don't show progress on cached responses
+            if total_length:
+                logger.info(
+                    "Downloading %s (%s)", url, format_size(total_length),
+                )
+                progress_indicator = DownloadProgressBar(
+                    max=total_length,
+                ).iter
+            else:
+                logger.info("Downloading %s", url)
+                progress_indicator = DownloadProgressSpinner().iter
+        elif cached_resp:
+            logger.info("Using cached %s", url)
+        else:
+            logger.info("Downloading %s", url)
+
+        logger.debug('Downloading from URL %s', link)
+
+        for chunk in progress_indicator(resp_read(4096), 4096):
             if download_hash is not None:
                 download_hash.update(chunk)
-            fp.write(chunk)
-        fp.close()
+            content_file.write(chunk)
     finally:
-        if show_progress:
-            logger.end_progress('%s downloaded' % format_size(downloaded))
+        if link.hash and link.hash_name:
+            _check_hash(download_hash, link)
     return download_hash
 
 
@@ -469,124 +597,238 @@ def _copy_file(filename, location, content_type, link):
         if response == 'i':
             copy = False
         elif response == 'w':
-            logger.warn('Deleting %s' % display_path(download_location))
+            logger.warning('Deleting %s', display_path(download_location))
             os.remove(download_location)
         elif response == 'b':
             dest_file = backup_dir(download_location)
-            logger.warn('Backing up %s to %s'
-                        % (display_path(download_location), display_path(dest_file)))
+            logger.warning(
+                'Backing up %s to %s',
+                display_path(download_location),
+                display_path(dest_file),
+            )
             shutil.move(download_location, dest_file)
     if copy:
         shutil.copy(filename, download_location)
-        logger.indent -= 2
-        logger.notify('Saved %s' % display_path(download_location))
+        logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link, location, download_cache, download_dir=None,
-                    session=None):
+def unpack_http_url(link, location, download_dir=None, session=None):
     if session is None:
-        session = PipSession()
+        raise TypeError(
+            "unpack_http_url() missing 1 required keyword argument: 'session'"
+        )
 
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
-    temp_location = None
-    target_url = link.url.split('#', 1)[0]
 
-    already_cached = False
-    cache_file = None
-    cache_content_type_file = None
-    download_hash = None
-    if download_cache:
-        cache_file = os.path.join(download_cache,
-                                   urllib.quote(target_url, ''))
-        cache_content_type_file = cache_file + '.content-type'
-        already_cached = (
-            os.path.exists(cache_file) and
-            os.path.exists(cache_content_type_file)
-            )
-        if not os.path.isdir(download_cache):
-            create_download_cache_folder(download_cache)
-
-    already_downloaded = None
+    # If a download dir is specified, is the file already downloaded there?
+    already_downloaded_path = None
     if download_dir:
-        already_downloaded = os.path.join(download_dir, link.filename)
-        if not os.path.exists(already_downloaded):
-            already_downloaded = None
+        already_downloaded_path = _check_download_dir(link, download_dir)
 
-    if already_downloaded:
-        temp_location = already_downloaded
-        content_type = mimetypes.guess_type(already_downloaded)[0]
-        logger.notify('File was already downloaded %s' % already_downloaded)
-        if link.hash:
-            download_hash = _get_hash_from_file(temp_location, link)
-            try:
-                _check_hash(download_hash, link)
-            except HashMismatch:
-                logger.warn(
-                    'Previously-downloaded file %s has bad hash, '
-                    're-downloading.' % temp_location
-                    )
-                temp_location = None
-                os.unlink(already_downloaded)
-                already_downloaded = None
+    if already_downloaded_path:
+        from_path = already_downloaded_path
+        content_type = mimetypes.guess_type(from_path)[0]
+    else:
+        # let's download to a tmp dir
+        from_path, content_type = _download_http_url(link, session, temp_dir)
 
-    # We have a cached file, and we haven't already found a good downloaded copy
-    if already_cached and not temp_location:
-        with open(cache_content_type_file) as fp:
-            content_type = fp.read().strip()
-        temp_location = cache_file
-        logger.notify('Using download cache from %s' % cache_file)
-        if link.hash and link.hash_name:
-            download_hash = _get_hash_from_file(cache_file, link)
-            try:
-                _check_hash(download_hash, link)
-            except HashMismatch:
-                logger.warn(
-                    'Cached file %s has bad hash, '
-                    're-downloading.' % temp_location
-                    )
-                temp_location = None
-                os.unlink(cache_file)
-                os.unlink(cache_content_type_file)
-                already_cached = False
+    # unpack the archive to the build dir location. even when only downloading
+    # archives, they have to be unpacked to parse dependencies
+    unpack_file(from_path, location, content_type, link)
 
-    # We don't have either a cached or a downloaded copy
-    if not temp_location:
+    # a download dir is specified; let's copy the archive there
+    if download_dir and not already_downloaded_path:
+        _copy_file(from_path, download_dir, content_type, link)
+
+    if not already_downloaded_path:
+        os.unlink(from_path)
+    os.rmdir(temp_dir)
+
+
+def unpack_file_url(link, location, download_dir=None):
+    """Unpack link into location.
+    If download_dir is provided and link points to a file, make a copy
+    of the link file inside download_dir."""
+
+    link_path = url_to_path(link.url_without_fragment)
+
+    # If it's a url to a local directory
+    if os.path.isdir(link_path):
+        if os.path.isdir(location):
+            rmtree(location)
+        shutil.copytree(link_path, location, symlinks=True)
+        if download_dir:
+            logger.info('Link is a directory, ignoring download_dir')
+        return
+
+    # if link has a hash, let's confirm it matches
+    if link.hash:
+        link_path_hash = _get_hash_from_file(link_path, link)
+        _check_hash(link_path_hash, link)
+
+    # If a download dir is specified, is the file already there and valid?
+    already_downloaded_path = None
+    if download_dir:
+        already_downloaded_path = _check_download_dir(link, download_dir)
+
+    if already_downloaded_path:
+        from_path = already_downloaded_path
+    else:
+        from_path = link_path
+
+    content_type = mimetypes.guess_type(from_path)[0]
+
+    # unpack the archive to the build dir location. even when only downloading
+    # archives, they have to be unpacked to parse dependencies
+    unpack_file(from_path, location, content_type, link)
+
+    # a download dir is specified and not already downloaded
+    if download_dir and not already_downloaded_path:
+        _copy_file(from_path, download_dir, content_type, link)
+
+
+class PipXmlrpcTransport(xmlrpc_client.Transport):
+    """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
+    object.
+    """
+    def __init__(self, index_url, session, use_datetime=False):
+        xmlrpc_client.Transport.__init__(self, use_datetime)
+        index_parts = urllib_parse.urlparse(index_url)
+        self._scheme = index_parts.scheme
+        self._session = session
+
+    def request(self, host, handler, request_body, verbose=False):
+        parts = (self._scheme, host, handler, None, None, None)
+        url = urllib_parse.urlunparse(parts)
         try:
-            resp = session.get(target_url, stream=True)
-            resp.raise_for_status()
+            headers = {'Content-Type': 'text/xml'}
+            response = self._session.post(url, data=request_body,
+                                          headers=headers, stream=True)
+            response.raise_for_status()
+            self.verbose = verbose
+            return self.parse_response(response.raw)
         except requests.HTTPError as exc:
-            logger.fatal("HTTP error %s while getting %s" %
-                         (exc.response.status_code, link))
+            logger.critical(
+                "HTTP error %s while getting %s",
+                exc.response.status_code, url,
+            )
             raise
 
-        content_type = resp.headers.get('content-type', '')
-        filename = link.filename  # fallback
-        # Have a look at the Content-Disposition header for a better guess
-        content_disposition = resp.headers.get('content-disposition')
-        if content_disposition:
-            type, params = cgi.parse_header(content_disposition)
-            # We use ``or`` here because we don't want to use an "empty" value
-            # from the filename param.
-            filename = params.get('filename') or filename
-        ext = splitext(filename)[1]
-        if not ext:
-            ext = mimetypes.guess_extension(content_type)
-            if ext:
-                filename += ext
-        if not ext and link.url != resp.url:
-            ext = os.path.splitext(resp.url)[1]
-            if ext:
-                filename += ext
-        temp_location = os.path.join(temp_dir, filename)
-        download_hash = _download_url(resp, link, temp_location)
-        if link.hash and link.hash_name:
-            _check_hash(download_hash, link)
 
-    if download_dir and not already_downloaded:
-        _copy_file(temp_location, download_dir, content_type, link)
-    unpack_file(temp_location, location, content_type, link)
-    if cache_file and not already_cached:
-        cache_download(cache_file, temp_location, content_type)
-    if not (already_cached or already_downloaded):
-        os.unlink(temp_location)
-    os.rmdir(temp_dir)
+def unpack_url(link, location, download_dir=None,
+               only_download=False, session=None):
+    """Unpack link.
+       If link is a VCS link:
+         if only_download, export into download_dir and ignore location
+          else unpack into location
+       for other types of link:
+         - unpack into location
+         - if download_dir, copy the file into download_dir
+         - if only_download, mark location for deletion
+    """
+    # non-editable vcs urls
+    if is_vcs_url(link):
+        unpack_vcs_link(link, location, only_download)
+
+    # file urls
+    elif is_file_url(link):
+        unpack_file_url(link, location, download_dir)
+        if only_download:
+            write_delete_marker_file(location)
+
+    # http urls
+    else:
+        if session is None:
+            session = PipSession()
+
+        unpack_http_url(
+            link,
+            location,
+            download_dir,
+            session,
+        )
+        if only_download:
+            write_delete_marker_file(location)
+
+
+def _download_http_url(link, session, temp_dir):
+    """Download link url into temp_dir using provided session"""
+    target_url = link.url.split('#', 1)[0]
+    try:
+        resp = session.get(
+            target_url,
+            # We use Accept-Encoding: identity here because requests
+            # defaults to accepting compressed responses. This breaks in
+            # a variety of ways depending on how the server is configured.
+            # - Some servers will notice that the file isn't a compressible
+            #   file and will leave the file alone and with an empty
+            #   Content-Encoding
+            # - Some servers will notice that the file is already
+            #   compressed and will leave the file alone and will add a
+            #   Content-Encoding: gzip header
+            # - Some servers won't notice anything at all and will take
+            #   a file that's already been compressed and compress it again
+            #   and set the Content-Encoding: gzip header
+            # By setting this to request only the identity encoding We're
+            # hoping to eliminate the third case. Hopefully there does not
+            # exist a server which when given a file will notice it is
+            # already compressed and that you're not asking for a
+            # compressed file and will then decompress it before sending
+            # because if that's the case I don't think it'll ever be
+            # possible to make this work.
+            headers={"Accept-Encoding": "identity"},
+            stream=True,
+        )
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        logger.critical(
+            "HTTP error %s while getting %s", exc.response.status_code, link,
+        )
+        raise
+
+    content_type = resp.headers.get('content-type', '')
+    filename = link.filename  # fallback
+    # Have a look at the Content-Disposition header for a better guess
+    content_disposition = resp.headers.get('content-disposition')
+    if content_disposition:
+        type, params = cgi.parse_header(content_disposition)
+        # We use ``or`` here because we don't want to use an "empty" value
+        # from the filename param.
+        filename = params.get('filename') or filename
+    ext = splitext(filename)[1]
+    if not ext:
+        ext = mimetypes.guess_extension(content_type)
+        if ext:
+            filename += ext
+    if not ext and link.url != resp.url:
+        ext = os.path.splitext(resp.url)[1]
+        if ext:
+            filename += ext
+    file_path = os.path.join(temp_dir, filename)
+    with open(file_path, 'wb') as content_file:
+        _download_url(resp, link, content_file)
+    return file_path, content_type
+
+
+def _check_download_dir(link, download_dir):
+    """ Check download_dir for previously downloaded file with correct hash
+        If a correct file is found return its path else None
+    """
+    download_path = os.path.join(download_dir, link.filename)
+    if os.path.exists(download_path):
+        # If already downloaded, does its hash match?
+        logger.info('File was already downloaded %s', download_path)
+        if link.hash:
+            download_hash = _get_hash_from_file(download_path, link)
+            try:
+                _check_hash(download_hash, link)
+            except HashMismatch:
+                logger.warning(
+                    'Previously-downloaded file %s has bad hash, '
+                    're-downloading.',
+                    download_path
+                )
+                os.unlink(download_path)
+                return None
+        return download_path
+    return None

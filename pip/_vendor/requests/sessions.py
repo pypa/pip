@@ -12,27 +12,31 @@ import os
 from collections import Mapping
 from datetime import datetime
 
-from .compat import cookielib, OrderedDict, urljoin, urlparse, builtin_str
+from .auth import _basic_auth_str
+from .compat import cookielib, OrderedDict, urljoin, urlparse
 from .cookies import (
     cookiejar_from_dict, extract_cookies_to_jar, RequestsCookieJar, merge_cookies)
-from .models import Request, PreparedRequest
+from .models import Request, PreparedRequest, DEFAULT_REDIRECT_LIMIT
 from .hooks import default_hooks, dispatch_hook
-from .utils import to_key_val_list, default_headers
-from .exceptions import TooManyRedirects, InvalidSchema
+from .utils import to_key_val_list, default_headers, to_native_string
+from .exceptions import (
+    TooManyRedirects, InvalidSchema, ChunkedEncodingError, ContentDecodingError)
+from .packages.urllib3._collections import RecentlyUsedContainer
 from .structures import CaseInsensitiveDict
 
 from .adapters import HTTPAdapter
 
-from .utils import requote_uri, get_environ_proxies, get_netrc_auth
+from .utils import (
+    requote_uri, get_environ_proxies, get_netrc_auth, should_bypass_proxies,
+    get_auth_from_url
+)
 
 from .status_codes import codes
-REDIRECT_STATI = (
-    codes.moved, # 301
-    codes.found, # 302
-    codes.other, # 303
-    codes.temporary_moved, # 307
-)
-DEFAULT_REDIRECT_LIMIT = 30
+
+# formerly defined here, reexposed here for backward compatibility
+from .models import REDIRECT_STATI
+
+REDIRECT_CACHE_SIZE = 1000
 
 
 def merge_setting(request_setting, session_setting, dict_class=OrderedDict):
@@ -63,6 +67,8 @@ def merge_setting(request_setting, session_setting, dict_class=OrderedDict):
         if v is None:
             del merged_setting[k]
 
+    merged_setting = dict((k, v) for (k, v) in merged_setting.items() if v is not None)
+
     return merged_setting
 
 
@@ -88,12 +94,21 @@ class SessionRedirectMixin(object):
         """Receives a Response. Returns a generator of Responses."""
 
         i = 0
+        hist = [] # keep track of history
 
-        # ((resp.status_code is codes.see_other))
-        while ('location' in resp.headers and resp.status_code in REDIRECT_STATI):
+        while resp.is_redirect:
             prepared_request = req.copy()
 
-            resp.content  # Consume socket so it can be released
+            if i > 0:
+                # Update history and keep track of redirects.
+                hist.append(resp)
+                new_hist = list(hist)
+                resp.history = new_hist
+
+            try:
+                resp.content  # Consume socket so it can be released
+            except (ChunkedEncodingError, ContentDecodingError, RuntimeError):
+                resp.raw.read(decode_content=False)
 
             if i >= self.max_redirects:
                 raise TooManyRedirects('Exceeded %s redirects.' % self.max_redirects)
@@ -113,17 +128,20 @@ class SessionRedirectMixin(object):
             parsed = urlparse(url)
             url = parsed.geturl()
 
-            # Facilitate non-RFC2616-compliant 'location' headers
+            # Facilitate relative 'location' headers, as allowed by RFC 7231.
             # (e.g. '/path/to/resource' instead of 'http://domain.tld/path/to/resource')
             # Compliant with RFC3986, we percent encode the url.
-            if not urlparse(url).netloc:
+            if not parsed.netloc:
                 url = urljoin(resp.url, requote_uri(url))
             else:
                 url = requote_uri(url)
 
-            prepared_request.url = url
+            prepared_request.url = to_native_string(url)
+            # Cache the url, unless it redirects to itself.
+            if resp.is_permanent_redirect and req.url != prepared_request.url:
+                self.redirect_cache[req.url] = prepared_request.url
 
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.4
+            # http://tools.ietf.org/html/rfc7231#section-6.4.4
             if (resp.status_code == codes.see_other and
                     method != 'HEAD'):
                 method = 'GET'
@@ -141,7 +159,7 @@ class SessionRedirectMixin(object):
             prepared_request.method = method
 
             # https://github.com/kennethreitz/requests/issues/1084
-            if resp.status_code not in (codes.temporary, codes.resume):
+            if resp.status_code not in (codes.temporary_redirect, codes.permanent_redirect):
                 if 'Content-Length' in prepared_request.headers:
                     del prepared_request.headers['Content-Length']
 
@@ -153,13 +171,19 @@ class SessionRedirectMixin(object):
             except KeyError:
                 pass
 
-            extract_cookies_to_jar(prepared_request._cookies,
-                                   prepared_request, resp.raw)
+            extract_cookies_to_jar(prepared_request._cookies, prepared_request, resp.raw)
             prepared_request._cookies.update(self.cookies)
             prepared_request.prepare_cookies(prepared_request._cookies)
 
+            # Rebuild auth and proxy information.
+            proxies = self.rebuild_proxies(prepared_request, proxies)
+            self.rebuild_auth(prepared_request, resp)
+
+            # Override the original request.
+            req = prepared_request
+
             resp = self.send(
-                prepared_request,
+                req,
                 stream=stream,
                 timeout=timeout,
                 verify=verify,
@@ -172,6 +196,68 @@ class SessionRedirectMixin(object):
 
             i += 1
             yield resp
+
+    def rebuild_auth(self, prepared_request, response):
+        """
+        When being redirected we may want to strip authentication from the
+        request to avoid leaking credentials. This method intelligently removes
+        and reapplies authentication where possible to avoid credential loss.
+        """
+        headers = prepared_request.headers
+        url = prepared_request.url
+
+        if 'Authorization' in headers:
+            # If we get redirected to a new host, we should strip out any
+            # authentication headers.
+            original_parsed = urlparse(response.request.url)
+            redirect_parsed = urlparse(url)
+
+            if (original_parsed.hostname != redirect_parsed.hostname):
+                del headers['Authorization']
+
+        # .netrc might have more auth for us on our new host.
+        new_auth = get_netrc_auth(url) if self.trust_env else None
+        if new_auth is not None:
+            prepared_request.prepare_auth(new_auth)
+
+        return
+
+    def rebuild_proxies(self, prepared_request, proxies):
+        """
+        This method re-evaluates the proxy configuration by considering the
+        environment variables. If we are redirected to a URL covered by
+        NO_PROXY, we strip the proxy configuration. Otherwise, we set missing
+        proxy keys for this URL (in case they were stripped by a previous
+        redirect).
+
+        This method also replaces the Proxy-Authorization header where
+        necessary.
+        """
+        headers = prepared_request.headers
+        url = prepared_request.url
+        scheme = urlparse(url).scheme
+        new_proxies = proxies.copy() if proxies is not None else {}
+
+        if self.trust_env and not should_bypass_proxies(url):
+            environ_proxies = get_environ_proxies(url)
+
+            proxy = environ_proxies.get(scheme)
+
+            if proxy:
+                new_proxies.setdefault(scheme, environ_proxies[scheme])
+
+        if 'Proxy-Authorization' in headers:
+            del headers['Proxy-Authorization']
+
+        try:
+            username, password = get_auth_from_url(new_proxies[scheme])
+        except KeyError:
+            username, password = None, None
+
+        if username and password:
+            headers['Proxy-Authorization'] = _basic_auth_str(username, password)
+
+        return new_proxies
 
 
 class Session(SessionRedirectMixin):
@@ -188,9 +274,10 @@ class Session(SessionRedirectMixin):
     """
 
     __attrs__ = [
-        'headers', 'cookies', 'auth', 'timeout', 'proxies', 'hooks',
-        'params', 'verify', 'cert', 'prefetch', 'adapters', 'stream',
-        'trust_env', 'max_redirects']
+        'headers', 'cookies', 'auth', 'proxies', 'hooks', 'params', 'verify',
+        'cert', 'prefetch', 'adapters', 'stream', 'trust_env',
+        'max_redirects',
+    ]
 
     def __init__(self):
 
@@ -243,6 +330,9 @@ class Session(SessionRedirectMixin):
         self.mount('https://', HTTPAdapter())
         self.mount('http://', HTTPAdapter())
 
+        # Only store 1000 redirects to prevent using infinite memory
+        self.redirect_cache = RecentlyUsedContainer(REDIRECT_CACHE_SIZE)
+
     def __enter__(self):
         return self
 
@@ -280,6 +370,7 @@ class Session(SessionRedirectMixin):
             url=request.url,
             files=request.files,
             data=request.data,
+            json=request.json,
             headers=merge_setting(request.headers, self.headers, dict_class=CaseInsensitiveDict),
             params=merge_setting(request.params, self.params),
             auth=merge_setting(auth, self.auth),
@@ -301,7 +392,8 @@ class Session(SessionRedirectMixin):
         hooks=None,
         stream=None,
         verify=None,
-        cert=None):
+        cert=None,
+        json=None):
         """Constructs a :class:`Request <Request>`, prepares it and sends it.
         Returns :class:`Response <Response>` object.
 
@@ -311,17 +403,22 @@ class Session(SessionRedirectMixin):
             string for the :class:`Request`.
         :param data: (optional) Dictionary or bytes to send in the body of the
             :class:`Request`.
+        :param json: (optional) json to send in the body of the
+            :class:`Request`.
         :param headers: (optional) Dictionary of HTTP Headers to send with the
             :class:`Request`.
         :param cookies: (optional) Dict or CookieJar object to send with the
             :class:`Request`.
-        :param files: (optional) Dictionary of 'filename': file-like-objects
+        :param files: (optional) Dictionary of ``'filename': file-like-objects``
             for multipart encoding upload.
         :param auth: (optional) Auth tuple or callable to enable
             Basic/Digest/Custom HTTP Auth.
-        :param timeout: (optional) Float describing the timeout of the
-            request.
-        :param allow_redirects: (optional) Boolean. Set to True by default.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a (`connect timeout, read
+            timeout <user/advanced.html#timeouts>`_) tuple.
+        :type timeout: float or tuple
+        :param allow_redirects: (optional) Set to True by default.
+        :type allow_redirects: bool
         :param proxies: (optional) Dictionary mapping protocol to the URL of
             the proxy.
         :param stream: (optional) whether to immediately download the response
@@ -332,7 +429,7 @@ class Session(SessionRedirectMixin):
             If Tuple, ('cert', 'key') pair.
         """
 
-        method = builtin_str(method)
+        method = to_native_string(method)
 
         # Create the Request.
         req = Request(
@@ -341,6 +438,7 @@ class Session(SessionRedirectMixin):
             headers = headers,
             files = files,
             data = data or {},
+            json = json,
             params = params or {},
             auth = auth,
             cookies = cookies,
@@ -350,36 +448,16 @@ class Session(SessionRedirectMixin):
 
         proxies = proxies or {}
 
-        # Gather clues from the surrounding environment.
-        if self.trust_env:
-            # Set environment's proxies.
-            env_proxies = get_environ_proxies(url) or {}
-            for (k, v) in env_proxies.items():
-                proxies.setdefault(k, v)
-
-            # Look for configuration.
-            if not verify and verify is not False:
-                verify = os.environ.get('REQUESTS_CA_BUNDLE')
-
-            # Curl compatibility.
-            if not verify and verify is not False:
-                verify = os.environ.get('CURL_CA_BUNDLE')
-
-        # Merge all the kwargs.
-        proxies = merge_setting(proxies, self.proxies)
-        stream = merge_setting(stream, self.stream)
-        verify = merge_setting(verify, self.verify)
-        cert = merge_setting(cert, self.cert)
+        settings = self.merge_environment_settings(
+            prep.url, proxies, stream, verify, cert
+        )
 
         # Send the request.
         send_kwargs = {
-            'stream': stream,
             'timeout': timeout,
-            'verify': verify,
-            'cert': cert,
-            'proxies': proxies,
             'allow_redirects': allow_redirects,
         }
+        send_kwargs.update(settings)
         resp = self.send(prep, **send_kwargs)
 
         return resp
@@ -414,15 +492,16 @@ class Session(SessionRedirectMixin):
         kwargs.setdefault('allow_redirects', False)
         return self.request('HEAD', url, **kwargs)
 
-    def post(self, url, data=None, **kwargs):
+    def post(self, url, data=None, json=None, **kwargs):
         """Sends a POST request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
+        :param json: (optional) json to send in the body of the :class:`Request`.
         :param \*\*kwargs: Optional arguments that ``request`` takes.
         """
 
-        return self.request('POST', url, data=data, **kwargs)
+        return self.request('POST', url, data=data, json=json, **kwargs)
 
     def put(self, url, data=None, **kwargs):
         """Sends a PUT request. Returns :class:`Response` object.
@@ -467,8 +546,15 @@ class Session(SessionRedirectMixin):
         if not isinstance(request, PreparedRequest):
             raise ValueError('You can only send PreparedRequests.')
 
-        # Set up variables needed for resolve_redirects and dispatching of
-        # hooks
+        checked_urls = set()
+        while request.url in self.redirect_cache:
+            checked_urls.add(request.url)
+            new_url = self.redirect_cache.get(request.url)
+            if new_url in checked_urls:
+                break
+            request.url = new_url
+
+        # Set up variables needed for resolve_redirects and dispatching of hooks
         allow_redirects = kwargs.pop('allow_redirects', True)
         stream = kwargs.get('stream')
         timeout = kwargs.get('timeout')
@@ -482,8 +568,10 @@ class Session(SessionRedirectMixin):
 
         # Start time (approximately) of the request
         start = datetime.utcnow()
+
         # Send the request
         r = adapter.send(request, **kwargs)
+
         # Total elapsed time of the request (approximately)
         r.elapsed = datetime.utcnow() - start
 
@@ -492,15 +580,20 @@ class Session(SessionRedirectMixin):
 
         # Persist cookies
         if r.history:
+
             # If the hooks create history then we want those cookies too
             for resp in r.history:
                 extract_cookies_to_jar(self.cookies, resp.request, resp.raw)
+
         extract_cookies_to_jar(self.cookies, request, r.raw)
 
         # Redirect resolving generator.
-        gen = self.resolve_redirects(r, request, stream=stream,
-                                     timeout=timeout, verify=verify, cert=cert,
-                                     proxies=proxies)
+        gen = self.resolve_redirects(r, request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies)
 
         # Resolve redirects if allowed.
         history = [resp for resp in gen] if allow_redirects else []
@@ -511,9 +604,36 @@ class Session(SessionRedirectMixin):
             history.insert(0, r)
             # Get the last request made
             r = history.pop()
-            r.history = tuple(history)
+            r.history = history
+
+        if not stream:
+            r.content
 
         return r
+
+    def merge_environment_settings(self, url, proxies, stream, verify, cert):
+        """Check the environment and merge it with some settings."""
+        # Gather clues from the surrounding environment.
+        if self.trust_env:
+            # Set environment's proxies.
+            env_proxies = get_environ_proxies(url) or {}
+            for (k, v) in env_proxies.items():
+                proxies.setdefault(k, v)
+
+            # Look for requests environment configuration and be compatible
+            # with cURL.
+            if verify is True or verify is None:
+                verify = (os.environ.get('REQUESTS_CA_BUNDLE') or
+                          os.environ.get('CURL_CA_BUNDLE'))
+
+        # Merge all the kwargs.
+        proxies = merge_setting(proxies, self.proxies)
+        stream = merge_setting(stream, self.stream)
+        verify = merge_setting(verify, self.verify)
+        cert = merge_setting(cert, self.cert)
+
+        return {'verify': verify, 'proxies': proxies, 'stream': stream,
+                'cert': cert}
 
     def get_adapter(self, url):
         """Returns the appropriate connnection adapter for the given URL."""
@@ -534,17 +654,26 @@ class Session(SessionRedirectMixin):
         """Registers a connection adapter to a prefix.
 
         Adapters are sorted in descending order by key length."""
+
         self.adapters[prefix] = adapter
         keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]
+
         for key in keys_to_move:
             self.adapters[key] = self.adapters.pop(key)
 
     def __getstate__(self):
-        return dict((attr, getattr(self, attr, None)) for attr in self.__attrs__)
+        state = dict((attr, getattr(self, attr, None)) for attr in self.__attrs__)
+        state['redirect_cache'] = dict(self.redirect_cache)
+        return state
 
     def __setstate__(self, state):
+        redirect_cache = state.pop('redirect_cache', {})
         for attr, value in state.items():
             setattr(self, attr, value)
+
+        self.redirect_cache = RecentlyUsedContainer(REDIRECT_CACHE_SIZE)
+        for redirect, to in redirect_cache.items():
+            self.redirect_cache[redirect] = to
 
 
 def session():

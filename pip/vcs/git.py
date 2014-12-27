@@ -1,23 +1,31 @@
+from __future__ import absolute_import
+
+import logging
 import tempfile
-import re
 import os.path
-from pip.util import call_subprocess
-from pip.util import display_path, rmtree
+
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
+
+from pip.utils import call_subprocess
+from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
-from pip.log import logger
-from pip.backwardcompat import url2pathname, urlparse
-urlsplit = urlparse.urlsplit
-urlunsplit = urlparse.urlunsplit
+
+
+urlsplit = urllib_parse.urlsplit
+urlunsplit = urllib_parse.urlunsplit
+
+
+logger = logging.getLogger(__name__)
 
 
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
     repo_name = 'clone'
-    schemes = ('git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file')
-    bundle_file = 'git-clone.txt'
-    guide = ('# This was a Git repo; to make it a repo again run:\n'
-        'git init\ngit remote add origin %(url)s -f\ngit checkout %(rev)s\n')
+    schemes = (
+        'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
+    )
 
     def __init__(self, url=None, *args, **kwargs):
 
@@ -27,27 +35,18 @@ class Git(VersionControl):
             scheme, netloc, path, query, fragment = urlsplit(url)
             if scheme.endswith('file'):
                 initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = initial_slashes + url2pathname(path).replace('\\', '/').lstrip('/')
+                newpath = (
+                    initial_slashes +
+                    urllib_request.url2pathname(path)
+                    .replace('\\', '/').lstrip('/')
+                )
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
                 after_plus = scheme.find('+') + 1
-                url = scheme[:after_plus] + urlunsplit((scheme[after_plus:], netloc, newpath, query, fragment))
+                url = scheme[:after_plus] + urlunsplit(
+                    (scheme[after_plus:], netloc, newpath, query, fragment),
+                )
 
         super(Git, self).__init__(url, *args, **kwargs)
-
-    def parse_vcs_bundle_file(self, content):
-        url = rev = None
-        for line in content.splitlines():
-            if not line.strip() or line.strip().startswith('#'):
-                continue
-            url_match = re.search(r'git\s*remote\s*add\s*origin(.*)\s*-f', line)
-            if url_match:
-                url = url_match.group(1).strip()
-            rev_match = re.search(r'^git\s*checkout\s*-q\s*(.*)\s*', line)
-            if rev_match:
-                rev = rev_match.group(1).strip()
-            if url and rev:
-                return url, rev
-        return None, None
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
@@ -77,7 +76,9 @@ class Git(VersionControl):
             # a local tag or branch name
             return [revisions[rev]]
         else:
-            logger.warn("Could not find a tag or branch '%s', assuming commit." % rev)
+            logger.warning(
+                "Could not find a tag or branch '%s', assuming commit.", rev,
+            )
             return rev_options
 
     def switch(self, dest, url, rev_options):
@@ -93,8 +94,13 @@ class Git(VersionControl):
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maby even origin/master)
         if rev_options:
-            rev_options = self.check_rev_options(rev_options[0], dest, rev_options)
-        call_subprocess([self.cmd, 'reset', '--hard', '-q'] + rev_options, cwd=dest)
+            rev_options = self.check_rev_options(
+                rev_options[0], dest, rev_options,
+            )
+        call_subprocess(
+            [self.cmd, 'reset', '--hard', '-q'] + rev_options,
+            cwd=dest,
+        )
         #: update submodules
         self.update_submodules(dest)
 
@@ -107,15 +113,21 @@ class Git(VersionControl):
             rev_options = ['origin/master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
-            logger.notify('Cloning %s%s to %s' % (url, rev_display, display_path(dest)))
+            logger.info(
+                'Cloning %s%s to %s', url, rev_display, display_path(dest),
+            )
             call_subprocess([self.cmd, 'clone', '-q', url, dest])
-            #: repo may contain submodules
-            self.update_submodules(dest)
+
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.get_revision(dest).startswith(rev_options[0]):
-                    call_subprocess([self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+                    call_subprocess(
+                        [self.cmd, 'checkout', '-q'] + rev_options,
+                        cwd=dest,
+                    )
+            #: repo may contain submodules
+            self.update_submodules(dest)
 
     def get_url(self, location):
         url = call_subprocess(
@@ -157,12 +169,19 @@ class Git(VersionControl):
         current_rev = self.get_revision(location)
         refs = self.get_refs(location)
         # refs maps names to commit hashes; we need the inverse
-        # if multiple names map to a single commit, this arbitrarily picks one
-        names_by_commit = dict((commit, ref) for ref, commit in refs.items())
+        # if multiple names map to a single commit, we pick the first one
+        # alphabetically
+        names_by_commit = {}
+        for ref, commit in sorted(refs.items()):
+            if commit not in names_by_commit:
+                names_by_commit[commit] = ref
 
         if current_rev in names_by_commit:
-            # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, names_by_commit[current_rev])
+            # It's a tag or branch.
+            name = names_by_commit[current_rev]
+            full_egg_name = (
+                '%s-%s' % (egg_project_name, self.translate_egg_surname(name))
+            )
         else:
             full_egg_name = '%s-dev' % egg_project_name
 
@@ -175,8 +194,8 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. Github). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
-        if not '://' in self.url:
-            assert not 'file:' in self.url
+        if '://' not in self.url:
+            assert 'file:' not in self.url
             self.url = self.url.replace('git+', 'git+ssh://')
             url, rev = super(Git, self).get_url_rev()
             url = url.replace('ssh://', '')
@@ -188,7 +207,9 @@ class Git(VersionControl):
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        call_subprocess([self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
-                        cwd=location)
+        call_subprocess(
+            [self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
+            cwd=location,
+        )
 
 vcs.register(Git)

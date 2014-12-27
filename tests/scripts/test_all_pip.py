@@ -2,11 +2,11 @@ import os
 import re
 import sys
 import subprocess
-import shutil
 from os.path import dirname, abspath
 
-from pip.backwardcompat import urllib
-from pip.util import rmtree
+from pip._vendor.six.moves.urllib import request as urllib_request
+
+from pip.utils import rmtree
 
 
 src_folder = dirname(dirname(abspath(__file__)))
@@ -16,8 +16,9 @@ if sys.platform == 'win32':
 else:
     bin_dir = 'bin'
 
+
 def all_projects():
-    data = urllib.urlopen('http://pypi.python.org/simple/').read()
+    data = urllib_request.urlopen('http://pypi.python.org/simple/').read()
     projects = [m.group(1) for m in re.finditer(r'<a.*?>(.+)</a>', data)]
     return projects
 
@@ -54,23 +55,37 @@ def _test_packages(output, pending_fn):
     print('Creating virtualenv in %s' % dest_dir)
     create_venv(dest_dir)
     print('Uninstalling actual pip')
-    code = subprocess.check_call([os.path.join(dest_dir, bin_dir, 'pip'),
-                            'uninstall', '-y', 'pip'])
+    code = subprocess.check_call([
+        os.path.join(dest_dir, bin_dir, 'pip'),
+        'uninstall',
+        '-y',
+        'pip',
+    ])
     assert not code, 'pip uninstallation failed'
     print('Installing development pip')
-    code = subprocess.check_call([os.path.join(dest_dir, bin_dir, 'python'),
-                            'setup.py', 'install'],
-                            cwd=src_folder)
+    code = subprocess.check_call(
+        [
+            os.path.join(dest_dir, bin_dir, 'python'),
+            'setup.py',
+            'install'
+        ],
+        cwd=src_folder,
+    )
     assert not code, 'pip installation failed'
     print('Trying installation of %s' % dest_dir)
-    code = subprocess.check_call([os.path.join(dest_dir, bin_dir, 'pip'),
-                            'install', package])
+    code = subprocess.check_call([
+        os.path.join(dest_dir, bin_dir, 'pip'),
+        'install',
+        package,
+    ])
     if code:
         print('Installation of %s failed' % package)
         print('Now checking easy_install...')
         create_venv(dest_dir)
-        code = subprocess.check_call([os.path.join(dest_dir, bin_dir, 'easy_install'),
-                                package])
+        code = subprocess.check_call([
+            os.path.join(dest_dir, bin_dir, 'easy_install'),
+            package,
+        ])
         if code:
             print('easy_install also failed')
             add_package(os.path.join(output, 'easy-failure.txt'), package)
@@ -89,7 +104,11 @@ def create_venv(dest_dir):
     if os.path.exists(dest_dir):
         rmtree(dest_dir)
     print('Creating virtualenv in %s' % dest_dir)
-    code = subprocess.check_call(['virtualenv', '--no-site-packages', dest_dir])
+    code = subprocess.check_call([
+        'virtualenv',
+        '--no-site-packages',
+        dest_dir,
+    ])
     assert not code, "virtualenv failed"
 
 

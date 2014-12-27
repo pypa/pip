@@ -1,11 +1,13 @@
 Quickstart
 ==========
 
-Install a package:
+First, :doc:`Install pip <installing>`.
+
+Install a package from `PyPI`_:
 
 ::
 
-  $ pip install SomePackage==1.0
+  $ pip install SomePackage
     [...]
     Successfully installed SomePackage
 
@@ -50,3 +52,5 @@ Uninstall a package:
     Proceed (y/n)? y
     Successfully uninstalled SomePackage
 
+
+.. _PyPI: http://pypi.python.org/pypi/

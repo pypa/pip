@@ -17,39 +17,20 @@ import types
 import zipimport
 
 from . import DistlibException
-from .util import cached_property, get_cache_base, path_to_cache_dir
+from .util import cached_property, get_cache_base, path_to_cache_dir, Cache
 
 logger = logging.getLogger(__name__)
 
 
-class Cache(object):
-    """
-    A class implementing a cache for resources that need to live in the file system
-    e.g. shared libraries.
-    """
+cache = None    # created when needed
 
+
+class ResourceCache(Cache):
     def __init__(self, base=None):
-        """
-        Initialise an instance.
-
-        :param base: The base directory where the cache should be located. If
-                     not specified, this will be the ``resource-cache``
-                     directory under whatever :func:`get_cache_base` returns.
-        """
         if base is None:
             # Use native string to avoid issues on 2.x: see Python #20140.
             base = os.path.join(get_cache_base(), str('resource-cache'))
-            # we use 'isdir' instead of 'exists', because we want to
-            # fail if there's a file with that name
-            if not os.path.isdir(base):
-                os.makedirs(base)
-        self.base = os.path.abspath(os.path.normpath(base))
-
-    def prefix_to_dir(self, prefix):
-        """
-        Converts a resource prefix to a directory name in the cache.
-        """
-        return path_to_cache_dir(prefix)
+        super(ResourceCache, self).__init__(base)
 
     def is_stale(self, resource, path):
         """
@@ -87,24 +68,6 @@ class Cache(object):
                     f.write(resource.bytes)
         return result
 
-    def clear(self):
-        """
-        Clear the cache.
-        """
-        not_removed = []
-        for fn in os.listdir(self.base):
-            fn = os.path.join(self.base, fn)
-            try:
-                if os.path.islink(fn) or os.path.isfile(fn):
-                    os.remove(fn)
-                elif os.path.isdir(fn):
-                    shutil.rmtree(fn)
-            except Exception:
-                not_removed.append(fn)
-        return not_removed
-
-cache = Cache()
-
 
 class ResourceBase(object):
     def __init__(self, finder, name):
@@ -131,6 +94,9 @@ class Resource(ResourceBase):
 
     @cached_property
     def file_path(self):
+        global cache
+        if cache is None:
+            cache = ResourceCache()
         return cache.get(self)
 
     @cached_property
@@ -163,7 +129,13 @@ class ResourceFinder(object):
         return os.path.realpath(path)
 
     def _make_path(self, resource_name):
-        parts = resource_name.split('/')
+        # Issue #50: need to preserve type of path on Python 2.x
+        # like os.path._get_sep
+        if isinstance(resource_name, bytes):    # should only happen on 2.x
+            sep = b'/'
+        else:
+            sep = '/'
+        parts = resource_name.split(sep)
         parts.insert(0, self.base)
         result = os.path.join(*parts)
         return self._adjust_path(result)

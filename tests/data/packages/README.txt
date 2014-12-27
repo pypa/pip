@@ -29,6 +29,11 @@ FSPkg
 -----
 for installing from the file system
 
+futurewheel
+-----------
+Wheels of a Wheel-Version that is newer in minor and major series.
+Their version coincides with the apparent Wheel-Version they indicate.
+
 gmpy-1.15.tar.gz
 ----------------
 hash testing (although this pkg isn't needed explicitly)
@@ -39,7 +44,7 @@ for testing finder logic when name *contains* the name of the package specified
 
 HackedEggInfo
 -------------
-has it's own egg_info class
+has its own egg_info class
 
 LineEndings
 -----------
@@ -83,6 +88,8 @@ meta-1.0-py2.py3-none-any.whl
 --------------------------------------------------
 Is an empty package which install_requires the simple and simple2 packages.
 
-
+requires_simple_extra-0.1-py2.py3-none-any.whl
+----------------------------------------------
+requires_simple_extra[extra] requires simple==1.0
 
 

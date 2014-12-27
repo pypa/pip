@@ -1,39 +1,32 @@
 language: python
 
 env:
+  - TOXENV=pep8
+  - TOXENV=py3pep8
   - TOXENV=docs
+  - TOXENV=packaging
   - TOXENV=py26
   - TOXENV=py27
   - TOXENV=py32
   - TOXENV=py33
   - TOXENV=py34
   - TOXENV=pypy
+  - TOXENV=py27 VENDOR=no
+  - TOXENV=py34 VENDOR=no
+  - TOXENV=py27 VENDOR=no WHEELS=yes
+  - TOXENV=py34 VENDOR=no WHEELS=yes
 
-before_install:
-  - "[ -d ~/.distlib ] && sudo chown -R travis:travis ~/.distlib || true"
+install: .travis/install.sh
 
-install:
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo add-apt-repository -y ppa:pypy/ppa; fi"
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo apt-get -y update && sudo apt-get -y install pypy; fi"
-  # This is required because we need to get rid of the Travis installed PyPy
-  # or it'll take precedence over the PPA installed one.
-  - "if [[ $TOXENV == 'pypy' ]]; then sudo rm -rf /usr/local/pypy/bin; fi"
-  - "if [[ $TOXENV == 'py34' ]]; then .travis/py34.sh; fi"
-  - sudo apt-get install subversion bzr mercurial
-  - echo -e "[web]\ncacerts = /etc/ssl/certs/ca-certificates.crt" >> ~/.hgrc
-  - git config --global user.email "python-virtualenv@googlegroups.com"
-  - git config --global user.name "Pip"
-  - pip install --upgrade setuptools
-  - pip install tox
-
-script: tox
-
-branches:
-  only:
-    - develop
-    - 1.3.X
-    - 1.4.X
-    - 1.5.X
+script: .travis/run.sh
 
 notifications:
-  irc: "irc.freenode.org#pip"
+  irc:
+    channels:
+      # This is set to a secure variable to prevent forks from notifiying the
+      # IRC channel whenever they fail a build. This can be removed when travis
+      # implements https://github.com/travis-ci/travis-ci/issues/1094.
+      # The actual value here is: irc.freenode.org#pypa-dev
+      - secure: "zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc="
+    use_notice: true
+    skip_join: true

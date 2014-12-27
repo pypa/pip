@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013 Vinay Sajip.
+# Copyright (C) 2013-2014 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -11,7 +11,7 @@ import re
 import struct
 import sys
 
-from .compat import sysconfig, fsencode, detect_encoding, ZipFile
+from .compat import sysconfig, detect_encoding, ZipFile
 from .resources import finder
 from .util import (FileOperator, get_export_entry, convert_path,
                    get_executable, in_venv)
@@ -92,8 +92,10 @@ class ScriptMaker(object):
         return executable
 
     def _get_shebang(self, encoding, post_interp=b'', options=None):
+        enquote = True
         if self.executable:
             executable = self.executable
+            enquote = False     # assume this will be taken care of
         elif not sysconfig.is_python_build():
             executable = get_executable()
         elif in_venv():
@@ -107,7 +109,17 @@ class ScriptMaker(object):
         if options:
             executable = self._get_alternate_executable(executable, options)
 
-        executable = fsencode(executable)
+        # If the user didn't specify an executable, it may be necessary to
+        # cater for executable paths with spaces (not uncommon on Windows)
+        if enquote and ' ' in executable:
+            executable = '"%s"' % executable
+        # Issue #51: don't use fsencode, since we later try to
+        # check that the shebang is decodable using utf-8.
+        executable = executable.encode('utf-8')
+        # in case of IronPython, play safe and enable frames support
+        if (sys.platform == 'cli' and '-X:Frames' not in post_interp
+            and '-X:FullFrames' not in post_interp):
+            post_interp += b' -X:Frames'
         shebang = b'#!' + executable + post_interp + b'\n'
         # Python parser starts to read a script using UTF-8 until
         # it gets a #coding:xxx cookie. The shebang has to be the
@@ -192,7 +204,13 @@ class ScriptMaker(object):
             filenames.append(outname)
 
     def _make_script(self, entry, filenames, options=None):
-        shebang = self._get_shebang('utf-8', options=options)
+        post_interp = b''
+        if options:
+            args = options.get('interpreter_args', [])
+            if args:
+                args = ' %s' % ' '.join(args)
+                post_interp = args.encode('utf-8')
+        shebang = self._get_shebang('utf-8', post_interp, options=options)
         script = self._get_script_text(entry).encode('utf-8')
         name = entry.name
         scriptnames = set()

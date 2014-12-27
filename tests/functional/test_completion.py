@@ -62,8 +62,10 @@ def setup_completion(script, words, cword):
     script.environ['COMP_CWORD'] = cword
 
     # expect_error is True because autocomplete exists with 1 status code
-    result = script.run('python', '-c', 'import pip;pip.autocomplete()',
-            expect_error=True)
+    result = script.run(
+        'python', '-c', 'import pip;pip.autocomplete()',
+        expect_error=True,
+    )
 
     return result, script
 

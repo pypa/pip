@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 from pip._vendor.six import text_type
+from pip._vendor.six.moves import http_client
 
 import codecs
 import re
@@ -43,7 +44,7 @@ ascii_punctuation_re = re.compile("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005
 charsUntilRegEx = {}
 
 
-class BufferedStream:
+class BufferedStream(object):
     """Buffering for streams that do not have buffering of their own
 
     The buffer is implemented as a list of chunks on the assumption that
@@ -63,11 +64,11 @@ class BufferedStream:
         return pos
 
     def seek(self, pos):
-        assert pos < self._bufferedBytes()
+        assert pos <= self._bufferedBytes()
         offset = pos
         i = 0
         while len(self.buffer[i]) < offset:
-            offset -= pos
+            offset -= len(self.buffer[i])
             i += 1
         self.position = [i, offset]
 
@@ -114,11 +115,15 @@ class BufferedStream:
         if remainingBytes:
             rv.append(self._readStream(remainingBytes))
 
-        return "".join(rv)
+        return b"".join(rv)
 
 
 def HTMLInputStream(source, encoding=None, parseMeta=True, chardet=True):
-    if hasattr(source, "read"):
+    if isinstance(source, http_client.HTTPResponse):
+        # Work around Python bug #20007: read(0) closes the connection.
+        # http://bugs.python.org/issue20007
+        isUnicode = False
+    elif hasattr(source, "read"):
         isUnicode = isinstance(source.read(0), text_type)
     else:
         isUnicode = isinstance(source, text_type)
@@ -132,7 +137,7 @@ def HTMLInputStream(source, encoding=None, parseMeta=True, chardet=True):
         return HTMLBinaryInputStream(source, encoding, parseMeta, chardet)
 
 
-class HTMLUnicodeInputStream:
+class HTMLUnicodeInputStream(object):
     """Provides a unicode stream of characters to the HTMLTokenizer.
 
     This class takes care of character encoding and removing or replacing

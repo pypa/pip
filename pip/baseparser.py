@@ -1,15 +1,23 @@
 """Base option parser setup"""
+from __future__ import absolute_import
 
 import sys
 import optparse
 import os
+import re
 import textwrap
 from distutils.util import strtobool
 
-from pip.backwardcompat import ConfigParser, string_types
-from pip.locations import default_config_file, default_config_basename, running_under_virtualenv
-from pip.util import get_terminal_size, get_prog
-from pip._vendor import pkg_resources
+from pip._vendor.six import string_types
+from pip._vendor.six.moves import configparser
+from pip.locations import (
+    legacy_config_file, config_basename, running_under_virtualenv,
+    site_config_files
+)
+from pip.utils import appdirs, get_terminal_size
+
+
+_environ_prefix_re = re.compile(r"^PIP_", re.I)
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -68,11 +76,11 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
                 label = 'Commands'
             else:
                 label = 'Description'
-            #some doc strings have inital newlines, some don't
+            # some doc strings have initial newlines, some don't
             description = description.lstrip('\n')
-            #some doc strings have final newlines and spaces, some don't
+            # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()
-            #dedent, then reindent
+            # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
             description = '%s:\n%s\n' % (label, description)
             return description
@@ -126,32 +134,63 @@ class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
 
+    isolated = False
+
     def __init__(self, *args, **kwargs):
-        self.config = ConfigParser.RawConfigParser()
+        self.config = configparser.RawConfigParser()
         self.name = kwargs.pop('name')
+        self.isolated = kwargs.pop("isolated", False)
         self.files = self.get_config_files()
-        self.config.read(self.files)
+        if self.files:
+            self.config.read(self.files)
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
+        # the files returned by this method will be parsed in order with the
+        # first files listed being overridden by later files in standard
+        # ConfigParser fashion
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
-        if config_file and os.path.exists(config_file):
-            files = [config_file]
-        else:
-            files = [default_config_file]
+        if config_file == os.devnull:
+            return []
+
+        # at the base we have any site-wide configuration
+        files = list(site_config_files)
+
+        # per-user configuration next
+        if not self.isolated:
+            if config_file and os.path.exists(config_file):
+                files.append(config_file)
+            else:
+                # This is the legacy config file, we consider it to be a lower
+                # priority than the new file location.
+                files.append(legacy_config_file)
+
+                # This is the new config file, we consider it to be a higher
+                # priority than the legacy file.
+                files.append(
+                    os.path.join(
+                        appdirs.user_config_dir("pip"),
+                        config_basename,
+                    )
+                )
+
+        # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
-            venv_config_file = os.path.join(sys.prefix, default_config_basename)
+            venv_config_file = os.path.join(
+                sys.prefix,
+                config_basename,
+            )
             if os.path.exists(venv_config_file):
                 files.append(venv_config_file)
+
         return files
 
     def check_default(self, option, key, val):
         try:
             return option.check_value(key, val)
-        except optparse.OptionValueError:
-            e = sys.exc_info()[1]
-            print("An error occurred during configuration: %s" % e)
+        except optparse.OptionValueError as exc:
+            print("An error occurred during configuration: %s" % exc)
             sys.exit(3)
 
     def update_defaults(self, defaults):
@@ -162,9 +201,12 @@ class ConfigOptionParser(CustomOptionParser):
         config = {}
         # 1. config files
         for section in ('global', self.name):
-            config.update(self.normalize_keys(self.get_config_section(section)))
+            config.update(
+                self.normalize_keys(self.get_config_section(section))
+            )
         # 2. environmental variables
-        config.update(self.normalize_keys(self.get_environ_vars()))
+        if not self.isolated:
+            config.update(self.normalize_keys(self.get_environ_vars()))
         # Then set the options with those values
         for key, val in config.items():
             option = self.get_option(key)
@@ -201,11 +243,11 @@ class ConfigOptionParser(CustomOptionParser):
             return self.config.items(name)
         return []
 
-    def get_environ_vars(self, prefix='PIP_'):
+    def get_environ_vars(self):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            if key.startswith(prefix):
-                yield (key.replace(prefix, '').lower(), val)
+            if _environ_prefix_re.search(key):
+                yield (_environ_prefix_re.sub("", key).lower(), val)
 
     def get_default_values(self):
         """Overridding to make updating the defaults after instantiation of

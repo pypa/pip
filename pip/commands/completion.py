@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import sys
 from pip.basecommand import Command
 
@@ -35,18 +37,23 @@ class CompletionCommand(Command):
 
     def __init__(self, *args, **kw):
         super(CompletionCommand, self).__init__(*args, **kw)
-        self.parser.add_option(
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',
             const='bash',
             dest='shell',
             help='Emit completion code for bash')
-        self.parser.add_option(
+        cmd_opts.add_option(
             '--zsh', '-z',
             action='store_const',
             const='zsh',
             dest='shell',
             help='Emit completion code for zsh')
+
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         """Prints the completion code of the given shell"""
@@ -56,4 +63,6 @@ class CompletionCommand(Command):
             script = COMPLETION_SCRIPTS.get(options.shell, '')
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
-            sys.stderr.write('ERROR: You must pass %s\n' % ' or '.join(shell_options))
+            sys.stderr.write(
+                'ERROR: You must pass %s\n' % ' or '.join(shell_options)
+            )

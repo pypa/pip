@@ -1,31 +1,51 @@
 """Routines related to PyPI, indexes"""
+from __future__ import absolute_import
 
+import logging
+import cgi
 import sys
 import os
 import re
 import mimetypes
 import posixpath
+import warnings
 
-from pip.log import logger
-from pip.util import Inf, normalize_name, splitext, is_prerelease
-from pip.exceptions import (DistributionNotFound, BestVersionAlreadyInstalled,
-                            InstallationError, InvalidWheelFilename, UnsupportedWheel)
-from pip.backwardcompat import urlparse, url2pathname
-from pip.download import PipSession, url_to_path, path_to_url
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
+
+from pip.compat import ipaddress
+from pip.utils import Inf, cached_property, normalize_name, splitext
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.logging import indent_log
+from pip.exceptions import (
+    DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
+    UnsupportedWheel,
+)
+from pip.download import url_to_path, path_to_url
+from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests, pkg_resources
+from pip.req.req_requirement import InstallationCandidate
+from pip._vendor import html5lib, requests, pkg_resources, six
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
 
 
 __all__ = ['PackageFinder']
 
 
-DEFAULT_MIRROR_HOSTNAME = "last.pypi.python.org"
+# Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
+SECURE_ORIGINS = [
+    # protocol, hostname, port
+    ("https", "*", "*"),
+    ("*", "localhost", "*"),
+    ("*", "127.0.0.0/8", "*"),
+    ("*", "::1/128", "*"),
+    ("file", "*", None),
+]
 
-INSECURE_SCHEMES = {
-    "http": ["https"],
-}
+
+logger = logging.getLogger(__name__)
 
 
 class PackageFinder(object):
@@ -36,13 +56,20 @@ class PackageFinder(object):
     """
 
     def __init__(self, find_links, index_urls,
-            use_wheel=True, allow_external=[], allow_unverified=[],
-            allow_all_external=False, allow_all_prereleases=False,
-            process_dependency_links=False, session=None):
+                 use_wheel=True, allow_external=(), allow_unverified=(),
+                 allow_all_external=False, allow_all_prereleases=False,
+                 trusted_hosts=None, process_dependency_links=False,
+                 session=None):
+        if session is None:
+            raise TypeError(
+                "PackageFinder() missing 1 required keyword argument: "
+                "'session'"
+            )
+
         self.find_links = find_links
         self.index_urls = index_urls
         self.dependency_links = []
-        self.cache = PageCache()
+
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
 
@@ -62,6 +89,12 @@ class PackageFinder(object):
         # Do we allow all (safe and verifiable) externally hosted files?
         self.allow_all_external = allow_all_external
 
+        # Domains that we won't emit warnings for when not using HTTPS
+        self.secure_origins = [
+            ("*", host, "*")
+            for host in (trusted_hosts if trusted_hosts else [])
+        ]
+
         # Stores if we ignored any external links so that we can instruct
         #   end users how to install them if no distributions are available
         self.need_warn_external = False
@@ -75,24 +108,21 @@ class PackageFinder(object):
 
         # Do we process dependency links?
         self.process_dependency_links = process_dependency_links
-        self._have_warned_dependency_links = False
 
         # The Session we'll use to make requests
-        self.session = session or PipSession()
+        self.session = session
 
     def add_dependency_links(self, links):
-        ## FIXME: this shouldn't be global list this, it should only
-        ## apply to requirements of the package that specifies the
-        ## dependency_links value
-        ## FIXME: also, we should track comes_from (i.e., use Link)
+        # # FIXME: this shouldn't be global list this, it should only
+        # # apply to requirements of the package that specifies the
+        # # dependency_links value
+        # # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
-            if not self._have_warned_dependency_links:
-                logger.deprecated(
-                    "1.6",
-                    "Dependency Links processing has been deprecated with an "
-                    "accelerated time schedule and will be removed in pip 1.6",
-                )
-                self._have_warned_dependency_links = True
+            warnings.warn(
+                "Dependency Links processing has been deprecated and will be "
+                "removed in a future release.",
+                RemovedInPip7Warning,
+            )
             self.dependency_links.extend(links)
 
     def _sort_locations(self, locations):
@@ -135,7 +165,7 @@ class PackageFinder(object):
 
         return files, urls
 
-    def _link_sort_key(self, link_tuple):
+    def _candidate_sort_key(self, candidate):
         """
         Function used to generate link sort key for link tuples.
         The greater the return value, the more preferred it is.
@@ -148,29 +178,105 @@ class PackageFinder(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        parsed_version, link, _ = link_tuple
         if self.use_wheel:
             support_num = len(supported_tags)
-            if link == INSTALLED_VERSION:
+            if candidate.location == INSTALLED_VERSION:
                 pri = 1
-            elif link.ext == wheel_ext:
-                wheel = Wheel(link.filename) # can raise InvalidWheelFilename
+            elif candidate.location.ext == wheel_ext:
+                # can raise InvalidWheelFilename
+                wheel = Wheel(candidate.location.filename)
                 if not wheel.supported():
-                    raise UnsupportedWheel("%s is not a supported wheel for this platform. It can't be sorted." % wheel.filename)
+                    raise UnsupportedWheel(
+                        "%s is not a supported wheel for this platform. It "
+                        "can't be sorted." % wheel.filename
+                    )
                 pri = -(wheel.support_index_min())
-            else: # sdist
+            else:  # sdist
                 pri = -(support_num)
-            return (parsed_version, pri)
+            return (candidate.version, pri)
         else:
-            return parsed_version
+            return candidate.version
 
     def _sort_versions(self, applicable_versions):
         """
-        Bring the latest version (and wheels) to the front, but maintain the existing ordering as secondary.
-        See the docstring for `_link_sort_key` for details.
-        This function is isolated for easier unit testing.
+        Bring the latest version (and wheels) to the front, but maintain the
+        existing ordering as secondary. See the docstring for `_link_sort_key`
+        for details. This function is isolated for easier unit testing.
         """
-        return sorted(applicable_versions, key=self._link_sort_key, reverse=True)
+        return sorted(
+            applicable_versions,
+            key=self._candidate_sort_key,
+            reverse=True
+        )
+
+    def _validate_secure_origin(self, logger, location):
+        # Determine if this url used a secure transport mechanism
+        parsed = urllib_parse.urlparse(str(location))
+        origin = (parsed.scheme, parsed.hostname, parsed.port)
+
+        # Determine if our origin is a secure origin by looking through our
+        # hardcoded list of secure origins, as well as any additional ones
+        # configured on this PackageFinder instance.
+        for secure_origin in (SECURE_ORIGINS + self.secure_origins):
+            # Check to see if the protocol matches
+            if origin[0] != secure_origin[0] and secure_origin[0] != "*":
+                continue
+
+            try:
+                # We need to do this decode dance to ensure that we have a
+                # unicode object, even on Python 2.x.
+                addr = ipaddress.ip_address(
+                    origin[1]
+                    if (
+                        isinstance(origin[1], six.text_type)
+                        or origin[1] is None
+                    )
+                    else origin[1].decode("utf8")
+                )
+                network = ipaddress.ip_network(
+                    secure_origin[1]
+                    if isinstance(secure_origin[1], six.text_type)
+                    else secure_origin[1].decode("utf8")
+                )
+            except ValueError:
+                # We don't have both a valid address or a valid network, so
+                # we'll check this origin against hostnames.
+                if origin[1] != secure_origin[1] and secure_origin[1] != "*":
+                    continue
+            else:
+                # We have a valid address and network, so see if the address
+                # is contained within the network.
+                if addr not in network:
+                    continue
+
+            # Check to see if the port patches
+            if (origin[2] != secure_origin[2]
+                    and secure_origin[2] != "*"
+                    and secure_origin[2] is not None):
+                continue
+
+            # If we've gotten here, then this origin matches the current
+            # secure origin and we should break out of the loop and continue
+            # on.
+            break
+        else:
+            # If the loop successfully completed without a break, that means
+            # that the origin we are testing is not a secure origin.
+            logger.warning(
+                "This repository located at %s is not a trusted host, if "
+                "this repository is available via HTTPS it is recommend to "
+                "use HTTPS instead, otherwise you may silence this warning "
+                "with '--trusted-host %s'.",
+                parsed.hostname,
+                parsed.hostname,
+            )
+
+            warnings.warn(
+                "Implicitly allowing locations which are not hosted at a "
+                "secure origin is deprecated and will require the use of "
+                "--trusted-host in the future.",
+                RemovedInPip7Warning,
+            )
 
     def find_requirement(self, req, upgrade):
 
@@ -179,21 +285,36 @@ class PackageFinder(object):
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's behavior.
+            # implementations might break if they relied on easy_install's
+            # behavior.
             if not loc.endswith('/'):
                 loc = loc + '/'
             return loc
 
         url_name = req.url_name
+
         # Only check main index if index URL is given:
         main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
-            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]), trusted=True)
-            # This will also cache the page, so it's okay that we get it again later:
+            main_index_url = Link(
+                mkurl_pypi_url(self.index_urls[0]),
+                trusted=True,
+            )
+
             page = self._get_page(main_index_url, req)
-            if page is None:
-                url_name = self._find_url_name(Link(self.index_urls[0], trusted=True), url_name, req) or req.url_name
+            if page is None and PyPI.netloc not in str(main_index_url):
+                warnings.warn(
+                    "Failed to find %r at %s. It is suggested to upgrade "
+                    "your index to support normalized names as the name in "
+                    "/simple/{name}." % (req.name, main_index_url),
+                    RemovedInPip8Warning,
+                )
+
+                url_name = self._find_url_name(
+                    Link(self.index_urls[0], trusted=True),
+                    url_name, req
+                ) or req.url_name
 
         if url_name is not None:
             locations = [
@@ -201,10 +322,6 @@ class PackageFinder(object):
                 for url in self.index_urls] + self.find_links
         else:
             locations = list(self.find_links)
-        for version in req.absolute_versions:
-            if url_name is not None and main_index_url is not None:
-                locations = [
-                    posixpath.join(main_index_url.url, version)] + locations
 
         file_locations, url_locations = self._sort_locations(locations)
         _flocations, _ulocations = self._sort_locations(self.dependency_links)
@@ -217,156 +334,230 @@ class PackageFinder(object):
         # We explicitly do not trust links that came from dependency_links
         locations.extend([Link(url) for url in _ulocations])
 
-        logger.debug('URLs to search for versions for %s:' % req)
+        logger.debug('URLs to search for versions for %s:', req)
         for location in locations:
-            logger.debug('* %s' % location)
-
-            # Determine if this url used a secure transport mechanism
-            parsed = urlparse.urlparse(str(location))
-            if parsed.scheme in INSECURE_SCHEMES:
-                secure_schemes = INSECURE_SCHEMES[parsed.scheme]
-
-                if len(secure_schemes) == 1:
-                    ctx = (location, parsed.scheme, secure_schemes[0],
-                           parsed.netloc)
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using %s if %s has it available" %
-                                ctx)
-                elif len(secure_schemes) > 1:
-                    ctx = (location, parsed.scheme, ", ".join(secure_schemes),
-                                                                parsed.netloc)
-                    logger.warn("%s uses an insecure transport scheme (%s). "
-                                "Consider using one of %s if %s has any of "
-                                "them available" % ctx)
-                else:
-                    ctx = (location, parsed.scheme)
-                    logger.warn("%s uses an insecure transport scheme (%s)." %
-                                ctx)
+            logger.debug('* %s', location)
+            self._validate_secure_origin(logger, location)
 
         found_versions = []
         found_versions.extend(
             self._package_versions(
                 # We trust every directly linked archive in find_links
-                [Link(url, '-f', trusted=True) for url in self.find_links], req.name.lower()))
+                [Link(url, '-f', trusted=True) for url in self.find_links],
+                req.name.lower()
+            )
+        )
         page_versions = []
         for page in self._get_pages(locations, req):
-            logger.debug('Analyzing links from page %s' % page.url)
-            logger.indent += 2
-            try:
-                page_versions.extend(self._package_versions(page.links, req.name.lower()))
-            finally:
-                logger.indent -= 2
+            logger.debug('Analyzing links from page %s', page.url)
+            with indent_log():
+                page_versions.extend(
+                    self._package_versions(page.links, req.name.lower())
+                )
         dependency_versions = list(self._package_versions(
             [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
-            logger.info('dependency_links found: %s' % ', '.join([link.url for parsed, link, version in dependency_versions]))
-        file_versions = list(self._package_versions(
-                [Link(url) for url in file_locations], req.name.lower()))
-        if not found_versions and not page_versions and not dependency_versions and not file_versions:
-            logger.fatal('Could not find any downloads that satisfy the requirement %s' % req)
+            logger.debug(
+                'dependency_links found: %s',
+                ', '.join([
+                    link.url for p, link, version in dependency_versions
+                ])
+            )
+        file_versions = list(
+            self._package_versions(
+                [Link(url) for url in file_locations],
+                req.name.lower()
+            )
+        )
+        if (not found_versions
+                and not page_versions
+                and not dependency_versions
+                and not file_versions):
+            logger.critical(
+                'Could not find any downloads that satisfy the requirement %s',
+                req,
+            )
 
             if self.need_warn_external:
-                logger.warn("Some externally hosted files were ignored (use "
-                            "--allow-external %s to allow)." % req.name)
+                logger.warning(
+                    "Some externally hosted files were ignored as access to "
+                    "them may be unreliable (use --allow-external %s to "
+                    "allow).",
+                    req.name,
+                )
 
             if self.need_warn_unverified:
-                logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-unverified %s to allow)." %
-                            req.name)
+                logger.warning(
+                    "Some insecure and unverifiable files were ignored"
+                    " (use --allow-unverified %s to allow).",
+                    req.name,
+                )
 
-            raise DistributionNotFound('No distributions at all found for %s' % req)
+            raise DistributionNotFound(
+                'No distributions at all found for %s' % req
+            )
         installed_version = []
         if req.satisfied_by is not None:
-            installed_version = [(req.satisfied_by.parsed_version, INSTALLED_VERSION, req.satisfied_by.version)]
+            installed_version = [
+                InstallationCandidate(
+                    req.name,
+                    req.satisfied_by.version,
+                    INSTALLED_VERSION,
+                ),
+            ]
         if file_versions:
             file_versions.sort(reverse=True)
-            logger.info('Local files found: %s' % ', '.join([url_to_path(link.url) for parsed, link, version in file_versions]))
-        #this is an intentional priority ordering
-        all_versions = installed_version + file_versions + found_versions + page_versions + dependency_versions
-        applicable_versions = []
-        for (parsed_version, link, version) in all_versions:
-            if version not in req.req:
-                logger.info("Ignoring link %s, version %s doesn't match %s"
-                            % (link, version, ','.join([''.join(s) for s in req.req.specs])))
-                continue
-            elif is_prerelease(version) and not (self.allow_all_prereleases or req.prereleases):
-                # If this version isn't the already installed one, then
-                #   ignore it if it's a pre-release.
-                if link is not INSTALLED_VERSION:
-                    logger.info("Ignoring link %s, version %s is a pre-release (use --pre to allow)." % (link, version))
-                    continue
-            applicable_versions.append((parsed_version, link, version))
+            logger.debug(
+                'Local files found: %s',
+                ', '.join([
+                    url_to_path(candidate.location.url)
+                    for candidate in file_versions
+                ])
+            )
+
+        # This is an intentional priority ordering
+        all_versions = (
+            file_versions + found_versions + page_versions
+            + dependency_versions
+        )
+
+        # Filter out anything which doesn't match our specifier
+        _versions = set(
+            req.specifier.filter(
+                [x.version for x in all_versions],
+                prereleases=(
+                    self.allow_all_prereleases
+                    if self.allow_all_prereleases else None
+                ),
+            )
+        )
+        applicable_versions = [
+            x for x in all_versions if x.version in _versions
+        ]
+
+        # Finally add our existing versions to the front of our versions.
+        applicable_versions = installed_version + applicable_versions
+
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = bool([link for parsed_version, link, version in applicable_versions if link is INSTALLED_VERSION])
+        existing_applicable = any(
+            i.location is INSTALLED_VERSION
+            for i in applicable_versions
+        )
+
         if not upgrade and existing_applicable:
-            if applicable_versions[0][1] is INSTALLED_VERSION:
-                logger.info('Existing installed version (%s) is most up-to-date and satisfies requirement'
-                            % req.satisfied_by.version)
+            if applicable_versions[0].location is INSTALLED_VERSION:
+                logger.debug(
+                    'Existing installed version (%s) is most up-to-date and '
+                    'satisfies requirement',
+                    req.satisfied_by.version,
+                )
             else:
-                logger.info('Existing installed version (%s) satisfies requirement (most up-to-date version is %s)'
-                            % (req.satisfied_by.version, applicable_versions[0][2]))
+                logger.debug(
+                    'Existing installed version (%s) satisfies requirement '
+                    '(most up-to-date version is %s)',
+                    req.satisfied_by.version,
+                    applicable_versions[0][2],
+                )
             return None
+
         if not applicable_versions:
-            logger.fatal('Could not find a version that satisfies the requirement %s (from versions: %s)'
-                         % (req, ', '.join([version for parsed_version, link, version in all_versions])))
+            # The following check for '>' is designed to prevent confusion like
+            # that in
+            # https://bitbucket.org/pypa/setuptools/issue/301/101-in-requirementparse-foo-10-results
+            str_specifier = str(req.specifier)
+            if '>' in str_specifier and '>=' not in str_specifier:
+                logger.warning(
+                    "The behavior of the `>` version specifier has changed in "
+                    "PEP 440. `>` is now an exclusive operator, meaning that "
+                    "%s does not match %s. "
+                    "Perhaps you want `>=` instead of `>`?",
+                    str_specifier, str_specifier + '.*'
+                )
+            logger.critical(
+                'Could not find a version that satisfies the requirement %s '
+                '(from versions: %s)',
+                req,
+                ', '.join(
+                    sorted(
+                        set(str(i.version) for i in all_versions),
+                        key=parse_version,
+                    )
+                )
+            )
 
             if self.need_warn_external:
-                logger.warn("Some externally hosted files were ignored (use "
-                            "--allow-external to allow).")
+                logger.warning(
+                    "Some externally hosted files were ignored as access to "
+                    "them may be unreliable (use --allow-external to allow)."
+                )
 
             if self.need_warn_unverified:
-                logger.warn("Some insecure and unverifiable files were ignored"
-                            " (use --allow-unverified %s to allow)." %
-                            req.name)
+                logger.warning(
+                    "Some insecure and unverifiable files were ignored"
+                    " (use --allow-unverified %s to allow).",
+                    req.name,
+                )
 
-            raise DistributionNotFound('No distributions matching the version for %s' % req)
-        if applicable_versions[0][1] is INSTALLED_VERSION:
+            raise DistributionNotFound(
+                'No distributions matching the version for %s' % req
+            )
+
+        if applicable_versions[0].location is INSTALLED_VERSION:
             # We have an existing version, and its the best version
-            logger.info('Installed version (%s) is most up-to-date (past versions: %s)'
-                        % (req.satisfied_by.version, ', '.join([version for parsed_version, link, version in applicable_versions[1:]]) or 'none'))
+            logger.debug(
+                'Installed version (%s) is most up-to-date (past versions: ',
+                '%s)',
+                req.satisfied_by.version,
+                ', '.join(str(i.version) for i in applicable_versions[1:])
+                or "none",
+            )
             raise BestVersionAlreadyInstalled
+
         if len(applicable_versions) > 1:
-            logger.info('Using version %s (newest of versions: %s)' %
-                        (applicable_versions[0][2], ', '.join([version for parsed_version, link, version in applicable_versions])))
+            logger.debug(
+                'Using version %s (newest of versions: %s)',
+                applicable_versions[0].version,
+                ', '.join(str(i.version) for i in applicable_versions)
+            )
 
-        selected_version = applicable_versions[0][1]
-
-        if (selected_version.internal is not None
-                and not selected_version.internal):
-            logger.warn("%s an externally hosted file and may be "
-                        "unreliable" % req.name)
+        selected_version = applicable_versions[0].location
 
         if (selected_version.verifiable is not None
                 and not selected_version.verifiable):
-            logger.warn("%s is potentially insecure and "
-                        "unverifiable." % req.name)
+            logger.warning(
+                "%s is potentially insecure and unverifiable.", req.name,
+            )
 
         if selected_version._deprecated_regex:
-            logger.deprecated(
-                "1.7",
-                "%s discovered using a deprecated method of parsing, "
-                "in the future it will no longer be discovered" % req.name
+            warnings.warn(
+                "%s discovered using a deprecated method of parsing, in the "
+                "future it will no longer be discovered." % req.name,
+                RemovedInPip7Warning,
             )
 
         return selected_version
 
-
     def _find_url_name(self, index_url, url_name, req):
-        """Finds the true URL name of a package, when the given name isn't quite correct.
-        This is usually used to implement case-insensitivity."""
+        """
+        Finds the true URL name of a package, when the given name isn't quite
+        correct.
+        This is usually used to implement case-insensitivity.
+        """
         if not index_url.url.endswith('/'):
             # Vaguely part of the PyPI API... weird but true.
-            ## FIXME: bad to modify this?
+            # FIXME: bad to modify this?
             index_url.url += '/'
         page = self._get_page(index_url, req)
         if page is None:
-            logger.fatal('Cannot fetch index base URL %s' % index_url)
+            logger.critical('Cannot fetch index base URL %s', index_url)
             return
         norm_name = normalize_name(req.url_name)
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
-                logger.notify('Real name of requirement %s is %s' % (url_name, base))
+                logger.debug(
+                    'Real name of requirement %s is %s', url_name, base,
+                )
                 return base
         return None
 
@@ -393,30 +584,39 @@ class PackageFinder(object):
             for link in page.rel_links():
                 normalized = normalize_name(req.name).lower()
 
-                if (not normalized in self.allow_external
+                if (normalized not in self.allow_external
                         and not self.allow_all_external):
                     self.need_warn_external = True
-                    logger.debug("Not searching %s for files because external "
-                                 "urls are disallowed." % link)
+                    logger.debug(
+                        "Not searching %s for files because external "
+                        "urls are disallowed.",
+                        link,
+                    )
                     continue
 
                 if (link.trusted is not None
                         and not link.trusted
-                        and not normalized in self.allow_unverified):
-                    logger.debug("Not searching %s for urls, it is an "
-                                "untrusted link and cannot produce safe or "
-                                "verifiable files." % link)
+                        and normalized not in self.allow_unverified):
+                    logger.debug(
+                        "Not searching %s for urls, it is an "
+                        "untrusted link and cannot produce safe or "
+                        "verifiable files.",
+                        link,
+                    )
                     self.need_warn_unverified = True
                     continue
 
                 all_locations.append(link)
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
-    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.-]+)', re.I)
+    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
-        "Returns elements of links in order, non-egg links first, egg links second, while eliminating duplicates"
+        """
+        Returns elements of links in order, non-egg links first, egg links
+        second, while eliminating duplicates
+        """
         eggs, no_eggs = [], []
         seen = set()
         for link in links:
@@ -430,7 +630,8 @@ class PackageFinder(object):
 
     def _package_versions(self, links, search_name):
         for link in self._sort_links(links):
-            for v in self._link_package_versions(link, search_name):
+            v = self._link_package_versions(link, search_name)
+            if v is not None:
                 yield v
 
     def _known_extensions(self):
@@ -456,101 +657,129 @@ class PackageFinder(object):
             egg_info, ext = link.splitext()
             if not ext:
                 if link not in self.logged_links:
-                    logger.debug('Skipping link %s; not a file' % link)
+                    logger.debug('Skipping link %s; not a file', link)
                     self.logged_links.add(link)
-                return []
+                return
             if egg_info.endswith('.tar'):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
             if ext not in self._known_extensions():
                 if link not in self.logged_links:
-                    logger.debug('Skipping link %s; unknown archive format: %s' % (link, ext))
+                    logger.debug(
+                        'Skipping link %s; unknown archive format: %s',
+                        link,
+                        ext,
+                    )
                     self.logged_links.add(link)
-                return []
+                return
             if "macosx10" in link.path and ext == '.zip':
                 if link not in self.logged_links:
-                    logger.debug('Skipping link %s; macosx10 one' % (link))
+                    logger.debug('Skipping link %s; macosx10 one', link)
                     self.logged_links.add(link)
-                return []
+                return
             if ext == wheel_ext:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
-                    logger.debug('Skipping %s because the wheel filename is invalid' % link)
-                    return []
-                if wheel.name.lower() != search_name.lower():
-                    logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
-                    return []
+                    logger.debug(
+                        'Skipping %s because the wheel filename is invalid',
+                        link
+                    )
+                    return
+                if (pkg_resources.safe_name(wheel.name).lower()
+                        != pkg_resources.safe_name(search_name).lower()):
+                    logger.debug(
+                        'Skipping link %s; wrong project name (not %s)',
+                        link,
+                        search_name,
+                    )
+                    return
                 if not wheel.supported():
-                    logger.debug('Skipping %s because it is not compatible with this Python' % link)
-                    return []
+                    logger.debug(
+                        'Skipping %s because it is not compatible with this '
+                        'Python',
+                        link,
+                    )
+                    return
                 # This is a dirty hack to prevent installing Binary Wheels from
                 # PyPI unless it is a Windows or Mac Binary Wheel. This is
                 # paired with a change to PyPI disabling uploads for the
-                # same. Once we have a mechanism for enabling support for binary
-                # wheels on linux that deals with the inherent problems of
-                # binary distribution this can be removed.
+                # same. Once we have a mechanism for enabling support for
+                # binary wheels on linux that deals with the inherent problems
+                # of binary distribution this can be removed.
                 comes_from = getattr(link, "comes_from", None)
-                if ((
-                        not platform.startswith('win')
-                        and not platform.startswith('macosx')
+                if (
+                        (
+                            not platform.startswith('win')
+                            and not platform.startswith('macosx')
+                            and not platform == 'cli'
                         )
-                    and comes_from is not None
-                    and urlparse.urlparse(comes_from.url).netloc.endswith(
-                                                        "pypi.python.org")):
+                        and comes_from is not None
+                        and urllib_parse.urlparse(
+                            comes_from.url
+                        ).netloc.endswith(PyPI.netloc)):
                     if not wheel.supported(tags=supported_tags_noarch):
                         logger.debug(
                             "Skipping %s because it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform" % link
+                            "Wheel on an unsupported platform",
+                            link,
                         )
-                        return []
+                        return
                 version = wheel.version
 
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
-            logger.debug('Skipping link %s; wrong project name (not %s)' % (link, search_name))
-            return []
+            logger.debug(
+                'Skipping link %s; wrong project name (not %s)',
+                link,
+                search_name,
+            )
+            return
 
         if (link.internal is not None
                 and not link.internal
-                and not normalize_name(search_name).lower() in self.allow_external
+                and not normalize_name(search_name).lower()
+                in self.allow_external
                 and not self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
-            logger.debug("Skipping %s because it is externally hosted." % link)
+            logger.debug("Skipping %s because it is externally hosted.", link)
             self.need_warn_external = True
-            return []
+            return
 
         if (link.verifiable is not None
                 and not link.verifiable
                 and not (normalize_name(search_name).lower()
-                    in self.allow_unverified)):
-            # We have a link that we are sure we cannot verify it's integrity,
+                         in self.allow_unverified)):
+            # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
-            logger.debug("Skipping %s because it is an insecure and "
-                         "unverifiable file." % link)
+            logger.debug(
+                "Skipping %s because it is an insecure and unverifiable file.",
+                link,
+            )
             self.need_warn_unverified = True
-            return []
+            return
 
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                logger.debug('Skipping %s because Python version is incorrect' % link)
-                return []
-        logger.debug('Found link %s, version: %s' % (link, version))
-        return [(pkg_resources.parse_version(version),
-               link,
-               version)]
+                logger.debug(
+                    'Skipping %s because Python version is incorrect', link
+                )
+                return
+        logger.debug('Found link %s, version: %s', link, version)
+
+        return InstallationCandidate(search_name, version, link)
 
     def _egg_info_matches(self, egg_info, search_name, link):
         match = self._egg_info_re.search(egg_info)
         if not match:
-            logger.debug('Could not parse version from link: %s' % link)
+            logger.debug('Could not parse version from link: %s', link)
             return None
         name = match.group(0).lower()
         # To match the "safe" name that pkg_resources creates:
@@ -563,53 +792,35 @@ class PackageFinder(object):
             return None
 
     def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req,
-            cache=self.cache,
-            session=self.session,
-        )
-
-
-class PageCache(object):
-    """Cache of HTML pages"""
-
-    failure_limit = 3
-
-    def __init__(self):
-        self._failures = {}
-        self._pages = {}
-        self._archives = {}
-
-    def too_many_failures(self, url):
-        return self._failures.get(url, 0) >= self.failure_limit
-
-    def get_page(self, url):
-        return self._pages.get(url)
-
-    def is_archive(self, url):
-        return self._archives.get(url, False)
-
-    def set_is_archive(self, url, value=True):
-        self._archives[url] = value
-
-    def add_page_failure(self, url, level):
-        self._failures[url] = self._failures.get(url, 0)+level
-
-    def add_page(self, urls, page):
-        for url in urls:
-            self._pages[url] = page
+        return HTMLPage.get_page(link, req, session=self.session)
 
 
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
-    ## FIXME: these regexes are horrible hacks:
-    _homepage_re = re.compile(r'<th>\s*home\s*page', re.I)
-    _download_re = re.compile(r'<th>\s*download\s+url', re.I)
-    _href_re = re.compile('href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))', re.I|re.S)
+    # FIXME: these regexes are horrible hacks:
+    _homepage_re = re.compile(b'<th>\\s*home\\s*page', re.I)
+    _download_re = re.compile(b'<th>\\s*download\\s+url', re.I)
+    _href_re = re.compile(
+        b'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))',
+        re.I | re.S
+    )
 
     def __init__(self, content, url, headers=None, trusted=None):
+        # Determine if we have any encoding information in our headers
+        encoding = None
+        if headers and "Content-Type" in headers:
+            content_type, params = cgi.parse_header(headers["Content-Type"])
+
+            if "charset" in params:
+                encoding = params['charset']
+
         self.content = content
-        self.parsed = html5lib.parse(self.content, namespaceHTMLElements=False)
+        self.parsed = html5lib.parse(
+            self.content,
+            encoding=encoding,
+            namespaceHTMLElements=False,
+        )
         self.url = url
         self.headers = headers
         self.trusted = trusted
@@ -618,119 +829,117 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, req, cache=None, skip_archives=True, session=None):
+    def get_page(cls, link, req, skip_archives=True, session=None):
         if session is None:
-            session = PipSession()
+            raise TypeError(
+                "get_page() missing 1 required keyword argument: 'session'"
+            )
 
         url = link.url
         url = url.split('#', 1)[0]
-        if cache.too_many_failures(url):
-            return None
 
         # Check for VCS schemes that do not support lookup as web pages.
         from pip.vcs import VcsSupport
         for scheme in VcsSupport.schemes:
             if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-                logger.debug('Cannot look at %(scheme)s URL %(link)s' % locals())
+                logger.debug('Cannot look at %s URL %s', scheme, link)
                 return None
 
-        if cache is not None:
-            inst = cache.get_page(url)
-            if inst is not None:
-                return inst
         try:
             if skip_archives:
-                if cache is not None:
-                    if cache.is_archive(url):
-                        return None
                 filename = link.filename
                 for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
                     if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(url,
-                            session=session,
+                        content_type = cls._get_content_type(
+                            url, session=session,
                         )
                         if content_type.lower().startswith('text/html'):
                             break
                         else:
-                            logger.debug('Skipping page %s because of Content-Type: %s' % (link, content_type))
-                            if cache is not None:
-                                cache.set_is_archive(url)
-                            return None
-            logger.debug('Getting page %s' % url)
+                            logger.debug(
+                                'Skipping page %s because of Content-Type: %s',
+                                link,
+                                content_type,
+                            )
+                            return
+
+            logger.debug('Getting page %s', url)
 
             # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
-            if scheme == 'file' and os.path.isdir(url2pathname(path)):
-                # add trailing slash if not present so urljoin doesn't trim final segment
+            (scheme, netloc, path, params, query, fragment) = \
+                urllib_parse.urlparse(url)
+            if (scheme == 'file'
+                    and os.path.isdir(urllib_request.url2pathname(path))):
+                # add trailing slash if not present so urljoin doesn't trim
+                # final segment
                 if not url.endswith('/'):
                     url += '/'
-                url = urlparse.urljoin(url, 'index.html')
-                logger.debug(' file: URL is directory, getting %s' % url)
+                url = urllib_parse.urljoin(url, 'index.html')
+                logger.debug(' file: URL is directory, getting %s', url)
 
-            resp = session.get(url, headers={"Accept": "text/html"})
+            resp = session.get(
+                url,
+                headers={
+                    "Accept": "text/html",
+                    "Cache-Control": "max-age=600",
+                },
+            )
             resp.raise_for_status()
 
             # The check for archives above only works if the url ends with
             #   something that looks like an archive. However that is not a
-            #   requirement. For instance http://sourceforge.net/projects/docutils/files/docutils/0.8.1/docutils-0.8.1.tar.gz/download
-            #   redirects to http://superb-dca3.dl.sourceforge.net/project/docutils/docutils/0.8.1/docutils-0.8.1.tar.gz
-            #   Unless we issue a HEAD request on every url we cannot know
-            #   ahead of time for sure if something is HTML or not. However we
-            #   can check after we've downloaded it.
+            #   requirement of an url. Unless we issue a HEAD request on every
+            #   url we cannot know ahead of time for sure if something is HTML
+            #   or not. However we can check after we've downloaded it.
             content_type = resp.headers.get('Content-Type', 'unknown')
             if not content_type.lower().startswith("text/html"):
-                logger.debug('Skipping page %s because of Content-Type: %s' %
-                                            (link, content_type))
-                if cache is not None:
-                    cache.set_is_archive(url)
-                return None
+                logger.debug(
+                    'Skipping page %s because of Content-Type: %s',
+                    link,
+                    content_type,
+                )
+                return
 
-            inst = cls(resp.text, resp.url, resp.headers, trusted=link.trusted)
+            inst = cls(
+                resp.content, resp.url, resp.headers,
+                trusted=link.trusted,
+            )
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(req, link, exc, url, cache=cache, level=level)
+            cls._handle_fail(req, link, exc, url, level=level)
         except requests.ConnectionError as exc:
             cls._handle_fail(
                 req, link, "connection error: %s" % exc, url,
-                cache=cache,
             )
         except requests.Timeout:
-            cls._handle_fail(req, link, "timed out", url, cache=cache)
+            cls._handle_fail(req, link, "timed out", url)
         except SSLError as exc:
             reason = ("There was a problem confirming the ssl certificate: "
                       "%s" % exc)
-            cls._handle_fail(req, link, reason, url,
-                cache=cache,
+            cls._handle_fail(
+                req, link, reason, url,
                 level=2,
-                meth=logger.notify,
+                meth=logger.info,
             )
         else:
-            if cache is not None:
-                cache.add_page([url, resp.url], inst)
             return inst
 
     @staticmethod
-    def _handle_fail(req, link, reason, url, cache=None, level=1, meth=None):
+    def _handle_fail(req, link, reason, url, level=1, meth=None):
         if meth is None:
-            meth = logger.info
+            meth = logger.debug
 
         meth("Could not fetch URL %s: %s", link, reason)
         meth("Will skip URL %s when looking for download links for %s" %
              (link.url, req))
 
-        if cache is not None:
-            cache.add_page_failure(url, level)
-
     @staticmethod
-    def _get_content_type(url, session=None):
+    def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
-        if session is None:
-            session = PipSession()
-
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if not scheme in ('http', 'https', 'ftp', 'ftps'):
-            ## FIXME: some warning or something?
-            ## assertion error?
+        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+        if scheme not in ('http', 'https'):
+            # FIXME: some warning or something?
+            # assertion error?
             return ''
 
         resp = session.head(url, allow_redirects=True)
@@ -738,30 +947,30 @@ class HTMLPage(object):
 
         return resp.headers.get("Content-Type", "")
 
-    @property
+    @cached_property
     def api_version(self):
-        if not hasattr(self, "_api_version"):
-            _api_version = None
+        metas = [
+            x for x in self.parsed.findall(".//meta")
+            if x.get("name", "").lower() == "api-version"
+        ]
+        if metas:
+            try:
+                return int(metas[0].get("value", None))
+            except (TypeError, ValueError):
+                pass
 
-            metas = [x for x in self.parsed.findall(".//meta")
-                        if x.get("name", "").lower() == "api-version"]
-            if metas:
-                try:
-                    _api_version = int(metas[0].get("value", None))
-                except (TypeError, ValueError):
-                    _api_version = None
-            self._api_version = _api_version
-        return self._api_version
+        return None
 
-    @property
+    @cached_property
     def base_url(self):
-        if not hasattr(self, "_base_url"):
-            base = self.parsed.find(".//base")
-            if base is not None and base.get("href"):
-                self._base_url = base.get("href")
-            else:
-                self._base_url = self.url
-        return self._base_url
+        bases = [
+            x for x in self.parsed.findall(".//base")
+            if x.get("href") is not None
+        ]
+        if bases and bases[0].get("href"):
+            return bases[0].get("href")
+        else:
+            return self.url
 
     @property
     def links(self):
@@ -769,7 +978,9 @@ class HTMLPage(object):
         for anchor in self.parsed.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(urlparse.urljoin(self.base_url, href))
+                url = self.clean_link(
+                    urllib_parse.urljoin(self.base_url, href)
+                )
 
                 # Determine if this link is internal. If that distinction
                 #   doesn't make sense in this context, then we don't make
@@ -778,8 +989,10 @@ class HTMLPage(object):
                 if self.api_version and self.api_version >= 2:
                     # Only api_versions >= 2 have a distinction between
                     #   external and internal links
-                    internal = bool(anchor.get("rel")
-                                and "internal" in anchor.get("rel").split())
+                    internal = bool(
+                        anchor.get("rel")
+                        and "internal" in anchor.get("rel").split()
+                    )
 
                 yield Link(url, self, internal=internal)
 
@@ -800,7 +1013,9 @@ class HTMLPage(object):
                 #   what rels were being looked for
                 if found_rels & rels:
                     href = anchor.get("href")
-                    url = self.clean_link(urlparse.urljoin(self.base_url, href))
+                    url = self.clean_link(
+                        urllib_parse.urljoin(self.base_url, href)
+                    )
                     yield Link(url, self, trusted=False)
 
     def scraped_rel_links(self):
@@ -812,10 +1027,18 @@ class HTMLPage(object):
             href_match = self._href_re.search(self.content, pos=match.end())
             if not href_match:
                 continue
-            url = href_match.group(1) or href_match.group(2) or href_match.group(3)
+            url = (
+                href_match.group(1)
+                or href_match.group(2)
+                or href_match.group(3)
+            )
             if not url:
                 continue
-            url = self.clean_link(urlparse.urljoin(self.base_url, url))
+            try:
+                url = url.decode("ascii")
+            except UnicodeDecodeError:
+                continue
+            url = self.clean_link(urllib_parse.urljoin(self.base_url, url))
             yield Link(url, self, trusted=False, _deprecated_regex=True)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
@@ -831,7 +1054,12 @@ class HTMLPage(object):
 class Link(object):
 
     def __init__(self, url, comes_from=None, internal=None, trusted=None,
-            _deprecated_regex=False):
+                 _deprecated_regex=False):
+
+        # url can be a UNC windows share
+        if url != Inf and url.startswith('\\\\'):
+            url = path_to_url(url)
+
         self.url = url
         self.comes_from = comes_from
         self.internal = internal
@@ -848,21 +1076,33 @@ class Link(object):
         return '<Link %s>' % self
 
     def __eq__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url == other.url
 
     def __ne__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url != other.url
 
     def __lt__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url < other.url
 
     def __le__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url <= other.url
 
     def __gt__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url > other.url
 
     def __ge__(self, other):
+        if not isinstance(other, Link):
+            return NotImplemented
         return self.url >= other.url
 
     def __hash__(self):
@@ -870,18 +1110,23 @@ class Link(object):
 
     @property
     def filename(self):
-        _, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
         name = posixpath.basename(path.rstrip('/')) or netloc
+        name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self.url)
         return name
 
     @property
     def scheme(self):
-        return urlparse.urlsplit(self.url)[0]
+        return urllib_parse.urlsplit(self.url)[0]
+
+    @property
+    def netloc(self):
+        return urllib_parse.urlsplit(self.url)[1]
 
     @property
     def path(self):
-        return urlparse.urlsplit(self.url)[2]
+        return urllib_parse.urlsplit(self.url)[2]
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))
@@ -892,8 +1137,8 @@ class Link(object):
 
     @property
     def url_without_fragment(self):
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(self.url)
-        return urlparse.urlunsplit((scheme, netloc, path, query, None))
+        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
+        return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'#egg=([^&]*)')
 
@@ -904,7 +1149,9 @@ class Link(object):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
+    _hash_re = re.compile(
+        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
+    )
 
     @property
     def hash(self):
@@ -963,28 +1210,3 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
-
-
-def get_requirement_from_url(url):
-    """Get a requirement from the URL, if possible.  This looks for #egg
-    in the URL"""
-    link = Link(url)
-    egg_info = link.egg_fragment
-    if not egg_info:
-        egg_info = splitext(link.filename)[0]
-    return package_to_requirement(egg_info)
-
-
-def package_to_requirement(package_name):
-    """Translate a name like Foo-1.2 to Foo==1.3"""
-    match = re.search(r'^(.*?)-(dev|\d.*)', package_name)
-    if match:
-        name = match.group(1)
-        version = match.group(2)
-    else:
-        name = package_name
-        version = ''
-    if version:
-        return '%s==%s' % (name, version)
-    else:
-        return name

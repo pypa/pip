@@ -5,9 +5,11 @@ STDOUT = -11
 STDERR = -12
 
 try:
-    from ctypes import windll
+    import ctypes
+    from ctypes import LibraryLoader
+    windll = LibraryLoader(ctypes.WinDLL)
     from ctypes import wintypes
-except ImportError:
+except (AttributeError, ImportError):
     windll = None
     SetConsoleTextAttribute = lambda *_: None
 else:

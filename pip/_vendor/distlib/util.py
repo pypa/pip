@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012-2013 The Python Software Foundation.
+# Copyright (C) 2012-2014 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import codecs
@@ -154,12 +154,16 @@ def in_venv():
 
 
 def get_executable():
-    if sys.platform == 'darwin' and ('__VENV_LAUNCHER__'
-                                     in os.environ):
-        result =  os.environ['__VENV_LAUNCHER__']
-    else:
-        result = sys.executable
-    return result
+# The __PYVENV_LAUNCHER__ dance is apparently no longer needed, as
+# changes to the stub launcher mean that sys.executable always points
+# to the stub on OS X
+#    if sys.platform == 'darwin' and ('__PYVENV_LAUNCHER__'
+#                                     in os.environ):
+#        result =  os.environ['__PYVENV_LAUNCHER__']
+#    else:
+#        result = sys.executable
+#    return result
+    return sys.executable
 
 
 def proceed(prompt, allowed_chars, error_prompt=None, default=None):
@@ -196,7 +200,7 @@ def read_exports(stream):
     stream = StringIO(data)
     try:
         data = json.load(stream)
-        result = data['exports']
+        result = data['extensions']['python.exports']['exports']
         for group, entries in result.items():
             for k, v in entries.items():
                 s = '%s = %s' % (k, v)
@@ -595,7 +599,6 @@ def get_cache_base(suffix=None):
     else:
         # Assume posix, or old Windows
         result = os.path.expanduser('~')
-    result = os.path.join(result, suffix)
     # we use 'isdir' instead of 'exists', because we want to
     # fail if there's a file with that name
     if os.path.isdir(result):
@@ -612,7 +615,7 @@ def get_cache_base(suffix=None):
     if not usable:
         result = tempfile.mkdtemp()
         logger.warning('Default location unusable, using %s', result)
-    return result
+    return os.path.join(result, suffix)
 
 
 def path_to_cache_dir(path):
@@ -766,6 +769,50 @@ def get_package_data(name, version):
     url = ('https://www.red-dove.com/pypi/projects/'
            '%s/%s/package-%s.json' % (name[0].upper(), name, version))
     return _get_external_data(url)
+
+
+class Cache(object):
+    """
+    A class implementing a cache for resources that need to live in the file system
+    e.g. shared libraries. This class was moved from resources to here because it
+    could be used by other modules, e.g. the wheel module.
+    """
+
+    def __init__(self, base):
+        """
+        Initialise an instance.
+
+        :param base: The base directory where the cache should be located.
+        """
+        # we use 'isdir' instead of 'exists', because we want to
+        # fail if there's a file with that name
+        if not os.path.isdir(base):
+            os.makedirs(base)
+        if (os.stat(base).st_mode & 0o77) != 0:
+            logger.warning('Directory \'%s\' is not private', base)
+        self.base = os.path.abspath(os.path.normpath(base))
+
+    def prefix_to_dir(self, prefix):
+        """
+        Converts a resource prefix to a directory name in the cache.
+        """
+        return path_to_cache_dir(prefix)
+
+    def clear(self):
+        """
+        Clear the cache.
+        """
+        not_removed = []
+        for fn in os.listdir(self.base):
+            fn = os.path.join(self.base, fn)
+            try:
+                if os.path.islink(fn) or os.path.isfile(fn):
+                    os.remove(fn)
+                elif os.path.isdir(fn):
+                    shutil.rmtree(fn)
+            except Exception:
+                not_removed.append(fn)
+        return not_removed
 
 
 class EventMixin(object):
