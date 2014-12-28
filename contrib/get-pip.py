@@ -127,7 +127,9 @@ def bootstrap(tmpdir=None):
 
         # Execute the included pip and use it to install the latest pip and
         # setuptools from PyPI
-        sys.exit(pip.main(["install", "--upgrade"] + packages + args))
+        sys.exit(pip.main(
+            ["install", "--upgrade", "--no-cache-dir"] + packages + args
+        ))
     finally:
         # Remove our temporary directory
         if delete_tmpdir and tmpdir:
@@ -157,7 +159,7 @@ def main():
 
 
 DATA = b"""
-P)h>@6aWAK2mtM&mqi1Xpr~sN002QK000jF003}la4%n9X>MtBUtcb8d7WDSZ`-yK|J{ED>nxD8+Um0
+P)h>@6aWAK2mqC(n?(bbpr~sN002QK000jF003}la4%n9X>MtBUtcb8d7WDSZ`-yK|J{ED>nxD8+Um0
 5eL?U%Y-m%gK-UIo`}%;?5M+zCxyYhMN=e*p|NFZ;k|Jd(SvL)<CGmK7Jl=hHcgo3=XRTJxR-$^wt6N
 qdnw_jB8zuKF%QkJ(DxPIb>}#nSmanud+lFW6c`~u@OS#>OYU>`Q?(XWQ&Xwlw`7T!#5bAEGK6JE-Pm
 J7J)G5DT^STkT(oXiPN;i2~=J@hLDXC`cx!mvbs<2O&qNY2~q-{jm&EN7S6NU#bvO?%aiB(G?W;9qUx
@@ -18505,7 +18507,7 @@ BA!(BqFEmiP3sIRrbA$CMW1k7sRy9*2pdPLs0@Ao)WhOpS`T1<!a|r+!xsBXV<v2Wl6J!&p(*|4fB1-
 0IQ9OKJfZBWzh&E-=O#8*dRs8GT$)GcF&xNs_Pp=g~ImJH>b<Z(znFy*Tw5ou{xQB-KUElNN>Sh(@Cd
 2bnpLVWAW)Vb%YpsFN($jkAo$``2<4l3wQ{|oG>&I@>(J2X;)F}q}TI_0Kj{I$`t*w_M8;l)%)>(X{5
 LiDejny@sm5wGgnXmaeg6J<U)E5Mwn%?#c8IeKu<9X1JC#^o_0dTozhQ?SlPsPhj9gkO+u$1pO+%1|9
-~Cs0AFr&jSQ@$D9GaM>h;QLgRP0X_^%2e&zY_M0Z>Z=1QY-O00;o>p_fIaVh9N{1^@tX5dZ)d0001RX
+~Cs0AFr&jSQ@$D9GaM>h;QLgRP0X_^%2e&zY_M0Z>Z=1QY-O00;n;rJF^iVh9N{1^@tX5dZ)d0001RX
 >c!NZ*6U1Ze(*Wb7f(2V`wgLd97DlZ`(E$e)q2+S_G0>S1300C71_vX@(U@(_nV60iHoH5^b}QM3tms
 dqw~I&Y?)^=5BqM14I&e&c}28NN$xZ38mY{G>TJ7L|IE^2z$`7Xbh+A_iX0I3%T2gYUe-oN&8pBkLI9
 QJ)3P2vKDpvz%<WfS+XkkxL57xoGkCJuCABMPB@o`s*o&5-ii9pvQTxlQmoR}h#)JfoF9YW>F#|u)fi
@@ -19548,7 +19550,7 @@ xl{x$?s^9p}F(yZ{uTeLfMV*~Mqbf3&w=t|M3no(QlZc|>0j8Hja{WIz=U8!%c)Fn)~Yv<D1=A`$Q!Q
 Tcsef97<%_w_#m*(Ha-A6MS5xD_h-$(=6Hr2$REV(~U!ym92B=5ou7Tx9wiX$0IylYgPis{JfeL;Qkr
 )Rwt_3Ufs&e+l-iYfIdWPwLf+P{{m9T<_g<{HijoN<5KA18Q!^DW)qm~r0?^F|{Km?3*6eH(cPlI1cd
 E;wT(IUkc8NiEMgopXNbKYC4blGEU)7UAsCna;0ZtaU8ixUH|rF=n0FrXBslGO+B=GO$EZFOFf*H;nB
-RaOUF*Zz48uh<FX$Wb$uNO928D0~7!N00;o>p_fGimY}F>4FCW^C;$Kt00000000000002(fdBvi0B~
+RaOUF*Zz48uh<FX$Wb$uNO928D0~7!N00;n;rJF?qmY}F>4FCW^C;$Kt00000000000002(fdBvi0B~
 t=FJE72ZfSI1UoLQYP)h*<6ay3h000O8?V*=NU`s+{E&%`lL;?T+4*&oF0000000000q=A?X003}la4
 %n9ZDDC{Utcb8c~DCM0u%!j000080PUfdMO#{yBNYk&00kic01^NI00000000000HlHQ4gdgfX>c!MV
 RL0;Z*6U1Ze%WSc~DCM0u%!j000080PUfdMV1lWLA(n90IMYc01*HH00000000000HlF982|uqX>c!M
@@ -19822,7 +19824,7 @@ ytkO0000000000q=E5}5dd&$a4%zTZEaz0WOFZHUukY>bYEXCaCuNm0Rj{Q6aWAK2mtM&mqil~`knX!
 AK2mtM&mqi{H(4DFQ007nl000yK0000000000005+c7n%_OaA|NaV{dJ3VQyq|FKA_Ka4v9pP)h*<6a
 y3h000O8?V*=NuUC0^cMbpmZax427XSbN0000000000q=ECB5dd&$a4%zTZEaz0WOFZRZgX^DY-}!Yc
 ~DCM0u%!j000080PUfdMOliQIQRwt04p2-02BZK00000000000HlGRsu2KiX>c!NZ*6U1Ze(*WY-w|J
-E^v8JO928D0~7!N00;o>p_fIaVh9N{1^@tX5dZ)d00000000000001_fyuEE0B~t=FJo_QZDDR?b1!p
+E^v8JO928D0~7!N00;n;rJF^iVh9N{1^@tX5dZ)d00000000000001_fyuEE0B~t=FJo_QZDDR?b1!p
 cVRB<=E^v8JO928D0~7!N00;o>p_fIn!h7811ONaJ4gdfY00000000000001_fiSoc0B~t=FJo_QZDD
 R?b1!pfZ+9+mc~DCM0u%!j000080PUfdMWp|bws`{p00asE02u%P00000000000HlFOy%7L#X>c!NZ*
 6U1Ze(*Wb#7^Hb97;BY%XwlP)h*<6ay3h000O8?V*=NHM=qUlmGw#;Q#;t6#xJL0000000000q=EOq5
