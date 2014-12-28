@@ -1,5 +1,5 @@
 language: python
-
+sudo: false
 env:
   - TOXENV=pep8
   - TOXENV=py3pep8
