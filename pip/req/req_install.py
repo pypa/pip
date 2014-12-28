@@ -37,7 +37,7 @@ from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
@@ -159,7 +159,7 @@ class InstallRequirement(object):
                 link = Link(
                     path_to_url(os.path.normpath(os.path.abspath(link.path))))
             # wheel file
-            if link.ext == wheel_ext:
+            if link.is_wheel:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
                 if not wheel.supported():
                     raise UnsupportedWheel(
@@ -951,7 +951,7 @@ exec(compile(
 
     @property
     def is_wheel(self):
-        return self.link and '.whl' in self.link.url
+        return self.link and self.link.is_wheel
 
     def move_wheel_files(self, wheeldir, root=None):
         move_wheel_files(

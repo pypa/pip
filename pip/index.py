@@ -182,7 +182,7 @@ class PackageFinder(object):
             support_num = len(supported_tags)
             if candidate.location == INSTALLED_VERSION:
                 pri = 1
-            elif candidate.location.ext == wheel_ext:
+            elif candidate.location.is_wheel:
                 # can raise InvalidWheelFilename
                 wheel = Wheel(candidate.location.filename)
                 if not wheel.supported():
@@ -1193,6 +1193,10 @@ class Link(object):
         elif trusted is not None:
             # This link came from an untrusted source and we cannot trust it
             return False
+
+    @property
+    def is_wheel(self):
+        return self.ext == wheel_ext
 
 
 # An object to represent the "link" for the installed version of a requirement.

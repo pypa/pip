@@ -15,7 +15,6 @@ from pip.utils import (display_path, rmtree, dist_in_usersite,
                        _make_build_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
-from pip.wheel import wheel_ext
 
 
 logger = logging.getLogger(__name__)
@@ -335,10 +334,7 @@ class RequirementSet(object):
                         if link:
                             try:
 
-                                if (
-                                    link.filename.endswith(wheel_ext) and
-                                    self.wheel_download_dir
-                                ):
+                                if link.is_wheel and self.wheel_download_dir:
                                     # when doing 'pip wheel`
                                     download_dir = self.wheel_download_dir
                                     do_download = True
@@ -364,7 +360,7 @@ class RequirementSet(object):
                         else:
                             unpack = False
                     if unpack:
-                        is_wheel = link and link.filename.endswith(wheel_ext)
+                        is_wheel = link and link.is_wheel
                         if self.is_download:
                             req_to_install.source_dir = location
                             if not is_wheel:

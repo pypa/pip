@@ -84,6 +84,9 @@ class TestLink(object):
     def test_ext_query(self):
         assert '.whl' == Link('http://yo/wheel.whl?a=b').ext
 
+    def test_is_wheel(self):
+        assert Link('http://yo/wheel.whl').is_wheel
+
 
 @pytest.mark.parametrize(
     ("html", "url", "expected"),
