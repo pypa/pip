@@ -4,6 +4,9 @@
   Windows shell does not support them, causing odd characters to appear with
   the progress bar.
 
+* Fix an issue where using -v would cause an exception saying "TypeError: not
+  all arguments converted during string formatting".
+
 
 **6.0.3 (2014-12-23)**
 
