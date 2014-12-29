@@ -1,3 +1,10 @@
+**6.0.4 (2015-01-03)**
+
+* Fix an issue where ANSI escape codes would be used on Windows even though the
+  Windows shell does not support them, causing odd characters to appear with
+  the progress bar.
+
+
 **6.0.3 (2014-12-23)**
 
 * Fix an issue where the implicit version check new in pip 6.0 could cause pip
