@@ -490,6 +490,7 @@ exec(compile(
         # we want to return it's version.
         if dist:
             return dist.version
+        return ''
 
     def assert_source_matches_version(self):
         assert self.source_dir
