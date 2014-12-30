@@ -360,7 +360,7 @@ class PackageFinder(object):
             logger.debug(
                 'dependency_links found: %s',
                 ', '.join([
-                    link.url for p, link, version in dependency_versions
+                    version.location.url for version in dependency_versions
                 ])
             )
         file_versions = list(
