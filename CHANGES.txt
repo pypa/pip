@@ -7,6 +7,9 @@
 * Fix an issue where using -v would cause an exception saying "TypeError: not
   all arguments converted during string formatting".
 
+* Fix an issue where using -v with dependency links would cause an exception
+  saying ``TypeError: 'InstallationCandidate' object is not iterable``.
+
 
 **6.0.3 (2014-12-23)**
 

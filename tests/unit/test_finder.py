@@ -273,6 +273,23 @@ def test_finder_priority_file_over_page(data):
     assert link.url.startswith("file://")
 
 
+def test_finder_deplink():
+    """
+    Test PackageFinder with dependency links only
+    """
+    req = InstallRequirement.from_line('gmpy==1.15', None)
+    finder = PackageFinder(
+        [],
+        [],
+        process_dependency_links=True,
+        session=PipSession(),
+    )
+    finder.add_dependency_links(
+        ['https://pypi.python.org/packages/source/g/gmpy/gmpy-1.15.zip'])
+    link = finder.find_requirement(req, False)
+    assert link.url.startswith("https://pypi"), link
+
+
 def test_finder_priority_page_over_deplink():
     """
     Test PackageFinder prefers page links over equivalent dependency links
