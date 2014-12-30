@@ -432,19 +432,22 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    for subreq in dist.requires(
-                            req_to_install.extras):
-                        if self.has_requirement(
-                                subreq.project_name):
-                            # FIXME: check for conflict
-                            continue
-                        subreq = InstallRequirement(
-                            str(subreq),
-                            req_to_install,
-                            isolated=self.isolated,
-                        )
-                        reqs.append(subreq)
-                        self.add_requirement(subreq)
+                    try:
+                        for subreq in dist.requires(
+                                req_to_install.extras):
+                            if self.has_requirement(
+                                    subreq.project_name):
+                                # FIXME: check for conflict
+                                continue
+                            subreq = InstallRequirement(
+                                str(subreq),
+                                req_to_install,
+                                isolated=self.isolated,
+                            )
+                            reqs.append(subreq)
+                            self.add_requirement(subreq)
+                    except pkg_resources.UnknownExtra as ex:
+                        logger.error(ex)
 
                 if not self.has_requirement(req_to_install.name):
                     # 'unnamed' requirements will get added here
