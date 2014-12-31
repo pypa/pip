@@ -13,6 +13,10 @@
 * Fix an issue where upgrading distribute would cause an exception saying
   ``TypeError: expected string or buffer``.
 
+* Show a warning and disable the use of the cache directory when the cache
+  directory is not owned by the current use, commonly caused by using ``sudo``
+  without the ``-H`` flag.
+
 
 **6.0.3 (2014-12-23)**
 
