@@ -23,6 +23,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
+from pip.utils.filesystem import check_path_owner
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -225,7 +226,31 @@ class SafeFileCache(FileCache):
     not be accessible or writable.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(SafeFileCache, self).__init__(*args, **kwargs)
+
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        # If it is not owned by the user executing pip then we will disable
+        # the cache and log a warning.
+        if not check_path_owner(self.directory, os.geteuid()):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want the -H flag.",
+                self.directory,
+            )
+
+            # Set our directory to None to disable the Cache
+            self.directory = None
+
     def get(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).get(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -235,6 +260,10 @@ class SafeFileCache(FileCache):
             pass
 
     def set(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).set(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -244,6 +273,10 @@ class SafeFileCache(FileCache):
             pass
 
     def delete(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).delete(*args, **kwargs)
         except (LockError, OSError, IOError):
