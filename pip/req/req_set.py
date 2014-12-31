@@ -443,7 +443,9 @@ class RequirementSet(object):
                         # req_to_install.extras are the extras
                         # the user *would like* to install.
                         # how to get the available options
-                        print req_to_install.extras
+                        # _dep_map has both extras and something else
+                        # but it is: [Requirement.parse('simple==1.0')]
+                        print dist._dep_map  # maybe?
                         for subreq in dist.requires(
                                 req_to_install.extras):
                             if self.has_requirement(
