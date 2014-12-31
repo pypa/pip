@@ -437,7 +437,7 @@ class RequirementSet(object):
                     # instead, the current code throws an exception when
                     # checking for the option.
                     # further, this will fail on the very first check
-                    # e.g. if a single non-existant one is found, then
+                    # i.e. if a single non-existant one is found, then
                     # it stops trying to install extras.
                     try:
                         # req_to_install.extras are the extras
