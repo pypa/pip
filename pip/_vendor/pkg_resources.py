@@ -2483,6 +2483,7 @@ class Distribution(object):
         dm = self._dep_map
         deps = []
         deps.extend(dm.get(None, ()))
+
         for ext in extras:
             try:
                 deps.extend(dm[safe_extra(ext)])

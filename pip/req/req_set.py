@@ -432,7 +432,18 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
+                    # it seems like this should already know what the
+                    # extra options are, then check for option in the list.
+                    # instead, the current code throws an exception when
+                    # checking for the option.
+                    # further, this will fail on the very first check
+                    # e.g. if a single non-existant one is found, then
+                    # it stops trying to install extras.
                     try:
+                        # req_to_install.extras are the extras
+                        # the user *would like* to install.
+                        # how to get the available options
+                        print req_to_install.extras
                         for subreq in dist.requires(
                                 req_to_install.extras):
                             if self.has_requirement(
@@ -447,6 +458,8 @@ class RequirementSet(object):
                             reqs.append(subreq)
                             self.add_requirement(subreq)
                     except pkg_resources.UnknownExtra as ex:
+                        # looks like the project_name isn't set.
+                        # shouldn't it be?
                         logger.error(ex)
 
                 if not self.has_requirement(req_to_install.name):
