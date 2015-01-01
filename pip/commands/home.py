@@ -18,9 +18,6 @@ class HomeCommand(Command):
       %prog [options] <package> ..."""
     summary = 'Open package homepage in default browser.'
 
-    def __init__(self, *args, **kw):
-        super(HomeCommand, self).__init__(*args, **kw)
-
     def run(self, options, args):
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
