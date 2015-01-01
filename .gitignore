@@ -9,3 +9,4 @@ MANIFEST
 *~
 .coverage
 coverage.xml
+tests/*/test-output
