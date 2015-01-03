@@ -1,5 +1,8 @@
 **6.0.5 (2015-01-03)**
 
+* Fix a regression with 6.0.4 under Windows where most commands would raise an
+  exception due to Windows not having the ``os.geteuid()`` function.
+
 
 **6.0.4 (2015-01-03)**
 
