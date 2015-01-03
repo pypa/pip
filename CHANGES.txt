@@ -22,6 +22,9 @@
 
 * Document the default cache directories for each operating system.
 
+* Create the cache directory when the pip version check needs to save to it
+  instead of silently logging an error.
+
 
 **6.0.3 (2014-12-23)**
 
