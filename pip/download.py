@@ -234,7 +234,7 @@ class SafeFileCache(FileCache):
         # we will check the parent directory until we find one that does exist.
         # If it is not owned by the user executing pip then we will disable
         # the cache and log a warning.
-        if not check_path_owner(self.directory, os.geteuid()):
+        if not check_path_owner(self.directory):
             logger.warning(
                 "The directory '%s' or its parent directory is not owned by "
                 "the current user and the cache has been disabled. Please "
