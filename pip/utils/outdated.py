@@ -60,8 +60,7 @@ class GlobalSelfCheckState(object):
 
     def save(self, pypi_version, current_time):
         # Check to make sure that we own the directory
-        if not check_path_owner(
-                os.path.dirname(self.statefile_path), os.geteuid()):
+        if not check_path_owner(os.path.dirname(self.statefile_path)):
             return
 
         # Now that we've ensured the directory is owned by this user, we'll go
