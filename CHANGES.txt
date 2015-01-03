@@ -1,5 +1,7 @@
 **6.0.6 (2015-01-03)**
 
+* Continue the regression fix from 6.0.5 which was not a complete fix.
+
 
 **6.0.5 (2015-01-03)**
 

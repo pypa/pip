@@ -128,7 +128,7 @@ def test_global_state(monkeypatch):
     def fake_lock(filename):
         yield
 
-    monkeypatch.setattr(outdated, "check_path_owner", lambda p, u: True)
+    monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
 
