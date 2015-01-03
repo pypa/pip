@@ -494,6 +494,7 @@ class RequirementSet(object):
         distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
         for req in to_install:
             if (req.name == 'distribute'
+                    and req.installed_version is not None
                     and req.installed_version in distribute_req):
                 to_install.remove(req)
                 to_install.append(req)

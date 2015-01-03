@@ -458,21 +458,59 @@ class Specifier(_IndividualSpecifier):
 
     @_require_version_compare
     def _compare_less_than(self, prospective, spec):
-        # Less than are defined as exclusive operators, this implies that
-        # pre-releases do not match for the same series as the spec. This is
-        # implemented by making <V imply !=V.*.
+        # Convert our spec to a Version instance, since we'll want to work with
+        # it as a version.
         spec = Version(spec)
-        return (prospective < spec
-                and self._get_operator("!=")(prospective, str(spec) + ".*"))
+
+        # Check to see if the prospective version is less than the spec
+        # version. If it's not we can short circuit and just return False now
+        # instead of doing extra unneeded work.
+        if not prospective < spec:
+            return False
+
+        # This special case is here so that, unless the specifier itself
+        # includes is a pre-release version, that we do not accept pre-release
+        # versions for the version mentioned in the specifier (e.g. <3.1 should
+        # not match 3.1.dev0, but should match 3.0.dev0).
+        if not spec.is_prerelease and prospective.is_prerelease:
+            if Version(prospective.base_version) == Version(spec.base_version):
+                return False
+
+        # If we've gotten to here, it means that prospective version is both
+        # less than the spec version *and* it's not a pre-release of the same
+        # version in the spec.
+        return True
 
     @_require_version_compare
     def _compare_greater_than(self, prospective, spec):
-        # Greater than are defined as exclusive operators, this implies that
-        # pre-releases do not match for the same series as the spec. This is
-        # implemented by making >V imply !=V.*.
+        # Convert our spec to a Version instance, since we'll want to work with
+        # it as a version.
         spec = Version(spec)
-        return (prospective > spec
-                and self._get_operator("!=")(prospective, str(spec) + ".*"))
+
+        # Check to see if the prospective version is greater than the spec
+        # version. If it's not we can short circuit and just return False now
+        # instead of doing extra unneeded work.
+        if not prospective > spec:
+            return False
+
+        # This special case is here so that, unless the specifier itself
+        # includes is a post-release version, that we do not accept
+        # post-release versions for the version mentioned in the specifier
+        # (e.g. >3.1 should not match 3.0.post0, but should match 3.2.post0).
+        if not spec.is_postrelease and prospective.is_postrelease:
+            if Version(prospective.base_version) == Version(spec.base_version):
+                return False
+
+        # Ensure that we do not allow a local version of the version mentioned
+        # in the specifier, which is techincally greater than, to match.
+        if prospective.local is not None:
+            if Version(prospective.base_version) == Version(spec.base_version):
+                return False
+
+        # If we've gotten to here, it means that prospective version is both
+        # greater than the spec version *and* it's not a pre-release of the
+        # same version in the spec.
+        return True
 
     def _compare_arbitrary(self, prospective, spec):
         return str(prospective).lower() == str(spec).lower()

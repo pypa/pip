@@ -291,6 +291,15 @@ While this cache attempts to minimize network activity, it does not prevent
 network access all together. If you want a fast/local install solution that
 circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
 
+The default location for the cache directory depends on the Operating System:
+
+Unix
+  :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
+OS X
+  :file:`~/Library/Caches/pip`.
+Windows
+  :file:`<CSIDL_LOCAL_APPDATA>\pip\Cache`
+
 
 Hash Verification
 +++++++++++++++++

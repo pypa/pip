@@ -96,11 +96,19 @@ class LegacyVersion(_BaseVersion):
         return self._version
 
     @property
+    def base_version(self):
+        return self._version
+
+    @property
     def local(self):
         return None
 
     @property
     def is_prerelease(self):
+        return False
+
+    @property
+    def is_postrelease(self):
         return False
 
 
@@ -270,6 +278,19 @@ class Version(_BaseVersion):
         return str(self).split("+", 1)[0]
 
     @property
+    def base_version(self):
+        parts = []
+
+        # Epoch
+        if self._version.epoch != 0:
+            parts.append("{0}!".format(self._version.epoch))
+
+        # Release segment
+        parts.append(".".join(str(x) for x in self._version.release))
+
+        return "".join(parts)
+
+    @property
     def local(self):
         version_string = str(self)
         if "+" in version_string:
@@ -278,6 +299,10 @@ class Version(_BaseVersion):
     @property
     def is_prerelease(self):
         return bool(self._version.dev or self._version.pre)
+
+    @property
+    def is_postrelease(self):
+        return bool(self._version.post)
 
 
 def _parse_letter_version(letter, number):
