@@ -128,6 +128,8 @@ def test_global_state(monkeypatch):
     def fake_lock(filename):
         yield
 
+    monkeypatch.setattr(outdated, "check_path_owner", lambda p, u: True)
+
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
 
     monkeypatch.setattr(outdated, 'running_under_virtualenv',
