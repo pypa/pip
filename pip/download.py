@@ -537,7 +537,9 @@ def _download_url(resp, link, content_file):
 
     cached_resp = getattr(resp, "from_cache", False)
 
-    if cached_resp:
+    if logger.getEffectiveLevel() > logging.INFO:
+        show_progress = False
+    elif cached_resp:
         show_progress = False
     elif total_length > (40 * 1000):
         show_progress = True
