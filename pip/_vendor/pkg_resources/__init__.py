@@ -75,15 +75,9 @@ try:
 except ImportError:
     pass
 
-try:
-    import pkg_resources._vendor.packaging.version
-    import pkg_resources._vendor.packaging.specifiers
-    packaging = pkg_resources._vendor.packaging
-except ImportError:
-    # fallback to naturally-installed version; allows system packagers to
-    #  omit vendored packages.
-    import packaging.version
-    import packaging.specifiers
+import pip._vendor.packaging.version
+import pip._vendor.packaging.specifiers
+packaging = pip._vendor.packaging
 
 
 class PEP440Warning(RuntimeWarning):
