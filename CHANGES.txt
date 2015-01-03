@@ -1,5 +1,8 @@
 **6.1.0 (unreleased)**
 
+* Use a smoother progress bar when the terminal is capable of handling it,
+  otherwise fallback to the original ASCII based progress bar.
+
 
 **6.0.4 (2015-01-03)**
 
