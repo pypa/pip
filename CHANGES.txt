@@ -17,7 +17,7 @@
   ``TypeError: expected string or buffer``.
 
 * Show a warning and disable the use of the cache directory when the cache
-  directory is not owned by the current use, commonly caused by using ``sudo``
+  directory is not owned by the current user, commonly caused by using ``sudo``
   without the ``-H`` flag.
 
 * Update PEP 440 support to handle the latest changes to PEP 440, particularly
