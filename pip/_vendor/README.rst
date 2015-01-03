@@ -15,10 +15,10 @@ Modifications
 * progress has been modified to not use unicode literals for support for Python 3.2
 
 
-Markerlib and pkg_resources
-===========================
+_markerlib and pkg_resources
+============================
 
-Markerlib and pkg_resources has been pulled in from setuptools 8.2.1
+_markerlib and pkg_resources has been pulled in from setuptools 11.0
 
 
 Note to Downstream Distributors
