@@ -25,6 +25,9 @@
 * Create the cache directory when the pip version check needs to save to it
   instead of silently logging an error.
 
+* Fix a regression where the ``-q`` flag would not properly suppress the
+  display of the progress bars.
+
 
 **6.0.3 (2014-12-23)**
 
