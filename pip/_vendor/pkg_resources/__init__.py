@@ -1439,7 +1439,7 @@ class MarkerEvaluation(object):
         Return a boolean indicating the marker result in this environment.
         Raise SyntaxError if marker is invalid.
         """
-        import _markerlib
+        from pip._vendor import _markerlib
         # markerlib implements Metadata 1.2 (PEP 345) environment markers.
         # Translate the variables to Metadata 2.0 (PEP 426).
         env = _markerlib.default_environment()
@@ -2711,7 +2711,7 @@ class DistInfoDistribution(Distribution):
 
     def _compute_dependencies(self):
         """Recompute this distribution's dependencies."""
-        from _markerlib import compile as compile_marker
+        from pip._vendor._markerlib import compile as compile_marker
         dm = self.__dep_map = {None: []}
 
         reqs = []
