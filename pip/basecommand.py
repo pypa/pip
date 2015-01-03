@@ -119,7 +119,7 @@ class Command(object):
 
         # Ensure that the path for our debug log is owned by the current user
         # and if it is not, disable the debug log.
-        write_debug_log = check_path_owner(debug_log_path, os.geteuid())
+        write_debug_log = check_path_owner(debug_log_path)
 
         logging_dictConfig({
             "version": 1,
