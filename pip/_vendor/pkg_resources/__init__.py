@@ -75,9 +75,15 @@ try:
 except ImportError:
     pass
 
-import pip._vendor.packaging.version
-import pip._vendor.packaging.specifiers
-packaging = pip._vendor.packaging
+try:
+    import pkg_resources._vendor.packaging.version
+    import pkg_resources._vendor.packaging.specifiers
+    packaging = pkg_resources._vendor.packaging
+except ImportError:
+    # fallback to naturally-installed version; allows system packagers to
+    #  omit vendored packages.
+    import packaging.version
+    import packaging.specifiers
 
 
 class PEP440Warning(RuntimeWarning):
@@ -1439,7 +1445,7 @@ class MarkerEvaluation(object):
         Return a boolean indicating the marker result in this environment.
         Raise SyntaxError if marker is invalid.
         """
-        from pip._vendor import _markerlib
+        import _markerlib
         # markerlib implements Metadata 1.2 (PEP 345) environment markers.
         # Translate the variables to Metadata 2.0 (PEP 426).
         env = _markerlib.default_environment()
@@ -2250,14 +2256,20 @@ class EntryPoint(object):
     def load(self, require=True, env=None, installer=None):
         if require:
             self.require(env, installer)
-        entry = __import__(self.module_name, globals(), globals(),
-            ['__name__'])
-        for attr in self.attrs:
-            try:
-                entry = getattr(entry, attr)
-            except AttributeError:
-                raise ImportError("%r has no %r attribute" % (entry, attr))
-        return entry
+        else:
+            warnings.warn(
+                "`require` parameter is deprecated. Use "
+                "EntryPoint._load instead.",
+                DeprecationWarning,
+            )
+        return self._load()
+
+    def _load(self):
+        module = __import__(self.module_name, fromlist=['__name__'], level=0)
+        try:
+            return functools.reduce(getattr, self.attrs, module)
+        except AttributeError as exc:
+            raise ImportError(str(exc))
 
     def require(self, env=None, installer=None):
         if self.extras and not self.dist:
@@ -2265,6 +2277,15 @@ class EntryPoint(object):
         reqs = self.dist.requires(self.extras)
         items = working_set.resolve(reqs, env, installer)
         list(map(working_set.add, items))
+
+    pattern = re.compile(
+        r'\s*'
+        r'(?P<name>[+\w. -]+?)\s*'
+        r'=\s*'
+        r'(?P<module>[\w.]+)\s*'
+        r'(:\s*(?P<attr>[\w.]+))?\s*'
+        r'(?P<extras>\[.*\])?\s*$'
+    )
 
     @classmethod
     def parse(cls, src, dist=None):
@@ -2277,25 +2298,23 @@ class EntryPoint(object):
         The entry name and module name are required, but the ``:attrs`` and
         ``[extras]`` parts are optional
         """
-        try:
-            attrs = extras = ()
-            name, value = src.split('=', 1)
-            if '[' in value:
-                value, extras = value.split('[', 1)
-                req = Requirement.parse("x[" + extras)
-                if req.specs:
-                    raise ValueError
-                extras = req.extras
-            if ':' in value:
-                value, attrs = value.split(':', 1)
-                if not MODULE(attrs.rstrip()):
-                    raise ValueError
-                attrs = attrs.rstrip().split('.')
-        except ValueError:
+        m = cls.pattern.match(src)
+        if not m:
             msg = "EntryPoint must be in 'name=module:attrs [extras]' format"
             raise ValueError(msg, src)
-        else:
-            return cls(name.strip(), value.strip(), attrs, extras, dist)
+        res = m.groupdict()
+        extras = cls._parse_extras(res['extras'])
+        attrs = res['attr'].split('.') if res['attr'] else ()
+        return cls(res['name'], res['module'], attrs, extras, dist)
+
+    @classmethod
+    def _parse_extras(cls, extras_spec):
+        if not extras_spec:
+            return ()
+        req = Requirement.parse('x' + extras_spec)
+        if req.specs:
+            raise ValueError()
+        return req.extras
 
     @classmethod
     def parse_group(cls, group, lines, dist=None):
@@ -2698,7 +2717,7 @@ class DistInfoDistribution(Distribution):
 
     def _compute_dependencies(self):
         """Recompute this distribution's dependencies."""
-        from pip._vendor._markerlib import compile as compile_marker
+        from _markerlib import compile as compile_marker
         dm = self.__dep_map = {None: []}
 
         reqs = []
