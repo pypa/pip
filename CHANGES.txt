@@ -20,6 +20,8 @@
 * Update PEP 440 support to handle the latest changes to PEP 440, particularly
   the changes to ``>V`` and ``<V`` so that they no longer imply ``!=V.*``.
 
+* Document the default cache directories for each operating system.
+
 
 **6.0.3 (2014-12-23)**
 
