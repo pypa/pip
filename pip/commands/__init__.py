@@ -3,6 +3,8 @@ Package containing all pip commands
 """
 from __future__ import absolute_import
 
+import logging
+
 from pip.commands.completion import CompletionCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.help import HelpCommand
@@ -14,6 +16,10 @@ from pip.commands.uninstall import UninstallCommand
 from pip.commands.unzip import UnzipCommand
 from pip.commands.zip import ZipCommand
 from pip.commands.wheel import WheelCommand
+from pip._vendor import pkg_resources
+
+
+logger = logging.getLogger(__name__)
 
 
 commands_dict = {
@@ -43,6 +49,16 @@ commands_order = [
     UnzipCommand,
     HelpCommand,
 ]
+
+
+for ep in pkg_resources.iter_entry_points('pip.command.v1'):
+    try:
+        command = ep.load()
+        logger.debug('from entry point %r loaded command = %r' % (ep, command))
+        commands_dict[command.name] = command
+    except Exception as e:
+        logger.warning('Failed to load command plugin: %r (%r): %s'
+                       % (ep, command, e))
 
 
 def get_summaries(ignore_hidden=True, ordered=True):
