@@ -88,8 +88,14 @@ On Debian and Ubuntu::
 On Fedora::
 
    sudo yum install python-pip
+   
+On Windows [7]_:
 
+::
 
+   choco install pip 
+
+----
 ----
 
 .. [1] https://docs.python.org/3/installing/
@@ -114,6 +120,8 @@ On Fedora::
        <https://github.com/pypa/pip/issues/1668>`_.
 
 .. [6] https://github.com/pypa/pip/issues/1299
+
+.. [7] Using [Chocolatey](https://chocolatey.org/)
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
