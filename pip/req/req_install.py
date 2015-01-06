@@ -679,8 +679,7 @@ exec(compile(
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
-            for path in pip.wheel.uninstallation_paths(dist):
-                paths_to_remove.add(path)
+            paths_to_remove.add_dist_record()
 
         else:
             logger.debug(

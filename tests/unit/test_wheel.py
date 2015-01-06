@@ -23,33 +23,6 @@ def test_get_entrypoints(tmpdir):
     )
 
 
-def test_uninstallation_paths():
-    class dist(object):
-        def get_metadata_lines(self, record):
-            return ['file.py,,',
-                    'file.pyc,,',
-                    'file.so,,',
-                    'nopyc.py']
-        location = ''
-
-    d = dist()
-
-    paths = list(wheel.uninstallation_paths(d))
-
-    expected = ['file.py',
-                'file.pyc',
-                'file.so',
-                'nopyc.py',
-                'nopyc.pyc']
-
-    assert paths == expected
-
-    # Avoid an easy 'unique generator' bug
-    paths2 = list(wheel.uninstallation_paths(d))
-
-    assert paths2 == paths
-
-
 def test_wheel_version(tmpdir, data):
     future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'

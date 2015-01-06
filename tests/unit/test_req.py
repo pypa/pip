@@ -15,6 +15,7 @@ from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable, _filter_install
+from pip.req.req_uninstall import UninstallPathSet
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
@@ -460,3 +461,28 @@ def test_filter_install():
         INFO, 'foo bar')
     assert _filter_install('I made a SyntaxError') == (
         INFO, 'I made a SyntaxError')
+
+
+def test_uninstallpathset():
+    class dist(object):
+        def get_metadata_lines(self, record):
+            return ['file.py,,',
+                    'file.pyc,,',
+                    'file.so,,',
+                    'nopyc.py']
+        location = ''
+
+    added_paths = set()
+    path_set_add = Mock()
+    path_set_add.side_effect = lambda p: added_paths.add(p)
+
+    path_set = UninstallPathSet(dist())
+    with patch.object(path_set, 'add', path_set_add):
+        path_set.add_dist_record()
+
+    assert added_paths == set([
+        'file.py',
+        'file.pyc',
+        'file.so',
+        'nopyc.py',
+        'nopyc.pyc'])

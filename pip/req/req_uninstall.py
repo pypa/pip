@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import csv
 import imp
 import logging
 import os
@@ -9,7 +10,7 @@ import tempfile
 from pip.compat import uses_pycache, WINDOWS
 from pip.exceptions import UninstallationError
 from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
-                       normalize_path)
+                       normalize_path, FakeFile)
 from pip.utils.logging import indent_log
 
 
@@ -68,6 +69,20 @@ class UninstallPathSet(object):
             self.pth[pth_file].add(entry)
         else:
             self._refuse.add(pth_file)
+
+    def add_dist_record(self):
+        """Add paths for all the files in self.dist's RECORD.
+        For each .py file in RECORD, add the .pyc in the same directory.
+        """
+        r = csv.reader(FakeFile(self.dist.get_metadata_lines('RECORD')))
+        for row in r:
+            path = os.path.join(self.dist.location, row[0])
+            self.add(path)
+            if path.endswith('.py'):
+                dn, fn = os.path.split(path)
+                base = fn[:-3]
+                path = os.path.join(dn, base + '.pyc')
+                self.add(path)
 
     def compact(self, paths):
         """Compact a path set to contain the minimal number of paths
