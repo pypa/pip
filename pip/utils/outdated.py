@@ -73,8 +73,11 @@ class GlobalSelfCheckState(object):
 
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
-            with open(self.statefile_path) as statefile:
-                state = json.load(statefile)
+            if os.path.exists(self.statefile_path):
+                with open(self.statefile_path) as statefile:
+                    state = json.load(statefile)
+            else:
+                state = {}
 
             state[sys.prefix] = {
                 "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
