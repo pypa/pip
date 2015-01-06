@@ -7,6 +7,9 @@
 
 * Don't mask network errors while downloading the file as a hash failure.
 
+* Properly create the state file for the pip version check so it only happens
+  once a week.
+
 
 **6.0.6 (2015-01-03)**
 
