@@ -5,6 +5,8 @@
 
 * Fix a broken log message when running ``pip wheel`` without a requirement.
 
+* Don't mask network errors while downloading the file as a hash failure.
+
 
 **6.0.6 (2015-01-03)**
 
