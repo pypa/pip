@@ -10,6 +10,7 @@ from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
 from pip.utils.deprecation import RemovedInPip7Warning
 from pip.cmdoptions import make_option_group, index_group
+from pip._vendor.columnize import columnize
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,11 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='List uptodate packages (excluding editables)')
+        cmd_opts.add_option(
+            '-C', '--columns',
+            action='store_true',
+            default=False,
+            help='Display in columns. More compact.')
         cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
@@ -171,7 +177,7 @@ class ListCommand(Command):
             local_only=options.local,
             user_only=options.user,
         )
-        self.output_package_listing(installed_packages)
+        self.output_package_listing(installed_packages, options)
 
     def run_editables(self, options):
         installed_packages = get_installed_distributions(
@@ -179,13 +185,17 @@ class ListCommand(Command):
             user_only=options.user,
             editables_only=True,
         )
-        self.output_package_listing(installed_packages)
+        self.output_package_listing(installed_packages, options)
 
-    def output_package_listing(self, installed_packages):
+    def output_package_listing(self, installed_packages, options):
         installed_packages = sorted(
             installed_packages,
             key=lambda dist: dist.project_name.lower(),
         )
+        if options.columns:
+            project_names = [dist.project_name for dist in installed_packages]
+            logger.info(columnize(project_names, opts={'ljust': True}))
+            return
         for dist in installed_packages:
             if dist_is_editable(dist):
                 line = '%s (%s, %s)' % (
@@ -202,4 +212,4 @@ class ListCommand(Command):
         for dist, version in self.find_packages_latests_versions(options):
             if dist.parsed_version == version:
                 uptodate.append(dist)
-        self.output_package_listing(uptodate)
+        self.output_package_listing(uptodate, options)
