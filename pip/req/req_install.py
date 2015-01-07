@@ -614,7 +614,7 @@ exec(compile(
             # develop egg
             with open(develop_egg_link, 'r') as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
+            assert (os.path.realpath(link_pointer) == dist.location), (
                 'Egg-link %s does not match installed location of %s '
                 '(at %s)' % (link_pointer, self.name, dist.location)
             )
