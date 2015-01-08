@@ -20,16 +20,22 @@ Options
 
 .. pip-command-options:: home
 
-.. pip-index-options::
-
 
 Examples
 ********
 
-1) Open the homepage for one or more installed packages:
+1. Open the homepage for one or more installed packages:
 
  ::
 
   $ pip home pip
   Opening pip's homepage in browser
     https://pip.pypa.io/
+
+2. Open the PyPI page for one or more installed packages:
+
+ ::
+
+  $ pip home pip --pypi
+  Opening pip's PyPI page in browser
+    https://pypi.python.org/pypi/pip
