@@ -1,5 +1,50 @@
 **6.10.0 (unreleased)**
 
+* Use a smoother progress bar when the terminal is capable of handling it,
+  otherwise fallback to the original ASCII based progress bar.
+
+
+**6.0.6 (2015-01-03)**
+
+* Continue the regression fix from 6.0.5 which was not a complete fix.
+
+
+**6.0.5 (2015-01-03)**
+
+* Fix a regression with 6.0.4 under Windows where most commands would raise an
+  exception due to Windows not having the ``os.geteuid()`` function.
+
+
+**6.0.4 (2015-01-03)**
+
+* Fix an issue where ANSI escape codes would be used on Windows even though the
+  Windows shell does not support them, causing odd characters to appear with
+  the progress bar.
+
+* Fix an issue where using -v would cause an exception saying
+  ``TypeError: not all arguments converted during string formatting``.
+
+* Fix an issue where using -v with dependency links would cause an exception
+  saying ``TypeError: 'InstallationCandidate' object is not iterable``.
+
+* Fix an issue where upgrading distribute would cause an exception saying
+  ``TypeError: expected string or buffer``.
+
+* Show a warning and disable the use of the cache directory when the cache
+  directory is not owned by the current user, commonly caused by using ``sudo``
+  without the ``-H`` flag.
+
+* Update PEP 440 support to handle the latest changes to PEP 440, particularly
+  the changes to ``>V`` and ``<V`` so that they no longer imply ``!=V.*``.
+
+* Document the default cache directories for each operating system.
+
+* Create the cache directory when the pip version check needs to save to it
+  instead of silently logging an error.
+
+* Fix a regression where the ``-q`` flag would not properly suppress the
+  display of the progress bars.
+
 
 **6.0.3 (2014-12-23)**
 
