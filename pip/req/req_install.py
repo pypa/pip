@@ -340,9 +340,10 @@ class InstallRequirement(object):
                 egg_base_option = []
             else:
                 egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
+                egg_info_dir = os.path.abspath(egg_info_dir)
                 if not os.path.exists(egg_info_dir):
                     os.makedirs(egg_info_dir)
-                egg_base_option = ['--egg-base', 'pip-egg-info']
+                egg_base_option = ['--egg-base', egg_info_dir]
             cwd = self.source_dir
             if self.editable_options and \
                     'subdirectory' in self.editable_options:
