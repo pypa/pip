@@ -93,7 +93,8 @@ class Git(VersionControl):
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
-        self.run_command(['checkout', '-q'] + rev_options, cwd=dest)
+        self.run_command(
+            ['checkout', '-q', '--detach'] + rev_options, cwd=dest)
 
         self.update_submodules(dest)
 
@@ -111,12 +112,11 @@ class Git(VersionControl):
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        if rev:
-            rev_options = [rev]
-            rev_display = ' (to %s)' % rev
-        else:
-            rev_options = ['origin/master']
-            rev_display = ''
+        if not rev:
+            rev = 'origin/master'
+        rev_options = [rev]
+        rev_display = ' (to %s)' % rev
+
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
@@ -128,7 +128,7 @@ class Git(VersionControl):
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
                     self.run_command(
-                        ['checkout', '-q'] + rev_options,
+                        ['checkout', '-q', '--detach'] + rev_options,
                         cwd=dest,
                     )
             #: repo may contain submodules
