@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from os.path import exists
 
@@ -22,6 +23,7 @@ def test_cleanup_after_install(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_no_clean_option_blocks_cleaning_after_install(script, data):
     """
     Test --no-clean option blocks cleaning after install
@@ -34,6 +36,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     assert exists(build)
 
 
+@pytest.mark.network
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.
@@ -69,6 +72,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_no_install_and_download_should_not_leave_build_dir(script):
     """
     It should remove build/ dir if it was pip that created
@@ -107,6 +111,7 @@ def test_cleanup_req_satisifed_no_name(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_download_should_not_delete_existing_build_dir(script):
     """
     It should not delete build/ if existing before run the command
@@ -153,6 +158,7 @@ def test_cleanup_after_egg_info_exception(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_cleanup_prevented_upon_build_dir_exception(script, data):
     """
     Test no cleanup occurs after a PreviousBuildDirError

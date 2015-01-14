@@ -1,4 +1,5 @@
 import re
+import pytest
 from pip import __version__
 from pip.commands.show import search_packages_info
 
@@ -49,6 +50,7 @@ def test_show_with_files_from_wheel(script, data):
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
+@pytest.mark.network
 def test_show_with_all_files(script):
     """
     Test listing all files in the show command.

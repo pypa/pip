@@ -270,6 +270,7 @@ def test_parse_editable_local_extras(
     )
 
 
+@pytest.mark.network
 def test_remote_reqs_parse():
     """
     Test parsing a simple remote requirements file
