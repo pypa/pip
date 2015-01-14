@@ -566,7 +566,6 @@ exec(compile(
         # Workaround - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
         debian_egg_info_path = pip_egg_info_path.replace(
             '-py%s' % pkg_resources.PY_MAJOR, '')
-        easy_install_egg = dist.egg_name() + '.egg'
         develop_egg_link = egg_link_path(dist)
 
         pip_egg_info_exists = os.path.exists(pip_egg_info_path)
@@ -603,9 +602,12 @@ exec(compile(
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
 
-        elif dist.location.endswith(easy_install_egg):
+        elif dist.location.endswith('.egg'):
             # package installed by easy_install
+            # We cannot match on dist.egg_name because it can slightly vary
+            # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
+            easy_install_egg = os.path.split(dist.location)[1]
             easy_install_pth = os.path.join(os.path.dirname(dist.location),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
@@ -625,6 +627,10 @@ exec(compile(
         elif dist_info_exists:
             for path in pip.wheel.uninstallation_paths(dist):
                 paths_to_remove.add(path)
+        else:
+            logger.debug(
+                'Not sure how to uninstall: %s - Check: %s',
+                dist, dist.location)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
