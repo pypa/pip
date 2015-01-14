@@ -112,13 +112,13 @@ def find_command(cmd, paths=None, pathext=None):
     # check if we find the command on PATH
     for path in paths:
         cmd_path = os.path.join(path, cmd)
+        # if we have extensions, try them
         for ext in pathext:
-            # if we have extensions, try them
             cmd_path_ext = cmd_path + ext
             if os.path.isfile(cmd_path_ext):
                 return cmd_path_ext
+        # else, don't use any extension
         if not pathext:
-            # else, don't
             if os.path.isfile(cmd_path):
                 return cmd_path
     raise BadCommand('Cannot find command %r' % cmd)
