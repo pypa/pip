@@ -126,8 +126,10 @@ def find_command(cmd, paths=None, pathext=None):
 
 def get_pathext(default_pathext=None):
     """Returns the path extensions from environment or a default"""
-    if default_pathext is None:
+    if default_pathext is None and os.name == 'nt':
         default_pathext = os.pathsep.join(['.COM', '.EXE', '.BAT', '.CMD'])
+    else:
+        default_pathext = ''
     pathext = os.environ.get('PATHEXT', default_pathext)
     return pathext
 
