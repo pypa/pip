@@ -11,6 +11,7 @@ from tests.lib.git_submodule_helpers import (
 )
 
 
+@pytest.mark.network
 def test_get_refs_should_return_tag_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
@@ -25,6 +26,7 @@ def test_get_refs_should_return_tag_name_and_commit_pair(script):
     assert result['0.2'] == commit, result
 
 
+@pytest.mark.network
 def test_get_refs_should_return_branch_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
@@ -38,6 +40,7 @@ def test_get_refs_should_return_branch_name_and_commit_pair(script):
     assert result['branch0.1'] == commit, result
 
 
+@pytest.mark.network
 def test_get_refs_should_ignore_no_branch(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
@@ -86,6 +89,7 @@ def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.network
 def test_check_submodule_addition(script):
     """
     Submodules are pulled in on install and updated on upgrade.
