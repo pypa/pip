@@ -319,7 +319,7 @@ def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
     getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
 
     paths = [
-        os.path.join('path_one', f) for f in ['foo.com', 'foo.exe', 'foo']
+        os.path.join('path_one', f) for f in ['foo.com', 'foo.exe']
     ]
     expected = [((p,),) for p in paths]
 
@@ -346,7 +346,59 @@ def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
     pathext = os.pathsep.join([".RUN", ".CMD"])
 
     paths = [
-        os.path.join('path_one', f) for f in ['foo.run', 'foo.cmd', 'foo']
+        os.path.join('path_one', f) for f in ['foo.run', 'foo.cmd']
+    ]
+    expected = [((p,),) for p in paths]
+
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one", pathext)
+    assert (
+        mock_isfile.call_args_list == expected
+    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert not getpath_mock.called, "Should not call get_pathext"
+
+
+@patch('os.pathsep', ':')
+@patch('pip.utils.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_all_pathext_empty(mock_isfile, getpath_mock):
+    """
+    If no pathext should check default list of extensions, if file does not
+    exist.
+    """
+    mock_isfile.return_value = False
+
+    getpath_mock.return_value = ''
+
+    paths = [
+        os.path.join('path_one', f) for f in ['foo']
+    ]
+    expected = [((p,),) for p in paths]
+
+    with pytest.raises(BadCommand):
+        find_command("foo", "path_one")
+
+    assert (
+        mock_isfile.call_args_list == expected
+    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
+    assert getpath_mock.called, "Should call get_pathext"
+
+
+@patch('os.pathsep', ':')
+@patch('pip.utils.get_pathext')
+@patch('os.path.isfile')
+def test_find_command_trys_supplied_pathext_empty(mock_isfile, getpath_mock):
+    """
+    If pathext supplied find_command should use all of its list of extensions
+    to find file.
+    """
+    mock_isfile.return_value = False
+    getpath_mock.return_value = ".FOO"
+
+    pathext = ''
+
+    paths = [
+        os.path.join('path_one', f) for f in ['foo']
     ]
     expected = [((p,),) for p in paths]
 
