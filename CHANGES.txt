@@ -3,6 +3,9 @@
 * Fix a regression where Numpy requires a build path without symlinks to
   properly build.
 
+* Fix a broken log message when running ``pip wheel`` without a requirement.
+
+
 **6.0.6 (2015-01-03)**
 
 * Continue the regression fix from 6.0.5 which was not a complete fix.
