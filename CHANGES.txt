@@ -12,6 +12,9 @@
 * Retry deleting directories incase a process like an antivirus is holding the
   directory open temporarily.
 
+* Fix an issue where pip would hide the cursor on Windows but would not reshow
+  it.
+
 
 **6.0.7 (2015-01-28)**
 
