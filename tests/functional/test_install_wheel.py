@@ -96,6 +96,7 @@ def test_install_from_wheel_with_headers(script, data):
                                                       result.stdout)
 
 
+@pytest.mark.network
 def test_install_wheel_with_target(script, data):
     """
     Test installing a wheel using pip install --target
@@ -149,6 +150,7 @@ def test_install_from_wheel_no_deps(script, data):
     assert pkg_folder not in result.files_created
 
 
+@pytest.mark.network
 def test_install_user_wheel(script, virtualenv, data):
     """
     Test user install from wheel (that has a script)

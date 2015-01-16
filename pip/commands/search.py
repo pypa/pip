@@ -101,7 +101,11 @@ def transform_hits(hits):
     return package_list
 
 
-def print_results(hits, name_column_width=25, terminal_width=None):
+def print_results(hits, name_column_width=None, terminal_width=None):
+    if not hits:
+        return
+    if name_column_width is None:
+        name_column_width = max((len(hit['name']) for hit in hits)) + 4
     installed_packages = [p.project_name for p in pkg_resources.working_set]
     for hit in hits:
         name = hit['name']

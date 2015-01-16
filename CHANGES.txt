@@ -1,3 +1,9 @@
+**6.1.0 (unreleased)**
+
+* Use a smoother progress bar when the terminal is capable of handling it,
+  otherwise fallback to the original ASCII based progress bar.
+
+
 **6.0.6 (2015-01-03)**
 
 * Continue the regression fix from 6.0.5 which was not a complete fix.
@@ -25,7 +31,7 @@
   ``TypeError: expected string or buffer``.
 
 * Show a warning and disable the use of the cache directory when the cache
-  directory is not owned by the current use, commonly caused by using ``sudo``
+  directory is not owned by the current user, commonly caused by using ``sudo``
   without the ``-H`` flag.
 
 * Update PEP 440 support to handle the latest changes to PEP 440, particularly

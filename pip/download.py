@@ -549,76 +549,75 @@ def _download_url(resp, link, content_file):
         show_progress = False
 
     show_url = link.show_url
-    try:
-        def resp_read(chunk_size):
-            try:
-                # Special case for urllib3.
-                for chunk in resp.raw.stream(
-                        chunk_size,
-                        # We use decode_content=False here because we do
-                        # want urllib3 to mess with the raw bytes we get
-                        # from the server. If we decompress inside of
-                        # urllib3 then we cannot verify the checksum
-                        # because the checksum will be of the compressed
-                        # file. This breakage will only occur if the
-                        # server adds a Content-Encoding header, which
-                        # depends on how the server was configured:
-                        # - Some servers will notice that the file isn't a
-                        #   compressible file and will leave the file alone
-                        #   and with an empty Content-Encoding
-                        # - Some servers will notice that the file is
-                        #   already compressed and will leave the file
-                        #   alone and will add a Content-Encoding: gzip
-                        #   header
-                        # - Some servers won't notice anything at all and
-                        #   will take a file that's already been compressed
-                        #   and compress it again and set the
-                        #   Content-Encoding: gzip header
-                        #
-                        # By setting this not to decode automatically we
-                        # hope to eliminate problems with the second case.
-                        decode_content=False):
-                    yield chunk
-            except AttributeError:
-                # Standard file-like object.
-                while True:
-                    chunk = resp.raw.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
 
-        progress_indicator = lambda x, *a, **k: x
+    def resp_read(chunk_size):
+        try:
+            # Special case for urllib3.
+            for chunk in resp.raw.stream(
+                    chunk_size,
+                    # We use decode_content=False here because we do
+                    # want urllib3 to mess with the raw bytes we get
+                    # from the server. If we decompress inside of
+                    # urllib3 then we cannot verify the checksum
+                    # because the checksum will be of the compressed
+                    # file. This breakage will only occur if the
+                    # server adds a Content-Encoding header, which
+                    # depends on how the server was configured:
+                    # - Some servers will notice that the file isn't a
+                    #   compressible file and will leave the file alone
+                    #   and with an empty Content-Encoding
+                    # - Some servers will notice that the file is
+                    #   already compressed and will leave the file
+                    #   alone and will add a Content-Encoding: gzip
+                    #   header
+                    # - Some servers won't notice anything at all and
+                    #   will take a file that's already been compressed
+                    #   and compress it again and set the
+                    #   Content-Encoding: gzip header
+                    #
+                    # By setting this not to decode automatically we
+                    # hope to eliminate problems with the second case.
+                    decode_content=False):
+                yield chunk
+        except AttributeError:
+            # Standard file-like object.
+            while True:
+                chunk = resp.raw.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
 
-        if link.netloc == PyPI.netloc:
-            url = show_url
-        else:
-            url = link.url_without_fragment
+    progress_indicator = lambda x, *a, **k: x
 
-        if show_progress:  # We don't show progress on cached responses
-            if total_length:
-                logger.info(
-                    "Downloading %s (%s)", url, format_size(total_length),
-                )
-                progress_indicator = DownloadProgressBar(
-                    max=total_length,
-                ).iter
-            else:
-                logger.info("Downloading %s", url)
-                progress_indicator = DownloadProgressSpinner().iter
-        elif cached_resp:
-            logger.info("Using cached %s", url)
+    if link.netloc == PyPI.netloc:
+        url = show_url
+    else:
+        url = link.url_without_fragment
+
+    if show_progress:  # We don't show progress on cached responses
+        if total_length:
+            logger.info(
+                "Downloading %s (%s)", url, format_size(total_length),
+            )
+            progress_indicator = DownloadProgressBar(
+                max=total_length,
+            ).iter
         else:
             logger.info("Downloading %s", url)
+            progress_indicator = DownloadProgressSpinner().iter
+    elif cached_resp:
+        logger.info("Using cached %s", url)
+    else:
+        logger.info("Downloading %s", url)
 
-        logger.debug('Downloading from URL %s', link)
+    logger.debug('Downloading from URL %s', link)
 
-        for chunk in progress_indicator(resp_read(4096), 4096):
-            if download_hash is not None:
-                download_hash.update(chunk)
-            content_file.write(chunk)
-    finally:
-        if link.hash and link.hash_name:
-            _check_hash(download_hash, link)
+    for chunk in progress_indicator(resp_read(4096), 4096):
+        if download_hash is not None:
+            download_hash.update(chunk)
+        content_file.write(chunk)
+    if link.hash and link.hash_name:
+        _check_hash(download_hash, link)
     return download_hash
 
 

@@ -7,7 +7,8 @@ import sys
 from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
-from pip._vendor.progress.bar import Bar
+from pip._vendor import six
+from pip._vendor.progress.bar import Bar, IncrementalBar
 from pip._vendor.progress.helpers import WritelnMixin
 from pip._vendor.progress.spinner import Spinner
 
@@ -17,6 +18,36 @@ try:
 # ImportError.
 except Exception:
     colorama = None
+
+
+def _select_progress_class(preferred, fallback):
+    encoding = getattr(preferred.file, "encoding", None)
+
+    # If we don't know what encoding this file is in, then we'll just assume
+    # that it doesn't support unicode and use the ASCII bar.
+    if not encoding:
+        return fallback
+
+    # Collect all of the possible characters we want to use with the preferred
+    # bar.
+    characters = [
+        getattr(preferred, "empty_fill", six.text_type()),
+        getattr(preferred, "fill", six.text_type()),
+    ]
+    characters += list(getattr(preferred, "phases", []))
+
+    # Try to decode the characters we're using for the bar using the encoding
+    # of the given file, if this works then we'll assume that we can use the
+    # fancier bar and if not we'll fall back to the plaintext bar.
+    try:
+        six.text_type().join(characters).encode(encoding)
+    except UnicodeEncodeError:
+        return fallback
+    else:
+        return preferred
+
+
+_BaseBar = _select_progress_class(IncrementalBar, Bar)
 
 
 class DownloadProgressMixin(object):
@@ -52,6 +83,16 @@ class DownloadProgressMixin(object):
 class WindowsMixin(object):
 
     def __init__(self, *args, **kwargs):
+        # The Windows terminal does not support the hide/show cursor ANSI codes
+        # even with colorama. So we'll ensure that hide_cursor is False on
+        # Windows.
+        # This call neds to go before the super() call, so that hide_cursor
+        # is set in time. The base progress bar class writes the "hide cursor"
+        # code to the terminal in its init, so if we don't set this soon
+        # enough, we get a "hide" with no corresponding "show"...
+        if WINDOWS and self.hide_cursor:
+            self.hide_cursor = False
+
         super(WindowsMixin, self).__init__(*args, **kwargs)
 
         # Check if we are running on Windows and we have the colorama module,
@@ -67,14 +108,8 @@ class WindowsMixin(object):
             # add it.
             self.file.flush = lambda: self.file.wrapped.flush()
 
-        # The Windows terminal does not support the hide/show cursor ANSI codes
-        # even with colorama. So we'll ensure that hide_cursor is False on
-        # Windows.
-        if WINDOWS and self.hide_cursor:
-            self.hide_cursor = False
 
-
-class DownloadProgressBar(WindowsMixin, DownloadProgressMixin, Bar):
+class DownloadProgressBar(WindowsMixin, DownloadProgressMixin, _BaseBar):
 
     file = sys.stdout
     message = "%(percent)d%%"

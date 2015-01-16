@@ -131,6 +131,7 @@ def test_global_state(monkeypatch):
     monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
+    monkeypatch.setattr(os.path, "exists", lambda p: True)
 
     monkeypatch.setattr(outdated, 'running_under_virtualenv',
                         pretend.call_recorder(lambda: False))

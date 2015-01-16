@@ -1,4 +1,5 @@
 import re
+import pytest
 from pip import __version__
 from pip.commands.show import search_packages_info
 
@@ -9,12 +10,12 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 6
+    assert len(lines) == 17
     assert lines[0] == '---', lines[0]
-    assert lines[1] == 'Name: pip', lines[1]
-    assert lines[2] == 'Version: %s' % __version__, lines[2]
-    assert lines[3].startswith('Location: '), lines[3]
-    assert lines[4] == 'Requires: '
+    assert 'Name: pip' in lines
+    assert 'Version: %s' % __version__ in lines
+    assert any(line.startswith('Location: ') for line in lines)
+    assert 'Requires: ' in lines
 
 
 def test_show_with_files_not_found(script, data):
@@ -26,14 +27,14 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.split('\n')
-    assert len(lines) == 8
+    assert len(lines) == 14
     assert lines[0] == '---', lines[0]
-    assert lines[1] == 'Name: SetupPyUTF8', lines[1]
-    assert lines[2] == 'Version: 0.0.0', lines[2]
-    assert lines[3].startswith('Location: '), lines[3]
-    assert lines[4] == 'Requires: ', lines[4]
-    assert lines[5] == 'Files:', lines[5]
-    assert lines[6] == 'Cannot locate installed-files.txt', lines[6]
+    assert 'Name: SetupPyUTF8' in lines
+    assert 'Version: 0.0.0' in lines
+    assert any(line.startswith('Location: ') for line in lines)
+    assert 'Requires: ' in lines
+    assert 'Files:' in lines
+    assert 'Cannot locate installed-files.txt' in lines
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -44,11 +45,12 @@ def test_show_with_files_from_wheel(script, data):
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.split('\n')
-    assert lines[1] == 'Name: simple.dist', lines[1]
+    assert 'Name: simple.dist' in lines
     assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
+@pytest.mark.network
 def test_show_with_all_files(script):
     """
     Test listing all files in the show command.
