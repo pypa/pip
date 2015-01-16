@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import errno
 import json
 import logging
 import os.path
@@ -10,7 +11,9 @@ from pip._vendor import lockfile
 from pip._vendor import pkg_resources
 
 from pip.compat import total_seconds
+from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
+from pip.utils.filesystem import check_path_owner
 
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -56,10 +59,25 @@ class GlobalSelfCheckState(object):
             self.state = {}
 
     def save(self, pypi_version, current_time):
+        # Check to make sure that we own the directory
+        if not check_path_owner(os.path.dirname(self.statefile_path)):
+            return
+
+        # Now that we've ensured the directory is owned by this user, we'll go
+        # ahead and make sure that all our directories are created.
+        try:
+            os.makedirs(os.path.dirname(self.statefile_path))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
-            with open(self.statefile_path) as statefile:
-                state = json.load(statefile)
+            if os.path.exists(self.statefile_path):
+                with open(self.statefile_path) as statefile:
+                    state = json.load(statefile)
+            else:
+                state = {}
 
             state[sys.prefix] = {
                 "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
@@ -104,7 +122,7 @@ def pip_version_check(session):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             resp = session.get(
-                "https://pypi.python.org/pypi/pip/json",
+                PyPI.pip_json_url,
                 headers={"Accept": "application/json"},
             )
             resp.raise_for_status()

@@ -4,6 +4,7 @@ tests specific to "pip install --user"
 import imp
 import os
 import textwrap
+import pytest
 
 from os.path import curdir, isdir, isfile
 
@@ -35,6 +36,7 @@ def _patch_dist_in_site_packages(script):
 
 class Tests_UserSite:
 
+    @pytest.mark.network
     def test_reset_env_system_site_packages_usersite(self, script, virtualenv):
         """
         reset_env(system_site_packages=True) produces env where a --user
@@ -53,6 +55,7 @@ class Tests_UserSite:
             project_name
         )
 
+    @pytest.mark.network
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, virtualenv, tmpdir):
         """
@@ -83,7 +86,7 @@ class Tests_UserSite:
         )
         fspkg_folder = script.user_site / 'fspkg'
         egg_info_folder = (
-            script.user_site / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+            script.user_site / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
         )
         assert fspkg_folder in result.files_created, result.stdout
 
@@ -104,6 +107,7 @@ class Tests_UserSite:
             "visible in this virtualenv." in result.stdout
         )
 
+    @pytest.mark.network
     def test_install_user_conflict_in_usersite(self, script, virtualenv):
         """
         Test user install with conflict in usersite updates usersite.
@@ -126,6 +130,7 @@ class Tests_UserSite:
         assert egg_info_folder in result2.files_created, str(result2)
         assert not isfile(initools_v3_file), initools_v3_file
 
+    @pytest.mark.network
     def test_install_user_conflict_in_globalsite(self, script, virtualenv):
         """
         Test user install with conflict in global site ignores site and
@@ -168,6 +173,7 @@ class Tests_UserSite:
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
+    @pytest.mark.network
     def test_upgrade_user_conflict_in_globalsite(self, script, virtualenv):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -209,6 +215,7 @@ class Tests_UserSite:
         assert isdir(egg_info_folder), result2.stdout
         assert isdir(initools_folder)
 
+    @pytest.mark.network
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, script, virtualenv):
         """
@@ -257,6 +264,7 @@ class Tests_UserSite:
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
+    @pytest.mark.network
     def test_install_user_in_global_virtualenv_with_conflict_fails(
             self, script, virtualenv):
         """

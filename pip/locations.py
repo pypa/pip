@@ -13,8 +13,7 @@ from distutils.command.install import install, SCHEME_KEYS
 
 from pip.compat import get_path_uid, WINDOWS
 from pip.utils import appdirs
-
-import pip.exceptions
+from pip import exceptions
 
 
 # Hack for flake8
@@ -140,7 +139,7 @@ def _get_build_prefix():
                 "pip will not work until the temporary folder is either "
                 "deleted or is a real directory owned by your user account."
             )
-            raise pip.exceptions.InstallationError(msg)
+            raise exceptions.InstallationError(msg)
     return path
 
 if running_under_virtualenv():
@@ -209,14 +208,23 @@ site_config_files = [
 ]
 
 
-def distutils_scheme(dist_name, user=False, home=None, root=None):
+def distutils_scheme(dist_name, user=False, home=None, root=None,
+                     isolated=False):
     """
     Return a distutils install scheme
     """
     from distutils.dist import Distribution
 
     scheme = {}
-    d = Distribution({'name': dist_name})
+
+    if isolated:
+        extra_dist_args = {"script_args": ["--no-user-cfg"]}
+    else:
+        extra_dist_args = {}
+    dist_args = {'name': dist_name}
+    dist_args.update(extra_dist_args)
+
+    d = Distribution(dist_args)
     d.parse_config_files()
     i = d.get_command_obj('install', create=True)
     # NOTE: setting user or home has the side-effect of creating the home dir

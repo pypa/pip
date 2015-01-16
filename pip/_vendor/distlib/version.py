@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2013 The Python Software Foundation.
+# Copyright (C) 2012-2014 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """
@@ -79,7 +79,7 @@ class Matcher(object):
     version_class = None
 
     dist_re = re.compile(r"^(\w[\s\w'.-]*)(\((.*)\))?")
-    comp_re = re.compile(r'^(<=|>=|<|>|!=|==|~=)?\s*([^\s,]+)$')
+    comp_re = re.compile(r'^(<=|>=|<|>|!=|={2,3}|~=)?\s*([^\s,]+)$')
     num_re = re.compile(r'^\d+(\.\d+)*$')
 
     # value is either a callable or the name of a method
@@ -89,6 +89,7 @@ class Matcher(object):
         '<=': lambda v, c, p: v == c or v < c,
         '>=': lambda v, c, p: v == c or v > c,
         '==': lambda v, c, p: v == c,
+        '===': lambda v, c, p: v == c,
         # by default, compatible => >=.
         '~=': lambda v, c, p: v == c or v > c,
         '!=': lambda v, c, p: v != c,
@@ -155,7 +156,7 @@ class Matcher(object):
     @property
     def exact_version(self):
         result = None
-        if len(self._parts) == 1 and self._parts[0][0] == '==':
+        if len(self._parts) == 1 and self._parts[0][0] in ('==', '==='):
             result = self._parts[0][1]
         return result
 
@@ -181,25 +182,29 @@ class Matcher(object):
         return self._string
 
 
-PEP426_VERSION_RE = re.compile(r'^(\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
+PEP440_VERSION_RE = re.compile(r'^v?(\d+!)?(\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
                                r'(\.(post)(\d+))?(\.(dev)(\d+))?'
-                               r'(-(\d+(\.\d+)?))?$')
+                               r'(\+([a-zA-Z\d]+(\.[a-zA-Z\d]+)?))?$')
 
 
-def _pep426_key(s):
+def _pep_440_key(s):
     s = s.strip()
-    m = PEP426_VERSION_RE.match(s)
+    m = PEP440_VERSION_RE.match(s)
     if not m:
         raise UnsupportedVersionError('Not a valid version: %s' % s)
     groups = m.groups()
-    nums = tuple(int(v) for v in groups[0].split('.'))
+    nums = tuple(int(v) for v in groups[1].split('.'))
     while len(nums) > 1 and nums[-1] == 0:
         nums = nums[:-1]
 
-    pre = groups[3:5]
-    post = groups[6:8]
-    dev = groups[9:11]
-    local = groups[12]
+    if not groups[0]:
+        epoch = 0
+    else:
+        epoch = int(groups[0])
+    pre = groups[4:6]
+    post = groups[7:9]
+    dev = groups[10:12]
+    local = groups[13]
     if pre == (None, None):
         pre = ()
     else:
@@ -215,7 +220,17 @@ def _pep426_key(s):
     if local is None:
         local = ()
     else:
-        local = tuple([int(s) for s in local.split('.')])
+        parts = []
+        for part in local.split('.'):
+            # to ensure that numeric compares as > lexicographic, avoid
+            # comparing them directly, but encode a tuple which ensures
+            # correct sorting
+            if part.isdigit():
+                part = (1, int(part))
+            else:
+                part = (0, part)
+            parts.append(part)
+        local = tuple(parts)
     if not pre:
         # either before pre-release, or final release and after
         if not post and dev:
@@ -230,10 +245,10 @@ def _pep426_key(s):
         dev = ('final',)
 
     #print('%s -> %s' % (s, m.groups()))
-    return nums, pre, post, dev, local
+    return epoch, nums, pre, post, dev, local
 
 
-_normalized_key = _pep426_key
+_normalized_key = _pep_440_key
 
 
 class NormalizedVersion(Version):
@@ -260,9 +275,9 @@ class NormalizedVersion(Version):
         # clause, since that's needed to ensure that X.Y == X.Y.0 == X.Y.0.0
         # However, PEP 440 prefix matching needs it: for example,
         # (~= 1.4.5.0) matches differently to (~= 1.4.5.0.0).
-        m = PEP426_VERSION_RE.match(s)      # must succeed
+        m = PEP440_VERSION_RE.match(s)      # must succeed
         groups = m.groups()
-        self._release_clause = tuple(int(v) for v in groups[0].split('.'))
+        self._release_clause = tuple(int(v) for v in groups[1].split('.'))
         return result
 
     PREREL_TAGS = set(['a', 'b', 'c', 'rc', 'dev'])
@@ -294,12 +309,13 @@ class NormalizedMatcher(Matcher):
         '<=': '_match_le',
         '>=': '_match_ge',
         '==': '_match_eq',
+        '===': '_match_arbitrary',
         '!=': '_match_ne',
     }
 
     def _adjust_local(self, version, constraint, prefix):
         if prefix:
-            strip_local = '-' not in constraint and version._parts[-1]
+            strip_local = '+' not in constraint and version._parts[-1]
         else:
             # both constraint and version are
             # NormalizedVersion instances.
@@ -307,7 +323,7 @@ class NormalizedMatcher(Matcher):
             # ensure the version doesn't, either.
             strip_local = not constraint._parts[-1] and version._parts[-1]
         if strip_local:
-            s = version._string.split('-', 1)[0]
+            s = version._string.split('+', 1)[0]
             version = self.version_class(s)
         return version, constraint
 
@@ -343,6 +359,9 @@ class NormalizedMatcher(Matcher):
             result = _match_prefix(version, constraint)
         return result
 
+    def _match_arbitrary(self, version, constraint, prefix):
+        return str(version) == str(constraint)
+
     def _match_ne(self, version, constraint, prefix):
         version, constraint = self._adjust_local(version, constraint, prefix)
         if not prefix:
@@ -357,6 +376,8 @@ class NormalizedMatcher(Matcher):
             return True
         if version < constraint:
             return False
+#        if not prefix:
+#            return True
         release_clause = constraint._release_clause
         if len(release_clause) > 1:
             release_clause = release_clause[:-1]

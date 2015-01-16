@@ -3,6 +3,7 @@ from __future__ import with_statement
 import textwrap
 import os
 import sys
+import pytest
 from os.path import join, normpath
 from tempfile import mkdtemp
 from mock import patch
@@ -12,6 +13,7 @@ from tests.lib.local_repos import local_repo, local_checkout
 from pip.utils import rmtree
 
 
+@pytest.mark.network
 def test_simple_uninstall(script):
     """
     Test simple install and uninstall.
@@ -28,6 +30,7 @@ def test_simple_uninstall(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
+@pytest.mark.network
 def test_uninstall_with_scripts(script):
     """
     Uninstall an easy_installed package with scripts.
@@ -45,6 +48,7 @@ def test_uninstall_with_scripts(script):
     )
 
 
+@pytest.mark.network
 def test_uninstall_easy_install_after_import(script):
     """
     Uninstall an easy_installed package after it's been imported
@@ -66,6 +70,7 @@ def test_uninstall_easy_install_after_import(script):
     )
 
 
+@pytest.mark.network
 def test_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
@@ -125,6 +130,7 @@ def test_uninstall_overlapping_package(script, data):
     assert_all_changes(result2, result3, [])
 
 
+@pytest.mark.network
 def test_uninstall_console_scripts(script):
     """
     Test uninstalling a package with more files (console_script entry points,
@@ -140,6 +146,7 @@ def test_uninstall_console_scripts(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
+@pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
@@ -162,6 +169,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     )
 
 
+@pytest.mark.network
 def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.
@@ -187,6 +195,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     )
 
 
+@pytest.mark.network
 def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     """
     Test uninstalling editable install from existing source outside the venv.
@@ -230,6 +239,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
 
 
+@pytest.mark.network
 def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.
@@ -283,11 +293,11 @@ def test_uninstall_as_egg(script, data):
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
+    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
 
-    result2 = script.pip('uninstall', 'FSPkg', '-y', expect_error=True)
+    result2 = script.pip('uninstall', 'FSPkg', '-y')
     assert_all_changes(
         result,
         result2,

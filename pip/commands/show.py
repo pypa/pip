@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from email.parser import FeedParser
 import logging
 import os
 
 from pip.basecommand import Command
+from pip.status_codes import SUCCESS, ERROR
 from pip.utils import get_recursive_dependencies
 from pip._vendor import pkg_resources
 
@@ -32,11 +34,13 @@ class ShowCommand(Command):
     def run(self, options, args):
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
-            return
+            return ERROR
         query = args
 
         results = search_packages_info(query)
-        print_results(results, options.files)
+        if not print_results(results, options.files):
+            return ERROR
+        return SUCCESS
 
 
 def search_packages_info(query):
@@ -57,6 +61,7 @@ def search_packages_info(query):
             'requires': [dep.project_name for dep in dist.requires()],
         }
         file_list = None
+        metadata = None
         if isinstance(dist, pkg_resources.DistInfoDistribution):
             # RECORDs should be part of .dist-info metadatas
             if dist.has_metadata('RECORD'):
@@ -64,12 +69,30 @@ def search_packages_info(query):
                 paths = [l.split(',')[0] for l in lines]
                 paths = [os.path.join(dist.location, p) for p in paths]
                 file_list = [os.path.relpath(p, dist.location) for p in paths]
+
+            if dist.has_metadata('METADATA'):
+                metadata = dist.get_metadata('METADATA')
         else:
             # Otherwise use pip's log for .egg-info's
             if dist.has_metadata('installed-files.txt'):
                 paths = dist.get_metadata_lines('installed-files.txt')
                 paths = [os.path.join(dist.egg_info, p) for p in paths]
                 file_list = [os.path.relpath(p, dist.location) for p in paths]
+            if dist.has_metadata('entry_points.txt'):
+                entry_points = dist.get_metadata_lines('entry_points.txt')
+                package['entry_points'] = entry_points
+
+            if dist.has_metadata('PKG-INFO'):
+                metadata = dist.get_metadata('PKG-INFO')
+
+        # @todo: Should pkg_resources.Distribution have a
+        # `get_pkg_info` method?
+        feed_parser = FeedParser()
+        feed_parser.feed(metadata)
+        pkg_info_dict = feed_parser.close()
+        for key in ('metadata-version', 'summary',
+                    'home-page', 'author', 'author-email', 'license'):
+            package[key] = pkg_info_dict.get(key)
 
         # use and short-circuit to check for None
         package['files'] = file_list and sorted(file_list)
@@ -80,10 +103,18 @@ def print_results(distributions, list_all_files):
     """
     Print the informations from installed distributions found.
     """
+    results_printed = False
     for dist in distributions:
+        results_printed = True
         logger.info("---")
+        logger.info("Metadata-Version: %s" % dist.get('metadata-version'))
         logger.info("Name: %s" % dist['name'])
         logger.info("Version: %s" % dist['version'])
+        logger.info("Summary: %s" % dist.get('summary'))
+        logger.info("Home-page: %s" % dist.get('home-page'))
+        logger.info("Author: %s" % dist.get('author'))
+        logger.info("Author-email: %s" % dist.get('author-email'))
+        logger.info("License: %s" % dist.get('license'))
         logger.info("Location: %s" % dist['location'])
         logger.info("Requires: %s" % ', '.join(dist['requires']))
         logger.info("Requires recursive: %s" % ', '.join(
@@ -97,3 +128,8 @@ def print_results(distributions, list_all_files):
                     logger.info("  %s" % line.strip())
             else:
                 logger.info("Cannot locate installed-files.txt")
+        if 'entry_points' in dist:
+            logger.info("Entry-points:")
+            for line in dist['entry_points']:
+                logger.info("  %s" % line.strip())
+    return results_printed

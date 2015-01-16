@@ -104,3 +104,7 @@ class CacheControlAdapter(HTTPAdapter):
         resp.from_cache = from_cache
 
         return resp
+
+    def close(self):
+        self.cache.close()
+        super(CacheControlAdapter, self).close()

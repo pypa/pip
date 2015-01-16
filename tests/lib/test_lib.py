@@ -52,3 +52,11 @@ def test_correct_pip_version(script):
         'mismatched source files in %r and %r: %r' %
         (pip_folder, pip_folder_outputed, mismatch_py)
     )
+
+
+def test_as_import(script):
+    """ test that pip.__init__.py does not shadow
+    the command submodule with a dictionary
+    """
+    import pip.commands.install as inst
+    assert inst is not None

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2013 Vinay Sajip.
+# Copyright (C) 2012-2014 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -290,9 +290,9 @@ class Locator(object):
 
     def _update_version_data(self, result, info):
         """
-        Update a result dictionary (the final result from _get_project) with a dictionary for a
-        specific version, whih typically holds information gleaned from a filename or URL for an
-        archive for the distribution.
+        Update a result dictionary (the final result from _get_project) with a
+        dictionary for a specific version, which typically holds information
+        gleaned from a filename or URL for an archive for the distribution.
         """
         name = info.pop('name')
         version = info.pop('version')
@@ -302,9 +302,12 @@ class Locator(object):
         else:
             dist = make_dist(name, version, scheme=self.scheme)
             md = dist.metadata
-        dist.digest = self._get_digest(info)
+        dist.digest = digest = self._get_digest(info)
+        url = info['url']
+        result['digests'][url] = digest
         if md.source_url != info['url']:
-            md.source_url = self.prefer_url(md.source_url, info['url'])
+            md.source_url = self.prefer_url(md.source_url, url)
+            result['urls'].setdefault(version, set()).add(url)
         dist.locator = self
         result[version] = dist
 
@@ -350,9 +353,18 @@ class Locator(object):
                 slist = sorted(slist, key=scheme.key)
             if slist:
                 logger.debug('sorted list: %s', slist)
-                result = versions[slist[-1]]
-        if result and r.extras:
-            result.extras = r.extras
+                version = slist[-1]
+                result = versions[version]
+        if result:
+            if r.extras:
+                result.extras = r.extras
+            result.download_urls = versions.get('urls', {}).get(version, set())
+            d = {}
+            sd = versions.get('digests', {})
+            for url in result.download_urls:
+                if url in sd:
+                    d[url] = sd[url]
+            result.digests = d
         self.matcher = None
         return result
 
@@ -380,7 +392,7 @@ class PyPIRPCLocator(Locator):
         return set(self.client.list_packages())
 
     def _get_project(self, name):
-        result = {}
+        result = {'urls': {}, 'digests': {}}
         versions = self.client.package_releases(name, True)
         for v in versions:
             urls = self.client.release_urls(name, v)
@@ -398,12 +410,17 @@ class PyPIRPCLocator(Locator):
                 dist.digest = self._get_digest(info)
                 dist.locator = self
                 result[v] = dist
+                for info in urls:
+                    url = info['url']
+                    digest = self._get_digest(info)
+                    result['urls'].setdefault(v, set()).add(url)
+                    result['digests'][url] = digest
         return result
 
 class PyPIJSONLocator(Locator):
     """
     This locator uses PyPI's JSON interface. It's very limited in functionality
-    nad probably not worth using.
+    and probably not worth using.
     """
     def __init__(self, url, **kwargs):
         super(PyPIJSONLocator, self).__init__(**kwargs)
@@ -416,7 +433,7 @@ class PyPIJSONLocator(Locator):
         raise NotImplementedError('Not available from this locator')
 
     def _get_project(self, name):
-        result = {}
+        result = {'urls': {}, 'digests': {}}
         url = urljoin(self.base_url, '%s/json' % quote(name))
         try:
             resp = self.opener.open(url)
@@ -437,6 +454,10 @@ class PyPIJSONLocator(Locator):
                 dist.digest = self._get_digest(info)
                 dist.locator = self
                 result[md.version] = dist
+                for info in urls:
+                    url = info['url']
+                    result['urls'].setdefault(md.version, set()).add(url)
+                    result['digests'][url] = digest
         except Exception as e:
             logger.exception('JSON fetch failed: %s', e)
         return result
@@ -567,7 +588,7 @@ class SimpleScrapingLocator(Locator):
         self._threads = []
 
     def _get_project(self, name):
-        result = {}
+        result = {'urls': {}, 'digests': {}}
         with self._gplock:
             self.result = result
             self.project_name = name
@@ -774,7 +795,7 @@ class DirectoryLocator(Locator):
         return filename.endswith(self.downloadable_extensions)
 
     def _get_project(self, name):
-        result = {}
+        result = {'urls': {}, 'digests': {}}
         for root, dirs, files in os.walk(self.base_dir):
             for fn in files:
                 if self.should_include(fn, root):
@@ -822,7 +843,7 @@ class JSONLocator(Locator):
         raise NotImplementedError('Not available from this locator')
 
     def _get_project(self, name):
-        result = {}
+        result = {'urls': {}, 'digests': {}}
         data = get_project_data(name)
         if data:
             for info in data.get('files', []):
@@ -843,6 +864,7 @@ class JSONLocator(Locator):
                 md.dependencies = info.get('requirements', {})
                 dist.exports = info.get('exports', {})
                 result[dist.version] = dist
+                result['urls'].setdefault(dist.version, set()).add(info['url'])
         return result
 
 class DistPathLocator(Locator):
@@ -865,7 +887,10 @@ class DistPathLocator(Locator):
         if dist is None:
             result = {}
         else:
-            result = { dist.version: dist }
+            result = {
+                dist.version: dist,
+                'urls': {dist.version: set([dist.source_url])}
+            }
         return result
 
 
@@ -907,7 +932,20 @@ class AggregatingLocator(Locator):
             d = locator.get_project(name)
             if d:
                 if self.merge:
+                    files = result.get('urls', {})
+                    digests = result.get('digests', {})
+                    # next line could overwrite result['urls'], result['digests']
                     result.update(d)
+                    df = result.get('urls')
+                    if files and df:
+                        for k, v in files.items():
+                            if k in df:
+                                df[k] |= v
+                            else:
+                                df[k] = v
+                    dd = result.get('digests')
+                    if digests and dd:
+                        dd.update(digests)
                 else:
                     # See issue #18. If any dists are found and we're looking
                     # for specific constraints, we only return something if
@@ -1071,7 +1109,8 @@ class DependencyFinder(object):
                 unmatched.add(s)
         if unmatched:
             # can't replace other with provider
-            problems.add(('cantreplace', provider, other, unmatched))
+            problems.add(('cantreplace', provider, other,
+                          frozenset(unmatched)))
             result = False
         else:
             # can replace other with provider

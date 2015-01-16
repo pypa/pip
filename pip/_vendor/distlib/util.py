@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012-2013 The Python Software Foundation.
+# Copyright (C) 2012-2014 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import codecs
@@ -154,12 +154,16 @@ def in_venv():
 
 
 def get_executable():
-    if sys.platform == 'darwin' and ('__PYVENV_LAUNCHER__'
-                                     in os.environ):
-        result =  os.environ['__PYVENV_LAUNCHER__']
-    else:
-        result = sys.executable
-    return result
+# The __PYVENV_LAUNCHER__ dance is apparently no longer needed, as
+# changes to the stub launcher mean that sys.executable always points
+# to the stub on OS X
+#    if sys.platform == 'darwin' and ('__PYVENV_LAUNCHER__'
+#                                     in os.environ):
+#        result =  os.environ['__PYVENV_LAUNCHER__']
+#    else:
+#        result = sys.executable
+#    return result
+    return sys.executable
 
 
 def proceed(prompt, allowed_chars, error_prompt=None, default=None):
@@ -196,7 +200,7 @@ def read_exports(stream):
     stream = StringIO(data)
     try:
         data = json.load(stream)
-        result = data['exports']
+        result = data['extensions']['python.exports']['exports']
         for group, entries in result.items():
             for k, v in entries.items():
                 s = '%s = %s' % (k, v)

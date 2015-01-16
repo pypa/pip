@@ -23,6 +23,7 @@ from pip.status_codes import (
 )
 from pip.utils import appdirs, get_prog, normalize_path
 from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -63,28 +64,29 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
-    def _build_session(self, options):
+    def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
                 if options.cache_dir else None
             ),
-            retries=options.retries,
+            retries=retries if retries is not None else options.retries,
+            insecure_hosts=options.trusted_hosts,
         )
 
         # Handle custom ca-bundles from the user
         if options.cert:
             session.verify = options.cert
-        elif options.no_check_certificate:
-            session.verify = False
 
         # Handle SSL client certificate
         if options.client_cert:
             session.cert = options.client_cert
 
         # Handle timeouts
-        if options.timeout:
-            session.timeout = options.timeout
+        if options.timeout or timeout:
+            session.timeout = (
+                timeout if timeout is not None else options.timeout
+            )
 
         # Handle configured proxies
         if options.proxy:
@@ -112,6 +114,13 @@ class Command(object):
         else:
             level = "INFO"
 
+        # Compute the path for our debug log.
+        debug_log_path = os.path.join(appdirs.user_log_dir("pip"), "debug.log")
+
+        # Ensure that the path for our debug log is owned by the current user
+        # and if it is not, disable the debug log.
+        write_debug_log = check_path_owner(debug_log_path)
+
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
@@ -135,9 +144,7 @@ class Command(object):
                 "debug_log": {
                     "level": "DEBUG",
                     "class": "pip.utils.logging.BetterRotatingFileHandler",
-                    "filename": os.path.join(
-                        appdirs.user_log_dir("pip"), "debug.log",
-                    ),
+                    "filename": debug_log_path,
                     "maxBytes": 10 * 1000 * 1000,  # 10 MB
                     "backupCount": 1,
                     "delay": True,
@@ -155,7 +162,7 @@ class Command(object):
                 "level": level,
                 "handlers": list(filter(None, [
                     "console",
-                    "debug_log",
+                    "debug_log" if write_debug_log else None,
                     "user_log" if options.log else None,
                 ])),
             },
@@ -176,6 +183,17 @@ class Command(object):
                 for name in ["pip._vendor", "distlib", "requests", "urllib3"]
             ),
         })
+
+        # We add this warning here instead of up above, because the logger
+        # hasn't been configured until just now.
+        if not write_debug_log:
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the debug log has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want the -H flag.",
+                os.path.dirname(debug_log_path),
+            )
 
         if options.log_explicit_levels:
             warnings.warn(
@@ -202,8 +220,12 @@ class Command(object):
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         # Check if we're using the latest version of pip available
-        if not options.disable_pip_version_check:
-            with self._build_session(options) as session:
+        if (not options.disable_pip_version_check
+                and not getattr(options, "no_index", False)):
+            with self._build_session(
+                    options,
+                    retries=0,
+                    timeout=min(5, options.timeout)) as session:
                 pip_version_check(session)
 
         try:

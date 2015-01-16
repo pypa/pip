@@ -3,6 +3,8 @@ import os
 
 from pip._vendor.lockfile import FileLock
 
+from ..cache import BaseCache
+
 
 def _secure_open_write(filename, fmode):
     # We only want to write to this file, so open it in write only mode
@@ -44,7 +46,7 @@ def _secure_open_write(filename, fmode):
         raise
 
 
-class FileCache(object):
+class FileCache(BaseCache):
     def __init__(self, directory, forever=False, filemode=0o0600,
                  dirmode=0o0700):
         self.directory = directory

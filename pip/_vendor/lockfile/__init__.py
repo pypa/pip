@@ -174,10 +174,19 @@ class LockBase:
         else:
             self.tname = ""
         dirname = os.path.dirname(self.lock_file)
+
+        # unique name is mostly about the current process, but must
+        # also contain the path -- otherwise, two adjacent locked
+        # files conflict (one file gets locked, creating lock-file and
+        # unique file, the other one gets locked, creating lock-file
+        # and overwriting the already existing lock-file, then one
+        # gets unlocked, deleting both lock-file and unique file,
+        # finally the last lock errors out upon releasing.
         self.unique_name = os.path.join(dirname,
-                                        "%s%s.%s" % (self.hostname,
-                                                     self.tname,
-                                                     self.pid))
+                                        "%s%s.%s%s" % (self.hostname,
+                                                       self.tname,
+                                                       self.pid,
+                                                       hash(self.path)))
         self.timeout = timeout
 
     def acquire(self, timeout=None):

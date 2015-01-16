@@ -11,6 +11,7 @@ from __future__ import absolute_import
 
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
+from pip.index import PyPI
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
@@ -180,19 +181,11 @@ client_cert = OptionMaker(
     help="Path to SSL client certificate, a single file containing the "
          "private key and the certificate in PEM format.")
 
-no_check_certificate = OptionMaker(
-    "--no-check-certificate",
-    dest="no_check_certificate",
-    action="store_true",
-    default=False,
-    help="Don't validate SSL certificates.",
-)
-
 index_url = OptionMaker(
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
-    default='https://pypi.python.org/simple/',
+    default=PyPI.simple_url,
     help='Base URL of Python Package Index (default %default).')
 
 extra_index_url = OptionMaker(
@@ -252,6 +245,16 @@ allow_all_external = OptionMaker(
     action="store_true",
     default=False,
     help="Allow the installation of all packages that are externally hosted",
+)
+
+trusted_host = OptionMaker(
+    "--trusted-host",
+    dest="trusted_hosts",
+    action="append",
+    metavar="HOSTNAME",
+    default=[],
+    help="Mark this host as trusted, even though it does not have valid or "
+         "any HTTPS.",
 )
 
 # Remove after 7.0
@@ -403,7 +406,7 @@ disable_pip_version_check = OptionMaker(
     action="store_true",
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
-         "of pip is available for download.")
+         "of pip is available for download. Implied with --no-index.")
 
 ##########
 # groups #
@@ -427,9 +430,9 @@ general_group = {
         default_vcs,
         skip_requirements_regex,
         exists_action,
+        trusted_host,
         cert,
         client_cert,
-        no_check_certificate,
         cache_dir,
         no_cache,
         disable_pip_version_check,

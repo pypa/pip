@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import operator
 import os
 import tempfile
 import shutil
@@ -190,6 +191,7 @@ class InstallCommand(Command):
             allow_external=options.allow_external,
             allow_unverified=options.allow_unverified,
             allow_all_external=options.allow_all_external,
+            trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
@@ -294,17 +296,22 @@ class InstallCommand(Command):
                     target_dir=temp_target_dir,
                     session=session,
                     pycompile=options.compile,
+                    isolated=options.isolated_mode,
                 )
 
                 for name in args:
                     requirement_set.add_requirement(
-                        InstallRequirement.from_line(name, None))
+                        InstallRequirement.from_line(
+                            name, None, isolated=options.isolated_mode,
+                        )
+                    )
 
                 for name in options.editables:
                     requirement_set.add_requirement(
                         InstallRequirement.from_editable(
                             name,
-                            default_vcs=options.default_vcs
+                            default_vcs=options.default_vcs,
+                            isolated=options.isolated_mode,
                         )
                     )
 
@@ -339,10 +346,20 @@ class InstallCommand(Command):
                             global_options,
                             root=options.root_path,
                         )
-                        installed = ' '.join([
-                            req.name for req in
-                            requirement_set.successfully_installed
-                        ])
+                        reqs = sorted(
+                            requirement_set.successfully_installed,
+                            key=operator.attrgetter('name'))
+                        items = []
+                        for req in reqs:
+                            item = req.name
+                            try:
+                                if hasattr(req, 'installed_version'):
+                                    if req.installed_version:
+                                        item += '-' + req.installed_version
+                            except Exception:
+                                pass
+                            items.append(item)
+                        installed = ' '.join(items)
                         if installed:
                             logger.info('Successfully installed %s', installed)
                     else:

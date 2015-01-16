@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import sys
 
 from base64 import urlsafe_b64encode
@@ -128,11 +129,13 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None):
+                     pycompile=True, scheme=None, isolated=False):
     """Install a wheel"""
 
     if not scheme:
-        scheme = distutils_scheme(name, user=user, home=home, root=root)
+        scheme = distutils_scheme(
+            name, user=user, home=home, root=root, isolated=isolated
+        )
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
@@ -213,6 +216,15 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 st = os.stat(srcfile)
                 if hasattr(os, "utime"):
                     os.utime(destfile, (st.st_atime, st.st_mtime))
+
+                # If our file is executable, then make our destination file
+                # executable.
+                if os.access(srcfile, os.X_OK):
+                    st = os.stat(srcfile)
+                    permissions = (
+                        st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                    )
+                    os.chmod(destfile, permissions)
 
                 changed = False
                 if fixer:
@@ -528,13 +540,13 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=[],
-                 global_options=[]):
+    def __init__(self, requirement_set, finder, wheel_dir, build_options=None,
+                 global_options=None):
         self.requirement_set = requirement_set
         self.finder = finder
         self.wheel_dir = normalize_path(wheel_dir)
-        self.build_options = build_options
-        self.global_options = global_options
+        self.build_options = build_options or []
+        self.global_options = global_options or []
 
     def _build_one(self, req):
         """Build one wheel."""

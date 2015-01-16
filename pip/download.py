@@ -15,12 +15,15 @@ import sys
 import tempfile
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 
 from pip.exceptions import InstallationError, HashMismatch
+from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
+from pip.utils.filesystem import check_path_owner
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -223,7 +226,31 @@ class SafeFileCache(FileCache):
     not be accessible or writable.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(SafeFileCache, self).__init__(*args, **kwargs)
+
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        # If it is not owned by the user executing pip then we will disable
+        # the cache and log a warning.
+        if not check_path_owner(self.directory):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want the -H flag.",
+                self.directory,
+            )
+
+            # Set our directory to None to disable the Cache
+            self.directory = None
+
     def get(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).get(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -233,6 +260,10 @@ class SafeFileCache(FileCache):
             pass
 
     def set(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).set(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -242,6 +273,10 @@ class SafeFileCache(FileCache):
             pass
 
     def delete(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).delete(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -251,6 +286,13 @@ class SafeFileCache(FileCache):
             pass
 
 
+class InsecureHTTPAdapter(HTTPAdapter):
+
+    def cert_verify(self, conn, url, verify, cert):
+        conn.cert_reqs = 'CERT_NONE'
+        conn.ca_certs = None
+
+
 class PipSession(requests.Session):
 
     timeout = None
@@ -258,6 +300,7 @@ class PipSession(requests.Session):
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
+        insecure_hosts = kwargs.pop("insecure_hosts", [])
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -285,19 +328,34 @@ class PipSession(requests.Session):
             backoff_factor=0.25,
         )
 
+        # We want to _only_ cache responses on securely fetched origins. We do
+        # this because we can't validate the response of an insecurely fetched
+        # origin, and we don't want someone to be able to poison the cache and
+        # require manual evication from the cache to fix it.
         if cache:
-            http_adapter = CacheControlAdapter(
+            secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
-            http_adapter = HTTPAdapter(max_retries=retries)
+            secure_adapter = HTTPAdapter(max_retries=retries)
 
-        self.mount("http://", http_adapter)
-        self.mount("https://", http_adapter)
+        # Our Insecure HTTPAdapter disables HTTPS validation. It does not
+        # support caching (see above) so we'll use it for all http:// URLs as
+        # well as any https:// host that we've marked as ignoring TLS errors
+        # for.
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+
+        self.mount("https://", secure_adapter)
+        self.mount("http://", insecure_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
+
+        # We want to use a non-validating adapter for any requests which are
+        # deemed insecure.
+        for host in insecure_hosts:
+            self.mount("https://{0}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
@@ -370,17 +428,15 @@ def url_to_path(url):
     """
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urllib_parse.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    else:
-        path = '/' + path
+
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+
+    # if we have a UNC path, prepend UNC share notation
+    if netloc:
+        netloc = '\\\\' + netloc
+
+    path = urllib_request.url2pathname(netloc + path)
     return path
-
-
-_drive_re = re.compile('^([a-z]):', re.I)
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 def path_to_url(path):
@@ -389,12 +445,8 @@ def path_to_url(path):
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    drive, path = os.path.splitdrive(path)
-    filepath = path.split(os.path.sep)
-    url = '/'.join([urllib_parse.quote(part) for part in filepath])
-    if not drive:
-        url = url.lstrip('/')
-    return 'file:///' + drive + url
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def is_archive_file(name):
@@ -485,7 +537,9 @@ def _download_url(resp, link, content_file):
 
     cached_resp = getattr(resp, "from_cache", False)
 
-    if cached_resp:
+    if logger.getEffectiveLevel() > logging.INFO:
+        show_progress = False
+    elif cached_resp:
         show_progress = False
     elif total_length > (40 * 1000):
         show_progress = True
@@ -495,71 +549,75 @@ def _download_url(resp, link, content_file):
         show_progress = False
 
     show_url = link.show_url
-    try:
-        def resp_read(chunk_size):
-            try:
-                # Special case for urllib3.
-                for chunk in resp.raw.stream(
-                        chunk_size,
-                        # We use decode_content=False here because we do
-                        # want urllib3 to mess with the raw bytes we get
-                        # from the server. If we decompress inside of
-                        # urllib3 then we cannot verify the checksum
-                        # because the checksum will be of the compressed
-                        # file. This breakage will only occur if the
-                        # server adds a Content-Encoding header, which
-                        # depends on how the server was configured:
-                        # - Some servers will notice that the file isn't a
-                        #   compressible file and will leave the file alone
-                        #   and with an empty Content-Encoding
-                        # - Some servers will notice that the file is
-                        #   already compressed and will leave the file
-                        #   alone and will add a Content-Encoding: gzip
-                        #   header
-                        # - Some servers won't notice anything at all and
-                        #   will take a file that's already been compressed
-                        #   and compress it again and set the
-                        #   Content-Encoding: gzip header
-                        #
-                        # By setting this not to decode automatically we
-                        # hope to eliminate problems with the second case.
-                        decode_content=False):
-                    yield chunk
-            except AttributeError:
-                # Standard file-like object.
-                while True:
-                    chunk = resp.raw.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
 
-        progress_indicator = lambda x, *a, **k: x
+    def resp_read(chunk_size):
+        try:
+            # Special case for urllib3.
+            for chunk in resp.raw.stream(
+                    chunk_size,
+                    # We use decode_content=False here because we do
+                    # want urllib3 to mess with the raw bytes we get
+                    # from the server. If we decompress inside of
+                    # urllib3 then we cannot verify the checksum
+                    # because the checksum will be of the compressed
+                    # file. This breakage will only occur if the
+                    # server adds a Content-Encoding header, which
+                    # depends on how the server was configured:
+                    # - Some servers will notice that the file isn't a
+                    #   compressible file and will leave the file alone
+                    #   and with an empty Content-Encoding
+                    # - Some servers will notice that the file is
+                    #   already compressed and will leave the file
+                    #   alone and will add a Content-Encoding: gzip
+                    #   header
+                    # - Some servers won't notice anything at all and
+                    #   will take a file that's already been compressed
+                    #   and compress it again and set the
+                    #   Content-Encoding: gzip header
+                    #
+                    # By setting this not to decode automatically we
+                    # hope to eliminate problems with the second case.
+                    decode_content=False):
+                yield chunk
+        except AttributeError:
+            # Standard file-like object.
+            while True:
+                chunk = resp.raw.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
 
-        if show_progress:  # We don't show progress on cached responses
-            if total_length:
-                logger.info(
-                    "Downloading %s (%s)", show_url, format_size(total_length),
-                )
-                progress_indicator = DownloadProgressBar(
-                    max=total_length,
-                ).iter
-            else:
-                logger.info("Downloading %s", show_url)
-                progress_indicator = DownloadProgressSpinner().iter
-        elif cached_resp:
-            logger.info("Using cached %s", show_url)
+    progress_indicator = lambda x, *a, **k: x
+
+    if link.netloc == PyPI.netloc:
+        url = show_url
+    else:
+        url = link.url_without_fragment
+
+    if show_progress:  # We don't show progress on cached responses
+        if total_length:
+            logger.info(
+                "Downloading %s (%s)", url, format_size(total_length),
+            )
+            progress_indicator = DownloadProgressBar(
+                max=total_length,
+            ).iter
         else:
-            logger.info("Downloading %s", show_url)
+            logger.info("Downloading %s", url)
+            progress_indicator = DownloadProgressSpinner().iter
+    elif cached_resp:
+        logger.info("Using cached %s", url)
+    else:
+        logger.info("Downloading %s", url)
 
-        logger.debug('Downloading from URL %s', link)
+    logger.debug('Downloading from URL %s', link)
 
-        for chunk in progress_indicator(resp_read(4096), 4096):
-            if download_hash is not None:
-                download_hash.update(chunk)
-            content_file.write(chunk)
-    finally:
-        if link.hash and link.hash_name:
-            _check_hash(download_hash, link)
+    for chunk in progress_indicator(resp_read(4096), 4096):
+        if download_hash is not None:
+            download_hash.update(chunk)
+        content_file.write(chunk)
+    if link.hash and link.hash_name:
+        _check_hash(download_hash, link)
     return download_hash
 
 

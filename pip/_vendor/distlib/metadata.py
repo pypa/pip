@@ -20,7 +20,7 @@ from . import DistlibException, __version__
 from .compat import StringIO, string_types, text_type
 from .markers import interpret
 from .util import extract_by_key, get_extras
-from .version import get_scheme, PEP426_VERSION_RE
+from .version import get_scheme, PEP440_VERSION_RE
 
 logger = logging.getLogger(__name__)
 
@@ -630,7 +630,7 @@ class Metadata(object):
 
     NAME_MATCHER = re.compile('^[0-9A-Z]([0-9A-Z_.-]*[0-9A-Z])?$', re.I)
 
-    VERSION_MATCHER = PEP426_VERSION_RE
+    VERSION_MATCHER = PEP440_VERSION_RE
 
     SUMMARY_MATCHER = re.compile('.{1,2047}')
 
@@ -741,7 +741,27 @@ class Metadata(object):
                     result = self._legacy.get(lk)
             else:
                 value = None if maker is None else maker()
-                result = self._data.get(key, value)
+                if key not in ('commands', 'exports', 'modules', 'namespaces',
+                               'classifiers'):
+                    result = self._data.get(key, value)
+                else:
+                    # special cases for PEP 459
+                    sentinel = object()
+                    result = sentinel
+                    d = self._data.get('extensions')
+                    if d:
+                        if key == 'commands':
+                            result = d.get('python.commands', value)
+                        elif key == 'classifiers':
+                            d = d.get('python.details')
+                            if d:
+                                result = d.get(key, value)
+                        else:
+                            d = d.get('python.exports')
+                            if d:
+                                result = d.get(key, value)
+                    if result is sentinel:
+                        result = value
         elif key not in common:
             result = object.__getattribute__(self, key)
         elif self._legacy:
@@ -770,8 +790,20 @@ class Metadata(object):
                 if lk is None:
                     raise NotImplementedError
                 self._legacy[lk] = value
-            else:
+            elif key not in ('commands', 'exports', 'modules', 'namespaces',
+                             'classifiers'):
                 self._data[key] = value
+            else:
+                # special cases for PEP 459
+                d = self._data.setdefault('extensions', {})
+                if key == 'commands':
+                    d['python.commands'] = value
+                elif key == 'classifiers':
+                    d = d.setdefault('python.details', {})
+                    d[key] = value
+                else:
+                    d = d.setdefault('python.exports', {})
+                    d[key] = value
         elif key not in common:
             object.__setattr__(self, key, value)
         else:

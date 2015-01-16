@@ -14,7 +14,14 @@ from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import commands, get_summaries, get_similar_commands
+from pip.commands import get_summaries, get_similar_commands
+from pip.commands import commands_dict
+from pip._vendor.requests.packages.urllib3.exceptions import (
+    InsecureRequestWarning,
+)
+
+
+# assignment for flake8 to be happy
 
 # This fixes a peculiarity when importing via __import__ - as we are
 # initialising the pip module, "from pip import cmdoptions" is recursive
@@ -23,10 +30,13 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "6.0.dev1"
+__version__ = "6.1.0.dev0"
 
 
 logger = logging.getLogger(__name__)
+
+# Hide the InsecureRequestWArning from urllib3
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 def autocomplete():
@@ -72,7 +82,7 @@ def autocomplete():
                     print(dist)
                 sys.exit(1)
 
-        subcommand = commands[subcommand_name]()
+        subcommand = commands_dict[subcommand_name]()
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
@@ -158,7 +168,7 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0]
 
-    if cmd_name not in commands:
+    if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
         msg = ['unknown command "%s"' % cmd_name]
@@ -179,9 +189,8 @@ def check_isolated(args):
 
     if "--isolated" in args:
         isolated = True
-        args = [a for a in args if a != "--isolated"]
 
-    return args, isolated
+    return isolated
 
 
 def main(args=None):
@@ -204,9 +213,7 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    cmd_args, isolated = check_isolated(cmd_args)
-
-    command = commands[cmd_name](isolated=isolated)
+    command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
 
@@ -252,7 +259,7 @@ class FrozenRequirement(object):
             editable = False
             req = dist.as_requirement()
             specs = req.specs
-            assert len(specs) == 1 and specs[0][0] == '=='
+            assert len(specs) == 1 and specs[0][0] in ["==", "==="]
             version = specs[0][1]
             ver_match = cls._rev_re.search(version)
             date_match = cls._date_re.search(version)

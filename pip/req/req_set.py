@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import os
-import shutil
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
@@ -10,10 +9,9 @@ from pip._vendor import requests
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.index import Link
 from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
-from pip.utils import (display_path, rmtree, dist_in_usersite, call_subprocess,
+from pip.utils import (display_path, rmtree, dist_in_usersite,
                        _make_build_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
@@ -57,7 +55,7 @@ class RequirementSet(object):
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
-                 wheel_download_dir=None):
+                 isolated=False, wheel_download_dir=None):
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
@@ -83,6 +81,7 @@ class RequirementSet(object):
         self.target_dir = target_dir  # set from --target option
         self.session = session
         self.pycompile = pycompile
+        self.isolated = isolated
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
@@ -126,14 +125,6 @@ class RequirementSet(object):
     @property
     def has_requirements(self):
         return list(self.requirements.values()) or self.unnamed_requirements
-
-    @property
-    def has_editables(self):
-        if any(req.editable for req in self.requirements.values()):
-            return True
-        if any(req.editable for req in self.unnamed_requirements):
-            return True
-        return False
 
     @property
     def is_download(self):
@@ -202,7 +193,6 @@ class RequirementSet(object):
             elif install_needed:
                 req_to_install.source_dir = req_to_install.build_location(
                     self.build_dir,
-                    not self.is_download,
                 )
 
             if (req_to_install.source_dir is not None
@@ -218,6 +208,8 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        from pip.index import Link
+
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
         while reqs or unnamed:
@@ -279,12 +271,10 @@ class RequirementSet(object):
             elif install:
                 if (req_to_install.url
                         and req_to_install.url.lower().startswith('file:')):
-                    logger.info(
-                        'Unpacking %s',
-                        display_path(url_to_path(req_to_install.url)),
-                    )
+                    path = url_to_path(req_to_install.url)
+                    logger.info('Processing %s', display_path(path))
                 else:
-                    logger.info('Downloading/unpacking %s', req_to_install)
+                    logger.info('Collecting %s', req_to_install)
 
             with indent_log():
                 # ################################ #
@@ -316,7 +306,6 @@ class RequirementSet(object):
                     # build directory
                     location = req_to_install.build_location(
                         self.build_dir,
-                        not self.is_download,
                     )
                     unpack = True
                     url = None
@@ -421,60 +410,45 @@ class RequirementSet(object):
                 # ###################### #
                 # # parse dependencies # #
                 # ###################### #
+                if (req_to_install.extras):
+                    logger.debug(
+                        "Installing extra requirements: %r",
+                        ','.join(req_to_install.extras),
+                    )
 
                 if is_wheel:
                     dist = list(
                         pkg_resources.find_distributions(location)
                     )[0]
-                    if not req_to_install.req:
-                        req_to_install.req = dist.as_requirement()
-                        self.add_requirement(req_to_install)
-                    if not self.ignore_dependencies:
-                        for subreq in dist.requires(
-                                req_to_install.extras):
-                            if self.has_requirement(
-                                    subreq.project_name):
-                                continue
-                            subreq = InstallRequirement(str(subreq),
-                                                        req_to_install)
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
-
-                # sdists
-                else:
+                else:  # sdists
+                    if req_to_install.satisfied_by:
+                        dist = req_to_install.satisfied_by
+                    else:
+                        dist = req_to_install.get_dist()
                     # FIXME: shouldn't be globally added:
-                    finder.add_dependency_links(
-                        req_to_install.dependency_links
-                    )
-                    if (req_to_install.extras):
-                        logger.info(
-                            "Installing extra requirements: %r",
-                            ','.join(req_to_install.extras),
+                    if dist.has_metadata('dependency_links.txt'):
+                        finder.add_dependency_links(
+                            dist.get_metadata_lines('dependency_links.txt')
                         )
-                    if not self.ignore_dependencies:
-                        for req in req_to_install.requirements(
-                                req_to_install.extras):
-                            try:
-                                name = pkg_resources.Requirement.parse(
-                                    req
-                                ).project_name
-                            except ValueError as exc:
-                                # FIXME: proper warning
-                                logger.error(
-                                    'Invalid requirement: %r (%s) in '
-                                    'requirement %s',
-                                    req, exc, req_to_install,
-                                )
-                                continue
-                            if self.has_requirement(name):
-                                # FIXME: check for conflict
-                                continue
-                            subreq = InstallRequirement(req, req_to_install)
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
-                    if not self.has_requirement(req_to_install.name):
-                        # 'unnamed' requirements will get added here
-                        self.add_requirement(req_to_install)
+
+                if not self.ignore_dependencies:
+                    for subreq in dist.requires(
+                            req_to_install.extras):
+                        if self.has_requirement(
+                                subreq.project_name):
+                            # FIXME: check for conflict
+                            continue
+                        subreq = InstallRequirement(
+                            str(subreq),
+                            req_to_install,
+                            isolated=self.isolated,
+                        )
+                        reqs.append(subreq)
+                        self.add_requirement(subreq)
+
+                if not self.has_requirement(req_to_install.name):
+                    # 'unnamed' requirements will get added here
+                    self.add_requirement(req_to_install)
 
                 # cleanup tmp src
                 if (self.is_download or
@@ -486,19 +460,14 @@ class RequirementSet(object):
 
     def cleanup_files(self):
         """Clean up files, remove builds."""
-        logger.info('Cleaning up...')
+        logger.debug('Cleaning up...')
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
 
-            remove_dir = []
             if self._pip_has_created_build_dir():
-                remove_dir.append(self.build_dir)
-
-            for dir in remove_dir:
-                if os.path.exists(dir):
-                    logger.debug('Removing temporary dir %s...', dir)
-                    rmtree(dir)
+                logger.debug('Removing temporary dir %s...', self.build_dir)
+                rmtree(self.build_dir)
 
     def _pip_has_created_build_dir(self):
         return (
@@ -508,20 +477,12 @@ class RequirementSet(object):
             )
         )
 
-    def copy_to_build_dir(self, req_to_install):
-        target_dir = req_to_install.editable and self.src_dir or self.build_dir
-        logger.debug("Copying %s to %s", req_to_install.name, target_dir)
-        dest = os.path.join(target_dir, req_to_install.name)
-        shutil.copytree(req_to_install.source_dir, dest)
-        call_subprocess(["python", "%s/setup.py" % dest, "clean"], cwd=dest,
-                        command_desc='python setup.py clean')
-
     def install(self, install_options, global_options=(), *args, **kwargs):
         """
         Install everything in this set (after having downloaded and unpacked
         the packages)
         """
-        to_install = [r for r in self.requirements.values()
+        to_install = [r for r in self.requirements.values()[::-1]
                       if not r.satisfied_by]
 
         # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
@@ -533,6 +494,7 @@ class RequirementSet(object):
         distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
         for req in to_install:
             if (req.name == 'distribute'
+                    and req.installed_version is not None
                     and req.installed_version in distribute_req):
                 to_install.remove(req)
                 to_install.append(req)

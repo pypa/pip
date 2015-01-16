@@ -10,12 +10,12 @@ from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
 )
 from pip.download import PipSession
-from pip._vendor import pkg_resources
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
+from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
 
 
@@ -54,6 +54,23 @@ class TestRequirementSet(object):
             finder,
         )
 
+    def test_environment_marker_extras(self, data):
+        """
+        Test that the environment marker extras are used with
+        non-wheel installs.
+        """
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_editable(
+            data.packages.join("LocalEnvironMarker"))
+        reqset.add_requirement(req)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        reqset.prepare_files(finder)
+        # This is hacky but does test both case in py2 and py3
+        if sys.version_info[:2] in ((2, 7), (3, 4)):
+            assert reqset.has_requirement('simple')
+        else:
+            assert not reqset.has_requirement('simple')
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
@@ -84,6 +101,10 @@ class TestInstallRequirement(object):
             InstallRequirement.from_line(
                 'peppercorn-0.4-py2.py3-bogus-any.whl',
             )
+
+    def test_installed_version_not_installed(self):
+        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        assert req.installed_version is None
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
@@ -198,10 +219,10 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    assert parse_editable('.', 'git') == (None, 'file:///some/path', None, {})
     normcase_mock.return_value = "/some/path/foo"
     assert parse_editable('foo', 'git') == (
-        None, 'file:///some/path/foo', None,
+        None, 'file:///some/path/foo', None, {},
     )
 
 
@@ -209,6 +230,7 @@ def test_parse_editable_default_vcs():
     assert parse_editable('https://foo#egg=foo', 'git') == (
         'foo',
         'git+https://foo#egg=foo',
+        None,
         {'egg': 'foo'},
     )
 
@@ -217,6 +239,7 @@ def test_parse_editable_explicit_vcs():
     assert parse_editable('svn+https://foo#egg=foo', 'git') == (
         'foo',
         'svn+https://foo#egg=foo',
+        None,
         {'egg': 'foo'},
     )
 
@@ -225,6 +248,7 @@ def test_parse_editable_vcs_extras():
     assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
+        None,
         {'egg': 'foo[extras]'},
     )
 
@@ -238,14 +262,15 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
-        None, 'file://' + "/some/path", ('extras',),
+        None, 'file://' + "/some/path", ('extras',), {},
     )
     normcase_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
-        None, 'file:///some/path/foo', ('bar', 'baz'),
+        None, 'file:///some/path/foo', ('bar', 'baz'), {},
     )
 
 
+@pytest.mark.network
 def test_remote_reqs_parse():
     """
     Test parsing a simple remote requirements file

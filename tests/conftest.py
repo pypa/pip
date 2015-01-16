@@ -17,11 +17,12 @@ def pytest_collection_modifyitems(items):
             os.path.commonprefix([__file__, item.module.__file__]),
         )
 
-        if (module_path.startswith("functional/")
-                or module_path.startswith("integration/")
-                or module_path.startswith("lib/")):
+        module_root_dir = module_path.split(os.pathsep)[0]
+        if (module_root_dir.startswith("functional")
+                or module_root_dir.startswith("integration")
+                or module_root_dir.startswith("lib")):
             item.add_marker(pytest.mark.integration)
-        elif module_path.startswith("unit/"):
+        elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
 
             # We don't want to allow using the script resource if this is a
@@ -104,6 +105,9 @@ def isolate(tmpdir):
     os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
     os.environ["GIT_AUTHOR_NAME"] = "pip"
     os.environ["GIT_AUTHOR_EMAIL"] = "pypa-dev@googlegroups.com"
+
+    # We want to disable the version check from running in the tests
+    os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
 
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:

@@ -1,6 +1,7 @@
 """
 tests specific to uninstalling --user installs
 """
+import pytest
 from os.path import isdir, isfile
 
 from tests.lib import pyversion, assert_all_changes
@@ -9,6 +10,7 @@ from tests.functional.test_install_user import _patch_dist_in_site_packages
 
 class Tests_UninstallUserSite:
 
+    @pytest.mark.network
     def test_uninstall_from_usersite(self, script, virtualenv):
         """
         Test uninstall from usersite

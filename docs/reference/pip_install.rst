@@ -291,6 +291,15 @@ While this cache attempts to minimize network activity, it does not prevent
 network access all together. If you want a fast/local install solution that
 circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
 
+The default location for the cache directory depends on the Operating System:
+
+Unix
+  :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
+OS X
+  :file:`~/Library/Caches/pip`.
+Windows
+  :file:`<CSIDL_LOCAL_APPDATA>\pip\Cache`
+
 
 Hash Verification
 +++++++++++++++++
@@ -456,7 +465,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-  $ pip install -e git+https://git.repo/some_repo.git@egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
+  $ pip install -e git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 

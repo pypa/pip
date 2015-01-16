@@ -13,10 +13,15 @@ try:
 except ImportError:
     from pip.compat.dictconfig import dictConfig as logging_dictConfig
 
+try:
+    import ipaddress
+except ImportError:
+    from pip._vendor import ipaddress
+
 
 __all__ = [
-    "logging_dictConfig", "uses_pycache", "console_to_str", "native_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS",
+    "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
+    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS",
 ]
 
 

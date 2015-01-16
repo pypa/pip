@@ -1,3 +1,4 @@
+
 import os
 import textwrap
 import glob
@@ -12,6 +13,7 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
+@pytest.mark.network
 def test_without_setuptools(script):
     script.run("pip", "uninstall", "setuptools", "-y")
     result = script.run(
@@ -25,6 +27,7 @@ def test_without_setuptools(script):
     )
 
 
+@pytest.mark.network
 def test_pip_second_command_line_interface_works(script):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
@@ -40,6 +43,7 @@ def test_pip_second_command_line_interface_works(script):
     assert initools_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_from_pypi(script):
     """
     Test installing a package from PyPI.
@@ -66,6 +70,7 @@ def test_editable_install(script):
     assert not result.files_updated
 
 
+@pytest.mark.network
 def test_install_editable_from_svn(script, tmpdir):
     """
     Test checking out from svn.
@@ -82,6 +87,7 @@ def test_install_editable_from_svn(script, tmpdir):
     result.assert_installed('INITools', with_files=['.svn'])
 
 
+@pytest.mark.network
 def test_download_editable_to_custom_path(script, tmpdir):
     """
     Test downloading an editable using a relative custom src folder.
@@ -116,6 +122,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     assert customdl_files_created
 
 
+@pytest.mark.network
 def test_editable_no_install_followed_by_no_download(script, tmpdir):
     """
     Test installing an editable in two steps (first with --no-install, then
@@ -150,6 +157,7 @@ def test_editable_no_install_followed_by_no_download(script, tmpdir):
     result.assert_installed('INITools', without_files=[curdir, '.svn'])
 
 
+@pytest.mark.network
 def test_no_install_followed_by_no_download(script):
     """
     Test installing in two steps (first with --no-install, then with
@@ -196,12 +204,13 @@ def test_bad_install_with_no_download(script):
     )
 
 
+@pytest.mark.network
 def test_install_dev_version_from_pypi(script):
     """
     Test using package==dev.
     """
     result = script.pip(
-        'install', 'INITools==dev',
+        'install', 'INITools===dev',
         '--allow-external', 'INITools',
         '--allow-unverified', 'INITools',
         expect_error=True,
@@ -211,6 +220,7 @@ def test_install_dev_version_from_pypi(script):
     )
 
 
+@pytest.mark.network
 def test_install_editable_from_git(script, tmpdir):
     """
     Test cloning from Git.
@@ -228,6 +238,7 @@ def test_install_editable_from_git(script, tmpdir):
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
+@pytest.mark.network
 def test_install_editable_from_hg(script, tmpdir):
     """
     Test cloning from Mercurial.
@@ -244,6 +255,7 @@ def test_install_editable_from_hg(script, tmpdir):
     result.assert_installed('ScriptTest', with_files=['.hg'])
 
 
+@pytest.mark.network
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
@@ -258,6 +270,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     )
 
 
+@pytest.mark.network
 def test_install_editable_from_bazaar(script, tmpdir):
     """
     Test checking out from Bazaar.
@@ -275,6 +288,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
     result.assert_installed('django-wikiapp', with_files=['.bzr'])
 
 
+@pytest.mark.network
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -298,7 +312,7 @@ def test_install_from_local_directory(script, data):
     result = script.pip('install', to_install, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -313,7 +327,7 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result = script.pip('install', to_install, expect_error=False)
     pkg_folder = script.site_packages / 'symlinks'
     egg_info_folder = (
-        script.site_packages / 'symlinks-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'symlinks-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -344,7 +358,7 @@ def test_install_as_egg(script, data):
     to_install = data.packages.join("FSPkg")
     result = script.pip('install', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1dev-py%s.egg' % pyversion
+    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
     assert egg_folder in result.files_created, str(result)
     assert join(egg_folder, 'fspkg') in result.files_created, str(result)
@@ -362,7 +376,7 @@ def test_install_curdir(script, data):
     result = script.pip('install', curdir, cwd=run_from, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -376,12 +390,13 @@ def test_install_pardir(script, data):
     result = script.pip('install', pardir, cwd=run_from, expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_global_option(script):
     """
     Test using global distutils options.
@@ -406,9 +421,10 @@ def test_install_with_hacked_egg_info(script, data):
     """
     run_from = data.packages.join("HackedEggInfo")
     result = script.pip('install', '.', cwd=run_from)
-    assert 'Successfully installed hackedegginfo\n' in result.stdout
+    assert 'Successfully installed hackedegginfo-0.0.0\n' in result.stdout
 
 
+@pytest.mark.network
 def test_install_using_install_option_and_editable(script, tmpdir):
     """
     Test installing a tool using -e and --install-option
@@ -428,6 +444,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     assert script_file in result.files_created
 
 
+@pytest.mark.network
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -440,6 +457,7 @@ def test_install_global_option_using_editable(script, tmpdir):
     assert '0.2.5\n' in result.stdout
 
 
+@pytest.mark.network
 def test_install_package_with_same_name_in_curdir(script):
     """
     Test installing a package with the same name of a local folder
@@ -493,6 +511,7 @@ def test_install_folder_using_relative_path(script):
     assert egg_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_package_which_contains_dev_in_name(script):
     """
     Test installing package from pypi which contains 'dev' in name
@@ -507,6 +526,7 @@ def test_install_package_which_contains_dev_in_name(script):
     assert egg_info_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_package_with_target(script):
     """
     Test installing a package using pip install --target
@@ -679,6 +699,7 @@ def test_url_incorrect_case_file_index(script, data):
     assert egg_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_compiles_pyc(script):
     """
     Test installing with --compile on
@@ -699,6 +720,7 @@ def test_compiles_pyc(script):
     assert any(exists)
 
 
+@pytest.mark.network
 def test_no_compiles_pyc(script, data):
     """
     Test installing from wheel with --compile on

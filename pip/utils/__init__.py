@@ -20,7 +20,6 @@ from pip.locations import (
     write_delete_marker_file,
 )
 from pip._vendor import pkg_resources, six
-from pip._vendor.distlib import version
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
@@ -769,26 +768,6 @@ def call_subprocess(cmd, show_stdout=True,
             )
     if stdout is not None:
         return remove_tracebacks(''.join(all_output))
-
-
-def is_prerelease(vers):
-    """
-    Attempt to determine if this is a pre-release using PEP386/PEP426 rules.
-
-    Will return True if it is a pre-release and False if not. Versions are
-    assumed to be a pre-release if they cannot be parsed.
-    """
-    normalized = version._suggest_normalized_version(vers)
-
-    if normalized is None:
-        # Cannot normalize, assume it is a pre-release
-        return True
-
-    parsed = version._normalized_key(normalized)
-    return any([
-        any([y in set(["a", "b", "c", "rc", "dev"]) for y in x])
-        for x in parsed
-    ])
 
 
 def read_text_file(filename):

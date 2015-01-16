@@ -6,6 +6,7 @@ import textwrap
 
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
+from pip.index import PyPI
 from pip.utils import get_terminal_size
 from pip.utils.logging import indent_log
 from pip.exceptions import CommandError
@@ -30,7 +31,7 @@ class SearchCommand(Command):
             '--index',
             dest='index',
             metavar='URL',
-            default='https://pypi.python.org/pypi',
+            default=PyPI.pypi_url,
             help='Base URL of Python Package Index (default %default)')
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -100,7 +101,11 @@ def transform_hits(hits):
     return package_list
 
 
-def print_results(hits, name_column_width=25, terminal_width=None):
+def print_results(hits, name_column_width=None, terminal_width=None):
+    if not hits:
+        return
+    if name_column_width is None:
+        name_column_width = max((len(hit['name']) for hit in hits)) + 4
     installed_packages = [p.project_name for p in pkg_resources.working_set]
     for hit in hits:
         name = hit['name']

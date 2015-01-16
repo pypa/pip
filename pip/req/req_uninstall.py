@@ -98,7 +98,10 @@ class UninstallPathSet(object):
                 self.dist.project_name,
             )
             return
-        logger.info('Uninstalling %s:', self.dist.project_name)
+        logger.info(
+            'Uninstalling %s-%s:',
+            self.dist.project_name, self.dist.version
+        )
 
         with indent_log():
             paths = sorted(self.compact(self.paths))
@@ -124,7 +127,8 @@ class UninstallPathSet(object):
                 for pth in self.pth.values():
                     pth.remove()
                 logger.info(
-                    'Successfully uninstalled %s', self.dist.project_name
+                    'Successfully uninstalled %s-%s',
+                    self.dist.project_name, self.dist.version
                 )
 
     def rollback(self):

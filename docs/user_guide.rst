@@ -557,3 +557,23 @@ Three things are required to fully guarantee a repeatable installation using req
 
 
 .. _PyPI: http://pypi.python.org/pypi/
+
+
+.. _`Installation Bundle`:
+
+Create an Installation Bundle with Compiled Dependencies
+********************************************************
+
+You can create a simple bundle that contains all of the dependencies you wish
+to install using::
+
+    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
+    $ pip wheel -r requirements.txt --wheel-dir=$tempdir
+    $ cwd=`pwd`
+    $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
+
+Once you have a bundle, you can then uninstall it using::
+
+    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
+    $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
+    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --use-wheel --no-deps $tempdir/*

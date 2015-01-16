@@ -8,6 +8,7 @@ from tests.lib import (pyversion, path_to_url,
 from tests.lib.local_repos import local_checkout
 
 
+@pytest.mark.network
 def test_requirements_file(script):
     """
     Test installing from a requirements file.
@@ -66,13 +67,14 @@ def test_relative_requirements_file(script, data):
         'install', '-vvv', '-r', script.scratch_path / 'file-egg-req.txt'
     )
     assert (
-        script.site_packages / 'FSPkg-0.1dev-py%s.egg-info' % pyversion
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     ) in result.files_created, str(result)
     assert (script.site_packages / 'fspkg') in result.files_created, (
         str(result.stdout)
     )
 
 
+@pytest.mark.network
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
@@ -117,7 +119,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
     downloaded = [line for line in result.stdout.split('\n')
-                  if 'Downloading/unpacking' in line]
+                  if 'Collecting' in line]
 
     assert 'parent' in downloaded[0], (
         'First download should be "parent" but was "%s"' % downloaded[0]
@@ -145,6 +147,17 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
+@pytest.mark.network
+def test_install_collected_dependancies_first(script):
+    result = script.pip(
+        'install', 'paramiko',
+    )
+    text = [line for line in result.stdout.split('\n')
+            if 'Installing' in line][0]
+    assert text.endswith('paramiko')
+
+
+@pytest.mark.network
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
                                                               'version_subdir')

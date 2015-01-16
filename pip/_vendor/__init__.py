@@ -7,7 +7,20 @@ updated to versions from upstream.
 """
 from __future__ import absolute_import
 
+import glob
+import os.path
 import sys
+
+
+# By default, look in this directory for a bunch of .whl files which we will
+# add to the beginning of sys.path before attempting to import anything. This
+# is done to support downstream re-distributors like Debian and Fedora who
+# wish to create their own Wheels for our dependencies to aid in debundling.
+WHEEL_DIR = os.path.abspath(os.path.dirname(__file__))
+
+# Actually look inside of WHEEL_DIR to find .whl files and add them to the
+# front of our sys.path.
+sys.path = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
 
 class VendorAlias(object):

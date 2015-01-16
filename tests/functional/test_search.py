@@ -1,3 +1,4 @@
+import pytest
 from pip.commands.search import (highest_version,
                                  transform_hits,
                                  SearchCommand)
@@ -98,6 +99,7 @@ def test_invalid_pypi_transformation():
     assert transform_hits(pypi_hits) == expected
 
 
+@pytest.mark.network
 def test_search(script):
     """
     End to end test of search command.
@@ -109,6 +111,7 @@ def test_search(script):
     )
 
 
+@pytest.mark.network
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
@@ -129,6 +132,7 @@ def test_search_missing_argument(script):
     assert 'ERROR: Missing required argument (search query).' in result.stdout
 
 
+@pytest.mark.network
 def test_run_method_should_return_sucess_when_find_packages():
     """
     Test SearchCommand.run for found package
@@ -140,6 +144,7 @@ def test_run_method_should_return_sucess_when_find_packages():
     assert status == SUCCESS
 
 
+@pytest.mark.network
 def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     Test SearchCommand.run for no matches
@@ -151,6 +156,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     assert status == NO_MATCHES_FOUND
 
 
+@pytest.mark.network
 def test_search_should_exit_status_code_zero_when_find_packages(script):
     """
     Test search exit status code for package found
@@ -159,6 +165,7 @@ def test_search_should_exit_status_code_zero_when_find_packages(script):
     assert result.returncode == SUCCESS
 
 
+@pytest.mark.network
 def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches

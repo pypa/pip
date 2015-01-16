@@ -104,8 +104,9 @@ except ImportError:
             except TypeError:
                 for j, c in enumerate(iterbytes(chunk)):
                     if _b85dec[c] is None:
-                        raise ValueError('bad base85 character at position %d'
-                                        % (i + j))
+                        raise ValueError(
+                            'bad base85 character at position %d' % (i + j)
+                        )
                 raise
             try:
                 out.append(packI(acc))
@@ -122,6 +123,20 @@ except ImportError:
 def bootstrap(tmpdir=None):
     # Import pip so we can use it to install pip and maybe setuptools too
     import pip
+    from pip.commands.install import InstallCommand
+
+    # Wrapper to provide default certificate with the lowest priority
+    class CertInstallCommand(InstallCommand):
+        def parse_args(self, args):
+            # If cert isn't specified in config or environment, we provide our
+            # own certificate through defaults.
+            # This allows user to specify custom cert anywhere one likes:
+            # config, environment variable or argv.
+            if not self.parser.get_default_values().cert:
+                self.parser.defaults["cert"] = cert_path  # calculated below
+            return super(CertInstallCommand, self).parse_args(args)
+
+    pip.commands_dict["install"] = CertInstallCommand
 
     # We always want to install pip
     packages = ["pip"]
@@ -152,10 +167,6 @@ def bootstrap(tmpdir=None):
         cert_path = os.path.join(tmpdir, "cacert.pem")
         with open(cert_path, "wb") as cert:
             cert.write(pkgutil.get_data("pip._vendor.requests", "cacert.pem"))
-
-        # Use an environment variable here so that users can still pass
-        # --cert via sys.argv
-        os.environ.setdefault("PIP_CERT", cert_path)
 
         # Execute the included pip and use it to install the latest pip and
         # setuptools from PyPI
