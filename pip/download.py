@@ -619,13 +619,14 @@ def unpack_http_url(link, location, download_dir=None, session=None):
 
     if not already_downloaded_path:
         os.unlink(from_path)
-	
-    # remove directory can fail with oserror due virus canner locking, try and notify user if it fails
+
+    """remove directory can fail with oserror due virus scanner locking,
+    try and notify user if it fails"""
     try:
         os.rmdir(temp_dir)
     except OSError:
-        logger.warn('Sorry, clearing our temp files fails. You may do it manually for %s', temp_dir)
-
+        logger.warn('Sorry, clearing our temp files fails. '
+        'You may do it manually for %s', temp_dir)
 
 def unpack_file_url(link, location, download_dir=None):
     """Unpack link into location.
