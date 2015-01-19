@@ -628,6 +628,7 @@ def unpack_http_url(link, location, download_dir=None, session=None):
         logger.warn('Sorry, clearing our temp files fails. '
         'You may do it manually for %s', temp_dir)
 
+
 def unpack_file_url(link, location, download_dir=None):
     """Unpack link into location.
     If download_dir is provided and link points to a file, make a copy
