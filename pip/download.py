@@ -626,7 +626,7 @@ def unpack_http_url(link, location, download_dir=None, session=None):
         os.rmdir(temp_dir)
     except OSError:
         logger.warn('Sorry, clearing our temp files fails. '
-        'You may do it manually for %s', temp_dir)
+                    'You may do it manually for %s', temp_dir)
 
 
 def unpack_file_url(link, location, download_dir=None):
