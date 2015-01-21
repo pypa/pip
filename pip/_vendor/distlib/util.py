@@ -1166,7 +1166,6 @@ class Progress(object):
         if self.done:
             prefix = 'Done'
             t = self.elapsed
-            #import pdb; pdb.set_trace()
         else:
             prefix = 'ETA '
             if self.max is None:
@@ -1174,7 +1173,6 @@ class Progress(object):
             elif self.elapsed == 0 or (self.cur == self.min):
                 t = 0
             else:
-                #import pdb; pdb.set_trace()
                 t = float(self.max - self.min)
                 t /= self.cur - self.min
                 t = (t - 1) * self.elapsed

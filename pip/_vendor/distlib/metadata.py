@@ -668,7 +668,6 @@ class Metadata(object):
         self._legacy = None
         self._data = None
         self.scheme = scheme
-        #import pdb; pdb.set_trace()
         if mapping is not None:
             try:
                 self._validate_mapping(mapping, scheme)

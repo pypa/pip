@@ -1178,7 +1178,6 @@ class DependencyFinder(object):
             if name not in self.dists_by_name:
                 self.add_distribution(dist)
             else:
-                #import pdb; pdb.set_trace()
                 other = self.dists_by_name[name]
                 if other != dist:
                     self.try_to_replace(dist, other, problems)
