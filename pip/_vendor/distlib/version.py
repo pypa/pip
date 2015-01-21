@@ -422,7 +422,6 @@ def _suggest_semantic_version(s):
 
     # Now look for numeric prefix, and separate it out from
     # the rest.
-    #import pdb; pdb.set_trace()
     m = _NUMERIC_PREFIX.match(result)
     if not m:
         prefix = '0.0.0'
@@ -440,7 +439,6 @@ def _suggest_semantic_version(s):
         prefix = '.'.join([str(i) for i in prefix])
         suffix = suffix.strip()
     if suffix:
-        #import pdb; pdb.set_trace()
         # massage the suffix.
         for pat, repl in _SUFFIX_REPLACEMENTS:
             suffix = pat.sub(repl, suffix)
