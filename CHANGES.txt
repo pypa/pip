@@ -1,5 +1,8 @@
 **6.0.7 (2015-01-28)**
 
+* Fix a regression where Numpy requires a build path without symlinks to
+  properly build.
+
 **6.0.6 (2015-01-03)**
 
 * Continue the regression fix from 6.0.5 which was not a complete fix.
