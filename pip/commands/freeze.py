@@ -14,7 +14,7 @@ class FreezeCommand(Command):
     """
     name = 'freeze'
     usage = """
-      %prog [options]"""
+      %prog [options] [PACKAGE PACKAGE...]"""
     summary = 'Output installed packages in requirements format.'
     log_stream = "ext://sys.stderr"
 
@@ -50,11 +50,19 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
+        self.cmd_opts.add_option(
+            '--recursive',
+            dest='recursive',
+            action='store_true',
+            default=False,
+            help="Freeze packages and dependencies, recursively.")
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         freeze_kwargs = dict(
+            only_dists=args,
+            recursive=options.recursive,
             requirement=options.requirement,
             find_links=options.find_links,
             local_only=options.local,

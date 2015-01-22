@@ -392,3 +392,59 @@ def test_freeze_user(script, virtualenv):
         <BLANKLINE>""")
     _check_output(result, expected)
     assert 'simple2' not in result.stdout
+
+
+def test_freeze_distributions(script):
+    """Test that output is filtered if arguments are specified."""
+    # Install some distributions.
+    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
+        simple==2.0
+        requiresupper==1.0
+        """))
+    script.pip_install_local(
+        '-r', script.scratch_path / 'initools-req.txt',
+    )
+    # Freeze a single package.
+    result = script.pip('freeze', 'simple', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        Script result: pip freeze simple
+        -- stdout: --------------------
+        simple==2.0
+        <BLANKLINE>""")
+    _check_output(result, expected)
+    # Freeze a single package does not show dependencies by default.
+    result = script.pip('freeze', 'requiresupper', expect_stderr=True)
+    expected = textwrap.dedent("""\
+            Script result: pip freeze requiresupper
+            -- stdout: --------------------
+            requiresupper==1.0
+            <BLANKLINE>""")
+    _check_output(result, expected)
+    # Freeze multiple packages.
+    result = script.pip('freeze', 'simple', 'requiresupper',
+                        expect_stderr=True)
+    expected = textwrap.dedent("""\
+            Script result: pip freeze simple requiresupper
+            -- stdout: --------------------
+            requiresupper==1.0
+            simple==2.0
+            <BLANKLINE>""")
+    _check_output(result, expected)
+    # Freeze is case insensitive.
+    result = script.pip('freeze', 'SiMPLe', expect_stderr=True)
+    expected = textwrap.dedent("""\
+            Script result: pip freeze SiMPLe
+            -- stdout: --------------------
+            simple==2.0
+            <BLANKLINE>""")
+    _check_output(result, expected)
+    # Freeze is optionally recursive.
+    result = script.pip('freeze', '--recursive', 'requiresupper',
+                        expect_stderr=True)
+    expected = textwrap.dedent("""\
+            Script result: pip freeze --recursive requiresupper
+            -- stdout: --------------------
+            requiresupper==1.0
+            Upper==2.0
+            <BLANKLINE>""")
+    _check_output(result, expected)

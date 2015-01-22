@@ -10,12 +10,13 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 17
+    assert len(lines) == 18
     assert lines[0] == '---', lines[0]
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
+    assert 'Requires recursive: ' in lines
 
 
 def test_show_with_files_not_found(script, data):
@@ -27,12 +28,13 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.split('\n')
-    assert len(lines) == 14
+    assert len(lines) == 15
     assert lines[0] == '---', lines[0]
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
+    assert 'Requires recursive: ' in lines
     assert 'Files:' in lines
     assert 'Cannot locate installed-files.txt' in lines
 

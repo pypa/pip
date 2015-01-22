@@ -45,3 +45,26 @@ Examples
 
   $ env1/bin/pip freeze > requirements.txt
   $ env2/bin/pip install -r requirements.txt
+
+3) Generate output for a single package only.
+
+ ::
+
+  $ pip freeze Jinja2
+  Jinja2==2.7.2
+
+4) Generate output for a subset of packages only.
+
+ ::
+
+  $ pip freeze Jinja2 docutils
+  docutils==0.11
+  Jinja2==2.7.2
+
+5) Generate output for a subset of packages and their (recursive) dependencies.
+
+ ::
+
+  $ pip freeze --recursive Jinja2
+  Jinja2==2.7.2
+  MarkupSafe==0.19
