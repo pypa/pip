@@ -13,6 +13,9 @@
 * Fix an issue where switching between Python 3 and Python 2 would evict cached
   items.
 
+* Fix a regression where pip would be unable to successfully uninstall a
+  project without a normalized version.
+
 
 **6.0.6 (2015-01-03)**
 
