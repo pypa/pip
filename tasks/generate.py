@@ -1,8 +1,11 @@
 import base64
+import hashlib
 import io
+import json
 import os
 import shutil
 import tempfile
+import urllib.request
 import zipfile
 
 import invoke
@@ -208,35 +211,21 @@ if __name__ == "__main__":
     main()
 """.lstrip()
 
-    # Get all of the files we want to add to the zip file
-    print("[generate.installer] Collect all the files that should be zipped")
-    all_files = []
-    for root, dirs, files in os.walk(os.path.join(paths.PROJECT_ROOT, "pip")):
-        for pyfile in files:
-            if os.path.splitext(pyfile)[1] in {".py", ".pem", ".cfg", ".exe"}:
-                path = os.path.join(root, pyfile)
-                all_files.append(
-                    "/".join(
-                        path.split("/")[len(paths.PROJECT_ROOT.split("/")):]
-                    )
-                )
+    # Determine what the latest version of pip on PyPI is.
+    resp = urllib.request.urlopen("https://pypi.python.org/pypi/pip/json")
+    data = json.loads(resp.read().decode("utf8"))
+    version = data["info"]["version"]
+    file_urls = [
+        (x["url"], x["md5_digest"])
+        for x in data["releases"][version]
+        if x["url"].endswith(".whl")
+    ]
+    assert len(file_urls) == 1
+    url, expected_hash = file_urls[0]
 
-    tmpdir = tempfile.mkdtemp()
-    try:
-        # Get a temporary path to use as staging for the pip zip
-        zpth = os.path.join(tmpdir, "pip.zip")
-
-        # Write the pip files to the zip archive
-        print("[generate.installer] Generate the bundled zip of pip")
-        with zipfile.ZipFile(zpth, "w", compression=zipfile.ZIP_DEFLATED) as z:
-            for filename in all_files:
-                z.write(os.path.join(paths.PROJECT_ROOT, filename), filename)
-
-        # Get the binary data that compromises our zip file
-        with open(zpth, "rb") as fp:
-            data = fp.read()
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+    # Fetch the  file itself.
+    data = urllib.request.urlopen(url).read()
+    assert hashlib.md5(data).hexdigest() == expected_hash
 
     # Write out the wrapper script that will take the place of the zip script
     # The reason we need to do this instead of just directly executing the
