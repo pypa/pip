@@ -13,18 +13,18 @@ except (AttributeError, ImportError):
     windll = None
     SetConsoleTextAttribute = lambda *_: None
 else:
-    from ctypes import (
-        byref, Structure, c_char, c_short, c_uint32, c_ushort, POINTER
-    )
+    from ctypes import byref, Structure, c_char, POINTER
+
+    COORD = wintypes._COORD
 
     class CONSOLE_SCREEN_BUFFER_INFO(Structure):
         """struct in wincon.h."""
         _fields_ = [
-            ("dwSize", wintypes._COORD),
-            ("dwCursorPosition", wintypes._COORD),
+            ("dwSize", COORD),
+            ("dwCursorPosition", COORD),
             ("wAttributes", wintypes.WORD),
             ("srWindow", wintypes.SMALL_RECT),
-            ("dwMaximumWindowSize", wintypes._COORD),
+            ("dwMaximumWindowSize", COORD),
         ]
         def __str__(self):
             return '(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)' % (
@@ -58,7 +58,7 @@ else:
     _SetConsoleCursorPosition = windll.kernel32.SetConsoleCursorPosition
     _SetConsoleCursorPosition.argtypes = [
         wintypes.HANDLE,
-        wintypes._COORD,
+        COORD,
     ]
     _SetConsoleCursorPosition.restype = wintypes.BOOL
 
@@ -67,7 +67,7 @@ else:
         wintypes.HANDLE,
         c_char,
         wintypes.DWORD,
-        wintypes._COORD,
+        COORD,
         POINTER(wintypes.DWORD),
     ]
     _FillConsoleOutputCharacterA.restype = wintypes.BOOL
@@ -77,10 +77,16 @@ else:
         wintypes.HANDLE,
         wintypes.WORD,
         wintypes.DWORD,
-        wintypes._COORD,
+        COORD,
         POINTER(wintypes.DWORD),
     ]
     _FillConsoleOutputAttribute.restype = wintypes.BOOL
+
+    _SetConsoleTitleW = windll.kernel32.SetConsoleTitleA
+    _SetConsoleTitleW.argtypes = [
+        wintypes.LPCSTR
+    ]
+    _SetConsoleTitleW.restype = wintypes.BOOL
 
     handles = {
         STDOUT: _GetStdHandle(STDOUT),
@@ -98,26 +104,27 @@ else:
         handle = handles[stream_id]
         return _SetConsoleTextAttribute(handle, attrs)
 
-    def SetConsoleCursorPosition(stream_id, position):
-        position = wintypes._COORD(*position)
+    def SetConsoleCursorPosition(stream_id, position, adjust=True):
+        position = COORD(*position)
         # If the position is out of range, do nothing.
         if position.Y <= 0 or position.X <= 0:
             return
         # Adjust for Windows' SetConsoleCursorPosition:
         #    1. being 0-based, while ANSI is 1-based.
         #    2. expecting (x,y), while ANSI uses (y,x).
-        adjusted_position = wintypes._COORD(position.Y - 1, position.X - 1)
-        # Adjust for viewport's scroll position
-        sr = GetConsoleScreenBufferInfo(STDOUT).srWindow
-        adjusted_position.Y += sr.Top
-        adjusted_position.X += sr.Left
+        adjusted_position = COORD(position.Y - 1, position.X - 1)
+        if adjust:
+            # Adjust for viewport's scroll position
+            sr = GetConsoleScreenBufferInfo(STDOUT).srWindow
+            adjusted_position.Y += sr.Top
+            adjusted_position.X += sr.Left
         # Resume normal processing
         handle = handles[stream_id]
         return _SetConsoleCursorPosition(handle, adjusted_position)
 
     def FillConsoleOutputCharacter(stream_id, char, length, start):
         handle = handles[stream_id]
-        char = c_char(char)
+        char = c_char(char.encode())
         length = wintypes.DWORD(length)
         num_written = wintypes.DWORD(0)
         # Note that this is hard-coded for ANSI (vs wide) bytes.
@@ -134,3 +141,6 @@ else:
         # Note that this is hard-coded for ANSI (vs wide) bytes.
         return _FillConsoleOutputAttribute(
             handle, attribute, length, start, byref(num_written))
+
+    def SetConsoleTitle(title):
+        return _SetConsoleTitleW(title)
