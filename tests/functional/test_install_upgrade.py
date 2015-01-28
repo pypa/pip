@@ -340,7 +340,7 @@ class TestUpgradeSetuptools(object):
             "Found existing installation: setuptools 0.6rc11" in result.stdout
         )
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.8)" in result.stdout
+        assert "setuptools (0.9.8)" in result.stdout
 
     def test_py2_py3_from_distribute_6_to_setuptools_7(
             self, script, data, virtualenv):
@@ -355,8 +355,8 @@ class TestUpgradeSetuptools(object):
             "Found existing installation: distribute 0.6.34" in result.stdout
         )
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.8)" in result.stdout
-        "distribute (0.7.3)" in result.stdout
+        assert "setuptools (0.9.8)" in result.stdout
+        assert "distribute (0.7.3)" not in result.stdout
 
     def test_from_setuptools_7_to_setuptools_7(self, script, data, virtualenv):
         self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
@@ -366,7 +366,7 @@ class TestUpgradeSetuptools(object):
         )
         assert "Found existing installation: setuptools 0.9.7" in result.stdout
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.8)" in result.stdout
+        assert "setuptools (0.9.8)" in result.stdout
 
     def test_from_setuptools_7_to_setuptools_7_using_wheel(
             self, script, data, virtualenv):
@@ -379,7 +379,7 @@ class TestUpgradeSetuptools(object):
         # only wheels use dist-info
         assert 'setuptools-0.9.8.dist-info' in str(result.files_created)
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.8)" in result.stdout
+        assert "setuptools (0.9.8)" in result.stdout
 
     # disabling intermittent travis failure:
     #   https://github.com/pypa/pip/issues/1379
@@ -398,13 +398,12 @@ class TestUpgradeSetuptools(object):
             '--find-links=%s' % data.find_links, 'setuptools==0.9.6'
         )
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.6)" in result.stdout
-        "distribute (0.7.3)" in result.stdout
+        assert "setuptools (0.9.6)" in result.stdout
+        assert "distribute (0.7.3)" not in result.stdout
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert "Found existing installation: setuptools 0.9.6" in result.stdout
         result = self.script.run(self.ve_bin / 'pip', 'list')
-        "setuptools (0.9.8)" in result.stdout
-        "distribute (0.7.3)" in result.stdout
+        assert "setuptools (0.9.8)" in result.stdout
