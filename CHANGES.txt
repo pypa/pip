@@ -10,6 +10,9 @@
 * Properly create the state file for the pip version check so it only happens
   once a week.
 
+* Fix an issue where switching between Python 3 and Python 2 would evict cached
+  items.
+
 
 **6.0.6 (2015-01-03)**
 
