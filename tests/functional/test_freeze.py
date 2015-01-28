@@ -126,7 +126,8 @@ def test_freeze_git_clone(script, tmpdir):
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=repo_dir
+        cwd=repo_dir,
+        expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
@@ -284,6 +285,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     result = script.run(
         'python', 'setup.py', 'develop',
         cwd=script.scratch_path / 'django-wikiapp',
+        expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
