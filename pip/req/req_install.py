@@ -559,6 +559,8 @@ exec(compile(
         paths_to_remove = UninstallPathSet(dist)
         develop_egg_link = egg_link_path(dist)
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
+        # Special case for distutils installed package
+        distutils_egg_info = getattr(dist._provider, 'path', None)
         if develop_egg_link:
             # develop egg
             with open(develop_egg_link, 'r') as fh:
@@ -596,6 +598,9 @@ exec(compile(
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
+
+        elif distutils_egg_info:
+            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install
