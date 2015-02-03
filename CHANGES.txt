@@ -3,6 +3,9 @@
 * Fix an issue where the ``--download`` flag would cause pip to no longer use
   randomized build directories.
 
+* Fix an issue where pip did not properly unquote quoted URLs which contain
+  characters like PEP 440's epoch separator (``!``).
+
 
 **6.0.7 (2015-01-28)**
 
