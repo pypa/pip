@@ -845,7 +845,7 @@ exec(compile(
         finally:
             if os.path.exists(record_filename):
                 os.remove(record_filename)
-            os.rmdir(temp_location)
+            rmtree(temp_location)
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
