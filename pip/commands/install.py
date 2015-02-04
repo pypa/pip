@@ -209,15 +209,15 @@ class InstallCommand(Command):
                 RemovedInPip7Warning,
             )
 
-        if options.download_dir:
-            options.no_install = True
-            options.ignore_installed = True
-
         # If we have --no-install or --no-download and no --build we use the
         # legacy static build dir
         if (options.build_dir is None
                 and (options.no_install or options.no_download)):
             options.build_dir = build_prefix
+
+        if options.download_dir:
+            options.no_install = True
+            options.ignore_installed = True
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
