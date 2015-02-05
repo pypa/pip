@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
+import textwrap
 import traceback
 import optparse
 import warnings
@@ -214,10 +215,20 @@ class Command(object):
         if options.require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.critical(
-                    'Could not find an activated virtualenv (required).'
-                )
-                sys.exit(VIRTUALENV_NOT_FOUND)
+                if not getattr(options, 'use_user_site'):
+                    logger.critical(
+                        textwrap.dedent("""\
+                        ******************************************************
+                        Using pip outside a virtualenv and without --user
+                        is not recommended!
+
+                        Doing stuff with the system python's packages can break
+                        your system.
+
+                        Did you mean to use a virtualenv or use --user?
+                        ******************************************************""")
+                    )
+                    sys.exit(VIRTUALENV_NOT_FOUND)
 
         # Check if we're using the latest version of pip available
         if (not options.disable_pip_version_check and not
