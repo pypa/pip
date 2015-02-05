@@ -99,7 +99,7 @@ class Git(VersionControl):
 
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
-        self.run_command(['fetch', '-q'], cwd=dest)
+        self.run_command(['fetch', '--tags', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         if rev_options:
             rev_options = self.check_rev_options(
