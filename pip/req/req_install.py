@@ -903,6 +903,7 @@ exec(compile(
                 r'^\s*Skipping implicit fixer: ',
                 r'^\s*(warning: )?no previously-included (files|directories) ',
                 r'^\s*warning: no files found matching \'.*\'',
+                r'^\s*changing mode of',
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
             if not line or re.search(regex, line.strip()):
