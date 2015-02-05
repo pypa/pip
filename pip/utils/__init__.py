@@ -23,6 +23,7 @@ from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
+from pip._vendor.retrying import retry
 
 if PY2:
     from io import BytesIO as StringIO
@@ -53,6 +54,8 @@ def get_prog():
     return 'pip'
 
 
+# Retry every half second for up to 3 seconds
+@retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)

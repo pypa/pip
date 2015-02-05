@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
+import warnings
 import zipfile
 
 from distutils.util import change_root
@@ -32,6 +33,7 @@ from pip.utils import (
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, read_text_file, FakeFile, _make_build_dir,
 )
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -559,6 +561,8 @@ exec(compile(
         paths_to_remove = UninstallPathSet(dist)
         develop_egg_link = egg_link_path(dist)
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
+        # Special case for distutils installed package
+        distutils_egg_info = getattr(dist._provider, 'path', None)
         if develop_egg_link:
             # develop egg
             with open(develop_egg_link, 'r') as fh:
@@ -596,6 +600,16 @@ exec(compile(
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
+
+        elif distutils_egg_info:
+            warnings.warn(
+                "Uninstalling a distutils installed project ({0}) has been "
+                "deprecated and will be removed in a future version. This is "
+                "due to the fact that uninstalling a distutils project will "
+                "only partially uninstall the project.".format(self.name),
+                RemovedInPip8Warning,
+            )
+            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install
@@ -831,7 +845,7 @@ exec(compile(
         finally:
             if os.path.exists(record_filename):
                 os.remove(record_filename)
-            os.rmdir(temp_location)
+            rmtree(temp_location)
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked

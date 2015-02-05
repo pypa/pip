@@ -1,3 +1,21 @@
+**6.0.8 (2015-02-04)**
+
+* Fix an issue where the ``--download`` flag would cause pip to no longer use
+  randomized build directories.
+
+* Fix an issue where pip did not properly unquote quoted URLs which contain
+  characters like PEP 440's epoch separator (``!``).
+
+* Fix an issue where distutils installed projects were not actually uninstalled
+  and deprecate attempting to uninstall them altogether.
+
+* Retry deleting directories incase a process like an antivirus is holding the
+  directory open temporarily.
+
+* Fix an issue where pip would hide the cursor on Windows but would not reshow
+  it.
+
+
 **6.0.7 (2015-01-28)**
 
 * Fix a regression where Numpy requires a build path without symlinks to

@@ -52,6 +52,16 @@ class DownloadProgressMixin(object):
 class WindowsMixin(object):
 
     def __init__(self, *args, **kwargs):
+        # The Windows terminal does not support the hide/show cursor ANSI codes
+        # even with colorama. So we'll ensure that hide_cursor is False on
+        # Windows.
+        # This call neds to go before the super() call, so that hide_cursor
+        # is set in time. The base progress bar class writes the "hide cursor"
+        # code to the terminal in its init, so if we don't set this soon
+        # enough, we get a "hide" with no corresponding "show"...
+        if WINDOWS and self.hide_cursor:
+            self.hide_cursor = False
+
         super(WindowsMixin, self).__init__(*args, **kwargs)
 
         # Check if we are running on Windows and we have the colorama module,
@@ -66,12 +76,6 @@ class WindowsMixin(object):
             # but the colorama.AnsiToWin32() object doesn't have that, so we'll
             # add it.
             self.file.flush = lambda: self.file.wrapped.flush()
-
-        # The Windows terminal does not support the hide/show cursor ANSI codes
-        # even with colorama. So we'll ensure that hide_cursor is False on
-        # Windows.
-        if WINDOWS and self.hide_cursor:
-            self.hide_cursor = False
 
 
 class DownloadProgressBar(WindowsMixin, DownloadProgressMixin, Bar):
