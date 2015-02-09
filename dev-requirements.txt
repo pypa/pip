@@ -1,4 +1,4 @@
-https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
+https://github.com/msabramo/freezegun/archive/pypy_fix.zip#egg=freezegun
 pretend
 pytest
 pytest-capturelog
