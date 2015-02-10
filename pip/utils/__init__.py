@@ -7,6 +7,7 @@ import re
 import os
 import posixpath
 import shutil
+import site
 import stat
 import subprocess
 import sys
@@ -39,7 +40,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'remove_tracebacks']
+           'captured_stdout', 'remove_tracebacks', 'default_user_site']
 
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,37 @@ def get_prog():
     except (AttributeError, TypeError, IndexError):
         pass
     return 'pip'
+
+
+def default_user_site():
+    # Avoid circular import, the running_under_virtualenv should probably be
+    # in pip.utils anyways TBH.
+    from pip.locations import running_under_virtualenv, distutils_scheme
+
+    # If we're running inside of a virtual environment, we do not want to
+    # install to the --user directory.
+    if running_under_virtualenv():
+        return False
+
+    # If the Python we're running under does not have their user packages
+    # enabled then we do not want to install to the user directory since it
+    # may or may not work or exist.
+    if not site.ENABLE_USER_SITE:
+        return False
+
+    # If any of our potentional locations for writing files is not writable by
+    # us then we want to use the --user scheme instead of the --global scheme.
+    # TODO: We should figure out a way to make this work for --root and
+    #       --isolated and such options as well.
+    # TODO: Figure out if this works when the directories don't exist.
+    for path in distutils_scheme("").values():
+        if not os.access(path, os.W_OK):
+            return True
+
+    # If we get to this point, then we will assume that we want to use
+    # --global, as that is the most backwards compatible policy and it will
+    # mean that ``sudo pip install`` continues to work as it had previously.
+    return False
 
 
 # Retry every half second for up to 3 seconds

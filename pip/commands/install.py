@@ -15,6 +15,7 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.utils import default_user_site
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 
@@ -127,6 +128,12 @@ class InstallCommand(Command):
             help='Install using the user scheme.')
 
         cmd_opts.add_option(
+            '--global',
+            dest='use_user_site',
+            action='store_false',
+            help='Install into the global site packages.')
+
+        cmd_opts.add_option(
             '--egg',
             dest='as_egg',
             action='store_true',
@@ -224,6 +231,13 @@ class InstallCommand(Command):
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+
+        # If we don't have an explicitly selected --user or --global then we
+        # want to execute our fallback code to determine what we're going to
+        # use.
+        if options.use_user_site is None:
+            options.use_user_site = default_user_site()
+
         if options.use_user_site:
             if virtualenv_no_global():
                 raise InstallationError(
