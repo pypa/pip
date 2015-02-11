@@ -519,6 +519,10 @@ def _get_hash_from_file(target_file, link):
     return download_hash
 
 
+def _progress_indicator(iterable, *args, **kwargs):
+    return iterable
+
+
 def _download_url(resp, link, content_file):
     download_hash = None
     if link.hash and link.hash_name:
@@ -587,7 +591,7 @@ def _download_url(resp, link, content_file):
                     break
                 yield chunk
 
-    progress_indicator = lambda x, *a, **k: x
+    progress_indicator = _progress_indicator
 
     if link.netloc == PyPI.netloc:
         url = show_url

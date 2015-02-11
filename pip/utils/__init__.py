@@ -397,22 +397,28 @@ def get_installed_distributions(local_only=True,
     if local_only:
         local_test = dist_is_local
     else:
-        local_test = lambda d: True
+        def local_test(d):
+            return True
 
     if include_editables:
-        editable_test = lambda d: True
+        def editable_test(d):
+            return True
     else:
-        editable_test = lambda d: not dist_is_editable(d)
+        def editable_test(d):
+            return not dist_is_editable(d)
 
     if editables_only:
-        editables_only_test = lambda d: dist_is_editable(d)
+        def editables_only_test(d):
+            return dist_is_editable(d)
     else:
-        editables_only_test = lambda d: True
+        def editables_only_test(d):
+            return True
 
     if user_only:
         user_test = dist_in_usersite
     else:
-        user_test = lambda d: True
+        def user_test(d):
+            return True
 
     return [d for d in pkg_resources.working_set
             if local_test(d)
