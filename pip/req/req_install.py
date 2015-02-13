@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
+import warnings
 import zipfile
 
 from distutils.util import change_root
@@ -32,6 +33,7 @@ from pip.utils import (
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, read_text_file, FakeFile, _make_build_dir,
 )
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -557,33 +559,29 @@ exec(compile(
         dist = self.satisfied_by or self.conflicts_with
 
         paths_to_remove = UninstallPathSet(dist)
-
-        pip_egg_info_path = os.path.join(dist.location,
-                                         dist.egg_name()) + '.egg-info'
-        dist_info_path = os.path.join(dist.location,
-                                      '-'.join(dist.egg_name().split('-')[:2])
-                                      ) + '.dist-info'
-        # Workaround - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=618367
-        debian_egg_info_path = pip_egg_info_path.replace(
-            '-py%s' % pkg_resources.PY_MAJOR, '')
-        easy_install_egg = dist.egg_name() + '.egg'
         develop_egg_link = egg_link_path(dist)
-
-        pip_egg_info_exists = os.path.exists(pip_egg_info_path)
-        debian_egg_info_exists = os.path.exists(debian_egg_info_path)
-        dist_info_exists = os.path.exists(dist_info_path)
-        if pip_egg_info_exists or debian_egg_info_exists:
-            # package installed by pip
-            if pip_egg_info_exists:
-                egg_info_path = pip_egg_info_path
-            else:
-                egg_info_path = debian_egg_info_path
-            paths_to_remove.add(egg_info_path)
+        egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
+        # Special case for distutils installed package
+        distutils_egg_info = getattr(dist._provider, 'path', None)
+        if develop_egg_link:
+            # develop egg
+            with open(develop_egg_link, 'r') as fh:
+                link_pointer = os.path.normcase(fh.readline().strip())
+            assert (link_pointer == dist.location), (
+                'Egg-link %s does not match installed location of %s '
+                '(at %s)' % (link_pointer, self.name, dist.location)
+            )
+            paths_to_remove.add(develop_egg_link)
+            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+                                            'easy-install.pth')
+            paths_to_remove.add_pth(easy_install_pth, dist.location)
+        elif egg_info_exists and dist.egg_info.endswith('.egg-info'):
+            paths_to_remove.add(dist.egg_info)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata(
                         'installed-files.txt').splitlines():
                     path = os.path.normpath(
-                        os.path.join(egg_info_path, installed_file)
+                        os.path.join(dist.egg_info, installed_file)
                     )
                     paths_to_remove.add(path)
             # FIXME: need a test for this elif block
@@ -603,28 +601,33 @@ exec(compile(
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
 
-        elif dist.location.endswith(easy_install_egg):
+        elif distutils_egg_info:
+            warnings.warn(
+                "Uninstalling a distutils installed project ({0}) has been "
+                "deprecated and will be removed in a future version. This is "
+                "due to the fact that uninstalling a distutils project will "
+                "only partially uninstall the project.".format(self.name),
+                RemovedInPip8Warning,
+            )
+            paths_to_remove.add(distutils_egg_info)
+
+        elif dist.location.endswith('.egg'):
             # package installed by easy_install
+            # We cannot match on dist.egg_name because it can slightly vary
+            # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
+            easy_install_egg = os.path.split(dist.location)[1]
             easy_install_pth = os.path.join(os.path.dirname(dist.location),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
-        elif develop_egg_link:
-            # develop egg
-            with open(develop_egg_link, 'r') as fh:
-                link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
-                'Egg-link %s does not match installed location of %s '
-                '(at %s)' % (link_pointer, self.name, dist.location)
-            )
-            paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
-            paths_to_remove.add_pth(easy_install_pth, dist.location)
-        elif dist_info_exists:
+        elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
             for path in pip.wheel.uninstallation_paths(dist):
                 paths_to_remove.add(path)
+        else:
+            logger.debug(
+                'Not sure how to uninstall: %s - Check: %s',
+                dist, dist.location)
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -842,7 +845,7 @@ exec(compile(
         finally:
             if os.path.exists(record_filename):
                 os.remove(record_filename)
-            os.rmdir(temp_location)
+            rmtree(temp_location)
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
@@ -900,6 +903,7 @@ exec(compile(
                 r'^\s*Skipping implicit fixer: ',
                 r'^\s*(warning: )?no previously-included (files|directories) ',
                 r'^\s*warning: no files found matching \'.*\'',
+                r'^\s*changing mode of',
                 # Not sure what this warning is, but it seems harmless:
                 r"^warning: manifest_maker: standard file '-c' not found$"]:
             if not line or re.search(regex, line.strip()):

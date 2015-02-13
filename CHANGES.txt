@@ -1,10 +1,92 @@
 **6.10.0 (unreleased)**
 
+* Use a smoother progress bar when the terminal is capable of handling it,
+  otherwise fallback to the original ASCII based progress bar.
+
+
+**6.0.8 (2015-02-04)**
+
+* Fix an issue where the ``--download`` flag would cause pip to no longer use
+  randomized build directories.
+
+* Fix an issue where pip did not properly unquote quoted URLs which contain
+  characters like PEP 440's epoch separator (``!``).
+
+* Fix an issue where distutils installed projects were not actually uninstalled
+  and deprecate attempting to uninstall them altogether.
+
+* Retry deleting directories incase a process like an antivirus is holding the
+  directory open temporarily.
+
+* Fix an issue where pip would hide the cursor on Windows but would not reshow
+  it.
+
+
+**6.0.7 (2015-01-28)**
+
+* Fix a regression where Numpy requires a build path without symlinks to
+  properly build.
+
+* Fix a broken log message when running ``pip wheel`` without a requirement.
+
+* Don't mask network errors while downloading the file as a hash failure.
+
+* Properly create the state file for the pip version check so it only happens
+  once a week.
+
+* Fix an issue where switching between Python 3 and Python 2 would evict cached
+  items.
+
+* Fix a regression where pip would be unable to successfully uninstall a
+  project without a normalized version.
+
+
+**6.0.6 (2015-01-03)**
+
+* Continue the regression fix from 6.0.5 which was not a complete fix.
+
+
+**6.0.5 (2015-01-03)**
+
+* Fix a regression with 6.0.4 under Windows where most commands would raise an
+  exception due to Windows not having the ``os.geteuid()`` function.
+
+
+**6.0.4 (2015-01-03)**
+
+* Fix an issue where ANSI escape codes would be used on Windows even though the
+  Windows shell does not support them, causing odd characters to appear with
+  the progress bar.
+
+* Fix an issue where using -v would cause an exception saying
+  ``TypeError: not all arguments converted during string formatting``.
+
+* Fix an issue where using -v with dependency links would cause an exception
+  saying ``TypeError: 'InstallationCandidate' object is not iterable``.
+
+* Fix an issue where upgrading distribute would cause an exception saying
+  ``TypeError: expected string or buffer``.
+
+* Show a warning and disable the use of the cache directory when the cache
+  directory is not owned by the current user, commonly caused by using ``sudo``
+  without the ``-H`` flag.
+
+* Update PEP 440 support to handle the latest changes to PEP 440, particularly
+  the changes to ``>V`` and ``<V`` so that they no longer imply ``!=V.*``.
+
+* Document the default cache directories for each operating system.
+
+* Create the cache directory when the pip version check needs to save to it
+  instead of silently logging an error.
+
+* Fix a regression where the ``-q`` flag would not properly suppress the
+  display of the progress bars.
+
 
 **6.0.3 (2014-12-23)**
 
 * Fix an issue where the implicit version check new in pip 6.0 could cause pip
-  to block for up to 75 seconds if PyPI was not accessable.
+  to block for up to 75 seconds if PyPI was not accessible.
 
 * Make ``--no-index`` imply ``--disable-pip-version-check``.
 

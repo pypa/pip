@@ -222,7 +222,7 @@ class WheelCommand(Command):
                     logger.error(
                         "You must give at least one requirement to %s "
                         "(see \"pip help %s\")",
-                        self.name,
+                        self.name, self.name,
                     )
                     return
 

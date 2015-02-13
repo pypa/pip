@@ -360,7 +360,7 @@ class PackageFinder(object):
             logger.debug(
                 'dependency_links found: %s',
                 ', '.join([
-                    link.url for p, link, version in dependency_versions
+                    version.location.url for version in dependency_versions
                 ])
             )
         file_versions = list(
@@ -461,18 +461,6 @@ class PackageFinder(object):
             return None
 
         if not applicable_versions:
-            # The following check for '>' is designed to prevent confusion like
-            # that in
-            # https://bitbucket.org/pypa/setuptools/issue/301/101-in-requirementparse-foo-10-results
-            str_specifier = str(req.specifier)
-            if '>' in str_specifier and '>=' not in str_specifier:
-                logger.warning(
-                    "The behavior of the `>` version specifier has changed in "
-                    "PEP 440. `>` is now an exclusive operator, meaning that "
-                    "%s does not match %s. "
-                    "Perhaps you want `>=` instead of `>`?",
-                    str_specifier, str_specifier + '.*'
-                )
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
@@ -505,7 +493,7 @@ class PackageFinder(object):
         if applicable_versions[0].location is INSTALLED_VERSION:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: ',
+                'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
                 ', '.join(str(i.version) for i in applicable_versions[1:])
@@ -1126,7 +1114,7 @@ class Link(object):
 
     @property
     def path(self):
-        return urllib_parse.urlsplit(self.url)[2]
+        return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))

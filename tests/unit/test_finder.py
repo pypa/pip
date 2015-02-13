@@ -64,6 +64,7 @@ def test_incorrect_case_file_index(data):
     assert link.url.endswith("Dinner-2.0.tar.gz")
 
 
+@pytest.mark.network
 def test_finder_detects_latest_already_satisfied_find_links(data):
     """Test PackageFinder detects latest already satisfied using find-links"""
     req = InstallRequirement.from_line('simple', None)
@@ -81,6 +82,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
         finder.find_requirement(req, True)
 
 
+@pytest.mark.network
 def test_finder_detects_latest_already_satisfied_pypi_links():
     """Test PackageFinder detects latest already satisfied using pypi links"""
     req = InstallRequirement.from_line('initools', None)
@@ -273,6 +275,24 @@ def test_finder_priority_file_over_page(data):
     assert link.url.startswith("file://")
 
 
+def test_finder_deplink():
+    """
+    Test PackageFinder with dependency links only
+    """
+    req = InstallRequirement.from_line('gmpy==1.15', None)
+    finder = PackageFinder(
+        [],
+        [],
+        process_dependency_links=True,
+        session=PipSession(),
+    )
+    finder.add_dependency_links(
+        ['https://pypi.python.org/packages/source/g/gmpy/gmpy-1.15.zip'])
+    link = finder.find_requirement(req, False)
+    assert link.url.startswith("https://pypi"), link
+
+
+@pytest.mark.network
 def test_finder_priority_page_over_deplink():
     """
     Test PackageFinder prefers page links over equivalent dependency links

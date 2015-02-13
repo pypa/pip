@@ -1,6 +1,7 @@
 import os
 import tempfile
 import textwrap
+import pytest
 
 
 def test_options_from_env_vars(script):
@@ -38,6 +39,7 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     assert "Getting page http://download.zope.org/ppix" in result.stdout
 
 
+@pytest.mark.network
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
@@ -75,6 +77,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     assert "Successfully installed INITools" in result.stdout
 
 
+@pytest.mark.network
 def test_command_line_append_flags(script, virtualenv, data):
     """
     Test command line flags that append to defaults set by environmental
@@ -99,6 +102,7 @@ def test_command_line_append_flags(script, virtualenv, data):
     assert "Skipping link %s" % data.find_links in result.stdout
 
 
+@pytest.mark.network
 def test_command_line_appends_correctly(script, data):
     """
     Test multiple appending options set by environmental variables.

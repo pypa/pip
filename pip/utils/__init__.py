@@ -23,6 +23,7 @@ from pip._vendor import pkg_resources, six
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
+from pip._vendor.retrying import retry
 
 if PY2:
     from io import BytesIO as StringIO
@@ -53,6 +54,8 @@ def get_prog():
     return 'pip'
 
 
+# Retry every half second for up to 3 seconds
+@retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
@@ -394,22 +397,28 @@ def get_installed_distributions(local_only=True,
     if local_only:
         local_test = dist_is_local
     else:
-        local_test = lambda d: True
+        def local_test(d):
+            return True
 
     if include_editables:
-        editable_test = lambda d: True
+        def editable_test(d):
+            return True
     else:
-        editable_test = lambda d: not dist_is_editable(d)
+        def editable_test(d):
+            return not dist_is_editable(d)
 
     if editables_only:
-        editables_only_test = lambda d: dist_is_editable(d)
+        def editables_only_test(d):
+            return dist_is_editable(d)
     else:
-        editables_only_test = lambda d: True
+        def editables_only_test(d):
+            return True
 
     if user_only:
         user_test = dist_in_usersite
     else:
-        user_test = lambda d: True
+        def user_test(d):
+            return True
 
     return [d for d in pkg_resources.working_set
             if local_test(d)

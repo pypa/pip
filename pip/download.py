@@ -23,6 +23,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file)
+from pip.utils.filesystem import check_path_owner
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -225,7 +226,31 @@ class SafeFileCache(FileCache):
     not be accessible or writable.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(SafeFileCache, self).__init__(*args, **kwargs)
+
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        # If it is not owned by the user executing pip then we will disable
+        # the cache and log a warning.
+        if not check_path_owner(self.directory):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want the -H flag.",
+                self.directory,
+            )
+
+            # Set our directory to None to disable the Cache
+            self.directory = None
+
     def get(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).get(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -235,6 +260,10 @@ class SafeFileCache(FileCache):
             pass
 
     def set(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).set(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -244,6 +273,10 @@ class SafeFileCache(FileCache):
             pass
 
     def delete(self, *args, **kwargs):
+        # If we don't have a directory, then the cache should be a no-op.
+        if self.directory is None:
+            return
+
         try:
             return super(SafeFileCache, self).delete(*args, **kwargs)
         except (LockError, OSError, IOError):
@@ -486,6 +519,10 @@ def _get_hash_from_file(target_file, link):
     return download_hash
 
 
+def _progress_indicator(iterable, *args, **kwargs):
+    return iterable
+
+
 def _download_url(resp, link, content_file):
     download_hash = None
     if link.hash and link.hash_name:
@@ -504,7 +541,9 @@ def _download_url(resp, link, content_file):
 
     cached_resp = getattr(resp, "from_cache", False)
 
-    if cached_resp:
+    if logger.getEffectiveLevel() > logging.INFO:
+        show_progress = False
+    elif cached_resp:
         show_progress = False
     elif total_length > (40 * 1000):
         show_progress = True
@@ -514,76 +553,75 @@ def _download_url(resp, link, content_file):
         show_progress = False
 
     show_url = link.show_url
-    try:
-        def resp_read(chunk_size):
-            try:
-                # Special case for urllib3.
-                for chunk in resp.raw.stream(
-                        chunk_size,
-                        # We use decode_content=False here because we do
-                        # want urllib3 to mess with the raw bytes we get
-                        # from the server. If we decompress inside of
-                        # urllib3 then we cannot verify the checksum
-                        # because the checksum will be of the compressed
-                        # file. This breakage will only occur if the
-                        # server adds a Content-Encoding header, which
-                        # depends on how the server was configured:
-                        # - Some servers will notice that the file isn't a
-                        #   compressible file and will leave the file alone
-                        #   and with an empty Content-Encoding
-                        # - Some servers will notice that the file is
-                        #   already compressed and will leave the file
-                        #   alone and will add a Content-Encoding: gzip
-                        #   header
-                        # - Some servers won't notice anything at all and
-                        #   will take a file that's already been compressed
-                        #   and compress it again and set the
-                        #   Content-Encoding: gzip header
-                        #
-                        # By setting this not to decode automatically we
-                        # hope to eliminate problems with the second case.
-                        decode_content=False):
-                    yield chunk
-            except AttributeError:
-                # Standard file-like object.
-                while True:
-                    chunk = resp.raw.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
 
-        progress_indicator = lambda x, *a, **k: x
+    def resp_read(chunk_size):
+        try:
+            # Special case for urllib3.
+            for chunk in resp.raw.stream(
+                    chunk_size,
+                    # We use decode_content=False here because we do
+                    # want urllib3 to mess with the raw bytes we get
+                    # from the server. If we decompress inside of
+                    # urllib3 then we cannot verify the checksum
+                    # because the checksum will be of the compressed
+                    # file. This breakage will only occur if the
+                    # server adds a Content-Encoding header, which
+                    # depends on how the server was configured:
+                    # - Some servers will notice that the file isn't a
+                    #   compressible file and will leave the file alone
+                    #   and with an empty Content-Encoding
+                    # - Some servers will notice that the file is
+                    #   already compressed and will leave the file
+                    #   alone and will add a Content-Encoding: gzip
+                    #   header
+                    # - Some servers won't notice anything at all and
+                    #   will take a file that's already been compressed
+                    #   and compress it again and set the
+                    #   Content-Encoding: gzip header
+                    #
+                    # By setting this not to decode automatically we
+                    # hope to eliminate problems with the second case.
+                    decode_content=False):
+                yield chunk
+        except AttributeError:
+            # Standard file-like object.
+            while True:
+                chunk = resp.raw.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
 
-        if link.netloc == PyPI.netloc:
-            url = show_url
-        else:
-            url = link.url_without_fragment
+    progress_indicator = _progress_indicator
 
-        if show_progress:  # We don't show progress on cached responses
-            if total_length:
-                logger.info(
-                    "Downloading %s (%s)", url, format_size(total_length),
-                )
-                progress_indicator = DownloadProgressBar(
-                    max=total_length,
-                ).iter
-            else:
-                logger.info("Downloading %s", url)
-                progress_indicator = DownloadProgressSpinner().iter
-        elif cached_resp:
-            logger.info("Using cached %s", url)
+    if link.netloc == PyPI.netloc:
+        url = show_url
+    else:
+        url = link.url_without_fragment
+
+    if show_progress:  # We don't show progress on cached responses
+        if total_length:
+            logger.info(
+                "Downloading %s (%s)", url, format_size(total_length),
+            )
+            progress_indicator = DownloadProgressBar(
+                max=total_length,
+            ).iter
         else:
             logger.info("Downloading %s", url)
+            progress_indicator = DownloadProgressSpinner().iter
+    elif cached_resp:
+        logger.info("Using cached %s", url)
+    else:
+        logger.info("Downloading %s", url)
 
-        logger.debug('Downloading from URL %s', link)
+    logger.debug('Downloading from URL %s', link)
 
-        for chunk in progress_indicator(resp_read(4096), 4096):
-            if download_hash is not None:
-                download_hash.update(chunk)
-            content_file.write(chunk)
-    finally:
-        if link.hash and link.hash_name:
-            _check_hash(download_hash, link)
+    for chunk in progress_indicator(resp_read(4096), 4096):
+        if download_hash is not None:
+            download_hash.update(chunk)
+        content_file.write(chunk)
+    if link.hash and link.hash_name:
+        _check_hash(download_hash, link)
     return download_hash
 
 
@@ -642,7 +680,7 @@ def unpack_http_url(link, location, download_dir=None, session=None):
 
     if not already_downloaded_path:
         os.unlink(from_path)
-    os.rmdir(temp_dir)
+    rmtree(temp_dir)
 
 
 def unpack_file_url(link, location, download_dir=None):

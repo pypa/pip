@@ -1,6 +1,7 @@
 import sys
 import re
 import textwrap
+import pytest
 from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib.local_repos import local_checkout, local_repo
@@ -64,6 +65,7 @@ def test_freeze_basic(script):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 
@@ -99,6 +101,7 @@ def test_freeze_svn(script, tmpdir):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_git_clone(script, tmpdir):
     """
     Test freezing a Git clone.
@@ -123,7 +126,8 @@ def test_freeze_git_clone(script, tmpdir):
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=repo_dir
+        cwd=repo_dir,
+        expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
@@ -192,6 +196,7 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.
@@ -253,6 +258,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.
@@ -279,6 +285,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     result = script.run(
         'python', 'setup.py', 'develop',
         cwd=script.scratch_path / 'django-wikiapp',
+        expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -302,6 +309,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_with_local_option(script):
     """
     Test that wsgiref (from global site-packages) is reported normally, but not
@@ -332,6 +340,7 @@ def test_freeze_with_local_option(script):
     _check_output(result, expected)
 
 
+@pytest.mark.network
 def test_freeze_with_requirement_option(script):
     """
     Test that new requirements are created correctly with --requirement hints
