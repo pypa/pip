@@ -62,7 +62,7 @@ def request_package_info(query):
 
 def open_homepages_for_results(distributions, pypi=False):
     """
-    Open the homepage(s) for the installed distributions found.
+    Open the homepage(s) for the distributions found.
     """
     distributions_found = False
     for dist in distributions:

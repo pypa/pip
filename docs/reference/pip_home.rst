@@ -20,19 +20,20 @@ Options
 
 .. pip-command-options:: home
 
-
 Examples
 ********
 
-1. Open the homepage for one or more installed packages:
+1. Open the homepage for one or more packages:
 
  ::
 
-  $ pip home pip
+  $ pip home pip pluckr
   Opening pip's homepage in browser
     https://pip.pypa.io/
+  Opening pluckr's homepage in browser
+    https://github.com/philadams/pluckr
 
-2. Open the PyPI page for one or more installed packages:
+2. Open the PyPI page for one or more packages:
 
  ::
 
