@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 from webbrowser import open_new_tab
 
+import json
 import logging
-
-import requests
+import urllib2
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
@@ -51,12 +51,16 @@ def request_package_info(query):
     """
     packages = []
     for package in query:
-        req = requests.get(PYPI_URI_API_JSON.format(package))
-        if req.status_code != 200:
-            logger.warning('ERROR: Cannot find package information for %s' %
-                           package)
-            continue
-        packages.append(req.json())
+        req = urllib2.Request(url=PYPI_URI_API_JSON.format(package))
+        err = 'ERROR: Cannot find package information for %s' % package
+        try:
+            f = urllib2.urlopen(req)
+            if f.code != 200:
+                logger.warning(err)
+                continue
+            packages.append(json.load(f))
+        except urllib2.HTTPError:
+            logger.warning(err)
     return packages
 
 
