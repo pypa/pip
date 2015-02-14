@@ -62,7 +62,8 @@ def test_package_not_found_should_error_with_no_output(caplog, monkeypatch):
     status = home_cmd.run(options_mock, args)
     assert status == ERROR
     assert len(caplog.records()) == 1
-    assert caplog.records()[0].getMessage() == 'ERROR: Cannot find package information for %s' % non_pkgname
+    msg = caplog.records()[0].getMessage()
+    assert msg == 'ERROR: Cannot find package information for %s' % non_pkgname
 
 
 def test_pypi_option_should_open_page_on_pypi(caplog, monkeypatch):
