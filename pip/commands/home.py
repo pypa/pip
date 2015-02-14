@@ -7,7 +7,6 @@ import urllib2
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
-from pip.commands.show import search_packages_info
 
 
 PYPI_URI_API_JSON = 'https://pypi.python.org/pypi/{}/json'
