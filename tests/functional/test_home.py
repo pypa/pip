@@ -56,11 +56,13 @@ def test_package_not_found_should_error_with_no_output(caplog, monkeypatch):
     """
     monkeypatch.setattr('pip.commands.home.open_new_tab', lambda x: None)
     options_mock = Mock(pypi=False)
-    args = ('thisPackageDoesNotExist', )
+    non_pkgname = 'thisPackageDoesNotExist'
+    args = (non_pkgname, )
     home_cmd = HomeCommand()
     status = home_cmd.run(options_mock, args)
     assert status == ERROR
-    assert len(caplog.records()) == 0
+    assert len(caplog.records()) == 1
+    assert caplog.records()[0].getMessage() == 'ERROR: Cannot find package information for %s' % non_pkgname
 
 
 def test_pypi_option_should_open_page_on_pypi(caplog, monkeypatch):
@@ -76,4 +78,4 @@ def test_pypi_option_should_open_page_on_pypi(caplog, monkeypatch):
     assert len(caplog.records()) == 2
     log_opening, log_uri = caplog.records()
     assert log_opening.getMessage() == 'Opening pip\'s PyPI page in browser'
-    assert log_uri.getMessage() == '  https://pypi.python.org/pypi/pip'
+    assert log_uri.getMessage().startswith('  http://pypi.python.org/pypi/pip')

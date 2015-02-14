@@ -3,13 +3,16 @@ from webbrowser import open_new_tab
 
 import logging
 
+import requests
+
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
 from pip.commands.show import search_packages_info
 
 
-PYPI_URI_BASE = 'https://pypi.python.org/pypi/'
+PYPI_URI_API_JSON = 'https://pypi.python.org/pypi/{}/json'
 logger = logging.getLogger(__name__)
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 
 class HomeCommand(Command):
@@ -36,10 +39,25 @@ class HomeCommand(Command):
             return ERROR
         query = args
 
-        results = search_packages_info(query)
+        results = request_package_info(query)
         if not open_homepages_for_results(results, pypi=options.pypi):
             return ERROR
         return SUCCESS
+
+
+def request_package_info(query):
+    """
+    Given one or more package names, request info from each from the PyPi API.
+    """
+    packages = []
+    for package in query:
+        req = requests.get(PYPI_URI_API_JSON.format(package))
+        if req.status_code != 200:
+            logger.warning('ERROR: Cannot find package information for %s' %
+                           package)
+            continue
+        packages.append(req.json())
+    return packages
 
 
 def open_homepages_for_results(distributions, pypi=False):
@@ -48,11 +66,11 @@ def open_homepages_for_results(distributions, pypi=False):
     """
     distributions_found = False
     for dist in distributions:
-        info = 'Opening %s\'s homepage in browser' % dist['name']
-        uri = dist['home-page']
+        info = 'Opening %s\'s homepage in browser' % dist['info']['name']
+        uri = dist['info']['home_page']
         if pypi:
-            info = 'Opening %s\'s PyPI page in browser' % dist['name']
-            uri = '%s%s' % (PYPI_URI_BASE, dist['name'])
+            info = 'Opening %s\'s PyPI page in browser' % dist['info']['name']
+            uri = dist['info']['release_url']
         distributions_found = True
         logger.info(info)
         logger.info('  %s' % uri)
