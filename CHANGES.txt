@@ -4,6 +4,43 @@
   otherwise fallback to the original ASCII based progress bar.
 
 
+**6.0.8 (2015-02-04)**
+
+* Fix an issue where the ``--download`` flag would cause pip to no longer use
+  randomized build directories.
+
+* Fix an issue where pip did not properly unquote quoted URLs which contain
+  characters like PEP 440's epoch separator (``!``).
+
+* Fix an issue where distutils installed projects were not actually uninstalled
+  and deprecate attempting to uninstall them altogether.
+
+* Retry deleting directories incase a process like an antivirus is holding the
+  directory open temporarily.
+
+* Fix an issue where pip would hide the cursor on Windows but would not reshow
+  it.
+
+
+**6.0.7 (2015-01-28)**
+
+* Fix a regression where Numpy requires a build path without symlinks to
+  properly build.
+
+* Fix a broken log message when running ``pip wheel`` without a requirement.
+
+* Don't mask network errors while downloading the file as a hash failure.
+
+* Properly create the state file for the pip version check so it only happens
+  once a week.
+
+* Fix an issue where switching between Python 3 and Python 2 would evict cached
+  items.
+
+* Fix a regression where pip would be unable to successfully uninstall a
+  project without a normalized version.
+
+
 **6.0.6 (2015-01-03)**
 
 * Continue the regression fix from 6.0.5 which was not a complete fix.

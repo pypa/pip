@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os.path
 import tempfile
 
 from pip.utils import rmtree
@@ -14,7 +15,11 @@ class BuildDirectory(object):
             delete = True
 
         if name is None:
-            name = tempfile.mkdtemp(prefix="pip-build-")
+            # We realpath here because some systems have their default tmpdir
+            # symlinked to another directory.  This tends to confuse build
+            # scripts, so we canonicalize the path by traversing potential
+            # symlinks here.
+            name = os.path.realpath(tempfile.mkdtemp(prefix="pip-build-"))
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.
             if delete is None:

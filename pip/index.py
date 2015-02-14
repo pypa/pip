@@ -1114,7 +1114,7 @@ class Link(object):
 
     @property
     def path(self):
-        return urllib_parse.urlsplit(self.url)[2]
+        return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))

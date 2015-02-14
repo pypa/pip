@@ -5,6 +5,7 @@ util tests
 import os
 import stat
 import sys
+import time
 import shutil
 import tempfile
 
@@ -13,7 +14,7 @@ import pytest
 from mock import Mock, patch
 from pip.exceptions import BadCommand
 from pip.utils import (egg_link_path, Inf, get_installed_distributions,
-                       find_command, untar_file, unzip_file)
+                       find_command, untar_file, unzip_file, rmtree)
 from pip.operations.freeze import freeze_excludes
 
 
@@ -428,3 +429,30 @@ class TestUnpackArchives(object):
         test_file = data.packages.join("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
+
+
+class Failer:
+    def __init__(self, duration=1):
+        self.succeed_after = time.time() + duration
+
+    def call(self, *args, **kw):
+        """Fail with OSError self.max_fails times"""
+        if time.time() < self.succeed_after:
+            raise OSError("Failed")
+
+
+def test_rmtree_retries(tmpdir, monkeypatch):
+    """
+    Test pip.utils.rmtree will retry failures
+    """
+    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=1).call)
+    rmtree('foo')
+
+
+def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
+    """
+    Test pip.utils.rmtree will retry failures for no more than 3 sec
+    """
+    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
+    with pytest.raises(OSError):
+        rmtree('foo')

@@ -73,6 +73,7 @@ Ian Bicking <ianb@colorstudy.com>
 Igor Sobreira <igor@igorsobreira.com>
 Ilya Baryshev <baryshev@gmail.com>
 INADA Naoki <songofacandy@gmail.com>
+Ionel Cristian Mărieș <contact@ionelmc.ro>
 Ionel Maries Cristian <ionel.mc@gmail.com>
 Jakub Stasiak <kuba.stasiak@gmail.com>
 Jakub Vysoky <jakub@borka.cz>
@@ -100,6 +101,7 @@ Kenneth Reitz <me@kennethreitz.com>
 Kevin Burke <kev@inburke.com>
 Kevin Frommelt <kevin.frommelt@webfilings.com>
 Kumar McMillan <kumar.mcmillan@gmail.com>
+Laurent Bristiel <laurent@bristiel.com>
 Leon Sasson <leonsassonha@gmail.com>
 Lev Givon <lev@columbia.edu>
 Lincoln de Sousa <lincoln@comum.org>
@@ -130,6 +132,7 @@ Oren Held <orenhe@il.ibm.com>
 Oscar Benjamin <oscar.j.benjamin@gmail.com>
 Patrick Dubroy <pdubroy@gmail.com>
 Patrick Jenkins <patrick@socialgrowthtechnologies.com>
+patricktokeeffe <patricktokeeffe@users.noreply.github.com>
 Paul Moore <p.f.moore@gmail.com>
 Paul Nasrat <pnasrat@gmail.com>
 Paul Oswald <pauloswald@gmail.com>
