@@ -30,3 +30,8 @@ notifications:
       - secure: "zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc="
     use_notice: true
     skip_join: true
+
+branches:
+  only:
+    - master
+    - develop
