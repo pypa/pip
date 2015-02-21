@@ -33,11 +33,10 @@ Then run the following (which may require administrator access):
 
  python get-pip.py
 
-If `setuptools`_ (or `distribute`_) is not already installed, ``get-pip.py`` will
-install `setuptools`_ for you. [3]_
+If `setuptools`_ is not already installed, ``get-pip.py`` will install
+`setuptools`_ for you. [3]_
 
-To upgrade an existing `setuptools`_ (or `distribute`_), run ``pip install -U
-setuptools``. [4]_
+To upgrade an existing `setuptools`_, run ``pip install -U setuptools``.
 
 Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
 install Options>` and the :ref:`general options <General Options>`. Below are
@@ -47,7 +46,7 @@ Install from local copies of pip and setuptools::
 
   python get-pip.py --no-index --find-links=/local/copies
 
-Install to the user site [5]_::
+Install to the user site [4]_::
 
   python get-pip.py --user
 
@@ -66,7 +65,7 @@ On Linux or OS X:
  pip install -U pip
 
 
-On Windows [6]_:
+On Windows [5]_:
 
 ::
 
@@ -101,19 +100,13 @@ On Fedora::
 .. [3] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to
        be installed first.
 
-.. [4] Although using ``pip install --upgrade setuptools`` to upgrade from
-       distribute to setuptools works in isolation, it's possible to get
-       "ImportError: No module named setuptools" when using pip<1.4 to upgrade a
-       package that depends on setuptools or distribute. See :doc:`here for
-       details <distribute_setuptools>`.
-
-.. [5] The pip developers are considering making ``--user`` the default for all
+.. [4] The pip developers are considering making ``--user`` the default for all
        installs, including ``get-pip.py`` installs of pip, but at this time,
        ``--user`` installs for pip itself, should not be considered to be fully
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
 
-.. [6] https://github.com/pypa/pip/issues/1299
+.. [5] https://github.com/pypa/pip/issues/1299
 
 .. _setuptools: https://pypi.python.org/pypi/setuptools
 .. _distribute: https://pypi.python.org/pypi/distribute
