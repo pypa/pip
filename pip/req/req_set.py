@@ -485,20 +485,6 @@ class RequirementSet(object):
         to_install = [r for r in self.requirements.values()[::-1]
                       if not r.satisfied_by]
 
-        # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-        # move the distribute-0.7.X wrapper to the end because it does not
-        # install a setuptools package. by moving it to the end, we ensure it's
-        # setuptools dependency is handled first, which will provide the
-        # setuptools package
-        # TODO: take this out later
-        distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
-        for req in to_install:
-            if (req.name == 'distribute'
-                    and req.installed_version is not None
-                    and req.installed_version in distribute_req):
-                to_install.remove(req)
-                to_install.append(req)
-
         if to_install:
             logger.info(
                 'Installing collected packages: %s',
@@ -507,32 +493,6 @@ class RequirementSet(object):
 
         with indent_log():
             for requirement in to_install:
-
-                # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-                # when upgrading from distribute-0.6.X to the new merged
-                # setuptools in py2, we need to force setuptools to uninstall
-                # distribute. In py3, which is always using distribute, this
-                # conversion is already happening in distribute's
-                # pkg_resources. It's ok *not* to check if setuptools>=0.7
-                # because if someone were actually trying to ugrade from
-                # distribute to setuptools 0.6.X, then all this could do is
-                # actually help, although that upgade path was certainly never
-                # "supported"
-                # TODO: remove this later
-                if requirement.name == 'setuptools':
-                    try:
-                        # only uninstall distribute<0.7. For >=0.7, setuptools
-                        # will also be present, and that's what we need to
-                        # uninstall
-                        distribute_requirement = \
-                            pkg_resources.Requirement.parse("distribute<0.7")
-                        existing_distribute = \
-                            pkg_resources.get_distribution("distribute")
-                        if existing_distribute in distribute_requirement:
-                            requirement.conflicts_with = existing_distribute
-                    except pkg_resources.DistributionNotFound:
-                        # distribute wasn't installed, so nothing to do
-                        pass
 
                 if requirement.conflicts_with:
                     logger.info(

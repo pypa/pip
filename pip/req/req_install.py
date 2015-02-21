@@ -316,18 +316,6 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            # if it's distribute>=0.7, it won't contain an importable
-            # setuptools, and having an egg-info dir blocks the ability of
-            # setup.py to find setuptools plugins, so delete the egg-info dir
-            # if no setuptools. it will get recreated by the run of egg_info
-            # NOTE: this self.name check only works when installing from a
-            #       specifier (not archive path/urls)
-            # TODO: take this out later
-            if (self.name == 'distribute'
-                    and not os.path.isdir(
-                        os.path.join(self.source_dir, 'setuptools'))):
-                rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
-
             script = self._run_setup_py
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
@@ -919,17 +907,7 @@ exec(compile(
         if self.req is None:
             return False
         try:
-            # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-            # if we've already set distribute as a conflict to setuptools
-            # then this check has already run before.  we don't want it to
-            # run again, and return False, since it would block the uninstall
-            # TODO: remove this later
-            if (self.req.project_name == 'setuptools'
-                    and self.conflicts_with
-                    and self.conflicts_with.project_name == 'distribute'):
-                return True
-            else:
-                self.satisfied_by = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
