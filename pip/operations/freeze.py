@@ -25,6 +25,10 @@ def freeze(
     find_links = find_links or []
     skip_match = None
 
+    yield '#!/usr/bin/env pip install -r'
+    yield '# Why requirements.txt?'
+    yield '# See https://caremad.io/2013/07/setup-vs-requirement/\n'
+
     if skip_regex:
         skip_match = re.compile(skip_regex)
 

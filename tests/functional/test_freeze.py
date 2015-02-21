@@ -122,6 +122,7 @@ def test_freeze_git_clone(script, tmpdir):
         """
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
+            ...
             -f %(repo)s#egg=pip_test_package...
             -e git+...#egg=version_pkg-master
             ...
@@ -193,6 +194,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
         """
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
+            ...
             -f %(repo)s#egg=pip_test_package...
             ...-e hg+...#egg=version_pkg-dev
             ...
@@ -236,6 +238,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     expected = textwrap.dedent("""\
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
+        ...
         -f %(repo)s/#egg=django-wikiapp
         ...-e bzr+file://...@...#egg=version_pkg-...
         ...""" % {'repo': checkout_path})
@@ -252,6 +255,7 @@ def test_freeze_with_local_option(script):
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
+        ...
         INITools==0.2
         wsgiref==...
         <BLANKLINE>""")
@@ -267,6 +271,7 @@ def test_freeze_with_local_option(script):
     expected = textwrap.dedent("""\
         Script result: ...pip freeze --local
         -- stdout: --------------------
+        ...
         INITools==0.2
         <BLANKLINE>""")
     _check_output(result, expected)
@@ -305,6 +310,7 @@ Script result: pip freeze --requirement hint.txt
 Requirement file contains NoExist==4.2, but that package is not installed
 
 -- stdout: --------------------
+...
 INITools==0.2
 """ + ignores + "## The following requirements were added by pip freeze:..."
     _check_output(result, expected)
@@ -321,6 +327,7 @@ def test_freeze_user(script, virtualenv):
     expected = textwrap.dedent("""\
         Script result: pip freeze --user
         -- stdout: --------------------
+        ...
         simple==2.0
         <BLANKLINE>""")
     _check_output(result, expected)
