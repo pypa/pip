@@ -1,9 +1,11 @@
 import os
 import textwrap
+import pytest
 
 from tests.lib.path import Path
 
 
+@pytest.mark.network
 def test_download_if_requested(script):
     """
     It should download (in the scratch path) and not install if requested.
@@ -15,6 +17,7 @@ def test_download_if_requested(script):
     assert script.site_packages / 'initools' not in result.files_created
 
 
+@pytest.mark.network
 def test_download_wheel(script):
     """
     Test using "pip install --download" to download a *.whl archive.
@@ -33,6 +36,7 @@ def test_download_wheel(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
+@pytest.mark.network
 def test_single_download_from_requirements_file(script):
     """
     It should support download (in the scratch path) from PyPi from a
@@ -49,6 +53,7 @@ def test_single_download_from_requirements_file(script):
     assert script.site_packages / 'initools' not in result.files_created
 
 
+@pytest.mark.network
 def test_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
@@ -92,6 +97,7 @@ def test_download_should_download_wheel_deps(script, data):
     assert Path('scratch') / dep_filename in result.files_created
 
 
+@pytest.mark.network
 def test_download_should_skip_existing_files(script):
     """
     It should not download files already existing in the scratch dir
@@ -127,6 +133,7 @@ def test_download_should_skip_existing_files(script):
     assert script.site_packages / 'openid' not in result.files_created
 
 
+@pytest.mark.network
 def test_download_vcs_link(script):
     """
     It should allow -d flag for vcs links, regression test for issue #798.

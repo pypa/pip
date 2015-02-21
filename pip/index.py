@@ -461,18 +461,6 @@ class PackageFinder(object):
             return None
 
         if not applicable_versions:
-            # The following check for '>' is designed to prevent confusion like
-            # that in
-            # https://bitbucket.org/pypa/setuptools/issue/301/101-in-requirementparse-foo-10-results
-            str_specifier = str(req.specifier)
-            if '>' in str_specifier and '>=' not in str_specifier:
-                logger.warning(
-                    "The behavior of the `>` version specifier has changed in "
-                    "PEP 440. `>` is now an exclusive operator, meaning that "
-                    "%s does not match %s. "
-                    "Perhaps you want `>=` instead of `>`?",
-                    str_specifier, str_specifier + '.*'
-                )
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
@@ -1126,7 +1114,7 @@ class Link(object):
 
     @property
     def path(self):
-        return urllib_parse.urlsplit(self.url)[2]
+        return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
 
     def splitext(self):
         return splitext(posixpath.basename(self.path.rstrip('/')))

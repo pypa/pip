@@ -112,15 +112,19 @@ class CacheController(object):
         current_age = max(0, now - date)
 
         # TODO: There is an assumption that the result will be a
-        # urllib3 response object. This may not be best since we
-        # could probably avoid instantiating or constructing the
-        # response until we know we need it.
+        #       urllib3 response object. This may not be best since we
+        #       could probably avoid instantiating or constructing the
+        #       response until we know we need it.
         resp_cc = self.parse_cache_control(headers)
 
         # determine freshness
         freshness_lifetime = 0
+
+        # Check the max-age pragma in the cache control header
         if 'max-age' in resp_cc and resp_cc['max-age'].isdigit():
             freshness_lifetime = int(resp_cc['max-age'])
+
+        # If there isn't a max-age, check for an expires header
         elif 'expires' in headers:
             expires = parsedate_tz(headers['expires'])
             if expires is not None:

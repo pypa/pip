@@ -1,6 +1,8 @@
+import pytest
 from os.path import join
 
 
+@pytest.mark.network
 def test_simple_extras_install_from_pypi(script):
     """
     Test installing a package from PyPI using extras dependency Paste[openid].
@@ -31,6 +33,7 @@ def test_extras_after_wheel(script, data):
     assert simple in extra.files_created, extra.files_created
 
 
+@pytest.mark.network
 def test_no_extras_uninstall(script):
     """
     No extras dependency gets uninstalled when the root package is uninstalled
