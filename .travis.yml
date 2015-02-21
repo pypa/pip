@@ -3,6 +3,8 @@ language: python
 env:
   - TOXENV=pep8
   - TOXENV=py3pep8
+  - TOXENV=pep8_latest
+  - TOXENV=py3pep8_latest
   - TOXENV=docs
   - TOXENV=packaging
   - TOXENV=py26
@@ -15,6 +17,15 @@ env:
   - TOXENV=py34 VENDOR=no
   - TOXENV=py27 VENDOR=no WHEELS=yes
   - TOXENV=py34 VENDOR=no WHEELS=yes
+
+matrix:
+  # Allow these targets to fail because they might bring in a new version of
+  # pep8 with new checks that fail and it isn't fair to people submitting
+  # PRs to fail their builds for things outside of their control.
+  allow_failures:
+    - env: TOXENV=pep8_latest
+    - env: TOXENV=py3pep8_latest
+  fast_finish: true
 
 install: .travis/install.sh
 
