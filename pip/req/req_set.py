@@ -432,20 +432,19 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    # it seems like this should already know what the
-                    # extra options are, then check for option in the list.
-                    # instead, the current code throws an exception when
-                    # checking for the option.
-                    # further, this will fail on the very first check
                     # i.e. if a single non-existant one is found, then
                     # it stops trying to install extras.
+                    # the requires.txt file contains all of the options
                     try:
                         # req_to_install.extras are the extras
                         # the user *would like* to install.
                         # how to get the available options
                         # _dep_map has both extras and something else
                         # but it is: [Requirement.parse('simple==1.0')]
-                        print dist._dep_map  # maybe?
+                        extras = dist._dep_map
+                        print("dist - {0}".format(dist))
+                        print("extr - {0}".format(extras))
+
                         for subreq in dist.requires(
                                 req_to_install.extras):
                             if self.has_requirement(
