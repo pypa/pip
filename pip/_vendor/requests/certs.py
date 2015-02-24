@@ -14,7 +14,7 @@ packaged CA bundle.
 import os.path
 
 try:
-    from pip._vendor.certifi import where
+    from certifi import where
 except ImportError:
     def where():
         """Return the preferred certificate bundle."""
