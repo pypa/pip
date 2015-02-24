@@ -79,7 +79,7 @@ def test_shows_existing_available_extras(script, data):
     result = script.pip(
         'install', '--use-wheel', '--no-index',
         '--find-links=' + data.find_links,
-        'requires_simple_extra[simple, plop]', expect_stderr=True,
+        'requires_simple_extra[extra,plop]', expect_stderr=True,
     )
     print (result.stdout)
     assert (

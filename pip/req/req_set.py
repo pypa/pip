@@ -432,36 +432,27 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    # i.e. if a single non-existant one is found, then
-                    # it stops trying to install extras.
-                    # the requires.txt file contains all of the options
-                    try:
-                        # req_to_install.extras are the extras
-                        # the user *would like* to install.
-                        # how to get the available options
-                        # _dep_map has both extras and something else
-                        # but it is: [Requirement.parse('simple==1.0')]
-                        extras = dist._dep_map
-                        print("dist - {0}".format(dist))
-                        print("extr - {0}".format(extras))
-
-                        for subreq in dist.requires(
-                                req_to_install.extras):
-                            if self.has_requirement(
-                                    subreq.project_name):
-                                # FIXME: check for conflict
-                                continue
+                    # XXX EXTRASWORK this is used for debugging only.
+                    print("req - {0}".format(req_to_install.extras))
+                    logger.error(unavailable)
+                    for missing in missing_extras(dist.extras,
+                                                  req_to_install.extras):
+                        logger.error("%s does not provide the extra named %s",
+                                     dist, missing)
+                    extras_to_install = _available_extras(dist.extras,
+                                                          req_to_install.extras)
+                    for subreq in dist.requires(extras_to_install):
+                        if self.has_requirement(
+                                subreq.project_name):
+                            # FIXME: check for conflict
+                            continue
                             subreq = InstallRequirement(
                                 str(subreq),
                                 req_to_install,
                                 isolated=self.isolated,
                             )
-                            reqs.append(subreq)
-                            self.add_requirement(subreq)
-                    except pkg_resources.UnknownExtra as ex:
-                        # looks like the project_name isn't set.
-                        # shouldn't it be?
-                        logger.error(ex)
+                        reqs.append(subreq)
+                        self.add_requirement(subreq)
 
                 if not self.has_requirement(req_to_install.name):
                     # 'unnamed' requirements will get added here
@@ -578,3 +569,33 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
 
         self.successfully_installed = to_install
+
+
+def _available_options(provided, requested):
+    """
+    Given a list of installable extras, and a list of extras that the user
+    has requested to install, return the list of options that the user has
+    requested that *can* be installed.
+
+    :param provided: a tuple representing the dependencies that are classified
+       as optional dependencies
+    :param requested: a list containing the requirments that the user would
+       like to install.
+    :returns: a tuple of extras that can be installed
+    """
+    return [r for r in requested if r in provided]
+
+
+def _missing_options(provided, requested):
+    """
+    Given a list of installable extras, and a list of extras that the user
+    has requested to install, return the list of options that the user has
+    requested that *cannot* be installed.
+
+    :param provided: a tuple representing the dependencies that are classified
+       as optional dependencies
+    :param requested: a list containing the requirments that the user would
+       like to install.
+    :returns: a tuple of extras that can be installed
+    """
+    return [r for r in requested if r not in provided]
