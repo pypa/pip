@@ -237,9 +237,9 @@
   default build directory when possible. (:pull:`2122`, CVE-2014-8991)
 
 * Fixed :issue:`1433`. Support environment markers in requirements.txt files.
-  (pull:`2134`)
+  (:pull:`2134`)
 
-* Automatically retry failed HTTP requests by default. (:pull:`1444`, pull:`2147`)
+* Automatically retry failed HTTP requests by default. (:pull:`1444`, :pull:`2147`)
 
 * Fixed :issue:`1100` - Handle HTML Encoding better using a method that is more
   similar to how browsers handle it. (:pull:`1874`)
