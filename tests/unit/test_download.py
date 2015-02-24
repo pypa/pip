@@ -239,8 +239,7 @@ class Test_unpack_file_url(object):
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed
-        assert (hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
-                ==
+        assert (hashlib.md5(open(dest_file, 'rb').read()).hexdigest() ==
                 dist_path_md5
                 ), hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
 
@@ -306,8 +305,8 @@ class TestPipSession:
 
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["https://"].cache.directory
-                == tmpdir.join("test-cache"))
+        assert (session.adapters["https://"].cache.directory ==
+                tmpdir.join("test-cache"))
 
     def test_http_cache_is_not_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))

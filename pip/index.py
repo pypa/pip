@@ -228,8 +228,8 @@ class PackageFinder(object):
                 addr = ipaddress.ip_address(
                     origin[1]
                     if (
-                        isinstance(origin[1], six.text_type)
-                        or origin[1] is None
+                        isinstance(origin[1], six.text_type) or
+                        origin[1] is None
                     )
                     else origin[1].decode("utf8")
                 )
@@ -250,9 +250,9 @@ class PackageFinder(object):
                     continue
 
             # Check to see if the port patches
-            if (origin[2] != secure_origin[2]
-                    and secure_origin[2] != "*"
-                    and secure_origin[2] is not None):
+            if (origin[2] != secure_origin[2] and
+                    secure_origin[2] != "*" and
+                    secure_origin[2] is not None):
                 continue
 
             # If we've gotten here, then this origin matches the current
@@ -369,10 +369,10 @@ class PackageFinder(object):
                 req.name.lower()
             )
         )
-        if (not found_versions
-                and not page_versions
-                and not dependency_versions
-                and not file_versions):
+        if (not found_versions and not
+                page_versions and not
+                dependency_versions and not
+                file_versions):
             logger.critical(
                 'Could not find any downloads that satisfy the requirement %s',
                 req,
@@ -417,8 +417,8 @@ class PackageFinder(object):
 
         # This is an intentional priority ordering
         all_versions = (
-            file_versions + found_versions + page_versions
-            + dependency_versions
+            file_versions + found_versions + page_versions +
+            dependency_versions
         )
 
         # Filter out anything which doesn't match our specifier
@@ -496,8 +496,8 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
-                ', '.join(str(i.version) for i in applicable_versions[1:])
-                or "none",
+                ', '.join(str(i.version) for i in applicable_versions[1:]) or
+                "none",
             )
             raise BestVersionAlreadyInstalled
 
@@ -510,8 +510,8 @@ class PackageFinder(object):
 
         selected_version = applicable_versions[0].location
 
-        if (selected_version.verifiable is not None
-                and not selected_version.verifiable):
+        if (selected_version.verifiable is not None and not
+                selected_version.verifiable):
             logger.warning(
                 "%s is potentially insecure and unverifiable.", req.name,
             )
@@ -572,8 +572,8 @@ class PackageFinder(object):
             for link in page.rel_links():
                 normalized = normalize_name(req.name).lower()
 
-                if (normalized not in self.allow_external
-                        and not self.allow_all_external):
+                if (normalized not in self.allow_external and not
+                        self.allow_all_external):
                     self.need_warn_external = True
                     logger.debug(
                         "Not searching %s for files because external "
@@ -582,9 +582,9 @@ class PackageFinder(object):
                     )
                     continue
 
-                if (link.trusted is not None
-                        and not link.trusted
-                        and normalized not in self.allow_unverified):
+                if (link.trusted is not None and not
+                        link.trusted and
+                        normalized not in self.allow_unverified):
                     logger.debug(
                         "Not searching %s for urls, it is an "
                         "untrusted link and cannot produce safe or "
@@ -675,8 +675,8 @@ class PackageFinder(object):
                         link
                     )
                     return
-                if (pkg_resources.safe_name(wheel.name).lower()
-                        != pkg_resources.safe_name(search_name).lower()):
+                if (pkg_resources.safe_name(wheel.name).lower() !=
+                        pkg_resources.safe_name(search_name).lower()):
                     logger.debug(
                         'Skipping link %s; wrong project name (not %s)',
                         link,
@@ -699,12 +699,12 @@ class PackageFinder(object):
                 comes_from = getattr(link, "comes_from", None)
                 if (
                         (
-                            not platform.startswith('win')
-                            and not platform.startswith('macosx')
-                            and not platform == 'cli'
-                        )
-                        and comes_from is not None
-                        and urllib_parse.urlparse(
+                            not platform.startswith('win') and not
+                            platform.startswith('macosx') and not
+                            platform == 'cli'
+                        ) and
+                        comes_from is not None and
+                        urllib_parse.urlparse(
                             comes_from.url
                         ).netloc.endswith(PyPI.netloc)):
                     if not wheel.supported(tags=supported_tags_noarch):
@@ -726,21 +726,21 @@ class PackageFinder(object):
             )
             return
 
-        if (link.internal is not None
-                and not link.internal
-                and not normalize_name(search_name).lower()
-                in self.allow_external
-                and not self.allow_all_external):
+        if (link.internal is not None and not
+                link.internal and not
+                normalize_name(search_name).lower()
+                in self.allow_external and not
+                self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
             logger.debug("Skipping %s because it is externally hosted.", link)
             self.need_warn_external = True
             return
 
-        if (link.verifiable is not None
-                and not link.verifiable
-                and not (normalize_name(search_name).lower()
-                         in self.allow_unverified)):
+        if (link.verifiable is not None and not
+                link.verifiable and not
+                (normalize_name(search_name).lower()
+                    in self.allow_unverified)):
             # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
@@ -856,8 +856,8 @@ class HTMLPage(object):
             # Tack index.html onto file:// URLs that point to directories
             (scheme, netloc, path, params, query, fragment) = \
                 urllib_parse.urlparse(url)
-            if (scheme == 'file'
-                    and os.path.isdir(urllib_request.url2pathname(path))):
+            if (scheme == 'file' and
+                    os.path.isdir(urllib_request.url2pathname(path))):
                 # add trailing slash if not present so urljoin doesn't trim
                 # final segment
                 if not url.endswith('/'):
@@ -978,8 +978,8 @@ class HTMLPage(object):
                     # Only api_versions >= 2 have a distinction between
                     #   external and internal links
                     internal = bool(
-                        anchor.get("rel")
-                        and "internal" in anchor.get("rel").split()
+                        anchor.get("rel") and
+                        "internal" in anchor.get("rel").split()
                     )
 
                 yield Link(url, self, internal=internal)
@@ -1016,9 +1016,9 @@ class HTMLPage(object):
             if not href_match:
                 continue
             url = (
-                href_match.group(1)
-                or href_match.group(2)
-                or href_match.group(3)
+                href_match.group(1) or
+                href_match.group(2) or
+                href_match.group(3)
             )
             if not url:
                 continue

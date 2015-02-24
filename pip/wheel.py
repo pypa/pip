@@ -185,10 +185,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 if is_base and basedir == '' and destsubdir.endswith('.data'):
                     data_dirs.append(s)
                     continue
-                elif (is_base
-                        and s.endswith('.dist-info')
+                elif (is_base and
+                        s.endswith('.dist-info') and
                         # is self.req.project_name case preserving?
-                        and s.lower().startswith(
+                        s.lower().startswith(
                             req.project_name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)

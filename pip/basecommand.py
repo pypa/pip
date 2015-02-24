@@ -220,8 +220,8 @@ class Command(object):
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         # Check if we're using the latest version of pip available
-        if (not options.disable_pip_version_check
-                and not getattr(options, "no_index", False)):
+        if (not options.disable_pip_version_check and not
+                getattr(options, "no_index", False)):
             with self._build_session(
                     options,
                     retries=0,

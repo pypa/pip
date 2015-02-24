@@ -168,9 +168,9 @@ class Subversion(VersionControl):
 
         with open(os.path.join(location, self.dirname, 'entries')) as f:
             data = f.read()
-        if (data.startswith('8')
-                or data.startswith('9')
-                or data.startswith('10')):
+        if (data.startswith('8') or
+                data.startswith('9') or
+                data.startswith('10')):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
             url = data[0][3]

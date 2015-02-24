@@ -20,8 +20,8 @@ class TestUserCacheDir:
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
-        assert (appdirs.user_cache_dir("pip").replace("/", "\\")
-                == "C:\\Users\\test\\AppData\\Local\\pip\\Cache")
+        assert (appdirs.user_cache_dir("pip").replace("/", "\\") ==
+                "C:\\Users\\test\\AppData\\Local\\pip\\Cache")
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_cache_dir_osx(self, monkeypatch):
@@ -110,8 +110,8 @@ class TestUserDataDir:
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
-        assert (appdirs.user_data_dir("pip").replace("/", "\\")
-                == "C:\\Users\\test\\AppData\\Local\\pip")
+        assert (appdirs.user_data_dir("pip").replace("/", "\\") ==
+                "C:\\Users\\test\\AppData\\Local\\pip")
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_data_dir_win_yes_roaming(self, monkeypatch):
@@ -127,16 +127,18 @@ class TestUserDataDir:
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
-        assert (appdirs.user_data_dir("pip", roaming=True).replace("/", "\\")
-                == "C:\\Users\\test\\AppData\\Roaming\\pip")
+        assert (
+            appdirs.user_data_dir("pip", roaming=True).replace("/", "\\") ==
+            "C:\\Users\\test\\AppData\\Roaming\\pip"
+        )
         assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
 
     def test_user_data_dir_osx(self, monkeypatch):
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
-        assert (appdirs.user_data_dir("pip")
-                == "/home/test/Library/Application Support/pip")
+        assert (appdirs.user_data_dir("pip") ==
+                "/home/test/Library/Application Support/pip")
 
     def test_user_data_dir_linux(self, monkeypatch):
         monkeypatch.delenv("XDG_DATA_HOME")
@@ -169,8 +171,8 @@ class TestUserConfigDir:
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
         assert (
-            appdirs.user_config_dir("pip", roaming=False).replace("/", "\\")
-            == "C:\\Users\\test\\AppData\\Local\\pip"
+            appdirs.user_config_dir("pip", roaming=False).replace("/", "\\") ==
+            "C:\\Users\\test\\AppData\\Local\\pip"
         )
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
@@ -187,16 +189,16 @@ class TestUserConfigDir:
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
-        assert (appdirs.user_config_dir("pip").replace("/", "\\")
-                == "C:\\Users\\test\\AppData\\Roaming\\pip")
+        assert (appdirs.user_config_dir("pip").replace("/", "\\") ==
+                "C:\\Users\\test\\AppData\\Roaming\\pip")
         assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
 
     def test_user_config_dir_osx(self, monkeypatch):
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
-        assert (appdirs.user_config_dir("pip")
-                == "/home/test/Library/Application Support/pip")
+        assert (appdirs.user_config_dir("pip") ==
+                "/home/test/Library/Application Support/pip")
 
     def test_user_config_dir_linux(self, monkeypatch):
         monkeypatch.delenv("XDG_CONFIG_HOME")
@@ -228,16 +230,16 @@ class TestUserLogDir:
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
 
-        assert (appdirs.user_log_dir("pip").replace("/", "\\")
-                == "C:\\Users\\test\\AppData\\Local\\pip\\Logs")
+        assert (appdirs.user_log_dir("pip").replace("/", "\\") ==
+                "C:\\Users\\test\\AppData\\Local\\pip\\Logs")
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_log_dir_osx(self, monkeypatch):
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
-        assert (appdirs.user_log_dir("pip")
-                == "/home/test/Library/Logs/pip")
+        assert (appdirs.user_log_dir("pip") ==
+                "/home/test/Library/Logs/pip")
 
     def test_uuser_log_dir_linux(self, monkeypatch):
         monkeypatch.delenv("XDG_CACHE_HOME")

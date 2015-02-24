@@ -376,8 +376,8 @@ def get_file_content(url, comes_from=None, session=None):
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
-        if (scheme == 'file' and comes_from
-                and comes_from.startswith('http')):
+        if (scheme == 'file' and comes_from and
+                comes_from.startswith('http')):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))

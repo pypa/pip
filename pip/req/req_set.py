@@ -169,8 +169,8 @@ class RequirementSet(object):
                     if self.upgrade:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
-                        if not (self.use_user_site
-                                and not dist_in_usersite(
+                        if not (self.use_user_site and
+                                not dist_in_usersite(
                                     req_to_install.satisfied_by
                                 )):
                             req_to_install.conflicts_with = \
@@ -195,8 +195,8 @@ class RequirementSet(object):
                     self.build_dir,
                 )
 
-            if (req_to_install.source_dir is not None
-                    and not os.path.isdir(req_to_install.source_dir)):
+            if (req_to_install.source_dir is not None and not
+                    os.path.isdir(req_to_install.source_dir)):
                 raise InstallationError(
                     'Could not install requirement %s because source folder %s'
                     ' does not exist (perhaps --no-download was used without '
@@ -245,8 +245,8 @@ class RequirementSet(object):
                         if not best_installed:
                             # don't uninstall conflict if user install and
                             # conflict is not user install
-                            if not (self.use_user_site
-                                    and not dist_in_usersite(
+                            if not (self.use_user_site and not
+                                    dist_in_usersite(
                                         req_to_install.satisfied_by
                                     )):
                                 req_to_install.conflicts_with = \
@@ -269,8 +269,8 @@ class RequirementSet(object):
             if req_to_install.editable:
                 logger.info('Obtaining %s', req_to_install)
             elif install:
-                if (req_to_install.url
-                        and req_to_install.url.lower().startswith('file:')):
+                if (req_to_install.url and
+                        req_to_install.url.lower().startswith('file:')):
                     path = url_to_path(req_to_install.url)
                     logger.info('Processing %s', display_path(path))
                 else:
@@ -341,8 +341,8 @@ class RequirementSet(object):
                             try:
 
                                 if (
-                                    url.filename.endswith(wheel_ext)
-                                    and self.wheel_download_dir
+                                    url.filename.endswith(wheel_ext) and
+                                    self.wheel_download_dir
                                 ):
                                     # when doing 'pip wheel`
                                     download_dir = self.wheel_download_dir
@@ -393,8 +393,8 @@ class RequirementSet(object):
                             if self.upgrade or self.ignore_installed:
                                 # don't uninstall conflict if user install and
                                 # conflict is not user install
-                                if not (self.use_user_site
-                                        and not dist_in_usersite(
+                                if not (self.use_user_site and not
+                                        dist_in_usersite(
                                             req_to_install.satisfied_by)):
                                     req_to_install.conflicts_with = \
                                         req_to_install.satisfied_by
@@ -471,8 +471,8 @@ class RequirementSet(object):
 
     def _pip_has_created_build_dir(self):
         return (
-            self.build_dir == build_prefix
-            and os.path.exists(
+            self.build_dir == build_prefix and
+            os.path.exists(
                 os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)
             )
         )
@@ -493,9 +493,9 @@ class RequirementSet(object):
         # TODO: take this out later
         distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
         for req in to_install:
-            if (req.name == 'distribute'
-                    and req.installed_version is not None
-                    and req.installed_version in distribute_req):
+            if (req.name == 'distribute' and
+                    req.installed_version is not None and
+                    req.installed_version in distribute_req):
                 to_install.remove(req)
                 to_install.append(req)
 
@@ -550,13 +550,13 @@ class RequirementSet(object):
                     )
                 except:
                     # if install did not succeed, rollback previous uninstall
-                    if (requirement.conflicts_with
-                            and not requirement.install_succeeded):
+                    if (requirement.conflicts_with and not
+                            requirement.install_succeeded):
                         requirement.rollback_uninstall()
                     raise
                 else:
-                    if (requirement.conflicts_with
-                            and requirement.install_succeeded):
+                    if (requirement.conflicts_with and
+                            requirement.install_succeeded):
                         requirement.commit_uninstall()
                 requirement.remove_temporary_source()
 

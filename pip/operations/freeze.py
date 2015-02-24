@@ -54,10 +54,10 @@ def freeze(
     if requirement:
         with open(requirement) as req_file:
             for line in req_file:
-                if (not line.strip()
-                        or line.strip().startswith('#')
-                        or (skip_match and skip_match.search(line))
-                        or line.startswith((
+                if (not line.strip() or
+                        line.strip().startswith('#') or
+                        (skip_match and skip_match.search(line)) or
+                        line.startswith((
                             '-r', '--requirement',
                             '-Z', '--always-unzip',
                             '-f', '--find-links',

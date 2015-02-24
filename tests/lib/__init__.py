@@ -173,8 +173,8 @@ class TestPipResult(object):
             egg_link_file = self.files_created[egg_link_path]
 
             # FIXME: I don't understand why there's a trailing . here
-            if not (egg_link_file.bytes.endswith('\n.')
-                    and egg_link_file.bytes[:-2].endswith(pkg_dir)):
+            if not (egg_link_file.bytes.endswith('\n.') and
+                    egg_link_file.bytes[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u('''\
                     Incorrect egg_link file %r
                     Expected ending: %r
