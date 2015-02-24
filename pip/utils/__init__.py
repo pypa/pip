@@ -234,7 +234,6 @@ def file_contents(filename):
 
 
 def split_leading_dir(path):
-    path = str(path)
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\'))
                         or '\\' not in path):
