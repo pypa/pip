@@ -560,22 +560,18 @@ exec(compile(
 
         paths_to_remove = UninstallPathSet(dist)
         develop_egg_link = egg_link_path(dist)
+        develop_egg_link_egg_info = '{0}.egg-info'.format(
+            pkg_resources.to_filename(dist.project_name))
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
         distutils_egg_info = getattr(dist._provider, 'path', None)
-        if develop_egg_link:
-            # develop egg
-            with open(develop_egg_link, 'r') as fh:
-                link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
-                'Egg-link %s does not match installed location of %s '
-                '(at %s)' % (link_pointer, self.name, dist.location)
-            )
-            paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
-            paths_to_remove.add_pth(easy_install_pth, dist.location)
-        elif egg_info_exists and dist.egg_info.endswith('.egg-info'):
+
+        # Uninstall cases order do matter as in the case of 2 installs of the
+        # same package, pip needs to uninstall the currently detected version
+        if (egg_info_exists and dist.egg_info.endswith('.egg-info') and
+                not dist.egg_info.endswith(develop_egg_link_egg_info)):
+            # if dist.egg_info.endswith(develop_egg_link_egg_info), we
+            # are in fact in the develop_egg_link case
             paths_to_remove.add(dist.egg_info)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata(
@@ -621,9 +617,23 @@ exec(compile(
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
+        elif develop_egg_link:
+            # develop egg
+            with open(develop_egg_link, 'r') as fh:
+                link_pointer = os.path.normcase(fh.readline().strip())
+            assert (link_pointer == dist.location), (
+                'Egg-link %s does not match installed location of %s '
+                '(at %s)' % (link_pointer, self.name, dist.location)
+            )
+            paths_to_remove.add(develop_egg_link)
+            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
+                                            'easy-install.pth')
+            paths_to_remove.add_pth(easy_install_pth, dist.location)
+
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
             for path in pip.wheel.uninstallation_paths(dist):
                 paths_to_remove.add(path)
+
         else:
             logger.debug(
                 'Not sure how to uninstall: %s - Check: %s',
