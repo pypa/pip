@@ -234,6 +234,10 @@ def file_contents(filename):
 
 
 def split_leading_dir(path):
+    if six.PY3:
+        path = str(path)
+    else:
+        path = path.encode(sys.getfilesystemencoding())
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\'))
                         or '\\' not in path):
