@@ -1,3 +1,10 @@
+**7.0.0 (unreleased)**
+
+* Removed the temporary modifications (that began in pip v1.4 when distribute and
+  setuptools merged) that allowed distribute to be considered a conflict to
+  setuptools.  `pip install -U setuptools` will no longer upgrade "distribute"
+  to "setuptools".  Instead, use `pip install -U distribute` (:pull:`2435`).
+
 **6.1.0 (unreleased)**
 
 * Use a smoother progress bar when the terminal is capable of handling it,
@@ -58,7 +65,7 @@
   Windows shell does not support them, causing odd characters to appear with
   the progress bar.
 
-* Fix an issue where using -v would cause an exception saying
+ * Fix an issue where using -v would cause an exception saying
   ``TypeError: not all arguments converted during string formatting``.
 
 * Fix an issue where using -v with dependency links would cause an exception
