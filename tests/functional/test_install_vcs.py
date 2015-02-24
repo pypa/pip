@@ -30,7 +30,8 @@ def test_install_noneditable_git(script, tmpdir):
     result = script.pip(
         'install',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1.1#egg=pip-test-package'
+        '@0.1.1#egg=pip-test-package',
+        expect_stderr=True,
     )
     egg_info_folder = (
         script.site_packages /
@@ -40,26 +41,6 @@ def test_install_noneditable_git(script, tmpdir):
                             without_egg_link=True,
                             editable=False)
     assert egg_info_folder in result.files_created, str(result)
-
-
-@pytest.mark.network
-def test_git_with_sha1_revisions(script):
-    """
-    Git backend should be able to install from SHA1 revisions
-    """
-    version_pkg_path = _create_test_package(script)
-    _change_test_package_version(script, version_pkg_path)
-    sha1 = script.run(
-        'git', 'rev-parse', 'HEAD~1',
-        cwd=version_pkg_path,
-    ).stdout.strip()
-    script.pip(
-        'install', '-e',
-        '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1)
-    )
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout, version.stdout
 
 
 @pytest.mark.network
@@ -96,7 +77,8 @@ def test_git_with_tag_name_as_revision(script):
     _change_test_package_version(script, version_pkg_path)
     script.pip(
         'install', '-e', '%s@test_tag#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'))
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
@@ -210,7 +192,7 @@ def test_git_with_ambiguous_revs(script):
         (version_pkg_path.abspath.replace('\\', '/'))
     )
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
-    result = script.pip('install', '-e', package_url)
+    result = script.pip('install', '-e', package_url, expect_stderr=True)
     assert 'Could not find a tag or branch' not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module

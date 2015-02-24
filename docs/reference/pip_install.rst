@@ -180,11 +180,10 @@ Here are the supported forms::
     [-e] git+ssh://git.myproject.org/MyProject#egg=MyProject
     -e git+git@git.myproject.org:MyProject#egg=MyProject
 
-Passing branch names, a commit hash or a tag name is possible like so::
+Passing branch names or a tag name is possible like so::
 
     [-e] git://git.myproject.org/MyProject.git@master#egg=MyProject
     [-e] git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
-    [-e] git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 Mercurial
 ~~~~~~~~~
@@ -506,5 +505,3 @@ Examples
  ::
 
   $ pip install --pre SomePackage
-
-

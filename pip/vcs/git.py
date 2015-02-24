@@ -85,14 +85,14 @@ class Git(VersionControl):
         call_subprocess(
             [self.cmd, 'config', 'remote.origin.url', url], cwd=dest)
         call_subprocess(
-            [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
-
+            [self.cmd, 'fetch', '-q', '--depth', '1',
+             'origin', '+%s' % rev_options[0]] + rev_options[1:], cwd=dest)
         self.update_submodules(dest)
 
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
         call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
-        # Then reset to wanted revision (maby even origin/master)
+        # Then reset to wanted revision (maybe even origin/master)
         if rev_options:
             rev_options = self.check_rev_options(
                 rev_options[0], dest, rev_options,
@@ -107,27 +107,19 @@ class Git(VersionControl):
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         if rev:
-            rev_options = [rev]
             rev_display = ' (to %s)' % rev
         else:
-            rev_options = ['origin/master']
+            rev = 'master'
             rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        if self.check_destination(dest, url, [rev], rev_display):
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
-            call_subprocess([self.cmd, 'clone', '-q', url, dest])
-
-            if rev:
-                rev_options = self.check_rev_options(rev, dest, rev_options)
-                # Only do a checkout if rev_options differs from HEAD
-                if not self.get_revision(dest).startswith(rev_options[0]):
-                    call_subprocess(
-                        [self.cmd, 'checkout', '-q'] + rev_options,
-                        cwd=dest,
-                    )
-            #: repo may contain submodules
-            self.update_submodules(dest)
+            call_subprocess([self.cmd, 'clone', '-q',
+                             '--branch', rev,
+                             '--depth', '1',
+                             '--recurse-submodules',
+                             url, dest])
 
     def get_url(self, location):
         url = call_subprocess(
@@ -178,7 +170,7 @@ class Git(VersionControl):
 
         if current_rev in names_by_commit:
             # It's a tag or branch.
-            name = names_by_commit[current_rev]
+            current_rev = name = names_by_commit[current_rev]
             full_egg_name = (
                 '%s-%s' % (egg_project_name, self.translate_egg_surname(name))
             )

@@ -96,8 +96,10 @@ def test_check_submodule_addition(script):
     """
     module_path, submodule_path = _create_test_package_with_submodule(script)
 
+    # expect error because git may write to stderr
     install_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg'
+        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
+        expect_error=True,
     )
     assert (
         script.venv / 'src/version-pkg/testpkg/static/testfile'
