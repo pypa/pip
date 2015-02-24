@@ -432,11 +432,11 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    #print("req - {0}".format(req_to_install.extras))
                     for missing in _missing_extras(dist.extras,
                                                   req_to_install.extras):
-                        print("{0} does not provide the extra named {1}".format(
-                              dist, missing))
+                        logger.warning(
+                            '%s does not provide the extra \'%s\'',
+                            dist, missing)
                     extras_to_install = _available_extras(dist.extras,
                                                           req_to_install.extras)
                     for subreq in dist.requires(extras_to_install):
