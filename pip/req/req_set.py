@@ -444,11 +444,11 @@ class RequirementSet(object):
                                 subreq.project_name):
                             # FIXME: check for conflict
                             continue
-                            subreq = InstallRequirement(
-                                str(subreq),
-                                req_to_install,
-                                isolated=self.isolated,
-                            )
+                        subreq = InstallRequirement(
+                            str(subreq),
+                            req_to_install,
+                            isolated=self.isolated,
+                        )
                         reqs.append(subreq)
                         self.add_requirement(subreq)
 
