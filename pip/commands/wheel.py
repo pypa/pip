@@ -191,6 +191,7 @@ class WheelCommand(Command):
                 )
 
                 # make the wheelhouse
+                options.wheel_dir = normalize_path(options.wheel_dir)
                 if not os.path.exists(options.wheel_dir):
                     os.makedirs(options.wheel_dir)
 
