@@ -432,13 +432,11 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    # XXX EXTRASWORK this is used for debugging only.
-                    print("req - {0}".format(req_to_install.extras))
-                    logger.error(unavailable)
-                    for missing in missing_extras(dist.extras,
+                    #print("req - {0}".format(req_to_install.extras))
+                    for missing in _missing_extras(dist.extras,
                                                   req_to_install.extras):
-                        logger.error("%s does not provide the extra named %s",
-                                     dist, missing)
+                        print("{0} does not provide the extra named {1}".format(
+                              dist, missing))
                     extras_to_install = _available_extras(dist.extras,
                                                           req_to_install.extras)
                     for subreq in dist.requires(extras_to_install):
@@ -571,7 +569,7 @@ class RequirementSet(object):
         self.successfully_installed = to_install
 
 
-def _available_options(provided, requested):
+def _available_extras(provided, requested):
     """
     Given a list of installable extras, and a list of extras that the user
     has requested to install, return the list of options that the user has
@@ -586,7 +584,7 @@ def _available_options(provided, requested):
     return [r for r in requested if r in provided]
 
 
-def _missing_options(provided, requested):
+def _missing_extras(provided, requested):
     """
     Given a list of installable extras, and a list of extras that the user
     has requested to install, return the list of options that the user has
@@ -598,4 +596,4 @@ def _missing_options(provided, requested):
        like to install.
     :returns: a tuple of extras that can be installed
     """
-    return [r for r in requested if r not in provided]
+    return (r for r in requested if r not in provided)
