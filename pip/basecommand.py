@@ -191,7 +191,7 @@ class Command(object):
                 "The directory '%s' or its parent directory is not owned by "
                 "the current user and the debug log has been disabled. Please "
                 "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want the -H flag.",
+                "executing pip with sudo, you may want sudo's -H flag.",
                 os.path.dirname(debug_log_path),
             )
 
