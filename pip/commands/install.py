@@ -211,8 +211,8 @@ class InstallCommand(Command):
 
         # If we have --no-install or --no-download and no --build we use the
         # legacy static build dir
-        if (options.build_dir is None
-                and (options.no_install or options.no_download)):
+        if (options.build_dir is None and
+                (options.no_install or options.no_download)):
             options.build_dir = build_prefix
 
         if options.download_dir:
@@ -237,8 +237,8 @@ class InstallCommand(Command):
             options.ignore_installed = True
             temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir)
-                    and not os.path.isdir(options.target_dir)):
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
                 raise CommandError(
                     "Target path exists but is not a directory, will not "
                     "continue."
@@ -376,9 +376,9 @@ class InstallCommand(Command):
                     raise
                 finally:
                     # Clean up
-                    if ((not options.no_clean)
-                            and ((not options.no_install)
-                                 or options.download_dir)):
+                    if ((not options.no_clean) and
+                            ((not options.no_install) or
+                                options.download_dir)):
                         requirement_set.cleanup_files()
 
         if options.target_dir:

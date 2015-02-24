@@ -224,8 +224,8 @@ def is_svn_page(html):
     """
     Returns true if the page appears to be the index page of an svn repository
     """
-    return (re.search(r'<title>[^<]*Revision \d+:', html)
-            and re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
+    return (re.search(r'<title>[^<]*Revision \d+:', html) and
+            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
 
 
 def file_contents(filename):
@@ -236,8 +236,8 @@ def file_contents(filename):
 def split_leading_dir(path):
     path = str(path)
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\'))
-                        or '\\' not in path):
+    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
+                        '\\' not in path):
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -421,11 +421,11 @@ def get_installed_distributions(local_only=True,
             return True
 
     return [d for d in pkg_resources.working_set
-            if local_test(d)
-            and d.key not in skip
-            and editable_test(d)
-            and editables_only_test(d)
-            and user_test(d)
+            if local_test(d) and
+            d.key not in skip and
+            editable_test(d) and
+            editables_only_test(d) and
+            user_test(d)
             ]
 
 
@@ -576,8 +576,8 @@ def untar_file(filename, location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
-    elif (filename.lower().endswith('.bz2')
-            or filename.lower().endswith('.tbz')):
+    elif (filename.lower().endswith('.bz2') or
+            filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
@@ -644,22 +644,22 @@ def untar_file(filename, location):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip'
-            or filename.endswith('.zip')
-            or filename.endswith('.whl')
-            or zipfile.is_zipfile(filename)):
+    if (content_type == 'application/zip' or
+            filename.endswith('.zip') or
+            filename.endswith('.whl') or
+            zipfile.is_zipfile(filename)):
         unzip_file(
             filename,
             location,
             flatten=not filename.endswith('.whl')
         )
-    elif (content_type == 'application/x-gzip'
-            or tarfile.is_tarfile(filename)
-            or splitext(filename)[1].lower() in (
+    elif (content_type == 'application/x-gzip' or
+            tarfile.is_tarfile(filename) or
+            splitext(filename)[1].lower() in (
                 '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html')
-            and is_svn_page(file_contents(filename))):
+    elif (content_type and content_type.startswith('text/html') and
+            is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)

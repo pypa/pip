@@ -152,8 +152,8 @@ class ZipCommand(Command):
 
     def unzip_package(self, module_name, filename):
         zip_filename = os.path.dirname(filename)
-        if (not os.path.isfile(zip_filename)
-                and zipfile.is_zipfile(zip_filename)):
+        if (not os.path.isfile(zip_filename) and
+                zipfile.is_zipfile(zip_filename)):
             raise InstallationError(
                 'Module %s (in %s) isn\'t located in a zip file in %s'
                 % (module_name, filename, zip_filename))
@@ -355,9 +355,9 @@ class ZipCommand(Command):
                 if os.path.dirname(path) not in self.paths():
                     logger.info('Zipped egg: %s', display_path(path))
                 continue
-            if (basename != 'site-packages'
-                    and basename != 'dist-packages'
-                    and not path.replace('\\', '/').endswith('lib/python')):
+            if (basename != 'site-packages' and
+                    basename != 'dist-packages' and not
+                    path.replace('\\', '/').endswith('lib/python')):
                 continue
             logger.info('In %s:', display_path(path))
 

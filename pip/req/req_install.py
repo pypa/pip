@@ -134,8 +134,8 @@ class InstallRequirement(object):
 
         if is_url(name):
             link = Link(name)
-        elif (os.path.isdir(path)
-                and (os.path.sep in name or name.startswith('.'))):
+        elif (os.path.isdir(path) and
+                (os.path.sep in name or name.startswith('.'))):
             if not is_installable_dir(path):
                 raise InstallationError(
                     "Directory %r is not installable. File 'setup.py' not "
@@ -323,8 +323,8 @@ class InstallRequirement(object):
             # NOTE: this self.name check only works when installing from a
             #       specifier (not archive path/urls)
             # TODO: take this out later
-            if (self.name == 'distribute'
-                    and not os.path.isdir(
+            if (self.name == 'distribute' and not
+                    os.path.isdir(
                         os.path.join(self.source_dir, 'setuptools'))):
                 rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
 
@@ -431,8 +431,8 @@ exec(compile(
                         if (
                                 os.path.exists(
                                     os.path.join(root, dir, 'bin', 'python')
-                                )
-                                or os.path.exists(
+                                ) or
+                                os.path.exists(
                                     os.path.join(
                                         root, dir, 'Scripts', 'Python.exe'
                                     )
@@ -457,8 +457,8 @@ exec(compile(
             # an extracted tarball for testing purposes.
             if len(filenames) > 1:
                 filenames.sort(
-                    key=lambda x: x.count(os.path.sep)
-                    + (os.path.altsep and x.count(os.path.altsep) or 0)
+                    key=lambda x: x.count(os.path.sep) +
+                    (os.path.altsep and x.count(os.path.altsep) or 0)
                 )
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
@@ -878,10 +878,10 @@ exec(compile(
                     "import setuptools, tokenize; __file__=%r; exec(compile("
                     "getattr(tokenize, 'open', open)(__file__).read().replace"
                     "('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
-                ]
-                + list(global_options)
-                + ['develop', '--no-deps']
-                + list(install_options),
+                ] +
+                list(global_options) +
+                ['develop', '--no-deps'] +
+                list(install_options),
 
                 cwd=cwd, filter_stdout=self._filter_install,
                 show_stdout=False)
@@ -924,9 +924,9 @@ exec(compile(
             # then this check has already run before.  we don't want it to
             # run again, and return False, since it would block the uninstall
             # TODO: remove this later
-            if (self.req.project_name == 'setuptools'
-                    and self.conflicts_with
-                    and self.conflicts_with.project_name == 'distribute'):
+            if (self.req.project_name == 'setuptools' and
+                    self.conflicts_with and
+                    self.conflicts_with.project_name == 'distribute'):
                 return True
             else:
                 self.satisfied_by = pkg_resources.get_distribution(self.req)
@@ -939,8 +939,8 @@ exec(compile(
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
-                elif (running_under_virtualenv()
-                        and dist_in_site_packages(existing_dist)):
+                elif (running_under_virtualenv() and
+                        dist_in_site_packages(existing_dist)):
                     raise InstallationError(
                         "Will not install to the user site because it will "
                         "lack sys.path precedence to %s in %s" %
