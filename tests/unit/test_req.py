@@ -386,7 +386,7 @@ def test_req_available_extras_returns_empty_tuple_with_no_options():
     """
     provided = ()
     requested = ['tls', 'nope', 'nada']
-    assert _available_extras(provided, requested) == provided
+    assert RequirementSet._available_extras(provided, requested) == provided
 
 def test_req_available_extras_returns_available_extras():
     """
