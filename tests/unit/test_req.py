@@ -71,6 +71,42 @@ class TestRequirementSet(object):
         else:
             assert not reqset.has_requirement('simple')
 
+    def test_req_missing_extras_returns_empty_tuple_when_no_missing():
+        """
+        When all of the requested extras are available,
+        `req._missing_extras` returns an empty tuple.
+        """
+        provided = ('tls',)
+        requested = list(provided)
+        assert not RequirementSet._missing_extras(provided, requested)
+
+    def test_req_missing_extras_returns_missing_extras():
+        """
+        When all of the requested extras are available,
+        `req._missing_extras` returns a tuple containing each missing extra.
+        """
+        provided = tuple()
+        missing = ['tls', 'nope', 'nada']
+        assert RequirementSet._missing_extras(provided, missing) == missing
+
+    def test_req_available_extras_returns_empty_tuple_with_no_options():
+        """
+        When none of the requested options are provided,
+        `req.available_extras` returns an empty tuple.
+        """
+        provided = tuple()
+        requested = ['tls', 'nope', 'nada']
+        assert not RequirementSet._available_extras(provided, requested)
+
+    def test_req_available_extras_returns_available_extras():
+        """
+        `req.available_extras` returns a tuple containing the intersection
+        of the extras provided and requested.
+        """
+        provided = ('tls', 'nope',)
+        requested = list(provided)
+        assert RequirementSet._available_extras(provided, requested) == provided
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
@@ -357,42 +393,3 @@ def test_req_file_no_finder(tmpdir):
         """)
 
     parse_requirements(tmpdir.join("req.txt"), session=PipSession())
-
-
-def test_req_missing_extras_returns_empty_tuple_when_no_missing():
-    """
-    When all of the requested extras are available,
-    `req._missing_extras` returns an empty tuple.
-    """
-    provided = ('tls')
-    requested = list(provided)
-    assert RequirementSet._missing_extras(provided, requested) == ()
-
-
-def test_req_missing_extras_returns_missing_extras():
-    """
-    When all of the requested extras are available,
-    `req._missing_extras` returns a tuple containing each missing extra.
-    """
-    provided = ()
-    missing = ['tls', 'nope', 'nada']
-    assert RequirementSet._missing_extras(provided, missing) == missing
-
-
-def test_req_available_extras_returns_empty_tuple_with_no_options():
-    """
-    When none of the requested options are provided,
-    `req.available_extras` returns an empty tuple.
-    """
-    provided = ()
-    requested = ['tls', 'nope', 'nada']
-    assert RequirementSet._available_extras(provided, requested) == provided
-
-def test_req_available_extras_returns_available_extras():
-    """
-    `req.available_extras` returns a tuple containing the intersection
-    of the extras provided and requested.
-    """
-    provided = ('tls', 'nope')
-    requested = list(provided)
-    assert RequirementSet._available_extras(provided, requested) == provided
