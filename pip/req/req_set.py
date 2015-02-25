@@ -571,14 +571,12 @@ class RequirementSet(object):
 
 def _available_extras(provided, requested):
     """
-    Given a list of installable extras, and a list of extras that the user
+    Given a tuple of installable extras, and a list of extras that the user
     has requested to install, return the list of options that the user has
     requested that *can* be installed.
 
-    :param provided: a tuple representing the dependencies that are classified
-       as optional dependencies
-    :param requested: a list containing the requirments that the user would
-       like to install.
+    :param provided: a tuple of optional extras provided by a distribution
+    :param requested: a list of optional extras the user wants to install
     :returns: a tuple of extras that can be installed
     """
     return (r for r in requested if r in provided)
@@ -586,14 +584,12 @@ def _available_extras(provided, requested):
 
 def _missing_extras(provided, requested):
     """
-    Given a list of installable extras, and a list of extras that the user
+    Given a tuple of installable extras, and a list of extras that the user
     has requested to install, return the list of options that the user has
     requested that *cannot* be installed.
 
-    :param provided: a tuple representing the dependencies that are classified
-       as optional dependencies
-    :param requested: a list containing the requirments that the user would
-       like to install.
+    :param provided: a tuple of optional extras provided by a distribution
+    :param requested: a list of optional extras the user wants to install
     :returns: a tuple of extras that cannot be installed
     """
     return (r for r in requested if r not in provided)

@@ -12,7 +12,8 @@ from pip.exceptions import (
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
-                     Requirements, parse_requirements)
+                     Requirements, parse_requirements,
+                     _missing_extras, _available_extras)
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
@@ -357,3 +358,41 @@ def test_req_file_no_finder(tmpdir):
         """)
 
     parse_requirements(tmpdir.join("req.txt"), session=PipSession())
+
+def test_req_missing_extras_returns_empty_tuple_when_no_missing():
+    """
+    When all of the requested extras are available,
+    `req._missing_extras` returns an empty tuple.
+    """
+    provided = ('tls')
+    requested = list(provided)
+    assert _missing_extras(provided, requested) == ()
+
+
+def test_req_missing_extras_returns_missing_extras():
+    """
+    When all of the requested extras are available,
+    `req._missing_extras` returns a tuple containing each missing extra.
+    """
+    provided = ()
+    missing = ['tls', 'nope', 'nada']
+    assert _missing_extras(provided, missing) == missing
+
+
+def test_req_available_extras_returns_empty_tuple_with_no_options():
+    """
+    When none of the requested options are provided,
+    `req.available_extras` returns an empty tuple.
+    """
+    provided = ()
+    requested = ['tls', 'nope', 'nada']
+    assert _available_extras(provided, requested) == provided
+
+def test_req_available_extras_returns_available_extras():
+    """
+    `req.available_extras` returns a tuple containing the intersection
+    of the extras provided and requested.
+    """
+    provided = ('tls', 'nope')
+    requested = list(provided)
+    assert _available_extras(provided, requested) == provided
