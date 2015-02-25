@@ -204,6 +204,32 @@ class RequirementSet(object):
                     (req_to_install, req_to_install.source_dir)
                 )
 
+    @staticmethod
+    def _available_extras(provided, requested):	
+        """		    
+        Given a tuple of installable extras, and a list of extras that the user
+        has requested to install, return the list of options that the user has
+        requested that *can* be installed.
+        
+        :param provided: a tuple of optional extras provided by a distribution
+        :param requested: a list of optional extras the user wants to install
+        :returns: a tuple of extras that can be installed
+        """
+        return (r for r in requested if r in provided)
+
+    @staticmethod
+    def _missing_extras(provided, requested):
+        """
+        Given a tuple of installable extras, and a list of extras that the user
+        has requested to install, return the list of options that the user has
+        requested that *cannot* be installed.
+        
+        :param provided: a tuple of optional extras provided by a distribution
+        :param requested: a list of optional extras the user wants to install
+        :returns: a tuple of extras that cannot be installed
+        """
+        return (r for r in requested if r not in provided)
+    
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -432,14 +458,17 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    for missing in _missing_extras(dist.extras,
-                                                   req_to_install.extras):
+                    missing_extras = RequirementSet._missing_extras(
+                        dist.extras,
+                        req_to_install.extras)
+                    requested_and_provided = RequirementSet._available_extras(
+                        dist.extras,
+                        req_to_install.extras)
+                    for missing in missing_extras:
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
                             dist, missing)
-                    extras_install = _available_extras(dist.extras,
-                                                       req_to_install.extras)
-                    for subreq in dist.requires(extras_install):
+                    for subreq in dist.requires(requested_and_provided):
                         if self.has_requirement(
                                 subreq.project_name):
                             # FIXME: check for conflict
@@ -567,29 +596,3 @@ class RequirementSet(object):
                 requirement.remove_temporary_source()
 
         self.successfully_installed = to_install
-
-
-def _available_extras(provided, requested):
-    """
-    Given a tuple of installable extras, and a list of extras that the user
-    has requested to install, return the list of options that the user has
-    requested that *can* be installed.
-
-    :param provided: a tuple of optional extras provided by a distribution
-    :param requested: a list of optional extras the user wants to install
-    :returns: a tuple of extras that can be installed
-    """
-    return (r for r in requested if r in provided)
-
-
-def _missing_extras(provided, requested):
-    """
-    Given a tuple of installable extras, and a list of extras that the user
-    has requested to install, return the list of options that the user has
-    requested that *cannot* be installed.
-
-    :param provided: a tuple of optional extras provided by a distribution
-    :param requested: a list of optional extras the user wants to install
-    :returns: a tuple of extras that cannot be installed
-    """
-    return (r for r in requested if r not in provided)
