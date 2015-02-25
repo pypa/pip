@@ -205,17 +205,17 @@ class RequirementSet(object):
                 )
 
     @staticmethod
-    def _available_extras(provided, requested):	
-        """		    
+    def _available_extras(provided, requested):
+        """
         Given a tuple of installable extras, and a list of extras that the user
         has requested to install, return the list of options that the user has
         requested that *can* be installed.
-        
+
         :param provided: a tuple of optional extras provided by a distribution
         :param requested: a list of optional extras the user wants to install
         :returns: a tuple of extras that can be installed
         """
-        return (r for r in requested if r in provided)
+        return tuple((r for r in requested if r in provided))
 
     @staticmethod
     def _missing_extras(provided, requested):
@@ -223,13 +223,13 @@ class RequirementSet(object):
         Given a tuple of installable extras, and a list of extras that the user
         has requested to install, return the list of options that the user has
         requested that *cannot* be installed.
-        
+
         :param provided: a tuple of optional extras provided by a distribution
         :param requested: a list of optional extras the user wants to install
         :returns: a tuple of extras that cannot be installed
         """
-        return (r for r in requested if r not in provided)
-    
+        return tuple((r for r in requested if r not in provided))
+
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
