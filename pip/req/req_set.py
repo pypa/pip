@@ -433,7 +433,7 @@ class RequirementSet(object):
 
                 if not self.ignore_dependencies:
                     for missing in _missing_extras(dist.extras,
-                                                  req_to_install.extras):
+                                                   req_to_install.extras):
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
                             dist, missing)
@@ -581,7 +581,7 @@ def _available_extras(provided, requested):
        like to install.
     :returns: a tuple of extras that can be installed
     """
-    return [r for r in requested if r in provided]
+    return (r for r in requested if r in provided)
 
 
 def _missing_extras(provided, requested):
@@ -594,6 +594,6 @@ def _missing_extras(provided, requested):
        as optional dependencies
     :param requested: a list containing the requirments that the user would
        like to install.
-    :returns: a tuple of extras that can be installed
+    :returns: a tuple of extras that cannot be installed
     """
     return (r for r in requested if r not in provided)
