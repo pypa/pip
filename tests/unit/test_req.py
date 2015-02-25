@@ -359,6 +359,7 @@ def test_req_file_no_finder(tmpdir):
 
     parse_requirements(tmpdir.join("req.txt"), session=PipSession())
 
+
 def test_req_missing_extras_returns_empty_tuple_when_no_missing():
     """
     When all of the requested extras are available,
