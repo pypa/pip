@@ -12,8 +12,7 @@ from pip.exceptions import (
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
-                     Requirements, parse_requirements,
-                     _missing_extras, _available_extras)
+                     Requirements, parse_requirements)
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
@@ -367,7 +366,7 @@ def test_req_missing_extras_returns_empty_tuple_when_no_missing():
     """
     provided = ('tls')
     requested = list(provided)
-    assert _missing_extras(provided, requested) == ()
+    assert RequirementSet._missing_extras(provided, requested) == ()
 
 
 def test_req_missing_extras_returns_missing_extras():
@@ -377,7 +376,7 @@ def test_req_missing_extras_returns_missing_extras():
     """
     provided = ()
     missing = ['tls', 'nope', 'nada']
-    assert _missing_extras(provided, missing) == missing
+    assert RequirementSet._missing_extras(provided, missing) == missing
 
 
 def test_req_available_extras_returns_empty_tuple_with_no_options():
@@ -396,4 +395,4 @@ def test_req_available_extras_returns_available_extras():
     """
     provided = ('tls', 'nope')
     requested = list(provided)
-    assert _available_extras(provided, requested) == provided
+    assert RequirementSet._available_extras(provided, requested) == provided
