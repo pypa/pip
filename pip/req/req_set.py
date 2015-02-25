@@ -437,9 +437,9 @@ class RequirementSet(object):
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
                             dist, missing)
-                    extras_to_install = _available_extras(dist.extras,
-                                                          req_to_install.extras)
-                    for subreq in dist.requires(extras_to_install):
+                    extras_install = _available_extras(dist.extras,
+                                                       req_to_install.extras)
+                    for subreq in dist.requires(extras_install):
                         if self.has_requirement(
                                 subreq.project_name):
                             # FIXME: check for conflict
