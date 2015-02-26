@@ -458,17 +458,18 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    missing_extras = RequirementSet._missing_extras(
-                        dist.extras,
-                        req_to_install.extras)
-                    requested_and_provided = RequirementSet._available_extras(
-                        dist.extras,
-                        req_to_install.extras)
-                    for missing in missing_extras:
+
+                    for missing in RequirementSet._missing_extras(
+                            dist.extras,
+                            req_to_install.extras):
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
-                            dist, missing)
-                    for subreq in dist.requires(requested_and_provided):
+                            str(dist), missing)
+
+                    for subreq in dist.requires(
+                            RequirementSet._available_extras(
+                                dist.extras,
+                                req_to_install.extras)):
                         if self.has_requirement(
                                 subreq.project_name):
                             # FIXME: check for conflict
