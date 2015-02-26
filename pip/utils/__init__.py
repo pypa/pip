@@ -45,6 +45,13 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 logger = logging.getLogger(__name__)
 
 
+def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
+    try:
+        return __import__(pkg_or_module_string)
+    except ImportError:
+        raise ExceptionType(*args, **kwargs)
+
+
 def get_prog():
     try:
         if os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
