@@ -71,46 +71,6 @@ class TestRequirementSet(object):
         else:
             assert not reqset.has_requirement('simple')
 
-    def test_missing_extras_returns_empty_tuple_when_no_missing(self):
-        """
-        When all of the requested extras are available,
-        `req._missing_extras` returns an empty tuple.
-        """
-        provided = ('tls',)
-        requested = list(provided)
-        assert not RequirementSet._missing_extras(provided, requested)
-
-    def test_missing_extras_returns_missing_extras(self):
-        """
-        When all of the requested extras are available,
-        `req._missing_extras` returns a tuple containing each missing extra.
-        """
-        provided = tuple()
-        missing = ['tls', 'nope', 'nada']
-        assert (
-            tuple(missing) == RequirementSet._missing_extras(provided, missing)
-        )
-
-    def test_available_extras_returns_empty_tuple_with_no_options(self):
-        """
-        When none of the requested options are provided,
-        `req.available_extras` returns an empty tuple.
-        """
-        provided = tuple()
-        requested = ['tls', 'nope', 'nada']
-        assert not RequirementSet._available_extras(provided, requested)
-
-    def test_available_extras_returns_available_extras(self):
-        """
-        `req.available_extras` returns a tuple containing the intersection
-        of the extras provided and requested.
-        """
-        provided = ('tls', 'nope')
-        requested = list(provided)
-        assert (
-            provided == RequirementSet._available_extras(provided, requested)
-        )
-
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252

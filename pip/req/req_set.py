@@ -204,32 +204,6 @@ class RequirementSet(object):
                     (req_to_install, req_to_install.source_dir)
                 )
 
-    @staticmethod
-    def _available_extras(provided, requested):
-        """
-        Given a tuple of installable extras, and a list of extras that the user
-        has requested to install, return the list of options that the user has
-        requested that *can* be installed.
-
-        :param provided: a tuple of optional extras provided by a distribution
-        :param requested: a list of optional extras the user wants to install
-        :returns: a tuple of extras that can be installed
-        """
-        return tuple((r for r in requested if r in provided))
-
-    @staticmethod
-    def _missing_extras(provided, requested):
-        """
-        Given a tuple of installable extras, and a list of extras that the user
-        has requested to install, return the list of options that the user has
-        requested that *cannot* be installed.
-
-        :param provided: a tuple of optional extras provided by a distribution
-        :param requested: a list of optional extras the user wants to install
-        :returns: a tuple of extras that cannot be installed
-        """
-        return tuple((r for r in requested if r not in provided))
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -458,18 +432,18 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-
-                    for missing in RequirementSet._missing_extras(
-                            dist.extras,
-                            req_to_install.extras):
+                    missing_requested = sorted(
+                        set(req_to_install.extras) - set(dist.extras)
+                    )
+                    for missing in missing_requested:
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
-                            str(dist), missing)
+                            dist, missing)
 
-                    for subreq in dist.requires(
-                            RequirementSet._available_extras(
-                                dist.extras,
-                                req_to_install.extras)):
+                    available_requested = sorted(
+                        set(dist.extras) & set(req_to_install.extras)
+                    )
+                    for subreq in dist.requires(available_requested):
                         if self.has_requirement(
                                 subreq.project_name):
                             # FIXME: check for conflict
