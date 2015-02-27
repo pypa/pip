@@ -23,7 +23,7 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
 from pip.utils import (call_subprocess, normalize_path, make_path_relative,
-                       captured_stdout, remove_tracebacks)
+                       captured_stdout)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -158,9 +158,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     if pycompile:
         with captured_stdout() as stdout:
             compileall.compile_dir(source, force=True, quiet=True)
-        compile_log = remove_tracebacks(stdout.getvalue())
-        if compile_log:
-            logger.info(compile_log)
+        logger.debug(stdout.getvalue())
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')
