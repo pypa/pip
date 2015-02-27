@@ -158,7 +158,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     if pycompile:
         with captured_stdout() as stdout:
             compileall.compile_dir(source, force=True, quiet=True)
-        logger.info(remove_tracebacks(stdout.getvalue()))
+        compile_log = remove_tracebacks(stdout.getvalue())
+        if compile_log:
+            logger.info(compile_log)
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')
