@@ -13,6 +13,7 @@ import re
 import shutil
 import stat
 import sys
+import warnings
 
 from base64 import urlsafe_b64encode
 from email.parser import Parser
@@ -157,7 +158,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
         with captured_stdout() as stdout:
-            compileall.compile_dir(source, force=True, quiet=True)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                compileall.compile_dir(source, force=True, quiet=True)
         logger.debug(stdout.getvalue())
 
     def normpath(src, p):
