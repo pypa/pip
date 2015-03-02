@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import os
 import sys
 
-from pip._vendor import six
 from pip.compat import WINDOWS
 
 
@@ -225,33 +224,6 @@ def _get_win_folder_from_registry(csidl_name):
     return directory
 
 
-def _get_win_folder_with_pywin32(csidl_name):
-    from win32com.shell import shellcon, shell
-    directory = shell.SHGetFolderPath(0, getattr(shellcon, csidl_name), 0, 0)
-    # Try to make this a unicode path because SHGetFolderPath does
-    # not return unicode strings when there is unicode data in the
-    # path.
-    try:
-        directory = six.text_type(directory)
-
-        # Downgrade to short path name if have highbit chars. See
-        # <http://bugs.activestate.com/show_bug.cgi?id=85099>.
-        has_high_char = False
-        for c in directory:
-            if ord(c) > 255:
-                has_high_char = True
-                break
-        if has_high_char:
-            try:
-                import win32api
-                directory = win32api.GetShortPathName(directory)
-            except ImportError:
-                pass
-    except UnicodeError:
-        pass
-    return directory
-
-
 def _get_win_folder_with_ctypes(csidl_name):
     csidl_const = {
         "CSIDL_APPDATA": 26,
@@ -278,11 +250,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 
 if WINDOWS:
     try:
-        import win32com.shell  # noqa
-        _get_win_folder = _get_win_folder_with_pywin32
+        import ctypes
+        _get_win_folder = _get_win_folder_with_ctypes
     except ImportError:
-        try:
-            import ctypes
-            _get_win_folder = _get_win_folder_with_ctypes
-        except ImportError:
-            _get_win_folder = _get_win_folder_from_registry
+        _get_win_folder = _get_win_folder_from_registry
