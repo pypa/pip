@@ -70,7 +70,7 @@ def test_outdated_flag(script, data):
     """
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
+        'simple2==3.0', 'simplewheel==1.0',
     )
     script.pip(
         'install', '-e',
@@ -79,7 +79,8 @@ def test_outdated_flag(script, data):
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
     )
-    assert 'simple (Current: 1.0 Latest: 3.0)' in result.stdout
+    assert 'simple (Current: 1.0 Latest: 3.0 [sdist])' in result.stdout
+    assert 'simplewheel (Current: 1.0 Latest: 2.0 [wheel])' in result.stdout
     assert 'pip-test-package' not in result.stdout  # editables excluded
     assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
 
