@@ -259,7 +259,7 @@ class FrozenRequirement(object):
             editable = False
             req = dist.as_requirement()
             specs = req.specs
-            assert len(specs) == 1 and specs[0][0] in ["==", "==="]
+            assert len(specs) == 1 and specs[0][0] in ["==", "==="], dist
             version = specs[0][1]
             ver_match = cls._rev_re.search(version)
             date_match = cls._date_re.search(version)
