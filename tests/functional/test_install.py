@@ -454,7 +454,7 @@ def test_install_global_option_using_editable(script, tmpdir):
         'install', '--global-option=--version', '-e',
         '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache"))
     )
-    assert '0.2.5\n' in result.stdout
+    assert 'Successfully installed anyjson' in result.stdout
 
 
 @pytest.mark.network
