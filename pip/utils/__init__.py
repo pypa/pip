@@ -754,7 +754,7 @@ def call_subprocess(cmd, show_stdout=True,
                     'Complete output from command %s:', command_desc,
                 )
                 logger.info(
-                    '\n'.join(all_output) +
+                    ''.join(all_output) +
                     '\n----------------------------------------'
                 )
             raise InstallationError(
