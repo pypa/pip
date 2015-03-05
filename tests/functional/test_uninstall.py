@@ -388,3 +388,24 @@ def test_uninstall_wheel(script, data):
     assert dist_info_folder in result.files_created
     result2 = script.pip('uninstall', 'simple.dist', '-y')
     assert_all_changes(result, result2, [])
+
+
+def test_uninstall_setuptools_develop_install(script, data):
+    """Try uninstall after setup.py develop followed of setup.py install"""
+    pkg_path = data.packages.join("FSPkg")
+    script.run('python', 'setup.py', 'develop',
+               expect_stderr=True, cwd=pkg_path)
+    script.run('python', 'setup.py', 'install',
+               expect_stderr=True, cwd=pkg_path)
+    list_result = script.pip('list')
+    assert "FSPkg (0.1.dev0)" in list_result.stdout
+    # Uninstall both develop and install
+    uninstall = script.pip('uninstall', 'FSPkg', '-y')
+    assert any(filename.endswith('.egg')
+               for filename in uninstall.files_deleted.keys())
+    uninstall2 = script.pip('uninstall', 'FSPkg', '-y')
+    assert join(
+        script.site_packages, 'FSPkg.egg-link'
+    ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
+    list_result2 = script.pip('list')
+    assert "FSPkg" not in list_result2.stdout
