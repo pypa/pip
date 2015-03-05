@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
+import textwrap
 import traceback
 import optparse
 import warnings
@@ -210,6 +211,27 @@ class Command(object):
 
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
+
+        if 'SUDO_COMMAND' in os.environ:
+            logger.warning(
+                textwrap.dedent("""\
+                ******************************************************
+                Are you using sudo?  Using pip with sudo can be tricky.
+
+                If you're using a virtualenv:
+
+                  Sudo usually won't pass the environment variables
+                  that are set by virtualenv's `activate` scripts, so
+                  a `sudo pip install` may not run in the virtualenv.
+
+                If you're installing to the system python:
+
+                  This is risky and can lead to system breakage.
+                  Usually it is better to use your OS package manager
+                  to manage your system python and to use pip in a
+                  virtualenv or with the --user option.
+                ******************************************************""")
+            )
 
         if options.require_venv:
             # If a venv is required check if it can really be found
