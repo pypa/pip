@@ -14,6 +14,7 @@ from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.wheel import WheelBuilder
 from pip import cmdoptions
+from pip._vendor import click
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
@@ -51,45 +52,14 @@ class WheelCommand(Command):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(
-            '-w', '--wheel-dir',
-            dest='wheel_dir',
-            metavar='dir',
-            default=DEFAULT_WHEEL_DIR,
-            help=("Build wheels into <dir>, where the default is "
-                  "'<cwd>/wheelhouse'."),
-        )
         cmd_opts.add_option(cmdoptions.use_wheel.make())
         cmd_opts.add_option(cmdoptions.no_use_wheel.make())
-        cmd_opts.add_option(
-            '--build-option',
-            dest='build_options',
-            metavar='options',
-            action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
         cmd_opts.add_option(cmdoptions.editable.make())
         cmd_opts.add_option(cmdoptions.requirements.make())
         cmd_opts.add_option(cmdoptions.download_cache.make())
         cmd_opts.add_option(cmdoptions.src.make())
         cmd_opts.add_option(cmdoptions.no_deps.make())
         cmd_opts.add_option(cmdoptions.build_dir.make())
-
-        cmd_opts.add_option(
-            '--global-option',
-            dest='global_options',
-            action='append',
-            metavar='options',
-            help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
-
-        cmd_opts.add_option(
-            '--pre',
-            action='store_true',
-            default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
-        )
-
         cmd_opts.add_option(cmdoptions.no_clean.make())
 
         index_opts = cmdoptions.make_option_group(
@@ -120,6 +90,28 @@ class WheelCommand(Command):
                 "setuptools"
             )
 
+    @click.option(
+        '-w', '--wheel-dir',
+        metavar='dir',
+        default=DEFAULT_WHEEL_DIR,
+        help=("Build wheels into <dir>, where the default is "
+              "'<cwd>/wheelhouse'."))
+    @click.option(
+        '--build-option', 'build_options',
+        metavar='options',
+        multiple=True,
+        help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+    @click.option(
+        '--global-option', 'global_options',
+        metavar='options',
+        multiple=True,
+        help="Extra global options to be supplied to the setup.py "
+             "call before the 'bdist_wheel' command.")
+    @click.option(
+        '--pre',
+        default=False,
+        help="Include pre-release and development versions. By default, "
+             "pip only finds stable versions.")
     def run(self, options, args):
         self.check_required_packages()
 

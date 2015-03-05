@@ -64,6 +64,20 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
+        if hasattr(self, 'run') and hasattr(self.run, '__click_params__'):
+            for param in self.run.__click_params__:
+                add_option_kwargs = dict(
+                    metavar=param.metavar,
+                    dest=param.name,
+                    type=str(param.type).lower(),
+                    default=param.default,
+                    help=param.help)
+                if param.multiple:
+                    add_option_kwargs['action'] = 'append'
+                self.cmd_opts.add_option(
+                    *param.opts,
+                    **add_option_kwargs)
+
     def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
             cache=(

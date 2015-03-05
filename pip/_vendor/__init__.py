@@ -105,4 +105,5 @@ sys.meta_path.append(VendorAlias([
     "_markerlib", "cachecontrol", "certifi", "colorama", "distlib", "html5lib",
     "ipaddress", "lockfile", "packaging", "pkg_resources", "progress",
     "requests", "retrying", "six",
+    "click",
 ]))
