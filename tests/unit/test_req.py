@@ -94,7 +94,7 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         fragment = '#egg=bar'
         req = InstallRequirement.from_line(url + fragment)
-        assert req.url == url + fragment, req.url
+        assert req.link.url == url + fragment, req.link
 
     def test_unsupported_wheel_requirement_raises(self):
         with pytest.raises(UnsupportedWheel):
@@ -118,13 +118,13 @@ class TestInstallRequirement(object):
         """Confirm the url is preserved in a non-editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_line(url)
-        assert req.url == url
+        assert req.link.url == url
 
     def test_url_preserved_editable_req(self):
         """Confirm the url is preserved in a editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_editable(url)
-        assert req.url == url
+        assert req.link.url == url
 
     def test_markers(self):
         for line in (
@@ -152,14 +152,14 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.url == url, req.url
+        assert req.link.url == url, req.link
         assert req.markers == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s;python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.url == line, req.url
+        assert req.link.url == line, req.link
         assert req.markers is None
 
     def test_markers_match(self):
@@ -321,7 +321,7 @@ def test_req_file_parse_comment_end_of_line_with_url(tmpdir):
                 session=PipSession()))
 
     assert len(reqs) == 1
-    assert reqs[0].url == "https://example.com/foo.tar.gz"
+    assert reqs[0].link.url == "https://example.com/foo.tar.gz"
 
 
 def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):

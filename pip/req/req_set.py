@@ -15,7 +15,6 @@ from pip.utils import (display_path, rmtree, dist_in_usersite,
                        _make_build_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
-from pip.wheel import wheel_ext
 
 
 logger = logging.getLogger(__name__)
@@ -208,8 +207,6 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
-        from pip.index import Link
-
         unnamed = list(self.unnamed_requirements)
         reqs = list(self.requirements.values())
         while reqs or unnamed:
@@ -229,9 +226,9 @@ class RequirementSet(object):
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     if self.upgrade:
-                        if not self.force_reinstall and not req_to_install.url:
+                        if not (self.force_reinstall or req_to_install.link):
                             try:
-                                url = finder.find_requirement(
+                                link = finder.find_requirement(
                                     req_to_install, self.upgrade)
                             except BestVersionAlreadyInstalled:
                                 best_installed = True
@@ -240,7 +237,7 @@ class RequirementSet(object):
                                 not_found = exc
                             else:
                                 # Avoid the need to call find_requirement again
-                                req_to_install.url = url.url
+                                req_to_install.link = link
 
                         if not best_installed:
                             # don't uninstall conflict if user install and
@@ -269,9 +266,9 @@ class RequirementSet(object):
             if req_to_install.editable:
                 logger.info('Obtaining %s', req_to_install)
             elif install:
-                if (req_to_install.url and
-                        req_to_install.url.lower().startswith('file:')):
-                    path = url_to_path(req_to_install.url)
+                if (req_to_install.link and
+                        req_to_install.link.scheme == 'file'):
+                    path = url_to_path(req_to_install.link.url)
                     logger.info('Processing %s', display_path(path))
                 else:
                     logger.info('Collecting %s', req_to_install)
@@ -308,7 +305,7 @@ class RequirementSet(object):
                         self.build_dir,
                     )
                     unpack = True
-                    url = None
+                    link = None
 
                     # If a checkout exists, it's unwise to keep going.  version
                     # inconsistencies are logged later, but do not fail the
@@ -325,25 +322,19 @@ class RequirementSet(object):
                     else:
                         # FIXME: this won't upgrade when there's an existing
                         # package unpacked in `location`
-                        if req_to_install.url is None:
+                        if req_to_install.link is None:
                             if not_found:
                                 raise not_found
-                            url = finder.find_requirement(
+                            link = finder.find_requirement(
                                 req_to_install,
                                 upgrade=self.upgrade,
                             )
                         else:
-                            # FIXME: should req_to_install.url already be a
-                            # link?
-                            url = Link(req_to_install.url)
-                            assert url
-                        if url:
+                            link = req_to_install.link
+                        if link:
                             try:
 
-                                if (
-                                    url.filename.endswith(wheel_ext) and
-                                    self.wheel_download_dir
-                                ):
+                                if link.is_wheel and self.wheel_download_dir:
                                     # when doing 'pip wheel`
                                     download_dir = self.wheel_download_dir
                                     do_download = True
@@ -351,7 +342,7 @@ class RequirementSet(object):
                                     download_dir = self.download_dir
                                     do_download = self.is_download
                                 unpack_url(
-                                    url, location, download_dir,
+                                    link, location, download_dir,
                                     do_download, session=self.session,
                                 )
                             except requests.HTTPError as exc:
@@ -364,22 +355,22 @@ class RequirementSet(object):
                                 raise InstallationError(
                                     'Could not install requirement %s because '
                                     'of HTTP error %s for URL %s' %
-                                    (req_to_install, exc, url)
+                                    (req_to_install, exc, link)
                                 )
                         else:
                             unpack = False
                     if unpack:
-                        is_wheel = url and url.filename.endswith(wheel_ext)
+                        is_wheel = link and link.is_wheel
                         if self.is_download:
                             req_to_install.source_dir = location
                             if not is_wheel:
                                 # FIXME:https://github.com/pypa/pip/issues/1112
                                 req_to_install.run_egg_info()
-                            if url and url.scheme in vcs.all_schemes:
+                            if link and link.scheme in vcs.all_schemes:
                                 req_to_install.archive(self.download_dir)
                         elif is_wheel:
                             req_to_install.source_dir = location
-                            req_to_install.url = url.url
+                            req_to_install.link = link
                         else:
                             req_to_install.source_dir = location
                             req_to_install.run_egg_info()

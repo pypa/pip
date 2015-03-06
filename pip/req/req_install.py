@@ -37,7 +37,7 @@ from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel, wheel_ext
+from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 url=None, as_egg=False, update=True, editable_options=None,
+                 link=None, as_egg=False, update=True, editable_options=None,
                  pycompile=True, markers=None, isolated=False):
         self.extras = ()
         if isinstance(req, six.string_types):
@@ -63,7 +63,7 @@ class InstallRequirement(object):
             editable_options = {}
 
         self.editable_options = editable_options
-        self.url = url
+        self.link = link
         self.as_egg = as_egg
         self.markers = markers
         self._egg_info_path = None
@@ -90,6 +90,8 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
+        from pip.index import Link
+
         name, url, extras_override, editable_options = parse_editable(
             editable_req, default_vcs)
         if url.startswith('file:'):
@@ -99,7 +101,7 @@ class InstallRequirement(object):
 
         res = cls(name, comes_from, source_dir=source_dir,
                   editable=True,
-                  url=url,
+                  link=Link(url),
                   editable_options=editable_options,
                   isolated=isolated)
 
@@ -115,7 +117,6 @@ class InstallRequirement(object):
         """
         from pip.index import Link
 
-        url = None
         if is_url(name):
             marker_sep = '; '
         else:
@@ -153,14 +154,12 @@ class InstallRequirement(object):
 
         # it's a local file, dir, or url
         if link:
-
-            url = link.url
             # Handle relative file URLs
-            if link.scheme == 'file' and re.search(r'\.\./', url):
-                url = path_to_url(os.path.normpath(os.path.abspath(link.path)))
-
+            if link.scheme == 'file' and re.search(r'\.\./', link.url):
+                link = Link(
+                    path_to_url(os.path.normpath(os.path.abspath(link.path))))
             # wheel file
-            if link.ext == wheel_ext:
+            if link.is_wheel:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
                 if not wheel.supported():
                     raise UnsupportedWheel(
@@ -177,16 +176,16 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, url=url, markers=markers,
+        return cls(req, comes_from, link=link, markers=markers,
                    isolated=isolated)
 
     def __str__(self):
         if self.req:
             s = str(self.req)
-            if self.url:
-                s += ' from %s' % self.url
+            if self.link:
+                s += ' from %s' % self.link.url
         else:
-            s = self.url
+            s = self.link.url if self.link else None
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
@@ -315,7 +314,7 @@ class InstallRequirement(object):
         else:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py, self.url,
+                self.setup_py, self.link,
             )
 
         with indent_log():
@@ -514,7 +513,7 @@ exec(compile(
             )
 
     def update_editable(self, obtain=True):
-        if not self.url:
+        if not self.link:
             logger.debug(
                 "Cannot update repository at %s; repository location is "
                 "unknown",
@@ -523,16 +522,16 @@ exec(compile(
             return
         assert self.editable
         assert self.source_dir
-        if self.url.startswith('file:'):
+        if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.url, "bad url: %r" % self.url
+        assert '+' in self.link.url, "bad url: %r" % self.link.url
         if not self.update:
             return
-        vc_type, url = self.url.split('+', 1)
+        vc_type, url = self.link.url.split('+', 1)
         backend = vcs.get_backend(vc_type)
         if backend:
-            vcs_backend = backend(self.url)
+            vcs_backend = backend(self.link.url)
             if obtain:
                 vcs_backend.obtain(self.source_dir)
             else:
@@ -540,7 +539,7 @@ exec(compile(
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
-                % (self.url, vc_type))
+                % (self.link, vc_type))
 
     def uninstall(self, auto_confirm=False):
         """
@@ -965,7 +964,7 @@ exec(compile(
 
     @property
     def is_wheel(self):
-        return self.url and '.whl' in self.url
+        return self.link and self.link.is_wheel
 
     def move_wheel_files(self, wheeldir, root=None):
         move_wheel_files(

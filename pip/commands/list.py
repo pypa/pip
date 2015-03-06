@@ -165,7 +165,7 @@ class ListCommand(Command):
                     remote_version = finder._link_package_versions(
                         link, req.name
                     ).version
-                    if link.ext == '.whl':
+                    if link.is_wheel:
                         typ = 'wheel'
                     else:
                         typ = 'sdist'
