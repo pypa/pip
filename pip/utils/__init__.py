@@ -727,23 +727,25 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
         stdout = cStringIO(stdout)
-        while 1:
-            line = stdout.readline()
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if filter_stdout:
-                level = filter_stdout(line)
-                if isinstance(level, tuple):
-                    level, line = level
-                logger.log(level, line)
-                # if not logger.stdout_level_matches(level) and False:
-                #     # TODO(dstufft): Handle progress bar.
-                #     logger.show_progress()
-            else:
-                logger.debug(line)
-    else:
+        all_output = stdout.readlines()
+        if show_stdout:
+            while 1:
+                line = stdout.readline()
+                if not line:
+                    break
+                line = line.rstrip()
+                all_output.append(line + '\n')
+                if filter_stdout:
+                    level = filter_stdout(line)
+                    if isinstance(level, tuple):
+                        level, line = level
+                    logger.log(level, line)
+                    # if not logger.stdout_level_matches(level) and False:
+                    #     # TODO(dstufft): Handle progress bar.
+                    #     logger.show_progress()
+                else:
+                    logger.debug(line)
+    if not all_output:
         returned_stdout, returned_stderr = proc.communicate()
         all_output = [returned_stdout or '']
     proc.wait()
