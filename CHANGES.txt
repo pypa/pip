@@ -3,6 +3,11 @@
 * Use a smoother progress bar when the terminal is capable of handling it,
   otherwise fallback to the original ASCII based progress bar.
 
+* Display much less output when `pip install` succeeds, because on success,
+  users probably don't care about all the nitty gritty details of compiling and
+  installing. When `pip install` fails, display the failed install output once
+  instead of twice, because once is enough. (:pull:`2487`)
+
 
 **6.0.8 (2015-02-04)**
 
