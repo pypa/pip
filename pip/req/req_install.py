@@ -198,6 +198,9 @@ class InstallRequirement(object):
                 s += ' (from %s)' % comes_from
         return s
 
+    def __repr__(self):
+        return '<%s object: %s>' % (self.__class__.__name__, str(self))
+
     @property
     def specifier(self):
         return self.req.specifier
