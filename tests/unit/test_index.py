@@ -87,6 +87,9 @@ class TestLink(object):
     def test_is_wheel(self):
         assert Link('http://yo/wheel.whl').is_wheel
 
+    def test_is_wheel_false(self):
+        assert not Link('http://yo/not_a_wheel').is_wheel
+
 
 @pytest.mark.parametrize(
     ("html", "url", "expected"),
