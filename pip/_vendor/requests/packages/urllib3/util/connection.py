@@ -82,7 +82,6 @@ def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
             err = _
             if sock is not None:
                 sock.close()
-                sock = None
 
     if err is not None:
         raise err
