@@ -12,6 +12,13 @@ from pip.utils import normalize_name
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 
 
+def _remove_prefixes(line, short_prefix, long_prefix):
+    if line.startswith(short_prefix):
+        return line[len(short_prefix):].lstrip()
+    else:
+        return _remove_prefix(line, long_prefix)
+
+
 def _remove_prefix(line, prefix):
     """Remove the prefix and eventually one '=' or spaces"""
     return re.sub(r'\s*=?\s*', '', line[len(prefix):])
@@ -46,10 +53,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         if skip_match and skip_match.search(line):
             continue
         if line.startswith(('-r', '--requirement')):
-            if line.startswith('-r'):
-                req_url = line[2:].lstrip()
-            else:
-                req_url = _remove_prefix(line, '--requirement')
+            req_url = _remove_prefixes(line, '-r', '--requirement')
             if _scheme_re.search(filename):
                 # Relative to a URL
                 req_url = urllib_parse.urljoin(filename, req_url)
@@ -66,25 +70,19 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             # requirement files, so we'll ignore.
             pass
         elif line.startswith(('-f', '--find-links')):
-            if line.startswith('-f'):
-                line = line[2:].lstrip()
-            else:
-                line = _remove_prefix(line, '--find-links')
+            find_links = _remove_prefixes(line, '-f', '--find-links')
             # FIXME: it would be nice to keep track of the source of
             # the find_links:
             # support a find-links local path relative to a requirements file
-            relative_to_reqs_file = os.path.join(reqs_file_dir, line)
+            relative_to_reqs_file = os.path.join(reqs_file_dir, find_links)
             if os.path.exists(relative_to_reqs_file):
-                line = relative_to_reqs_file
+                find_links = relative_to_reqs_file
             if finder:
-                finder.find_links.append(line)
+                finder.find_links.append(find_links)
         elif line.startswith(('-i', '--index-url')):
-            if line.startswith('-i'):
-                line = line[2:].lstrip()
-            else:
-                line = _remove_prefix(line, '--index-url')
+            index_url = _remove_prefixes(line, '-i', '--index-url')
             if finder:
-                finder.index_urls = [line]
+                finder.index_urls = [index_url]
         elif line.startswith('--extra-index-url'):
             line = _remove_prefix(line, '--extra-index-url')
             if finder:
@@ -123,12 +121,9 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith(('-e', '--editable')):
-                if line.startswith('-e'):
-                    line = line[2:].lstrip()
-                else:
-                    line = _remove_prefix(line, '--editable')
+                editable = _remove_prefixes(line, '-e', '--editable')
                 req = InstallRequirement.from_editable(
-                    line,
+                    editable,
                     comes_from=comes_from,
                     default_vcs=options.default_vcs if options else None,
                     isolated=options.isolated_mode if options else False,
