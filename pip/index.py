@@ -14,7 +14,8 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
-from pip.utils import Inf, cached_property, normalize_name, splitext
+from pip.utils import (
+    Inf, cached_property, normalize_name, splitext, normalize_path)
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
