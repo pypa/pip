@@ -6,10 +6,9 @@ from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
 from textwrap import dedent
-from pip import commands
-from pip.baseparser import create_main_parser, standard_options
+from pip.commands import commands_dict as commands
 from pip import cmdoptions
-from pip.util import get_prog
+from pip.utils import get_prog
 
 
 class PipCommandUsage(rst.Directive):
@@ -44,7 +43,7 @@ class PipOptions(rst.Directive):
             bookmark_line = ".. _`%s_%s`:" % (cmd_name, option._long_opts[0])
         else:
             bookmark_line = ".. _`%s`:" % option._long_opts[0]
-        line = "``"
+        line = ".. option:: "
         if option._short_opts:
             line += option._short_opts[0]
         if option._short_opts and option._long_opts:
@@ -54,10 +53,9 @@ class PipOptions(rst.Directive):
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
             line += " <%s>" % metavar.lower()
-        line += '``'
-        #fix defaults
+        # fix defaults
         opt_help = option.help.replace('%default', str(option.default))
-        #fix paths with sys.prefix
+        # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
         return [bookmark_line, "", line, "", "    %s" % opt_help, ""]
 
@@ -79,20 +77,27 @@ class PipOptions(rst.Directive):
 
 class PipGeneralOptions(PipOptions):
     def process_options(self):
-        self._format_options(standard_options)
+        self._format_options(
+            [o.make() for o in cmdoptions.general_group['options']]
+        )
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
-        self._format_options(cmdoptions.index_group['options'])
+        self._format_options(
+            [o.make() for o in cmdoptions.index_group['options']]
+        )
 
 
 class PipCommandOptions(PipOptions):
     required_arguments = 1
 
     def process_options(self):
-        cmd = commands[self.arguments[0]](create_main_parser())
-        self._format_options(cmd.parser.option_groups[0].option_list, cmd_name=cmd.name)
+        cmd = commands[self.arguments[0]]()
+        self._format_options(
+            cmd.parser.option_groups[0].option_list,
+            cmd_name=cmd.name,
+        )
 
 
 def setup(app):

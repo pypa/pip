@@ -1,36 +1,46 @@
 """Base Command class, and related routines"""
+from __future__ import absolute_import
 
+import logging
 import os
-import socket
 import sys
-import tempfile
 import traceback
-import time
 import optparse
+import warnings
 
-from pip.log import logger
-from pip.download import urlopen
+from pip._vendor.six import StringIO
+
+from pip import cmdoptions
+from pip.locations import running_under_virtualenv
+from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError)
-from pip.backwardcompat import StringIO
+                            CommandError, PreviousBuildDirError)
+from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND
-from pip.util import get_prog
+from pip.status_codes import (
+    SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
+    PREVIOUS_BUILD_DIR_ERROR,
+)
+from pip.utils import appdirs, get_prog, normalize_path
+from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.filesystem import check_path_owner
+from pip.utils.logging import IndentingFormatter
+from pip.utils.outdated import pip_version_check
 
 
 __all__ = ['Command']
 
 
-# for backwards compatibiliy
-get_proxy = urlopen.get_proxy
+logger = logging.getLogger(__name__)
 
 
 class Command(object):
     name = None
     usage = None
     hidden = False
+    log_stream = "ext://sys.stdout"
 
-    def __init__(self, main_parser):
+    def __init__(self, isolated=False):
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -38,137 +48,218 @@ class Command(object):
             'add_help_option': False,
             'name': self.name,
             'description': self.__doc__,
+            'isolated': isolated,
         }
-        self.main_parser = main_parser
+
         self.parser = ConfigOptionParser(**parser_kw)
 
         # Commands should add options to this option group
         optgroup_name = '%s Options' % self.name.capitalize()
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
-        # Re-add all options and option groups.
-        for group in main_parser.option_groups:
-            self._copy_option_group(self.parser, group)
+        # Add the general options
+        gen_opts = cmdoptions.make_option_group(
+            cmdoptions.general_group,
+            self.parser,
+        )
+        self.parser.add_option_group(gen_opts)
 
-        # Copies all general options from the main parser.
-        self._copy_options(self.parser, main_parser.option_list)
+    def _build_session(self, options, retries=None, timeout=None):
+        session = PipSession(
+            cache=(
+                normalize_path(os.path.join(options.cache_dir, "http"))
+                if options.cache_dir else None
+            ),
+            retries=retries if retries is not None else options.retries,
+            insecure_hosts=options.trusted_hosts,
+        )
 
-    def _copy_options(self, parser, options):
-        """Populate an option parser or group with options."""
-        for option in options:
-            if not option.dest:
-                continue
-            parser.add_option(option)
+        # Handle custom ca-bundles from the user
+        if options.cert:
+            session.verify = options.cert
 
-    def _copy_option_group(self, parser, group):
-        """Copy option group (including options) to another parser."""
-        new_group = optparse.OptionGroup(parser, group.title)
-        self._copy_options(new_group, group.option_list)
+        # Handle SSL client certificate
+        if options.client_cert:
+            session.cert = options.client_cert
 
-        parser.add_option_group(new_group)
+        # Handle timeouts
+        if options.timeout or timeout:
+            session.timeout = (
+                timeout if timeout is not None else options.timeout
+            )
 
-    def merge_options(self, initial_options, options):
-        # Make sure we have all global options carried over
-        for attr in ['log', 'proxy', 'require_venv',
-                     'log_explicit_levels', 'log_file',
-                     'timeout', 'default_vcs',
-                     'skip_requirements_regex',
-                     'no_input', 'exists_action']:
-            setattr(options, attr, getattr(initial_options, attr) or getattr(options, attr))
-        options.quiet += initial_options.quiet
-        options.verbose += initial_options.verbose
+        # Handle configured proxies
+        if options.proxy:
+            session.proxies = {
+                "http": options.proxy,
+                "https": options.proxy,
+            }
 
-    def setup_logging(self):
-        pass
+        # Determine if we can prompt the user for authentication or not
+        session.auth.prompting = not options.no_input
 
-    def main(self, args, initial_options):
-        options, args = self.parser.parse_args(args)
-        self.merge_options(initial_options, options)
+        return session
 
-        level = 1  # Notify
-        level += options.verbose
-        level -= options.quiet
-        level = logger.level_for_integer(4 - level)
-        complete_log = []
-        logger.consumers.extend(
-            [(level, sys.stdout),
-             (logger.DEBUG, complete_log.append)])
+    def parse_args(self, args):
+        # factored out for testability
+        return self.parser.parse_args(args)
+
+    def main(self, args):
+        options, args = self.parse_args(args)
+
+        if options.quiet:
+            level = "WARNING"
+        elif options.verbose:
+            level = "DEBUG"
+        else:
+            level = "INFO"
+
+        # Compute the path for our debug log.
+        debug_log_path = os.path.join(appdirs.user_log_dir("pip"), "debug.log")
+
+        # Ensure that the path for our debug log is owned by the current user
+        # and if it is not, disable the debug log.
+        write_debug_log = check_path_owner(debug_log_path)
+
+        logging_dictConfig({
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "indent": {
+                    "()": IndentingFormatter,
+                    "format": (
+                        "%(message)s"
+                        if not options.log_explicit_levels
+                        else "[%(levelname)s] %(message)s"
+                    ),
+                },
+            },
+            "handlers": {
+                "console": {
+                    "level": level,
+                    "class": "pip.utils.logging.ColorizedStreamHandler",
+                    "stream": self.log_stream,
+                    "formatter": "indent",
+                },
+                "debug_log": {
+                    "level": "DEBUG",
+                    "class": "pip.utils.logging.BetterRotatingFileHandler",
+                    "filename": debug_log_path,
+                    "maxBytes": 10 * 1000 * 1000,  # 10 MB
+                    "backupCount": 1,
+                    "delay": True,
+                    "formatter": "indent",
+                },
+                "user_log": {
+                    "level": "DEBUG",
+                    "class": "pip.utils.logging.BetterRotatingFileHandler",
+                    "filename": options.log or "/dev/null",
+                    "delay": True,
+                    "formatter": "indent",
+                },
+            },
+            "root": {
+                "level": level,
+                "handlers": list(filter(None, [
+                    "console",
+                    "debug_log" if write_debug_log else None,
+                    "user_log" if options.log else None,
+                ])),
+            },
+            # Disable any logging besides WARNING unless we have DEBUG level
+            # logging enabled. These use both pip._vendor and the bare names
+            # for the case where someone unbundles our libraries.
+            "loggers": dict(
+                (
+                    name,
+                    {
+                        "level": (
+                            "WARNING"
+                            if level in ["INFO", "ERROR"]
+                            else "DEBUG"
+                        ),
+                    },
+                )
+                for name in ["pip._vendor", "distlib", "requests", "urllib3"]
+            ),
+        })
+
+        # We add this warning here instead of up above, because the logger
+        # hasn't been configured until just now.
+        if not write_debug_log:
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the debug log has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want sudo's -H flag.",
+                os.path.dirname(debug_log_path),
+            )
+
         if options.log_explicit_levels:
-            logger.explicit_levels = True
+            warnings.warn(
+                "--log-explicit-levels has been deprecated and will be removed"
+                " in a future version.",
+                RemovedInPip8Warning,
+            )
 
-        self.setup_logging()
+        # TODO: try to get these passing down from the command?
+        #      without resorting to os.environ to hold these.
 
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
 
         if options.exists_action:
-            os.environ['PIP_EXISTS_ACTION'] = ''.join(options.exists_action)
+            os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
         if options.require_venv:
             # If a venv is required check if it can really be found
-            if not os.environ.get('VIRTUAL_ENV'):
-                logger.fatal('Could not find an activated virtualenv (required).')
+            if not running_under_virtualenv():
+                logger.critical(
+                    'Could not find an activated virtualenv (required).'
+                )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
-        if options.log:
-            log_fp = open_logfile(options.log, 'a')
-            logger.consumers.append((logger.DEBUG, log_fp))
-        else:
-            log_fp = None
+        # Check if we're using the latest version of pip available
+        if (not options.disable_pip_version_check and not
+                getattr(options, "no_index", False)):
+            with self._build_session(
+                    options,
+                    retries=0,
+                    timeout=min(5, options.timeout)) as session:
+                pip_version_check(session)
 
-        socket.setdefaulttimeout(options.timeout or None)
-
-        urlopen.setup(proxystr=options.proxy, prompting=not options.no_input)
-
-        exit = SUCCESS
-        store_log = False
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
             # and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
-                exit = status
-        except (InstallationError, UninstallationError):
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
-        except BadCommand:
-            e = sys.exc_info()[1]
-            logger.fatal(str(e))
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
-        except CommandError:
-            e = sys.exc_info()[1]
-            logger.fatal('ERROR: %s' % e)
-            logger.info('Exception information:\n%s' % format_exc())
-            exit = ERROR
+                return status
+        except PreviousBuildDirError as exc:
+            logger.critical(str(exc))
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return PREVIOUS_BUILD_DIR_ERROR
+        except (InstallationError, UninstallationError, BadCommand) as exc:
+            logger.critical(str(exc))
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
+        except CommandError as exc:
+            logger.critical('ERROR: %s', exc)
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
         except KeyboardInterrupt:
-            logger.fatal('Operation cancelled by user')
-            logger.info('Exception information:\n%s' % format_exc())
-            store_log = True
-            exit = ERROR
+            logger.critical('Operation cancelled by user')
+            logger.debug('Exception information:\n%s', format_exc())
+
+            return ERROR
         except:
-            logger.fatal('Exception:\n%s' % format_exc())
-            store_log = True
-            exit = UNKNOWN_ERROR
-        if log_fp is not None:
-            log_fp.close()
-        if store_log:
-            log_fn = options.log_file
-            text = '\n'.join(complete_log)
-            try:
-                log_fp = open_logfile(log_fn, 'w')
-            except IOError:
-                temp = tempfile.NamedTemporaryFile(delete=False)
-                log_fn = temp.name
-                log_fp = open_logfile(log_fn, 'w')
-            logger.fatal('Storing complete log in %s' % log_fn)
-            log_fp.write(text)
-            log_fp.close()
-        return exit
+            logger.critical('Exception:\n%s', format_exc())
+
+            return UNKNOWN_ERROR
+
+        return SUCCESS
 
 
 def format_exc(exc_info=None):
@@ -177,23 +268,3 @@ def format_exc(exc_info=None):
     out = StringIO()
     traceback.print_exception(*exc_info, **dict(file=out))
     return out.getvalue()
-
-
-def open_logfile(filename, mode='a'):
-    """Open the named log file in append mode.
-
-    If the file already exists, a separator will also be printed to
-    the file to separate past activity from current activity.
-    """
-    filename = os.path.expanduser(filename)
-    filename = os.path.abspath(filename)
-    dirname = os.path.dirname(filename)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    exists = os.path.exists(filename)
-
-    log_fp = open(filename, mode)
-    if exists:
-        log_fp.write('%s\n' % ('-' * 60))
-        log_fp.write('%s run on %s\n' % (sys.argv[0], time.strftime('%c')))
-    return log_fp

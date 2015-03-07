@@ -1,20 +1,42 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+
+import logging
 import os
 import optparse
+import warnings
 
 import sys
 import re
 
 from pip.exceptions import InstallationError, CommandError, PipError
-from pip.log import logger
-from pip.util import get_installed_distributions, get_prog
+from pip.utils import get_installed_distributions, get_prog
+from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip.baseparser import create_main_parser
-from pip.commands import commands, get_similar_commands, get_summaries
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.commands import get_summaries, get_similar_commands
+from pip.commands import commands_dict
+from pip._vendor.requests.packages.urllib3.exceptions import (
+    InsecureRequestWarning,
+)
 
+
+# assignment for flake8 to be happy
+
+# This fixes a peculiarity when importing via __import__ - as we are
+# initialising the pip module, "from pip import cmdoptions" is recursive
+# and appears not to work properly in that situation.
+import pip.cmdoptions
+cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "1.2.1.post1"
+__version__ = "6.1.0.dev0"
+
+
+logger = logging.getLogger(__name__)
+
+# Hide the InsecureRequestWArning from urllib3
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 def autocomplete():
@@ -60,7 +82,7 @@ def autocomplete():
                     print(dist)
                 sys.exit(1)
 
-        subcommand = commands[subcommand_name](parser)
+        subcommand = commands_dict[subcommand_name]()
         options += [(opt.get_opt_string(), opt.nargs)
                     for opt in subcommand.parser.option_list_all
                     if opt.help != optparse.SUPPRESS_HELP]
@@ -90,74 +112,113 @@ def autocomplete():
     sys.exit(1)
 
 
-def parseopts(args):
-    parser = create_main_parser()
-    parser.main = True # so the help formatter knows
+def create_main_parser():
+    parser_kw = {
+        'usage': '\n%prog <command> [options]',
+        'add_help_option': False,
+        'formatter': UpdatingDefaultsHelpFormatter(),
+        'name': 'global',
+        'prog': get_prog(),
+    }
 
-    # create command listing
+    parser = ConfigOptionParser(**parser_kw)
+    parser.disable_interspersed_args()
+
+    pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    parser.version = 'pip %s from %s (python %s)' % (
+        __version__, pip_pkg_dir, sys.version[:3])
+
+    # add the general options
+    gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
+    parser.add_option_group(gen_opts)
+
+    parser.main = True  # so the help formatter knows
+
+    # create command listing for description
     command_summaries = get_summaries()
-
     description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
     parser.description = '\n'.join(description)
 
-    options, args = parser.parse_args(args)
+    return parser
 
-    if options.version:
+
+def parseopts(args):
+    parser = create_main_parser()
+
+    # Note: parser calls disable_interspersed_args(), so the result of this
+    # call is to split the initial args into the general options before the
+    # subcommand and everything else.
+    # For example:
+    #  args: ['--timeout=5', 'install', '--user', 'INITools']
+    #  general_options: ['--timeout==5']
+    #  args_else: ['install', '--user', 'INITools']
+    general_options, args_else = parser.parse_args(args)
+
+    # --version
+    if general_options.version:
         sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
 
-    # pip || pip help || pip --help -> print_help()
-    if not args or (args[0] == 'help' and len(args) == 1):
+    # pip || pip help -> print_help()
+    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
         parser.print_help()
         sys.exit()
 
-    if not args:
-        msg = ('You must give a command '
-               '(use "pip --help" to see a list of commands)')
-        raise CommandError(msg)
+    # the subcommand name
+    cmd_name = args_else[0]
 
-    command = args[0].lower()
+    if cmd_name not in commands_dict:
+        guess = get_similar_commands(cmd_name)
 
-    if command not in commands:
-        guess = get_similar_commands(command)
-
-        msg = ['unknown command "%s"' % command]
+        msg = ['unknown command "%s"' % cmd_name]
         if guess:
             msg.append('maybe you meant "%s"' % guess)
 
         raise CommandError(' - '.join(msg))
 
-    return command, options, args, parser
+    # all the args without the subcommand
+    cmd_args = args[:]
+    cmd_args.remove(cmd_name)
+
+    return cmd_name, cmd_args
 
 
-def main(initial_args=None):
-    if initial_args is None:
-        initial_args = sys.argv[1:]
+def check_isolated(args):
+    isolated = False
+
+    if "--isolated" in args:
+        isolated = True
+
+    return isolated
+
+
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+
+    # Enable our Deprecation Warnings
+    for deprecation_warning in deprecation.DEPRECATIONS:
+        warnings.simplefilter("default", deprecation_warning)
+
+    # Configure our deprecation warnings to be sent through loggers
+    deprecation.install_warning_logger()
 
     autocomplete()
 
     try:
-        cmd_name, options, args, parser = parseopts(initial_args)
-    except PipError:
-        e = sys.exc_info()[1]
-        sys.stderr.write("ERROR: %s" % e)
+        cmd_name, cmd_args = parseopts(args)
+    except PipError as exc:
+        sys.stderr.write("ERROR: %s" % exc)
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    command = commands[cmd_name](parser)  # see baseparser.Command
-    return command.main(args[1:], options)
+    command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
+    return command.main(cmd_args)
 
 
-def bootstrap():
-    """
-    Bootstrapping function to be called from install-pip.py script.
-    """
-    return main(['install', '--upgrade', 'pip'])
-
-############################################################
-## Writing freeze files
-
+# ###########################################################
+# # Writing freeze files
 
 class FrozenRequirement(object):
 
@@ -179,40 +240,58 @@ class FrozenRequirement(object):
             editable = True
             try:
                 req = get_src_requirement(dist, src_location, find_tags)
-            except InstallationError:
-                ex = sys.exc_info()[1]
-                logger.warn("Error when trying to get requirement for VCS system %s, falling back to uneditable format" % ex)
+            except InstallationError as exc:
+                logger.warning(
+                    "Error when trying to get requirement for VCS system %s, "
+                    "falling back to uneditable format", exc
+                )
                 req = None
             if req is None:
-                logger.warn('Could not determine repository location of %s' % location)
-                comments.append('## !! Could not determine repository location')
+                logger.warning(
+                    'Could not determine repository location of %s', location
+                )
+                comments.append(
+                    '## !! Could not determine repository location'
+                )
                 req = dist.as_requirement()
                 editable = False
         else:
             editable = False
             req = dist.as_requirement()
             specs = req.specs
-            assert len(specs) == 1 and specs[0][0] == '=='
+            assert len(specs) == 1 and specs[0][0] in ["==", "==="]
             version = specs[0][1]
             ver_match = cls._rev_re.search(version)
             date_match = cls._date_re.search(version)
             if ver_match or date_match:
                 svn_backend = vcs.get_backend('svn')
                 if svn_backend:
-                    svn_location = svn_backend(
-                        ).get_location(dist, dependency_links)
+                    svn_location = svn_backend().get_location(
+                        dist,
+                        dependency_links,
+                    )
                 if not svn_location:
-                    logger.warn(
-                        'Warning: cannot find svn location for %s' % req)
-                    comments.append('## FIXME: could not find svn URL in dependency_links for this package:')
+                    logger.warning(
+                        'Warning: cannot find svn location for %s', req)
+                    comments.append(
+                        '## FIXME: could not find svn URL in dependency_links '
+                        'for this package:'
+                    )
                 else:
-                    comments.append('# Installing as editable to satisfy requirement %s:' % req)
+                    comments.append(
+                        '# Installing as editable to satisfy requirement %s:' %
+                        req
+                    )
                     if ver_match:
                         rev = ver_match.group(1)
                     else:
                         rev = '{%s}' % date_match.group(1)
                     editable = True
-                    req = '%s@%s#egg=%s' % (svn_location, rev, cls.egg_name(dist))
+                    req = '%s@%s#egg=%s' % (
+                        svn_location,
+                        rev,
+                        cls.egg_name(dist)
+                    )
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod
@@ -231,6 +310,4 @@ class FrozenRequirement(object):
 
 
 if __name__ == '__main__':
-    exit = main()
-    if exit:
-        sys.exit(exit)
+    sys.exit(main())

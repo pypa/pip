@@ -1,8 +1,22 @@
 include AUTHORS.txt
 include LICENSE.txt
 include CHANGES.txt
-include PROJECT.txt
-recursive-include docs *.txt
-recursive-include docs *.html
-recursive-exclude docs/_build *.txt
-prune docs/_build/_sources
+include README.rst
+include pip/_vendor/README.rst
+include pip/_vendor/vendor.txt
+
+exclude .coveragerc
+exclude .mailmap
+exclude .travis.yml
+exclude pip/_vendor/Makefile
+exclude tox.ini
+exclude dev-requirements.txt
+
+recursive-include pip/_vendor *.pem
+recursive-include docs Makefile *.rst *.py *.bat
+
+prune .travis
+prune docs/_build
+prune contrib
+prune tasks
+prune tests
