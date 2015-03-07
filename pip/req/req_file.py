@@ -40,7 +40,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             continue
         if skip_match and skip_match.search(line):
             continue
-        if line.startswith('-r') or line.startswith('--requirement'):
+        if line.startswith(('-r', '--requirement')):
             if line.startswith('-r'):
                 req_url = line[2:].strip()
             else:
@@ -56,11 +56,11 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                     options=options,
                     session=session):
                 yield item
-        elif line.startswith('-Z') or line.startswith('--always-unzip'):
+        elif line.startswith(('-Z', '--always-unzip')):
             # No longer used, but previously these were used in
             # requirement files, so we'll ignore.
             pass
-        elif line.startswith('-f') or line.startswith('--find-links'):
+        elif line.startswith(('-f', '--find-links')):
             if line.startswith('-f'):
                 line = line[2:].strip()
             else:
@@ -73,7 +73,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 line = relative_to_reqs_file
             if finder:
                 finder.find_links.append(line)
-        elif line.startswith('-i') or line.startswith('--index-url'):
+        elif line.startswith(('-i', '--index-url')):
             if line.startswith('-i'):
                 line = line[2:].strip()
             else:
@@ -117,7 +117,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 finder.allow_unverified |= set([normalize_name(line).lower()])
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
-            if line.startswith('-e') or line.startswith('--editable'):
+            if line.startswith(('-e', '--editable')):
                 if line.startswith('-e'):
                     line = line[2:].strip()
                 else:
