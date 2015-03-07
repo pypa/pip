@@ -12,6 +12,11 @@ from pip.utils import normalize_name
 _scheme_re = re.compile(r'^(http|https|file):', re.I)
 
 
+def _remove_prefix(line, prefix):
+    """Remove the prefix and eventually one '=' or spaces"""
+    return re.sub(r'\s*=?\s*', '', line[len(prefix):])
+
+
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
                        session=None):
     if session is None:
@@ -33,18 +38,18 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     for line_number, line in enumerate(content.splitlines(), 1):
         line = line.strip()
 
-        # Remove comments from file
-        line = re.sub(r"(^|\s)#.*$", "", line)
+        # Remove comments from file and all spaces before it
+        line = re.sub(r"(^|\s)+#.*$", "", line)
 
-        if not line or line.startswith('#'):
+        if not line:
             continue
         if skip_match and skip_match.search(line):
             continue
         if line.startswith(('-r', '--requirement')):
             if line.startswith('-r'):
-                req_url = line[2:].strip()
+                req_url = line[2:].lstrip()
             else:
-                req_url = line[len('--requirement'):].strip().strip('=')
+                req_url = _remove_prefix(line, '--requirement')
             if _scheme_re.search(filename):
                 # Relative to a URL
                 req_url = urllib_parse.urljoin(filename, req_url)
@@ -62,9 +67,9 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             pass
         elif line.startswith(('-f', '--find-links')):
             if line.startswith('-f'):
-                line = line[2:].strip()
+                line = line[2:].lstrip()
             else:
-                line = line[len('--find-links'):].strip().lstrip('=')
+                line = _remove_prefix(line, '--find-links')
             # FIXME: it would be nice to keep track of the source of
             # the find_links:
             # support a find-links local path relative to a requirements file
@@ -75,13 +80,13 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                 finder.find_links.append(line)
         elif line.startswith(('-i', '--index-url')):
             if line.startswith('-i'):
-                line = line[2:].strip()
+                line = line[2:].lstrip()
             else:
-                line = line[len('--index-url'):].strip().lstrip('=')
+                line = _remove_prefix(line, '--index-url')
             if finder:
                 finder.index_urls = [line]
         elif line.startswith('--extra-index-url'):
-            line = line[len('--extra-index-url'):].strip().lstrip('=')
+            line = _remove_prefix(line, '--extra-index-url')
             if finder:
                 finder.index_urls.append(line)
         elif line.startswith('--use-wheel'):
@@ -94,7 +99,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             if finder:
                 finder.index_urls = []
         elif line.startswith("--allow-external"):
-            line = line[len("--allow-external"):].strip().lstrip("=")
+            line = _remove_prefix(line, '--allow-external')
             if finder:
                 finder.allow_external |= set([normalize_name(line).lower()])
         elif line.startswith("--allow-all-external"):
@@ -108,20 +113,20 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
             pass
         # Remove after 7.0
         elif line.startswith("--allow-insecure"):
-            line = line[len("--allow-insecure"):].strip().lstrip("=")
+            line = _remove_prefix(line, '--allow-insecure')
             if finder:
                 finder.allow_unverified |= set([normalize_name(line).lower()])
         elif line.startswith("--allow-unverified"):
-            line = line[len("--allow-unverified"):].strip().lstrip("=")
+            line = _remove_prefix(line, '--allow-unverified')
             if finder:
                 finder.allow_unverified |= set([normalize_name(line).lower()])
         else:
             comes_from = '-r %s (line %s)' % (filename, line_number)
             if line.startswith(('-e', '--editable')):
                 if line.startswith('-e'):
-                    line = line[2:].strip()
+                    line = line[2:].lstrip()
                 else:
-                    line = line[len('--editable'):].strip().lstrip('=')
+                    line = _remove_prefix(line, '--editable')
                 req = InstallRequirement.from_editable(
                     line,
                     comes_from=comes_from,
