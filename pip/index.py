@@ -14,7 +14,8 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
-from pip.utils import Inf, cached_property, normalize_name, splitext
+from pip.utils import (
+    Inf, cached_property, normalize_name, splitext, normalize_path)
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -66,7 +67,19 @@ class PackageFinder(object):
                 "'session'"
             )
 
-        self.find_links = find_links
+        # Build find_links. If an argument starts with ~, it may be
+        # a local file relative to a home directory. So try normalizing
+        # it and if it exists, use the normalized version.
+        # This is deliberately conservative - it might be fine just to
+        # blindly normalize anything starting with a ~...
+        self.find_links = []
+        for link in find_links:
+            if link.startswith('~'):
+                new_link = normalize_path(link)
+                if os.path.exists(new_link):
+                    link = new_link
+            self.find_links.append(link)
+
         self.index_urls = index_urls
         self.dependency_links = []
 
