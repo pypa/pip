@@ -291,7 +291,10 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def _find_all_versions(self, req):
+    def _get_indexes_locations(self, req):
+        """Returns locations found via self.index_urls
+           with the url_name checked on the main index
+        """
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -306,10 +309,10 @@ class PackageFinder(object):
 
         url_name = req.url_name
 
-        # Only check main index if index URL is given:
-        main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
+
+            # Only check main index if index URL is given
             main_index_url = Link(
                 mkurl_pypi_url(self.index_urls[0]),
                 trusted=True,
@@ -330,13 +333,16 @@ class PackageFinder(object):
                 ) or req.url_name
 
         if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url)
-                for url in self.index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
+            return [mkurl_pypi_url(url) for url in self.index_urls]
+        return []
 
-        file_locations, url_locations = self._sort_locations(locations)
+    def _find_all_versions(self, req):
+        index_locations = self._get_indexes_locations(req)
+        file_locations, url_locations = self._sort_locations(index_locations)
+        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
+        file_locations.extend(fl_file_loc)
+        url_locations.extend(fl_url_loc)
+
         _flocations, _ulocations = self._sort_locations(self.dependency_links)
         file_locations.extend(_flocations)
 
@@ -357,6 +363,7 @@ class PackageFinder(object):
             [Link(url, '-f', trusted=True) for url in self.find_links],
             req.name.lower()
         ))
+
         page_versions = []
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s', page.url)
@@ -364,6 +371,7 @@ class PackageFinder(object):
                 page_versions.extend(
                     self._package_versions(page.links, req.name.lower())
                 )
+
         dependency_versions = list(self._package_versions(
             [Link(url) for url in self.dependency_links], req.name.lower()))
         if dependency_versions:
@@ -373,6 +381,7 @@ class PackageFinder(object):
                     version.location.url for version in dependency_versions
                 ])
             )
+
         file_versions = list(
             self._package_versions(
                 [Link(url) for url in file_locations],
