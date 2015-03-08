@@ -448,12 +448,11 @@ class PackageFinder(object):
                     INSTALLED_VERSION,
                 )
             )
+            existing_applicable = True
+        else:
+            existing_applicable = False
 
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = any(
-            i.location is INSTALLED_VERSION
-            for i in applicable_versions
-        )
 
         if not upgrade and existing_applicable:
             if applicable_versions[0].location is INSTALLED_VERSION:
