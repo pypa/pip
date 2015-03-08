@@ -713,3 +713,44 @@ class test_link_package_versions(object):
         link = Link('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl')
         result = self.finder._link_package_versions(link, self.search_name)
         assert result == [], result
+
+
+def test_get_indexes_location():
+    """Check that the canonical name is on all indexes"""
+    finder = PackageFinder(
+        [], ['file://index1/', 'file://index2'], session=PipSession())
+    locations = finder._get_indexes_locations(
+        InstallRequirement.from_line('Complex_Name'))
+    assert locations == ['file://index1/complex-name/',
+                         'file://index2/complex-name/']
+
+
+def test_find_all_versions_nothing(data):
+    """Find nothing without anything"""
+    finder = PackageFinder([], [], session=PipSession())
+    assert not finder._find_all_versions(InstallRequirement.from_line('pip'))
+
+
+def test_find_all_versions_find_links(data):
+    finder = PackageFinder(
+        [data.find_links], [], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0']
+
+
+def test_find_all_versions_index(data):
+    finder = PackageFinder(
+        [], [data.index_url('simple')], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    assert [str(v.version) for v in versions] == ['1.0']
+
+
+def test_find_all_versions_find_links_and_index(data):
+    finder = PackageFinder(
+        [data.find_links], [data.index_url('simple')], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    # first the find-links versions then the page versions
+    assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
