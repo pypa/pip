@@ -352,14 +352,11 @@ class PackageFinder(object):
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
 
-        found_versions = []
-        found_versions.extend(
-            self._package_versions(
-                # We trust every directly linked archive in find_links
-                [Link(url, '-f', trusted=True) for url in self.find_links],
-                req.name.lower()
-            )
-        )
+        find_links_versions = list(self._package_versions(
+            # We trust every directly linked archive in find_links
+            [Link(url, '-f', trusted=True) for url in self.find_links],
+            req.name.lower()
+        ))
         page_versions = []
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s', page.url)
@@ -382,7 +379,7 @@ class PackageFinder(object):
                 req.name.lower()
             )
         )
-        if (not found_versions and not
+        if (not find_links_versions and not
                 page_versions and not
                 dependency_versions and not
                 file_versions):
@@ -430,7 +427,7 @@ class PackageFinder(object):
 
         # This is an intentional priority ordering
         all_versions = (
-            file_versions + found_versions + page_versions +
+            file_versions + find_links_versions + page_versions +
             dependency_versions
         )
 
