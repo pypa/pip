@@ -291,7 +291,7 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def find_requirement(self, req, upgrade):
+    def _find_all_versions(self, req):
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -406,15 +406,6 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions at all found for %s' % req
             )
-        installed_version = []
-        if req.satisfied_by is not None:
-            installed_version = [
-                InstallationCandidate(
-                    req.name,
-                    req.satisfied_by.version,
-                    INSTALLED_VERSION,
-                ),
-            ]
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -426,11 +417,13 @@ class PackageFinder(object):
             )
 
         # This is an intentional priority ordering
-        all_versions = (
+        return (
             file_versions + find_links_versions + page_versions +
             dependency_versions
         )
 
+    def find_requirement(self, req, upgrade):
+        all_versions = self._find_all_versions(req)
         # Filter out anything which doesn't match our specifier
         _versions = set(
             req.specifier.filter(
@@ -445,8 +438,16 @@ class PackageFinder(object):
             x for x in all_versions if x.version in _versions
         ]
 
-        # Finally add our existing versions to the front of our versions.
-        applicable_versions = installed_version + applicable_versions
+        if req.satisfied_by is not None:
+            # Finally add our existing versions to the front of our versions.
+            applicable_versions.insert(
+                0,
+                InstallationCandidate(
+                    req.name,
+                    req.satisfied_by.version,
+                    INSTALLED_VERSION,
+                )
+            )
 
         applicable_versions = self._sort_versions(applicable_versions)
         existing_applicable = any(
