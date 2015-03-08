@@ -379,10 +379,28 @@ class PackageFinder(object):
                 req.name.lower()
             )
         )
-        if (not find_links_versions and not
-                page_versions and not
-                dependency_versions and not
-                file_versions):
+        if file_versions:
+            file_versions.sort(reverse=True)
+            logger.debug(
+                'Local files found: %s',
+                ', '.join([
+                    url_to_path(candidate.location.url)
+                    for candidate in file_versions
+                ])
+            )
+
+        # This is an intentional priority ordering
+        return (
+            file_versions + find_links_versions + page_versions +
+            dependency_versions
+        )
+
+    def find_requirement(self, req, upgrade):
+        """Expects req, an InstallRequirement and upgrade, a boolean
+           Returns an InstallationCandidate or None
+           May raise DistributionNotFound or BestVersionAlreadyInstalled"""
+        all_versions = self._find_all_versions(req)
+        if not all_versions:
             logger.critical(
                 'Could not find any downloads that satisfy the requirement %s',
                 req,
@@ -406,27 +424,6 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions at all found for %s' % req
             )
-        if file_versions:
-            file_versions.sort(reverse=True)
-            logger.debug(
-                'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.location.url)
-                    for candidate in file_versions
-                ])
-            )
-
-        # This is an intentional priority ordering
-        return (
-            file_versions + find_links_versions + page_versions +
-            dependency_versions
-        )
-
-    def find_requirement(self, req, upgrade):
-        """Expects req, an InstallRequirement and upgrade, a boolean
-           Returns an InstallationCandidate or None
-           May raise DistributionNotFound or BestVersionAlreadyInstalled"""
-        all_versions = self._find_all_versions(req)
         # Filter out anything which doesn't match our specifier
         _versions = set(
             req.specifier.filter(
