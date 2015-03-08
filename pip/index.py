@@ -642,13 +642,7 @@ class PackageFinder(object):
         return extensions
 
     def _link_package_versions(self, link, search_name):
-        """
-        Return an iterable of triples (pkg_resources_version_key,
-        link, python_version) that can be extracted from the given
-        link.
-
-        Meant to be overridden by subclasses, not called by clients.
-        """
+        """Return an InstallationCandidate or None"""
         platform = get_platform()
 
         version = None
