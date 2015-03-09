@@ -65,13 +65,12 @@ def test_freeze_basic(script):
     _check_output(result, expected)
 
 
-@pytest.mark.network
-def test_freeze_svn(script, tmpdir):
+def test_freeze_svn(script, tmpdir, data):
     """Test freezing a svn checkout"""
 
     checkout_path = local_checkout(
         'svn+http://svn.colorstudy.com/INITools/trunk',
-        tmpdir.join("cache"),
+        tmpdir.join("cache")
     )
     # svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
@@ -81,7 +80,7 @@ def test_freeze_svn(script, tmpdir):
         'svn', 'co', '-r10',
         local_repo(
             'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
         'initools-trunk',
     )
@@ -102,7 +101,7 @@ def test_freeze_svn(script, tmpdir):
 
 
 @pytest.mark.network
-def test_freeze_git_clone(script, tmpdir):
+def test_freeze_git_clone(script, tmpdir, data):
     """
     Test freezing a Git clone.
     """
@@ -111,7 +110,7 @@ def test_freeze_git_clone(script, tmpdir):
         'clone',
         local_repo(
             'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
         'pip-test-package',
         expect_stderr=True,
@@ -206,7 +205,7 @@ def test_freeze_mercurial_clone(script, tmpdir, data):
         '-r', 'c9963c111e7c',
         local_repo(
             'hg+' + data.source / 'repos' / 'hg' / 'pip-test-package',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
         'pip-test-package',
     )
@@ -225,7 +224,7 @@ def test_freeze_mercurial_clone(script, tmpdir, data):
         """ %
         local_checkout(
             'hg+http://bitbucket.org/pypa/pip-test-package',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
     ).strip()
     _check_output(result, expected)
@@ -235,7 +234,7 @@ def test_freeze_mercurial_clone(script, tmpdir, data):
         '%s#egg=pip_test_package' %
         local_checkout(
             'hg+http://bitbucket.org/pypa/pip-test-package',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
         expect_stderr=True,
     )
@@ -250,7 +249,7 @@ def test_freeze_mercurial_clone(script, tmpdir, data):
         {
             'repo': local_checkout(
                 'hg+http://bitbucket.org/pypa/pip-test-package',
-                tmpdir.join("cache"),
+                tmpdir.join("cache")
             ),
         },
     ).strip()
@@ -266,7 +265,7 @@ def test_freeze_bazaar_clone(script, tmpdir, data):
     checkout_path = local_checkout(
         'bzr+file://' + data.source / 'repos' / 'bzr' /
         'django-wikiapp' / 'release-0.1',
-        tmpdir.join("cache"),
+        tmpdir.join("cache")
     )
     # bzr internally stores windows drives as uppercase; we'll match that.
     checkout_pathC = checkout_path.replace('c:', 'C:')
@@ -276,7 +275,7 @@ def test_freeze_bazaar_clone(script, tmpdir, data):
         local_repo(
             'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/'
             'release-0.1',
-            tmpdir.join("cache"),
+            tmpdir.join("cache")
         ),
         'django-wikiapp',
     )
