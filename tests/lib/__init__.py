@@ -505,6 +505,17 @@ def _create_test_package(script, vcs='git'):
         checkout_path = checkout_path.replace('c:', 'C:')
 
         version_pkg_path = checkout_path
+    elif vcs == 'bazaar':
+        script.run('bzr', 'init', cwd=version_pkg_path)
+        script.run('bzr', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            cwd=version_pkg_path)
+        script.run(
+            'bzr', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
     else:
         raise ValueError('Unknown vcs: %r' % vcs)
     return version_pkg_path
