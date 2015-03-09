@@ -1,9 +1,9 @@
 import sys
 import re
 import textwrap
-import pytest
 from doctest import OutputChecker, ELLIPSIS
 
+from tests.lib import _create_test_package
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -100,29 +100,16 @@ def test_freeze_svn(script, tmpdir, data):
     _check_output(result, expected)
 
 
-@pytest.mark.network
 def test_freeze_git_clone(script, tmpdir, data):
     """
     Test freezing a Git clone.
     """
+    pkg_version = _create_test_package(script)
     result = script.run(
-        'git',
-        'clone',
-        local_repo(
-            'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache")
-        ),
-        'pip-test-package',
+        'git', 'clone', pkg_version, 'pip-test-package',
         expect_stderr=True,
     )
     repo_dir = script.scratch_path / 'pip-test-package'
-    result = script.run(
-        'git',
-        'checkout',
-        '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        cwd=repo_dir,
-        expect_stderr=True,
-    )
     result = script.run(
         'python', 'setup.py', 'develop',
         cwd=repo_dir,
@@ -133,23 +120,14 @@ def test_freeze_git_clone(script, tmpdir, data):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e %s@...#egg=pip_test_package-...
+            ...-e git+...#egg=version_pkg-master
             ...
-        """ %
-        local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        )
+        """
     ).strip()
     _check_output(result, expected)
 
     result = script.pip(
-        'freeze', '-f',
-        '%s#egg=pip_test_package' %
-        local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -157,15 +135,9 @@ def test_freeze_git_clone(script, tmpdir, data):
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
-            -e %(repo)s@...#egg=pip_test_package-0.1.1
+            -e git+...#egg=version_pkg-master
             ...
-        """ %
-        {
-            'repo': local_checkout(
-                'git+http://github.com/pypa/pip-test-package.git',
-                tmpdir.join("cache"),
-            ),
-        },
+        """ % {'repo': repo_dir},
     ).strip()
     _check_output(result, expected)
 
@@ -188,7 +160,7 @@ def test_freeze_git_clone(script, tmpdir, data):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e ...@...#egg=pip_test_package-branch_name_with_slash...
+            ...-e ...@...#egg=version_pkg-branch_name_with_slash...
             ...
         """
     ).strip()
