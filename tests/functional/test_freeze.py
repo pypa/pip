@@ -338,7 +338,6 @@ def test_freeze_with_local_option(script):
     _check_output(result, expected)
 
 
-@pytest.mark.network
 def test_freeze_with_requirement_option(script):
     """
     Test that new requirements are created correctly with --requirement hints
@@ -360,7 +359,7 @@ def test_freeze_with_requirement_option(script):
         INITools==0.1
         NoExist==4.2
         """) + ignores)
-    result = script.pip('install', 'initools==0.2')
+    result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip(
         'freeze', '--requirement', 'hint.txt',
