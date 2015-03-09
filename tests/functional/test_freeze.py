@@ -196,8 +196,7 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result, expected)
 
 
-@pytest.mark.network
-def test_freeze_mercurial_clone(script, tmpdir):
+def test_freeze_mercurial_clone(script, tmpdir, data):
     """
     Test freezing a Mercurial clone.
 
@@ -206,7 +205,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
         'hg', 'clone',
         '-r', 'c9963c111e7c',
         local_repo(
-            'hg+http://bitbucket.org/pypa/pip-test-package',
+            'hg+' + data.source / 'repos' / 'hg' / 'pip-test-package',
             tmpdir.join("cache"),
         ),
         'pip-test-package',
