@@ -307,13 +307,12 @@ def test_freeze_bazaar_clone(script, tmpdir, data):
     _check_output(result, expected)
 
 
-@pytest.mark.network
 def test_freeze_with_local_option(script):
     """
     Test that wsgiref (from global site-packages) is reported normally, but not
     with --local.
     """
-    result = script.pip('install', 'initools==0.2')
+    result = script.pip_install_local('initools==0.2')
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
