@@ -1,0 +1,10 @@
+{% load i18n %}
+
+{% if search_form %}
+<div id="searchbox">
+  <form method="post" action="{% url wiki_search %}">
+    {{ search_form.as_p }}
+    <input type="submit" name="search_button" value="{% trans "Article by title" %}" accesskey="t">
+  </form>
+</div>
+{% endif %}

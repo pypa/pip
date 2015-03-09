@@ -1,0 +1,4 @@
+{% load i18n %}
+
+{% trans "edited by user" %} {{ obj.editor.username }} {% trans "at"%} {{ obj.modified|date:"H:i" }}<br>
+{{ obj.comment }}

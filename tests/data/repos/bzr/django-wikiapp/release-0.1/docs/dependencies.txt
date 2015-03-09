@@ -1,0 +1,31 @@
+============
+Dependencies
+============
+
+To run django-wikiapp you need some python modules.
+Here are the django-wikiapp dependecies:
+
+- django-notification_ (optional -- deliver notifications to site users)
+- django-tagging_
+- google-diff-match-patch_
+- atomformat_ (download it and rename to atomformat.py and put it somewhere in your python path)
+- Textile_
+- Markdown_
+- Docutils_ (provides reStructuredText)
+- Creoleparser_
+
+.. _django-notification: http://code.google.com/p/django-notification/
+
+.. _django-tagging: http://code.google.com/p/django-tagging/
+
+.. _google-diff-match-patch: http://code.google.com/p/google-diff-match-patch/
+
+.. _atomformat: http://django-atompub.googlecode.com/svn/trunk/atompub/atom.py
+
+.. _Textile: http://pypi.python.org/pypi/textile
+ 
+.. _Markdown: http://www.freewisdom.org/projects/python-markdown/
+
+.. _Docutils: http://docutils.sourceforge.net/
+
+.. _Creoleparser: http://code.google.com/p/creoleparser/

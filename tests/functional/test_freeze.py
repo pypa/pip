@@ -258,16 +258,15 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result, expected)
 
 
-@pytest.mark.network
-def test_freeze_bazaar_clone(script, tmpdir):
+def test_freeze_bazaar_clone(script, tmpdir, data):
     """
     Test freezing a Bazaar clone.
 
     """
 
     checkout_path = local_checkout(
-        'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/'
-        'release-0.1',
+        'bzr+file://' + data.source / 'repos' / 'bzr' /
+        'django-wikiapp' / 'release-0.1',
         tmpdir.join("cache"),
     )
     # bzr internally stores windows drives as uppercase; we'll match that.

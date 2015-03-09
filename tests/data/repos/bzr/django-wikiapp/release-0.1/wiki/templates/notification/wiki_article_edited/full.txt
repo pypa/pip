@@ -1,0 +1,4 @@
+{% load i18n %}{% blocktrans with article.get_absolute_url as article_url %}The wiki article {{ article }} has been edited by {{ user }}.
+
+http://{{ current_site }}{{ article_url }}
+{% endblocktrans %}

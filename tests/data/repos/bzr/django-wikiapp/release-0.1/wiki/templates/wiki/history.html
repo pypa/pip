@@ -1,0 +1,57 @@
+{% extends 'wiki/base.html' %}
+{% load i18n %}
+
+
+{% block title %}
+    {% trans "History for" %} {{ article.title }}
+{% endblock %}
+
+{% block content %}
+<h1>
+  <a href="{{ article.get_absolute_url }}"> {{ article.title }} </a>
+</h1>
+
+<h2> {% trans "Article History" %} </h2>
+
+<form action="{% url wiki_revert_to_revision article.title %}" method="post">
+  <table>
+    <tr class="tbheader">
+	  <th>{% trans "At" %}</th>
+	  <th>{% trans "User" %}</th>
+	  <th>{% trans "Comment" %}</th>
+	  <th>{% trans "Revert" %}</th>
+    </tr>
+    {% for change in changes %}
+    <tr class="{% cycle 'tbodd' 'tbeven' %}">
+    	<td><a href="{{ change.get_absolute_url }}">
+    		{{ change.modified|date:"M d, Y" }}</a>
+        </td>
+    	<td>
+        {% if change.is_anonymous_change %}
+            {{ change.editor_ip }}
+        {% else %}
+            <a href="{% url wiki_article change.editor %}">{{ change.editor }}</a>
+        {% endif %}
+        </td>
+        <td>
+          {% if change.comment %}<i>'{{ change.comment}}'</i> {% endif %}
+        </td>
+        <td>
+            {% if forloop.first %}
+                {% trans "Current revision" %}
+            {% else %}
+                 <input id="id_revision" name="revision"
+                        type="radio" value="{{ change.revision }}">
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <input type="submit" value="{% trans "Revert" %}">
+
+</form>
+
+<a href="{% url wiki_article_history_feed title=article.title,feedtype="atom" %}">Atom Feed</a>
+  
+{% endblock %}

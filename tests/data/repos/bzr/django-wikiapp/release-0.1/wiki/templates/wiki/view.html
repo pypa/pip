@@ -1,0 +1,30 @@
+{% extends 'wiki/base.html' %}
+{% load i18n %}
+{% load wiki %}
+
+{% block title %}
+    {{ article.title }}
+{% endblock %}
+
+{% block content %}
+	<h1><a href="{{ article.get_absolute_url }}" rel="bookmark">{{ article.title }}</a></h1>
+
+	{% if not article.id %}
+		<p>{% trans "This article does not exist." %}
+          <a href="{% url wiki_edit article.title %}" {% trans ">Create it now</a>?" %}</p>
+	{% endif %}
+
+    {% render_content article %}
+
+{% endblock %}
+
+{% block footer %}
+	{% if article.id %}
+		<a href="{% url wiki_edit article.title %}">{% trans "Edit this article" %}</a>
+        |
+        <a href="{% url wiki_article_history article.title %}">{% trans "Editing history" %}</a>
+	{% else %}
+		<a href="{% url wiki_edit article.title %}">{% trans "Create this article" %}</a>
+	{% endif %}
+    |
+{% endblock %}

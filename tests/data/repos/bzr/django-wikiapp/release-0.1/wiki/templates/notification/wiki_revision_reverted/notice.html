@@ -1,0 +1,2 @@
+{% load i18n %}
+{% blocktrans with revision.get_absolute_url as revision_url and article.get_absolute_url as article_url %}Your revision <a href="{{ revision_url }}">{{ revision }}</a> on <a href="{{ article_url }}">{{ article }}</a> has been reverted.{% endblocktrans %}

@@ -1,0 +1,18 @@
+{% extends 'wiki/base.html' %}
+{% load i18n %}
+
+{% block title %}
+    Changes in {{ article_title }}
+{% endblock %}
+
+{% block content %}
+	<h1> <a href="{% url wiki_article article_title %}"> {{ article_title }} </a> </h1>
+    {% if changeset.old_title %}
+        <h2> {{ changeset.old_title }} </h2>
+    {% endif %}
+    {{ changeset.display_diff|safe }}
+    <br><b>{% trans "Markup:" %}</b>
+    {% if changeset.old_markup %} {{ changeset.old_markup }}
+    {% else %} {% trans "Plain Text." %}
+    {% endif %}
+{% endblock %}

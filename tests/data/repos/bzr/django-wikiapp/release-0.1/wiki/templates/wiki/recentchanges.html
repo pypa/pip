@@ -1,0 +1,33 @@
+{% extends 'wiki/base.html' %}
+{% load i18n %}
+{% load pagination_tags %}
+
+{% block content %}
+<h2>{% trans "Recent Changes" %}</h2>
+{% autopaginate changes %}
+<table>
+{% for change in changes %}
+    {% ifchanged change.modified.date %}
+        <tr>
+            <td colspan="5">{{change.modified|date }}</td>
+        </tr>
+    {% endifchanged %}
+    <tr>
+        <td>
+            {% if change.old_title %} 
+                <a href="{% url wiki_changeset change.article.title,change.revision %}"> M </a>
+            {% else %} 
+                A 
+            {% endif %}
+        </td>
+        <td><a href="{% url wiki_article change.article.title %}">
+            {{ change.article.title }}</a>
+        </td>
+        <td>{{ change.modified|date:"H:i" }}</td>
+        <td>{{ change.editor }}</td>
+        <td>{{ change.comment }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% paginate %}
+{% endblock %}

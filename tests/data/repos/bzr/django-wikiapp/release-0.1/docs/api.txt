@@ -1,0 +1,100 @@
+===========================
+ Wikiapp API Documentation
+===========================
+
+
+Urls
+====
+
+WikiApp comes with 2 urlconf files:
+
+urls.py
+-------
+
+The main urlconf file.
+
+To use Wikiapp as a "top-level" application, your urls.py must look like this::
+
+    urlpatterns = patterns('',
+        ...
+        (r'^mywiki/', include('wiki.urls')),
+    )
+
+When including it in your project urlconf, you can pass the following kwargs:
+
+group_slug
+  The name of the slug field of the article group model.
+  See `Article Groups`_ for more information.
+
+group_qs
+  The article group queryset.
+  See `Article Groups`_ for more information.
+
+article_qs
+  The Article queryset. By default, all articles are listed.
+
+changes_qs
+  The ChangeSet queryset. By default, all changesets are listed.
+
+template_dir
+  The directory of the templates to use with wikiapp.
+
+extra_context
+  A dictionary of variables that you want to render on the template.
+
+is_member
+  A function to determine if the `user` is a member of the `group`.
+  Example: `lambda user, group: group.has_member(user)`.
+  If this argument is not given or returns True when called by the views,
+  the user is able to "read" and "write" operations on the wiki, like creating
+  or editng an article, or reverting an article to an older revision.
+
+is_private
+  A function to determine if the `group` is private.
+  Example: `lambda group: group.is_private`. When the group is private and the
+  user is not a member, the user is denied of any "read" *and* "write" operations
+  on the wiki. When this argument is not given, the wiki is "public".
+  When this argument is given, the `is_member` argument is required.
+
+
+static_url.py
+-------------
+
+Static files urls. Use if you want to test the example templates.
+Your urlconf needs to include this line::
+
+    (r'^', include('wiki.static_urls')),
+
+Also remember to set `STATIC_MEDIA_PATH` to `"/path/to/wikiapp/wiki/media/"`.
+
+Article Groups
+==============
+
+Instances of the `Article` model can be related to any other model instance
+that you want to serve as a group of articles.
+
+Example urls.py::
+
+    from myproj.myapp import models
+
+    wiki_args = {'group_slug_field': 'slug',
+                 'group_qs': models.MyGroup.objects.all()}
+
+    urlpatterns = patterns('',
+        ...
+        url(r'^(?P<group_slug>\w+)/wiki/', include('wiki.urls'), wiki_args),
+    )
+
+.. note::
+    Because of the way that reversing urls works on Django, you could run into
+    problems if you included the wikiapp urls for more than one group.
+    The soluction was to hardcode the url format as /group_slug/wiki/ArticleName.
+
+
+Template Tags
+=============
+
+Wikiapp have some template tags and filters to simplify working with multiple
+markup languages, WikiWords and to keep templates from violating the DRY
+(dont repeat yourself) principle.
+The tags depends on `django.contrib.markup`.

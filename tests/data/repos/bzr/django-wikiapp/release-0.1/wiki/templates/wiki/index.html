@@ -1,0 +1,21 @@
+{% extends 'wiki/base.html' %}
+{% load i18n %}
+
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block content %}
+	<h1>Index</h1>
+
+	{% if articles %}
+		<ul>
+			{% for article in articles %}
+				<li><a href="{% url wiki_article article.title %}">{{ article.title }}</a></li>
+			{% endfor %}
+		</ul>
+	{% else %}
+        <p><a href="{% url wiki_edit "NewArticle" %}">{% trans "Create a new article" %}</a>.</p>
+	{% endif %}
+{% endblock %}

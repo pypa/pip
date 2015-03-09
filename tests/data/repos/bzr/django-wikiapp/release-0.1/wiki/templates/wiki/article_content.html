@@ -1,0 +1,13 @@
+{% load wiki %}
+{% load markup %}
+{% load switchcase %}
+{% load restructuredtext %}
+{% load creole %}
+
+{% switch markup %}
+    {% case 'crl' %} {{ content|creole|wikiwords|safe }} {% endcase %}
+    {% case 'rst' %} {{ content|restructuredtext|wikiwords|safe }} {% endcase %}
+    {% case 'mrk' %} {{ content|force_escape|markdown|wikiwords }} {% endcase %}
+    {% case 'txl' %} {{ content|force_escape|textile|wikiwords }} {% endcase %}
+    {% case '' %} {{ content|force_escape|wikiwords|linebreaks|safe }} {% endcase %}
+{% endswitch %}

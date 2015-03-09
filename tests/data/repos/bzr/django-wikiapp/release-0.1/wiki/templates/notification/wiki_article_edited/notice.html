@@ -1,0 +1,2 @@
+{% load i18n %}{% url profile_detail username=user.username as user_url %}
+{% blocktrans with article.get_absolute_url as article_url %}The wiki article <a href="{{ article_url }}">{{ article }}</a> has been edited by <a href="{{ user_url }}">{{ user }}</a>.{% endblocktrans %}

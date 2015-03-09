@@ -1,0 +1,32 @@
+{% load i18n %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+            "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+	<title>{% block title %}{% endblock %} - WikiApp</title>
+	<link rel="stylesheet" href="{% url wiki_static_media "wikiapp.css" %}">
+
+</head>
+<body>
+    <div id="head">
+      <h1>wikiapp</h1>
+      {% include "wiki/searchbox.html" %}
+    </div>
+    
+    <div id="actions">
+      {% block footer %}{% endblock %}
+      <a href="{% url wiki_list %}">{% trans "List all articles" %}</a>
+    </div>
+    
+    <div id="article">
+      {% include "wiki/messages.html" %}
+      {% block content %}{% endblock %}
+    </div>
+
+    <div id="footer">
+      Powered by <a href="http://code.google.com/p/django-wikiapp">django-wikiapp</a>
+    </div>
+</body>
+</html>

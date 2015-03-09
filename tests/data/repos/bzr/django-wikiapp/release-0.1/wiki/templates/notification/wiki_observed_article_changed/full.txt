@@ -1,0 +1,4 @@
+{% load i18n %}{% blocktrans with observed.get_absolute_url as article_url %}The article {{ observed }} that you observe has changed.
+
+http://{{ current_site }}{{ article_url }}
+{% endblocktrans %}
