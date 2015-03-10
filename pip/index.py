@@ -291,9 +291,11 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def _get_indexes_locations(self, req):
-        """Returns locations found via self.index_urls
-           with the url_name checked on the main index
+    def _get_index_urls_locations(self, req):
+        """Returns the locations found via self.index_urls
+
+        Checks the url_name on the main (first in the list) index and
+        use this url_name to produce all locations
         """
 
         def mkurl_pypi_url(url):
@@ -337,7 +339,7 @@ class PackageFinder(object):
         return []
 
     def _find_all_versions(self, req):
-        index_locations = self._get_indexes_locations(req)
+        index_locations = self._get_index_urls_locations(req)
         file_locations, url_locations = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
         file_locations.extend(fl_file_loc)

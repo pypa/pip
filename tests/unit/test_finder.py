@@ -715,11 +715,11 @@ class test_link_package_versions(object):
         assert result == [], result
 
 
-def test_get_indexes_location():
+def test_get_index_urls_locations():
     """Check that the canonical name is on all indexes"""
     finder = PackageFinder(
         [], ['file://index1/', 'file://index2'], session=PipSession())
-    locations = finder._get_indexes_locations(
+    locations = finder._get_index_urls_locations(
         InstallRequirement.from_line('Complex_Name'))
     assert locations == ['file://index1/complex-name/',
                          'file://index2/complex-name/']
