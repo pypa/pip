@@ -148,9 +148,17 @@ class VersionControl(object):
         url = self.url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         rev = None
-        if '@' in path:
-            path, rev = path.rsplit('@', 1)
-        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
+        if scheme == 'ssh' and not path:  # Fix urllib_parse parsing
+            url_splitted = url.split('@')
+            if len(url_splitted) == 3:
+                url = '%s@%s' % (url_splitted[0], url_splitted[1])
+                rev = url_splitted[2].split('#')[0]
+            assert len(url_splitted) < 4, "You can't have more than two @ in VCS url."
+                
+        else:
+            if '@' in path:
+                path, rev = path.rsplit('@', 1)
+            url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
 
     def get_info(self, location):
