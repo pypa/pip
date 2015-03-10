@@ -12,9 +12,8 @@ import tempfile
 import pytest
 
 from mock import Mock, patch
-from pip.exceptions import BadCommand
 from pip.utils import (egg_link_path, Inf, get_installed_distributions,
-                       find_command, untar_file, unzip_file, rmtree)
+                       untar_file, unzip_file, rmtree)
 from pip.operations.freeze import freeze_excludes
 
 
@@ -271,92 +270,6 @@ class Tests_get_installed_distributions:
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(skip=freeze_excludes)
         assert len(dists) == 0
-
-
-def test_find_command_folder_in_path(tmpdir):
-    """
-    If a folder named e.g. 'git' is in PATH, and find_command is looking for
-    the 'git' executable, it should not match the folder, but rather keep
-    looking.
-    """
-    tmpdir.join("path_one").mkdir()
-    path_one = tmpdir / 'path_one'
-    path_one.join("foo").mkdir()
-    tmpdir.join("path_two").mkdir()
-    path_two = tmpdir / 'path_two'
-    path_two.join("foo").write("# nothing")
-    found_path = find_command('foo', map(str, [path_one, path_two]))
-    assert found_path == path_two / 'foo'
-
-
-def test_does_not_find_command_because_there_is_no_path():
-    """
-    Test calling `pip.utils.find_command` when there is no PATH env variable
-    """
-    environ_before = os.environ
-    os.environ = {}
-    try:
-        try:
-            find_command('anycommand')
-        except BadCommand:
-            e = sys.exc_info()[1]
-            assert e.args == ("Cannot find command 'anycommand'",)
-        else:
-            raise AssertionError("`find_command` should raise `BadCommand`")
-    finally:
-        os.environ = environ_before
-
-
-@patch('os.pathsep', ':')
-@patch('pip.utils.get_pathext')
-@patch('os.path.isfile')
-def test_find_command_trys_all_pathext(mock_isfile, getpath_mock):
-    """
-    If no pathext should check default list of extensions, if file does not
-    exist.
-    """
-    mock_isfile.return_value = False
-
-    getpath_mock.return_value = os.pathsep.join([".COM", ".EXE"])
-
-    paths = [
-        os.path.join('path_one', f) for f in ['foo.com', 'foo.exe', 'foo']
-    ]
-    expected = [((p,),) for p in paths]
-
-    with pytest.raises(BadCommand):
-        find_command("foo", "path_one")
-
-    assert (
-        mock_isfile.call_args_list == expected
-    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert getpath_mock.called, "Should call get_pathext"
-
-
-@patch('os.pathsep', ':')
-@patch('pip.utils.get_pathext')
-@patch('os.path.isfile')
-def test_find_command_trys_supplied_pathext(mock_isfile, getpath_mock):
-    """
-    If pathext supplied find_command should use all of its list of extensions
-    to find file.
-    """
-    mock_isfile.return_value = False
-    getpath_mock.return_value = ".FOO"
-
-    pathext = os.pathsep.join([".RUN", ".CMD"])
-
-    paths = [
-        os.path.join('path_one', f) for f in ['foo.run', 'foo.cmd', 'foo']
-    ]
-    expected = [((p,),) for p in paths]
-
-    with pytest.raises(BadCommand):
-        find_command("foo", "path_one", pathext)
-    assert (
-        mock_isfile.call_args_list == expected
-    ), "Actual: %s\nExpected %s" % (mock_isfile.call_args_list, expected)
-    assert not getpath_mock.called, "Should not call get_pathext"
 
 
 class TestUnpackArchives(object):

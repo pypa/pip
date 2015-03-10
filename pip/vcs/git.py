@@ -7,7 +7,6 @@ import os.path
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.utils import call_subprocess
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 
@@ -55,8 +54,8 @@ class Git(VersionControl):
         try:
             if not location.endswith('/'):
                 location = location + '/'
-            call_subprocess(
-                [self.cmd, 'checkout-index', '-a', '-f', '--prefix', location],
+            self.run_command(
+                ['checkout-index', '-a', '-f', '--prefix', location],
                 filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
         finally:
             rmtree(temp_dir)
@@ -82,25 +81,20 @@ class Git(VersionControl):
             return rev_options
 
     def switch(self, dest, url, rev_options):
-        call_subprocess(
-            [self.cmd, 'config', 'remote.origin.url', url], cwd=dest)
-        call_subprocess(
-            [self.cmd, 'checkout', '-q'] + rev_options, cwd=dest)
+        self.run_command(['config', 'remote.origin.url', url], cwd=dest)
+        self.run_command(['checkout', '-q'] + rev_options, cwd=dest)
 
         self.update_submodules(dest)
 
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
-        call_subprocess([self.cmd, 'fetch', '-q'], cwd=dest)
+        self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maby even origin/master)
         if rev_options:
             rev_options = self.check_rev_options(
                 rev_options[0], dest, rev_options,
             )
-        call_subprocess(
-            [self.cmd, 'reset', '--hard', '-q'] + rev_options,
-            cwd=dest,
-        )
+        self.run_command(['reset', '--hard', '-q'] + rev_options, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
 
@@ -116,34 +110,34 @@ class Git(VersionControl):
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
-            call_subprocess([self.cmd, 'clone', '-q', url, dest])
+            self.run_command(['clone', '-q', url, dest])
 
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.get_revision(dest).startswith(rev_options[0]):
-                    call_subprocess(
-                        [self.cmd, 'checkout', '-q'] + rev_options,
+                    self.run_command(
+                        ['checkout', '-q'] + rev_options,
                         cwd=dest,
                     )
             #: repo may contain submodules
             self.update_submodules(dest)
 
     def get_url(self, location):
-        url = call_subprocess(
-            [self.cmd, 'config', 'remote.origin.url'],
+        url = self.run_command(
+            ['config', 'remote.origin.url'],
             show_stdout=False, cwd=location)
         return url.strip()
 
     def get_revision(self, location):
-        current_rev = call_subprocess(
-            [self.cmd, 'rev-parse', 'HEAD'], show_stdout=False, cwd=location)
+        current_rev = self.run_command(
+            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
     def get_refs(self, location):
         """Return map of named refs (branches or tags) to commit hashes."""
-        output = call_subprocess([self.cmd, 'show-ref'],
-                                 show_stdout=False, cwd=location)
+        output = self.run_command(['show-ref'],
+                                  show_stdout=False, cwd=location)
         rv = {}
         for line in output.strip().splitlines():
             commit, ref = line.split(' ', 1)
@@ -207,8 +201,8 @@ class Git(VersionControl):
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        call_subprocess(
-            [self.cmd, 'submodule', 'update', '--init', '--recursive', '-q'],
+        self.run_command(
+            ['submodule', 'update', '--init', '--recursive', '-q'],
             cwd=location,
         )
 
