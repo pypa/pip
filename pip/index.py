@@ -360,7 +360,7 @@ class PackageFinder(object):
 
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
-            [Link(url, '-f', trusted=True) for url in self.find_links],
+            (Link(url, '-f', trusted=True) for url in self.find_links),
             req.name.lower()
         ))
 
@@ -373,7 +373,8 @@ class PackageFinder(object):
                 )
 
         dependency_versions = list(self._package_versions(
-            [Link(url) for url in self.dependency_links], req.name.lower()))
+            (Link(url) for url in self.dependency_links), req.name.lower()
+        ))
         if dependency_versions:
             logger.debug(
                 'dependency_links found: %s',
@@ -384,7 +385,7 @@ class PackageFinder(object):
 
         file_versions = list(
             self._package_versions(
-                [Link(url) for url in file_locations],
+                (Link(url) for url in file_locations),
                 req.name.lower()
             )
         )
