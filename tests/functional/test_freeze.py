@@ -72,7 +72,7 @@ def test_freeze_svn(script, tmpdir, data):
 
     checkout_path = local_checkout(
         'svn+http://svn.colorstudy.com/INITools/trunk',
-        tmpdir.join("cache")
+        tmpdir.join("cache"),
     )
     # svn internally stores windows drives as uppercase; we'll match that.
     checkout_path = checkout_path.replace('c:', 'C:')
@@ -82,7 +82,7 @@ def test_freeze_svn(script, tmpdir, data):
         'svn', 'co', '-r10',
         local_repo(
             'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
+            tmpdir.join("cache"),
         ),
         'initools-trunk',
     )
