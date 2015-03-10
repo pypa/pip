@@ -1,5 +1,0 @@
-{% load i18n %}
-{% blocktrans with article.get_absolute_url as article_url %}Your revision {{ revision }} on {{ article }} has been reverted.
-
-http://{{ current_site }}{{ article_url }}
-{% endblocktrans %}

@@ -1,6 +1,0 @@
-include LICENSE
-include README.rst
-include MANIFEST.in
-recursive-include docs *
-recursive-include wiki/media *
-recursive-include wiki/templates *
