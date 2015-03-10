@@ -3,6 +3,8 @@ import re
 import textwrap
 from doctest import OutputChecker, ELLIPSIS
 
+import pytest
+
 from tests.lib import _create_test_package
 from tests.lib.local_repos import local_checkout, local_repo
 
@@ -233,7 +235,10 @@ def test_freeze_bazaar_clone(script, tmpdir, data):
     Test freezing a Bazaar clone.
 
     """
-    checkout_path = _create_test_package(script, vcs='bazaar')
+    try:
+        checkout_path = _create_test_package(script, vcs='bazaar')
+    except OSError as e:
+        pytest.skip('Invoking `bzr` failed: %s' % e)
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
     result = script.run(
