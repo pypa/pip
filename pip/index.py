@@ -408,9 +408,11 @@ class PackageFinder(object):
         )
 
     def find_requirement(self, req, upgrade):
-        """Expects req, an InstallRequirement and upgrade, a boolean
-           Returns an InstallationCandidate or None
-           May raise DistributionNotFound or BestVersionAlreadyInstalled"""
+        """Try to find an InstallationCandidate for req
+
+        Expects req, an InstallRequirement and upgrade, a boolean
+        Returns an InstallationCandidate or None
+        May raise DistributionNotFound or BestVersionAlreadyInstalled"""
         all_versions = self._find_all_versions(req)
         if not all_versions:
             logger.critical(
