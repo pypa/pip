@@ -115,28 +115,31 @@ def find_command(cmd, paths=None, pathext=None):
     # check if there are funny path extensions for executables, e.g. Windows
     if pathext is None:
         pathext = get_pathext()
-    pathext = [ext for ext in pathext.lower().split(os.pathsep) if len(ext)]
+    pathext = [ext for ext in pathext.lower().split(os.pathsep) if ext]
     # don't use extensions if the command ends with one of them
     if os.path.splitext(cmd)[1].lower() in pathext:
-        pathext = ['']
+        pathext = []
     # check if we find the command on PATH
     for path in paths:
-        # try without extension first
         cmd_path = os.path.join(path, cmd)
+        # if we have extensions, try them
         for ext in pathext:
-            # then including the extension
             cmd_path_ext = cmd_path + ext
             if os.path.isfile(cmd_path_ext):
                 return cmd_path_ext
-        if os.path.isfile(cmd_path):
-            return cmd_path
+        # else, don't use any extension
+        if not pathext:
+            if os.path.isfile(cmd_path):
+                return cmd_path
     raise BadCommand('Cannot find command %r' % cmd)
 
 
 def get_pathext(default_pathext=None):
     """Returns the path extensions from environment or a default"""
-    if default_pathext is None:
+    if default_pathext is None and os.name == 'nt':
         default_pathext = os.pathsep.join(['.COM', '.EXE', '.BAT', '.CMD'])
+    else:
+        default_pathext = ''
     pathext = os.environ.get('PATHEXT', default_pathext)
     return pathext
 
