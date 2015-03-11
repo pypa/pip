@@ -218,41 +218,32 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result, expected)
 
 
-@pytest.mark.network
+@pytest.mark.bzr
 def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.
 
     """
-
-    checkout_path = local_checkout(
-        'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/'
-        'release-0.1',
-        tmpdir.join("cache"),
-    )
-    # bzr internally stores windows drives as uppercase; we'll match that.
+    try:
+        checkout_path = _create_test_package(script, vcs='bazaar')
+    except OSError as e:
+        pytest.fail('Invoking `bzr` failed: %s' % e)
     checkout_pathC = checkout_path.replace('c:', 'C:')
 
     result = script.run(
-        'bzr', 'checkout', '-r', '174',
-        local_repo(
-            'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/'
-            'release-0.1',
-            tmpdir.join("cache"),
-        ),
-        'django-wikiapp',
+        'bzr', 'checkout', checkout_path, 'bzr-package'
     )
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path / 'django-wikiapp',
+        cwd=script.scratch_path / 'bzr-package',
         expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        ...-e %s@...#egg=django_wikiapp-...
-        ...""" % checkout_pathC)
+        ...-e bzr+file://%s@1#egg=version_pkg-0.1-...
+        ...""" % checkout_path)
     _check_output(result, expected)
 
     result = script.pip(
@@ -264,7 +255,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
-        ...-e %(repoC)s@...#egg=django_wikiapp-...
+        ...-e bzr+file://%(repoC)s@...#egg=version_pkg-...
         ...""" % {'repoC': checkout_pathC, 'repo': checkout_path})
     _check_output(result, expected)
 
