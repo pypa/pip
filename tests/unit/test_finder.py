@@ -34,6 +34,18 @@ def test_no_partial_name_match(data):
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
 
 
+@patch(
+    'pip.index.os.path.exists',
+    return_value=True  # b/c we only use tilde expanded version if it exists
+)
+def test_tilde(data):
+    """Finder can accept a path with ~ in it and will normalize it."""
+    finder = PackageFinder(['~/python-pkgs'], [], session=PipSession())
+    req = InstallRequirement.from_line("gmpy")
+    with pytest.raises(DistributionNotFound):
+        finder.find_requirement(req, False)
+
+
 def test_duplicates_sort_ok(data):
     """Finder successfully finds one of a set of duplicates in different
     locations"""
