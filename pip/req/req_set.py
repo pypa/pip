@@ -438,14 +438,14 @@ class RequirementSet(object):
                     for missing in missing_requested:
                         logger.warning(
                             '%s does not provide the extra \'%s\'',
-                            dist, missing)
+                            dist, missing
+                        )
 
                     available_requested = sorted(
                         set(dist.extras) & set(req_to_install.extras)
                     )
                     for subreq in dist.requires(available_requested):
-                        if self.has_requirement(
-                                subreq.project_name):
+                        if self.has_requirement(subreq.project_name):
                             # FIXME: check for conflict
                             continue
                         subreq = InstallRequirement(
