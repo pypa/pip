@@ -11,7 +11,7 @@ try:
 except ImportError:
     import urlparse as urllib_parse
 
-from pip.utils import rmtree, display_path, call_subprocess
+from pip.utils import rmtree, display_path
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
 
@@ -46,17 +46,16 @@ class Bazaar(VersionControl):
             # Remove the location to make sure Bazaar can export it correctly
             rmtree(location)
         try:
-            call_subprocess([self.cmd, 'export', location], cwd=temp_dir,
-                            filter_stdout=self._filter, show_stdout=False)
+            self.run_command(['export', location], cwd=temp_dir,
+                             filter_stdout=self._filter, show_stdout=False)
         finally:
             rmtree(temp_dir)
 
     def switch(self, dest, url, rev_options):
-        call_subprocess([self.cmd, 'switch', url], cwd=dest)
+        self.run_command(['switch', url], cwd=dest)
 
     def update(self, dest, rev_options):
-        call_subprocess(
-            [self.cmd, 'pull', '-q'] + rev_options, cwd=dest)
+        self.run_command(['pull', '-q'] + rev_options, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -73,8 +72,7 @@ class Bazaar(VersionControl):
                 rev_display,
                 display_path(dest),
             )
-            call_subprocess(
-                [self.cmd, 'branch', '-q'] + rev_options + [url, dest])
+            self.run_command(['branch', '-q'] + rev_options + [url, dest])
 
     def get_url_rev(self):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
@@ -84,8 +82,7 @@ class Bazaar(VersionControl):
         return url, rev
 
     def get_url(self, location):
-        urls = call_subprocess(
-            [self.cmd, 'info'], show_stdout=False, cwd=location)
+        urls = self.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -98,13 +95,13 @@ class Bazaar(VersionControl):
         return None
 
     def get_revision(self, location):
-        revision = call_subprocess(
-            [self.cmd, 'revno'], show_stdout=False, cwd=location)
+        revision = self.run_command(
+            ['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
     def get_tag_revs(self, location):
-        tags = call_subprocess(
-            [self.cmd, 'tags'], show_stdout=False, cwd=location)
+        tags = self.run_command(
+            ['tags'], show_stdout=False, cwd=location)
         tag_revs = []
         for line in tags.splitlines():
             tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)

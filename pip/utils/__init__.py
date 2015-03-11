@@ -13,13 +13,13 @@ import sys
 import tarfile
 import zipfile
 
-from pip.exceptions import InstallationError, BadCommand
+from pip.exceptions import InstallationError
 from pip.compat import console_to_str, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
 )
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
@@ -31,8 +31,7 @@ else:
     from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
-           'find_command', 'ask', 'Inf',
-           'normalize_name', 'splitext',
+           'ask', 'Inf', 'normalize_name', 'splitext',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
@@ -104,41 +103,6 @@ def backup_dir(dir, ext='.bak'):
         n += 1
         extension = ext + str(n)
     return dir + extension
-
-
-def find_command(cmd, paths=None, pathext=None):
-    """Searches the PATH for the given command and returns its path"""
-    if paths is None:
-        paths = os.environ.get('PATH', '').split(os.pathsep)
-    if isinstance(paths, six.string_types):
-        paths = [paths]
-    # check if there are funny path extensions for executables, e.g. Windows
-    if pathext is None:
-        pathext = get_pathext()
-    pathext = [ext for ext in pathext.lower().split(os.pathsep) if len(ext)]
-    # don't use extensions if the command ends with one of them
-    if os.path.splitext(cmd)[1].lower() in pathext:
-        pathext = ['']
-    # check if we find the command on PATH
-    for path in paths:
-        # try without extension first
-        cmd_path = os.path.join(path, cmd)
-        for ext in pathext:
-            # then including the extension
-            cmd_path_ext = cmd_path + ext
-            if os.path.isfile(cmd_path_ext):
-                return cmd_path_ext
-        if os.path.isfile(cmd_path):
-            return cmd_path
-    raise BadCommand('Cannot find command %r' % cmd)
-
-
-def get_pathext(default_pathext=None):
-    """Returns the path extensions from environment or a default"""
-    if default_pathext is None:
-        default_pathext = os.pathsep.join(['.COM', '.EXE', '.BAT', '.CMD'])
-    pathext = os.environ.get('PATHEXT', default_pathext)
-    return pathext
 
 
 def ask_path_exists(message, options):
