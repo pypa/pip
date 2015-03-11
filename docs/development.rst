@@ -65,6 +65,13 @@ Ways to run the tests locally:
  $ py.test               # Using py.test directly
  $ tox                   # Using tox against pip's tox.ini
 
+If you are missing one of the VCS tools, you can tell ``py.test`` to skip it:
+
+::
+
+ $ py.test -k 'not bzr'
+ $ py.test -k 'not svn'
+
 
 Getting Involved
 ================

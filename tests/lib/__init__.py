@@ -458,7 +458,7 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
-def _create_test_package(script):
+def _create_test_package(script, vcs='git'):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
     version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
@@ -475,13 +475,38 @@ def _create_test_package(script):
             entry_points=dict(console_scripts=['version_pkg=version_pkg:main'])
         )
     """))
-    script.run('git', 'init', cwd=version_pkg_path)
-    script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path,
-    )
+    if vcs == 'git':
+        script.run('git', 'init', cwd=version_pkg_path)
+        script.run('git', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'git', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path,
+        )
+    elif vcs == 'svn':
+        repo_url = ('file://' +
+                    script.scratch_path / 'pip-test-package-repo' / 'trunk')
+        script.run(
+            'svnadmin', 'create', 'pip-test-package-repo',
+            cwd=script.scratch_path
+        )
+        script.run(
+            'svn', 'import', version_pkg_path, repo_url,
+            '-m', 'Initial import of pip-test-package',
+            cwd=script.scratch_path
+        )
+        script.run(
+            'svn', 'checkout', repo_url, 'pip-test-package',
+            cwd=script.scratch_path
+        )
+        checkout_path = script.scratch_path / 'pip-test-package'
+
+        # svn internally stores windows drives as uppercase; we'll match that.
+        checkout_path = checkout_path.replace('c:', 'C:')
+
+        version_pkg_path = checkout_path
+    else:
+        raise ValueError('Unknown vcs: %r' % vcs)
     return version_pkg_path
 
 
