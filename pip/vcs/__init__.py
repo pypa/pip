@@ -153,8 +153,8 @@ class VersionControl(object):
             if len(url_splitted) == 3:
                 url = '%s@%s' % (url_splitted[0], url_splitted[1])
                 rev = url_splitted[2].split('#')[0]
-            assert len(url_splitted) < 4, "You can't have more than two @ in VCS url."
-                
+            assert len(url_splitted) < 4,\
+                "You can't have more than two @ in VCS url."
         else:
             if '@' in path:
                 path, rev = path.rsplit('@', 1)
