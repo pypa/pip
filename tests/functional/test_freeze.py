@@ -66,39 +66,23 @@ def test_freeze_basic(script):
     _check_output(result, expected)
 
 
-@pytest.mark.network
+@pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 
-    checkout_path = local_checkout(
-        'svn+http://svn.colorstudy.com/INITools/trunk',
-        tmpdir.join("cache"),
-    )
-    # svn internally stores windows drives as uppercase; we'll match that.
-    checkout_path = checkout_path.replace('c:', 'C:')
+    checkout_path = _create_test_package(script, vcs='svn')
 
-    # Checkout
-    script.run(
-        'svn', 'co', '-r10',
-        local_repo(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache"),
-        ),
-        'initools-trunk',
-    )
     # Install with develop
     script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path / 'initools-trunk',
-        expect_stderr=True,
+        cwd=checkout_path, expect_stderr=True
     )
     result = script.pip('freeze', expect_stderr=True)
-
     expected = textwrap.dedent("""\
         Script result: pip freeze
         -- stdout: --------------------
-        ...-e %s@10#egg=INITools-0.3.1dev...-dev_r10
-        ...""" % checkout_path)
+        ...-e svn+...#egg=version_pkg-0.1-...
+        ...""")
     _check_output(result, expected)
 
 
