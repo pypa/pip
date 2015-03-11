@@ -201,6 +201,8 @@ class Git(VersionControl):
             url = url.replace('ssh://', '')
         else:
             url, rev = super(Git, self).get_url_rev()
+            # For explicit SSH URLs, remove 'ssh://' to clone
+            url = url.replace('ssh://', '')
 
         return url, rev
 
