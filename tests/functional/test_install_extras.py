@@ -53,7 +53,7 @@ def test_no_extras_uninstall(script):
     assert initools_folder not in result2.files_deleted, result.files_deleted
 
 
-def test_non_existant_extra_warns_user_no_wheel(script, data):
+def test_nonexistent_extra_warns_user_no_wheel(script, data):
     """
     A warning is logged telling the user that the extra option they requested
     does not exist in the project they are wishing to install.
@@ -71,7 +71,7 @@ def test_non_existant_extra_warns_user_no_wheel(script, data):
     )
 
 
-def test_non_existant_extra_warns_user_with_wheel(script, data):
+def test_nonexistent_extra_warns_user_with_wheel(script, data):
     """
     A warning is logged telling the user that the extra option they requested
     does not exist in the project they are wishing to install.
@@ -89,7 +89,7 @@ def test_non_existant_extra_warns_user_with_wheel(script, data):
     )
 
 
-def test_non_existant_options_listed_in_order(script, data):
+def test_nonexistent_options_listed_in_order(script, data):
     """
     Warn the user for each extra that doesn't exist.
     """
