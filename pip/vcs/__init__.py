@@ -56,6 +56,7 @@ class VcsSupport(object):
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls
+            logger.debug('Registered VCS backend: %s', cls.name)
 
     def unregister(self, cls=None, name=None):
         if name in self._registry:
@@ -71,8 +72,12 @@ class VcsSupport(object):
         location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
         """
         for vc_type in self._registry.values():
+            logger.debug('Checking in %s for %s (%s)...',
+                         location, vc_type.dirname, vc_type.name)
             path = os.path.join(location, vc_type.dirname)
             if os.path.exists(path):
+                logger.debug('Determine that %s uses VCS: %s',
+                             location, vc_type.name)
                 return vc_type.name
         return None
 
