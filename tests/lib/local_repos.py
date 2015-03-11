@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import os
 import subprocess
 
-from pip._vendor.six.moves.urllib import request as urllib_request
-
 from pip.vcs import subversion, git, bazaar, mercurial
 from tests.lib import path_to_url
+from tests.lib.path import Path
 
 
 if hasattr(subprocess, "check_call"):
@@ -20,10 +19,8 @@ def _create_initools_repository(directory):
 
 
 def _dump_initools_repository(directory):
-    filename, _ = urllib_request.urlretrieve(
-        'http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/'
-        'INITools_modified.dump'
-    )
+    data_dir = Path(__file__).folder.folder / 'data'
+    filename = data_dir / 'repos' / 'svn' / 'INITools_modified.dump'
     initools_folder = os.path.join(directory, 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
@@ -34,7 +31,6 @@ def _dump_initools_repository(directory):
     )
     dump.close()
     devnull.close()
-    os.remove(filename)
 
 
 def _create_svn_repository_for_initools(directory):

@@ -458,7 +458,7 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
-def _create_test_package(script):
+def _create_test_package(script, vcs='git'):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
     version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
@@ -475,13 +475,25 @@ def _create_test_package(script):
             entry_points=dict(console_scripts=['version_pkg=version_pkg:main'])
         )
     """))
-    script.run('git', 'init', cwd=version_pkg_path)
-    script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path,
-    )
+    if vcs == 'git':
+        script.run('git', 'init', cwd=version_pkg_path)
+        script.run('git', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'git', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path,
+        )
+    elif vcs == 'bazaar':
+        script.run('bzr', 'init', cwd=version_pkg_path)
+        script.run('bzr', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            cwd=version_pkg_path)
+        script.run(
+            'bzr', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
     return version_pkg_path
 
 
