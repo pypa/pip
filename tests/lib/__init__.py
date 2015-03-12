@@ -484,8 +484,8 @@ def _create_test_package(script, vcs='git'):
             '-am', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'svn':
-        repo_url = ('file://' +
-                    script.scratch_path / 'pip-test-package-repo' / 'trunk')
+        repo_url = path_to_url(
+            script.scratch_path / 'pip-test-package-repo' / 'trunk')
         script.run(
             'svnadmin', 'create', 'pip-test-package-repo',
             cwd=script.scratch_path
