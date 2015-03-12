@@ -339,6 +339,13 @@ class PackageFinder(object):
         return []
 
     def _find_all_versions(self, req):
+        """Find all available versions for req.project_name
+
+        This checks index_urls, find_links and dependency_links
+        All versions are returned regardless of req.specifier
+
+        See _link_package_versions for details on which files are accepted
+        """
         index_locations = self._get_index_urls_locations(req)
         file_locations, url_locations = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
