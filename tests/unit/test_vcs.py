@@ -46,14 +46,17 @@ def test_git_urls():
     SSH has special handling.
     """
     https_repo = Git(
-        url='git+https://github.com/Eyepea/pip.git@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
+        url='git+https://github.com/Eyepea/pip.git'
+            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
     )
     implicit_ssh_repo = Git(
-        url='git+git@github.com:Eyepea/pip.git@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
+        url='git+git@github.com:Eyepea/pip.git'
+            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
     )
 
     explicit_ssh_repo = Git(
-        url='git+ssh://git@github.com:Eyepea/pip.git@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
+        url='git+ssh://git@github.com:Eyepea/pip.git'
+            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
     )
 
     assert https_repo.get_url_rev() == (
