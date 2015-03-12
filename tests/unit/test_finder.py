@@ -283,6 +283,12 @@ def test_finder_priority_file_over_page(data):
         ["http://pypi.python.org/simple"],
         session=PipSession(),
     )
+    all_versions = finder._find_all_versions(req)
+    # 1 file InstallationCandidate followed by all https ones
+    assert all_versions[0].location.scheme == 'file'
+    assert all(version.location.scheme == 'https'
+               for version in all_versions[1:]), all_versions
+
     link = finder.find_requirement(req, False)
     assert link.url.startswith("file://")
 
@@ -309,14 +315,18 @@ def test_finder_priority_page_over_deplink():
     """
     Test PackageFinder prefers page links over equivalent dependency links
     """
-    req = InstallRequirement.from_line('gmpy==1.15', None)
+    req = InstallRequirement.from_line('pip==1.5.6', None)
     finder = PackageFinder(
         [],
         ["https://pypi.python.org/simple"],
         process_dependency_links=True,
         session=PipSession(),
     )
-    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
+    finder.add_dependency_links([
+        'https://warehouse.python.org/packages/source/p/pip/pip-1.5.6.tar.gz'])
+    all_versions = finder._find_all_versions(req)
+    # Check that the dependency_link is last
+    assert all_versions[-1].location.url.startswith('https://warehouse')
     link = finder.find_requirement(req, False)
     assert link.url.startswith("https://pypi"), link
 
@@ -329,6 +339,10 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
+        all_versions = finder._find_all_versions(req)
+        assert all_versions[0].location.url.endswith('tar.gz')
+        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
+
         link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
@@ -337,6 +351,9 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
+        all_versions = finder._find_all_versions(req)
+        assert all_versions[0].location.url.endswith('tar.gz')
+        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
         link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
