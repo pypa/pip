@@ -989,7 +989,7 @@ exec(compile(
 
     def get_dist(self):
         """Return a pkg_resources.Distribution built from self.egg_info_path"""
-        egg_info = self.egg_info_path('')
+        egg_info = self.egg_info_path('').rstrip('/')
         base_dir = os.path.dirname(egg_info)
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]

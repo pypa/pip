@@ -136,6 +136,23 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
+    def test_get_dist(self):
+        req = InstallRequirement.from_line('foo')
+        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info')
+        dist = req.get_dist()
+        assert isinstance(dist, pkg_resources.Distribution)
+        assert dist.project_name == 'foo'
+        assert dist.location == '/path/to'
+
+    def test_get_dist_trailing_slash(self):
+        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+        req = InstallRequirement.from_line('foo')
+        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info/')
+        dist = req.get_dist()
+        assert isinstance(dist, pkg_resources.Distribution)
+        assert dist.project_name == 'foo'
+        assert dist.location == '/path/to'
+
     def test_markers(self):
         for line in (
             # recommanded syntax

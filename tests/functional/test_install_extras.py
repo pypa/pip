@@ -66,7 +66,7 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
         'simple[nonexistent]', expect_stderr=True,
     )
     assert (
-        "Unknown 3.0 does not provide the extra 'nonexistent'"
+        "simple 3.0 does not provide the extra 'nonexistent'"
         in result.stdout
     )
 
