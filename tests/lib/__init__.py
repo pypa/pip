@@ -483,6 +483,14 @@ def _create_test_package(script, vcs='git'):
             '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'initial version', cwd=version_pkg_path,
         )
+    elif vcs == 'hg':
+        script.run('hg', 'init', cwd=version_pkg_path)
+        script.run('hg', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'hg', 'commit', '-q',
+            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
     elif vcs == 'svn':
         repo_url = ('file://' +
                     script.scratch_path / 'pip-test-package-repo' / 'trunk')
