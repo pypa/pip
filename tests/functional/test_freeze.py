@@ -5,7 +5,6 @@ import pytest
 from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib import _create_test_package
-from tests.lib.local_repos import local_checkout, local_repo
 
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -156,24 +155,23 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result, expected)
 
 
-@pytest.mark.network
+@pytest.mark.mercurial
 def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.
 
     """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package(script, vcs='hg')
+
     result = script.run(
-        'hg', 'clone',
-        '-r', 'c9963c111e7c',
-        local_repo(
-            'hg+http://bitbucket.org/pypa/pip-test-package',
-            tmpdir.join("cache"),
-        ),
-        'pip-test-package',
+        'hg', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
     )
+    repo_dir = script.scratch_path / 'pip-test-package'
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=script.scratch_path / 'pip-test-package',
+        cwd=repo_dir,
         expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
@@ -181,39 +179,24 @@ def test_freeze_mercurial_clone(script, tmpdir):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e %s@...#egg=pip_test_package-...
+            ...-e hg+...#egg=version_pkg-dev
             ...
-        """ %
-        local_checkout(
-            'hg+http://bitbucket.org/pypa/pip-test-package',
-            tmpdir.join("cache"),
-        ),
+        """
     ).strip()
     _check_output(result, expected)
 
     result = script.pip(
-        'freeze', '-f',
-        '%s#egg=pip_test_package' %
-        local_checkout(
-            'hg+http://bitbucket.org/pypa/pip-test-package',
-            tmpdir.join("cache"),
-        ),
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
         expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
-            Script result: ...pip freeze -f %(repo)s#egg=pip_test_package
+            Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
-            -f %(repo)s#egg=pip_test_package
-            ...-e %(repo)s@...#egg=pip_test_package-dev
+            -f %(repo)s#egg=pip_test_package...
+            ...-e hg+...#egg=version_pkg-dev
             ...
-        """ %
-        {
-            'repo': local_checkout(
-                'hg+http://bitbucket.org/pypa/pip-test-package',
-                tmpdir.join("cache"),
-            ),
-        },
+        """ % {'repo': repo_dir},
     ).strip()
     _check_output(result, expected)
 
