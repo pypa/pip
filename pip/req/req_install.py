@@ -198,7 +198,8 @@ class InstallRequirement(object):
         return s
 
     def __repr__(self):
-        return '<%s object: %s>' % (self.__class__.__name__, str(self))
+        return '<%s object: %s editable=%r>' % (
+            self.__class__.__name__, str(self), self.editable)
 
     @property
     def specifier(self):
