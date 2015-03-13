@@ -692,9 +692,7 @@ def unpack_file_url(link, location, download_dir=None):
 
     # If it's a url to a local directory
     if os.path.isdir(link_path):
-        if os.path.isdir(location):
-            rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        _copy_dist_from_dir(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
@@ -723,6 +721,27 @@ def unpack_file_url(link, location, download_dir=None):
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, content_type, link)
+
+
+def _copy_dist_from_dir(link_path, location):
+    """Copy distribution files in `link_path` to `location`.
+
+    Invoked when user requests to install a local directory. E.g.:
+
+        pip install .
+        pip install ~/dev/git-repos/python-prompt-toolkit
+
+    """
+
+    # Note: This is currently VERY SLOW if you have a lot of data in the
+    # directory, because it copies everything with `shutil.copytree`.
+    # What it should really do is build an sdist and install that.
+    # See https://github.com/pypa/pip/issues/2195
+
+    if os.path.isdir(location):
+        rmtree(location)
+
+    shutil.copytree(link_path, location, symlinks=True)
 
 
 class PipXmlrpcTransport(xmlrpc_client.Transport):
