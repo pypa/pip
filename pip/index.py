@@ -421,31 +421,8 @@ class PackageFinder(object):
         Returns an InstallationCandidate or None
         May raise DistributionNotFound or BestVersionAlreadyInstalled"""
         all_versions = self._find_all_versions(req)
-        if not all_versions:
-            logger.critical(
-                'Could not find any downloads that satisfy the requirement %s',
-                req,
-            )
-
-            if self.need_warn_external:
-                logger.warning(
-                    "Some externally hosted files were ignored as access to "
-                    "them may be unreliable (use --allow-external %s to "
-                    "allow).",
-                    req.name,
-                )
-
-            if self.need_warn_unverified:
-                logger.warning(
-                    "Some insecure and unverifiable files were ignored"
-                    " (use --allow-unverified %s to allow).",
-                    req.name,
-                )
-
-            raise DistributionNotFound(
-                'No distributions at all found for %s' % req
-            )
         # Filter out anything which doesn't match our specifier
+
         _versions = set(
             req.specifier.filter(
                 [x.version for x in all_versions],
@@ -507,7 +484,9 @@ class PackageFinder(object):
             if self.need_warn_external:
                 logger.warning(
                     "Some externally hosted files were ignored as access to "
-                    "them may be unreliable (use --allow-external to allow)."
+                    "them may be unreliable (use --allow-external %s to "
+                    "allow).",
+                    req.name,
                 )
 
             if self.need_warn_unverified:
@@ -518,7 +497,7 @@ class PackageFinder(object):
                 )
 
             raise DistributionNotFound(
-                'No distributions matching the version for %s' % req
+                'No matching distribution found for %s' % req
             )
 
         if applicable_versions[0].location is INSTALLED_VERSION:

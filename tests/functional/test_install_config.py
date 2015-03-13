@@ -13,7 +13,7 @@ def test_options_from_env_vars(script):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
 
@@ -68,7 +68,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
     script.environ['PIP_NO_INDEX'] = '0'
@@ -184,6 +184,6 @@ def test_options_from_venv_config(script, virtualenv):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
