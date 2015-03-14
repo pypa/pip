@@ -292,6 +292,23 @@ class PackageFinder(object):
             )
 
     def find_requirement(self, req, upgrade):
+        if any(op == '==' for op, ver in req.req.specs):
+            # if the version is pinned-down by a ==, do an optimistic search
+            # for a satisfactory package on the local filesystem.
+            try:
+                result = self._find_requirement(
+                    req, upgrade, network_allowed=False,
+                )
+            except DistributionNotFound:
+                result = None
+
+            if result is not None:
+                return result
+
+        # otherwise, do the full network search
+        return self._find_requirement(req, upgrade, network_allowed=True)
+
+    def _find_requirement(self, req, upgrade, network_allowed):
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -315,7 +332,7 @@ class PackageFinder(object):
                 trusted=True,
             )
 
-            page = self._get_page(main_index_url, req)
+            page = self._get_page(main_index_url, req, network_allowed)
             if page is None and PyPI.netloc not in str(main_index_url):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
@@ -361,7 +378,7 @@ class PackageFinder(object):
             )
         )
         page_versions = []
-        for page in self._get_pages(locations, req):
+        for page in self._get_pages(locations, req, network_allowed):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
@@ -548,7 +565,7 @@ class PackageFinder(object):
             # Vaguely part of the PyPI API... weird but true.
             # FIXME: bad to modify this?
             index_url.url += '/'
-        page = self._get_page(index_url, req)
+        page = self._get_page(index_url, req, network_allowed=True)
         if page is None:
             logger.critical('Cannot fetch index base URL %s', index_url)
             return
@@ -562,7 +579,7 @@ class PackageFinder(object):
                 return base
         return None
 
-    def _get_pages(self, locations, req):
+    def _get_pages(self, locations, req, network_allowed):
         """
         Yields (page, page_url) from the given locations, skipping
         locations that have errors, and adding download/homepage links
@@ -576,7 +593,7 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = self._get_page(location, req)
+            page = self._get_page(location, req, network_allowed)
             if page is None:
                 continue
 
@@ -792,8 +809,11 @@ class PackageFinder(object):
         else:
             return None
 
-    def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req, session=self.session)
+    def _get_page(self, link, req, network_allowed):
+        if network_allowed or link.url.startswith('file:'):
+            return HTMLPage.get_page(link, req, session=self.session)
+        else:
+            return HTMLPage('', 'fake://' + link.url)
 
 
 class HTMLPage(object):
