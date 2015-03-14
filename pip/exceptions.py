@@ -18,9 +18,14 @@ class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
 
+class RequirementsFileParseError(PipError):
+    """Raised when an invalid state is encountered during requirement file
+    parsing."""
+
+
 class BestVersionAlreadyInstalled(PipError):
     """Raised when the most up-to-date version of a package is already
-    installed.  """
+    installed."""
 
 
 class BadCommand(PipError):
