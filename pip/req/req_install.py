@@ -74,7 +74,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
-                 pycompile=True, markers=None, isolated=False):
+                 pycompile=True, markers=None, isolated=False, options=None):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -112,6 +112,7 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
+        self.options = options if options else {}
 
         self.pycompile = pycompile
 
@@ -141,7 +142,7 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None, isolated=False):
+    def from_line(cls, name, comes_from=None, isolated=False, options=None):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -207,7 +208,7 @@ class InstallRequirement(object):
             req = name
 
         return cls(req, comes_from, link=link, markers=markers,
-                   isolated=isolated)
+                   isolated=isolated, options=options)
 
     def __str__(self):
         if self.req:
@@ -792,7 +793,7 @@ exec(compile(
         else:
             return True
 
-    def install(self, install_options, global_options=(), root=None):
+    def install(self, install_options, global_options=[], root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -803,6 +804,14 @@ exec(compile(
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
+
+        # Extend the list of global and install options passed on to
+        # the setup.py call with the ones from the requirements file.
+        # Options specified in requirements file override those
+        # specified on the command line, since the last option given
+        # to setup.py is the one that is used.
+        global_options += self.options.get('--global-options', [])
+        install_options += self.options.get('--install-options', [])
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]

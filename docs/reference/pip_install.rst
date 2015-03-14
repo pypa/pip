@@ -25,6 +25,7 @@ Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
     <requirement specifier>
+    <requirement specifier> [--install-options="..."] [--global-options="..."]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
@@ -40,6 +41,9 @@ See the :ref:`pip install Examples<pip install Examples>` for examples of all th
 A line that begins with ``#`` is treated as a comment and ignored. Whitespace
 followed by a ``#`` causes the ``#`` and the remainder of the line to be
 treated as a comment.
+
+A line ending in an unescaped ``\`` is treated as a line continuation
+and the newline following it is effectively ignored.
 
 Additionally, the following Package Index Options are supported:
 
@@ -89,6 +93,25 @@ Some Examples:
   Don't use single or double quotes in a ``requirements.txt`` file.
 
 
+.. _`Per-requirement Overrides`:
+
+Per-requirement Overrides
++++++++++++++++++++++++++
+
+It is possible to set ``--install-options`` and ``--global-options``
+for each requirement in the requirements file:
+
+ ::
+
+    FooProject >= 1.2 --install-options="--prefix='/usr/local'" \
+                      --global-options="--no-user-cfg"
+
+The above translates roughly into running FooProject's ``setup.py``
+script as:
+
+ ::
+
+    python setup.py --no-user-cfg install --prefix='/usr/local'
 
 
 .. _`Pre Release Versions`:
@@ -506,5 +529,3 @@ Examples
  ::
 
   $ pip install --pre SomePackage
-
-

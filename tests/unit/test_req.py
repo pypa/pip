@@ -2,16 +2,25 @@ import os
 import shutil
 import sys
 import tempfile
+import subprocess
 
 import pytest
 
 from mock import Mock, patch, mock_open
+from textwrap import dedent
 from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
     BestVersionAlreadyInstalled,
+    RequirementsFileParseError,
 )
 from pip.download import PipSession
 from pip.index import PackageFinder
+from pip.req.req_file import (parse_requirement_options,
+                              parse_content,
+                              parse_line,
+                              join_lines,
+                              REQUIREMENT_EDITABLE,
+                              REQUIREMENT, FLAG, OPTION)
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
 from pip.req.req_install import parse_editable, _filter_install
@@ -460,3 +469,132 @@ def test_filter_install():
         INFO, 'foo bar')
     assert _filter_install('I made a SyntaxError') == (
         INFO, 'I made a SyntaxError')
+
+
+def test_join_line_continuations():
+    """
+    Test joining of line continuations
+    """
+
+    lines = dedent('''\
+    line 1
+    line 2:1 \\
+    line 2:2
+    line 3:1 \\
+    line 3:2 \\
+    line 3:3
+    line 4
+    ''').splitlines()
+
+    expect = [
+        'line 1',
+        'line 2:1 line 2:2',
+        'line 3:1 line 3:2 line 3:3',
+        'line 4',
+    ]
+
+    assert expect == list(join_lines(lines))
+
+
+def test_parse_editable_from_requirements():
+    lines = [
+        '--editable svn+https://foo#egg=foo',
+        '--editable=svn+https://foo#egg=foo',
+        '-e svn+https://foo#egg=foo'
+    ]
+
+    res = [parse_line(i) for i in lines]
+    assert res == [(REQUIREMENT_EDITABLE, 'svn+https://foo#egg=foo')] * 3
+
+    req = next(parse_content('fn', lines[0]))
+    assert req.name == 'foo'
+    assert req.link.url == 'svn+https://foo#egg=foo'
+
+
+@pytest.fixture
+def session():
+    return PipSession()
+
+
+@pytest.fixture
+def finder(session):
+    return PackageFinder([], [], session=session)
+
+
+def test_parse_options_from_requirements(finder):
+    pl = parse_line
+
+    assert pl('-i abc') == (OPTION, ('-i', 'abc'))
+    assert pl('-i=abc') == (OPTION, ('-i', 'abc'))
+    assert pl('-i  =  abc') == (OPTION, ('-i', 'abc'))
+
+    assert pl('--index-url abc') == (OPTION, ('--index-url', 'abc'))
+    assert pl('--index-url=abc') == (OPTION, ('--index-url', 'abc'))
+    assert pl('--index-url   =   abc') == (OPTION, ('--index-url', 'abc'))
+
+    with pytest.raises(RequirementsFileParseError):
+        parse_line('--allow-external')
+
+    res = parse_line('--extra-index-url 123')
+    assert res == (OPTION, ('--extra-index-url', '123'))
+
+    next(parse_content('fn', '-i abc', finder=finder), None)
+    assert finder.index_urls == ['abc']
+
+
+def test_parse_flags_from_requirements(finder):
+    assert parse_line('--no-index') == (FLAG, ('--no-index'))
+    assert parse_line('--no-use-wheel') == (FLAG, ('--no-use-wheel'))
+
+    with pytest.raises(RequirementsFileParseError):
+        parse_line('--no-use-wheel true')
+
+    next(parse_content('fn', '--no-index', finder=finder), None)
+    assert finder.index_urls == []
+
+
+def test_get_requirement_options():
+    pro = parse_requirement_options
+
+    res = pro('--aflag --bflag', ['--aflag', '--bflag'])
+    assert res == {'--aflag': '', '--bflag': ''}
+
+    res = pro('--install-options="--abc --zxc"', [], ['--install-options'])
+    assert res == {'--install-options': '--abc --zxc'}
+
+    res = pro('--aflag --global-options="--abc" --install-options="--aflag"',
+              ['--aflag'], ['--install-options', '--global-options'])
+    assert res == {'--aflag': '', '--global-options': '--abc', '--install-options': '--aflag'}
+
+    line = 'INITools==2.0 --global-options="--one --two -3" --install-options="--prefix=/opt"'
+    assert parse_line(line) == (REQUIREMENT, (
+        'INITools==2.0', {
+            '--global-options': '--one --two -3',
+            '--install-options': '--prefix=/opt'
+        }))
+
+
+def test_install_requirements_with_options(tmpdir, finder, session):
+    content = '''
+    INITools == 2.0 --global-options="--one --two -3" \
+                    --install-options="--prefix=/opt"
+    '''
+
+    req_path = tmpdir.join('requirements.txt')
+    with open(req_path, 'w') as fh:
+        fh.write(content)
+
+    req = next(parse_requirements(req_path, finder=finder, session=session))
+
+    req.source_dir = os.curdir
+    with patch.object(subprocess, 'Popen') as popen:
+        try:
+            req.install([])
+        except:
+            pass
+
+        call = popen.call_args_list[0][0][0]
+        for i in '--one', '--two', '-3', '--prefix=/opt':
+            assert i in call
+
+    # TODO: assert that --global-options come before --install-options.
