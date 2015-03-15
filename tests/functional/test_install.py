@@ -32,9 +32,15 @@ def test_pip_second_command_line_interface_works(script):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
+    # On old versions of Python, urllib3/requests will raise a warning about
+    # the lack of an SSLContext.
+    kwargs = {}
+    if pyversion < (2, 7, 9):
+        kwargs['expect_stderr'] = True
+
     args = ['pip%s' % pyversion]
     args.extend(['install', 'INITools==0.2'])
-    result = script.run(*args)
+    result = script.run(*args, **kwargs)
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
