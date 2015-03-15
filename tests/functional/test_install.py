@@ -8,7 +8,7 @@ from os.path import join, curdir, pardir
 import pytest
 
 from pip.utils import rmtree
-from tests.lib import pyversion
+from tests.lib import pyversion, pyversion_tuple
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -35,7 +35,7 @@ def test_pip_second_command_line_interface_works(script):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion < (2, 7, 9):
+    if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
