@@ -283,6 +283,12 @@ def test_finder_priority_file_over_page(data):
         ["http://pypi.python.org/simple"],
         session=PipSession(),
     )
+    all_versions = finder._find_all_versions(req)
+    # 1 file InstallationCandidate followed by all https ones
+    assert all_versions[0].location.scheme == 'file'
+    assert all(version.location.scheme == 'https'
+               for version in all_versions[1:]), all_versions
+
     link = finder.find_requirement(req, False)
     assert link.url.startswith("file://")
 
@@ -309,14 +315,18 @@ def test_finder_priority_page_over_deplink():
     """
     Test PackageFinder prefers page links over equivalent dependency links
     """
-    req = InstallRequirement.from_line('gmpy==1.15', None)
+    req = InstallRequirement.from_line('pip==1.5.6', None)
     finder = PackageFinder(
         [],
         ["https://pypi.python.org/simple"],
         process_dependency_links=True,
         session=PipSession(),
     )
-    finder.add_dependency_links(['http://c.pypi.python.org/simple/gmpy/'])
+    finder.add_dependency_links([
+        'https://warehouse.python.org/packages/source/p/pip/pip-1.5.6.tar.gz'])
+    all_versions = finder._find_all_versions(req)
+    # Check that the dependency_link is last
+    assert all_versions[-1].location.url.startswith('https://warehouse')
     link = finder.find_requirement(req, False)
     assert link.url.startswith("https://pypi"), link
 
@@ -329,6 +339,10 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
+        all_versions = finder._find_all_versions(req)
+        assert all_versions[0].location.url.endswith('tar.gz')
+        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
+
         link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
@@ -337,6 +351,9 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
+        all_versions = finder._find_all_versions(req)
+        assert all_versions[0].location.url.endswith('tar.gz')
+        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
         link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
@@ -713,3 +730,44 @@ class test_link_package_versions(object):
         link = Link('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl')
         result = self.finder._link_package_versions(link, self.search_name)
         assert result == [], result
+
+
+def test_get_index_urls_locations():
+    """Check that the canonical name is on all indexes"""
+    finder = PackageFinder(
+        [], ['file://index1/', 'file://index2'], session=PipSession())
+    locations = finder._get_index_urls_locations(
+        InstallRequirement.from_line('Complex_Name'))
+    assert locations == ['file://index1/complex-name/',
+                         'file://index2/complex-name/']
+
+
+def test_find_all_versions_nothing(data):
+    """Find nothing without anything"""
+    finder = PackageFinder([], [], session=PipSession())
+    assert not finder._find_all_versions(InstallRequirement.from_line('pip'))
+
+
+def test_find_all_versions_find_links(data):
+    finder = PackageFinder(
+        [data.find_links], [], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0']
+
+
+def test_find_all_versions_index(data):
+    finder = PackageFinder(
+        [], [data.index_url('simple')], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    assert [str(v.version) for v in versions] == ['1.0']
+
+
+def test_find_all_versions_find_links_and_index(data):
+    finder = PackageFinder(
+        [data.find_links], [data.index_url('simple')], session=PipSession())
+    versions = finder._find_all_versions(
+        InstallRequirement.from_line('simple'))
+    # first the find-links versions then the page versions
+    assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']

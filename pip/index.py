@@ -291,7 +291,12 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def find_requirement(self, req, upgrade):
+    def _get_index_urls_locations(self, req):
+        """Returns the locations found via self.index_urls
+
+        Checks the url_name on the main (first in the list) index and
+        use this url_name to produce all locations
+        """
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(url, url_name)
@@ -306,10 +311,10 @@ class PackageFinder(object):
 
         url_name = req.url_name
 
-        # Only check main index if index URL is given:
-        main_index_url = None
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
+
+            # Only check main index if index URL is given
             main_index_url = Link(
                 mkurl_pypi_url(self.index_urls[0]),
                 trusted=True,
@@ -330,13 +335,23 @@ class PackageFinder(object):
                 ) or req.url_name
 
         if url_name is not None:
-            locations = [
-                mkurl_pypi_url(url)
-                for url in self.index_urls] + self.find_links
-        else:
-            locations = list(self.find_links)
+            return [mkurl_pypi_url(url) for url in self.index_urls]
+        return []
 
-        file_locations, url_locations = self._sort_locations(locations)
+    def _find_all_versions(self, req):
+        """Find all available versions for req.project_name
+
+        This checks index_urls, find_links and dependency_links
+        All versions are returned regardless of req.specifier
+
+        See _link_package_versions for details on which files are accepted
+        """
+        index_locations = self._get_index_urls_locations(req)
+        file_locations, url_locations = self._sort_locations(index_locations)
+        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
+        file_locations.extend(fl_file_loc)
+        url_locations.extend(fl_url_loc)
+
         _flocations, _ulocations = self._sort_locations(self.dependency_links)
         file_locations.extend(_flocations)
 
@@ -352,14 +367,12 @@ class PackageFinder(object):
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
 
-        found_versions = []
-        found_versions.extend(
-            self._package_versions(
-                # We trust every directly linked archive in find_links
-                [Link(url, '-f', trusted=True) for url in self.find_links],
-                req.name.lower()
-            )
-        )
+        find_links_versions = list(self._package_versions(
+            # We trust every directly linked archive in find_links
+            (Link(url, '-f', trusted=True) for url in self.find_links),
+            req.name.lower()
+        ))
+
         page_versions = []
         for page in self._get_pages(locations, req):
             logger.debug('Analyzing links from page %s', page.url)
@@ -367,8 +380,10 @@ class PackageFinder(object):
                 page_versions.extend(
                     self._package_versions(page.links, req.name.lower())
                 )
+
         dependency_versions = list(self._package_versions(
-            [Link(url) for url in self.dependency_links], req.name.lower()))
+            (Link(url) for url in self.dependency_links), req.name.lower()
+        ))
         if dependency_versions:
             logger.debug(
                 'dependency_links found: %s',
@@ -376,16 +391,37 @@ class PackageFinder(object):
                     version.location.url for version in dependency_versions
                 ])
             )
+
         file_versions = list(
             self._package_versions(
-                [Link(url) for url in file_locations],
+                (Link(url) for url in file_locations),
                 req.name.lower()
             )
         )
-        if (not found_versions and not
-                page_versions and not
-                dependency_versions and not
-                file_versions):
+        if file_versions:
+            file_versions.sort(reverse=True)
+            logger.debug(
+                'Local files found: %s',
+                ', '.join([
+                    url_to_path(candidate.location.url)
+                    for candidate in file_versions
+                ])
+            )
+
+        # This is an intentional priority ordering
+        return (
+            file_versions + find_links_versions + page_versions +
+            dependency_versions
+        )
+
+    def find_requirement(self, req, upgrade):
+        """Try to find an InstallationCandidate for req
+
+        Expects req, an InstallRequirement and upgrade, a boolean
+        Returns an InstallationCandidate or None
+        May raise DistributionNotFound or BestVersionAlreadyInstalled"""
+        all_versions = self._find_all_versions(req)
+        if not all_versions:
             logger.critical(
                 'Could not find any downloads that satisfy the requirement %s',
                 req,
@@ -409,31 +445,6 @@ class PackageFinder(object):
             raise DistributionNotFound(
                 'No distributions at all found for %s' % req
             )
-        installed_version = []
-        if req.satisfied_by is not None:
-            installed_version = [
-                InstallationCandidate(
-                    req.name,
-                    req.satisfied_by.version,
-                    INSTALLED_VERSION,
-                ),
-            ]
-        if file_versions:
-            file_versions.sort(reverse=True)
-            logger.debug(
-                'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.location.url)
-                    for candidate in file_versions
-                ])
-            )
-
-        # This is an intentional priority ordering
-        all_versions = (
-            file_versions + found_versions + page_versions +
-            dependency_versions
-        )
-
         # Filter out anything which doesn't match our specifier
         _versions = set(
             req.specifier.filter(
@@ -448,14 +459,21 @@ class PackageFinder(object):
             x for x in all_versions if x.version in _versions
         ]
 
-        # Finally add our existing versions to the front of our versions.
-        applicable_versions = installed_version + applicable_versions
+        if req.satisfied_by is not None:
+            # Finally add our existing versions to the front of our versions.
+            applicable_versions.insert(
+                0,
+                InstallationCandidate(
+                    req.name,
+                    req.satisfied_by.version,
+                    INSTALLED_VERSION,
+                )
+            )
+            existing_applicable = True
+        else:
+            existing_applicable = False
 
         applicable_versions = self._sort_versions(applicable_versions)
-        existing_applicable = any(
-            i.location is INSTALLED_VERSION
-            for i in applicable_versions
-        )
 
         if not upgrade and existing_applicable:
             if applicable_versions[0].location is INSTALLED_VERSION:
@@ -642,13 +660,7 @@ class PackageFinder(object):
         return extensions
 
     def _link_package_versions(self, link, search_name):
-        """
-        Return an iterable of triples (pkg_resources_version_key,
-        link, python_version) that can be extracted from the given
-        link.
-
-        Meant to be overridden by subclasses, not called by clients.
-        """
+        """Return an InstallationCandidate or None"""
         platform = get_platform()
 
         version = None
