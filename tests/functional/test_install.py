@@ -739,3 +739,28 @@ def test_no_compiles_pyc(script, data):
     )
 
     assert not any(exists)
+
+
+def test_install_upgrade_editable_depending_on_other_editable(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+    script.pip('install', '--editable', pkga_path)
+    result = script.pip('list')
+    assert "pkga" in result.stdout
+
+    script.scratch_path.join("pkgb").mkdir()
+    pkgb_path = script.scratch_path / 'pkgb'
+    pkgb_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkgb',
+              version='0.1',
+              install_requires=['pkga'])
+    """))
+    script.pip('install', '--upgrade', '--editable', pkgb_path)
+    result = script.pip('list')
+    assert "pkgb" in result.stdout
