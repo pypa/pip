@@ -135,7 +135,8 @@ def virtualenv(tmpdir, monkeypatch):
         SRC_DIR,
         pip_src,
         ignore=shutil.ignore_patterns(
-            "*.pyc", "tests", "pip.egg-info", "build", "dist", ".tox",
+            "*.pyc", "__pycache__", "contrib", "docs",
+            "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )
 
