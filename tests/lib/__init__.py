@@ -15,6 +15,7 @@ DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 SRC_DIR = Path(__file__).abspath.folder.folder.folder
 
 pyversion = sys.version[:3]
+pyversion_tuple = sys.version_info
 
 
 def path_to_url(path):
@@ -324,6 +325,13 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         )
 
     def pip(self, *args, **kwargs):
+        # On old versions of Python, urllib3/requests will raise a warning
+        # about the lack of an SSLContext. Expect it when running commands
+        # that will touch the outside world.
+        if (pyversion_tuple < (2, 7, 9) and
+                args and args[0] in ('search', 'install')):
+            kwargs['expect_stderr'] = True
+
         return self.run("pip", *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
