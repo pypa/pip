@@ -1,5 +1,8 @@
 **6.1.0 (unreleased)**
 
+* Fixes :issue:`2502`. Upgrades were failing when no potential links were found
+  for dependencies other than the current installation. (:pull:`2538`)
+
 * Use a smoother progress bar when the terminal is capable of handling it,
   otherwise fallback to the original ASCII based progress bar.
 
