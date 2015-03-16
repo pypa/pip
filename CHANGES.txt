@@ -11,6 +11,17 @@
   installing. When `pip install` fails, display the failed install output once
   instead of twice, because once is enough. (:pull:`2487`)
 
+* Upgrade the bundled copy of requests to 2.6.0, fixing CVE-2015-2296.
+
+* Display format of latest package when using ``pip list --outdated``.
+  (:pull:`2475`)
+
+* Don't use pywin32 as ctypes should always be available on Windows, using
+  pywin32 prevented uninstallation of pywin32 on Windows. (:pull:`2467`)
+
+* Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
+  when used (:pull:`2441`).
+
 
 **6.0.8 (2015-02-04)**
 
