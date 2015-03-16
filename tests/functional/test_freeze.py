@@ -211,7 +211,6 @@ def test_freeze_bazaar_clone(script, tmpdir):
         checkout_path = _create_test_package(script, vcs='bazaar')
     except OSError as e:
         pytest.fail('Invoking `bzr` failed: %s' % e)
-    checkout_pathC = checkout_path.replace('c:', 'C:')
 
     result = script.run(
         'bzr', 'checkout', checkout_path, 'bzr-package'
@@ -225,8 +224,8 @@ def test_freeze_bazaar_clone(script, tmpdir):
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        ...-e bzr+file://%s@1#egg=version_pkg-0.1-...
-        ...""" % checkout_path)
+        ...-e bzr+file://...@1#egg=version_pkg-0.1-...
+        ...""")
     _check_output(result, expected)
 
     result = script.pip(
@@ -238,8 +237,8 @@ def test_freeze_bazaar_clone(script, tmpdir):
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
-        ...-e bzr+file://%(repoC)s@...#egg=version_pkg-...
-        ...""" % {'repoC': checkout_pathC, 'repo': checkout_path})
+        ...-e bzr+file://...@...#egg=version_pkg-...
+        ...""" % {'repo': checkout_path})
     _check_output(result, expected)
 
 
