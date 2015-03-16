@@ -423,10 +423,20 @@ class RequirementSet(object):
                         )
 
                 if not self.ignore_dependencies:
-                    for subreq in dist.requires(
-                            req_to_install.extras):
-                        if self.has_requirement(
-                                subreq.project_name):
+                    missing_requested = sorted(
+                        set(req_to_install.extras) - set(dist.extras)
+                    )
+                    for missing in missing_requested:
+                        logger.warning(
+                            '%s does not provide the extra \'%s\'',
+                            dist, missing
+                        )
+
+                    available_requested = sorted(
+                        set(dist.extras) & set(req_to_install.extras)
+                    )
+                    for subreq in dist.requires(available_requested):
+                        if self.has_requirement(subreq.project_name):
                             # FIXME: check for conflict
                             continue
                         subreq = InstallRequirement(

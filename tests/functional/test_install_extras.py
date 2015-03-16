@@ -51,3 +51,55 @@ def test_no_extras_uninstall(script):
     # openid should not be uninstalled
     initools_folder = script.site_packages / 'openid'
     assert initools_folder not in result2.files_deleted, result.files_deleted
+
+
+def test_nonexistent_extra_warns_user_no_wheel(script, data):
+    """
+    A warning is logged telling the user that the extra option they requested
+    does not exist in the project they are wishing to install.
+
+    This exercises source installs.
+    """
+    result = script.pip(
+        'install', '--no-use-wheel', '--no-index',
+        '--find-links=' + data.find_links,
+        'simple[nonexistent]', expect_stderr=True,
+    )
+    assert (
+        "Unknown 3.0 does not provide the extra 'nonexistent'"
+        in result.stdout
+    )
+
+
+def test_nonexistent_extra_warns_user_with_wheel(script, data):
+    """
+    A warning is logged telling the user that the extra option they requested
+    does not exist in the project they are wishing to install.
+
+    This exercises wheel installs.
+    """
+    result = script.pip(
+        'install', '--use-wheel', '--no-index',
+        '--find-links=' + data.find_links,
+        'simplewheel[nonexistent]', expect_stderr=True,
+    )
+    assert (
+        "simplewheel 2.0 does not provide the extra 'nonexistent'"
+        in result.stdout
+    )
+
+
+def test_nonexistent_options_listed_in_order(script, data):
+    """
+    Warn the user for each extra that doesn't exist.
+    """
+    result = script.pip(
+        'install', '--use-wheel', '--no-index',
+        '--find-links=' + data.find_links,
+        'simplewheel[nonexistent, nope]', expect_stderr=True,
+    )
+    msg = (
+        "  simplewheel 2.0 does not provide the extra 'nonexistent'\n"
+        "  simplewheel 2.0 does not provide the extra 'nope'"
+    )
+    assert msg in result.stdout
