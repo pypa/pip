@@ -129,7 +129,7 @@ def test_search_missing_argument(script):
     Test missing required argument for search
     """
     result = script.pip('search', expect_error=True)
-    assert 'ERROR: Missing required argument (search query).' in result.stdout
+    assert 'ERROR: Missing required argument (search query).' in result.stderr
 
 
 @pytest.mark.network

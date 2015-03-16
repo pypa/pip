@@ -119,3 +119,12 @@ class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
             os.makedirs(os.path.dirname(self.baseFilename))
 
         return logging.handlers.RotatingFileHandler._open(self)
+
+
+class MaxLevelFilter(logging.Filter):
+
+    def __init__(self, level):
+        self.level = level
+
+    def filter(self, record):
+        return record.levelno < self.level

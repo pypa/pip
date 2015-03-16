@@ -27,7 +27,7 @@ def test_without_setuptools(script, data):
     )
     assert (
         "setuptools must be installed to install from a source distribution"
-        in result.stdout
+        in result.stderr
     )
 
 
@@ -74,7 +74,7 @@ def test_editable_install(script):
     result = script.pip('install', '-e', 'INITools==0.2', expect_error=True)
     assert (
         "INITools==0.2 should either be a path to a local project or a VCS url"
-        in result.stdout
+        in result.stderr
     )
     assert not result.files_created
     assert not result.files_updated
@@ -205,7 +205,7 @@ def test_bad_install_with_no_download(script):
     )
     assert (
         "perhaps --no-download was used without first running "
-        "an equivalent install with --no-install?" in result.stdout
+        "an equivalent install with --no-install?" in result.stderr
     )
 
 
@@ -310,7 +310,7 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip('install', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stdout
+    assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
 def test_editable_install_from_local_directory_with_no_setup_py(script, data):
@@ -319,7 +319,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip('install', '-e', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stdout
+    assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
 def test_install_as_egg(script, data):
@@ -508,7 +508,9 @@ def test_install_package_with_target(script):
     )
 
     # Test repeated call without --upgrade, no files should have changed
-    result = script.pip_install_local('-t', target_dir, "simple==1.0")
+    result = script.pip_install_local(
+        '-t', target_dir, "simple==1.0", expect_stderr=True,
+    )
     assert not Path('scratch') / 'target' / 'simple' in result.files_updated
 
     # Test upgrade call, check that new version is installed
@@ -658,6 +660,7 @@ def test_url_incorrect_case_file_index(script, data):
     """
     result = script.pip(
         'install', '--index-url', data.find_links3, "dinner",
+        expect_stderr=True,
     )
 
     # only Upper-2.0.tar.gz should get installed.

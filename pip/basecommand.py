@@ -38,7 +38,7 @@ class Command(object):
     name = None
     usage = None
     hidden = False
-    log_stream = "ext://sys.stdout"
+    log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):
         parser_kw = {
@@ -124,6 +124,12 @@ class Command(object):
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
+            "filters": {
+                "exclude_warnings": {
+                    "()": "pip.utils.logging.MaxLevelFilter",
+                    "level": logging.WARNING,
+                },
+            },
             "formatters": {
                 "indent": {
                     "()": IndentingFormatter,
@@ -138,7 +144,14 @@ class Command(object):
                 "console": {
                     "level": level,
                     "class": "pip.utils.logging.ColorizedStreamHandler",
-                    "stream": self.log_stream,
+                    "stream": self.log_streams[0],
+                    "filters": ["exclude_warnings"],
+                    "formatter": "indent",
+                },
+                "console_errors": {
+                    "level": "WARNING",
+                    "class": "pip.utils.logging.ColorizedStreamHandler",
+                    "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
                 "debug_log": {
@@ -162,6 +175,7 @@ class Command(object):
                 "level": level,
                 "handlers": list(filter(None, [
                     "console",
+                    "console_errors",
                     "debug_log" if write_debug_log else None,
                     "user_log" if options.log else None,
                 ])),

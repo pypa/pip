@@ -104,7 +104,7 @@ class Tests_UserSite:
         )
         assert (
             "Can not perform a '--user' install. User site-packages are not "
-            "visible in this virtualenv." in result.stdout
+            "visible in this virtualenv." in result.stderr
         )
 
     @pytest.mark.network
@@ -288,5 +288,5 @@ class Tests_UserSite:
         assert (
             "Will not install to the user site because it will lack sys.path "
             "precedence to %s in %s" %
-            ('INITools', dist_location) in result2.stdout
-        ), result2.stdout
+            ('INITools', dist_location) in result2.stderr
+        )
