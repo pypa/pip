@@ -39,40 +39,6 @@ def test_git_get_src_requirements():
     ])
 
 
-def test_git_urls():
-    """
-    Test git url support.
-
-    SSH has special handling.
-    """
-    https_repo = Git(
-        url='git+https://github.com/Eyepea/pip.git'
-            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
-    )
-    implicit_ssh_repo = Git(
-        url='git+git@github.com:Eyepea/pip.git'
-            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
-    )
-
-    explicit_ssh_repo = Git(
-        url='git+ssh://git@github.com:Eyepea/pip.git'
-            '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
-    )
-
-    assert https_repo.get_url_rev() == (
-        'https://github.com/Eyepea/pip.git',
-        '8cf54fff31b650847e0cddc2cd2951c34e0b4822',
-    )
-    assert implicit_ssh_repo.get_url_rev() == (
-        'git@github.com:Eyepea/pip.git',
-        '8cf54fff31b650847e0cddc2cd2951c34e0b4822',
-    )
-    assert explicit_ssh_repo.get_url_rev() == (
-        'git@github.com:Eyepea/pip.git',
-        '8cf54fff31b650847e0cddc2cd2951c34e0b4822',
-    )
-
-
 def test_translate_egg_surname():
     vc = VersionControl()
     assert vc.translate_egg_surname("foo") == "foo"
