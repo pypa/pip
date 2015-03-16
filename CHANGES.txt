@@ -27,6 +27,9 @@
 
 * Display a warning when an undefined extra has been requested. (:pull:`2142`)
 
+* Speed up installing a directory in certain cases by creating a sdist instead
+  of copying the entire directory. (:pull:`2535`)
+
 
 **6.0.8 (2015-02-04)**
 
