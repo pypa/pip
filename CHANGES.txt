@@ -22,6 +22,11 @@
 * Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
   when used (:pull:`2441`).
 
+* Properly parse commit hashes when using the SSH transport to access a VCS
+  (:pull:`2513`).
+
+* Display a warning when an undefined extra has been requested. (:pull:`2142`)
+
 
 **6.0.8 (2015-02-04)**
 
