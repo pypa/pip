@@ -11,6 +11,8 @@ try:
 except ImportError:
     import urlparse as urllib_parse
 
+from pip.compat import WINDOWS
+from pip.exceptions import BadCommand
 from pip.utils import rmtree, display_path
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
@@ -35,6 +37,58 @@ class Bazaar(VersionControl):
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
             urllib_parse.non_hierarchical.extend(['lp'])
+
+    if WINDOWS:
+        def run_command(self, cmd, show_stdout=True,
+                        filter_stdout=None, cwd=None,
+                        raise_on_returncode=True,
+                        command_level=logging.DEBUG, command_desc=None,
+                        extra_environ=None):
+            """
+            This is a hack to work around Bazaar bug
+            https://bugs.launchpad.net/bzr/+bug/1431336 (identified as part
+            of work on pip issue https://github.com/pypa/pip/issues/2523).
+
+            Bazaar supplies the "bzr" command on Windows as a batch file,
+            "bzr.bat". However, the Windows CreateProcess API (and hence
+            the Python subprocess.Popen class) does not support calling bat
+            files directly (see the documentation at
+            https://msdn.microsoft.com/en-us/library/windows/desktop/ms682425%28v=vs.85%29.aspx
+            which states that to run a batch file you need to execute
+            "cmd.exe /c batfile.bat ...".
+
+            Attempting to do this here would run into significant risk of
+            quoting bugs, so instead we rely on an undocumented feature of
+            CreateProcess, which is that it will actually run a ".bat" file
+            as long as you explicitly specify the extension.
+
+            We therefore try the base class run_command and if that fails,
+            add a ".bat" extension to self.name and retry.
+
+            Note that this behaviour of CreateProcess is not well-known,
+            and in many cases (particularly on the command line, which
+            works completely differently from CreateProcess) using a bat
+            file will work fine. It is important therefore to check
+            carefully before modifying this hack, as it would be easy to
+            reintroduce unintended bugs. (Of course, as it's relying on
+            undocumented behaviour, it may already *have* unintended bugs,
+            but the impact of a more direct fix would be far less localised
+            and consequently more risky.
+            """
+            try:
+                return VersionControl.run_command(
+                    self, cmd, show_stdout, filter_stdout, cwd,
+                    raise_on_returncode, command_level,
+                    command_desc, extra_environ)
+            except BadCommand:
+                if not self.name.endswith('.bat'):
+                    self.name = self.name + '.bat'
+                    return VersionControl.run_command(
+                        self, cmd, show_stdout, filter_stdout, cwd,
+                        raise_on_returncode, command_level,
+                        command_desc, extra_environ)
+                else:
+                    raise  # re-raise exception if we already tried .bat
 
     def export(self, location):
         """
