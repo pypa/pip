@@ -270,9 +270,9 @@ variable ``PIP_CONFIG_FILE``.
   :file:`/etc/xdg/pip/pip.conf`.
 * On Mac OS X the file is: :file:`/Library/Application Support/pip/pip.conf`
 * On Windows XP the file is:
-  :file:`C:\\Documents and Settings\\All Users\\Application Data\\PyPA\\pip\\pip.conf`
+  :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
 * On Windows 7 and later the file is hidden, but writeable at
-  :file:`C:\\ProgramData\\PyPA\\pip\\pip.conf`
+  :file:`C:\\ProgramData\\pip\\pip.ini`
 * Site-wide configuration is not supported on Windows Vista
 
 If multiple configuration files are found by pip then they are combined in
