@@ -106,6 +106,7 @@ setup(
     zip_safe=False,
     extras_require={
         'testing': tests_require,
+        'wheel': ['wheel'],
     },
     cmdclass={'test': PyTest},
 )
