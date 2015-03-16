@@ -106,6 +106,14 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
         assert req.installed_version is None
 
+    def test_str(self):
+        req = InstallRequirement.from_line('simple==0.1')
+        assert str(req) == 'simple==0.1'
+
+    def test_repr(self):
+        req = InstallRequirement.from_line('simple==0.1')
+        assert repr(req) == '<InstallRequirement object: simple==0.1>'
+
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
             InstallRequirement.from_line('invalid.whl')
