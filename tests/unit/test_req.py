@@ -8,6 +8,7 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.exceptions import (
     PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
+    BestVersionAlreadyInstalled,
 )
 from pip.download import PipSession
 from pip.index import PackageFinder
@@ -53,6 +54,60 @@ class TestRequirementSet(object):
             reqset.prepare_files,
             finder,
         )
+
+    @patch(
+        'pip.req.req_install.pkg_resources.get_distribution',
+        lambda x: pkg_resources.Distribution(
+            project_name='Pygments',
+            version='2.0.2',
+            location='/python',
+        )
+    )
+    def test_upgrade_no_look_at_pypi_if_exact_version_installed(
+            self, data):
+        """
+        If an exact version is specified for install, and that version is
+        already installed, then there is no point going to pypi as no install
+        is needed.
+        """
+        reqset = self.basic_reqset()
+        reqset.upgrade = True
+        req = InstallRequirement.from_line('pygments==2.0.2')
+        req.url = None
+        reqset.add_requirement(req)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        with patch.object(finder, 'find_requirement') as find_requirement:
+            find_requirement.side_effect = AssertionError(
+                'find_requirement should NOT be called')
+            reqset.prepare_files(finder)
+
+    @patch(
+        'pip.req.req_install.pkg_resources.get_distribution',
+        lambda x: pkg_resources.Distribution(
+            project_name='Pygments',
+            version='2.0.2',
+            location='/python',
+        )
+    )
+    def test_upgrade_look_at_pypi_if_exact_version_installed_and_force(
+            self, data):
+        """
+        If an exact version is specified for install, and that version is
+        already installed, but --force-reinstall was provided, we should hit
+        PyPI.
+        """
+        reqset = self.basic_reqset()
+        reqset.upgrade = True
+        reqset.force_reinstall = True
+        req = InstallRequirement.from_line('pygments==2.0.2')
+        req.url = None
+        reqset.add_requirement(req)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        with patch.object(finder, 'find_requirement') as find_requirement:
+            find_requirement.side_effect = BestVersionAlreadyInstalled
+            with pytest.raises(BestVersionAlreadyInstalled):
+                reqset.prepare_files(finder)
+                find_requirement.assert_called_once()
 
     def test_environment_marker_extras(self, data):
         """

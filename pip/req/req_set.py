@@ -223,7 +223,12 @@ class RequirementSet(object):
             if not self.ignore_installed and not req_to_install.editable:
                 req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
-                    if self.upgrade:
+                    # check that we don't already have an exact version match
+                    # i.e. with at least one strict req operator
+                    strict_req = set(('==', '===')) & set(
+                        op for op, _ in req_to_install.req.specs)
+                    if self.upgrade and (not strict_req or
+                                         self.force_reinstall):
                         if not (self.force_reinstall or req_to_install.link):
                             try:
                                 link = finder.find_requirement(
