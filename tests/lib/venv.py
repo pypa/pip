@@ -54,9 +54,8 @@ class VirtualEnvironment(object):
             no_pip=True,
         )
 
-        # Install our development version of pip install the virtual
-        # environment
-        cmd = [self.bin.join("python"), "setup.py", "install"]
+        # Install development version of pip in virtualenv
+        cmd = [self.bin.join("python"), "setup.py", "develop"]
         p = subprocess.Popen(
             cmd,
             cwd=self.pip_source_dir,
