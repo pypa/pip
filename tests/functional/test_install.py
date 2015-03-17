@@ -8,17 +8,21 @@ from os.path import join, curdir, pardir
 import pytest
 
 from pip.utils import rmtree
-from tests.lib import pyversion, pyversion_tuple
+from tests.lib import (pyversion, pyversion_tuple,
+                       _create_test_package, _create_svn_repo)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-@pytest.mark.network
-def test_without_setuptools(script):
+def test_without_setuptools(script, data):
     script.run("pip", "uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
-        "import pip; pip.main(['install', 'INITools==0.2', '--no-use-wheel'])",
+        "import pip; pip.main(["
+        "'install', "
+        "'INITools==0.2', "
+        "'-f', '%s', "
+        "'--no-use-wheel'])" % data.packages,
         expect_error=True,
     )
     assert (
@@ -27,8 +31,7 @@ def test_without_setuptools(script):
     )
 
 
-@pytest.mark.network
-def test_pip_second_command_line_interface_works(script):
+def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
@@ -40,6 +43,7 @@ def test_pip_second_command_line_interface_works(script):
 
     args = ['pip%s' % pyversion]
     args.extend(['install', 'INITools==0.2'])
+    args.extend(['-f', data.packages])
     result = script.run(*args, **kwargs)
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
@@ -76,21 +80,17 @@ def test_editable_install(script):
     assert not result.files_updated
 
 
-@pytest.mark.network
-def test_install_editable_from_svn(script, tmpdir):
+def test_install_editable_from_svn(script):
     """
     Test checking out from svn.
     """
+    checkout_path = _create_test_package(script)
+    repo_url = _create_svn_repo(script, checkout_path)
     result = script.pip(
         'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
-        )
+        '-e', 'svn+' + repo_url + '#egg=version-pkg'
     )
-    result.assert_installed('INITools', with_files=['.svn'])
+    result.assert_installed('version-pkg', with_files=['.svn'])
 
 
 @pytest.mark.network
@@ -163,7 +163,6 @@ def test_editable_no_install_followed_by_no_download(script, tmpdir):
     result.assert_installed('INITools', without_files=[curdir, '.svn'])
 
 
-@pytest.mark.network
 def test_no_install_followed_by_no_download(script):
     """
     Test installing in two steps (first with --no-install, then with
@@ -175,8 +174,8 @@ def test_no_install_followed_by_no_download(script):
     initools_folder = script.site_packages / 'initools'
     build_dir = script.venv / 'build' / 'INITools'
 
-    result1 = script.pip(
-        'install', 'INITools==0.2', '--no-install', expect_error=True,
+    result1 = script.pip_install_local(
+        'INITools==0.2', '--no-install', expect_error=True,
     )
     assert egg_info_folder not in result1.files_created, str(result1)
     assert initools_folder not in result1.files_created, (
@@ -185,8 +184,8 @@ def test_no_install_followed_by_no_download(script):
     assert build_dir in result1.files_created, result1.files_created
     assert build_dir / 'INITools.egg-info' in result1.files_created
 
-    result2 = script.pip(
-        'install', 'INITools==0.2', '--no-download', expect_error=True,
+    result2 = script.pip_install_local(
+        'INITools==0.2', '--no-download', expect_error=True,
     )
     assert egg_info_folder in result2.files_created, str(result2)
     assert initools_folder in result2.files_created, (
