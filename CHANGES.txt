@@ -30,6 +30,9 @@
 * Speed up installing a directory in certain cases by creating a sdist instead
   of copying the entire directory. (:pull:`2535`)
 
+* Speed up upgrading by skipping packages which use ``==`` and the specified
+  version is already installed. (:pull:`2493`)
+
 
 **6.0.8 (2015-02-04)**
 
