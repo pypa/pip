@@ -268,6 +268,8 @@ def normalize_path(path, resolve_symlinks=True):
     path = os.path.expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
+    else:
+        path = os.path.abspath(path)
     return os.path.normcase(path)
 
 
