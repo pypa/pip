@@ -44,11 +44,11 @@ parser_compat = set([
 ])
 
 # The following options and flags can be used on requirement lines.
-# For example: INITools==0.2 --install-options="--prefix=/opt"
+# For example: INITools==0.2 --install-option="--prefix=/opt"
 parser_requirement_flags = set()
 parser_requirement_options = set([
-    '--install-options',
-    '--global-options',
+    '--install-option',
+    '--global-option',
 ])
 
 # The types of lines understood by the requirements file parser.
@@ -107,7 +107,7 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
 
             # InstallRequirement.install() expects these options to be lists.
             if opts:
-                for opt in '--global-options', '--install-options':
+                for opt in '--global-option', '--install-option':
                     opts[opt] = shlex.split(opts[opt]) if opt in opts else []
 
             comes_from = '-r %s (line %s)' % (filename, line_number)
