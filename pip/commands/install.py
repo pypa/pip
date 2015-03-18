@@ -201,6 +201,7 @@ class InstallCommand(Command):
         )
 
     def run(self, options, args):
+        logger.debug('%s: In %s.run', __file__, self.__class__.__name__)
 
         if (
             options.no_install or
@@ -419,4 +420,7 @@ class InstallCommand(Command):
                     target_item_dir
                 )
             shutil.rmtree(temp_target_dir)
+
+        logger.debug('%s: Done with %s.run', __file__, self.__class__.__name__)
+
         return requirement_set
