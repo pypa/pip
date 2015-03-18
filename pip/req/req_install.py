@@ -73,7 +73,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
-                 pycompile=True, markers=None, isolated=False, options=None):
+                 pycompile=True, markers=None, isolated=False, options={}):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -111,7 +111,7 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
-        self.options = options if options else {}
+        self.options = options
 
         self.pycompile = pycompile
 
