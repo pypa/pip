@@ -516,25 +516,25 @@ def test_get_requirement_options():
     res = pro('--aflag --bflag', ['--aflag', '--bflag'])
     assert res == {'--aflag': '', '--bflag': ''}
 
-    res = pro('--install-options="--abc --zxc"', [], ['--install-options'])
-    assert res == {'--install-options': '--abc --zxc'}
+    res = pro('--install-option="--abc --zxc"', [], ['--install-option'])
+    assert res == {'--install-option': '--abc --zxc'}
 
-    res = pro('--aflag --global-options="--abc" --install-options="--aflag"',
-              ['--aflag'], ['--install-options', '--global-options'])
-    assert res == {'--aflag': '', '--global-options': '--abc', '--install-options': '--aflag'}
+    res = pro('--aflag --global-option="--abc" --install-option="--aflag"',
+              ['--aflag'], ['--install-option', '--global-option'])
+    assert res == {'--aflag': '', '--global-option': '--abc', '--install-option': '--aflag'}
 
-    line = 'INITools==2.0 --global-options="--one --two -3" --install-options="--prefix=/opt"'
+    line = 'INITools==2.0 --global-option="--one --two -3" --install-option="--prefix=/opt"'
     assert parse_line(line) == (REQUIREMENT, (
         'INITools==2.0', {
-            '--global-options': '--one --two -3',
-            '--install-options': '--prefix=/opt'
+            '--global-option': '--one --two -3',
+            '--install-option': '--prefix=/opt'
         }))
 
 
 def test_install_requirements_with_options(tmpdir, finder, session):
     content = '''
-    INITools == 2.0 --global-options="--one --two -3" \
-                    --install-options="--prefix=/opt"
+    INITools == 2.0 --global-option="--one --two -3" \
+                    --install-option"--prefix=/opt"
     '''
 
     req_path = tmpdir.join('requirements.txt')
@@ -554,4 +554,4 @@ def test_install_requirements_with_options(tmpdir, finder, session):
         for i in '--one', '--two', '-3', '--prefix=/opt':
             assert i in call
 
-    # TODO: assert that --global-options come before --install-options.
+    # TODO: assert that --global-option come before --install-option.

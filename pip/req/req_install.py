@@ -812,8 +812,8 @@ exec(compile(
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
-        global_options += self.options.get('--global-options', [])
-        install_options += self.options.get('--install-options', [])
+        global_options += self.options.get('--global-option', [])
+        install_options += self.options.get('--install-option', [])
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]

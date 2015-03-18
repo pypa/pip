@@ -74,7 +74,7 @@ Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
     <requirement specifier>
-    <requirement specifier> [--install-options="..."] [--global-options="..."]
+    <requirement specifier> [--install-option="..."] [--global-option="..."]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
@@ -147,13 +147,13 @@ Some Examples:
 Per-requirement Overrides
 +++++++++++++++++++++++++
 
-It is possible to set ``--install-options`` and ``--global-options``
+It is possible to set ``--install-option`` and ``--global-option``
 for each requirement in the requirements file:
 
  ::
 
-    FooProject >= 1.2 --install-options="--prefix='/usr/local'" \
-                      --global-options="--no-user-cfg"
+    FooProject >= 1.2 --install-option="--prefix='/usr/local'" \
+                      --global-option="--no-user-cfg"
 
 The above translates roughly into running FooProject's ``setup.py``
 script as:
