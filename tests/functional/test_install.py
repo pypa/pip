@@ -628,7 +628,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     case project names, should be considered equal to later requirements that
     reference the project name using lower case.
 
-    tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
+    tests/data/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
     'requiresupper' has install_requires = ['upper']
     """
     Upper = os.path.join(data.find_links, 'Upper-1.0.tar.gz')
@@ -649,7 +649,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     case project names, should be considered equal to later requirements that
     reference the project name using lower case.
 
-    tests/packages3 contains Dinner-1.0.tar.gz and Dinner-2.0.tar.gz
+    tests/data/packages3 contains Dinner-1.0.tar.gz and Dinner-2.0.tar.gz
     'requiredinner' has install_requires = ['dinner']
 
     This test is similar to test_url_req_case_mismatch_no_index; that test
