@@ -367,10 +367,12 @@ class PackageFinder(object):
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
 
+        platform = get_platform()
+
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
-            req.name.lower()
+            req.name.lower(), platform
         ))
 
         page_versions = []
@@ -378,11 +380,13 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, req.name.lower())
+                    self._package_versions(page.links, req.name.lower(),
+                                           platform)
                 )
 
         dependency_versions = list(self._package_versions(
-            (Link(url) for url in self.dependency_links), req.name.lower()
+            (Link(url) for url in self.dependency_links), req.name.lower(),
+            platform
         ))
         if dependency_versions:
             logger.debug(
@@ -395,7 +399,8 @@ class PackageFinder(object):
         file_versions = list(
             self._package_versions(
                 (Link(url) for url in file_locations),
-                req.name.lower()
+                req.name.lower(),
+                platform
             )
         )
         if file_versions:
@@ -626,9 +631,9 @@ class PackageFinder(object):
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _package_versions(self, links, search_name):
+    def _package_versions(self, links, search_name, platform):
         for link in self._sort_links(links):
-            v = self._link_package_versions(link, search_name)
+            v = self._link_package_versions(link, search_name, platform)
             if v is not None:
                 yield v
 
@@ -638,9 +643,10 @@ class PackageFinder(object):
             return extensions + (wheel_ext,)
         return extensions
 
-    def _link_package_versions(self, link, search_name):
+    def _link_package_versions(self, link, search_name, platform=None):
         """Return an InstallationCandidate or None"""
-        platform = get_platform()
+        if platform is None:
+            platform = get_platform()
 
         version = None
         if link.egg_fragment:
