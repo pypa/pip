@@ -298,7 +298,7 @@ Unix
 OS X
   :file:`~/Library/Caches/pip`.
 Windows
-  :file:`<CSIDL_LOCAL_APPDATA>\pip\Cache`
+  :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
 
 Hash Verification
