@@ -362,7 +362,8 @@ class PackageFinder(object):
         # We explicitly do not trust links that came from dependency_links
         locations.extend([Link(url) for url in _ulocations])
 
-        logger.debug('URLs to search for versions for %s:', req)
+        logger.debug('%d location(s) to search for versions of %s:',
+                     len(locations), req)
         for location in locations:
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
