@@ -125,8 +125,8 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
         # ---------------------------------------------------------------------
         elif linetype == REQUIREMENT_EDITABLE:
             comes_from = '-r %s (line %s)' % (filename, line_number)
-            isolated = options.isolated_mode if options else False,
-            default_vcs = options.default_vcs if options else None,
+            isolated = options.isolated_mode if options else False
+            default_vcs = options.default_vcs if options else None
             yield InstallRequirement.from_editable(
                 value, comes_from=comes_from, default_vcs=default_vcs, isolated=isolated
             )
