@@ -554,30 +554,24 @@ def test_parse_flags_from_requirements(finder):
 
 
 def test_get_requirement_options():
+    pl = parse_line
     pro = parse_requirement_options
 
-    res = pro('--aflag --bflag', ['--aflag', '--bflag'])
-    assert res == {'--aflag': '', '--bflag': ''}
-
-    res = pro('--install-option="--abc --zxc"', [], ['--install-option'])
-    assert res == {'--install-option': '--abc --zxc'}
-
-    res = pro('--aflag --global-option="--abc" --install-option="--aflag"',
-              ['--aflag'], ['--install-option', '--global-option'])
-    assert res == {'--aflag': '', '--global-option': '--abc', '--install-option': '--aflag'}
+    res = pro('--install-option="--abc --zxc"')
+    assert res == {'install_options': ['--abc', '--zxc']}
 
     line = 'INITools==2.0 --global-option="--one --two -3" --install-option="--prefix=/opt"'
     assert parse_line(line) == (REQUIREMENT, (
         'INITools==2.0', {
-            '--global-option': '--one --two -3',
-            '--install-option': '--prefix=/opt'
+            'global_options':  ['--one', '--two', '-3'],
+            'install_options': ['--prefix=/opt'],
         }))
 
 
 def test_install_requirements_with_options(tmpdir, finder, session):
     content = '''
     INITools == 2.0 --global-option="--one --two -3" \
-                    --install-option"--prefix=/opt"
+                    --install-option "--prefix=/opt"
     '''
 
     req_path = tmpdir.join('requirements.txt')

@@ -8,7 +8,7 @@ from __future__ import absolute_import
 import os
 import re
 import shlex
-import getopt
+import optparse
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
@@ -17,8 +17,10 @@ from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import RequirementsFileParseError
 from pip.utils import normalize_name
+from pip import cmdoptions
 
 
+# ----------------------------------------------------------------------------
 # Flags that don't take any options.
 parser_flags = set([
     '--no-index',
@@ -43,14 +45,27 @@ parser_compat = set([
     '--no-allow-insecure',  # Remove in 7.0
 ])
 
-# The following options and flags can be used on requirement lines.
-# For example: INITools==0.2 --install-option="--prefix=/opt"
-parser_requirement_flags = set()
-parser_requirement_options = set([
-    '--install-option',
-    '--global-option',
-])
+# ----------------------------------------------------------------------------
+# Requirement lines may take options. For example:
+#   INITools==0.2 --install-option="--prefix=/opt" --global-option="-v"
+# We use optparse to reliably parse these lines.
+_req_parser = optparse.OptionParser(add_help_option=False)
+_req_parser.add_option(cmdoptions.install_options.make())
+_req_parser.add_option(cmdoptions.global_options.make())
+_req_parser.disable_interspersed_args()
 
+# By default optparse sys.exits on parsing errors. We want to wrap
+# that in our own exception.
+def parser_exit(self, msg):
+    raise RequirementsFileParseError(msg)
+_req_parser.exit = parser_exit
+
+# ----------------------------------------------------------------------------
+# Pre-compiled regex.
+_scheme_re = re.compile(r'^(http|https|file):', re.I)
+_comment_re = re.compile(r'(^|\s)+#.*$')
+
+# ----------------------------------------------------------------------------
 # The types of lines understood by the requirements file parser.
 REQUIREMENT = 0
 REQUIREMENT_FILE = 1
@@ -58,9 +73,6 @@ REQUIREMENT_EDITABLE = 2
 FLAG = 3
 OPTION = 4
 IGNORE = 5
-
-_scheme_re = re.compile(r'^(http|https|file):', re.I)
-_comment_re = re.compile(r'(^|\s)+#.*$')
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None, session=None):
@@ -104,12 +116,6 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
         # ---------------------------------------------------------------------
         if linetype == REQUIREMENT:
             req, opts = value
-
-            # InstallRequirement.install() expects these options to be lists.
-            if opts:
-                for opt in '--global-option', '--install-option':
-                    opts[opt] = shlex.split(opts[opt]) if opt in opts else []
-
             comes_from = '-r %s (line %s)' % (filename, line_number)
             isolated = options.isolated_mode if options else False
             yield InstallRequirement.from_line(
@@ -182,13 +188,10 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
 
 def parse_line(line):
     if not line.startswith('-'):
+        # Split the requirement from the options.
         if ' --' in line:
             req, opts = line.split(' --', 1)
-            opts = parse_requirement_options(
-                '--%s' % opts,
-                parser_requirement_flags,
-                parser_requirement_options
-            )
+            opts = parse_requirement_options('--%s' % opts)
         else:
             req = line
             opts = {}
@@ -223,15 +226,20 @@ def parse_line(line):
         return IGNORE, line
 
 
-def parse_requirement_options(req_line, flags=None, options=None):
-    long_opts = []
-    if options:
-        long_opts += ['%s=' % i.lstrip('-') for i in options]
-    if flags:
-        long_opts += [i.lstrip('-') for i in flags]
+def parse_requirement_options(args):
+    args = shlex.split(args)
+    opts, _ = _req_parser.parse_args(args)
 
-    opts, _ = getopt.getopt(shlex.split(req_line), '', long_opts)
-    return dict(opts)
+    if opts.install_options:
+        opts.install_options = flat_shlex_split(opts.install_options)
+    if opts.global_options:
+        opts.global_options = flat_shlex_split(opts.global_options)
+
+    for opt, value in opts.__dict__.items():
+        if value is None:
+            delattr(opts, opt)
+
+    return opts.__dict__
 
 
 # -----------------------------------------------------------------------------
@@ -279,6 +287,14 @@ def partition_line(line):
 
     rest = rest.strip()
     return firstword, rest
+
+
+def flat_shlex_split(x):
+    '''
+    >>> flat_shlex_split(['--one --two', '--three "4" --five'])
+    ['--one', '--two', '--three', '4', '--five']
+    '''
+    return [j for i in x for j in shlex.split(i)]
 
 
 __all__ = 'parse_requirements'
