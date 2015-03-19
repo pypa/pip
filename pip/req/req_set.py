@@ -367,9 +367,6 @@ class RequirementSet(object):
                 location = req_to_install.build_location(
                     self.build_dir,
                 )
-                unpack = True
-                link = None
-
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
@@ -382,54 +379,49 @@ class RequirementSet(object):
                         "can delete this. Please delete it and try again."
                         % (req_to_install, location)
                     )
+                # FIXME: this won't upgrade when there's an existing
+                # package unpacked in `location`
+                if req_to_install.link is None:
+                    if not_found:
+                        raise not_found
+                    link = finder.find_requirement(
+                        req_to_install,
+                        upgrade=self.upgrade,
+                    )
                 else:
-                    # FIXME: this won't upgrade when there's an existing
-                    # package unpacked in `location`
-                    if req_to_install.link is None:
-                        if not_found:
-                            raise not_found
-                        link = finder.find_requirement(
-                            req_to_install,
-                            upgrade=self.upgrade,
+                    link = req_to_install.link
+                if link:
+                    try:
+                        if link.is_wheel and self.wheel_download_dir:
+                            # when doing 'pip wheel`
+                            download_dir = self.wheel_download_dir
+                            do_download = True
+                        else:
+                            download_dir = self.download_dir
+                            do_download = self.is_download
+                        unpack_url(
+                            link, location, download_dir,
+                            do_download, session=self.session,
                         )
-                    else:
-                        link = req_to_install.link
-                    if link:
-                        try:
-
-                            if link.is_wheel and self.wheel_download_dir:
-                                # when doing 'pip wheel`
-                                download_dir = self.wheel_download_dir
-                                do_download = True
-                            else:
-                                download_dir = self.download_dir
-                                do_download = self.is_download
-                            unpack_url(
-                                link, location, download_dir,
-                                do_download, session=self.session,
-                            )
-                        except requests.HTTPError as exc:
-                            logger.critical(
-                                'Could not install requirement %s because '
-                                'of error %s',
-                                req_to_install,
-                                exc,
-                            )
-                            raise InstallationError(
-                                'Could not install requirement %s because '
-                                'of HTTP error %s for URL %s' %
-                                (req_to_install, exc, link)
-                            )
-                    else:
-                        unpack = False
-                if unpack:
-                    if link and link.is_wheel:
+                    except requests.HTTPError as exc:
+                        logger.critical(
+                            'Could not install requirement %s because '
+                            'of error %s',
+                            req_to_install,
+                            exc,
+                        )
+                        raise InstallationError(
+                            'Could not install requirement %s because '
+                            'of HTTP error %s for URL %s' %
+                            (req_to_install, exc, link)
+                        )
+                    if link.is_wheel:
                         abstract_dist = IsWheel(req_to_install, location, link)
                     req_to_install.source_dir = location
                     abstract_dist.prep_for_dist()
                     if self.is_download:
                         # Make a .zip of the source_dir we already created.
-                        if link and link.scheme in vcs.all_schemes:
+                        if link.scheme in vcs.all_schemes:
                             req_to_install.archive(self.download_dir)
                     # req_to_install.req is only avail after unpack for URL
                     # pkgs repeat check_if_exists to uninstall-on-upgrade
