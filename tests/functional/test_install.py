@@ -9,7 +9,7 @@ import pytest
 
 from pip.utils import rmtree
 from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo)
+                       _create_test_package, _create_svn_repo, path_to_url)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -225,72 +225,38 @@ def test_install_dev_version_from_pypi(script):
     )
 
 
-@pytest.mark.network
 def test_install_editable_from_git(script, tmpdir):
-    """
-    Test cloning from Git.
-    """
-    args = ['install']
-    args.extend([
-        '-e',
-        '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
-    ])
+    """Test cloning from Git."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='git')
+    args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
     result = script.pip(*args, **{"expect_error": True})
-    result.assert_installed('pip-test-package', with_files=['.git'])
+    result.assert_installed('testpackage', with_files=['.git'])
 
 
-@pytest.mark.network
 def test_install_editable_from_hg(script, tmpdir):
-    """
-    Test cloning from Mercurial.
-    """
-    result = script.pip(
-        'install', '-e',
-        '%s#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
-    result.assert_installed('ScriptTest', with_files=['.hg'])
+    """Test cloning from Mercurial."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
+    args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.hg'])
 
 
-@pytest.mark.network
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    script.pip(
-        'install', '-e',
-        '%s/#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
-        ),
-    )
+    pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
+    args = ['install', '-e', 'hg+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.hg'])
 
 
-@pytest.mark.network
 def test_install_editable_from_bazaar(script, tmpdir):
-    """
-    Test checking out from Bazaar.
-    """
-    result = script.pip(
-        'install', '-e',
-        '%s/@174#egg=django-wikiapp' %
-        local_checkout(
-            'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
-            '/release-0.1',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
-    result.assert_installed('django-wikiapp', with_files=['.bzr'])
+    """Test checking out from Bazaar."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
+    args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.bzr'])
 
 
 @pytest.mark.network

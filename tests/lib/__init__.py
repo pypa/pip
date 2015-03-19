@@ -466,23 +466,23 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
-def _create_test_package(script, vcs='git'):
-    script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path / 'version_pkg'
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
+def _create_test_package(script, name='version_pkg', vcs='git'):
+    script.scratch_path.join(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
         def main():
             print('0.1')
     """))
     version_pkg_path.join("setup.py").write(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
-            name='version_pkg',
+            name='{name}',
             version='0.1',
             packages=find_packages(),
-            py_modules=['version_pkg'],
-            entry_points=dict(console_scripts=['version_pkg=version_pkg:main'])
+            py_modules=['{name}'],
+            entry_points=dict(console_scripts=['{name}={name}:main'])
         )
-    """))
+    """.format(name=name)))
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
