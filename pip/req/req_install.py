@@ -73,7 +73,7 @@ class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
-                 pycompile=True, markers=None, isolated=False, options={}):
+                 pycompile=True, markers=None, isolated=False, options=None):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -111,15 +111,14 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
-        self.options = options
-
+        self.options = options if options else {}
         self.pycompile = pycompile
 
         self.isolated = isolated
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False):
+                      isolated=False, options=None):
         from pip.index import Link
 
         name, url, extras_override, editable_options = parse_editable(
@@ -133,7 +132,8 @@ class InstallRequirement(object):
                   editable=True,
                   link=Link(url),
                   editable_options=editable_options,
-                  isolated=isolated)
+                  isolated=isolated,
+                  options=options if options else {})
 
         if extras_override is not None:
             res.extras = extras_override
@@ -206,6 +206,7 @@ class InstallRequirement(object):
         else:
             req = name
 
+        options = options if options else {}
         return cls(req, comes_from, link=link, markers=markers,
                    isolated=isolated, options=options)
 
