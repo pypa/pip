@@ -25,6 +25,7 @@ from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
 )
+from pip.index import Link
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
 )
@@ -94,8 +95,6 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
-        from pip.index import Link
-
         name, url, extras_override, editable_options = parse_editable(
             editable_req, default_vcs)
         if url.startswith('file:'):
@@ -119,8 +118,6 @@ class InstallRequirement(object):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
-        from pip.index import Link
-
         if is_url(name):
             marker_sep = '; '
         else:

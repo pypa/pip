@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pip._vendor.packaging.version import parse as parse_version
 
 
@@ -18,7 +20,6 @@ class InstallationCandidate(object):
         return hash(self._key)
 
     def __lt__(self, other):
-
         return self._compare(other, lambda s, o: s < o)
 
     def __le__(self, other):

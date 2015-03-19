@@ -24,9 +24,9 @@ from pip.exceptions import (
 )
 from pip.download import url_to_path, path_to_url
 from pip.models import PyPI
+from pip.models.installationcandidate import InstallationCandidate
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip.req.req_requirement import InstallationCandidate
 from pip._vendor import html5lib, requests, pkg_resources, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
