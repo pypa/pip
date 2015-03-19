@@ -66,17 +66,16 @@ class DistAbstraction(object):
 
 class IsWheel(DistAbstraction):
 
-    def __init__(self, req_to_install, location, link):
+    def __init__(self, req_to_install, location):
         super(IsWheel, self).__init__(req_to_install)
         self.location = location
-        self.link = link
 
     def dist(self, finder):
         return list(pkg_resources.find_distributions(self.location))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
-        self.req_to_install.link = self.link
+        pass
 
 
 class IsSDist(DistAbstraction):
@@ -301,10 +300,9 @@ class RequirementSet(object):
                             best_installed = True
                             install = False
                         except DistributionNotFound as exc:
-                            not_found = exc
-                        else:
-                            # Avoid the need to call find_requirement again
-                            req_to_install.link = link
+                            # No distribution found, but its already installed
+                            # so we don't need to error.
+                            pass
 
                     if not best_installed:
                         # don't uninstall conflict if user install and
@@ -370,6 +368,8 @@ class RequirementSet(object):
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
+                # FIXME: this won't upgrade when there's an existing
+                # package unpacked in `location`
                 if os.path.exists(os.path.join(location, 'setup.py')):
                     raise PreviousBuildDirError(
                         "pip can't proceed with requirements '%s' due to a"
@@ -379,20 +379,10 @@ class RequirementSet(object):
                         "can delete this. Please delete it and try again."
                         % (req_to_install, location)
                     )
-                # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `location`
-                if req_to_install.link is None:
-                    if not_found:
-                        raise not_found
-                    link = finder.find_requirement(
-                        req_to_install,
-                        upgrade=self.upgrade,
-                    )
-                else:
-                    link = req_to_install.link
-                if link:
+                req_to_install.populate_link(finder, self.upgrade)
+                if req_to_install.link:
                     try:
-                        if link.is_wheel and self.wheel_download_dir:
+                        if req_to_install.link.is_wheel and self.wheel_download_dir:
                             # when doing 'pip wheel`
                             download_dir = self.wheel_download_dir
                             do_download = True
@@ -400,7 +390,7 @@ class RequirementSet(object):
                             download_dir = self.download_dir
                             do_download = self.is_download
                         unpack_url(
-                            link, location, download_dir,
+                            req_to_install.link, location, download_dir,
                             do_download, session=self.session,
                         )
                     except requests.HTTPError as exc:
@@ -413,15 +403,15 @@ class RequirementSet(object):
                         raise InstallationError(
                             'Could not install requirement %s because '
                             'of HTTP error %s for URL %s' %
-                            (req_to_install, exc, link)
+                            (req_to_install, exc, req_to_install.link)
                         )
-                    if link.is_wheel:
-                        abstract_dist = IsWheel(req_to_install, location, link)
+                    if req_to_install.link.is_wheel:
+                        abstract_dist = IsWheel(req_to_install, location)
                     req_to_install.source_dir = location
                     abstract_dist.prep_for_dist()
                     if self.is_download:
                         # Make a .zip of the source_dir we already created.
-                        if link.scheme in vcs.all_schemes:
+                        if req_to_install.link.scheme in vcs.all_schemes:
                             req_to_install.archive(self.download_dir)
                     # req_to_install.req is only avail after unpack for URL
                     # pkgs repeat check_if_exists to uninstall-on-upgrade

@@ -205,6 +205,15 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
+    def populate_link(self, finder, upgrade):
+        """Ensure that if a link can be found for this, that it is found.
+
+        Note that self.link may still be None - if Upgrade is False and the
+        requirement is already installed.
+        """
+        if self.link is None:
+            self.link = finder.find_requirement(self, upgrade)
+
     @property
     def specifier(self):
         return self.req.specifier
