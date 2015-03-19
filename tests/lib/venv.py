@@ -65,10 +65,9 @@ class VirtualEnvironment(object):
         )
         p.communicate()
         if p.returncode != 0:
-            raise Exception(p.stderr)
             raise subprocess.CalledProcessError(
                 p.returncode,
-                cmd[0],
+                cmd,
                 output=p.stdout,
             )
 
