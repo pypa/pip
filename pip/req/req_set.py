@@ -49,6 +49,55 @@ class Requirements(object):
         return 'Requirements({%s})' % ', '.join(values)
 
 
+class DistAbstraction(object):
+    """Abstracts out the wheel vs non-wheel prepare_files logic."""
+
+    def __init__(self, req_to_install):
+        self.req_to_install = req_to_install
+
+    def dist(self, finder):
+        """Return a setuptools Dist object."""
+        raise NotImplementedError(self.dist)
+
+    def prep_for_dist(self):
+        """Ensure that we can get a Dist for this requirement."""
+        raise NotImplementedError(self.dist)
+
+
+class IsWheel(DistAbstraction):
+
+    def __init__(self, req_to_install, location, link):
+        super(IsWheel, self).__init__(req_to_install)
+        self.location = location
+        self.link = link
+
+    def dist(self, finder):
+        return list(pkg_resources.find_distributions(self.location))[0]
+
+    def prep_for_dist(self):
+        # FIXME:https://github.com/pypa/pip/issues/1112
+        self.req_to_install.link = self.link
+
+
+class IsSDist(DistAbstraction):
+
+    def dist(self, finder):
+        if self.req_to_install.satisfied_by:
+            dist = self.req_to_install.satisfied_by
+        else:
+            dist = self.req_to_install.get_dist()
+        # FIXME: shouldn't be globally added:
+        if dist.has_metadata('dependency_links.txt'):
+            finder.add_dependency_links(
+                dist.get_metadata_lines('dependency_links.txt')
+            )
+        return dist
+
+    def prep_for_dist(self):
+        self.req_to_install.run_egg_info()
+        self.req_to_install.assert_source_matches_version()
+
+
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
@@ -295,8 +344,7 @@ class RequirementSet(object):
             # ################################ #
             # # vcs update or unpack archive # #
             # ################################ #
-
-            is_wheel = False
+            abstract_dist = IsSDist(req_to_install)
             more_reqs = []
             if req_to_install.editable:
                 if req_to_install.source_dir is None:
@@ -305,7 +353,7 @@ class RequirementSet(object):
                     )
                 location = req_to_install.source_dir
                 req_to_install.update_editable(not self.is_download)
-                req_to_install.run_egg_info()
+                abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
             elif install:
@@ -375,19 +423,14 @@ class RequirementSet(object):
                     else:
                         unpack = False
                 if unpack:
-                    is_wheel = link and link.is_wheel
+                    if link and link.is_wheel:
+                        abstract_dist = IsWheel(req_to_install, location, link)
                     req_to_install.source_dir = location
+                    abstract_dist.prep_for_dist()
                     if self.is_download:
-                        if not is_wheel:
-                            # FIXME:https://github.com/pypa/pip/issues/1112
-                            req_to_install.run_egg_info()
+                        # Make a .zip of the source_dir we already created.
                         if link and link.scheme in vcs.all_schemes:
                             req_to_install.archive(self.download_dir)
-                    elif is_wheel:
-                        req_to_install.link = link
-                    else:
-                        req_to_install.run_egg_info()
-                        req_to_install.assert_source_matches_version()
                     # req_to_install.req is only avail after unpack for URL
                     # pkgs repeat check_if_exists to uninstall-on-upgrade
                     # (#14)
@@ -420,20 +463,7 @@ class RequirementSet(object):
                     ','.join(req_to_install.extras),
                 )
 
-            if is_wheel:
-                dist = list(
-                    pkg_resources.find_distributions(location)
-                )[0]
-            else:  # sdists
-                if req_to_install.satisfied_by:
-                    dist = req_to_install.satisfied_by
-                else:
-                    dist = req_to_install.get_dist()
-                # FIXME: shouldn't be globally added:
-                if dist.has_metadata('dependency_links.txt'):
-                    finder.add_dependency_links(
-                        dist.get_metadata_lines('dependency_links.txt')
-                    )
+            dist = abstract_dist.dist(finder)
 
             if not self.ignore_dependencies:
                 missing_requested = sorted(
