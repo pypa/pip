@@ -170,6 +170,7 @@ class RequirementSet(object):
                 discovered_reqs.extend(more_reqs)
 
     def locate_files(self):
+        """Remove in 7.0: used by --no-download"""
         self._walk_req_to_install(self._locate_file)
 
     def _locate_file(self, req_to_install):
