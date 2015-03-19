@@ -367,8 +367,6 @@ class RequirementSet(object):
                 location = req_to_install.build_location(
                     self.build_dir,
                 )
-                link = None
-
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
@@ -417,13 +415,13 @@ class RequirementSet(object):
                             'of HTTP error %s for URL %s' %
                             (req_to_install, exc, link)
                         )
-                    if link and link.is_wheel:
+                    if link.is_wheel:
                         abstract_dist = IsWheel(req_to_install, location, link)
                     req_to_install.source_dir = location
                     abstract_dist.prep_for_dist()
                     if self.is_download:
                         # Make a .zip of the source_dir we already created.
-                        if link and link.scheme in vcs.all_schemes:
+                        if link.scheme in vcs.all_schemes:
                             req_to_install.archive(self.download_dir)
                     # req_to_install.req is only avail after unpack for URL
                     # pkgs repeat check_if_exists to uninstall-on-upgrade
