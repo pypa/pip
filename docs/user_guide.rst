@@ -572,7 +572,7 @@ to install using::
     $ cwd=`pwd`
     $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
 
-Once you have a bundle, you can then uninstall it using::
+Once you have a bundle, you can then install it using::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
