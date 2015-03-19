@@ -395,12 +395,16 @@ class Test_normalize_path(object):
         os.symlink(d, 'dir_link')
         os.symlink(f, 'file_link')
 
-        assert normalize_path('dir_link/file1', resolve_symlinks=True) \
-                == os.path.join(self.tempdir, f)
-        assert normalize_path('dir_link/file1', resolve_symlinks=False) \
-                == os.path.join(self.tempdir, 'dir_link', 'file1')
+        assert normalize_path(
+            'dir_link/file1', resolve_symlinks=True
+        ) == os.path.join(self.tempdir, f)
+        assert normalize_path(
+            'dir_link/file1', resolve_symlinks=False
+        ) == os.path.join(self.tempdir, 'dir_link', 'file1')
 
-        assert normalize_path('file_link', resolve_symlinks=True) \
-                == os.path.join(self.tempdir, f)
-        assert normalize_path('file_link', resolve_symlinks=False) \
-                == os.path.join(self.tempdir, 'file_link')
+        assert normalize_path(
+            'file_link', resolve_symlinks=True
+        ) == os.path.join(self.tempdir, f)
+        assert normalize_path(
+            'file_link', resolve_symlinks=False
+        ) == os.path.join(self.tempdir, 'file_link')

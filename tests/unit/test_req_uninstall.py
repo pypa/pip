@@ -9,6 +9,7 @@ from mock import Mock
 from pip.locations import running_under_virtualenv
 from pip.req.req_uninstall import UninstallPathSet
 
+
 class TestUninstallPathSet(object):
     def setup(self):
         if running_under_virtualenv():
@@ -24,7 +25,8 @@ class TestUninstallPathSet(object):
     def test_add(self):
         file_extant = os.path.join(self.tempdir, 'foo')
         file_nonexistant = os.path.join(self.tempdir, 'nonexistant')
-        with open(file_extant, 'w'): pass
+        with open(file_extant, 'w'):
+            pass
 
         ups = UninstallPathSet(dist=Mock())
         assert ups.paths == set()
@@ -37,7 +39,8 @@ class TestUninstallPathSet(object):
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self):
         f = os.path.join(self.tempdir, 'foo')
-        with open(f, 'w'): pass
+        with open(f, 'w'):
+            pass
         l = os.path.join(self.tempdir, 'foo_link')
         os.symlink(f, l)
 
