@@ -228,15 +228,14 @@ class RequirementSet(object):
         :return: A list of addition InstallRequirements to also install.
         """
         install = True
-        best_installed = False
         not_found = None
-        more_reqs = []
 
         # ############################################# #
         # # Search for archive to fulfill requirement # #
         # ############################################# #
 
         if not self.ignore_installed and not req_to_install.editable:
+            best_installed = False
             req_to_install.check_if_exists()
             if req_to_install.satisfied_by:
                 # check that we don't already have an exact version match
@@ -298,6 +297,7 @@ class RequirementSet(object):
             # ################################ #
 
             is_wheel = False
+            more_reqs = []
             if req_to_install.editable:
                 if req_to_install.source_dir is None:
                     req_to_install.source_dir = (
@@ -465,9 +465,7 @@ class RequirementSet(object):
                 self.add_requirement(req_to_install)
 
             # cleanup tmp src
-            if (self.is_download or
-                    req_to_install._temp_build_dir is not None):
-                self.reqs_to_cleanup.append(req_to_install)
+            self.reqs_to_cleanup.append(req_to_install)
 
             if install:
                 self.successfully_downloaded.append(req_to_install)
