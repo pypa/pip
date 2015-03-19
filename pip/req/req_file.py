@@ -235,9 +235,10 @@ def parse_requirement_options(args):
     if opts.global_options:
         opts.global_options = flat_shlex_split(opts.global_options)
 
-    for opt, value in opts.__dict__.items():
-        if value is None:
-            delattr(opts, opt)
+    # Remove None keys from result.
+    keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
+    for key in keys:
+        delattr(opts, key)
 
     return opts.__dict__
 
