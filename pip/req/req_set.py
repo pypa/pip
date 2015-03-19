@@ -439,15 +439,14 @@ class RequirementSet(object):
             # ###################### #
             # # parse dependencies # #
             # ###################### #
-            if (req_to_install.extras):
-                logger.debug(
-                    "Installing extra requirements: %r",
-                    ','.join(req_to_install.extras),
-                )
-
             dist = abstract_dist.dist(finder)
 
             if not self.ignore_dependencies:
+                if (req_to_install.extras):
+                    logger.debug(
+                        "Installing extra requirements: %r",
+                        ','.join(req_to_install.extras),
+                    )
                 missing_requested = sorted(
                     set(req_to_install.extras) - set(dist.extras)
                 )
