@@ -370,6 +370,7 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     with pytest.raises(OSError):
         rmtree('foo')
 
+
 class Test_normalize_path(object):
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
@@ -388,7 +389,8 @@ class Test_normalize_path(object):
         d = os.path.join('foo', 'bar')
         f = os.path.join(d, 'file1')
         os.makedirs(d)
-        with open(f, 'w'): pass  # Create the file
+        with open(f, 'w'):  # Create the file
+            pass
 
         os.symlink(d, 'dir_link')
         os.symlink(f, 'file_link')
