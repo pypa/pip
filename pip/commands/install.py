@@ -341,6 +341,8 @@ class InstallCommand(Command):
                     if not options.no_download:
                         requirement_set.prepare_files(finder)
                     else:
+                        # This is the only call site of locate_files. Nuke with
+                        # fire.
                         requirement_set.locate_files()
 
                     if not options.no_install:
