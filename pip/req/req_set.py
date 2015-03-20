@@ -277,68 +277,65 @@ class RequirementSet(object):
 
         :return: A list of addition InstallRequirements to also install.
         """
-        install = True
-        not_found = None
-
         # ############################################# #
         # # Search for archive to fulfill requirement # #
         # ############################################# #
 
-        if not self.ignore_installed and not req_to_install.editable:
-            best_installed = False
-            req_to_install.check_if_exists()
-            if req_to_install.satisfied_by:
-                # check that we don't already have an exact version match
-                # i.e. with at least one strict req operator
-                strict_req = set(('==', '===')) & set(
-                    op for op, _ in req_to_install.req.specs)
-                if self.upgrade and (not strict_req or
-                                     self.force_reinstall):
-                    if not (self.force_reinstall or req_to_install.link):
-                        try:
-                            link = finder.find_requirement(
-                                req_to_install, self.upgrade)
-                        except BestVersionAlreadyInstalled:
-                            best_installed = True
-                            install = False
-                        except DistributionNotFound as exc:
-                            # No distribution found, but its already installed
-                            # so we don't need to error.
-                            pass
-
-                    if not best_installed:
-                        # don't uninstall conflict if user install and
-                        # conflict is not user install
-                        if not (self.use_user_site and not
-                                dist_in_usersite(
-                                    req_to_install.satisfied_by
-                                )):
-                            req_to_install.conflicts_with = \
-                                req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
-                else:
-                    install = False
-            if req_to_install.satisfied_by:
-                if best_installed:
-                    logger.info(
-                        'Requirement already up-to-date: %s',
-                        req_to_install,
-                    )
-                else:
-                    logger.info(
-                        'Requirement already satisfied (use --upgrade to '
-                        'upgrade): %s',
-                        req_to_install,
-                    )
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
-        elif install:
-            if (req_to_install.link and
-                    req_to_install.link.scheme == 'file'):
-                path = url_to_path(req_to_install.link.url)
-                logger.info('Processing %s', display_path(path))
-            else:
-                logger.info('Collecting %s', req_to_install)
+        else:
+            if not self.ignore_installed:
+                # Check whether to upgrade/reinstall this req or not.
+                req_to_install.check_if_exists()
+                if req_to_install.satisfied_by:
+                    skip_reason = 'satisfied (use --upgrade to upgrade)'
+                    # check that we don't already have an exact version match
+                    # i.e. with at least one strict req operator
+                    strict_req = set(('==', '===')) & set(
+                        op for op, _ in req_to_install.req.specs)
+                    if self.upgrade and (
+                            not strict_req or self.force_reinstall):
+                        best_installed = False
+                        # For link based requirements we have to pull the
+                        # tree down and inspect to assess the version #, so
+                        # its handled way down.
+                        if not (self.force_reinstall or req_to_install.link):
+                            try:
+                                finder.find_requirement(
+                                    req_to_install, self.upgrade)
+                            except BestVersionAlreadyInstalled:
+                                skip_reason = 'up-to-date'
+                                best_installed = True
+                            except DistributionNotFound as exc:
+                                # No distribution found, so we squash the
+                                # error...
+                                # However, we then set satisfied_by to None
+                                # below which leads to an attemp to install
+                                # it later, which will fail hilariously.
+                                # Why?
+                                pass
+
+                        if not best_installed:
+                            # don't uninstall conflict if user install and
+                            # conflict is not user install
+                            if not (self.use_user_site and not
+                                    dist_in_usersite(
+                                        req_to_install.satisfied_by
+                                    )):
+                                req_to_install.conflicts_with = \
+                                    req_to_install.satisfied_by
+                            req_to_install.satisfied_by = None
+                    if req_to_install.satisfied_by:
+                        logger.info(
+                            'Requirement already %s: %s', skip_reason,
+                            req_to_install)
+            if not req_to_install.satisfied_by:
+                if (req_to_install.link and
+                        req_to_install.link.scheme == 'file'):
+                    path = url_to_path(req_to_install.link.url)
+                    logger.info('Processing %s', display_path(path))
+                else:
+                    logger.info('Collecting %s', req_to_install)
 
         with indent_log():
             # ################################ #
@@ -356,7 +353,7 @@ class RequirementSet(object):
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
-            elif install:
+            elif not req_to_install.satisfied_by:
                 # @@ if filesystem packages are not marked
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
@@ -384,7 +381,8 @@ class RequirementSet(object):
                 req_to_install.populate_link(finder, self.upgrade)
                 if req_to_install.link:
                     try:
-                        if req_to_install.link.is_wheel and self.wheel_download_dir:
+                        if req_to_install.link.is_wheel and \
+                                self.wheel_download_dir:
                             # when doing 'pip wheel`
                             download_dir = self.wheel_download_dir
                             do_download = True
@@ -436,7 +434,6 @@ class RequirementSet(object):
                                 '--upgrade to upgrade): %s',
                                 req_to_install,
                             )
-                            install = False
 
             # ###################### #
             # # parse dependencies # #
@@ -480,7 +477,7 @@ class RequirementSet(object):
             # cleanup tmp src
             self.reqs_to_cleanup.append(req_to_install)
 
-            if install:
+            if not req_to_install.editable and not req_to_install.satisfied_by:
                 self.successfully_downloaded.append(req_to_install)
 
         return more_reqs
