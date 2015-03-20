@@ -112,6 +112,8 @@ class RequirementSet(object):
 
         self.build_dir = build_dir
         self.src_dir = src_dir
+        # XXX: download_dir and wheel_download_dir overlap semantically and may
+        # be combinable.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
