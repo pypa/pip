@@ -20,6 +20,13 @@ from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
 
 
+MIRRORS_DEPRECATED_MSG = (
+    "--mirrors has been deprecated and will be removed in the future. "
+    "Explicit uses of --index-url and/or --extra-index-url is suggested.")
+NO_INSTALL_AND_NO_DOWNLOAD_DEPRECATED_MSG = (
+    "--no-install and --no-download are deprecated. "
+    "See https://github.com/pypa/pip/issues/906.")
+
 logger = logging.getLogger(__name__)
 
 
@@ -194,29 +201,13 @@ class InstallCommand(RequirementCommand):
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
-        options.src_dir = os.path.abspath(options.src_dir)
-        install_options = options.install_options or []
-        if options.use_user_site:
-            if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
-                )
-            install_options.append('--user')
-
-        temp_target_dir = None
         if options.target_dir:
             options.ignore_installed = True
-            temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir) and not
-                    os.path.isdir(options.target_dir)):
-                raise CommandError(
-                    "Target path exists but is not a directory, will not "
-                    "continue."
-                )
-            install_options.append('--home=' + temp_target_dir)
 
+        options.src_dir = os.path.abspath(options.src_dir)
+        temp_target_dir = self.get_temp_target_dir(options)
+        install_options = self.get_install_options(options, temp_target_dir)
         global_options = options.global_options or []
         index_urls = self.get_index_urls(options)
 
@@ -342,3 +333,31 @@ class InstallCommand(RequirementCommand):
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
         return index_urls
+
+    def get_install_options(self, options, temp_target_dir):
+        install_options = options.install_options or []
+
+        if options.use_user_site:
+            if virtualenv_no_global():
+                raise InstallationError(
+                    "Can not perform a '--user' install. User site-packages "
+                    "are not visible in this virtualenv."
+                )
+            install_options.append('--user')
+
+        if options.target_dir:
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
+                raise CommandError(
+                    "Target path exists but is not a directory, will not "
+                    "continue."
+                )
+            install_options.append('--home=' + temp_target_dir)
+
+        return install_options
+
+    def get_temp_target_dir(self, options):
+        temp_target_dir = None
+        if options.target_dir:
+            temp_target_dir = tempfile.mkdtemp()
+        return temp_target_dir
