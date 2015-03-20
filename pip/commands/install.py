@@ -186,6 +186,7 @@ class InstallCommand(RequirementCommand):
         )
 
     def run(self, options, args):
+        self.check_for_deprecated_options(options)
 
         if options.download_dir:
             options.ignore_installed = True
@@ -217,21 +218,9 @@ class InstallCommand(RequirementCommand):
             install_options.append('--home=' + temp_target_dir)
 
         global_options = options.global_options or []
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.info('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
-        if options.download_cache:
-            warnings.warn(
-                "--download-cache has been deprecated and will be removed in "
-                "the future. Pip now automatically uses and configures its "
-                "cache.",
-                RemovedInPip8Warning,
-            )
+        index_urls = self.get_index_urls(options)
 
         with self._build_session(options) as session:
-
             finder = self._build_package_finder(options, index_urls, session)
 
             build_delete = (not (options.no_clean or options.build_dir))
@@ -337,3 +326,19 @@ class InstallCommand(RequirementCommand):
                 )
             shutil.rmtree(temp_target_dir)
         return requirement_set
+
+    def check_for_deprecated_options(self, options):
+        if options.download_cache:
+            warnings.warn(
+                "--download-cache has been deprecated and will be removed in "
+                "the future. Pip now automatically uses and configures its "
+                "cache.",
+                RemovedInPip8Warning,
+            )
+
+    def get_index_urls(self, options):
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            index_urls = []
+        return index_urls
