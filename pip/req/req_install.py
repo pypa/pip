@@ -946,8 +946,8 @@ exec(compile(
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
-        self.conflicts_with appropriately."""
-
+        self.conflicts_with appropriately.
+        """
         if self.req is None:
             return False
         try:
