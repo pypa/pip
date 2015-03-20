@@ -11,7 +11,7 @@ from pip._vendor import lockfile
 from pip._vendor import pkg_resources
 
 from pip.compat import total_seconds
-from pip.index import PyPI
+from pip.models.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils.filesystem import check_path_owner
 

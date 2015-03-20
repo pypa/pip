@@ -11,7 +11,7 @@ from __future__ import absolute_import
 
 import copy
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.index import PyPI
+from pip.models.index import PyPI
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 

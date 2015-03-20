@@ -35,7 +35,7 @@ def test_no_partial_name_match(data):
 
 
 @patch(
-    'pip.index.os.path.exists',
+    'pip.models.packagefinder.os.path.exists',
     return_value=True  # b/c we only use tilde expanded version if it exists
 )
 def test_tilde(data):
