@@ -372,39 +372,37 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
 
 
 class Test_normalize_path(object):
-    def setup(self):
-        self.tempdir = tempfile.mkdtemp()
-        self.orig_working_dir = os.getcwd()
-        os.chdir(self.tempdir)
-
-    def teardown(self):
-        os.chdir(self.orig_working_dir)
-        shutil.rmtree(self.tempdir, ignore_errors=True)
-
     # Technically, symlinks are possible on Windows, but you need a special
     # permission bit to create them, and Python 2 doesn't support it anyway, so
     # it's easiest just to skip this test on Windows altogether.
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_resolve_symlinks(self):
-        d = os.path.join('foo', 'bar')
-        f = os.path.join(d, 'file1')
-        os.makedirs(d)
-        with open(f, 'w'):  # Create the file
-            pass
+    def test_resolve_symlinks(self, tmpdir):
+        print(type(tmpdir))
+        print(dir(tmpdir))
+        orig_working_dir = os.getcwd()
+        os.chdir(tmpdir)
+        try:
+            d = os.path.join('foo', 'bar')
+            f = os.path.join(d, 'file1')
+            os.makedirs(d)
+            with open(f, 'w'):  # Create the file
+                pass
 
-        os.symlink(d, 'dir_link')
-        os.symlink(f, 'file_link')
+            os.symlink(d, 'dir_link')
+            os.symlink(f, 'file_link')
 
-        assert normalize_path(
-            'dir_link/file1', resolve_symlinks=True
-        ) == os.path.join(self.tempdir, f)
-        assert normalize_path(
-            'dir_link/file1', resolve_symlinks=False
-        ) == os.path.join(self.tempdir, 'dir_link', 'file1')
+            assert normalize_path(
+                'dir_link/file1', resolve_symlinks=True
+            ) == os.path.join(tmpdir, f)
+            assert normalize_path(
+                'dir_link/file1', resolve_symlinks=False
+            ) == os.path.join(tmpdir, 'dir_link', 'file1')
 
-        assert normalize_path(
-            'file_link', resolve_symlinks=True
-        ) == os.path.join(self.tempdir, f)
-        assert normalize_path(
-            'file_link', resolve_symlinks=False
-        ) == os.path.join(self.tempdir, 'file_link')
+            assert normalize_path(
+                'file_link', resolve_symlinks=True
+            ) == os.path.join(tmpdir, f)
+            assert normalize_path(
+                'file_link', resolve_symlinks=False
+            ) == os.path.join(tmpdir, 'file_link')
+        finally:
+            os.chdir(orig_working_dir)

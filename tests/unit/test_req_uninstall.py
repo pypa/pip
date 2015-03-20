@@ -6,25 +6,19 @@ import tempfile
 import pytest
 from mock import Mock
 
-from pip.locations import running_under_virtualenv
+import pip.utils
 from pip.req.req_uninstall import UninstallPathSet
 
+# Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,
+# outside the virtualenv
+def mock_is_local(path):
+    return True
 
 class TestUninstallPathSet(object):
-    def setup(self):
-        if running_under_virtualenv():
-            # Construct tempdir in sys.prefix, otherwise UninstallPathSet
-            # will reject paths.
-            self.tempdir = tempfile.mkdtemp(prefix=sys.prefix)
-        else:
-            self.tempdir = tempfile.mkdtemp()
-
-    def teardown(self):
-        shutil.rmtree(self.tempdir, ignore_errors=True)
-
-    def test_add(self):
-        file_extant = os.path.join(self.tempdir, 'foo')
-        file_nonexistant = os.path.join(self.tempdir, 'nonexistant')
+    def test_add(self, tmpdir, monkeypatch):
+        monkeypatch.setattr(pip.utils, 'is_local', mock_is_local)
+        file_extant = os.path.join(tmpdir, 'foo')
+        file_nonexistant = os.path.join(tmpdir, 'nonexistant')
         with open(file_extant, 'w'):
             pass
 
@@ -37,11 +31,12 @@ class TestUninstallPathSet(object):
         assert ups.paths == set([file_extant])
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_add_symlink(self):
-        f = os.path.join(self.tempdir, 'foo')
+    def test_add_symlink(self, tmpdir, monkeypatch):
+        monkeypatch.setattr(pip.utils, 'is_local', mock_is_local)
+        f = os.path.join(tmpdir, 'foo')
         with open(f, 'w'):
             pass
-        l = os.path.join(self.tempdir, 'foo_link')
+        l = os.path.join(tmpdir, 'foo_link')
         os.symlink(f, l)
 
         ups = UninstallPathSet(dist=Mock())
