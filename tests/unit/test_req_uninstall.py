@@ -1,18 +1,17 @@
 import os
-import shutil
-import sys
-import tempfile
 
 import pytest
 from mock import Mock
 
-import pip.utils
+import pip.req.req_uninstall
 from pip.req.req_uninstall import UninstallPathSet
+
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,
 # outside the virtualenv
 def mock_is_local(path):
     return True
+
 
 class TestUninstallPathSet(object):
     def test_add(self, tmpdir, monkeypatch):
