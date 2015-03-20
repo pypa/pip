@@ -41,7 +41,33 @@ from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
+_FILTER_INSTALL_OUTPUT_REGEX = re.compile(r"""
+    (?:^running\s.*) |
+    (?:^writing\s.*) |
+    (?:creating\s.*) |
+    (?:[Cc]opying\s.*) |
+    (?:^reading\s.*') |
+    (?:^removing\s.*\.egg-info'\s\(and\severything\sunder\sit\)$) |
+    (?:^byte-compiling) |
+    (?:^SyntaxError:) |
+    (?:^SyntaxWarning:) |
+    (?:^\s*Skipping\simplicit\sfixer:) |
+    (?:^\s*(warning:\s)?no\spreviously-included\s(files|directories)) |
+    (?:^\s*warning:\sno\sfiles\sfound matching\s\'.*\') |
+    (?:^\s*changing\smode\sof) |
+    # Not sure what this warning is, but it seems harmless:
+    (?:^warning:\smanifest_maker:\sstandard\sfile\s'-c'\snot found$)
+    """, re.VERBOSE)
+
+
 logger = logging.getLogger(__name__)
+
+
+def _filter_install(line):
+    level = logging.INFO
+    if _FILTER_INSTALL_OUTPUT_REGEX.search(line.strip()):
+        level = logging.DEBUG
+    return (level, line)
 
 
 class InstallRequirement(object):
@@ -365,7 +391,7 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
-                filter_stdout=self._filter_install,
+                filter_stdout=_filter_install,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -818,7 +844,7 @@ exec(compile(
                 call_subprocess(
                     install_args + install_options,
                     cwd=self.source_dir,
-                    filter_stdout=self._filter_install,
+                    filter_stdout=_filter_install,
                     show_stdout=False,
                 )
 
@@ -912,27 +938,7 @@ exec(compile(
         self.install_succeeded = True
 
     def _filter_install(self, line):
-        level = logging.INFO
-        for regex in [
-                r'^running .*',
-                r'^writing .*',
-                '^creating .*',
-                '^[Cc]opying .*',
-                r'^reading .*',
-                r"^removing .*\.egg-info' \(and everything under it\)$",
-                r'^byte-compiling ',
-                r'^SyntaxError:',
-                r'^SyntaxWarning:',
-                r'^\s*Skipping implicit fixer: ',
-                r'^\s*(warning: )?no previously-included (files|directories) ',
-                r'^\s*warning: no files found matching \'.*\'',
-                r'^\s*changing mode of',
-                # Not sure what this warning is, but it seems harmless:
-                r"^warning: manifest_maker: standard file '-c' not found$"]:
-            if not line or re.search(regex, line.strip()):
-                level = logging.DEBUG
-                break
-        return (level, line)
+        return _filter_install(line)
 
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts
