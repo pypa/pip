@@ -54,8 +54,8 @@ def test_git_urls():
             '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
     )
 
-    explicit_ssh_repo = Git(
-        url='git+ssh://git@github.com:Eyepea/pip.git'
+    explicit_ssh_repo_without_colon = Git(
+        url='git+ssh://git@github.com/Eyepea/pip.git'
             '@8cf54fff31b650847e0cddc2cd2951c34e0b4822#egg=pip'
     )
 
@@ -67,8 +67,8 @@ def test_git_urls():
         'git@github.com:Eyepea/pip.git',
         '8cf54fff31b650847e0cddc2cd2951c34e0b4822',
     )
-    assert explicit_ssh_repo.get_url_rev() == (
-        'git@github.com:Eyepea/pip.git',
+    assert explicit_ssh_repo_without_colon.get_url_rev() == (
+        'ssh://git@github.com/Eyepea/pip.git',
         '8cf54fff31b650847e0cddc2cd2951c34e0b4822',
     )
 
