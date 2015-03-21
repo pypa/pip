@@ -485,7 +485,9 @@ def test_parse_options_from_requirements(finder):
 
     assert parse_line('--index-url abc') == (OPTION, ('--index-url', 'abc'))
     assert parse_line('--index-url=abc') == (OPTION, ('--index-url', 'abc'))
-    assert parse_line('--index-url   =   abc') == (OPTION, ('--index-url', 'abc'))
+    assert parse_line('--index-url   =   abc') == (
+        OPTION, ('--index-url', 'abc')
+    )
 
     with pytest.raises(RequirementsFileParseError):
         parse_line('--allow-external')
@@ -512,7 +514,10 @@ def test_get_requirement_options():
     res = parse_requirement_options('--install-option="--abc --zxc"')
     assert res == {'install_options': ['--abc', '--zxc']}
 
-    line = 'INITools==2.0 --global-option="--one --two -3" --install-option="--prefix=/opt"'
+    line = (
+        'INITools==2.0 --global-option="--one --two -3" '
+        '--install-option="--prefix=/opt"'
+    )
     assert parse_line(line) == (REQUIREMENT, (
         'INITools==2.0', {
             'global_options': ['--one', '--two', '-3'],

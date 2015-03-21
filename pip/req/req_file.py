@@ -76,7 +76,8 @@ OPTION = 4
 IGNORE = 5
 
 
-def parse_requirements(filename, finder=None, comes_from=None, options=None, session=None):
+def parse_requirements(filename, finder=None, comes_from=None, options=None,
+                       session=None):
     """
     Parse a requirements file and yield InstallRequirement instances.
 
@@ -93,13 +94,21 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None, ses
             "'session'"
         )
 
-    _, content = get_file_content(filename, comes_from=comes_from, session=session)
-    parser = parse_content(filename, content, finder, comes_from, options, session)
+    _, content = get_file_content(
+        filename, comes_from=comes_from, session=session
+    )
+
+    parser = parse_content(
+        filename, content, finder, comes_from, options, session
+    )
+
     for item in parser:
         yield item
 
 
-def parse_content(filename, content, finder=None, comes_from=None, options=None, session=None):
+def parse_content(filename, content, finder=None, comes_from=None,
+                  options=None, session=None):
+
     # Split, sanitize and join lines with continuations.
     content = content.splitlines()
     content = ignore_comments(content)
@@ -129,7 +138,8 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
             isolated = options.isolated_mode if options else False
             default_vcs = options.default_vcs if options else None
             yield InstallRequirement.from_editable(
-                value, comes_from=comes_from, default_vcs=default_vcs, isolated=isolated
+                value, comes_from=comes_from,
+                default_vcs=default_vcs, isolated=isolated
             )
 
         # ---------------------------------------------------------------------
@@ -141,7 +151,9 @@ def parse_content(filename, content, finder=None, comes_from=None, options=None,
                 req_dir = os.path.dirname(filename)
                 req_url = os.path.join(os.path.dirname(filename), value)
             # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
-            parser = parse_requirements(req_url, finder, comes_from, options, session)
+            parser = parse_requirements(
+                req_url, finder, comes_from, options, session
+            )
             for req in parser:
                 yield req
 
