@@ -479,15 +479,13 @@ def finder(session):
 
 
 def test_parse_options_from_requirements(finder):
-    pl = parse_line
+    assert parse_line('-i abc') == (OPTION, ('-i', 'abc'))
+    assert parse_line('-i=abc') == (OPTION, ('-i', 'abc'))
+    assert parse_line('-i  =  abc') == (OPTION, ('-i', 'abc'))
 
-    assert pl('-i abc') == (OPTION, ('-i', 'abc'))
-    assert pl('-i=abc') == (OPTION, ('-i', 'abc'))
-    assert pl('-i  =  abc') == (OPTION, ('-i', 'abc'))
-
-    assert pl('--index-url abc') == (OPTION, ('--index-url', 'abc'))
-    assert pl('--index-url=abc') == (OPTION, ('--index-url', 'abc'))
-    assert pl('--index-url   =   abc') == (OPTION, ('--index-url', 'abc'))
+    assert parse_line('--index-url abc') == (OPTION, ('--index-url', 'abc'))
+    assert parse_line('--index-url=abc') == (OPTION, ('--index-url', 'abc'))
+    assert parse_line('--index-url   =   abc') == (OPTION, ('--index-url', 'abc'))
 
     with pytest.raises(RequirementsFileParseError):
         parse_line('--allow-external')
@@ -511,16 +509,13 @@ def test_parse_flags_from_requirements(finder):
 
 
 def test_get_requirement_options():
-    pl = parse_line
-    pro = parse_requirement_options
-
-    res = pro('--install-option="--abc --zxc"')
+    res = parse_requirement_options('--install-option="--abc --zxc"')
     assert res == {'install_options': ['--abc', '--zxc']}
 
     line = 'INITools==2.0 --global-option="--one --two -3" --install-option="--prefix=/opt"'
     assert parse_line(line) == (REQUIREMENT, (
         'INITools==2.0', {
-            'global_options':  ['--one', '--two', '-3'],
+            'global_options': ['--one', '--two', '-3'],
             'install_options': ['--prefix=/opt'],
         }))
 
