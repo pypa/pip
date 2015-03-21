@@ -104,4 +104,9 @@ requires_simple_extra-0.1-py2.py3-none-any.whl
 ----------------------------------------------
 requires_simple_extra[extra] requires simple==1.0
 
+setuppyargs-0.1.tar.gz
+----------------------
 
+An empty package that will output the arguments with which its 'setup.py' was
+called when installed. If the PIPTEST_SETUPPYARGS_FILE environment variable is
+set, the argument list will be written to that file in json format.
