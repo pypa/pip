@@ -243,11 +243,6 @@ def parse_requirement_options(args):
     args = shlex.split(args)
     opts, _ = _req_parser.parse_args(args)
 
-    if opts.install_options:
-        opts.install_options = flat_shlex_split(opts.install_options)
-    if opts.global_options:
-        opts.global_options = flat_shlex_split(opts.global_options)
-
     # Remove None keys from result.
     keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
     for key in keys:
@@ -301,14 +296,6 @@ def partition_line(line):
 
     rest = rest.strip()
     return firstword, rest
-
-
-def flat_shlex_split(x):
-    '''
-    >>> flat_shlex_split(['--one --two', '--three "4" --five'])
-    ['--one', '--two', '--three', '4', '--five']
-    '''
-    return [j for i in x for j in shlex.split(i)]
 
 
 __all__ = 'parse_requirements'

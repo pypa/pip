@@ -98,20 +98,27 @@ Some Examples:
 Per-requirement Overrides
 +++++++++++++++++++++++++
 
-It is possible to set ``--install-option`` and ``--global-option``
-for each requirement in the requirements file:
+When pip installs packages, it normally executes the ``setup.py`` file
+behind the scenes. You may extend the arguments with which the
+``setup.py`` file is called through the ``--global-option`` and
+``--install-option`` options. For example:
 
  ::
 
-    FooProject >= 1.2 --install-option="--prefix='/usr/local'" \
-                      --global-option="--no-user-cfg"
+    FooProject >= 1.2 --global-option="--no-user-cfg" \
+                      --install-option="--prefix='/usr/local'" \
+                      --install-option="--no-compile"
 
 The above translates roughly into running FooProject's ``setup.py``
 script as:
 
  ::
 
-    python setup.py --no-user-cfg install --prefix='/usr/local'
+   python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+
+Note that the correct way of giving more than one option to
+``setup.py`` is through multiple ``--global-option`` and
+``--install-option`` options, as shown in the example above.
 
 
 .. _`Pre Release Versions`:

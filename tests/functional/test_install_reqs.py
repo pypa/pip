@@ -134,7 +134,7 @@ def test_requirement_file_options(script, data, tmpdir):
     '''
 
     args = getsetuppyargs(reqfile)
-    expected = set(['--one', '--two', '--three', '--four', '-5', '-6'])
+    expected = set(['--one --two', '--three', '--four -5', '-6'])
     assert expected.issubset(set(args))
 
 
