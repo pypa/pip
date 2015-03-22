@@ -126,7 +126,19 @@ class Serializer(object):
             if request.headers.get(header, None) != value:
                 return
 
-        body = io.BytesIO(cached["response"].pop("body"))
+        body_raw = cached["response"].pop("body")
+
+        try:
+            body = io.BytesIO(body_raw)
+        except TypeError:
+            # This can happen if cachecontrol serialized to v1 format (pickle)
+            # using Python 2. A Python 2 str(byte string) will be unpickled as
+            # a Python 3 str (unicode string), which will cause the above to
+            # fail with:
+            #
+            #     TypeError: 'str' does not support the buffer interface
+            body = io.BytesIO(body_raw.encode('utf8'))
+
         return HTTPResponse(
             body=body,
             preload_content=False,

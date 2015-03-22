@@ -35,6 +35,9 @@
 
 * Don't follow symlinks when uninstalling files (:pull:`2552`)
 
+* Upgrade the bundled copy of cachecontrol from 0.11.1 to 0.11.2.
+  Fixes :issue:`2481` (:pull:`2595`)
+
 
 **6.0.8 (2015-02-04)**
 
