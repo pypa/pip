@@ -47,7 +47,7 @@ class UninstallPathSet(object):
         return True
 
     def add(self, path):
-        path = normalize_path(path)
+        path = normalize_path(path, resolve_symlinks=False)
         if not os.path.exists(path):
             return
         if self._permitted(path):
