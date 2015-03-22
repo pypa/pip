@@ -879,6 +879,20 @@ exec(compile(
                 os.remove(record_filename)
             rmtree(temp_location)
 
+    def ensure_has_source_dir(self, parent_dir):
+        """Ensure that a source_dir is set.
+
+        This will create a temporary build dir if the name of the requirement
+        isn't known yet.
+
+        :param parent_dir: The ideal pip parent_dir for the source_dir.
+            Generally src_dir for editables and build_dir for sdists.
+        :return: self.source_dir
+        """
+        if self.source_dir is None:
+            self.source_dir = self.build_location(parent_dir)
+        return self.source_dir
+
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""

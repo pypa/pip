@@ -66,12 +66,9 @@ class DistAbstraction(object):
 
 class IsWheel(DistAbstraction):
 
-    def __init__(self, req_to_install, location):
-        super(IsWheel, self).__init__(req_to_install)
-        self.location = location
-
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(self.location))[0]
+        return list(pkg_resources.find_distributions(
+            self.req_to_install.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -369,11 +366,7 @@ class RequirementSet(object):
             abstract_dist = IsSDist(req_to_install)
             more_reqs = []
             if req_to_install.editable:
-                if req_to_install.source_dir is None:
-                    req_to_install.source_dir = (
-                        req_to_install.build_location(self.src_dir)
-                    )
-                location = req_to_install.source_dir
+                req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
@@ -383,25 +376,21 @@ class RequirementSet(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-
-                # NB: This call can result in the creation of a temporary
-                # build directory
-                location = req_to_install.build_location(
-                    self.build_dir,
-                )
+                req_to_install.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
                 # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `location`
-                if os.path.exists(os.path.join(location, 'setup.py')):
+                # package unpacked in `req_to_install.source_dir`
+                if os.path.exists(
+                        os.path.join(req_to_install.source_dir, 'setup.py')):
                     raise PreviousBuildDirError(
                         "pip can't proceed with requirements '%s' due to a"
                         " pre-existing build directory (%s). This is "
                         "likely due to a previous installation that failed"
                         ". pip is being responsible and not assuming it "
                         "can delete this. Please delete it and try again."
-                        % (req_to_install, location)
+                        % (req_to_install, req_to_install.source_dir)
                     )
                 req_to_install.populate_link(finder, self.upgrade)
                 if req_to_install.link:
@@ -415,8 +404,8 @@ class RequirementSet(object):
                             download_dir = self.download_dir
                             do_download = self.is_download
                         unpack_url(
-                            req_to_install.link, location, download_dir,
-                            do_download, session=self.session,
+                            req_to_install.link, req_to_install.source_dir,
+                            download_dir, do_download, session=self.session,
                         )
                     except requests.HTTPError as exc:
                         logger.critical(
@@ -431,8 +420,7 @@ class RequirementSet(object):
                             (req_to_install, exc, req_to_install.link)
                         )
                     if req_to_install.link.is_wheel:
-                        abstract_dist = IsWheel(req_to_install, location)
-                    req_to_install.source_dir = location
+                        abstract_dist = IsWheel(req_to_install)
                     abstract_dist.prep_for_dist()
                     if self.is_download:
                         # Make a .zip of the source_dir we already created.
