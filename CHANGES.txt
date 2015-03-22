@@ -33,6 +33,8 @@
 * Speed up upgrading by skipping packages which use ``==`` and the specified
   version is already installed. (:pull:`2493`)
 
+* Don't follow symlinks when uninstalling files (:pull:`2552`)
+
 
 **6.0.8 (2015-02-04)**
 
