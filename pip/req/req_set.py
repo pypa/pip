@@ -272,64 +272,91 @@ class RequirementSet(object):
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
+    def _check_skip_installed(self, req_to_install, finder):
+        """Check if req_to_install should be skipped.
+
+        This will check if the req is installed, and whether we should upgrade
+        or reinstall it, taking into account all the relevant user options.
+
+        After calling this req_to_install will only have satisfied_by set to
+        None if the req_to_install is to be upgraded/reinstalled etc. Any
+        other value will be a dist recording the current thing installed that
+        satisfies the requirement.
+
+        Note that for vcs urls and the like we can't assess skipping in this
+        routine - we simply identify that we need to pull the thing down,
+        then later on it is pulled down and introspected to assess upgrade/
+        reinstalls etc.
+
+        :return: A text reason for why it was skipped, or None.
+        """
+        # Check whether to upgrade/reinstall this req or not.
+        req_to_install.check_if_exists()
+        if req_to_install.satisfied_by:
+            skip_reason = 'satisfied (use --upgrade to upgrade)'
+            # check that we don't already have an exact version match
+            # i.e. with at least one strict req operator
+            strict_req = set(('==', '===')) & set(
+                op for op, _ in req_to_install.req.specs)
+            if self.upgrade and (not strict_req or self.force_reinstall):
+                best_installed = False
+                # For link based requirements we have to pull the
+                # tree down and inspect to assess the version #, so
+                # its handled way down.
+                if not (self.force_reinstall or req_to_install.link):
+                    try:
+                        finder.find_requirement(req_to_install, self.upgrade)
+                    except BestVersionAlreadyInstalled:
+                        skip_reason = 'up-to-date'
+                        best_installed = True
+                    except DistributionNotFound as exc:
+                        # No distribution found, so we squash the
+                        # error...
+                        # However, we then set satisfied_by to None
+                        # below which leads to an attempt to install
+                        # it later, which will fail hilariously.
+                        # Why?
+                        pass
+
+                if not best_installed:
+                    # don't uninstall conflict if user install and
+                    # conflict is not user install
+                    if not (self.use_user_site and not
+                            dist_in_usersite(req_to_install.satisfied_by)):
+                        req_to_install.conflicts_with = \
+                            req_to_install.satisfied_by
+                    req_to_install.satisfied_by = None
+            return skip_reason
+        else:
+            return None
+
     def _prepare_file(self, finder, req_to_install):
         """Prepare a single requirements files.
 
         :return: A list of addition InstallRequirements to also install.
         """
-        # ############################################# #
-        # # Search for archive to fulfill requirement # #
-        # ############################################# #
-
+        # Tell user what we are doing for this requirement:
+        # obtain (editable), skipping, processing (local url), collecting
+        # (remote url or package name)
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
         else:
+            # satisfied_by is only evaluated by calling _check_skip_installed,
+            # so it must be None here.
+            assert req_to_install.satisfied_by is None
             if not self.ignore_installed:
-                # Check whether to upgrade/reinstall this req or not.
-                req_to_install.check_if_exists()
-                if req_to_install.satisfied_by:
-                    skip_reason = 'satisfied (use --upgrade to upgrade)'
-                    # check that we don't already have an exact version match
-                    # i.e. with at least one strict req operator
-                    strict_req = set(('==', '===')) & set(
-                        op for op, _ in req_to_install.req.specs)
-                    if self.upgrade and (
-                            not strict_req or self.force_reinstall):
-                        best_installed = False
-                        # For link based requirements we have to pull the
-                        # tree down and inspect to assess the version #, so
-                        # its handled way down.
-                        if not (self.force_reinstall or req_to_install.link):
-                            try:
-                                finder.find_requirement(
-                                    req_to_install, self.upgrade)
-                            except BestVersionAlreadyInstalled:
-                                skip_reason = 'up-to-date'
-                                best_installed = True
-                            except DistributionNotFound as exc:
-                                # No distribution found, so we squash the
-                                # error...
-                                # However, we then set satisfied_by to None
-                                # below which leads to an attemp to install
-                                # it later, which will fail hilariously.
-                                # Why?
-                                pass
+                skip_reason = self._check_skip_installed(
+                    req_to_install, finder)
 
-                        if not best_installed:
-                            # don't uninstall conflict if user install and
-                            # conflict is not user install
-                            if not (self.use_user_site and not
-                                    dist_in_usersite(
-                                        req_to_install.satisfied_by
-                                    )):
-                                req_to_install.conflicts_with = \
-                                    req_to_install.satisfied_by
-                            req_to_install.satisfied_by = None
-                    if req_to_install.satisfied_by:
-                        logger.info(
-                            'Requirement already %s: %s', skip_reason,
-                            req_to_install)
-            if not req_to_install.satisfied_by:
+            if req_to_install.satisfied_by:
+                assert skip_reason is not None, (
+                    '_check_skip_installed returned None but '
+                    'req_to_install.satisfied_by is set to %r'
+                    % (req_to_install.satisfied_by,))
+                logger.info(
+                    'Requirement already %s: %s', skip_reason,
+                    req_to_install)
+            else:
                 if (req_to_install.link and
                         req_to_install.link.scheme == 'file'):
                     path = url_to_path(req_to_install.link.url)
