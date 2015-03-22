@@ -309,13 +309,11 @@ class RequirementSet(object):
                     except BestVersionAlreadyInstalled:
                         skip_reason = 'up-to-date'
                         best_installed = True
-                    except DistributionNotFound as exc:
+                    except DistributionNotFound:
                         # No distribution found, so we squash the
-                        # error...
-                        # However, we then set satisfied_by to None
-                        # below which leads to an attempt to install
-                        # it later, which will fail hilariously.
-                        # Why?
+                        # error - it will be raised later when we
+                        # re-try later to do the install.
+                        # Why don't we just raise here?
                         pass
 
                 if not best_installed:
