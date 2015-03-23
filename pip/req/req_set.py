@@ -50,7 +50,23 @@ class Requirements(object):
 
 
 class DistAbstraction(object):
-    """Abstracts out the wheel vs non-wheel prepare_files logic."""
+    """Abstracts out the wheel vs non-wheel prepare_files logic.
+
+    The requirements for anything installable are as follows:
+     - we must be able to determine the requirement name
+       (or we can't correctly handle the non-upgrade case).
+     - we must be able to generate a list of run-time dependencies
+       without installing any additional packages (or we would
+       have to either burn time by doing temporary isolated installs
+       or alternatively violate pips 'don't start installing unless
+       all requirements are available' rule - neither of which are
+       desirable).
+     - for packages with setup requirements, we must also be able
+       to determine their requirements without installing additional
+       packages (for the same reason as run-time dependencies)
+     - we must be able to create a Distribution object exposing the
+       above metadata.
+    """
 
     def __init__(self, req_to_install):
         self.req_to_install = req_to_install
