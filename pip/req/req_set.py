@@ -380,7 +380,6 @@ class RequirementSet(object):
             # # vcs update or unpack archive # #
             # ################################ #
             abstract_dist = IsSDist(req_to_install)
-            more_reqs = []
             if req_to_install.editable:
                 req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
@@ -468,6 +467,7 @@ class RequirementSet(object):
             # # parse dependencies # #
             # ###################### #
             dist = abstract_dist.dist(finder)
+            more_reqs = []
 
             if not self.ignore_dependencies:
                 if (req_to_install.extras):
