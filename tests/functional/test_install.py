@@ -531,43 +531,40 @@ def test_install_package_which_contains_dev_in_name(script):
     assert egg_info_folder in result.files_created, str(result)
 
 
-@pytest.mark.network
 def test_install_package_with_target(script):
     """
     Test installing a package using pip install --target
     """
     target_dir = script.scratch_path / 'target'
-    result = script.pip('install', '-t', target_dir, "initools==0.1")
-    assert Path('scratch') / 'target' / 'initools' in result.files_created, (
+    result = script.pip_install_local('-t', target_dir, "simple==1.0")
+    assert Path('scratch') / 'target' / 'simple' in result.files_created, (
         str(result)
     )
 
     # Test repeated call without --upgrade, no files should have changed
-    result = script.pip('install', '-t', target_dir, "initools==0.1")
-    assert not Path('scratch') / 'target' / 'initools' in result.files_updated
+    result = script.pip_install_local('-t', target_dir, "simple==1.0")
+    assert not Path('scratch') / 'target' / 'simple' in result.files_updated
 
     # Test upgrade call, check that new version is installed
-    result = script.pip('install', '--upgrade', '-t',
-                        target_dir, "initools==0.2")
-    assert Path('scratch') / 'target' / 'initools' in result.files_updated, (
+    result = script.pip_install_local('--upgrade', '-t',
+                                      target_dir, "simple==2.0")
+    assert Path('scratch') / 'target' / 'simple' in result.files_updated, (
         str(result)
     )
     egg_folder = (
-        Path('scratch') / 'target' / 'INITools-0.2-py%s.egg-info' % pyversion)
+        Path('scratch') / 'target' / 'simple-2.0-py%s.egg-info' % pyversion)
     assert egg_folder in result.files_created, (
         str(result)
     )
 
     # Test install and upgrade of single-module package
-    result = script.pip('install', '-t', target_dir, 'six')
-    assert Path('scratch') / 'target' / 'six.py' in result.files_created, (
-        str(result)
-    )
+    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.0')
+    singlemodule_py = Path('scratch') / 'target' / 'singlemodule.py'
+    assert singlemodule_py in result.files_created, str(result)
 
-    result = script.pip('install', '-t', target_dir, '--upgrade', 'six')
-    assert Path('scratch') / 'target' / 'six.py' in result.files_updated, (
-        str(result)
-    )
+    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
+                                      '--upgrade')
+    assert singlemodule_py in result.files_updated, str(result)
 
 
 def test_install_package_with_root(script, data):
