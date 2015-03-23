@@ -94,10 +94,7 @@ class IsWheel(DistAbstraction):
 class IsSDist(DistAbstraction):
 
     def dist(self, finder):
-        if self.req_to_install.satisfied_by:
-            dist = self.req_to_install.satisfied_by
-        else:
-            dist = self.req_to_install.get_dist()
+        dist = self.req_to_install.get_dist()
         # FIXME: shouldn't be globally added:
         if dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
@@ -108,6 +105,15 @@ class IsSDist(DistAbstraction):
     def prep_for_dist(self):
         self.req_to_install.run_egg_info()
         self.req_to_install.assert_source_matches_version()
+
+
+class Installed(DistAbstraction):
+
+    def dist(self, finder):
+        return self.req_to_install.satisfied_by
+
+    def prep_for_dist(self):
+        pass
 
 
 class RequirementSet(object):
@@ -386,7 +392,9 @@ class RequirementSet(object):
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
-            elif not req_to_install.satisfied_by:
+            elif req_to_install.satisfied_by:
+                abstract_dist = Installed(req_to_install)
+            else:
                 # @@ if filesystem packages are not marked
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
