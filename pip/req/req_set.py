@@ -80,6 +80,22 @@ class DistAbstraction(object):
         raise NotImplementedError(self.dist)
 
 
+def make_abstract_dist(req_to_install):
+    """Factory to make an abstract dist object.
+
+    Preconditions: Either an editable req with a source_dir, or satisfied_by or
+    a wheel link, or a non-editable req with a source_dir.
+
+    :return: A concrete DistAbstraction.
+    """
+    if req_to_install.editable:
+        return IsSDist(req_to_install)
+    elif req_to_install.link and req_to_install.link.is_wheel:
+        return IsWheel(req_to_install)
+    else:
+        return IsSDist(req_to_install)
+
+
 class IsWheel(DistAbstraction):
 
     def dist(self, finder):
@@ -388,7 +404,7 @@ class RequirementSet(object):
             if req_to_install.editable:
                 req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
-                abstract_dist = IsSDist(req_to_install)
+                abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
@@ -449,10 +465,7 @@ class RequirementSet(object):
                         'of HTTP error %s for URL %s' %
                         (req_to_install, exc, req_to_install.link)
                     )
-                if req_to_install.link.is_wheel:
-                    abstract_dist = IsWheel(req_to_install)
-                else:
-                    abstract_dist = IsSDist(req_to_install)
+                abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     # Make a .zip of the source_dir we already created.
