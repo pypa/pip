@@ -5,6 +5,7 @@ import itertools
 import logging
 import os
 
+from pip.compat import stdlib_pkgs
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 
@@ -147,6 +148,13 @@ class RequirementSet(object):
                          install_req.name, install_req.markers)
             return
 
+        if install_req.name in stdlib_pkgs:
+            logger.warning(
+                'Skipping requirement: %s '
+                'because %s is a stdlib package',
+                install_req, install_req.name)
+            return
+
         name = install_req.name
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
@@ -214,6 +222,12 @@ class RequirementSet(object):
             list(self.unnamed_requirements), list(self.requirements.values()),
             discovered_reqs)
         for req_to_install in reqs:
+            if req_to_install.name in stdlib_pkgs:
+                logger.warning(
+                    'Skipping requirement: %s '
+                    'because %s is a stdlib package',
+                    req_to_install, req_to_install.name)
+                continue
             more_reqs = handler(req_to_install)
             if more_reqs:
                 discovered_reqs.extend(more_reqs)
