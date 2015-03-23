@@ -507,6 +507,9 @@ class RequirementSet(object):
             self.reqs_to_cleanup.append(req_to_install)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
+                # XXX: --no-install leads this to report 'Successfully
+                # downloaded' for only non-editable reqs, even though we took
+                # action on them.
                 self.successfully_downloaded.append(req_to_install)
 
         return more_reqs
