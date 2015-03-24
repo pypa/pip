@@ -141,6 +141,13 @@ class RequirementSet(object):
         reqs.sort(key=lambda req: req.name.lower())
         return ' '.join([str(req.req) for req in reqs])
 
+    def __repr__(self):
+        reqs = [req for req in self.requirements.values()]
+        reqs.sort(key=lambda req: req.name.lower())
+        reqs_str = ', '.join([str(req.req) for req in reqs])
+        return ('<%s object; %d requirement(s): %s>'
+                % (self.__class__.__name__, len(reqs), reqs_str))
+
     def add_requirement(self, install_req):
         if not install_req.match_markers():
             logger.debug("Ignore %s: markers %r don't match",
