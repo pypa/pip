@@ -127,14 +127,18 @@ def test_requirement_file_options(script, data, tmpdir):
         return json.load(open(setuppyargs_file))
 
     reqfile = '''
-    setuppyargs==1.0 --global-option="--one --two" \\
-                     --global-option="--three" \\
-                     --install-option "--four -5" \\
-                     --install-option="-6"
+    setuppyargs==1.0 --global-option="--onetwo"  \\
+                     --global-option="--three"   \\
+                     --install-option "--four-5" \\
+                     --install-option="-6" \\
+                     --install-option="--opt-with-ws=a b c"
     '''
 
     args = getsetuppyargs(reqfile)
-    expected = set(['--one --two', '--three', '--four -5', '-6'])
+    expected = set([
+        '--onetwo', '--three',
+        '--four-5', '-6', '--opt-with-ws=a b c'
+    ])
     assert expected.issubset(set(args))
 
 

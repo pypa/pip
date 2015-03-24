@@ -116,9 +116,17 @@ script as:
 
    python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
 
-Note that the correct way of giving more than one option to
-``setup.py`` is through multiple ``--global-option`` and
-``--install-option`` options, as shown in the example above.
+Note that the only way of giving more than one option to ``setup.py``
+is through multiple ``--global-option`` and ``--install-option``
+options, as shown in the example above. The value of each option is
+passed as a single argument to the ``setup.py`` script. Therefore, a
+line such as the following is invalid and would result in an
+installation error.
+
+::
+
+   # Invalid. Please use '--install-option' twice as shown above.
+   FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
 
 
 .. _`Pre Release Versions`:

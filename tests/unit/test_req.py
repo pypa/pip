@@ -554,29 +554,31 @@ def test_parse_flags_from_requirements(finder):
 
 
 def test_get_requirement_options():
-    res = parse_requirement_options('--install-option="--abc --zxc"')
-    assert res == {'install_options': ['--abc --zxc']}
-
     res = parse_requirement_options('--global-option "--abc"')
     assert res == {'global_options': ['--abc']}
 
+    # Note the '--arg-with-spaces=a b c' is passed as a single
+    # argument to setup.py.
+    res = parse_requirement_options('--install-option="--opt-spaces=a b c"')
+    assert res == {'install_options': ['--opt-spaces=a b c']}
+
     line = (
         'INITools==2.0 '
-        '--global-option="--one --two -3" '
+        '--global-option="--one --two=3 3.5" '
         '--global-option="--four" '
         '--install-option="--prefix=/opt" '
         '--install-option="--help" '
     )
     assert parse_line(line) == (REQUIREMENT, (
         'INITools==2.0', {
-            'global_options': ['--one --two -3', '--four'],
+            'global_options': ['--one --two=3 3.5', '--four'],
             'install_options': ['--prefix=/opt', '--help'],
         }))
 
 
 def test_install_requirements_with_options(tmpdir, finder, session):
     content = '''
-    INITools == 2.0 --global-option="--one --two -3" \
+    INITools == 2.0 --global-option="--one-two-3" \
                     --install-option "--prefix=/opt"
     '''
 
@@ -594,7 +596,7 @@ def test_install_requirements_with_options(tmpdir, finder, session):
             pass
 
         call = popen.call_args_list[0][0][0]
-        for i in '--one --two -3', '--prefix=/opt':
+        for i in '--one-two-3', '--prefix=/opt':
             assert i in call
 
     # TODO: assert that --global-option come before --install-option.
