@@ -97,19 +97,9 @@ def user_agent():
     if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
         data["distro"] = {"name": "OS X", "version": platform.mac_ver()[0]}
 
-    if platform.system():
-        data.setdefault("system", {})["name"] = platform.system()
-
-    if platform.release():
-        data.setdefault("system", {})["release"] = platform.release()
-
-    if platform.machine():
-        data["cpu"] = platform.machine()
-
-    return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
-        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
-    )
+    user_agent = ' '.join(["{item[name]}/{item[version]}".format(item=data[key])
+                  for key in ("installer", "implementation", "distro")])
+    return user_agent
 
 
 class MultiDomainBasicAuth(AuthBase):
