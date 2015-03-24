@@ -50,7 +50,23 @@ class Requirements(object):
 
 
 class DistAbstraction(object):
-    """Abstracts out the wheel vs non-wheel prepare_files logic."""
+    """Abstracts out the wheel vs non-wheel prepare_files logic.
+
+    The requirements for anything installable are as follows:
+     - we must be able to determine the requirement name
+       (or we can't correctly handle the non-upgrade case).
+     - we must be able to generate a list of run-time dependencies
+       without installing any additional packages (or we would
+       have to either burn time by doing temporary isolated installs
+       or alternatively violate pips 'don't start installing unless
+       all requirements are available' rule - neither of which are
+       desirable).
+     - for packages with setup requirements, we must also be able
+       to determine their requirements without installing additional
+       packages (for the same reason as run-time dependencies)
+     - we must be able to create a Distribution object exposing the
+       above metadata.
+    """
 
     def __init__(self, req_to_install):
         self.req_to_install = req_to_install
@@ -64,28 +80,37 @@ class DistAbstraction(object):
         raise NotImplementedError(self.dist)
 
 
+def make_abstract_dist(req_to_install):
+    """Factory to make an abstract dist object.
+
+    Preconditions: Either an editable req with a source_dir, or satisfied_by or
+    a wheel link, or a non-editable req with a source_dir.
+
+    :return: A concrete DistAbstraction.
+    """
+    if req_to_install.editable:
+        return IsSDist(req_to_install)
+    elif req_to_install.link and req_to_install.link.is_wheel:
+        return IsWheel(req_to_install)
+    else:
+        return IsSDist(req_to_install)
+
+
 class IsWheel(DistAbstraction):
 
-    def __init__(self, req_to_install, location, link):
-        super(IsWheel, self).__init__(req_to_install)
-        self.location = location
-        self.link = link
-
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(self.location))[0]
+        return list(pkg_resources.find_distributions(
+            self.req_to_install.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
-        self.req_to_install.link = self.link
+        pass
 
 
 class IsSDist(DistAbstraction):
 
     def dist(self, finder):
-        if self.req_to_install.satisfied_by:
-            dist = self.req_to_install.satisfied_by
-        else:
-            dist = self.req_to_install.get_dist()
+        dist = self.req_to_install.get_dist()
         # FIXME: shouldn't be globally added:
         if dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
@@ -96,6 +121,15 @@ class IsSDist(DistAbstraction):
     def prep_for_dist(self):
         self.req_to_install.run_egg_info()
         self.req_to_install.assert_source_matches_version()
+
+
+class Installed(DistAbstraction):
+
+    def dist(self, finder):
+        return self.req_to_install.satisfied_by
+
+    def prep_for_dist(self):
+        pass
 
 
 class RequirementSet(object):
@@ -113,6 +147,8 @@ class RequirementSet(object):
 
         self.build_dir = build_dir
         self.src_dir = src_dir
+        # XXX: download_dir and wheel_download_dir overlap semantically and may
+        # be combinable.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -278,193 +314,204 @@ class RequirementSet(object):
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
+    def _check_skip_installed(self, req_to_install, finder):
+        """Check if req_to_install should be skipped.
+
+        This will check if the req is installed, and whether we should upgrade
+        or reinstall it, taking into account all the relevant user options.
+
+        After calling this req_to_install will only have satisfied_by set to
+        None if the req_to_install is to be upgraded/reinstalled etc. Any
+        other value will be a dist recording the current thing installed that
+        satisfies the requirement.
+
+        Note that for vcs urls and the like we can't assess skipping in this
+        routine - we simply identify that we need to pull the thing down,
+        then later on it is pulled down and introspected to assess upgrade/
+        reinstalls etc.
+
+        :return: A text reason for why it was skipped, or None.
+        """
+        # Check whether to upgrade/reinstall this req or not.
+        req_to_install.check_if_exists()
+        if req_to_install.satisfied_by:
+            skip_reason = 'satisfied (use --upgrade to upgrade)'
+            # check that we don't already have an exact version match
+            # i.e. with at least one strict req operator
+            strict_req = set(('==', '===')) & set(
+                op for op, _ in req_to_install.req.specs)
+            if self.upgrade and (not strict_req or self.force_reinstall):
+                best_installed = False
+                # For link based requirements we have to pull the
+                # tree down and inspect to assess the version #, so
+                # its handled way down.
+                if not (self.force_reinstall or req_to_install.link):
+                    try:
+                        finder.find_requirement(req_to_install, self.upgrade)
+                    except BestVersionAlreadyInstalled:
+                        skip_reason = 'up-to-date'
+                        best_installed = True
+                    except DistributionNotFound:
+                        # No distribution found, so we squash the
+                        # error - it will be raised later when we
+                        # re-try later to do the install.
+                        # Why don't we just raise here?
+                        pass
+
+                if not best_installed:
+                    # don't uninstall conflict if user install and
+                    # conflict is not user install
+                    if not (self.use_user_site and not
+                            dist_in_usersite(req_to_install.satisfied_by)):
+                        req_to_install.conflicts_with = \
+                            req_to_install.satisfied_by
+                    req_to_install.satisfied_by = None
+            return skip_reason
+        else:
+            return None
+
     def _prepare_file(self, finder, req_to_install):
         """Prepare a single requirements files.
 
         :return: A list of addition InstallRequirements to also install.
         """
-        install = True
-        not_found = None
-
-        # ############################################# #
-        # # Search for archive to fulfill requirement # #
-        # ############################################# #
-
-        if not self.ignore_installed and not req_to_install.editable:
-            best_installed = False
-            req_to_install.check_if_exists()
-            if req_to_install.satisfied_by:
-                # check that we don't already have an exact version match
-                # i.e. with at least one strict req operator
-                strict_req = set(('==', '===')) & set(
-                    op for op, _ in req_to_install.req.specs)
-                if self.upgrade and (not strict_req or
-                                     self.force_reinstall):
-                    if not (self.force_reinstall or req_to_install.link):
-                        try:
-                            link = finder.find_requirement(
-                                req_to_install, self.upgrade)
-                        except BestVersionAlreadyInstalled:
-                            best_installed = True
-                            install = False
-                        except DistributionNotFound as exc:
-                            not_found = exc
-                        else:
-                            # Avoid the need to call find_requirement again
-                            req_to_install.link = link
-
-                    if not best_installed:
-                        # don't uninstall conflict if user install and
-                        # conflict is not user install
-                        if not (self.use_user_site and not
-                                dist_in_usersite(
-                                    req_to_install.satisfied_by
-                                )):
-                            req_to_install.conflicts_with = \
-                                req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
-                else:
-                    install = False
-            if req_to_install.satisfied_by:
-                if best_installed:
-                    logger.info(
-                        'Requirement already up-to-date: %s',
-                        req_to_install,
-                    )
-                else:
-                    logger.info(
-                        'Requirement already satisfied (use --upgrade to '
-                        'upgrade): %s',
-                        req_to_install,
-                    )
+        # Tell user what we are doing for this requirement:
+        # obtain (editable), skipping, processing (local url), collecting
+        # (remote url or package name)
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
-        elif install:
-            if (req_to_install.link and
-                    req_to_install.link.scheme == 'file'):
-                path = url_to_path(req_to_install.link.url)
-                logger.info('Processing %s', display_path(path))
+        else:
+            # satisfied_by is only evaluated by calling _check_skip_installed,
+            # so it must be None here.
+            assert req_to_install.satisfied_by is None
+            if not self.ignore_installed:
+                skip_reason = self._check_skip_installed(
+                    req_to_install, finder)
+
+            if req_to_install.satisfied_by:
+                assert skip_reason is not None, (
+                    '_check_skip_installed returned None but '
+                    'req_to_install.satisfied_by is set to %r'
+                    % (req_to_install.satisfied_by,))
+                logger.info(
+                    'Requirement already %s: %s', skip_reason,
+                    req_to_install)
             else:
-                logger.info('Collecting %s', req_to_install)
+                if (req_to_install.link and
+                        req_to_install.link.scheme == 'file'):
+                    path = url_to_path(req_to_install.link.url)
+                    logger.info('Processing %s', display_path(path))
+                else:
+                    logger.info('Collecting %s', req_to_install)
 
         with indent_log():
             # ################################ #
             # # vcs update or unpack archive # #
             # ################################ #
-            abstract_dist = IsSDist(req_to_install)
-            more_reqs = []
             if req_to_install.editable:
-                if req_to_install.source_dir is None:
-                    req_to_install.source_dir = (
-                        req_to_install.build_location(self.src_dir)
-                    )
-                location = req_to_install.source_dir
+                req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
+                abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
-            elif install:
+            elif req_to_install.satisfied_by:
+                abstract_dist = Installed(req_to_install)
+            else:
                 # @@ if filesystem packages are not marked
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-
-                # NB: This call can result in the creation of a temporary
-                # build directory
-                location = req_to_install.build_location(
-                    self.build_dir,
-                )
+                req_to_install.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
-                if os.path.exists(os.path.join(location, 'setup.py')):
+                # FIXME: this won't upgrade when there's an existing
+                # package unpacked in `req_to_install.source_dir`
+                if os.path.exists(
+                        os.path.join(req_to_install.source_dir, 'setup.py')):
                     raise PreviousBuildDirError(
                         "pip can't proceed with requirements '%s' due to a"
                         " pre-existing build directory (%s). This is "
                         "likely due to a previous installation that failed"
                         ". pip is being responsible and not assuming it "
                         "can delete this. Please delete it and try again."
-                        % (req_to_install, location)
+                        % (req_to_install, req_to_install.source_dir)
                     )
-                # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `location`
-                if req_to_install.link is None:
-                    if not_found:
-                        raise not_found
-                    link = finder.find_requirement(
+                req_to_install.populate_link(finder, self.upgrade)
+                # We can't hit this spot and have populate_link return None.
+                # req_to_install.satisfied_by is None here (because we're
+                # guarded) and upgrade has no impact except when satisfied_by
+                # is not None.
+                # Then inside find_requirement existing_applicable -> False
+                # If no new versions are found, DistributionNotFound is raised,
+                # otherwise a result is guaranteed.
+                assert req_to_install.link
+                try:
+                    if req_to_install.link.is_wheel and \
+                            self.wheel_download_dir:
+                        # when doing 'pip wheel`
+                        download_dir = self.wheel_download_dir
+                        do_download = True
+                    else:
+                        download_dir = self.download_dir
+                        do_download = self.is_download
+                    unpack_url(
+                        req_to_install.link, req_to_install.source_dir,
+                        download_dir, do_download, session=self.session,
+                    )
+                except requests.HTTPError as exc:
+                    logger.critical(
+                        'Could not install requirement %s because '
+                        'of error %s',
                         req_to_install,
-                        upgrade=self.upgrade,
+                        exc,
                     )
-                else:
-                    link = req_to_install.link
-                if link:
-                    try:
-                        if link.is_wheel and self.wheel_download_dir:
-                            # when doing 'pip wheel`
-                            download_dir = self.wheel_download_dir
-                            do_download = True
-                        else:
-                            download_dir = self.download_dir
-                            do_download = self.is_download
-                        unpack_url(
-                            link, location, download_dir,
-                            do_download, session=self.session,
-                        )
-                    except requests.HTTPError as exc:
-                        logger.critical(
-                            'Could not install requirement %s because '
-                            'of error %s',
+                    raise InstallationError(
+                        'Could not install requirement %s because '
+                        'of HTTP error %s for URL %s' %
+                        (req_to_install, exc, req_to_install.link)
+                    )
+                abstract_dist = make_abstract_dist(req_to_install)
+                abstract_dist.prep_for_dist()
+                if self.is_download:
+                    # Make a .zip of the source_dir we already created.
+                    if req_to_install.link.scheme in vcs.all_schemes:
+                        req_to_install.archive(self.download_dir)
+                # req_to_install.req is only avail after unpack for URL
+                # pkgs repeat check_if_exists to uninstall-on-upgrade
+                # (#14)
+                if not self.ignore_installed:
+                    req_to_install.check_if_exists()
+                if req_to_install.satisfied_by:
+                    if self.upgrade or self.ignore_installed:
+                        # don't uninstall conflict if user install and
+                        # conflict is not user install
+                        if not (self.use_user_site and not
+                                dist_in_usersite(
+                                    req_to_install.satisfied_by)):
+                            req_to_install.conflicts_with = \
+                                req_to_install.satisfied_by
+                        req_to_install.satisfied_by = None
+                    else:
+                        logger.info(
+                            'Requirement already satisfied (use '
+                            '--upgrade to upgrade): %s',
                             req_to_install,
-                            exc,
                         )
-                        raise InstallationError(
-                            'Could not install requirement %s because '
-                            'of HTTP error %s for URL %s' %
-                            (req_to_install, exc, link)
-                        )
-                    if link.is_wheel:
-                        abstract_dist = IsWheel(req_to_install, location, link)
-                    req_to_install.source_dir = location
-                    abstract_dist.prep_for_dist()
-                    if self.is_download:
-                        # Make a .zip of the source_dir we already created.
-                        if link.scheme in vcs.all_schemes:
-                            req_to_install.archive(self.download_dir)
-                    # req_to_install.req is only avail after unpack for URL
-                    # pkgs repeat check_if_exists to uninstall-on-upgrade
-                    # (#14)
-                    if not self.ignore_installed:
-                        req_to_install.check_if_exists()
-                    if req_to_install.satisfied_by:
-                        if self.upgrade or self.ignore_installed:
-                            # don't uninstall conflict if user install and
-                            # conflict is not user install
-                            if not (self.use_user_site and not
-                                    dist_in_usersite(
-                                        req_to_install.satisfied_by)):
-                                req_to_install.conflicts_with = \
-                                    req_to_install.satisfied_by
-                            req_to_install.satisfied_by = None
-                        else:
-                            logger.info(
-                                'Requirement already satisfied (use '
-                                '--upgrade to upgrade): %s',
-                                req_to_install,
-                            )
-                            install = False
 
             # ###################### #
             # # parse dependencies # #
             # ###################### #
-            if (req_to_install.extras):
-                logger.debug(
-                    "Installing extra requirements: %r",
-                    ','.join(req_to_install.extras),
-                )
-
             dist = abstract_dist.dist(finder)
+            more_reqs = []
 
             if not self.ignore_dependencies:
+                if (req_to_install.extras):
+                    logger.debug(
+                        "Installing extra requirements: %r",
+                        ','.join(req_to_install.extras),
+                    )
                 missing_requested = sorted(
                     set(req_to_install.extras) - set(dist.extras)
                 )
@@ -496,7 +543,10 @@ class RequirementSet(object):
             # cleanup tmp src
             self.reqs_to_cleanup.append(req_to_install)
 
-            if install:
+            if not req_to_install.editable and not req_to_install.satisfied_by:
+                # XXX: --no-install leads this to report 'Successfully
+                # downloaded' for only non-editable reqs, even though we took
+                # action on them.
                 self.successfully_downloaded.append(req_to_install)
 
         return more_reqs
