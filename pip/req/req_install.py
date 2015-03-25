@@ -325,6 +325,7 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
+        assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
         except ImportError:
