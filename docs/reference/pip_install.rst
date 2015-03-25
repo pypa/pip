@@ -18,6 +18,24 @@ Description
 
 .. _`Requirements File Format`:
 
+Installation Order
+++++++++++++++++++
+
+Pip installs dependencies before the things that depend on them. In the event
+of a dependency cycle, the first encountered member of the cycle is installed
+last.
+
+For instance, if quux depends on foo which depends on bar which depends on baz,
+which depends on foo::
+
+    pip install quux
+    ...
+    Installing collected packages baz, bar, foo, quux
+
+    pip install bar
+    ...
+    Installing collected packages foo, baz, bar
+
 Requirements File Format
 ++++++++++++++++++++++++
 
