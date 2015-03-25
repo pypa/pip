@@ -352,17 +352,20 @@ def test_parse_editable_local_extras(
     )
 
 
-@pytest.mark.network
-def test_remote_reqs_parse():
+@patch('pip.req.req_file.get_file_content')
+def test_remote_reqs_parse(get_file_content):
     """
     Test parsing a simple remote requirements file
     """
     # this requirements file just contains a comment
     # previously this has failed in py3: https://github.com/pypa/pip/issues/760
-    for req in parse_requirements(
-            'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
-            'tests/req_just_comment.txt', session=PipSession()):
-        pass
+    get_file_content.return_value = ('requirements.txt', '# just a comment\n')
+    session = PipSession()
+    reqs = list(
+        parse_requirements(
+            'https://raw.githubusercontent.com/pypa/pip-test-package/'
+            'master/tests/req_just_comment.txt', session=session))
+    assert reqs == []
 
 
 def test_req_file_parse_no_use_wheel(data):

@@ -106,6 +106,33 @@ def test_multiple_requirements_files(script, tmpdir):
     assert script.venv / 'src' / 'initools' in result.files_created
 
 
+@pytest.mark.network
+def test_remote_requirements_file_stuff(script):
+    """
+    Test installing from a simple remote requirements file
+    """
+    # this requirements file just contains a comment
+    url = ('https://raw.githubusercontent.com/pypa/pip/6.0.8/'
+           'dev-requirements.txt')
+    result = script.pip('install', '-r', url)
+    assert result.files_created[script.site_packages / 'pretend.py'].file
+    assert result.files_created[script.site_packages / '_pytest'].dir
+    assert result.files_created[script.site_packages / 'dateutil'].dir
+    assert result.files_created[script.site_packages / 'freezegun'].dir
+
+
+@pytest.mark.network
+def test_remote_requirements_file_empty(script):
+    """
+    Test installing from a remote requirements file with only a comment
+    """
+    # this requirements file just contains a comment
+    url = ('https://raw.githubusercontent.com/pypa/pip-test-package/master/'
+           'tests/req_just_comment.txt')
+    result = script.pip('install', '-r', url)
+    assert result.files_created == {}
+
+
 def test_respect_order_in_requirements_file(script, data):
     script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
         parent
