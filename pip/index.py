@@ -786,7 +786,7 @@ class PackageFinder(object):
             return None
 
     def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req, session=self.session)
+        return HTMLPage.get_page(link, session=self.session)
 
 
 class HTMLPage(object):
@@ -823,7 +823,7 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, req, skip_archives=True, session=None):
+    def get_page(cls, link, skip_archives=True, session=None):
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -900,32 +900,24 @@ class HTMLPage(object):
             )
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(req, link, exc, url, level=level)
+            cls._handle_fail(link, exc, url, level=level)
         except requests.ConnectionError as exc:
-            cls._handle_fail(
-                req, link, "connection error: %s" % exc, url,
-            )
+            cls._handle_fail(link, "connection error: %s" % exc, url)
         except requests.Timeout:
-            cls._handle_fail(req, link, "timed out", url)
+            cls._handle_fail(link, "timed out", url)
         except SSLError as exc:
             reason = ("There was a problem confirming the ssl certificate: "
                       "%s" % exc)
-            cls._handle_fail(
-                req, link, reason, url,
-                level=2,
-                meth=logger.info,
-            )
+            cls._handle_fail(link, reason, url, level=2, meth=logger.info)
         else:
             return inst
 
     @staticmethod
-    def _handle_fail(req, link, reason, url, level=1, meth=None):
+    def _handle_fail(link, reason, url, level=1, meth=None):
         if meth is None:
             meth = logger.debug
 
-        meth("Could not fetch URL %s: %s", link, reason)
-        meth("Will skip URL %s when looking for download links for %s" %
-             (link.url, req))
+        meth("Could not fetch URL %s: %s - skipping", link, reason)
 
     @staticmethod
     def _get_content_type(url, session):
