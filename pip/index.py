@@ -331,7 +331,7 @@ class PackageFinder(object):
 
                 url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
-                    url_name, req
+                    url_name,
                 ) or req.url_name
 
         if url_name is not None:
@@ -537,7 +537,7 @@ class PackageFinder(object):
 
         return selected_version
 
-    def _find_url_name(self, index_url, url_name, req):
+    def _find_url_name(self, index_url, url_name):
         """
         Finds the true URL name of a package, when the given name isn't quite
         correct.
@@ -551,7 +551,7 @@ class PackageFinder(object):
         if page is None:
             logger.critical('Cannot fetch index base URL %s', index_url)
             return
-        norm_name = normalize_name(req.url_name)
+        norm_name = normalize_name(url_name)
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
