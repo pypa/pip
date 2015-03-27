@@ -13,7 +13,8 @@ from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.req.req_install import InstallRequirement
-from pip.utils import display_path, dist_in_usersite, normalize_path
+from pip.utils import (
+    display_path, dist_in_usersite, ensure_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
 
@@ -294,6 +295,10 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        # make the wheelhouse
+        if self.wheel_download_dir:
+            ensure_dir(self.wheel_download_dir)
+
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
