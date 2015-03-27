@@ -6,9 +6,10 @@ import os
 import warnings
 
 from pip.basecommand import Command
+from pip.commands._utils import populate_requirement_set, BadOptions
 from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
@@ -190,36 +191,11 @@ class WheelCommand(Command):
                 if not os.path.exists(options.wheel_dir):
                     os.makedirs(options.wheel_dir)
 
-                # parse args and/or requirements files
-                for name in args:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_line(
-                            name, None, isolated=options.isolated_mode,
-                        )
-                    )
-                for name in options.editables:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_editable(
-                            name,
-                            default_vcs=options.default_vcs,
-                            isolated=options.isolated_mode,
-                        )
-                    )
-                for filename in options.requirements:
-                    for req in parse_requirements(
-                            filename,
-                            finder=finder,
-                            options=options,
-                            session=session):
-                        requirement_set.add_requirement(req)
-
-                # fail if no requirements
-                if not requirement_set.has_requirements:
-                    logger.error(
-                        "You must give at least one requirement to %s "
-                        "(see \"pip help %s\")",
-                        self.name, self.name,
-                    )
+                try:
+                    populate_requirement_set(
+                        requirement_set, args, options, logger, finder,
+                        session, self.name)
+                except BadOptions:
                     return
 
                 try:
