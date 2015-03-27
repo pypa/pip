@@ -320,7 +320,7 @@ class PackageFinder(object):
                 trusted=True,
             )
 
-            page = self._get_page(main_index_url, req)
+            page = self._get_page(main_index_url)
             if page is None and PyPI.netloc not in str(main_index_url):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
@@ -547,7 +547,7 @@ class PackageFinder(object):
             # Vaguely part of the PyPI API... weird but true.
             # FIXME: bad to modify this?
             index_url.url += '/'
-        page = self._get_page(index_url, req)
+        page = self._get_page(index_url)
         if page is None:
             logger.critical('Cannot fetch index base URL %s', index_url)
             return
@@ -575,7 +575,7 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = self._get_page(location, req)
+            page = self._get_page(location)
             if page is None:
                 continue
 
@@ -785,7 +785,7 @@ class PackageFinder(object):
         else:
             return None
 
-    def _get_page(self, link, req):
+    def _get_page(self, link):
         return HTMLPage.get_page(link, session=self.session)
 
 
