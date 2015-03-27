@@ -375,7 +375,7 @@ class PackageFinder(object):
         ))
 
         page_versions = []
-        for page in self._get_pages(locations, req):
+        for page in self._get_pages(locations, req.name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
@@ -561,13 +561,14 @@ class PackageFinder(object):
                 return base
         return None
 
-    def _get_pages(self, locations, req):
+    def _get_pages(self, locations, req_name):
         """
         Yields (page, page_url) from the given locations, skipping
         locations that have errors, and adding download/homepage links
         """
         all_locations = list(locations)
         seen = set()
+        normalized = normalize_name(req_name)
 
         while all_locations:
             location = all_locations.pop(0)
@@ -582,7 +583,6 @@ class PackageFinder(object):
             yield page
 
             for link in page.rel_links():
-                normalized = normalize_name(req.name).lower()
 
                 if (normalized not in self.allow_external and not
                         self.allow_all_external):
