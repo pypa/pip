@@ -338,15 +338,15 @@ class PackageFinder(object):
             return [mkurl_pypi_url(url) for url in self.index_urls]
         return []
 
-    def _find_all_versions(self, req):
-        """Find all available versions for req.project_name
+    def _find_all_versions(self, project_name):
+        """Find all available versions for project_name
 
         This checks index_urls, find_links and dependency_links
-        All versions are returned regardless of req.specifier
+        All versions found are returned
 
         See _link_package_versions for details on which files are accepted
         """
-        index_locations = self._get_index_urls_locations(req.name)
+        index_locations = self._get_index_urls_locations(project_name)
         file_locations, url_locations = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
         file_locations.extend(fl_file_loc)
@@ -363,7 +363,7 @@ class PackageFinder(object):
         locations.extend([Link(url) for url in _ulocations])
 
         logger.debug('%d location(s) to search for versions of %s:',
-                     len(locations), req)
+                     len(locations), project_name)
         for location in locations:
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
@@ -371,19 +371,19 @@ class PackageFinder(object):
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
-            req.name.lower()
+            project_name.lower()
         ))
 
         page_versions = []
-        for page in self._get_pages(locations, req.name):
+        for page in self._get_pages(locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, req.name.lower())
+                    self._package_versions(page.links, project_name.lower())
                 )
 
         dependency_versions = list(self._package_versions(
-            (Link(url) for url in self.dependency_links), req.name.lower()
+            (Link(url) for url in self.dependency_links), project_name.lower()
         ))
         if dependency_versions:
             logger.debug(
@@ -396,7 +396,7 @@ class PackageFinder(object):
         file_versions = list(
             self._package_versions(
                 (Link(url) for url in file_locations),
-                req.name.lower()
+                project_name.lower()
             )
         )
         if file_versions:
@@ -422,7 +422,7 @@ class PackageFinder(object):
         Returns an InstallationCandidate or None
         May raise DistributionNotFound or BestVersionAlreadyInstalled
         """
-        all_versions = self._find_all_versions(req)
+        all_versions = self._find_all_versions(req.name)
         # Filter out anything which doesn't match our specifier
 
         _versions = set(
