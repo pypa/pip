@@ -291,7 +291,7 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def _get_index_urls_locations(self, req_name):
+    def _get_index_urls_locations(self, project_name):
         """Returns the locations found via self.index_urls
 
         Checks the url_name on the main (first in the list) index and
@@ -299,7 +299,7 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, req_url_name)
+            loc = posixpath.join(url, project_url_name)
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -309,7 +309,7 @@ class PackageFinder(object):
                 loc = loc + '/'
             return loc
 
-        req_url_name = urllib_parse.quote(req_name.lower())
+        project_url_name = urllib_parse.quote(project_name.lower())
 
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
@@ -325,16 +325,16 @@ class PackageFinder(object):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
                     "your index to support normalized names as the name in "
-                    "/simple/{name}." % (req_name, main_index_url),
+                    "/simple/{name}." % (project_name, main_index_url),
                     RemovedInPip8Warning,
                 )
 
-                req_url_name = self._find_url_name(
+                project_url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
-                    req_url_name,
-                ) or req_url_name
+                    project_url_name,
+                ) or project_url_name
 
-        if req_url_name is not None:
+        if project_url_name is not None:
             return [mkurl_pypi_url(url) for url in self.index_urls]
         return []
 
@@ -561,14 +561,14 @@ class PackageFinder(object):
                 return base
         return None
 
-    def _get_pages(self, locations, req_name):
+    def _get_pages(self, locations, project_name):
         """
         Yields (page, page_url) from the given locations, skipping
         locations that have errors, and adding download/homepage links
         """
         all_locations = list(locations)
         seen = set()
-        normalized = normalize_name(req_name)
+        normalized = normalize_name(project_name)
 
         while all_locations:
             location = all_locations.pop(0)
