@@ -186,11 +186,6 @@ class WheelCommand(Command):
                     wheel_download_dir=options.wheel_dir
                 )
 
-                # make the wheelhouse
-                options.wheel_dir = normalize_path(options.wheel_dir)
-                if not os.path.exists(options.wheel_dir):
-                    os.makedirs(options.wheel_dir)
-
                 try:
                     populate_requirement_set(
                         requirement_set, args, options, logger, finder,
@@ -203,7 +198,6 @@ class WheelCommand(Command):
                     wb = WheelBuilder(
                         requirement_set,
                         finder,
-                        options.wheel_dir,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                     )

@@ -23,8 +23,7 @@ from pip._vendor.six import StringIO
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
-from pip.utils import (call_subprocess, normalize_path, make_path_relative,
-                       captured_stdout)
+from pip.utils import call_subprocess, make_path_relative, captured_stdout
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -543,11 +542,11 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=None,
+    def __init__(self, requirement_set, finder, build_options=None,
                  global_options=None):
         self.requirement_set = requirement_set
         self.finder = finder
-        self.wheel_dir = normalize_path(wheel_dir)
+        self.wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
 
