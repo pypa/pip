@@ -737,7 +737,7 @@ def test_get_index_urls_locations():
     finder = PackageFinder(
         [], ['file://index1/', 'file://index2'], session=PipSession())
     locations = finder._get_index_urls_locations(
-        InstallRequirement.from_line('Complex_Name'))
+        InstallRequirement.from_line('Complex_Name').name)
     assert locations == ['file://index1/complex-name/',
                          'file://index2/complex-name/']
 

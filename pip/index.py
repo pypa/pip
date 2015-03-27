@@ -291,7 +291,7 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def _get_index_urls_locations(self, req):
+    def _get_index_urls_locations(self, req_name):
         """Returns the locations found via self.index_urls
 
         Checks the url_name on the main (first in the list) index and
@@ -299,7 +299,7 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, url_name)
+            loc = posixpath.join(url, req_url_name)
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -309,7 +309,7 @@ class PackageFinder(object):
                 loc = loc + '/'
             return loc
 
-        url_name = req.url_name
+        req_url_name = urllib_parse.quote(req_name.lower())
 
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
@@ -325,16 +325,16 @@ class PackageFinder(object):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
                     "your index to support normalized names as the name in "
-                    "/simple/{name}." % (req.name, main_index_url),
+                    "/simple/{name}." % (req_name, main_index_url),
                     RemovedInPip8Warning,
                 )
 
-                url_name = self._find_url_name(
+                req_url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
-                    url_name,
-                ) or req.url_name
+                    req_url_name,
+                ) or req_url_name
 
-        if url_name is not None:
+        if req_url_name is not None:
             return [mkurl_pypi_url(url) for url in self.index_urls]
         return []
 
@@ -346,7 +346,7 @@ class PackageFinder(object):
 
         See _link_package_versions for details on which files are accepted
         """
-        index_locations = self._get_index_urls_locations(req)
+        index_locations = self._get_index_urls_locations(req.name)
         file_locations, url_locations = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
         file_locations.extend(fl_file_loc)

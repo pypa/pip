@@ -16,7 +16,6 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.six.moves import configparser
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 import pip.wheel
 
@@ -316,12 +315,6 @@ class InstallRequirement(object):
         if self.req is None:
             return None
         return native_str(self.req.project_name)
-
-    @property
-    def url_name(self):
-        if self.req is None:
-            return None
-        return urllib_parse.quote(self.req.project_name.lower())
 
     @property
     def setup_py(self):
