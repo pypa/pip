@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
 import functools
 import itertools
 import logging
@@ -170,6 +171,8 @@ class RequirementSet(object):
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
+        # Maps from install_req -> dependencies_of_install_req
+        self._dependencies = defaultdict(list)
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -184,13 +187,27 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
-    def add_requirement(self, install_req):
-        if not install_req.match_markers():
+    def add_requirement(self, install_req, parent_req_name=None):
+        """Add install_req as a requirement to install.
+
+        :param parent_req_name: The name of the requirement that needed this
+            added. The name is used because when multiple unnamed requirements
+            resolve to the same name, we could otherwise end up with dependency
+            links that point outside the Requirements set. parent_req must
+            already be added. Note that None implies that this is a user
+            supplied requirement, vs an inferred one.
+        :return: Additional requirements to scan. That is either [] if
+            the requirement is not applicable, or [install_req] if the
+            requirement is applicable and has just been added.
+        """
+        name = install_req.name
+        if ((not name or not self.has_requirement(name)) and not
+                install_req.match_markers()):
+            # Only log if we haven't already got install_req from somewhere.
             logger.debug("Ignore %s: markers %r don't match",
                          install_req.name, install_req.markers)
-            return
+            return []
 
-        name = install_req.name
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
@@ -198,15 +215,28 @@ class RequirementSet(object):
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
+            return [install_req]
         else:
-            if self.has_requirement(name):
+            if parent_req_name is None and self.has_requirement(name):
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, self.get_requirement(name), name))
-            self.requirements[name] = install_req
-            # FIXME: what about other normalizations?  E.g., _ vs. -?
-            if name.lower() != name:
-                self.requirement_aliases[name.lower()] = name
+            if not self.has_requirement(name):
+                # Add requirement
+                self.requirements[name] = install_req
+                # FIXME: what about other normalizations?  E.g., _ vs. -?
+                if name.lower() != name:
+                    self.requirement_aliases[name.lower()] = name
+                result = [install_req]
+            else:
+                # Canonicalise to the already-added object
+                install_req = self.get_requirement(name)
+                # No need to scan, this is a duplicate requirement.
+                result = []
+            if parent_req_name:
+                parent_req = self.get_requirement(parent_req_name)
+                self._dependencies[parent_req].append(install_req)
+            return result
 
     def has_requirement(self, project_name):
         for name in project_name, project_name.lower():
@@ -311,6 +341,11 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        # make the wheelhouse
+        if self.wheel_download_dir:
+            if not os.path.exists(self.wheel_download_dir):
+                os.makedirs(self.wheel_download_dir)
+
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
@@ -506,6 +541,21 @@ class RequirementSet(object):
             dist = abstract_dist.dist(finder)
             more_reqs = []
 
+            def add_req(subreq):
+                sub_install_req = InstallRequirement(
+                    str(subreq),
+                    req_to_install,
+                    isolated=self.isolated,
+                )
+                more_reqs.extend(self.add_requirement(
+                    sub_install_req, req_to_install.name))
+
+            # We add req_to_install before its dependencies, so that we
+            # can refer to it when adding dependencies.
+            if not self.has_requirement(req_to_install.name):
+                # 'unnamed' requirements will get added here
+                self.add_requirement(req_to_install, None)
+
             if not self.ignore_dependencies:
                 if (req_to_install.extras):
                     logger.debug(
@@ -525,20 +575,7 @@ class RequirementSet(object):
                     set(dist.extras) & set(req_to_install.extras)
                 )
                 for subreq in dist.requires(available_requested):
-                    if self.has_requirement(subreq.project_name):
-                        # FIXME: check for conflict
-                        continue
-                    subreq = InstallRequirement(
-                        str(subreq),
-                        req_to_install,
-                        isolated=self.isolated,
-                    )
-                    more_reqs.append(subreq)
-                    self.add_requirement(subreq)
-
-            if not self.has_requirement(req_to_install.name):
-                # 'unnamed' requirements will get added here
-                self.add_requirement(req_to_install)
+                    add_req(subreq)
 
             # cleanup tmp src
             self.reqs_to_cleanup.append(req_to_install)
@@ -570,13 +607,32 @@ class RequirementSet(object):
             )
         )
 
+    def _to_install(self):
+        """Create the installation order.
+
+        We install the user specified things in the order given, except when
+        dependencies require putting other things first.
+        """
+        order = []
+        ordered_reqs = set()
+
+        def schedule(req):
+            if req.satisfied_by or req in ordered_reqs:
+                return
+            ordered_reqs.add(req)
+            for dep in self._dependencies[req]:
+                schedule(dep)
+            order.append(req)
+        for install_req in self.requirements.values():
+            schedule(install_req)
+        return order
+
     def install(self, install_options, global_options=(), *args, **kwargs):
         """
         Install everything in this set (after having downloaded and unpacked
         the packages)
         """
-        to_install = [r for r in self.requirements.values()[::-1]
-                      if not r.satisfied_by]
+        to_install = self._to_install()
 
         # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
         # move the distribute-0.7.X wrapper to the end because it does not
