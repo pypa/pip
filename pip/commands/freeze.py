@@ -60,7 +60,8 @@ class FreezeCommand(Command):
             local_only=options.local,
             user_only=options.user,
             skip_regex=options.skip_requirements_regex,
-            isolated=options.isolated_mode)
+            isolated=options.isolated_mode,
+            cache_root=options.cache_dir)
 
         for line in freeze(**freeze_kwargs):
             sys.stdout.write(line + '\n')

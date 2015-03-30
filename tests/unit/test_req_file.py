@@ -182,7 +182,7 @@ class TestParseContent(object):
         import pip.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session):
+                                    session, cache_root):
             return [req]
         parse_requirements_stub = stub(call=stub_parse_requirements)
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements',

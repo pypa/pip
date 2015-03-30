@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import compileall
 import csv
+import errno
 import functools
 import hashlib
 import logging
@@ -20,6 +21,8 @@ from email.parser import Parser
 
 from pip._vendor.six import StringIO
 
+import pip
+from pip.download import path_to_url
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
@@ -37,6 +40,51 @@ VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
+
+
+def _cache_for_filename(cache_dir, sdistfilename):
+    """Return a directory to store cached wheels in for sdistfilename.
+
+    Because there are M wheels for any one sdist, we provide a directory
+    to cache them in, and then consult that directory when looking up
+    cache hits.
+
+    :param cache_dir: The cache_dir being used by pip.
+    :param sdistfilename: The filename of the sdist for which this will cache
+        wheels.
+    """
+    return os.path.join(cache_dir, 'wheels', sdistfilename)
+
+
+def cached_wheel(cache_dir, link):
+    if not cache_dir:
+        return link
+    if not link:
+        return link
+    if link.is_wheel:
+        return link
+    root = _cache_for_filename(cache_dir, link.filename)
+    try:
+        wheel_names = os.listdir(root)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            return link
+        raise
+    candidates = []
+    for wheel_name in wheel_names:
+        try:
+            wheel = Wheel(wheel_name)
+        except InvalidWheelFilename:
+            continue
+        if not wheel.supported():
+            # Built for a different python/arch/etc
+            continue
+        candidates.append((wheel.support_index_min(), wheel_name))
+    if not candidates:
+        return link
+    candidates.sort()
+    path = os.path.join(root, candidates[0][1])
+    return pip.index.Link(path_to_url(path), trusted=True)
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):

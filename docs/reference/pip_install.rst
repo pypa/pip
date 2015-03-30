@@ -388,6 +388,23 @@ Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
 
+Wheel cache
+***********
+
+Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
+any packages found there. This is disabled via the same ``no-cache-dir`` option
+that disables the HTTP cache. The internal structure of that cache is not part
+of the Pip API. As of 7.0 pip uses a subdirectory per sdist that wheels were
+built from, and wheels within that subdirectory.
+
+Pip attempts to choose the best wheels from those built in preference to
+building a new wheel. Note that this means when a package has both optional
+C extensions and builds `py` tagged wheels when the C extension can't be built
+that pip will not attempt to build a better wheel for Python's that would have
+supported it, once any generic wheel is built. To correct this, make sure that
+the wheel's are built with Python specific tags - e.g. pp on Pypy.
+
+
 Hash Verification
 +++++++++++++++++
 

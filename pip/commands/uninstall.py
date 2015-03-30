@@ -45,6 +45,7 @@ class UninstallCommand(Command):
 
             requirement_set = RequirementSet(
                 build_dir=None,
+                cache_root=options.cache_dir,
                 src_dir=None,
                 download_dir=None,
                 isolated=options.isolated_mode,
@@ -54,13 +55,15 @@ class UninstallCommand(Command):
                 requirement_set.add_requirement(
                     InstallRequirement.from_line(
                         name, isolated=options.isolated_mode,
+                        cache_root=options.cache_dir,
                     )
                 )
             for filename in options.requirements:
                 for req in parse_requirements(
                         filename,
                         options=options,
-                        session=session):
+                        session=session,
+                        cache_root=options.cache_dir):
                     requirement_set.add_requirement(req)
             if not requirement_set.has_requirements:
                 raise InstallationError(
