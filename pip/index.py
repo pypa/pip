@@ -1,6 +1,7 @@
 """Routines related to PyPI, indexes"""
 from __future__ import absolute_import
 
+from itertools import chain
 import logging
 import cgi
 import itertools
@@ -26,6 +27,7 @@ from pip.exceptions import (
 )
 from pip.download import url_to_path, path_to_url
 from pip.models import PyPI
+from pip.locations import WHEEL_CACHE_URL
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests, pkg_resources, six
@@ -103,7 +105,12 @@ class PackageFinder(object):
                  use_wheel=True, allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None):
+                 session=None, wheel_cache=True):
+        """Create a PackageFinder.
+
+        :param wheel_cache: If True (the default) the path for pip wheel
+            caching is added to the find_links setting.
+        """
         if session is None:
             raise TypeError(
                 "PackageFinder() missing 1 required keyword argument: "
@@ -116,7 +123,11 @@ class PackageFinder(object):
         # This is deliberately conservative - it might be fine just to
         # blindly normalize anything starting with a ~...
         self.find_links = []
-        for link in find_links:
+        if wheel_cache:
+            links = chain(find_links, [WHEEL_CACHE_URL()])
+        else:
+            links = find_links
+        for link in links:
             if link.startswith('~'):
                 new_link = normalize_path(link)
                 if os.path.exists(new_link):

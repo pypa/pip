@@ -10,6 +10,8 @@ import sys
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
+import pip
+
 from pip.compat import WINDOWS
 from pip.utils import appdirs
 
@@ -48,6 +50,15 @@ CA_BUNDLE_PATH = next((x for x in CA_BUNDLE_PATHS if os.path.exists(x)), None)
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
+
+
+# Not constants because HOME is mangled during tests.
+def WHEEL_CACHE_DIR():
+    return os.path.join(appdirs.user_cache_dir("pip"), 'wheels')
+
+
+def WHEEL_CACHE_URL():
+    return pip.download.path_to_url(WHEEL_CACHE_DIR())
 
 
 DELETE_MARKER_MESSAGE = '''\

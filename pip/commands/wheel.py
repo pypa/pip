@@ -152,6 +152,7 @@ class WheelCommand(RequirementCommand):
                 trusted_hosts=options.trusted_hosts,
                 process_dependency_links=options.process_dependency_links,
                 session=session,
+                wheel_cache=options.cache_dir,
             )
 
             build_delete = (not (options.no_clean or options.build_dir))

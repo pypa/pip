@@ -183,6 +183,7 @@ class InstallCommand(RequirementCommand):
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            wheel_cache=options.cache_dir and options.use_wheel,
         )
 
     def run(self, options, args):

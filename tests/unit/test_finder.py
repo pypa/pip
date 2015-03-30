@@ -6,6 +6,7 @@ import pip.pep425tags
 from pkg_resources import parse_version, Distribution
 from pip.req import InstallRequirement
 from pip.index import InstallationCandidate, PackageFinder, Link
+from pip.locations import WHEEL_CACHE_URL
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
@@ -767,3 +768,15 @@ def test_find_all_versions_find_links_and_index(data):
     versions = finder._find_all_versions('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
+
+
+def test_find_links_defaults_include_wheel_cache(data):
+    finder = PackageFinder(
+        [data.find_links], [], session=PipSession())
+    assert WHEEL_CACHE_URL() == finder.find_links[-1]
+
+
+def test_find_links_suppress_wheel_cache(data):
+    finder = PackageFinder(
+        [data.find_links], [], session=PipSession(), wheel_cache=False)
+    assert [data.find_links] == finder.find_links

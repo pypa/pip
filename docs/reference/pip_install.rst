@@ -350,6 +350,14 @@ Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
 
+Wheel cache
+***********
+
+Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
+any packages found there. This is disabled via the same ``no-cache-dir`` option
+that disables the HTTP cache.
+
+
 Hash Verification
 +++++++++++++++++
 

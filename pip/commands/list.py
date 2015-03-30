@@ -85,6 +85,7 @@ class ListCommand(Command):
             trusted_hosts=options.trusted_hosts,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            wheel_cache=options.cache_dir,
         )
 
     def run(self, options, args):
