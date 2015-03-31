@@ -30,7 +30,7 @@ from pip.locations import (
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
-    call_subprocess, read_text_file, FakeFile, _make_build_dir,
+    call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
 )
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
@@ -384,8 +384,7 @@ class InstallRequirement(object):
                 egg_base_option = []
             else:
                 egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
-                if not os.path.exists(egg_info_dir):
-                    os.makedirs(egg_info_dir)
+                ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             cwd = self.source_dir
             if self.editable_options and \

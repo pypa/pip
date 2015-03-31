@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import contextlib
+import errno
 import locale
 import logging
 import re
@@ -38,7 +39,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'remove_tracebacks',
+           'captured_stdout', 'remove_tracebacks', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS']
 
 
@@ -62,6 +63,15 @@ def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
         return __import__(pkg_or_module_string)
     except ImportError:
         raise ExceptionType(*args, **kwargs)
+
+
+def ensure_dir(path):
+    """os.path.makedirs without EEXIST."""
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 
 def get_prog():
@@ -515,8 +525,7 @@ def unzip_file(filename, location, flatten=True):
     written. Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
-    if not os.path.exists(location):
-        os.makedirs(location)
+    ensure_dir(location)
     zipfp = open(filename, 'rb')
     try:
         zip = zipfile.ZipFile(zipfp, allowZip64=True)
@@ -529,13 +538,11 @@ def unzip_file(filename, location, flatten=True):
                 fn = split_leading_dir(name)[1]
             fn = os.path.join(location, fn)
             dir = os.path.dirname(fn)
-            if not os.path.exists(dir):
-                os.makedirs(dir)
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
-                if not os.path.exists(fn):
-                    os.makedirs(fn)
+                ensure_dir(fn)
             else:
+                ensure_dir(dir)
                 fp = open(fn, 'wb')
                 try:
                     fp.write(data)
@@ -561,8 +568,7 @@ def untar_file(filename, location):
     written.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
-    if not os.path.exists(location):
-        os.makedirs(location)
+    ensure_dir(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
     elif filename.lower().endswith(BZ2_EXTENSIONS):
@@ -589,8 +595,7 @@ def untar_file(filename, location):
                 fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
             if member.isdir():
-                if not os.path.exists(path):
-                    os.makedirs(path)
+                ensure_dir(path)
             elif member.issym():
                 try:
                     tar._extract_member(member, path)
@@ -613,8 +618,7 @@ def untar_file(filename, location):
                         filename, member.name, exc,
                     )
                     continue
-                if not os.path.exists(os.path.dirname(path)):
-                    os.makedirs(os.path.dirname(path))
+                ensure_dir(os.path.dirname(path))
                 destfp = open(path, 'wb')
                 try:
                     shutil.copyfileobj(fp, destfp)

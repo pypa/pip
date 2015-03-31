@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import datetime
-import errno
 import json
 import logging
 import os.path
@@ -13,6 +12,7 @@ from pip._vendor import pkg_resources
 from pip.compat import total_seconds
 from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
+from pip.utils import ensure_dir
 from pip.utils.filesystem import check_path_owner
 
 
@@ -65,11 +65,7 @@ class GlobalSelfCheckState(object):
 
         # Now that we've ensured the directory is owned by this user, we'll go
         # ahead and make sure that all our directories are created.
-        try:
-            os.makedirs(os.path.dirname(self.statefile_path))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
+        ensure_dir(os.path.dirname(self.statefile_path))
 
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):

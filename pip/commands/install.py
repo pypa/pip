@@ -15,6 +15,7 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
 
@@ -302,8 +303,7 @@ class InstallCommand(RequirementCommand):
                         requirement_set.cleanup_files()
 
         if options.target_dir:
-            if not os.path.exists(options.target_dir):
-                os.makedirs(options.target_dir)
+            ensure_dir(options.target_dir)
 
             lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
 
