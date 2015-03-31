@@ -1,4 +1,3 @@
-import json
 import os.path
 import textwrap
 
@@ -105,41 +104,6 @@ def test_multiple_requirements_files(script, tmpdir):
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
     assert result.files_created[script.site_packages / fn].dir
     assert script.venv / 'src' / 'initools' in result.files_created
-
-
-def test_requirement_file_options(script, data, tmpdir):
-    """
-    Test setting --install-option and --global-option in requirements files.
-    """
-
-    # When the setuppyargs package is installed, it will write the
-    # arguments with which its setup.py file was called in
-    # PIPTEST_SETUPPYARGS_FILE.
-    setuppyargs_file = tmpdir / 'setup-py-args'
-    script.environ['PIPTEST_SETUPPYARGS_FILE'] = str(setuppyargs_file)
-
-    def getsetuppyargs(contents):
-        contents = textwrap.dedent(contents)
-        script.scratch_path.join('reqfileopts.txt').write(contents)
-        script.pip('install', '--no-index', '-f', data.find_links,
-                   '-r', script.scratch_path / 'reqfileopts.txt',
-                   expect_error=True)
-        return json.load(open(setuppyargs_file))
-
-    reqfile = '''
-    setuppyargs==1.0 --global-option="--onetwo"  \\
-                     --global-option="--three"   \\
-                     --install-option "--four-5" \\
-                     --install-option="-6" \\
-                     --install-option="--opt-with-ws=a b c"
-    '''
-
-    args = getsetuppyargs(reqfile)
-    expected = set([
-        '--onetwo', '--three',
-        '--four-5', '-6', '--opt-with-ws=a b c'
-    ])
-    assert expected.issubset(set(args))
 
 
 def test_respect_order_in_requirements_file(script, data):
