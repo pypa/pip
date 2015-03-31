@@ -662,3 +662,10 @@ def test_install_topological_sort(script, data):
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
+
+
+def test_install_wheel_broken(script, data):
+    script.pip('install', 'wheel')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links, 'wheelbroken')
+    assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
