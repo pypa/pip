@@ -732,3 +732,12 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     script.pip('install', '--upgrade', '--editable', pkgb_path)
     result = script.pip('list')
     assert "pkgb" in result.stdout
+
+
+def test_install_topological_sort(script, data):
+    to_install = data.packages.join('TopoRequires4')
+    args = ['install'] + [to_install, '-f', data.packages]
+    res = str(script.pip(*args, expect_error=False))
+    order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
+    order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
+    assert order1 in res or order2 in res, res
