@@ -138,7 +138,8 @@ class RequirementSet(object):
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
-                 isolated=False, wheel_download_dir=None):
+                 isolated=False, wheel_download_dir=None,
+                 installing_wheels=False):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -148,6 +149,8 @@ class RequirementSet(object):
         :param download_dir: Where still packed archives should be written to.
             If None they are not saved, and are deleted immediately after
             unpacking.
+        :param installing_wheels: If True, wheels will be getting installed and
+            should not be marked for pip deletion.
         """
         if session is None:
             raise TypeError(
@@ -158,10 +161,12 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
-        # be combinable.
+        # be combined if we're willing to have non-wheel archives present in
+        # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
+        self.installing_wheels = installing_wheels
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
         # Mapping of alias: real_name

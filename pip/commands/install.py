@@ -8,7 +8,9 @@ import shutil
 import warnings
 
 from pip.req import RequirementSet
-from pip.locations import virtualenv_no_global, distutils_scheme
+from pip.locations import (
+    virtualenv_no_global, distutils_scheme, WHEEL_CACHE_DIR,
+)
 from pip.basecommand import RequirementCommand
 from pip.index import PackageFinder
 from pip.exceptions import (
@@ -18,6 +20,7 @@ from pip import cmdoptions
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
+from pip.wheel import WheelBuilder
 
 
 logger = logging.getLogger(__name__)
@@ -234,16 +237,20 @@ class InstallCommand(RequirementCommand):
         with self._build_session(options) as session:
 
             finder = self._build_package_finder(options, index_urls, session)
-
             build_delete = (not (options.no_clean or options.build_dir))
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
+                if not options.cache_dir or options.download_dir:
+                    wheel_download_dir = None
+                else:
+                    wheel_download_dir = WHEEL_CACHE_DIR()
                 requirement_set = RequirementSet(
                     build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
                     as_egg=options.as_egg,
+                    installing_wheels=wheel_download_dir is not None,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
                     force_reinstall=options.force_reinstall,
@@ -252,6 +259,7 @@ class InstallCommand(RequirementCommand):
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
+                    wheel_download_dir=wheel_download_dir,
                 )
 
                 self.populate_requirement_set(
@@ -262,7 +270,21 @@ class InstallCommand(RequirementCommand):
                     return
 
                 try:
-                    requirement_set.prepare_files(finder)
+                    if options.download_dir:
+                        # on -d don't do complex things like building
+                        # wheels.
+                        requirement_set.prepare_files(finder)
+                    else:
+                        # build wheels before install.
+                        wb = WheelBuilder(
+                            requirement_set,
+                            finder,
+                            build_options=[],
+                            global_options=[],
+                        )
+                        # Ignore the result: a failed wheel will be
+                        # installed from the sdist/vcs whatever.
+                        wb.build(autobuilding=True)
 
                     if not options.download_dir:
                         requirement_set.install(

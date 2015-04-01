@@ -7,6 +7,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
+from pip.locations import WHEEL_CACHE_DIR
 from pip.utils import rmtree
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url)
@@ -669,3 +670,25 @@ def test_install_wheel_broken(script, data):
     res = script.pip(
         'install', '--no-index', '-f', data.find_links, 'wheelbroken')
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
+
+
+def test_install_builds_wheels(script, data):
+    # NB This incidentally tests a local tree + tarball inputs
+    # primary coverage for vcs and editables is from those dedicated tests.
+    script.pip('install', 'wheel')
+    to_install = data.packages.join('requires_wheelbroken_upper')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        to_install)
+    expected = ("Successfully installed requires-wheelbroken-upper-0"
+                " upper-2.0 wheelbroken-0.1")
+    # Must have installed it all
+    assert expected in str(res), str(res)
+    wheels = os.listdir(WHEEL_CACHE_DIR())
+    # and built wheels into the cache
+    assert wheels != [], str(res)
+    # and installed from the wheels
+    assert "Running setup.py install for upper" not in str(res), str(res)
+    assert "Running setup.py install for requires" not in str(res), str(res)
+    # wheelbroken has to run install
+    assert "Running setup.py install for wheelb" in str(res), str(res)
