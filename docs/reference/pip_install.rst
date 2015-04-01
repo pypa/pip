@@ -16,8 +16,6 @@ Description
 .. pip-command-description:: install
 
 
-.. _`Requirements File Format`:
-
 Installation Order
 ++++++++++++++++++
 
@@ -35,6 +33,9 @@ which depends on foo::
     pip install bar
     ...
     Installing collected packages foo, baz, bar
+
+
+.. _`Requirements File Format`:
 
 Requirements File Format
 ++++++++++++++++++++++++
@@ -524,5 +525,3 @@ Examples
  ::
 
   $ pip install --pre SomePackage
-
-
