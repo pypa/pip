@@ -162,7 +162,8 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
-        # be combinable.
+        # be combined if we're willing to have non-wheel archives present in
+        # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed

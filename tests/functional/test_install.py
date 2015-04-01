@@ -7,7 +7,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
-from pip.utils import rmtree
+from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url)
 from tests.lib.local_repos import local_checkout
@@ -144,12 +144,22 @@ def test_install_dev_version_from_pypi(script):
     )
 
 
-def test_install_editable_from_git(script, tmpdir):
+def _test_install_editable_from_git(script, tmpdir, wheel):
     """Test cloning from Git."""
+    if wheel:
+        script.pip('install', 'wheel')
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
     args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('testpackage', with_files=['.git'])
+
+
+def test_install_editable_from_git(script, tmpdir):
+    _test_install_editable_from_git(script, tmpdir, False)
+
+
+def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
+    _test_install_editable_from_git(script, tmpdir, True)
 
 
 def test_install_editable_from_hg(script, tmpdir):
@@ -667,5 +677,40 @@ def test_install_topological_sort(script, data):
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
-        'install', '--no-index', '-f', data.find_links, 'wheelbroken')
+        'install', '--no-index', '-f', data.find_links, 'wheelbroken',
+        expect_stderr=True)
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
+
+
+def test_install_builds_wheels(script, data):
+    # NB This incidentally tests a local tree + tarball inputs
+    # see test_install_editable_from_git_autobuild_wheel for editable
+    # vcs coverage.
+    script.pip('install', 'wheel')
+    to_install = data.packages.join('requires_wheelbroken_upper')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        to_install, expect_stderr=True)
+    expected = ("Successfully installed requires-wheelbroken-upper-0"
+                " upper-2.0 wheelbroken-0.1")
+    # Must have installed it all
+    assert expected in str(res), str(res)
+    root = appdirs.user_cache_dir('pip')
+    wheels = []
+    for top, dirs, files in os.walk(root):
+        wheels.extend(files)
+    # and built wheels for upper and wheelbroken
+    assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
+    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    # But not requires_wheel... which is a local dir and thus uncachable.
+    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # wheelbroken has to run install
+    # into the cache
+    assert wheels != [], str(res)
+    # and installed from the wheel
+    assert "Running setup.py install for upper" not in str(res), str(res)
+    # the local tree can't build a wheel (because we can't assume that every
+    # build will have a suitable unique key to cache on).
+    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # wheelbroken has to run install
+    assert "Running setup.py install for wheelb" in str(res), str(res)
