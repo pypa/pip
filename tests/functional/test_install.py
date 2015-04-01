@@ -735,8 +735,7 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
 
 
 def test_install_topological_sort(script, data):
-    to_install = data.packages.join('TopoRequires4')
-    args = ['install'] + [to_install, '-f', data.packages]
+    args = ['install', 'TopoRequires4', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
