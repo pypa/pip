@@ -155,6 +155,9 @@ class Serializer(object):
         try:
             cached = pickle.loads(data)
         except ValueError:
+            if isinstance(cached["response"]["body"], str):
+                cached["response"]["body"] = \
+                    str.encode(cached["response"]["body"])
             return
 
         return self.prepare_response(request, cached)
