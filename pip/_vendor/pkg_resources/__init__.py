@@ -36,6 +36,7 @@ import collections
 import plistlib
 import email.parser
 import tempfile
+import textwrap
 from pkgutil import get_importer
 
 PY3 = sys.version_info > (3,)
@@ -2261,9 +2262,16 @@ OBRACKET = re.compile(r"\s*\[").match
 CBRACKET = re.compile(r"\s*\]").match
 MODULE = re.compile(r"\w+(\.\w+)*$").match
 EGG_NAME = re.compile(
-    r"(?P<name>[^-]+)"
-    r"( -(?P<ver>[^-]+) (-py(?P<pyver>[^-]+) (-(?P<plat>.+))? )? )?",
-    re.VERBOSE | re.IGNORECASE
+    r"""
+    (?P<name>[^-]+) (
+        -(?P<ver>[^-]+) (
+            -py(?P<pyver>[^-]+) (
+                -(?P<plat>.+)
+            )?
+        )?
+    )?
+    """,
+    re.VERBOSE | re.IGNORECASE,
 ).match
 
 
@@ -2486,27 +2494,34 @@ class Distribution(object):
     def parsed_version(self):
         if not hasattr(self, "_parsed_version"):
             self._parsed_version = parse_version(self.version)
-            if isinstance(
-                    self._parsed_version, packaging.version.LegacyVersion):
-                # While an empty version is techincally a legacy version and
-                # is not a valid PEP 440 version, it's also unlikely to
-                # actually come from someone and instead it is more likely that
-                # it comes from setuptools attempting to parse a filename and
-                # including it in the list. So for that we'll gate this warning
-                # on if the version is anything at all or not.
-                if self.version:
-                    warnings.warn(
-                        "'%s (%s)' is being parsed as a legacy, non PEP 440, "
-                        "version. You may find odd behavior and sort order. "
-                        "In particular it will be sorted as less than 0.0. It "
-                        "is recommend to migrate to PEP 440 compatible "
-                        "versions." % (
-                            self.project_name, self.version,
-                        ),
-                        PEP440Warning,
-                    )
 
         return self._parsed_version
+
+    def _warn_legacy_version(self):
+        LV = packaging.version.LegacyVersion
+        is_legacy = isinstance(self._parsed_version, LV)
+        if not is_legacy:
+            return
+
+        # While an empty version is techincally a legacy version and
+        # is not a valid PEP 440 version, it's also unlikely to
+        # actually come from someone and instead it is more likely that
+        # it comes from setuptools attempting to parse a filename and
+        # including it in the list. So for that we'll gate this warning
+        # on if the version is anything at all or not.
+        if not self.version:
+            return
+
+        tmpl = textwrap.dedent("""
+            '{project_name} ({version})' is being parsed as a legacy,
+            non PEP 440,
+            version. You may find odd behavior and sort order.
+            In particular it will be sorted as less than 0.0. It
+            is recommend to migrate to PEP 440 compatible
+            versions.
+            """).strip().replace('\n', ' ')
+
+        warnings.warn(tmpl.format(**vars(self)), PEP440Warning)
 
     @property
     def version(self):
