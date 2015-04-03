@@ -49,6 +49,13 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
+try:
+    import bz2  # noqa
+    BZ2_SUPPORT = True
+except ImportError:
+    BZ2_SUPPORT = False
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -666,6 +673,10 @@ class PackageFinder(object):
                         ext,
                     )
                     self.logged_links.add(link)
+                return
+            if ext == '.tar.bz2' and not BZ2_SUPPORT:
+                logger.debug(
+                    'Skipping link %s; bz2 module is not available', link)
                 return
             if "macosx10" in link.path and ext == '.zip':
                 if link not in self.logged_links:
