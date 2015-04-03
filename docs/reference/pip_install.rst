@@ -25,7 +25,8 @@ to order.  While it may be coincidentally true that pip will install things in
 the order of the install arguments or in the order of the items in a
 requirements file, this is not a promise.
 
-In the event of a dependency cycle (aka "circular dependency"), the first
+In the event of a dependency cycle (aka "circular dependency"), the current
+implementation (which might possibly change later) has it such that the first
 encountered member of the cycle is installed last.
 
 For instance, if quux depends on foo which depends on bar which depends on baz,
@@ -47,9 +48,9 @@ installations should proceed in a way that leaves the environment usable at each
 step. This has two main practical benefits:
 
 1. Concurrent use of the environment during the install is more likely to work.
-2. A failed install won't leave broken packages.  Although pip would like to
-   support failure rollbacks eventually, in the mean time, this is an
-   improvement.
+2. A failed install is less likely to leave a broken environment.  Although pip
+   would like to support failure rollbacks eventually, in the mean time, this is
+   an improvement.
 
 Although the new install order is not intended to replace (and does not replace)
 the use of ``setup_requires`` to declare build dependencies, it may help certain
