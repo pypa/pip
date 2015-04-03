@@ -16,14 +16,18 @@ Description
 .. pip-command-description:: install
 
 
-.. _`Requirements File Format`:
-
 Installation Order
 ++++++++++++++++++
 
-Pip installs dependencies before the things that depend on them. In the event
-of a dependency cycle, the first encountered member of the cycle is installed
-last.
+As of v6.1.0, pip installs dependencies before their dependents, i.e. in
+"topological order".  This is the only commitment pip currently makes related
+to order.  While it may be coincidentally true that pip will install things in
+the order of the install arguments or in the order of the items in a
+requirements file, this is not a promise.
+
+In the event of a dependency cycle (aka "circular dependency"), the current
+implementation (which might possibly change later) has it such that the first
+encountered member of the cycle is installed last.
 
 For instance, if quux depends on foo which depends on bar which depends on baz,
 which depends on foo::
@@ -35,6 +39,33 @@ which depends on foo::
     pip install bar
     ...
     Installing collected packages foo, baz, bar
+
+
+Prior to v6.1.0, pip made no commitments about install order.
+
+The decision to install topologically is based on the principle that
+installations should proceed in a way that leaves the environment usable at each
+step. This has two main practical benefits:
+
+1. Concurrent use of the environment during the install is more likely to work.
+2. A failed install is less likely to leave a broken environment.  Although pip
+   would like to support failure rollbacks eventually, in the mean time, this is
+   an improvement.
+
+Although the new install order is not intended to replace (and does not replace)
+the use of ``setup_requires`` to declare build dependencies, it may help certain
+projects install from sdist (that might previously fail) that fit the following
+profile:
+
+1. They have build dependencies that are also declared as install dependencies
+   using ``install_requires``.
+2. ``python setup.py egg_info`` works without their build dependencies being
+   installed.
+3. For whatever reason, they don't or won't declare their build dependencies using
+   ``setup_requires``.
+
+
+.. _`Requirements File Format`:
 
 Requirements File Format
 ++++++++++++++++++++++++
@@ -524,5 +555,3 @@ Examples
  ::
 
   $ pip install --pre SomePackage
-
-

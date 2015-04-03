@@ -611,7 +611,7 @@ class RequirementSet(object):
         """
         # The current implementation, which we may change at any point
         # installs the user specified things in the order given, except when
-        # dependencies require putting other things first.
+        # dependencies must come earlier to achieve topological order.
         order = []
         ordered_reqs = set()
 
