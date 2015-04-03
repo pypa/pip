@@ -15,7 +15,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
-    Inf, cached_property, normalize_name, splitext, normalize_path)
+    Inf, cached_property, normalize_name, splitext, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS)
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -627,12 +628,6 @@ class PackageFinder(object):
             if v is not None:
                 yield v
 
-    def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
-        if self.use_wheel:
-            return extensions + (wheel_ext,)
-        return extensions
-
     def _link_package_versions(self, link, search_name):
         """Return an InstallationCandidate or None"""
         platform = get_platform()
@@ -651,13 +646,18 @@ class PackageFinder(object):
                 # Special double-extension case:
                 egg_info = egg_info[:-4]
                 ext = '.tar' + ext
-            if ext not in self._known_extensions():
+            if ext not in SUPPORTED_EXTENSIONS:
                 if link not in self.logged_links:
                     logger.debug(
-                        'Skipping link %s; unknown archive format: %s',
+                        'Skipping link %s; unsupported archive format: %s',
                         link,
                         ext,
                     )
+                    self.logged_links.add(link)
+                return
+            if not self.use_wheel and ext == wheel_ext:
+                if link not in self.logged_links:
+                    logger.debug('Skipping link %s; --no-use-wheel used', link)
                     self.logged_links.add(link)
                 return
             if "macosx10" in link.path and ext == '.zip':
@@ -827,7 +827,7 @@ class HTMLPage(object):
         try:
             if skip_archives:
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                for bad_ext in ARCHIVE_EXTENSIONS:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
                             url, session=session,

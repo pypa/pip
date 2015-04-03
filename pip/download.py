@@ -23,7 +23,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       call_subprocess)
+                       call_subprocess, ARCHIVE_EXTENSIONS)
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -453,11 +453,8 @@ def path_to_url(path):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = (
-        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.whl'
-    )
     ext = splitext(name)[1].lower()
-    if ext in archives:
+    if ext in ARCHIVE_EXTENSIONS:
         return True
     return False
 
