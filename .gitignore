@@ -9,3 +9,7 @@ MANIFEST
 *~
 .coverage
 coverage.xml
+pyvenv/
+.eggs/
+.idea/
+*.iml
