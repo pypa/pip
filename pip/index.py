@@ -628,6 +628,11 @@ class PackageFinder(object):
             if v is not None:
                 yield v
 
+    def _log_skipped_link(self, link, reason):
+        if link not in self.logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self.logged_links.add(link)
+
     def _link_package_versions(self, link, search_name):
         """Return an InstallationCandidate or None"""
         platform = get_platform()
@@ -638,52 +643,32 @@ class PackageFinder(object):
         else:
             egg_info, ext = link.splitext()
             if not ext:
-                if link not in self.logged_links:
-                    logger.debug('Skipping link %s; not a file', link)
-                    self.logged_links.add(link)
+                self._log_skipped_link(link, 'not a file')
                 return
             if ext not in SUPPORTED_EXTENSIONS:
-                if link not in self.logged_links:
-                    logger.debug(
-                        'Skipping link %s; unsupported archive format: %s',
-                        link,
-                        ext,
-                    )
-                    self.logged_links.add(link)
+                self._log_skipped_link(
+                    link, 'unsupported archive format: %s' % ext)
                 return
             if not self.use_wheel and ext == wheel_ext:
-                if link not in self.logged_links:
-                    logger.debug('Skipping link %s; --no-use-wheel used', link)
-                    self.logged_links.add(link)
+                self._log_skipped_link(link, '--no-use-wheel used')
                 return
             if "macosx10" in link.path and ext == '.zip':
-                if link not in self.logged_links:
-                    logger.debug('Skipping link %s; macosx10 one', link)
-                    self.logged_links.add(link)
+                self._log_skipped_link(link, 'macosx10 one')
                 return
             if ext == wheel_ext:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
-                    logger.debug(
-                        'Skipping %s because the wheel filename is invalid',
-                        link
-                    )
+                    self._log_skipped_link(link, 'invalid wheel filename')
                     return
                 if (pkg_resources.safe_name(wheel.name).lower() !=
                         pkg_resources.safe_name(search_name).lower()):
-                    logger.debug(
-                        'Skipping link %s; wrong project name (not %s)',
-                        link,
-                        search_name,
-                    )
+                    self._log_skipped_link(
+                        link, 'wrong project name (not %s)' % search_name)
                     return
                 if not wheel.supported():
-                    logger.debug(
-                        'Skipping %s because it is not compatible with this '
-                        'Python',
-                        link,
-                    )
+                    self._log_skipped_link(
+                        link, 'it is not compatible with this Python')
                     return
                 # This is a dirty hack to prevent installing Binary Wheels from
                 # PyPI unless it is a Windows or Mac Binary Wheel. This is
@@ -703,10 +688,10 @@ class PackageFinder(object):
                             comes_from.url
                         ).netloc.endswith(PyPI.netloc)):
                     if not wheel.supported(tags=supported_tags_noarch):
-                        logger.debug(
-                            "Skipping %s because it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform",
+                        self._log_skipped_link(
                             link,
+                            "it is a pypi-hosted binary "
+                            "Wheel on an unsupported platform",
                         )
                         return
                 version = wheel.version
@@ -714,11 +699,8 @@ class PackageFinder(object):
         if not version:
             version = self._egg_info_matches(egg_info, search_name, link)
         if version is None:
-            logger.debug(
-                'Skipping link %s; wrong project name (not %s)',
-                link,
-                search_name,
-            )
+            self._log_skipped_link(
+                link, 'wrong project name (not %s)' % search_name)
             return
 
         if (link.internal is not None and not
@@ -728,7 +710,7 @@ class PackageFinder(object):
                 self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
-            logger.debug("Skipping %s because it is externally hosted.", link)
+            self._log_skipped_link(link, 'it is externally hosted')
             self.need_warn_external = True
             return
 
@@ -739,10 +721,8 @@ class PackageFinder(object):
             # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
-            logger.debug(
-                "Skipping %s because it is an insecure and unverifiable file.",
-                link,
-            )
+            self._log_skipped_link(
+                link, 'it is an insecure and unverifiable file')
             self.need_warn_unverified = True
             return
 
@@ -751,9 +731,8 @@ class PackageFinder(object):
             version = version[:match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                logger.debug(
-                    'Skipping %s because Python version is incorrect', link
-                )
+                self._log_skipped_link(
+                    link, 'Python version is incorrect')
                 return
         logger.debug('Found link %s, version: %s', link, version)
 

@@ -134,7 +134,7 @@ class TestWheel:
             finder.find_requirement(req, True)
 
         assert (
-            "invalid.whl because the wheel filename is invalid"
+            "invalid.whl; invalid wheel filename"
             in caplog.text()
         )
 
