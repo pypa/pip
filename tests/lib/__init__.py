@@ -466,23 +466,23 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
-def _create_test_package(script, vcs='git'):
-    script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path / 'version_pkg'
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
+def _create_test_package(script, name='version_pkg', vcs='git'):
+    script.scratch_path.join(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
         def main():
             print('0.1')
     """))
     version_pkg_path.join("setup.py").write(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
-            name='version_pkg',
+            name='{name}',
             version='0.1',
             packages=find_packages(),
-            py_modules=['version_pkg'],
-            entry_points=dict(console_scripts=['version_pkg=version_pkg:main'])
+            py_modules=['{name}'],
+            entry_points=dict(console_scripts=['{name}={name}:main'])
         )
-    """))
+    """.format(name=name)))
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
@@ -500,17 +500,7 @@ def _create_test_package(script, vcs='git'):
             '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'svn':
-        repo_url = path_to_url(
-            script.scratch_path / 'pip-test-package-repo' / 'trunk')
-        script.run(
-            'svnadmin', 'create', 'pip-test-package-repo',
-            cwd=script.scratch_path
-        )
-        script.run(
-            'svn', 'import', version_pkg_path, repo_url,
-            '-m', 'Initial import of pip-test-package',
-            cwd=script.scratch_path
-        )
+        repo_url = _create_svn_repo(script, version_pkg_path)
         script.run(
             'svn', 'checkout', repo_url, 'pip-test-package',
             cwd=script.scratch_path
@@ -535,6 +525,21 @@ def _create_test_package(script, vcs='git'):
     else:
         raise ValueError('Unknown vcs: %r' % vcs)
     return version_pkg_path
+
+
+def _create_svn_repo(script, version_pkg_path):
+    repo_url = path_to_url(
+        script.scratch_path / 'pip-test-package-repo' / 'trunk')
+    script.run(
+        'svnadmin', 'create', 'pip-test-package-repo',
+        cwd=script.scratch_path
+    )
+    script.run(
+        'svn', 'import', version_pkg_path, repo_url,
+        '-m', 'Initial import of pip-test-package',
+        cwd=script.scratch_path
+    )
+    return repo_url
 
 
 def _change_test_package_version(script, version_pkg_path):

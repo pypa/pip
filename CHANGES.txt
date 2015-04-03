@@ -22,14 +22,21 @@
 * Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
   when used (:pull:`2441`).
 
-* Properly parse commit hashes when using the SSH transport to access a VCS
-  (:pull:`2513`).
-
 * Display a warning when an undefined extra has been requested. (:pull:`2142`)
 
 * Speed up installing a directory in certain cases by creating a sdist instead
   of copying the entire directory. (:pull:`2535`)
 
+* Speed up upgrading by skipping packages which use ``==`` and the specified
+  version is already installed. (:pull:`2493`)
+
+* Don't follow symlinks when uninstalling files (:pull:`2552`)
+
+* Upgrade the bundled copy of cachecontrol from 0.11.1 to 0.11.2.
+  Fixes :issue:`2481` (:pull:`2595`)
+
+* Attempt to more smartly choose the order of installation to try and install
+  dependencies before the projects that depend on them. (:pull:`2616`)
 
 **6.0.8 (2015-02-04)**
 

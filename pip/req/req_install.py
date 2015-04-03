@@ -16,7 +16,6 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.six.moves import configparser
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 import pip.wheel
 
@@ -41,7 +40,33 @@ from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
+_FILTER_INSTALL_OUTPUT_REGEX = re.compile(r"""
+    (?:^running\s.*) |
+    (?:^writing\s.*) |
+    (?:creating\s.*) |
+    (?:[Cc]opying\s.*) |
+    (?:^reading\s.*') |
+    (?:^removing\s.*\.egg-info'\s\(and\severything\sunder\sit\)$) |
+    (?:^byte-compiling) |
+    (?:^SyntaxError:) |
+    (?:^SyntaxWarning:) |
+    (?:^\s*Skipping\simplicit\sfixer:) |
+    (?:^\s*(warning:\s)?no\spreviously-included\s(files|directories)) |
+    (?:^\s*warning:\sno\sfiles\sfound matching\s\'.*\') |
+    (?:^\s*changing\smode\sof) |
+    # Not sure what this warning is, but it seems harmless:
+    (?:^warning:\smanifest_maker:\sstandard\sfile\s'-c'\snot found$)
+    """, re.VERBOSE)
+
+
 logger = logging.getLogger(__name__)
+
+
+def _filter_install(line):
+    level = logging.INFO
+    if _FILTER_INSTALL_OUTPUT_REGEX.search(line.strip()):
+        level = logging.DEBUG
+    return (level, line)
 
 
 class InstallRequirement(object):
@@ -205,6 +230,15 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
+    def populate_link(self, finder, upgrade):
+        """Ensure that if a link can be found for this, that it is found.
+
+        Note that self.link may still be None - if Upgrade is False and the
+        requirement is already installed.
+        """
+        if self.link is None:
+            self.link = finder.find_requirement(self, upgrade)
+
     @property
     def specifier(self):
         return self.req.specifier
@@ -283,13 +317,8 @@ class InstallRequirement(object):
         return native_str(self.req.project_name)
 
     @property
-    def url_name(self):
-        if self.req is None:
-            return None
-        return urllib_parse.quote(self.req.project_name.lower())
-
-    @property
     def setup_py(self):
+        assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
         except ImportError:
@@ -365,7 +394,7 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
-                filter_stdout=self._filter_install,
+                filter_stdout=_filter_install,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -818,7 +847,7 @@ exec(compile(
                 call_subprocess(
                     install_args + install_options,
                     cwd=self.source_dir,
-                    filter_stdout=self._filter_install,
+                    filter_stdout=_filter_install,
                     show_stdout=False,
                 )
 
@@ -870,6 +899,20 @@ exec(compile(
                 os.remove(record_filename)
             rmtree(temp_location)
 
+    def ensure_has_source_dir(self, parent_dir):
+        """Ensure that a source_dir is set.
+
+        This will create a temporary build dir if the name of the requirement
+        isn't known yet.
+
+        :param parent_dir: The ideal pip parent_dir for the source_dir.
+            Generally src_dir for editables and build_dir for sdists.
+        :return: self.source_dir
+        """
+        if self.source_dir is None:
+            self.source_dir = self.build_location(parent_dir)
+        return self.source_dir
+
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
@@ -912,33 +955,13 @@ exec(compile(
         self.install_succeeded = True
 
     def _filter_install(self, line):
-        level = logging.INFO
-        for regex in [
-                r'^running .*',
-                r'^writing .*',
-                '^creating .*',
-                '^[Cc]opying .*',
-                r'^reading .*',
-                r"^removing .*\.egg-info' \(and everything under it\)$",
-                r'^byte-compiling ',
-                r'^SyntaxError:',
-                r'^SyntaxWarning:',
-                r'^\s*Skipping implicit fixer: ',
-                r'^\s*(warning: )?no previously-included (files|directories) ',
-                r'^\s*warning: no files found matching \'.*\'',
-                r'^\s*changing mode of',
-                # Not sure what this warning is, but it seems harmless:
-                r"^warning: manifest_maker: standard file '-c' not found$"]:
-            if not line or re.search(regex, line.strip()):
-                level = logging.DEBUG
-                break
-        return (level, line)
+        return _filter_install(line)
 
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
-        self.conflicts_with appropriately."""
-
+        self.conflicts_with appropriately.
+        """
         if self.req is None:
             return False
         try:

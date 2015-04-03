@@ -291,7 +291,7 @@ class PackageFinder(object):
                 RemovedInPip7Warning,
             )
 
-    def _get_index_urls_locations(self, req):
+    def _get_index_urls_locations(self, project_name):
         """Returns the locations found via self.index_urls
 
         Checks the url_name on the main (first in the list) index and
@@ -299,7 +299,7 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, url_name)
+            loc = posixpath.join(url, project_url_name)
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -309,7 +309,7 @@ class PackageFinder(object):
                 loc = loc + '/'
             return loc
 
-        url_name = req.url_name
+        project_url_name = urllib_parse.quote(project_name.lower())
 
         if self.index_urls:
             # Check that we have the url_name correctly spelled:
@@ -320,33 +320,33 @@ class PackageFinder(object):
                 trusted=True,
             )
 
-            page = self._get_page(main_index_url, req)
+            page = self._get_page(main_index_url)
             if page is None and PyPI.netloc not in str(main_index_url):
                 warnings.warn(
                     "Failed to find %r at %s. It is suggested to upgrade "
                     "your index to support normalized names as the name in "
-                    "/simple/{name}." % (req.name, main_index_url),
+                    "/simple/{name}." % (project_name, main_index_url),
                     RemovedInPip8Warning,
                 )
 
-                url_name = self._find_url_name(
+                project_url_name = self._find_url_name(
                     Link(self.index_urls[0], trusted=True),
-                    url_name, req
-                ) or req.url_name
+                    project_url_name,
+                ) or project_url_name
 
-        if url_name is not None:
+        if project_url_name is not None:
             return [mkurl_pypi_url(url) for url in self.index_urls]
         return []
 
-    def _find_all_versions(self, req):
-        """Find all available versions for req.project_name
+    def _find_all_versions(self, project_name):
+        """Find all available versions for project_name
 
         This checks index_urls, find_links and dependency_links
-        All versions are returned regardless of req.specifier
+        All versions found are returned
 
         See _link_package_versions for details on which files are accepted
         """
-        index_locations = self._get_index_urls_locations(req)
+        index_locations = self._get_index_urls_locations(project_name)
         file_locations, url_locations = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
         file_locations.extend(fl_file_loc)
@@ -362,7 +362,8 @@ class PackageFinder(object):
         # We explicitly do not trust links that came from dependency_links
         locations.extend([Link(url) for url in _ulocations])
 
-        logger.debug('URLs to search for versions for %s:', req)
+        logger.debug('%d location(s) to search for versions of %s:',
+                     len(locations), project_name)
         for location in locations:
             logger.debug('* %s', location)
             self._validate_secure_origin(logger, location)
@@ -370,19 +371,19 @@ class PackageFinder(object):
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
-            req.name.lower()
+            project_name.lower()
         ))
 
         page_versions = []
-        for page in self._get_pages(locations, req):
+        for page in self._get_pages(locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, req.name.lower())
+                    self._package_versions(page.links, project_name.lower())
                 )
 
         dependency_versions = list(self._package_versions(
-            (Link(url) for url in self.dependency_links), req.name.lower()
+            (Link(url) for url in self.dependency_links), project_name.lower()
         ))
         if dependency_versions:
             logger.debug(
@@ -395,7 +396,7 @@ class PackageFinder(object):
         file_versions = list(
             self._package_versions(
                 (Link(url) for url in file_locations),
-                req.name.lower()
+                project_name.lower()
             )
         )
         if file_versions:
@@ -419,8 +420,9 @@ class PackageFinder(object):
 
         Expects req, an InstallRequirement and upgrade, a boolean
         Returns an InstallationCandidate or None
-        May raise DistributionNotFound or BestVersionAlreadyInstalled"""
-        all_versions = self._find_all_versions(req)
+        May raise DistributionNotFound or BestVersionAlreadyInstalled
+        """
+        all_versions = self._find_all_versions(req.name)
         # Filter out anything which doesn't match our specifier
 
         _versions = set(
@@ -535,7 +537,7 @@ class PackageFinder(object):
 
         return selected_version
 
-    def _find_url_name(self, index_url, url_name, req):
+    def _find_url_name(self, index_url, url_name):
         """
         Finds the true URL name of a package, when the given name isn't quite
         correct.
@@ -545,11 +547,11 @@ class PackageFinder(object):
             # Vaguely part of the PyPI API... weird but true.
             # FIXME: bad to modify this?
             index_url.url += '/'
-        page = self._get_page(index_url, req)
+        page = self._get_page(index_url)
         if page is None:
             logger.critical('Cannot fetch index base URL %s', index_url)
             return
-        norm_name = normalize_name(req.url_name)
+        norm_name = normalize_name(url_name)
         for link in page.links:
             base = posixpath.basename(link.path.rstrip('/'))
             if norm_name == normalize_name(base):
@@ -559,13 +561,14 @@ class PackageFinder(object):
                 return base
         return None
 
-    def _get_pages(self, locations, req):
+    def _get_pages(self, locations, project_name):
         """
         Yields (page, page_url) from the given locations, skipping
         locations that have errors, and adding download/homepage links
         """
         all_locations = list(locations)
         seen = set()
+        normalized = normalize_name(project_name)
 
         while all_locations:
             location = all_locations.pop(0)
@@ -573,14 +576,13 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = self._get_page(location, req)
+            page = self._get_page(location)
             if page is None:
                 continue
 
             yield page
 
             for link in page.rel_links():
-                normalized = normalize_name(req.name).lower()
 
                 if (normalized not in self.allow_external and not
                         self.allow_all_external):
@@ -783,8 +785,8 @@ class PackageFinder(object):
         else:
             return None
 
-    def _get_page(self, link, req):
-        return HTMLPage.get_page(link, req, session=self.session)
+    def _get_page(self, link):
+        return HTMLPage.get_page(link, session=self.session)
 
 
 class HTMLPage(object):
@@ -821,7 +823,7 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, req, skip_archives=True, session=None):
+    def get_page(cls, link, skip_archives=True, session=None):
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -898,32 +900,24 @@ class HTMLPage(object):
             )
         except requests.HTTPError as exc:
             level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(req, link, exc, url, level=level)
+            cls._handle_fail(link, exc, url, level=level)
         except requests.ConnectionError as exc:
-            cls._handle_fail(
-                req, link, "connection error: %s" % exc, url,
-            )
+            cls._handle_fail(link, "connection error: %s" % exc, url)
         except requests.Timeout:
-            cls._handle_fail(req, link, "timed out", url)
+            cls._handle_fail(link, "timed out", url)
         except SSLError as exc:
             reason = ("There was a problem confirming the ssl certificate: "
                       "%s" % exc)
-            cls._handle_fail(
-                req, link, reason, url,
-                level=2,
-                meth=logger.info,
-            )
+            cls._handle_fail(link, reason, url, level=2, meth=logger.info)
         else:
             return inst
 
     @staticmethod
-    def _handle_fail(req, link, reason, url, level=1, meth=None):
+    def _handle_fail(link, reason, url, level=1, meth=None):
         if meth is None:
             meth = logger.debug
 
-        meth("Could not fetch URL %s: %s", link, reason)
-        meth("Will skip URL %s when looking for download links for %s" %
-             (link.url, req))
+        meth("Could not fetch URL %s: %s - skipping", link, reason)
 
     @staticmethod
     def _get_content_type(url, session):
