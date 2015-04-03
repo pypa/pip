@@ -642,10 +642,6 @@ class PackageFinder(object):
                     logger.debug('Skipping link %s; not a file', link)
                     self.logged_links.add(link)
                 return
-            if egg_info.endswith('.tar'):
-                # Special double-extension case:
-                egg_info = egg_info[:-4]
-                ext = '.tar' + ext
             if ext not in SUPPORTED_EXTENSIONS:
                 if link not in self.logged_links:
                     logger.debug(
