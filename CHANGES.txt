@@ -27,9 +27,6 @@
 * Speed up installing a directory in certain cases by creating a sdist instead
   of copying the entire directory. (:pull:`2535`)
 
-* Speed up upgrading by skipping packages which use ``==`` and the specified
-  version is already installed. (:pull:`2493`)
-
 * Don't follow symlinks when uninstalling files (:pull:`2552`)
 
 * Upgrade the bundled copy of cachecontrol from 0.11.1 to 0.11.2.

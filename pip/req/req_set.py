@@ -366,11 +366,7 @@ class RequirementSet(object):
         req_to_install.check_if_exists()
         if req_to_install.satisfied_by:
             skip_reason = 'satisfied (use --upgrade to upgrade)'
-            # check that we don't already have an exact version match
-            # i.e. with at least one strict req operator
-            strict_req = set(('==', '===')) & set(
-                op for op, _ in req_to_install.req.specs)
-            if self.upgrade and (not strict_req or self.force_reinstall):
+            if self.upgrade:
                 best_installed = False
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
