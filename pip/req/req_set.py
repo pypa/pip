@@ -442,18 +442,27 @@ class RequirementSet(object):
                 # otherwise a result is guaranteed.
                 assert req_to_install.link
                 try:
-                    if req_to_install.link.is_wheel and \
-                            self.wheel_download_dir:
-                        # when doing 'pip wheel`
+                    download_dir = self.download_dir
+                    # We always delete unpacked sdists after pip ran.
+                    autodelete_unpacked = True
+                    if req_to_install.link.is_wheel \
+                            and self.wheel_download_dir:
+                        # when doing 'pip wheel` we download wheels to a
+                        # dedicated dir.
                         download_dir = self.wheel_download_dir
-                        do_download = True
-                    else:
-                        download_dir = self.download_dir
-                        do_download = self.is_download
+                    if req_to_install.link.is_wheel:
+                        if download_dir:
+                            # When downloading, we only unpack wheels to get
+                            # metadata.
+                            autodelete_unpacked = True
+                        else:
+                            # When installing a wheel, we use the unpacked
+                            # wheel.
+                            autodelete_unpacked = False
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
-                        download_dir, do_download, session=self.session,
-                    )
+                        download_dir, autodelete_unpacked,
+                        session=self.session)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
