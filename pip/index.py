@@ -138,7 +138,8 @@ class PackageFinder(object):
             )
             self.dependency_links.extend(links)
 
-    def _sort_locations(self, locations):
+    @staticmethod
+    def _sort_locations(locations, expand_dir=False):
         """
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
@@ -158,19 +159,19 @@ class PackageFinder(object):
 
             is_local_path = os.path.exists(url)
             is_file_url = url.startswith('file:')
-            is_find_link = url in self.find_links
 
             if is_local_path or is_file_url:
                 if is_local_path:
                     path = url
                 else:
                     path = url_to_path(url)
-                if is_find_link and os.path.isdir(path):
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif is_file_url and os.path.isdir(path):
-                    urls.append(url)
+                if os.path.isdir(path):
+                    if expand_dir:
+                        path = os.path.realpath(path)
+                        for item in os.listdir(path):
+                            sort_path(os.path.join(path, item))
+                    elif is_file_url:
+                        urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
             else:
@@ -343,7 +344,8 @@ class PackageFinder(object):
         """
         index_locations = self._get_index_urls_locations(project_name)
         file_locations, url_locations = self._sort_locations(index_locations)
-        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
+        fl_file_loc, fl_url_loc = self._sort_locations(
+            self.find_links, expand_dir=True)
         file_locations.extend(fl_file_loc)
         url_locations.extend(fl_url_loc)
 

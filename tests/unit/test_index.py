@@ -5,12 +5,12 @@ from pip.index import HTMLPage
 from pip.index import PackageFinder, Link, INSTALLED_VERSION
 
 
-def test_sort_locations_file_find_link(data):
+def test_sort_locations_file_expand_dir(data):
     """
-    Test that a file:// find-link dir gets listdir run
+    Test that a file:// dir gets listdir run with expand_dir
     """
     finder = PackageFinder([data.find_links], [], session=PipSession())
-    files, urls = finder._sort_locations([data.find_links])
+    files, urls = finder._sort_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
         "files and not urls should have been found at find-links url: %s" %
         data.find_links
