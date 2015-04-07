@@ -140,6 +140,16 @@ class RequirementSet(object):
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
                  isolated=False, wheel_download_dir=None):
+        """Create a RequirementSet.
+
+        :param wheel_download_dir: Where still-packed .whl files should be
+            written to. If None they are written to the download_dir parameter.
+            Separate to download_dir to permit only keeping wheel archives for
+            pip wheel.
+        :param download_dir: Where still packed archives should be written to.
+            If None they are not saved, and are deleted immediately after
+            unpacking.
+        """
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
