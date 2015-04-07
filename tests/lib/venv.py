@@ -37,7 +37,7 @@ class VirtualEnvironment(object):
         super(VirtualEnvironment, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<VirtualEnvironment {}>".format(self.location)
+        return "<VirtualEnvironment {0}>".format(self.location)
 
     @classmethod
     def create(cls, location, clear=False, pip_source_dir=None):
