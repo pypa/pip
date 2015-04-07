@@ -38,6 +38,10 @@
 * Skip trying to install libraries which are part of the standard library.
   (:pull:`2636`, :pull:`2602`)
 
+* Support arch specific wheels that are not tied to a specific Python ABI.
+  (:pull:`2561`)
+
+
 **6.0.8 (2015-02-04)**
 
 * Fix an issue where the ``--download`` flag would cause pip to no longer use
