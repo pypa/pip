@@ -1,4 +1,4 @@
-**6.1.0 (unreleased)**
+**6.1.0 (2015-04-07)**
 
 * Fixes :issue:`2502`. Upgrades were failing when no potential links were found
   for dependencies other than the current installation. (:pull:`2538`)
