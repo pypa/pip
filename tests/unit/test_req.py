@@ -405,3 +405,16 @@ def test_filter_install():
         INFO, 'foo bar')
     assert _filter_install('I made a SyntaxError') == (
         INFO, 'I made a SyntaxError')
+
+
+def test_exclusive_environment_markers():
+    """Make sure RequirementSet accepts several excluding env markers"""
+    eq26 = InstallRequirement.from_line(
+        "Django>=1.6.10,<1.7 ; python_version == '2.6'")
+    ne26 = InstallRequirement.from_line(
+        "Django>=1.6.10,<1.8 ; python_version != '2.6'")
+
+    req_set = RequirementSet('', '', '', session=PipSession())
+    req_set.add_requirement(eq26)
+    req_set.add_requirement(ne26)
+    assert req_set.has_requirement('Django')
