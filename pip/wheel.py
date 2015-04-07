@@ -23,8 +23,10 @@ from pip._vendor.six import StringIO
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
-from pip.utils import (call_subprocess, normalize_path, make_path_relative,
-                       captured_stdout)
+from pip.utils import (
+    call_subprocess, ensure_dir, normalize_path, make_path_relative,
+    captured_stdout,
+)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -175,8 +177,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
             changed.add(destfile)
 
     def clobber(source, dest, is_base, fixer=None, filter=None):
-        if not os.path.exists(dest):  # common for the 'include' path
-            os.makedirs(dest)
+        ensure_dir(dest)  # common for the 'include' path
 
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
@@ -204,8 +205,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # directory creation is lazy and after the file filtering above
                 # to ensure we don't install empty dirs; empty dirs can't be
                 # uninstalled.
-                if not os.path.exists(destdir):
-                    os.makedirs(destdir)
+                ensure_dir(destdir)
 
                 # We use copyfile (not move, copy, or copy2) to be extra sure
                 # that we are not moving directories over (copyfile fails for
