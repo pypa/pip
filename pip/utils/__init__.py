@@ -38,10 +38,23 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'remove_tracebacks']
+           'captured_stdout', 'remove_tracebacks',
+           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS']
 
 
 logger = logging.getLogger(__name__)
+
+
+BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
+ZIP_EXTENSIONS = ('.zip', '.whl')
+TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
+ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+try:
+    import bz2  # noqa
+    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+except ImportError:
+    logger.debug('bz2 module is not available')
+    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 
 def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
@@ -552,8 +565,7 @@ def untar_file(filename, location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
-    elif (filename.lower().endswith('.bz2') or
-            filename.lower().endswith('.tbz')):
+    elif filename.lower().endswith(BZ2_EXTENSIONS):
         mode = 'r:bz2'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
@@ -621,8 +633,7 @@ def untar_file(filename, location):
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
     if (content_type == 'application/zip' or
-            filename.endswith('.zip') or
-            filename.endswith('.whl') or
+            filename.lower().endswith(ZIP_EXTENSIONS) or
             zipfile.is_zipfile(filename)):
         unzip_file(
             filename,
@@ -631,8 +642,7 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip' or
             tarfile.is_tarfile(filename) or
-            splitext(filename)[1].lower() in (
-                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+            filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS)):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html') and
             is_svn_page(file_contents(filename))):
