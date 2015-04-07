@@ -212,6 +212,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # directories) as well as to ensure that we are not copying
                 # over any metadata because we want more control over what
                 # metadata we actually copy over.
+                logger.debug('Copying %s to %s ...', srcfile, destfile)
                 shutil.copyfile(srcfile, destfile)
 
                 # Copy over the metadata for the file, currently this only
