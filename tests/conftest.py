@@ -12,6 +12,8 @@ from tests.lib.venv import VirtualEnvironment
 
 def pytest_collection_modifyitems(items):
     for item in items:
+        if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
+            continue
         module_path = os.path.relpath(
             item.module.__file__,
             os.path.commonprefix([__file__, item.module.__file__]),
