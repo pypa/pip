@@ -16,6 +16,15 @@ Description
 .. pip-command-description:: install
 
 
+Overview
+++++++++
+
+Pip install has several stages:
+
+1. Resolve dependencies. What will be installed is determined here.
+2. Build wheels. All the dependencies that can be are built into wheels.
+3. Install the packages (and uninstall anything being upgraded/replaced).
+
 Installation Order
 ++++++++++++++++++
 
@@ -350,6 +359,14 @@ Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
 
+Wheel cache
+***********
+
+Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
+any packages found there. This is disabled via the same ``no-cache-dir`` option
+that disables the HTTP cache.
+
+
 Hash Verification
 +++++++++++++++++
 
@@ -443,6 +460,10 @@ implement the following command::
 
 This should implement the complete process of installing the package in
 "editable" mode.
+
+All packages will be attempted to built into wheels::
+
+    setup.py bdist_wheel -d XXX
 
 One further ``setup.py`` command is invoked by ``pip install``::
 

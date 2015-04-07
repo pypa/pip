@@ -104,4 +104,7 @@ requires_simple_extra-0.1-py2.py3-none-any.whl
 ----------------------------------------------
 requires_simple_extra[extra] requires simple==1.0
 
-
+requires_wheelbroken_upper
+--------------------------
+Requires wheelbroken and upper - used for testing implicit wheel building
+during install.

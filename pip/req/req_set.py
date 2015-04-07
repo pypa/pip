@@ -138,7 +138,20 @@ class RequirementSet(object):
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
-                 isolated=False, wheel_download_dir=None):
+                 isolated=False, wheel_download_dir=None,
+                 installing_wheels=False):
+        """Create a RequirementSet.
+
+        :param wheel_download_dir: Where still-packed .whl files should be
+            written to. If None they are written to the download_dir parameter.
+            Separate to download_dir to permit only keeping wheel archives for
+            pip wheel.
+        :param download_dir: Where still packed archives should be written to.
+            If None they are not saved, and are deleted immediately after
+            unpacking.
+        :param installing_wheels: If True, wheels will be getting installed and
+            should not be marked for pip deletion.
+        """
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
@@ -148,10 +161,12 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
-        # be combinable.
+        # be combined if we're willing to have non-wheel archives present in
+        # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
+        self.installing_wheels = installing_wheels
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
         # Mapping of alias: real_name
@@ -294,6 +309,11 @@ class RequirementSet(object):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        # make the wheelhouse
+        if self.wheel_download_dir:
+            if not os.path.exists(self.wheel_download_dir):
+                os.makedirs(self.wheel_download_dir)
+
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
@@ -431,13 +451,11 @@ class RequirementSet(object):
                             self.wheel_download_dir:
                         # when doing 'pip wheel`
                         download_dir = self.wheel_download_dir
-                        do_download = True
                     else:
                         download_dir = self.download_dir
-                        do_download = self.is_download
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
-                        download_dir, do_download, session=self.session,
+                        download_dir, True, session=self.session,
                     )
                 except requests.HTTPError as exc:
                     logger.critical(

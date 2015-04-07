@@ -4,6 +4,8 @@ import shutil
 import py
 import pytest
 
+from pip import locations
+
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -119,7 +121,7 @@ def isolate(tmpdir):
 
 
 @pytest.fixture
-def virtualenv(tmpdir, monkeypatch):
+def virtualenv(tmpdir, monkeypatch, isolate):
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
@@ -147,6 +149,9 @@ def virtualenv(tmpdir, monkeypatch):
         tmpdir.join("workspace", "venv"),
         pip_source_dir=pip_src,
     )
+
+    # Clean out our cache.
+    shutil.rmtree(locations.WHEEL_CACHE_DIR())
 
     # Undo our monkeypatching of shutil
     monkeypatch.undo()

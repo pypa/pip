@@ -19,6 +19,9 @@
 * Ignores bz2 archives if Python wasn't compiled with bz2 support.
   Fixes :issue:`497`
 
+* Build Wheels prior to installing from sdist, caching them in the pip cache
+  directory to speed up subsequent installs. (:pull:`2618`)
+
 
 **6.1.1 (2015-04-07)**
 

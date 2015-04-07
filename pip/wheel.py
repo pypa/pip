@@ -13,6 +13,7 @@ import re
 import shutil
 import stat
 import sys
+import tempfile
 import warnings
 
 from base64 import urlsafe_b64encode
@@ -20,12 +21,13 @@ from email.parser import Parser
 
 from pip._vendor.six import StringIO
 
+import pip
+from pip.download import path_to_url, unpack_url
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip.locations import distutils_scheme
+from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, normalize_path, make_path_relative,
-    captured_stdout,
+    call_subprocess, ensure_dir, make_path_relative, captured_stdout, rmtree,
 )
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -543,17 +545,34 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, wheel_dir, build_options=None,
+    def __init__(self, requirement_set, finder, build_options=None,
                  global_options=None):
         self.requirement_set = requirement_set
         self.finder = finder
-        self.wheel_dir = normalize_path(wheel_dir)
+        self.wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
 
     def _build_one(self, req):
-        """Build one wheel."""
+        """Build one wheel.
 
+        :return: The filename of the built wheel, or None if the build failed.
+        """
+        tempd = tempfile.mkdtemp('pip-wheel-')
+        try:
+            if self.__build_one(req, tempd):
+                try:
+                    wheel_name = os.listdir(tempd)[0]
+                    wheel_path = os.path.join(self.wheel_dir, wheel_name)
+                    os.rename(os.path.join(tempd, wheel_name), wheel_path)
+                    return wheel_path
+                except:
+                    return None
+            return None
+        finally:
+            rmtree(tempd)
+
+    def __build_one(self, req, tempd):
         base_args = [
             sys.executable, '-c',
             "import setuptools;__file__=%r;"
@@ -563,7 +582,7 @@ class WheelBuilder(object):
 
         logger.info('Running setup.py bdist_wheel for %s', req.name)
         logger.info('Destination directory: %s', self.wheel_dir)
-        wheel_args = base_args + ['bdist_wheel', '-d', self.wheel_dir] \
+        wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
             + self.build_options
         try:
             call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
@@ -572,10 +591,14 @@ class WheelBuilder(object):
             logger.error('Failed building wheel for %s', req.name)
             return False
 
-    def build(self):
-        """Build wheels."""
+    def build(self, autobuilding=True):
+        """Build wheels.
 
-        # unpack and constructs req set
+        :param unpack: If True, replace the sdist we built from the with the
+            newly built wheel, in preparation for installation.
+        :return: True if all the wheels built correctly.
+        """
+        # unpack sdists and constructs req set
         self.requirement_set.prepare_files(self.finder)
 
         reqset = self.requirement_set.requirements.values()
@@ -583,13 +606,15 @@ class WheelBuilder(object):
         buildset = []
         for req in reqset:
             if req.is_wheel:
-                logger.info(
-                    'Skipping %s, due to already being wheel.', req.name,
-                )
+                if autobuilding:
+                    logger.info(
+                        'Skipping %s, due to already being wheel.', req.name)
             elif req.editable:
                 logger.info(
-                    'Skipping %s, due to being editable', req.name,
-                )
+                    'Skipping bdist_wheel for %s, due to being editable',
+                    req.name)
+            elif autobuilding and not req.source_dir:
+                pass
             else:
                 buildset.append(req)
 
@@ -604,8 +629,32 @@ class WheelBuilder(object):
         with indent_log():
             build_success, build_failure = [], []
             for req in buildset:
-                if self._build_one(req):
+                wheel_file = self._build_one(req)
+                if wheel_file:
                     build_success.append(req)
+                    if autobuilding:
+                        # XXX: This is mildly duplicative with prepare_files,
+                        # but not close enough to pull out to a single common
+                        # method.
+                        # The code below assumes temporary source dirs -
+                        # prevent it doing bad things.
+                        if req.source_dir and not os.path.exists(os.path.join(
+                                req.source_dir, PIP_DELETE_MARKER_FILENAME)):
+                            raise Exception("bad source dir - missing marker")
+                        # Delete the source we built the wheel from
+                        req.remove_temporary_source()
+                        # set the build directory again - name is known from
+                        # the work prepare_files did.
+                        req.source_dir = req.build_location(
+                            self.requirement_set.build_dir)
+                        # Update the link for this.
+                        req.link = pip.index.Link(
+                            path_to_url(wheel_file), trusted=True)
+                        assert req.link.is_wheel
+                        # extract the wheel into the dir
+                        unpack_url(
+                            req.link, req.source_dir, None, False,
+                            session=self.requirement_set.session)
                 else:
                     build_failure.append(req)
 
