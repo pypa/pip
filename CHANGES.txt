@@ -43,6 +43,13 @@
 
 * Output warnings and errors to stderr instead of stdout. (:pull:`2543`)
 
+* Adjust the cache dir file checks to only check ownership if the effective
+  user is root. (:pull:`2396`)
+
+* Install headers into a per project name directory instead of all of them into
+  the root directory when inside of a virtual environment. (:pull:`2421`)
+
+
 
 **6.0.8 (2015-02-04)**
 
