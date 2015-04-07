@@ -189,7 +189,7 @@
   it's internal HTTP cache which supplants the ``--download-cache`` the
   existing options have been made non functional but will still be accepted
   until their removal in pip v8.0. For more information please see
-  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+  https://pip.pypa.io/en/stable/reference/pip_install.html#caching
 
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
   *NOT* deprecated.  This reverses the deprecation that occurred in v1.5.3. See

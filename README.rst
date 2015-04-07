@@ -5,9 +5,9 @@ The `PyPA recommended
 <https://python-packaging-user-guide.readthedocs.org/en/latest/current.html>`_
 tool for installing Python packages.
 
-* `Installation <https://pip.pypa.io/en/latest/installing.html>`_
+* `Installation <https://pip.pypa.io/en/stable/installing.html>`_
 * `Documentation <https://pip.pypa.io/>`_
-* `Changelog <https://pip.pypa.io/en/latest/news.html>`_
+* `Changelog <https://pip.pypa.io/en/stable/news.html>`_
 * `Github Page <https://github.com/pypa/pip>`_
 * `Issue Tracking <https://github.com/pypa/pip/issues>`_
 * `Mailing list <http://groups.google.com/group/python-virtualenv>`_
