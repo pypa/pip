@@ -5,13 +5,12 @@ import pip.pep425tags
 
 from pkg_resources import parse_version, Distribution
 from pip.req import InstallRequirement
-from pip.index import PackageFinder, Link
+from pip.index import InstallationCandidate, PackageFinder, Link
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
 from pip.utils import Inf
 from pip.download import PipSession
-from pip.req.req_requirement import InstallationCandidate
 
 from mock import Mock, patch
 
