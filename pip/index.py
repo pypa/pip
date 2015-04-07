@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import logging
 import cgi
+import itertools
 import sys
 import os
 import re
@@ -138,7 +139,8 @@ class PackageFinder(object):
             )
             self.dependency_links.extend(links)
 
-    def _sort_locations(self, locations):
+    @staticmethod
+    def _sort_locations(locations, expand_dir=False):
         """
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
@@ -158,19 +160,19 @@ class PackageFinder(object):
 
             is_local_path = os.path.exists(url)
             is_file_url = url.startswith('file:')
-            is_find_link = url in self.find_links
 
             if is_local_path or is_file_url:
                 if is_local_path:
                     path = url
                 else:
                     path = url_to_path(url)
-                if is_find_link and os.path.isdir(path):
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif is_file_url and os.path.isdir(path):
-                    urls.append(url)
+                if os.path.isdir(path):
+                    if expand_dir:
+                        path = os.path.realpath(path)
+                        for item in os.listdir(path):
+                            sort_path(os.path.join(path, item))
+                    elif is_file_url:
+                        urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
             else:
@@ -342,31 +344,33 @@ class PackageFinder(object):
         See _link_package_versions for details on which files are accepted
         """
         index_locations = self._get_index_urls_locations(project_name)
-        file_locations, url_locations = self._sort_locations(index_locations)
-        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
-        file_locations.extend(fl_file_loc)
-        url_locations.extend(fl_url_loc)
+        index_file_loc, index_url_loc = self._sort_locations(index_locations)
+        fl_file_loc, fl_url_loc = self._sort_locations(
+            self.find_links, expand_dir=True)
+        dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        _flocations, _ulocations = self._sort_locations(self.dependency_links)
-        file_locations.extend(_flocations)
+        file_locations = (
+            Link(url) for url in itertools.chain(
+                index_file_loc, fl_file_loc, dep_file_loc)
+        )
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
-        locations = [Link(url, trusted=True) for url in url_locations]
-
         # We explicitly do not trust links that came from dependency_links
-        locations.extend([Link(url) for url in _ulocations])
-
         # We want to filter out any thing which does not have a secure origin.
-        locations = [
-            l for l in locations
-            if self._validate_secure_origin(logger, l)
+        url_locations = [
+            link for link in itertools.chain(
+                (Link(url, trusted=True) for url in index_url_loc),
+                (Link(url, trusted=True) for url in fl_url_loc),
+                (Link(url) for url in dep_url_loc),
+            )
+            if self._validate_secure_origin(logger, link)
         ]
 
         logger.debug('%d location(s) to search for versions of %s:',
-                     len(locations), project_name)
+                     len(url_locations), project_name)
 
-        for location in locations:
+        for location in url_locations:
             logger.debug('* %s', location)
 
         find_links_versions = list(self._package_versions(
@@ -376,7 +380,7 @@ class PackageFinder(object):
         ))
 
         page_versions = []
-        for page in self._get_pages(locations, project_name):
+        for page in self._get_pages(url_locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
@@ -396,7 +400,7 @@ class PackageFinder(object):
 
         file_versions = list(
             self._package_versions(
-                (Link(url) for url in file_locations),
+                file_locations,
                 project_name.lower()
             )
         )
