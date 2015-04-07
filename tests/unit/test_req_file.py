@@ -1,9 +1,14 @@
+import pytest
+
 from pretend import stub
 
+from pip.download import PipSession
+from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirement_options, parse_content,
-                              parse_line, join_lines, ignore_comments,
-                              partition_line, REQUIREMENT_EDITABLE, REQUIREMENT,
+                              parse_requirements, parse_line, join_lines,
+                              ignore_comments, partition_line,
+                              REQUIREMENT_EDITABLE, REQUIREMENT,
                               REQUIREMENT_FILE, FLAG, OPTION, IGNORE)
 
 
@@ -143,4 +148,88 @@ class TestParseContent(object):
 
 class TestParseRequirements(object):
     """tests for `parse_requirements`"""
-    pass
+
+    # TODO some of these test are replaced by tests in classes above
+
+    @pytest.mark.network
+    def test_remote_reqs_parse(self):
+        """
+        Test parsing a simple remote requirements file
+        """
+        # this requirements file just contains a comment
+        # previously this has failed in py3: https://github.com/pypa/pip/issues/760
+        for req in parse_requirements(
+                'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
+                'tests/req_just_comment.txt', session=PipSession()):
+            pass
+
+    def test_req_file_parse_no_use_wheel(self, data):
+        """
+        Test parsing --no-use-wheel from a req file
+        """
+        finder = PackageFinder([], [], session=PipSession())
+        for req in parse_requirements(
+                data.reqfiles.join("supported_options.txt"), finder,
+                session=PipSession()):
+            pass
+        assert not finder.use_wheel
+
+    def test_req_file_parse_comment_start_of_line(self, tmpdir):
+        """
+        Test parsing comments in a requirements file
+        """
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("# Comment ")
+
+        finder = PackageFinder([], [], session=PipSession())
+        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                    session=PipSession()))
+
+        assert not reqs
+
+    def test_req_file_parse_comment_end_of_line_with_url(self, tmpdir):
+        """
+        Test parsing comments in a requirements file
+        """
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("https://example.com/foo.tar.gz # Comment ")
+
+        finder = PackageFinder([], [], session=PipSession())
+        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                    session=PipSession()))
+
+        assert len(reqs) == 1
+        assert reqs[0].link.url == "https://example.com/foo.tar.gz"
+
+    def test_req_file_parse_egginfo_end_of_line_with_url(self, tmpdir):
+        """
+        Test parsing comments in a requirements file
+        """
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("https://example.com/foo.tar.gz#egg=wat")
+
+        finder = PackageFinder([], [], session=PipSession())
+        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+                    session=PipSession()))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == "wat"
+
+    def test_req_file_no_finder(self, tmpdir):
+        """
+        Test parsing a requirements file without a finder
+        """
+        with open(tmpdir.join("req.txt"), "w") as fp:
+            fp.write("""
+    --find-links https://example.com/
+    --index-url https://example.com/
+    --extra-index-url https://two.example.com/
+    --no-use-wheel
+    --no-index
+    --allow-external foo
+    --allow-all-external
+    --allow-insecure foo
+    --allow-unverified foo
+            """)
+
+        parse_requirements(tmpdir.join("req.txt"), session=PipSession())
