@@ -16,6 +16,8 @@
 * **BACKWARD INCOMPATIBLE** Removed the deprecated link scraping that attempted
   to parse HTML comments for a specially formatted comment.
 
+* Ignores bz2 archives if Python wasn't compiled with bz2 support.
+  Fixes :issue:`497`
 
 **6.1.0 (2015-04-07)**
 
