@@ -116,17 +116,6 @@ class InstallRequirement(object):
 
         self.isolated = isolated
 
-    @property
-    def url(self):
-        warnings.warn(
-            "The InstallRequirement.url attribute has been removed and should "
-            "not be used. It was temporary left here as a shim for projects "
-            "which used it even though it was not a public API.",
-            RemovedInPip7Warning,
-        )
-
-        return self.link.url
-
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
                       isolated=False):
