@@ -35,6 +35,9 @@
 * Attempt to more smartly choose the order of installation to try and install
   dependencies before the projects that depend on them. (:pull:`2616`)
 
+* Skip trying to install libraries which are part of the standard library.
+  (:pull:`2636`, :pull:`2602`)
+
 **6.0.8 (2015-02-04)**
 
 * Fix an issue where the ``--download`` flag would cause pip to no longer use
