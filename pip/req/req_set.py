@@ -6,7 +6,6 @@ import itertools
 import logging
 import os
 
-from pip.compat import stdlib_pkgs
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 
@@ -133,17 +132,6 @@ class Installed(DistAbstraction):
         pass
 
 
-def _skip_req(req):
-    if req.name in stdlib_pkgs:
-        logger.warning(
-            "Skipping requirement: %s because %s is a stdlib package",
-            req,
-            req.name,
-        )
-        return True
-    return False
-
-
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
@@ -217,9 +205,6 @@ class RequirementSet(object):
             # Only log if we haven't already got install_req from somewhere.
             logger.debug("Ignore %s: markers %r don't match",
                          install_req.name, install_req.markers)
-            return []
-
-        if _skip_req(install_req):
             return []
 
         install_req.as_egg = self.as_egg
@@ -301,9 +286,6 @@ class RequirementSet(object):
             list(self.unnamed_requirements), list(self.requirements.values()),
             discovered_reqs)
         for req_to_install in reqs:
-            if _skip_req(req_to_install):
-                continue
-
             more_reqs = handler(req_to_install)
             if more_reqs:
                 discovered_reqs.extend(more_reqs)

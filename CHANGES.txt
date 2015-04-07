@@ -19,6 +19,13 @@
 * Ignores bz2 archives if Python wasn't compiled with bz2 support.
   Fixes :issue:`497`
 
+
+**6.1.1 (2015-04-07)**
+
+* No longer ignore dependencies which have been added to the standard library,
+  instead continue to install them.
+
+
 **6.1.0 (2015-04-07)**
 
 * Fixes :issue:`2502`. Upgrades were failing when no potential links were found
