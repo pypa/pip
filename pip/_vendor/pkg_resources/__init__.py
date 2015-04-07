@@ -363,6 +363,30 @@ class ContextualVersionConflict(VersionConflict):
 class DistributionNotFound(ResolutionError):
     """A requested distribution was not found"""
 
+    _template = ("The '{self.req}' distribution was not found "
+                 "and is required by {self.requirers_str}")
+
+    @property
+    def req(self):
+        return self.args[0]
+
+    @property
+    def requirers(self):
+        return self.args[1]
+
+    @property
+    def requirers_str(self):
+        if not self.requirers:
+            return 'the application'
+        return ', '.join(self.requirers)
+
+    def report(self):
+        return self._template.format(**locals())
+
+    def __str__(self):
+        return self.report()
+
+
 class UnknownExtra(ResolutionError):
     """Distribution doesn't have an "extra feature" of the given name"""
 _provider_factories = {}
@@ -793,13 +817,8 @@ class WorkingSet(object):
                             ws = WorkingSet([])
                     dist = best[req.key] = env.best_match(req, ws, installer)
                     if dist is None:
-                        #msg = ("The '%s' distribution was not found on this "
-                        #       "system, and is required by this application.")
-                        #raise DistributionNotFound(msg % req)
-
-                        # unfortunately, zc.buildout uses a str(err)
-                        # to get the name of the distribution here..
-                        raise DistributionNotFound(req)
+                        requirers = required_by.get(req, None)
+                        raise DistributionNotFound(req, requirers)
                 to_activate.append(dist)
             if dist not in req:
                 # Oops, the "best" so far conflicts with a dependency
