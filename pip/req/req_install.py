@@ -32,7 +32,7 @@ from pip.utils import (
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
 )
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -115,6 +115,17 @@ class InstallRequirement(object):
         self.pycompile = pycompile
 
         self.isolated = isolated
+
+    @property
+    def url(self):
+        warnings.warn(
+            "The InstallRequirement.url attribute has been removed and should "
+            "not be used. It was temporary left here as a shim for projects "
+            "which used it even though it was not a public API.",
+            RemovedInPip7Warning,
+        )
+
+        return self.link.url if self.link else None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
