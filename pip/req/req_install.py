@@ -32,7 +32,7 @@ from pip.utils import (
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, read_text_file, FakeFile, _make_build_dir,
 )
-from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
