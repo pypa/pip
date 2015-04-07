@@ -309,52 +309,6 @@ class RequirementSet(object):
             if more_reqs:
                 discovered_reqs.extend(more_reqs)
 
-    def locate_files(self):
-        """Remove in 7.0: used by --no-download"""
-        self._walk_req_to_install(self._locate_file)
-
-    def _locate_file(self, req_to_install):
-        install_needed = True
-        if not self.ignore_installed and not req_to_install.editable:
-            req_to_install.check_if_exists()
-            if req_to_install.satisfied_by:
-                if self.upgrade:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (self.use_user_site and
-                            not dist_in_usersite(
-                                req_to_install.satisfied_by
-                            )):
-                        req_to_install.conflicts_with = \
-                            req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
-                else:
-                    install_needed = False
-                    logger.info(
-                        'Requirement already satisfied (use --upgrade to '
-                        'upgrade): %s',
-                        req_to_install,
-                    )
-
-        if req_to_install.editable:
-            if req_to_install.source_dir is None:
-                req_to_install.source_dir = req_to_install.build_location(
-                    self.src_dir
-                )
-        elif install_needed:
-            req_to_install.source_dir = req_to_install.build_location(
-                self.build_dir,
-            )
-
-        if (req_to_install.source_dir is not None and not
-                os.path.isdir(req_to_install.source_dir)):
-            raise InstallationError(
-                'Could not install requirement %s because source folder %s'
-                ' does not exist (perhaps --no-download was used without '
-                'first running an equivalent install with --no-install?)' %
-                (req_to_install, req_to_install.source_dir)
-            )
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.

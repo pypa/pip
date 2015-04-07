@@ -213,23 +213,6 @@ find_links = OptionMaker(
          "If a local path or file:// url that's a directory, then look for "
          "archives in the directory listing.")
 
-# TODO: Remove after 6.0
-use_mirrors = OptionMaker(
-    '-M', '--use-mirrors',
-    dest='use_mirrors',
-    action='store_true',
-    default=False,
-    help=SUPPRESS_HELP)
-
-# TODO: Remove after 6.0
-mirrors = OptionMaker(
-    '--mirrors',
-    dest='mirrors',
-    metavar='URL',
-    action='append',
-    default=[],
-    help=SUPPRESS_HELP)
-
 allow_external = OptionMaker(
     "--allow-external",
     dest="allow_external",
@@ -446,8 +429,6 @@ index_group = {
         extra_index_url,
         no_index,
         find_links,
-        use_mirrors,
-        mirrors,
         allow_external,
         allow_all_external,
         no_allow_external,

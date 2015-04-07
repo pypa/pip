@@ -11,8 +11,6 @@ from pip.commands.search import SearchCommand
 from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
-from pip.commands.unzip import UnzipCommand
-from pip.commands.zip import ZipCommand
 from pip.commands.wheel import WheelCommand
 
 
@@ -24,8 +22,6 @@ commands_dict = {
     ShowCommand.name: ShowCommand,
     InstallCommand.name: InstallCommand,
     UninstallCommand.name: UninstallCommand,
-    UnzipCommand.name: UnzipCommand,
-    ZipCommand.name: ZipCommand,
     ListCommand.name: ListCommand,
     WheelCommand.name: WheelCommand,
 }
@@ -39,8 +35,6 @@ commands_order = [
     ShowCommand,
     SearchCommand,
     WheelCommand,
-    ZipCommand,
-    UnzipCommand,
     HelpCommand,
 ]
 

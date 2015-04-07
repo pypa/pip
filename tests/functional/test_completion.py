@@ -72,12 +72,11 @@ def setup_completion(script, words, cword):
 
 def test_completion_for_un_snippet(script):
     """
-    Test getting completion for ``un`` should return
-    uninstall and unzip
+    Test getting completion for ``un`` should return uninstall
     """
 
     res, env = setup_completion(script, 'pip un', '1')
-    assert res.stdout.strip().split() == ['uninstall', 'unzip'], res.stdout
+    assert res.stdout.strip().split() == ['uninstall'], res.stdout
 
 
 def test_completion_for_default_parameters(script):

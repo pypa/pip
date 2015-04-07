@@ -85,7 +85,11 @@ def test_command_line_append_flags(script, virtualenv, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com'
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    result = script.pip(
+        'install', '-vvv', 'INITools', '--trusted-host',
+        'pypi.pinaxproject.com',
+        expect_error=True,
+    )
     assert (
         "Analyzing links from page http://pypi.pinaxproject.com"
         in result.stdout
@@ -93,6 +97,7 @@ def test_command_line_append_flags(script, virtualenv, data):
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
+        '--trusted-host', 'pypi.pinaxproject.com',
         expect_error=True,
     )
     assert (
@@ -111,7 +116,11 @@ def test_command_line_appends_correctly(script, data):
     script.environ['PIP_FIND_LINKS'] = (
         'http://pypi.pinaxproject.com %s' % data.find_links
     )
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    result = script.pip(
+        'install', '-vvv', 'INITools', '--trusted-host',
+        'pypi.pinaxproject.com',
+        expect_error=True,
+    )
 
     assert (
         "Analyzing links from page http://pypi.pinaxproject.com"

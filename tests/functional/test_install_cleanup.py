@@ -4,7 +4,6 @@ import pytest
 from os.path import exists
 
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 from pip.locations import write_delete_marker_file
 from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
 
@@ -72,27 +71,6 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
-@pytest.mark.network
-def test_no_install_and_download_should_not_leave_build_dir(script):
-    """
-    It should remove build/ dir if it was pip that created
-    """
-    script.scratch_path.join("downloaded_packages").mkdir()
-    assert not os.path.exists(script.venv_path / 'build')
-    result = script.pip(
-        'install', '--no-install', 'INITools==0.2', '-d',
-        'downloaded_packages',
-        expect_stderr=True,
-    )
-    assert (
-        Path('scratch') / 'downloaded_packages/build'
-        not in result.files_created
-    ), 'pip should not leave build/ dir'
-    assert not os.path.exists(script.venv_path / 'build'), (
-        "build/ dir should be deleted"
-    )
-
-
 def test_cleanup_req_satisifed_no_name(script, data):
     """
     Test cleanup when req is already satisfied, and req has no 'name'
@@ -111,28 +89,6 @@ def test_cleanup_req_satisifed_no_name(script, data):
     build = script.venv_path / 'build'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
     script.assert_no_temp()
-
-
-@pytest.mark.network
-def test_download_should_not_delete_existing_build_dir(script):
-    """
-    It should not delete build/ if existing before run the command
-    """
-    script.venv_path.join("build").mkdir()
-    script.venv_path.join("build", "somefile.txt").write("I am not empty!")
-    script.pip(
-        'install', '--no-install', 'INITools==0.2', '-d', '.',
-        expect_stderr=True,
-    )
-    with open(script.venv_path / 'build' / 'somefile.txt') as fp:
-        content = fp.read()
-    assert os.path.exists(script.venv_path / 'build'), (
-        "build/ should be left if it exists before pip run"
-    )
-    assert content == 'I am not empty!', (
-        "it should not affect build/ and its content"
-    )
-    assert ['somefile.txt'] == os.listdir(script.venv_path / 'build')
 
 
 def test_cleanup_after_install_exception(script, data):
