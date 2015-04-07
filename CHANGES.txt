@@ -50,7 +50,6 @@
   the root directory when inside of a virtual environment. (:pull:`2421`)
 
 
-
 **6.0.8 (2015-02-04)**
 
 * Fix an issue where the ``--download`` flag would cause pip to no longer use
