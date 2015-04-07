@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from os.path import exists
 
@@ -22,6 +23,7 @@ def test_cleanup_after_install(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_no_clean_option_blocks_cleaning_after_install(script, data):
     """
     Test --no-clean option blocks cleaning after install
@@ -34,6 +36,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     assert exists(build)
 
 
+@pytest.mark.network
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.
@@ -69,6 +72,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_no_install_and_download_should_not_leave_build_dir(script):
     """
     It should remove build/ dir if it was pip that created
@@ -76,7 +80,9 @@ def test_no_install_and_download_should_not_leave_build_dir(script):
     script.scratch_path.join("downloaded_packages").mkdir()
     assert not os.path.exists(script.venv_path / 'build')
     result = script.pip(
-        'install', '--no-install', 'INITools==0.2', '-d', 'downloaded_packages'
+        'install', '--no-install', 'INITools==0.2', '-d',
+        'downloaded_packages',
+        expect_stderr=True,
     )
     assert (
         Path('scratch') / 'downloaded_packages/build'
@@ -107,13 +113,17 @@ def test_cleanup_req_satisifed_no_name(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_download_should_not_delete_existing_build_dir(script):
     """
     It should not delete build/ if existing before run the command
     """
     script.venv_path.join("build").mkdir()
     script.venv_path.join("build", "somefile.txt").write("I am not empty!")
-    script.pip('install', '--no-install', 'INITools==0.2', '-d', '.')
+    script.pip(
+        'install', '--no-install', 'INITools==0.2', '-d', '.',
+        expect_stderr=True,
+    )
     with open(script.venv_path / 'build' / 'somefile.txt') as fp:
         content = fp.read()
     assert os.path.exists(script.venv_path / 'build'), (
@@ -153,6 +163,7 @@ def test_cleanup_after_egg_info_exception(script, data):
     script.assert_no_temp()
 
 
+@pytest.mark.network
 def test_cleanup_prevented_upon_build_dir_exception(script, data):
     """
     Test no cleanup occurs after a PreviousBuildDirError
@@ -169,5 +180,5 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     )
 
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
-    assert "pip can't proceed" in result.stdout, result.stdout
+    assert "pip can't proceed" in result.stderr
     assert exists(build_simple)

@@ -13,13 +13,13 @@ import sys
 import tarfile
 import zipfile
 
-from pip.exceptions import InstallationError, BadCommand
+from pip.exceptions import InstallationError
 from pip.compat import console_to_str, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
 )
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
@@ -31,8 +31,7 @@ else:
     from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
-           'find_command', 'ask', 'Inf',
-           'normalize_name', 'splitext',
+           'ask', 'Inf', 'normalize_name', 'splitext',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
@@ -43,6 +42,13 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 
 
 logger = logging.getLogger(__name__)
+
+
+def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
+    try:
+        return __import__(pkg_or_module_string)
+    except ImportError:
+        raise ExceptionType(*args, **kwargs)
 
 
 def get_prog():
@@ -97,41 +103,6 @@ def backup_dir(dir, ext='.bak'):
         n += 1
         extension = ext + str(n)
     return dir + extension
-
-
-def find_command(cmd, paths=None, pathext=None):
-    """Searches the PATH for the given command and returns its path"""
-    if paths is None:
-        paths = os.environ.get('PATH', '').split(os.pathsep)
-    if isinstance(paths, six.string_types):
-        paths = [paths]
-    # check if there are funny path extensions for executables, e.g. Windows
-    if pathext is None:
-        pathext = get_pathext()
-    pathext = [ext for ext in pathext.lower().split(os.pathsep) if len(ext)]
-    # don't use extensions if the command ends with one of them
-    if os.path.splitext(cmd)[1].lower() in pathext:
-        pathext = ['']
-    # check if we find the command on PATH
-    for path in paths:
-        # try without extension first
-        cmd_path = os.path.join(path, cmd)
-        for ext in pathext:
-            # then including the extension
-            cmd_path_ext = cmd_path + ext
-            if os.path.isfile(cmd_path_ext):
-                return cmd_path_ext
-        if os.path.isfile(cmd_path):
-            return cmd_path
-    raise BadCommand('Cannot find command %r' % cmd)
-
-
-def get_pathext(default_pathext=None):
-    """Returns the path extensions from environment or a default"""
-    if default_pathext is None:
-        default_pathext = os.pathsep.join(['.COM', '.EXE', '.BAT', '.CMD'])
-    pathext = os.environ.get('PATHEXT', default_pathext)
-    return pathext
 
 
 def ask_path_exists(message, options):
@@ -224,8 +195,8 @@ def is_svn_page(html):
     """
     Returns true if the page appears to be the index page of an svn repository
     """
-    return (re.search(r'<title>[^<]*Revision \d+:', html)
-            and re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
+    return (re.search(r'<title>[^<]*Revision \d+:', html) and
+            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
 
 
 def file_contents(filename):
@@ -236,8 +207,8 @@ def file_contents(filename):
 def split_leading_dir(path):
     path = str(path)
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\'))
-                        or '\\' not in path):
+    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
+                        '\\' not in path):
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -289,12 +260,17 @@ def make_path_relative(path, rel_to):
     return os.path.sep.join(full_parts)
 
 
-def normalize_path(path):
+def normalize_path(path, resolve_symlinks=True):
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    return os.path.normcase(os.path.realpath(os.path.expanduser(path)))
+    path = os.path.expanduser(path)
+    if resolve_symlinks:
+        path = os.path.realpath(path)
+    else:
+        path = os.path.abspath(path)
+    return os.path.normcase(path)
 
 
 def splitext(path):
@@ -397,29 +373,35 @@ def get_installed_distributions(local_only=True,
     if local_only:
         local_test = dist_is_local
     else:
-        local_test = lambda d: True
+        def local_test(d):
+            return True
 
     if include_editables:
-        editable_test = lambda d: True
+        def editable_test(d):
+            return True
     else:
-        editable_test = lambda d: not dist_is_editable(d)
+        def editable_test(d):
+            return not dist_is_editable(d)
 
     if editables_only:
-        editables_only_test = lambda d: dist_is_editable(d)
+        def editables_only_test(d):
+            return dist_is_editable(d)
     else:
-        editables_only_test = lambda d: True
+        def editables_only_test(d):
+            return True
 
     if user_only:
         user_test = dist_in_usersite
     else:
-        user_test = lambda d: True
+        def user_test(d):
+            return True
 
     return [d for d in pkg_resources.working_set
-            if local_test(d)
-            and d.key not in skip
-            and editable_test(d)
-            and editables_only_test(d)
-            and user_test(d)
+            if local_test(d) and
+            d.key not in skip and
+            editable_test(d) and
+            editables_only_test(d) and
+            user_test(d)
             ]
 
 
@@ -570,8 +552,8 @@ def untar_file(filename, location):
         os.makedirs(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
-    elif (filename.lower().endswith('.bz2')
-            or filename.lower().endswith('.tbz')):
+    elif (filename.lower().endswith('.bz2') or
+            filename.lower().endswith('.tbz')):
         mode = 'r:bz2'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
@@ -638,22 +620,22 @@ def untar_file(filename, location):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip'
-            or filename.endswith('.zip')
-            or filename.endswith('.whl')
-            or zipfile.is_zipfile(filename)):
+    if (content_type == 'application/zip' or
+            filename.endswith('.zip') or
+            filename.endswith('.whl') or
+            zipfile.is_zipfile(filename)):
         unzip_file(
             filename,
             location,
             flatten=not filename.endswith('.whl')
         )
-    elif (content_type == 'application/x-gzip'
-            or tarfile.is_tarfile(filename)
-            or splitext(filename)[1].lower() in (
+    elif (content_type == 'application/x-gzip' or
+            tarfile.is_tarfile(filename) or
+            splitext(filename)[1].lower() in (
                 '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html')
-            and is_svn_page(file_contents(filename))):
+    elif (content_type and content_type.startswith('text/html') and
+            is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)
@@ -714,23 +696,25 @@ def call_subprocess(cmd, show_stdout=True,
     if stdout is not None:
         stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
         stdout = cStringIO(stdout)
-        while 1:
-            line = stdout.readline()
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if filter_stdout:
-                level = filter_stdout(line)
-                if isinstance(level, tuple):
-                    level, line = level
-                logger.log(level, line)
-                # if not logger.stdout_level_matches(level) and False:
-                #     # TODO(dstufft): Handle progress bar.
-                #     logger.show_progress()
-            else:
-                logger.debug(line)
-    else:
+        all_output = stdout.readlines()
+        if show_stdout:
+            while 1:
+                line = stdout.readline()
+                if not line:
+                    break
+                line = line.rstrip()
+                all_output.append(line + '\n')
+                if filter_stdout:
+                    level = filter_stdout(line)
+                    if isinstance(level, tuple):
+                        level, line = level
+                    logger.log(level, line)
+                    # if not logger.stdout_level_matches(level) and False:
+                    #     # TODO(dstufft): Handle progress bar.
+                    #     logger.show_progress()
+                else:
+                    logger.debug(line)
+    if not all_output:
         returned_stdout, returned_stderr = proc.communicate()
         all_output = [returned_stdout or '']
     proc.wait()
@@ -741,7 +725,7 @@ def call_subprocess(cmd, show_stdout=True,
                     'Complete output from command %s:', command_desc,
                 )
                 logger.info(
-                    '\n'.join(all_output) +
+                    ''.join(all_output) +
                     '\n----------------------------------------'
                 )
             raise InstallationError(

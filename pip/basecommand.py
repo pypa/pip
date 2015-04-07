@@ -38,7 +38,7 @@ class Command(object):
     name = None
     usage = None
     hidden = False
-    log_stream = "ext://sys.stdout"
+    log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):
         parser_kw = {
@@ -124,6 +124,12 @@ class Command(object):
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
+            "filters": {
+                "exclude_warnings": {
+                    "()": "pip.utils.logging.MaxLevelFilter",
+                    "level": logging.WARNING,
+                },
+            },
             "formatters": {
                 "indent": {
                     "()": IndentingFormatter,
@@ -138,7 +144,14 @@ class Command(object):
                 "console": {
                     "level": level,
                     "class": "pip.utils.logging.ColorizedStreamHandler",
-                    "stream": self.log_stream,
+                    "stream": self.log_streams[0],
+                    "filters": ["exclude_warnings"],
+                    "formatter": "indent",
+                },
+                "console_errors": {
+                    "level": "WARNING",
+                    "class": "pip.utils.logging.ColorizedStreamHandler",
+                    "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
                 "debug_log": {
@@ -162,6 +175,7 @@ class Command(object):
                 "level": level,
                 "handlers": list(filter(None, [
                     "console",
+                    "console_errors",
                     "debug_log" if write_debug_log else None,
                     "user_log" if options.log else None,
                 ])),
@@ -191,7 +205,7 @@ class Command(object):
                 "The directory '%s' or its parent directory is not owned by "
                 "the current user and the debug log has been disabled. Please "
                 "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want the -H flag.",
+                "executing pip with sudo, you may want sudo's -H flag.",
                 os.path.dirname(debug_log_path),
             )
 
@@ -220,8 +234,8 @@ class Command(object):
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         # Check if we're using the latest version of pip available
-        if (not options.disable_pip_version_check
-                and not getattr(options, "no_index", False)):
+        if (not options.disable_pip_version_check and not
+                getattr(options, "no_index", False)):
             with self._build_session(
                     options,
                     retries=0,

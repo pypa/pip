@@ -13,6 +13,7 @@ import re
 import shutil
 import stat
 import sys
+import warnings
 
 from base64 import urlsafe_b64encode
 from email.parser import Parser
@@ -23,7 +24,7 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme
 from pip import pep425tags
 from pip.utils import (call_subprocess, normalize_path, make_path_relative,
-                       captured_stdout, remove_tracebacks)
+                       captured_stdout)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -157,8 +158,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
         with captured_stdout() as stdout:
-            compileall.compile_dir(source, force=True, quiet=True)
-        logger.info(remove_tracebacks(stdout.getvalue()))
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                compileall.compile_dir(source, force=True, quiet=True)
+        logger.debug(stdout.getvalue())
 
     def normpath(src, p):
         return make_path_relative(src, p).replace(os.path.sep, '/')
@@ -185,10 +188,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 if is_base and basedir == '' and destsubdir.endswith('.data'):
                     data_dirs.append(s)
                     continue
-                elif (is_base
-                        and s.endswith('.dist-info')
+                elif (is_base and
+                        s.endswith('.dist-info') and
                         # is self.req.project_name case preserving?
-                        and s.lower().startswith(
+                        s.lower().startswith(
                             req.project_name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)

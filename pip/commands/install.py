@@ -124,7 +124,10 @@ class InstallCommand(Command):
             '--user',
             dest='use_user_site',
             action='store_true',
-            help='Install using the user scheme.')
+            help="Install to the Python user install directory for your "
+                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
+                 "Windows. (See the Python documentation for site.USER_BASE "
+                 "for full details.)")
 
         cmd_opts.add_option(
             '--egg',
@@ -211,8 +214,8 @@ class InstallCommand(Command):
 
         # If we have --no-install or --no-download and no --build we use the
         # legacy static build dir
-        if (options.build_dir is None
-                and (options.no_install or options.no_download)):
+        if (options.build_dir is None and
+                (options.no_install or options.no_download)):
             options.build_dir = build_prefix
 
         if options.download_dir:
@@ -237,8 +240,8 @@ class InstallCommand(Command):
             options.ignore_installed = True
             temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir)
-                    and not os.path.isdir(options.target_dir)):
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
                 raise CommandError(
                     "Target path exists but is not a directory, will not "
                     "continue."
@@ -338,6 +341,8 @@ class InstallCommand(Command):
                     if not options.no_download:
                         requirement_set.prepare_files(finder)
                     else:
+                        # This is the only call site of locate_files. Nuke with
+                        # fire.
                         requirement_set.locate_files()
 
                     if not options.no_install:
@@ -376,9 +381,9 @@ class InstallCommand(Command):
                     raise
                 finally:
                     # Clean up
-                    if ((not options.no_clean)
-                            and ((not options.no_install)
-                                 or options.download_dir)):
+                    if ((not options.no_clean) and
+                            ((not options.no_install) or
+                                options.download_dir)):
                         requirement_set.cleanup_files()
 
         if options.target_dir:

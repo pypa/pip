@@ -22,8 +22,10 @@ import pip
 from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
-                       backup_dir, ask_path_exists, unpack_file)
+                       backup_dir, ask_path_exists, unpack_file,
+                       call_subprocess)
 from pip.utils.filesystem import check_path_owner
+from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -239,7 +241,7 @@ class SafeFileCache(FileCache):
                 "The directory '%s' or its parent directory is not owned by "
                 "the current user and the cache has been disabled. Please "
                 "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want the -H flag.",
+                "executing pip with sudo, you may want sudo's -H flag.",
                 self.directory,
             )
 
@@ -376,8 +378,8 @@ def get_file_content(url, comes_from=None, session=None):
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
-        if (scheme == 'file' and comes_from
-                and comes_from.startswith('http')):
+        if (scheme == 'file' and comes_from and
+                comes_from.startswith('http')):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
@@ -519,6 +521,10 @@ def _get_hash_from_file(target_file, link):
     return download_hash
 
 
+def _progress_indicator(iterable, *args, **kwargs):
+    return iterable
+
+
 def _download_url(resp, link, content_file):
     download_hash = None
     if link.hash and link.hash_name:
@@ -587,7 +593,7 @@ def _download_url(resp, link, content_file):
                     break
                 yield chunk
 
-    progress_indicator = lambda x, *a, **k: x
+    progress_indicator = _progress_indicator
 
     if link.netloc == PyPI.netloc:
         url = show_url
@@ -719,6 +725,45 @@ def unpack_file_url(link, location, download_dir=None):
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, content_type, link)
+
+
+def _copy_dist_from_dir(link_path, location):
+    """Copy distribution files in `link_path` to `location`.
+
+    Invoked when user requests to install a local directory. E.g.:
+
+        pip install .
+        pip install ~/dev/git-repos/python-prompt-toolkit
+
+    """
+
+    # Note: This is currently VERY SLOW if you have a lot of data in the
+    # directory, because it copies everything with `shutil.copytree`.
+    # What it should really do is build an sdist and install that.
+    # See https://github.com/pypa/pip/issues/2195
+
+    if os.path.isdir(location):
+        rmtree(location)
+
+    # build an sdist
+    setup_py = 'setup.py'
+    sdist_args = [sys.executable]
+    sdist_args.append('-c')
+    sdist_args.append(
+        "import setuptools, tokenize;__file__=%r;"
+        "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
+        ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % setup_py)
+    sdist_args.append('sdist')
+    sdist_args += ['--dist-dir', location]
+    logger.info('Running setup.py sdist for %s', link_path)
+
+    with indent_log():
+        call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
+
+    # unpack sdist into `location`
+    sdist = os.path.join(location, os.listdir(location)[0])
+    logger.info('Unpacking sdist %s into %s', sdist, location)
+    unpack_file(sdist, location, content_type=None, link=None)
 
 
 class PipXmlrpcTransport(xmlrpc_client.Transport):

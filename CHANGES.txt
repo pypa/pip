@@ -1,3 +1,56 @@
+**6.1.0 (unreleased)**
+
+* Fixes :issue:`2502`. Upgrades were failing when no potential links were found
+  for dependencies other than the current installation. (:pull:`2538`)
+
+* Use a smoother progress bar when the terminal is capable of handling it,
+  otherwise fallback to the original ASCII based progress bar.
+
+* Display much less output when `pip install` succeeds, because on success,
+  users probably don't care about all the nitty gritty details of compiling and
+  installing. When `pip install` fails, display the failed install output once
+  instead of twice, because once is enough. (:pull:`2487`)
+
+* Upgrade the bundled copy of requests to 2.6.0, fixing CVE-2015-2296.
+
+* Display format of latest package when using ``pip list --outdated``.
+  (:pull:`2475`)
+
+* Don't use pywin32 as ctypes should always be available on Windows, using
+  pywin32 prevented uninstallation of pywin32 on Windows. (:pull:`2467`)
+
+* Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
+  when used (:pull:`2441`).
+
+* Display a warning when an undefined extra has been requested. (:pull:`2142`)
+
+* Speed up installing a directory in certain cases by creating a sdist instead
+  of copying the entire directory. (:pull:`2535`)
+
+* Don't follow symlinks when uninstalling files (:pull:`2552`)
+
+* Upgrade the bundled copy of cachecontrol from 0.11.1 to 0.11.2.
+  Fixes :issue:`2481` (:pull:`2595`)
+
+* Attempt to more smartly choose the order of installation to try and install
+  dependencies before the projects that depend on them. (:pull:`2616`)
+
+* Skip trying to install libraries which are part of the standard library.
+  (:pull:`2636`, :pull:`2602`)
+
+* Support arch specific wheels that are not tied to a specific Python ABI.
+  (:pull:`2561`)
+
+* Output warnings and errors to stderr instead of stdout. (:pull:`2543`)
+
+* Adjust the cache dir file checks to only check ownership if the effective
+  user is root. (:pull:`2396`)
+
+* Install headers into a per project name directory instead of all of them into
+  the root directory when inside of a virtual environment. (:pull:`2421`)
+
+
+
 **6.0.8 (2015-02-04)**
 
 * Fix an issue where the ``--download`` flag would cause pip to no longer use
@@ -62,7 +115,7 @@
   ``TypeError: expected string or buffer``.
 
 * Show a warning and disable the use of the cache directory when the cache
-  directory is not owned by the current use, commonly caused by using ``sudo``
+  directory is not owned by the current user, commonly caused by using ``sudo``
   without the ``-H`` flag.
 
 * Update PEP 440 support to handle the latest changes to PEP 440, particularly
@@ -143,7 +196,7 @@
   it's internal HTTP cache which supplants the ``--download-cache`` the
   existing options have been made non functional but will still be accepted
   until their removal in pip v8.0. For more information please see
-  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+  https://pip.pypa.io/en/stable/reference/pip_install.html#caching
 
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
   *NOT* deprecated.  This reverses the deprecation that occurred in v1.5.3. See
@@ -231,9 +284,9 @@
   default build directory when possible. (:pull:`2122`, CVE-2014-8991)
 
 * Fixed :issue:`1433`. Support environment markers in requirements.txt files.
-  (pull:`2134`)
+  (:pull:`2134`)
 
-* Automatically retry failed HTTP requests by default. (:pull:`1444`, pull:`2147`)
+* Automatically retry failed HTTP requests by default. (:pull:`1444`, :pull:`2147`)
 
 * Fixed :issue:`1100` - Handle HTML Encoding better using a method that is more
   similar to how browsers handle it. (:pull:`1874`)

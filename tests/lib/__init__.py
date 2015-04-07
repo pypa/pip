@@ -15,6 +15,7 @@ DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 SRC_DIR = Path(__file__).abspath.folder.folder.folder
 
 pyversion = sys.version[:3]
+pyversion_tuple = sys.version_info
 
 
 def path_to_url(path):
@@ -173,8 +174,8 @@ class TestPipResult(object):
             egg_link_file = self.files_created[egg_link_path]
 
             # FIXME: I don't understand why there's a trailing . here
-            if not (egg_link_file.bytes.endswith('\n.')
-                    and egg_link_file.bytes[:-2].endswith(pkg_dir)):
+            if not (egg_link_file.bytes.endswith('\n.') and
+                    egg_link_file.bytes[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u('''\
                     Incorrect egg_link file %r
                     Expected ending: %r
@@ -324,6 +325,13 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         )
 
     def pip(self, *args, **kwargs):
+        # On old versions of Python, urllib3/requests will raise a warning
+        # about the lack of an SSLContext. Expect it when running commands
+        # that will touch the outside world.
+        if (pyversion_tuple < (2, 7, 9) and
+                args and args[0] in ('search', 'install')):
+            kwargs['expect_stderr'] = True
+
         return self.run("pip", *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
@@ -458,31 +466,80 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
-def _create_test_package(script):
-    script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path / 'version_pkg'
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
+def _create_test_package(script, name='version_pkg', vcs='git'):
+    script.scratch_path.join(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
         def main():
             print('0.1')
     """))
     version_pkg_path.join("setup.py").write(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
-            name='version_pkg',
+            name='{name}',
             version='0.1',
             packages=find_packages(),
-            py_modules=['version_pkg'],
-            entry_points=dict(console_scripts=['version_pkg=version_pkg:main'])
+            py_modules=['{name}'],
+            entry_points=dict(console_scripts=['{name}={name}:main'])
         )
-    """))
-    script.run('git', 'init', cwd=version_pkg_path)
-    script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path,
-    )
+    """.format(name=name)))
+    if vcs == 'git':
+        script.run('git', 'init', cwd=version_pkg_path)
+        script.run('git', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'git', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-am', 'initial version', cwd=version_pkg_path,
+        )
+    elif vcs == 'hg':
+        script.run('hg', 'init', cwd=version_pkg_path)
+        script.run('hg', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'hg', 'commit', '-q',
+            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
+    elif vcs == 'svn':
+        repo_url = _create_svn_repo(script, version_pkg_path)
+        script.run(
+            'svn', 'checkout', repo_url, 'pip-test-package',
+            cwd=script.scratch_path
+        )
+        checkout_path = script.scratch_path / 'pip-test-package'
+
+        # svn internally stores windows drives as uppercase; we'll match that.
+        checkout_path = checkout_path.replace('c:', 'C:')
+
+        version_pkg_path = checkout_path
+    elif vcs == 'bazaar':
+        script.run('bzr', 'init', cwd=version_pkg_path)
+        script.run('bzr', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            cwd=version_pkg_path)
+        script.run(
+            'bzr', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
+    else:
+        raise ValueError('Unknown vcs: %r' % vcs)
     return version_pkg_path
+
+
+def _create_svn_repo(script, version_pkg_path):
+    repo_url = path_to_url(
+        script.scratch_path / 'pip-test-package-repo' / 'trunk')
+    script.run(
+        'svnadmin', 'create', 'pip-test-package-repo',
+        cwd=script.scratch_path
+    )
+    script.run(
+        'svn', 'import', version_pkg_path, repo_url,
+        '-m', 'Initial import of pip-test-package',
+        cwd=script.scratch_path
+    )
+    return repo_url
 
 
 def _change_test_package_version(script, version_pkg_path):

@@ -1,6 +1,7 @@
 import os
 import tempfile
 import textwrap
+import pytest
 
 
 def test_options_from_env_vars(script):
@@ -12,7 +13,7 @@ def test_options_from_env_vars(script):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
 
@@ -38,6 +39,7 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     assert "Getting page http://download.zope.org/ppix" in result.stdout
 
 
+@pytest.mark.network
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
@@ -66,7 +68,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
     script.environ['PIP_NO_INDEX'] = '0'
@@ -75,6 +77,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     assert "Successfully installed INITools" in result.stdout
 
 
+@pytest.mark.network
 def test_command_line_append_flags(script, virtualenv, data):
     """
     Test command line flags that append to defaults set by environmental
@@ -99,6 +102,7 @@ def test_command_line_append_flags(script, virtualenv, data):
     assert "Skipping link %s" % data.find_links in result.stdout
 
 
+@pytest.mark.network
 def test_command_line_appends_correctly(script, data):
     """
     Test multiple appending options set by environmental variables.
@@ -180,6 +184,6 @@ def test_options_from_venv_config(script, virtualenv):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No distributions at all found for INITools"
+        "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )

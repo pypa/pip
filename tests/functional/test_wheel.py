@@ -1,5 +1,6 @@
 """'pip wheel' tests"""
 import os
+import pytest
 
 from os.path import exists
 
@@ -16,9 +17,10 @@ def test_pip_wheel_fails_without_wheel(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
         expect_error=True,
     )
-    assert "'pip wheel' requires the 'wheel' package" in result.stdout
+    assert "'pip wheel' requires the 'wheel' package" in result.stderr
 
 
+@pytest.mark.network
 def test_pip_wheel_success(script, data):
     """
     Test 'pip wheel' success.
@@ -33,6 +35,7 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+@pytest.mark.network
 def test_pip_wheel_downloads_wheels(script, data):
     """
     Test 'pip wheel' downloads wheels
@@ -47,6 +50,7 @@ def test_pip_wheel_downloads_wheels(script, data):
     assert "Saved" in result.stdout, result.stdout
 
 
+@pytest.mark.network
 def test_pip_wheel_builds_editable_deps(script, data):
     """
     Test 'pip wheel' finds and builds dependencies of editables
@@ -61,6 +65,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
     assert wheel_file_path in result.files_created, result.stdout
 
 
+@pytest.mark.network
 def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
@@ -81,6 +86,7 @@ def test_pip_wheel_fail(script, data):
     assert result.returncode != 0
 
 
+@pytest.mark.network
 def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
     """
     Test --no-clean option blocks cleaning after wheel build
@@ -95,6 +101,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
     assert exists(build), "build/simple should still exist %s" % str(result)
 
 
+@pytest.mark.network
 def test_pip_wheel_source_deps(script, data):
     """
     Test 'pip wheel --use-wheel' finds and builds source archive dependencies
@@ -112,6 +119,7 @@ def test_pip_wheel_source_deps(script, data):
     assert "Successfully built source" in result.stdout, result.stdout
 
 
+@pytest.mark.network
 def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     """
     Test when 'pip wheel' tries to install a package that has a previous build

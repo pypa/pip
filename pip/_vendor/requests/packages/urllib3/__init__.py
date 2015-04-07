@@ -4,7 +4,7 @@ urllib3 - Thread-safe connection pooling and re-using.
 
 __author__ = 'Andrey Petrov (andrey.petrov@shazow.net)'
 __license__ = 'MIT'
-__version__ = 'dev'
+__version__ = '1.10.2'
 
 
 from .connectionpool import (
@@ -55,7 +55,7 @@ def add_stderr_logger(level=logging.DEBUG):
 del NullHandler
 
 
-# Set security warning to only go off once by default.
+# Set security warning to always go off by default.
 import warnings
 warnings.simplefilter('always', exceptions.SecurityWarning)
 

@@ -1,8 +1,11 @@
+import pytest
+
 from tests.lib import (_create_test_package, _change_test_package_version,
                        pyversion)
 from tests.lib.local_repos import local_checkout
 
 
+@pytest.mark.network
 def test_install_editable_from_git_with_https(script, tmpdir):
     """
     Test cloning from Git with https.
@@ -19,6 +22,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
+@pytest.mark.network
 def test_install_noneditable_git(script, tmpdir):
     """
     Test installing from a non-editable git URL with a given tag.
@@ -38,6 +42,7 @@ def test_install_noneditable_git(script, tmpdir):
     assert egg_info_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_git_with_sha1_revisions(script):
     """
     Git backend should be able to install from SHA1 revisions
@@ -51,12 +56,14 @@ def test_git_with_sha1_revisions(script):
     script.pip(
         'install', '-e',
         '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1)
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
+        expect_stderr=True
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
 
 
+@pytest.mark.network
 def test_git_with_branch_name_as_revision(script):
     """
     Git backend should be able to install from branch names
@@ -76,6 +83,7 @@ def test_git_with_branch_name_as_revision(script):
     assert 'some different version' in version.stdout
 
 
+@pytest.mark.network
 def test_git_with_tag_name_as_revision(script):
     """
     Git backend should be able to install from tag names
@@ -95,6 +103,7 @@ def test_git_with_tag_name_as_revision(script):
     assert '0.1' in version.stdout
 
 
+@pytest.mark.network
 def test_git_with_tag_name_and_update(script, tmpdir):
     """
     Test cloning a git repository and updating to a different version.
@@ -120,6 +129,7 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     assert '0.1.2' in result.stdout
 
 
+@pytest.mark.network
 def test_git_branch_should_not_be_changed(script, tmpdir):
     """
     Editable installations should not change branch
@@ -138,6 +148,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     assert '* master' in result.stdout, result.stdout
 
 
+@pytest.mark.network
 def test_git_with_non_editable_unpacking(script, tmpdir):
     """
     Test cloning a git repository from a non-editable URL with a given tag.
@@ -154,6 +165,7 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     assert '0.1.2' in result.stdout
 
 
+@pytest.mark.network
 def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
     """
     Test cloning a git repository from an editable url which contains "dev"
@@ -170,6 +182,7 @@ def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
     result.assert_installed('django-devserver', with_files=['.git'])
 
 
+@pytest.mark.network
 def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     """
     Test cloning a git repository from a non-editable url which contains "dev"
@@ -187,6 +200,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     assert devserver_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_git_with_ambiguous_revs(script):
     """
     Test git with two "names" (tag/branch) pointing to the same commit
@@ -204,6 +218,7 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed('version-pkg', with_files=['.git'])
 
 
+@pytest.mark.network
 def test_git_works_with_editable_non_origin_repo(script):
     # set up, create a git repo and install it as editable from a local
     # directory path

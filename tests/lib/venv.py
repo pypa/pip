@@ -56,7 +56,7 @@ class VirtualEnvironment(object):
 
         # Install our development version of pip install the virtual
         # environment
-        cmd = [self.bin.join("python"), "setup.py", "install"]
+        cmd = [self.bin.join("python"), "setup.py", "install", "--no-compile"]
         p = subprocess.Popen(
             cmd,
             cwd=self.pip_source_dir,
@@ -65,10 +65,9 @@ class VirtualEnvironment(object):
         )
         p.communicate()
         if p.returncode != 0:
-            raise Exception(p.stderr)
             raise subprocess.CalledProcessError(
                 p.returncode,
-                cmd[0],
+                cmd,
                 output=p.stdout,
             )
 

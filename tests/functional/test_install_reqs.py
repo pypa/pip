@@ -8,6 +8,7 @@ from tests.lib import (pyversion, path_to_url,
 from tests.lib.local_repos import local_checkout
 
 
+@pytest.mark.network
 def test_requirements_file(script):
     """
     Test installing from a requirements file.
@@ -73,6 +74,7 @@ def test_relative_requirements_file(script, data):
     )
 
 
+@pytest.mark.network
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
@@ -135,6 +137,7 @@ def test_install_local_editable_with_extras(script, data):
     res = script.pip(
         'install', '-e', to_install + '[bar]', '--process-dependency-links',
         expect_error=False,
+        expect_stderr=True,
     )
     assert script.site_packages / 'easy-install.pth' in res.files_updated, (
         str(res)
@@ -145,6 +148,7 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
+@pytest.mark.network
 def test_install_collected_dependancies_first(script):
     result = script.pip(
         'install', 'paramiko',
@@ -154,6 +158,7 @@ def test_install_collected_dependancies_first(script):
     assert text.endswith('paramiko')
 
 
+@pytest.mark.network
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
                                                               'version_subdir')

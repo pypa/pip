@@ -3,9 +3,11 @@ Tests for compatibility workarounds.
 
 """
 import os
+import pytest
 from tests.lib import pyversion, assert_all_changes
 
 
+@pytest.mark.network
 def test_debian_egg_name_workaround(script):
     """
     We can uninstall packages installed with the pyversion removed from the

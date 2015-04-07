@@ -4,6 +4,7 @@ import os
 from pip._vendor.lockfile import FileLock
 
 from ..cache import BaseCache
+from ..controller import CacheController
 
 
 def _secure_open_write(filename, fmode):
@@ -59,6 +60,8 @@ class FileCache(BaseCache):
         return hashlib.sha224(x.encode()).hexdigest()
 
     def _fn(self, name):
+        # NOTE: This method should not change as some may depend on it.
+        #       See: https://github.com/ionrock/cachecontrol/issues/63
         hashed = self.encode(name)
         parts = list(hashed[:5]) + [hashed]
         return os.path.join(self.directory, *parts)
@@ -89,3 +92,12 @@ class FileCache(BaseCache):
         name = self._fn(key)
         if not self.forever:
             os.remove(name)
+
+
+def url_to_file_path(url, filecache):
+    """Return the file cache path based on the URL.
+
+    This does not ensure the file exists!
+    """
+    key = CacheController.cache_url(url)
+    return filecache._fn(key)

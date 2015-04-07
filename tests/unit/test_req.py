@@ -13,7 +13,7 @@ from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet,
                      Requirements, parse_requirements)
-from pip.req.req_install import parse_editable
+from pip.req.req_install import parse_editable, _filter_install
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
@@ -94,7 +94,7 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         fragment = '#egg=bar'
         req = InstallRequirement.from_line(url + fragment)
-        assert req.url == url + fragment, req.url
+        assert req.link.url == url + fragment, req.link
 
     def test_unsupported_wheel_requirement_raises(self):
         with pytest.raises(UnsupportedWheel):
@@ -105,6 +105,16 @@ class TestInstallRequirement(object):
     def test_installed_version_not_installed(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
         assert req.installed_version is None
+
+    def test_str(self):
+        req = InstallRequirement.from_line('simple==0.1')
+        assert str(req) == 'simple==0.1'
+
+    def test_repr(self):
+        req = InstallRequirement.from_line('simple==0.1')
+        assert repr(req) == (
+            '<InstallRequirement object: simple==0.1 editable=False>'
+        )
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
@@ -118,13 +128,30 @@ class TestInstallRequirement(object):
         """Confirm the url is preserved in a non-editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_line(url)
-        assert req.url == url
+        assert req.link.url == url
 
     def test_url_preserved_editable_req(self):
         """Confirm the url is preserved in a editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
         req = InstallRequirement.from_editable(url)
-        assert req.url == url
+        assert req.link.url == url
+
+    def test_get_dist(self):
+        req = InstallRequirement.from_line('foo')
+        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info')
+        dist = req.get_dist()
+        assert isinstance(dist, pkg_resources.Distribution)
+        assert dist.project_name == 'foo'
+        assert dist.location == '/path/to'
+
+    def test_get_dist_trailing_slash(self):
+        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+        req = InstallRequirement.from_line('foo')
+        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info/')
+        dist = req.get_dist()
+        assert isinstance(dist, pkg_resources.Distribution)
+        assert dist.project_name == 'foo'
+        assert dist.location == '/path/to'
 
     def test_markers(self):
         for line in (
@@ -152,14 +179,14 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.url == url, req.url
+        assert req.link.url == url, req.link
         assert req.markers == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s;python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.url == line, req.url
+        assert req.link.url == line, req.link
         assert req.markers is None
 
     def test_markers_match(self):
@@ -270,6 +297,7 @@ def test_parse_editable_local_extras(
     )
 
 
+@pytest.mark.network
 def test_remote_reqs_parse():
     """
     Test parsing a simple remote requirements file
@@ -320,7 +348,7 @@ def test_req_file_parse_comment_end_of_line_with_url(tmpdir):
                 session=PipSession()))
 
     assert len(reqs) == 1
-    assert reqs[0].url == "https://example.com/foo.tar.gz"
+    assert reqs[0].link.url == "https://example.com/foo.tar.gz"
 
 
 def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):
@@ -356,3 +384,24 @@ def test_req_file_no_finder(tmpdir):
         """)
 
     parse_requirements(tmpdir.join("req.txt"), session=PipSession())
+
+
+def test_filter_install():
+    from logging import DEBUG, INFO
+
+    assert _filter_install('running setup.py install') == (
+        DEBUG, 'running setup.py install')
+    assert _filter_install('writing foo.bar') == (
+        DEBUG, 'writing foo.bar')
+    assert _filter_install('creating foo.bar') == (
+        DEBUG, 'creating foo.bar')
+    assert _filter_install('copying foo.bar') == (
+        DEBUG, 'copying foo.bar')
+    assert _filter_install('SyntaxError: blah blah') == (
+        DEBUG, 'SyntaxError: blah blah')
+    assert _filter_install('This should not be filtered') == (
+        INFO, 'This should not be filtered')
+    assert _filter_install('foo bar') == (
+        INFO, 'foo bar')
+    assert _filter_install('I made a SyntaxError') == (
+        INFO, 'I made a SyntaxError')

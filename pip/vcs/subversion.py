@@ -7,7 +7,7 @@ import re
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip.index import Link
-from pip.utils import rmtree, display_path, call_subprocess
+from pip.utils import rmtree, display_path
 from pip.utils.logging import indent_log
 from pip.vcs import vcs, VersionControl
 
@@ -32,8 +32,8 @@ class Subversion(VersionControl):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith(self.dirname), \
             'Bad directory: %s' % location
-        output = call_subprocess(
-            [self.cmd, 'info', location],
+        output = self.run_command(
+            ['info', location],
             show_stdout=False,
             extra_environ={'LANG': 'C'},
         )
@@ -66,17 +66,15 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            call_subprocess(
-                [self.cmd, 'export'] + rev_options + [url, location],
+            self.run_command(
+                ['export'] + rev_options + [url, location],
                 filter_stdout=self._filter, show_stdout=False)
 
     def switch(self, dest, url, rev_options):
-        call_subprocess(
-            [self.cmd, 'switch'] + rev_options + [url, dest])
+        self.run_command(['switch'] + rev_options + [url, dest])
 
     def update(self, dest, rev_options):
-        call_subprocess(
-            [self.cmd, 'update'] + rev_options + [dest])
+        self.run_command(['update'] + rev_options + [dest])
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
@@ -92,8 +90,7 @@ class Subversion(VersionControl):
                 rev_display,
                 display_path(dest),
             )
-            call_subprocess(
-                [self.cmd, 'checkout', '-q'] + rev_options + [url, dest])
+            self.run_command(['checkout', '-q'] + rev_options + [url, dest])
 
     def get_location(self, dist, dependency_links):
         for url in dependency_links:
@@ -168,9 +165,9 @@ class Subversion(VersionControl):
 
         with open(os.path.join(location, self.dirname, 'entries')) as f:
             data = f.read()
-        if (data.startswith('8')
-                or data.startswith('9')
-                or data.startswith('10')):
+        if (data.startswith('8') or
+                data.startswith('9') or
+                data.startswith('10')):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
             url = data[0][3]
@@ -184,8 +181,8 @@ class Subversion(VersionControl):
         else:
             try:
                 # subversion >= 1.7
-                xml = call_subprocess(
-                    [self.cmd, 'info', '--xml', location],
+                xml = self.run_command(
+                    ['info', '--xml', location],
                     show_stdout=False,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
@@ -203,8 +200,7 @@ class Subversion(VersionControl):
         return url, rev
 
     def get_tag_revs(self, svn_tag_url):
-        stdout = call_subprocess(
-            [self.cmd, 'ls', '-v', svn_tag_url], show_stdout=False)
+        stdout = self.run_command(['ls', '-v', svn_tag_url], show_stdout=False)
         results = []
         for line in stdout.splitlines():
             parts = line.split()

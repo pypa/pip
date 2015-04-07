@@ -25,9 +25,13 @@ sys.path = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
 class VendorAlias(object):
 
-    def __init__(self):
+    def __init__(self, package_names):
+        self._package_names = package_names
         self._vendor_name = __name__
         self._vendor_pkg = self._vendor_name + "."
+        self._vendor_pkgs = [
+            self._vendor_pkg + name for name in self._package_names
+        ]
 
     def find_module(self, fullname, path=None):
         if fullname.startswith(self._vendor_pkg):
@@ -39,6 +43,13 @@ class VendorAlias(object):
             raise ImportError(
                 "Cannot import %s, must be a subpackage of '%s'." % (
                     name, self._vendor_name,
+                )
+            )
+        if not (name == self._vendor_name or
+                any(name.startswith(pkg) for pkg in self._vendor_pkgs)):
+            raise ImportError(
+                "Cannot import %s, must be one of %s." % (
+                    name, self._vendor_pkgs
                 )
             )
 
@@ -90,4 +101,8 @@ class VendorAlias(object):
         return module
 
 
-sys.meta_path.append(VendorAlias())
+sys.meta_path.append(VendorAlias([
+    "_markerlib", "cachecontrol", "certifi", "colorama", "distlib", "html5lib",
+    "ipaddress", "lockfile", "packaging", "pkg_resources", "progress",
+    "requests", "retrying", "six",
+]))

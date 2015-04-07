@@ -1,6 +1,7 @@
 """Handles all VCS (version control) support"""
 from __future__ import absolute_import
 
+import errno
 import logging
 import os
 import shutil
@@ -8,7 +9,7 @@ import shutil
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip.exceptions import BadCommand
-from pip.utils import (display_path, backup_dir, find_command,
+from pip.utils import (display_path, backup_dir, call_subprocess,
                        rmtree, ask_path_exists)
 
 
@@ -55,6 +56,7 @@ class VcsSupport(object):
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls
+            logger.debug('Registered VCS backend: %s', cls.name)
 
     def unregister(self, cls=None, name=None):
         if name in self._registry:
@@ -70,8 +72,12 @@ class VcsSupport(object):
         location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
         """
         for vc_type in self._registry.values():
+            logger.debug('Checking in %s for %s (%s)...',
+                         location, vc_type.dirname, vc_type.name)
             path = os.path.join(location, vc_type.dirname)
             if os.path.exists(path):
+                logger.debug('Determine that %s uses VCS: %s',
+                             location, vc_type.name)
                 return vc_type.name
         return None
 
@@ -98,7 +104,6 @@ class VersionControl(object):
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
-        self._cmd = None
         super(VersionControl, self).__init__(*args, **kwargs)
 
     def _filter(self, line):
@@ -111,15 +116,6 @@ class VersionControl(object):
         """
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or drive
-
-    @property
-    def cmd(self):
-        if self._cmd is not None:
-            return self._cmd
-        command = find_command(self.name)
-        logger.debug('Found command %r at %r', self.name, command)
-        self._cmd = command
-        return command
 
     # See issue #1083 for why this method was introduced:
     # https://github.com/pypa/pip/issues/1083
@@ -304,6 +300,29 @@ class VersionControl(object):
         Used in get_info
         """
         raise NotImplementedError
+
+    def run_command(self, cmd, show_stdout=True,
+                    filter_stdout=None, cwd=None,
+                    raise_on_returncode=True,
+                    command_level=logging.DEBUG, command_desc=None,
+                    extra_environ=None):
+        """
+        Run a VCS subcommand
+        This is simply a wrapper around call_subprocess that adds the VCS
+        command name, and checks that the VCS is available
+        """
+        cmd = [self.name] + cmd
+        try:
+            return call_subprocess(cmd, show_stdout, filter_stdout, cwd,
+                                   raise_on_returncode, command_level,
+                                   command_desc, extra_environ)
+        except OSError as e:
+            # errno.ENOENT = no such file or directory
+            # In other words, the VCS executable isn't available
+            if e.errno == errno.ENOENT:
+                raise BadCommand('Cannot find command %r' % self.name)
+            else:
+                raise  # re-raise exception if a different error occured
 
 
 def get_src_requirement(dist, location, find_tags):

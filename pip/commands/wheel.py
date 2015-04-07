@@ -9,7 +9,7 @@ from pip.basecommand import Command
 from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.utils import normalize_path
+from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
 from pip.wheel import WheelBuilder
@@ -100,33 +100,28 @@ class WheelCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
+    def check_required_packages(self):
+        import_or_raise(
+            'wheel.bdist_wheel',
+            CommandError,
+            "'pip wheel' requires the 'wheel' package. To fix this, run: "
+            "pip install wheel"
+        )
+        pkg_resources = import_or_raise(
+            'pkg_resources',
+            CommandError,
+            "'pip wheel' requires setuptools >= 0.8 for dist-info support."
+            " To fix this, run: pip install --upgrade setuptools"
+        )
+        if not hasattr(pkg_resources, 'DistInfoDistribution'):
+            raise CommandError(
+                "'pip wheel' requires setuptools >= 0.8 for dist-info "
+                "support. To fix this, run: pip install --upgrade "
+                "setuptools"
+            )
+
     def run(self, options, args):
-
-        # confirm requirements
-        try:
-            import wheel.bdist_wheel
-            # Hack to make flake8 not complain about an unused import
-            wheel.bdist_wheel
-        except ImportError:
-            raise CommandError(
-                "'pip wheel' requires the 'wheel' package. To fix this, run: "
-                "pip install wheel"
-            )
-
-        try:
-            import pkg_resources
-        except ImportError:
-            raise CommandError(
-                "'pip wheel' requires setuptools >= 0.8 for dist-info support."
-                " To fix this, run: pip install --upgrade setuptools"
-            )
-        else:
-            if not hasattr(pkg_resources, 'DistInfoDistribution'):
-                raise CommandError(
-                    "'pip wheel' requires setuptools >= 0.8 for dist-info "
-                    "support. To fix this, run: pip install --upgrade "
-                    "setuptools"
-                )
+        self.check_required_packages()
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -191,6 +186,7 @@ class WheelCommand(Command):
                 )
 
                 # make the wheelhouse
+                options.wheel_dir = normalize_path(options.wheel_dir)
                 if not os.path.exists(options.wheel_dir):
                     os.makedirs(options.wheel_dir)
 

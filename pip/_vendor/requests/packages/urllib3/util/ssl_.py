@@ -1,7 +1,7 @@
 from binascii import hexlify, unhexlify
-from hashlib import md5, sha1
+from hashlib import md5, sha1, sha256
 
-from ..exceptions import SSLError
+from ..exceptions import SSLError, InsecurePlatformWarning
 
 
 SSLContext = None
@@ -10,6 +10,7 @@ create_default_context = None
 
 import errno
 import ssl
+import warnings
 
 try:  # Test for SSL features
     from ssl import wrap_socket, CERT_NONE, PROTOCOL_SSLv23
@@ -29,8 +30,8 @@ try:
 except ImportError:
     _DEFAULT_CIPHERS = (
         'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'
-        'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:ECDH+RC4:'
-        'DH+RC4:RSA+RC4:!aNULL:!eNULL:!MD5'
+        'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:'
+        '!eNULL:!MD5'
     )
 
 try:
@@ -69,6 +70,14 @@ except ImportError:
             self.ciphers = cipher_suite
 
         def wrap_socket(self, socket, server_hostname=None):
+            warnings.warn(
+                'A true SSLContext object is not available. This prevents '
+                'urllib3 from configuring SSL appropriately and may cause '
+                'certain SSL connections to fail. For more information, see '
+                'https://urllib3.readthedocs.org/en/latest/security.html'
+                '#insecureplatformwarning.',
+                InsecurePlatformWarning
+            )
             kwargs = {
                 'keyfile': self.keyfile,
                 'certfile': self.certfile,
@@ -96,7 +105,8 @@ def assert_fingerprint(cert, fingerprint):
     # this digest.
     hashfunc_map = {
         16: md5,
-        20: sha1
+        20: sha1,
+        32: sha256,
     }
 
     fingerprint = fingerprint.replace(':', '').lower()
@@ -211,7 +221,9 @@ def create_urllib3_context(ssl_version=None, cert_reqs=ssl.CERT_REQUIRED,
 
     context.verify_mode = cert_reqs
     if getattr(context, 'check_hostname', None) is not None:  # Platform-specific: Python 3.2
-        context.check_hostname = (context.verify_mode == ssl.CERT_REQUIRED)
+        # We do our own verification, including fingerprints and alternative
+        # hostnames. So disable it here
+        context.check_hostname = False
     return context
 
 

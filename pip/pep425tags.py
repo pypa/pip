@@ -113,6 +113,9 @@ def get_supported(versions=None, noarch=False):
             for arch in arches:
                 supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
+        # Has binaries, does not use the Python API:
+        supported.append(('py%s' % (versions[0][0]), 'none', arch))
+
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):
         supported.append(('%s%s' % (impl, version), 'none', 'any'))

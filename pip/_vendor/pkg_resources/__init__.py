@@ -36,6 +36,7 @@ import collections
 import plistlib
 import email.parser
 import tempfile
+import textwrap
 from pkgutil import get_importer
 
 PY3 = sys.version_info > (3,)
@@ -51,6 +52,8 @@ if PY3:
     string_types = str,
 else:
     string_types = str, eval('unicode')
+
+iteritems = (lambda i: i.items()) if PY3 else lambda i: i.iteritems()
 
 # capture these to bypass sandboxing
 from os import utime
@@ -174,8 +177,10 @@ class _SetuptoolsVersionMixin(object):
             "You have iterated over the result of "
             "pkg_resources.parse_version. This is a legacy behavior which is "
             "inconsistent with the new version class introduced in setuptools "
-            "8.0. That class should be used directly instead of attempting to "
-            "iterate over the result.",
+            "8.0. In most cases, conversion to a tuple is unnecessary. For "
+            "comparison of versions, sort the Version instances directly. If "
+            "you have another use case requiring the tuple, please file a "
+            "bug with the setuptools project describing that need.",
             RuntimeWarning,
             stacklevel=1,
         )
@@ -309,11 +314,78 @@ class ResolutionError(Exception):
     def __repr__(self):
         return self.__class__.__name__+repr(self.args)
 
+
 class VersionConflict(ResolutionError):
-    """An already-installed version conflicts with the requested version"""
+    """
+    An already-installed version conflicts with the requested version.
+
+    Should be initialized with the installed Distribution and the requested
+    Requirement.
+    """
+
+    _template = "{self.dist} is installed but {self.req} is required"
+
+    @property
+    def dist(self):
+        return self.args[0]
+
+    @property
+    def req(self):
+        return self.args[1]
+
+    def report(self):
+        return self._template.format(**locals())
+
+    def with_context(self, required_by):
+        """
+        If required_by is non-empty, return a version of self that is a
+        ContextualVersionConflict.
+        """
+        if not required_by:
+            return self
+        args = self.args + (required_by,)
+        return ContextualVersionConflict(*args)
+
+
+class ContextualVersionConflict(VersionConflict):
+    """
+    A VersionConflict that accepts a third parameter, the set of the
+    requirements that required the installed Distribution.
+    """
+
+    _template = VersionConflict._template + ' by {self.required_by}'
+
+    @property
+    def required_by(self):
+        return self.args[2]
+
 
 class DistributionNotFound(ResolutionError):
     """A requested distribution was not found"""
+
+    _template = ("The '{self.req}' distribution was not found "
+                 "and is required by {self.requirers_str}")
+
+    @property
+    def req(self):
+        return self.args[0]
+
+    @property
+    def requirers(self):
+        return self.args[1]
+
+    @property
+    def requirers_str(self):
+        if not self.requirers:
+            return 'the application'
+        return ', '.join(self.requirers)
+
+    def report(self):
+        return self._template.format(**locals())
+
+    def __str__(self):
+        return self.report()
+
 
 class UnknownExtra(ResolutionError):
     """Distribution doesn't have an "extra feature" of the given name"""
@@ -619,8 +691,7 @@ class WorkingSet(object):
         if dist is not None and dist not in req:
             # XXX add more info
             raise VersionConflict(dist, req)
-        else:
-            return dist
+        return dist
 
     def iter_entry_points(self, group, name=None):
         """Yield entry point objects from `group` matching `name`
@@ -746,19 +817,13 @@ class WorkingSet(object):
                             ws = WorkingSet([])
                     dist = best[req.key] = env.best_match(req, ws, installer)
                     if dist is None:
-                        #msg = ("The '%s' distribution was not found on this "
-                        #       "system, and is required by this application.")
-                        #raise DistributionNotFound(msg % req)
-
-                        # unfortunately, zc.buildout uses a str(err)
-                        # to get the name of the distribution here..
-                        raise DistributionNotFound(req)
+                        requirers = required_by.get(req, None)
+                        raise DistributionNotFound(req, requirers)
                 to_activate.append(dist)
             if dist not in req:
                 # Oops, the "best" so far conflicts with a dependency
-                tmpl = "%s is installed but %s is required by %s"
-                args = dist, req, list(required_by.get(req, []))
-                raise VersionConflict(tmpl % args)
+                dependent_req = required_by[req]
+                raise VersionConflict(dist, req).with_context(dependent_req)
 
             # push the new requirements onto the stack
             new_requirements = dist.requires(req.extras)[::-1]
@@ -835,8 +900,7 @@ class WorkingSet(object):
                 try:
                     resolvees = shadow_set.resolve(req, env, installer)
 
-                except ResolutionError:
-                    v = sys.exc_info()[1]
+                except ResolutionError as v:
                     # save error info
                     error_info[dist] = v
                     if fallback:
@@ -1332,8 +1396,8 @@ class MarkerEvaluation(object):
         """
         try:
             cls.evaluate_marker(text)
-        except SyntaxError:
-            return cls.normalize_exception(sys.exc_info()[1])
+        except SyntaxError as e:
+            return cls.normalize_exception(e)
         return False
 
     @staticmethod
@@ -1448,8 +1512,7 @@ class MarkerEvaluation(object):
             env[new_key] = env.pop(key)
         try:
             result = _markerlib.interpret(text, env)
-        except NameError:
-            e = sys.exc_info()[1]
+        except NameError as e:
             raise SyntaxError(e.args[0])
         return result
 
@@ -2218,9 +2281,16 @@ OBRACKET = re.compile(r"\s*\[").match
 CBRACKET = re.compile(r"\s*\]").match
 MODULE = re.compile(r"\w+(\.\w+)*$").match
 EGG_NAME = re.compile(
-    r"(?P<name>[^-]+)"
-    r"( -(?P<ver>[^-]+) (-py(?P<pyver>[^-]+) (-(?P<plat>.+))? )? )?",
-    re.VERBOSE | re.IGNORECASE
+    r"""
+    (?P<name>[^-]+) (
+        -(?P<ver>[^-]+) (
+            -py(?P<pyver>[^-]+) (
+                -(?P<plat>.+)
+            )?
+        )?
+    )?
+    """,
+    re.VERBOSE | re.IGNORECASE,
 ).match
 
 
@@ -2247,18 +2317,25 @@ class EntryPoint(object):
     def __repr__(self):
         return "EntryPoint.parse(%r)" % str(self)
 
-    def load(self, require=True, env=None, installer=None):
-        if require:
-            self.require(env, installer)
-        else:
+    def load(self, require=True, *args, **kwargs):
+        """
+        Require packages for this EntryPoint, then resolve it.
+        """
+        if not require or args or kwargs:
             warnings.warn(
-                "`require` parameter is deprecated. Use "
-                "EntryPoint._load instead.",
+                "Parameters to load are deprecated.  Call .resolve and "
+                ".require separately.",
                 DeprecationWarning,
+                stacklevel=2,
             )
-        return self._load()
+        if require:
+            self.require(*args, **kwargs)
+        return self.resolve()
 
-    def _load(self):
+    def resolve(self):
+        """
+        Resolve the entry point from its module and attrs.
+        """
         module = __import__(self.module_name, fromlist=['__name__'], level=0)
         try:
             return functools.reduce(getattr, self.attrs, module)
@@ -2274,7 +2351,7 @@ class EntryPoint(object):
 
     pattern = re.compile(
         r'\s*'
-        r'(?P<name>[+\w. -]+?)\s*'
+        r'(?P<name>.+?)\s*'
         r'=\s*'
         r'(?P<module>[\w.]+)\s*'
         r'(:\s*(?P<attr>[\w.]+))?\s*'
@@ -2392,8 +2469,8 @@ class Distribution(object):
             self.precedence,
             self.key,
             _remove_md5_fragment(self.location),
-            self.py_version,
-            self.platform,
+            self.py_version or '',
+            self.platform or '',
         )
 
     def __hash__(self):
@@ -2436,27 +2513,34 @@ class Distribution(object):
     def parsed_version(self):
         if not hasattr(self, "_parsed_version"):
             self._parsed_version = parse_version(self.version)
-            if isinstance(
-                    self._parsed_version, packaging.version.LegacyVersion):
-                # While an empty version is techincally a legacy version and
-                # is not a valid PEP 440 version, it's also unlikely to
-                # actually come from someone and instead it is more likely that
-                # it comes from setuptools attempting to parse a filename and
-                # including it in the list. So for that we'll gate this warning
-                # on if the version is anything at all or not.
-                if self.version:
-                    warnings.warn(
-                        "'%s (%s)' is being parsed as a legacy, non PEP 440, "
-                        "version. You may find odd behavior and sort order. "
-                        "In particular it will be sorted as less than 0.0. It "
-                        "is recommend to migrate to PEP 440 compatible "
-                        "versions." % (
-                            self.project_name, self.version,
-                        ),
-                        PEP440Warning,
-                    )
 
         return self._parsed_version
+
+    def _warn_legacy_version(self):
+        LV = packaging.version.LegacyVersion
+        is_legacy = isinstance(self._parsed_version, LV)
+        if not is_legacy:
+            return
+
+        # While an empty version is techincally a legacy version and
+        # is not a valid PEP 440 version, it's also unlikely to
+        # actually come from someone and instead it is more likely that
+        # it comes from setuptools attempting to parse a filename and
+        # including it in the list. So for that we'll gate this warning
+        # on if the version is anything at all or not.
+        if not self.version:
+            return
+
+        tmpl = textwrap.dedent("""
+            '{project_name} ({version})' is being parsed as a legacy,
+            non PEP 440,
+            version. You may find odd behavior and sort order.
+            In particular it will be sorted as less than 0.0. It
+            is recommend to migrate to PEP 440 compatible
+            versions.
+            """).strip().replace('\n', ' ')
+
+        warnings.warn(tmpl.format(**vars(self)), PEP440Warning)
 
     @property
     def version(self):
@@ -2851,6 +2935,9 @@ class Requirement:
             self.hashCmp == other.hashCmp
         )
 
+    def __ne__(self, other):
+        return not self == other
+
     def __contains__(self, item):
         if isinstance(item, Distribution):
             if item.key != self.key:
@@ -2899,14 +2986,14 @@ def ensure_directory(path):
         os.makedirs(dirname)
 
 
-def _bypass_ensure_directory(path, mode=0o777):
+def _bypass_ensure_directory(path):
     """Sandbox-bypassing version of ensure_directory()"""
     if not WRITE_SUPPORT:
         raise IOError('"os.mkdir" not supported on this platform.')
     dirname, filename = split(path)
     if dirname and filename and not isdir(dirname):
         _bypass_ensure_directory(dirname)
-        mkdir(dirname, mode)
+        mkdir(dirname, 0o755)
 
 
 def split_sections(s):

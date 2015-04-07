@@ -100,14 +100,14 @@ class ListCommand(Command):
             self.run_listing(options)
 
     def run_outdated(self, options):
-        for dist, version in self.find_packages_latests_versions(options):
+        for dist, version, typ in self.find_packages_latest_versions(options):
             if version > dist.parsed_version:
                 logger.info(
-                    '%s (Current: %s Latest: %s)',
-                    dist.project_name, dist.version, version,
+                    '%s (Current: %s Latest: %s [%s])',
+                    dist.project_name, dist.version, version, typ,
                 )
 
-    def find_packages_latests_versions(self, options):
+    def find_packages_latest_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
@@ -151,6 +151,7 @@ class ListCommand(Command):
                 req = InstallRequirement.from_line(
                     dist.key, None, isolated=options.isolated_mode,
                 )
+                typ = 'unknown'
                 try:
                     link = finder.find_requirement(req, True)
 
@@ -164,7 +165,11 @@ class ListCommand(Command):
                     remote_version = finder._link_package_versions(
                         link, req.name
                     ).version
-                yield dist, remote_version
+                    if link.is_wheel:
+                        typ = 'wheel'
+                    else:
+                        typ = 'sdist'
+                yield dist, remote_version, typ
 
     def run_listing(self, options):
         installed_packages = get_installed_distributions(
@@ -199,7 +204,7 @@ class ListCommand(Command):
 
     def run_uptodate(self, options):
         uptodate = []
-        for dist, version in self.find_packages_latests_versions(options):
+        for dist, version, typ in self.find_packages_latest_versions(options):
             if dist.parsed_version == version:
                 uptodate.append(dist)
         self.output_package_listing(uptodate)

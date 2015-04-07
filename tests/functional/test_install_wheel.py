@@ -17,7 +17,10 @@ def test_install_from_future_wheel_version(script, data):
                                 editable=False)
 
     package = data.packages.join("futurewheel-1.9-py2.py3-none-any.whl")
-    result = script.pip('install', package, '--no-index', expect_error=False)
+    result = script.pip(
+        'install', package, '--no-index', expect_error=False,
+        expect_stderr=True,
+    )
     result.assert_installed('futurewheel', without_egg_link=True,
                             editable=False)
 
@@ -96,6 +99,7 @@ def test_install_from_wheel_with_headers(script, data):
                                                       result.stdout)
 
 
+@pytest.mark.network
 def test_install_wheel_with_target(script, data):
     """
     Test installing a wheel using pip install --target
@@ -149,6 +153,7 @@ def test_install_from_wheel_no_deps(script, data):
     assert pkg_folder not in result.files_created
 
 
+@pytest.mark.network
 def test_install_user_wheel(script, virtualenv, data):
     """
     Test user install from wheel (that has a script)

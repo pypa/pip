@@ -8,31 +8,43 @@ from os.path import join, curdir, pardir
 import pytest
 
 from pip.utils import rmtree
-from tests.lib import pyversion
+from tests.lib import (pyversion, pyversion_tuple,
+                       _create_test_package, _create_svn_repo, path_to_url)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-def test_without_setuptools(script):
+def test_without_setuptools(script, data):
     script.run("pip", "uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
-        "import pip; pip.main(['install', 'INITools==0.2', '--no-use-wheel'])",
+        "import pip; pip.main(["
+        "'install', "
+        "'INITools==0.2', "
+        "'-f', '%s', "
+        "'--no-use-wheel'])" % data.packages,
         expect_error=True,
     )
     assert (
         "setuptools must be installed to install from a source distribution"
-        in result.stdout
+        in result.stderr
     )
 
 
-def test_pip_second_command_line_interface_works(script):
+def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
+    # On old versions of Python, urllib3/requests will raise a warning about
+    # the lack of an SSLContext.
+    kwargs = {}
+    if pyversion_tuple < (2, 7, 9):
+        kwargs['expect_stderr'] = True
+
     args = ['pip%s' % pyversion]
     args.extend(['install', 'INITools==0.2'])
-    result = script.run(*args)
+    args.extend(['-f', data.packages])
+    result = script.run(*args, **kwargs)
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
@@ -41,6 +53,7 @@ def test_pip_second_command_line_interface_works(script):
     assert initools_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_from_pypi(script):
     """
     Test installing a package from PyPI.
@@ -61,28 +74,26 @@ def test_editable_install(script):
     result = script.pip('install', '-e', 'INITools==0.2', expect_error=True)
     assert (
         "INITools==0.2 should either be a path to a local project or a VCS url"
-        in result.stdout
+        in result.stderr
     )
     assert not result.files_created
     assert not result.files_updated
 
 
-def test_install_editable_from_svn(script, tmpdir):
+def test_install_editable_from_svn(script):
     """
     Test checking out from svn.
     """
+    checkout_path = _create_test_package(script)
+    repo_url = _create_svn_repo(script, checkout_path)
     result = script.pip(
         'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
-        )
+        '-e', 'svn+' + repo_url + '#egg=version-pkg'
     )
-    result.assert_installed('INITools', with_files=['.svn'])
+    result.assert_installed('version-pkg', with_files=['.svn'])
 
 
+@pytest.mark.network
 def test_download_editable_to_custom_path(script, tmpdir):
     """
     Test downloading an editable using a relative custom src folder.
@@ -117,6 +128,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     assert customdl_files_created
 
 
+@pytest.mark.network
 def test_editable_no_install_followed_by_no_download(script, tmpdir):
     """
     Test installing an editable in two steps (first with --no-install, then
@@ -162,8 +174,8 @@ def test_no_install_followed_by_no_download(script):
     initools_folder = script.site_packages / 'initools'
     build_dir = script.venv / 'build' / 'INITools'
 
-    result1 = script.pip(
-        'install', 'INITools==0.2', '--no-install', expect_error=True,
+    result1 = script.pip_install_local(
+        'INITools==0.2', '--no-install', expect_error=True,
     )
     assert egg_info_folder not in result1.files_created, str(result1)
     assert initools_folder not in result1.files_created, (
@@ -172,8 +184,8 @@ def test_no_install_followed_by_no_download(script):
     assert build_dir in result1.files_created, result1.files_created
     assert build_dir / 'INITools.egg-info' in result1.files_created
 
-    result2 = script.pip(
-        'install', 'INITools==0.2', '--no-download', expect_error=True,
+    result2 = script.pip_install_local(
+        'INITools==0.2', '--no-download', expect_error=True,
     )
     assert egg_info_folder in result2.files_created, str(result2)
     assert initools_folder in result2.files_created, (
@@ -193,10 +205,11 @@ def test_bad_install_with_no_download(script):
     )
     assert (
         "perhaps --no-download was used without first running "
-        "an equivalent install with --no-install?" in result.stdout
+        "an equivalent install with --no-install?" in result.stderr
     )
 
 
+@pytest.mark.network
 def test_install_dev_version_from_pypi(script):
     """
     Test using package==dev.
@@ -213,69 +226,40 @@ def test_install_dev_version_from_pypi(script):
 
 
 def test_install_editable_from_git(script, tmpdir):
-    """
-    Test cloning from Git.
-    """
-    args = ['install']
-    args.extend([
-        '-e',
-        '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
-    ])
+    """Test cloning from Git."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='git')
+    args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
     result = script.pip(*args, **{"expect_error": True})
-    result.assert_installed('pip-test-package', with_files=['.git'])
+    result.assert_installed('testpackage', with_files=['.git'])
 
 
 def test_install_editable_from_hg(script, tmpdir):
-    """
-    Test cloning from Mercurial.
-    """
-    result = script.pip(
-        'install', '-e',
-        '%s#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
-    result.assert_installed('ScriptTest', with_files=['.hg'])
+    """Test cloning from Mercurial."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
+    args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.hg'])
 
 
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    script.pip(
-        'install', '-e',
-        '%s/#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
-        ),
-    )
+    pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
+    args = ['install', '-e', 'hg+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.hg'])
 
 
 def test_install_editable_from_bazaar(script, tmpdir):
-    """
-    Test checking out from Bazaar.
-    """
-    result = script.pip(
-        'install', '-e',
-        '%s/@174#egg=django-wikiapp' %
-        local_checkout(
-            'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
-            '/release-0.1',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
-    result.assert_installed('django-wikiapp', with_files=['.bzr'])
+    """Test checking out from Bazaar."""
+    pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
+    args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    result = script.pip(*args, **{"expect_error": True})
+    result.assert_installed('testpackage', with_files=['.bzr'])
 
 
+@pytest.mark.network
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -326,7 +310,7 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip('install', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stdout
+    assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
 def test_editable_install_from_local_directory_with_no_setup_py(script, data):
@@ -335,7 +319,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip('install', '-e', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stdout
+    assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
 def test_install_as_egg(script, data):
@@ -383,6 +367,7 @@ def test_install_pardir(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_global_option(script):
     """
     Test using global distutils options.
@@ -410,6 +395,7 @@ def test_install_with_hacked_egg_info(script, data):
     assert 'Successfully installed hackedegginfo-0.0.0\n' in result.stdout
 
 
+@pytest.mark.network
 def test_install_using_install_option_and_editable(script, tmpdir):
     """
     Test installing a tool using -e and --install-option
@@ -429,6 +415,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     assert script_file in result.files_created
 
 
+@pytest.mark.network
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -438,9 +425,10 @@ def test_install_global_option_using_editable(script, tmpdir):
         'install', '--global-option=--version', '-e',
         '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache"))
     )
-    assert '0.2.5\n' in result.stdout
+    assert 'Successfully installed anyjson' in result.stdout
 
 
+@pytest.mark.network
 def test_install_package_with_same_name_in_curdir(script):
     """
     Test installing a package with the same name of a local folder
@@ -494,6 +482,7 @@ def test_install_folder_using_relative_path(script):
     assert egg_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_install_package_which_contains_dev_in_name(script):
     """
     Test installing package from pypi which contains 'dev' in name
@@ -513,37 +502,37 @@ def test_install_package_with_target(script):
     Test installing a package using pip install --target
     """
     target_dir = script.scratch_path / 'target'
-    result = script.pip('install', '-t', target_dir, "initools==0.1")
-    assert Path('scratch') / 'target' / 'initools' in result.files_created, (
+    result = script.pip_install_local('-t', target_dir, "simple==1.0")
+    assert Path('scratch') / 'target' / 'simple' in result.files_created, (
         str(result)
     )
 
     # Test repeated call without --upgrade, no files should have changed
-    result = script.pip('install', '-t', target_dir, "initools==0.1")
-    assert not Path('scratch') / 'target' / 'initools' in result.files_updated
+    result = script.pip_install_local(
+        '-t', target_dir, "simple==1.0", expect_stderr=True,
+    )
+    assert not Path('scratch') / 'target' / 'simple' in result.files_updated
 
     # Test upgrade call, check that new version is installed
-    result = script.pip('install', '--upgrade', '-t',
-                        target_dir, "initools==0.2")
-    assert Path('scratch') / 'target' / 'initools' in result.files_updated, (
+    result = script.pip_install_local('--upgrade', '-t',
+                                      target_dir, "simple==2.0")
+    assert Path('scratch') / 'target' / 'simple' in result.files_updated, (
         str(result)
     )
     egg_folder = (
-        Path('scratch') / 'target' / 'INITools-0.2-py%s.egg-info' % pyversion)
+        Path('scratch') / 'target' / 'simple-2.0-py%s.egg-info' % pyversion)
     assert egg_folder in result.files_created, (
         str(result)
     )
 
     # Test install and upgrade of single-module package
-    result = script.pip('install', '-t', target_dir, 'six')
-    assert Path('scratch') / 'target' / 'six.py' in result.files_created, (
-        str(result)
-    )
+    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.0')
+    singlemodule_py = Path('scratch') / 'target' / 'singlemodule.py'
+    assert singlemodule_py in result.files_created, str(result)
 
-    result = script.pip('install', '-t', target_dir, '--upgrade', 'six')
-    assert Path('scratch') / 'target' / 'six.py' in result.files_updated, (
-        str(result)
-    )
+    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
+                                      '--upgrade')
+    assert singlemodule_py in result.files_updated, str(result)
 
 
 def test_install_package_with_root(script, data):
@@ -604,7 +593,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     case project names, should be considered equal to later requirements that
     reference the project name using lower case.
 
-    tests/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
+    tests/data/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
     'requiresupper' has install_requires = ['upper']
     """
     Upper = os.path.join(data.find_links, 'Upper-1.0.tar.gz')
@@ -625,7 +614,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     case project names, should be considered equal to later requirements that
     reference the project name using lower case.
 
-    tests/packages3 contains Dinner-1.0.tar.gz and Dinner-2.0.tar.gz
+    tests/data/packages3 contains Dinner-1.0.tar.gz and Dinner-2.0.tar.gz
     'requiredinner' has install_requires = ['dinner']
 
     This test is similar to test_url_req_case_mismatch_no_index; that test
@@ -671,6 +660,7 @@ def test_url_incorrect_case_file_index(script, data):
     """
     result = script.pip(
         'install', '--index-url', data.find_links3, "dinner",
+        expect_stderr=True,
     )
 
     # only Upper-2.0.tar.gz should get installed.
@@ -680,6 +670,7 @@ def test_url_incorrect_case_file_index(script, data):
     assert egg_folder in result.files_created, str(result)
 
 
+@pytest.mark.network
 def test_compiles_pyc(script):
     """
     Test installing with --compile on
@@ -700,6 +691,7 @@ def test_compiles_pyc(script):
     assert any(exists)
 
 
+@pytest.mark.network
 def test_no_compiles_pyc(script, data):
     """
     Test installing from wheel with --compile on
@@ -718,3 +710,36 @@ def test_no_compiles_pyc(script, data):
     )
 
     assert not any(exists)
+
+
+def test_install_upgrade_editable_depending_on_other_editable(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+    script.pip('install', '--editable', pkga_path)
+    result = script.pip('list')
+    assert "pkga" in result.stdout
+
+    script.scratch_path.join("pkgb").mkdir()
+    pkgb_path = script.scratch_path / 'pkgb'
+    pkgb_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkgb',
+              version='0.1',
+              install_requires=['pkga'])
+    """))
+    script.pip('install', '--upgrade', '--editable', pkgb_path)
+    result = script.pip('list')
+    assert "pkgb" in result.stdout
+
+
+def test_install_topological_sort(script, data):
+    args = ['install', 'TopoRequires4', '-f', data.packages]
+    res = str(script.pip(*args, expect_error=False))
+    order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
+    order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
+    assert order1 in res or order2 in res, res

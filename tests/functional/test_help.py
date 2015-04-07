@@ -84,6 +84,6 @@ def test_help_commands_equally_functional(script):
             continue
 
         assert (
-            script.pip('help', name).stdout
-            == script.pip(name, '--help').stdout
+            script.pip('help', name).stdout ==
+            script.pip(name, '--help').stdout
         )
