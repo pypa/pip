@@ -835,13 +835,10 @@ exec(compile(
                 install_args += ["--no-compile"]
 
             if running_under_virtualenv():
-                # FIXME: I'm not sure if this is a reasonable location;
-                # probably not but we can't put it in the default location, as
-                # that is a virtualenv symlink that isn't writable
                 py_ver_str = 'python' + sysconfig.get_python_version()
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
-                                              py_ver_str)]
+                                              py_ver_str, self.name)]
             logger.info('Running setup.py install for %s', self.name)
             with indent_log():
                 call_subprocess(
