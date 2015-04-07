@@ -6,18 +6,12 @@ import os
 import os.path
 import site
 import sys
-import tempfile
 
 from distutils import sysconfig
-from distutils.command.install import install, SCHEME_KEYS
+from distutils.command.install import install, SCHEME_KEYS  # noqa
 
-from pip.compat import get_path_uid, WINDOWS
+from pip.compat import WINDOWS
 from pip.utils import appdirs
-from pip import exceptions
-
-
-# Hack for flake8
-install
 
 
 # CA Bundle Locations
@@ -108,48 +102,9 @@ def __get_username():
     return pwd.getpwuid(os.geteuid()).pw_name
 
 
-def _get_build_prefix():
-    """ Returns a safe build_prefix """
-    path = os.path.join(
-        tempfile.gettempdir(),
-        'pip_build_%s' % __get_username().replace(' ', '_')
-    )
-    if WINDOWS:
-        """ on windows(tested on 7) temp dirs are isolated """
-        return path
-    try:
-        os.mkdir(path)
-        write_delete_marker_file(path)
-    except OSError:
-        file_uid = None
-        try:
-            # raises OSError for symlinks
-            # https://github.com/pypa/pip/pull/935#discussion_r5307003
-            file_uid = get_path_uid(path)
-        except OSError:
-            file_uid = None
-
-        if file_uid != os.geteuid():
-            msg = (
-                "The temporary folder for building (%s) is either not owned by"
-                " you, or is a symlink." % path
-            )
-            print(msg)
-            print(
-                "pip will not work until the temporary folder is either "
-                "deleted or is a real directory owned by your user account."
-            )
-            raise exceptions.InstallationError(msg)
-    return path
-
 if running_under_virtualenv():
-    build_prefix = os.path.join(sys.prefix, 'build')
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
-    # Note: intentionally NOT using mkdtemp
-    # See https://github.com/pypa/pip/issues/906 for plan to move to mkdtemp
-    build_prefix = _get_build_prefix()
-
     # FIXME: keep src in cwd for now (it is not a temporary folder)
     try:
         src_prefix = os.path.join(os.getcwd(), 'src')
@@ -162,7 +117,6 @@ else:
 # under Mac OS X + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
 # Note: using realpath due to tmp dirs on OSX being symlinks
-build_prefix = os.path.abspath(os.path.realpath(build_prefix))
 src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages

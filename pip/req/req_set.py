@@ -13,9 +13,8 @@ from pip._vendor import requests
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
-from pip.utils import (display_path, rmtree, dist_in_usersite, normalize_path)
+from pip.utils import display_path, dist_in_usersite, normalize_path
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
 
@@ -557,18 +556,6 @@ class RequirementSet(object):
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
-
-            if self._pip_has_created_build_dir():
-                logger.debug('Removing temporary dir %s...', self.build_dir)
-                rmtree(self.build_dir)
-
-    def _pip_has_created_build_dir(self):
-        return (
-            self.build_dir == build_prefix and
-            os.path.exists(
-                os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)
-            )
-        )
 
     def _to_install(self):
         """Create the installation order.
