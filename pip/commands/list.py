@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-import warnings
 
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
-from pip.utils.deprecation import RemovedInPip7Warning
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -112,23 +110,6 @@ class ListCommand(Command):
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
-
-        if options.use_mirrors:
-            warnings.warn(
-                "--use-mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-
-        if options.mirrors:
-            warnings.warn(
-                "--mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-            index_urls += options.mirrors
 
         dependency_links = []
         for dist in get_installed_distributions(local_only=options.local,

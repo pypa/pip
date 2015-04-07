@@ -16,7 +16,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.compat import ipaddress
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, normalize_path)
-from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -134,7 +134,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip7Warning,
+                RemovedInPip8Warning,
             )
             self.dependency_links.extend(links)
 
@@ -269,27 +269,22 @@ class PackageFinder(object):
                 continue
 
             # If we've gotten here, then this origin matches the current
-            # secure origin and we should break out of the loop and continue
-            # on.
-            break
-        else:
-            # If the loop successfully completed without a break, that means
-            # that the origin we are testing is not a secure origin.
-            logger.warning(
-                "This repository located at %s is not a trusted host, if "
-                "this repository is available via HTTPS it is recommend to "
-                "use HTTPS instead, otherwise you may silence this warning "
-                "with '--trusted-host %s'.",
-                parsed.hostname,
-                parsed.hostname,
-            )
+            # secure origin and we should return True
+            return True
 
-            warnings.warn(
-                "Implicitly allowing locations which are not hosted at a "
-                "secure origin is deprecated and will require the use of "
-                "--trusted-host in the future.",
-                RemovedInPip7Warning,
-            )
+        # If we've gotten to this point, then the origin isn't secure and we
+        # will not accept it as a valid location to search. We will however
+        # log a warning that we are ignoring it.
+        logger.warning(
+            "The repository located at %s is not a trusted or secure host and "
+            "is being ignored. If this repository is available via HTTPS it "
+            "is recommended to use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyways with '--trusted-host %s'.",
+            parsed.hostname,
+            parsed.hostname,
+        )
+
+        return False
 
     def _get_index_urls_locations(self, project_name):
         """Returns the locations found via self.index_urls
@@ -362,11 +357,17 @@ class PackageFinder(object):
         # We explicitly do not trust links that came from dependency_links
         locations.extend([Link(url) for url in _ulocations])
 
+        # We want to filter out any thing which does not have a secure origin.
+        locations = [
+            l for l in locations
+            if self._validate_secure_origin(logger, l)
+        ]
+
         logger.debug('%d location(s) to search for versions of %s:',
                      len(locations), project_name)
+
         for location in locations:
             logger.debug('* %s', location)
-            self._validate_secure_origin(logger, location)
 
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
@@ -526,13 +527,6 @@ class PackageFinder(object):
                 selected_version.verifiable):
             logger.warning(
                 "%s is potentially insecure and unverifiable.", req.name,
-            )
-
-        if selected_version._deprecated_regex:
-            warnings.warn(
-                "%s discovered using a deprecated method of parsing, in the "
-                "future it will no longer be discovered." % req.name,
-                RemovedInPip7Warning,
             )
 
         return selected_version
@@ -792,14 +786,6 @@ class PackageFinder(object):
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
-    # FIXME: these regexes are horrible hacks:
-    _homepage_re = re.compile(b'<th>\\s*home\\s*page', re.I)
-    _download_re = re.compile(b'<th>\\s*download\\s+url', re.I)
-    _href_re = re.compile(
-        b'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))',
-        re.I | re.S
-    )
-
     def __init__(self, content, url, headers=None, trusted=None):
         # Determine if we have any encoding information in our headers
         encoding = None
@@ -982,13 +968,7 @@ class HTMLPage(object):
 
                 yield Link(url, self, internal=internal)
 
-    def rel_links(self):
-        for url in self.explicit_rel_links():
-            yield url
-        for url in self.scraped_rel_links():
-            yield url
-
-    def explicit_rel_links(self, rels=('homepage', 'download')):
+    def rel_links(self, rels=('homepage', 'download')):
         """Yields all links with the given relations"""
         rels = set(rels)
 
@@ -1004,29 +984,6 @@ class HTMLPage(object):
                     )
                     yield Link(url, self, trusted=False)
 
-    def scraped_rel_links(self):
-        # Can we get rid of this horrible horrible method?
-        for regex in (self._homepage_re, self._download_re):
-            match = regex.search(self.content)
-            if not match:
-                continue
-            href_match = self._href_re.search(self.content, pos=match.end())
-            if not href_match:
-                continue
-            url = (
-                href_match.group(1) or
-                href_match.group(2) or
-                href_match.group(3)
-            )
-            if not url:
-                continue
-            try:
-                url = url.decode("ascii")
-            except UnicodeDecodeError:
-                continue
-            url = self.clean_link(urllib_parse.urljoin(self.base_url, url))
-            yield Link(url, self, trusted=False, _deprecated_regex=True)
-
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
     def clean_link(self, url):
@@ -1039,8 +996,7 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None, internal=None, trusted=None,
-                 _deprecated_regex=False):
+    def __init__(self, url, comes_from=None, internal=None, trusted=None):
 
         # url can be a UNC windows share
         if url != Inf and url.startswith('\\\\'):
@@ -1050,7 +1006,6 @@ class Link(object):
         self.comes_from = comes_from
         self.internal = internal
         self.trusted = trusted
-        self._deprecated_regex = _deprecated_regex
 
     def __str__(self):
         if self.comes_from:

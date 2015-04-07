@@ -11,15 +11,15 @@ class PipDeprecationWarning(Warning):
     pass
 
 
-class RemovedInPip7Warning(PipDeprecationWarning, DeprecationWarning):
-    pass
-
-
 class RemovedInPip8Warning(PipDeprecationWarning, PendingDeprecationWarning):
     pass
 
 
-DEPRECATIONS = [RemovedInPip7Warning, RemovedInPip8Warning]
+class RemovedInPip9Warning(PipDeprecationWarning, PendingDeprecationWarning):
+    pass
+
+
+DEPRECATIONS = [RemovedInPip8Warning, RemovedInPip9Warning]
 
 
 # Warnings <-> Logging Integration
