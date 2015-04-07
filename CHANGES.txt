@@ -41,6 +41,8 @@
 * Support arch specific wheels that are not tied to a specific Python ABI.
   (:pull:`2561`)
 
+* Output warnings and errors to stderr instead of stdout. (:pull:`2543`)
+
 
 **6.0.8 (2015-02-04)**
 

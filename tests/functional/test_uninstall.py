@@ -47,7 +47,7 @@ def test_simple_uninstall_distutils(script):
     result = script.run('python', pkg_path / 'setup.py', 'install')
     result = script.pip('list')
     assert "distutils-install (0.1)" in result.stdout
-    script.pip('uninstall', 'distutils_install', '-y')
+    script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
     result2 = script.pip('list')
     assert "distutils-install (0.1)" not in result2.stdout
 

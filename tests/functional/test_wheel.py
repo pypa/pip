@@ -17,7 +17,7 @@ def test_pip_wheel_fails_without_wheel(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
         expect_error=True,
     )
-    assert "'pip wheel' requires the 'wheel' package" in result.stdout
+    assert "'pip wheel' requires the 'wheel' package" in result.stderr
 
 
 @pytest.mark.network

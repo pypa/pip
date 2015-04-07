@@ -293,8 +293,8 @@ def test_upgrade_vcs_req_with_dist_found(script):
             "743aad47656b27"
         )
     )
-    script.pip("install", req)
-    result = script.pip("install", "-U", req)
+    script.pip("install", req, expect_stderr=True)
+    result = script.pip("install", "-U", req, expect_stderr=True)
     assert "pypi.python.org" not in result.stdout, result.stdout
 
 
