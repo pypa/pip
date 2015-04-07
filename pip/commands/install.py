@@ -173,6 +173,13 @@ class InstallCommand(Command):
 
         cmd_opts.add_option(cmdoptions.no_clean.make())
 
+        cmd_opts.add_option(
+            '--list-dependencies',
+            dest="list_dependencies_file",
+            metavar="file",
+            default=None,
+            help="Don't install anything, write all dependencies into <file>")
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
@@ -199,6 +206,15 @@ class InstallCommand(Command):
             process_dependency_links=options.process_dependency_links,
             session=session,
         )
+
+    def write_dependencies_to_file(self, path, requirements):
+        def strspecs(specs):
+            return ''.join(['%s%s,' % (op, ver)
+                                    for (op, ver) in specs]).rstrip(',')
+
+        with open(path, 'w') as f:
+            for req in requirements.values():
+                f.write('%s%s\n' % (req.name, strspecs(req.req.specs)))
 
     def run(self, options, args):
 
@@ -338,12 +354,19 @@ class InstallCommand(Command):
                     return
 
                 try:
+                    # Obtain requirement set
                     if not options.no_download:
                         requirement_set.prepare_files(finder)
                     else:
                         # This is the only call site of locate_files. Nuke with
                         # fire.
                         requirement_set.locate_files()
+
+                    if options.list_dependencies_file:
+                        self.write_dependencies_to_file(
+                            options.list_dependencies_file,
+                            requirement_set.requirements)
+                        return
 
                     if not options.no_install:
                         requirement_set.install(
