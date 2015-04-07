@@ -7,9 +7,9 @@ import tempfile
 import shutil
 import warnings
 
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req import RequirementSet
 from pip.locations import virtualenv_no_global, distutils_scheme
-from pip.basecommand import Command
+from pip.basecommand import RequirementCommand
 from pip.index import PackageFinder
 from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
@@ -22,7 +22,7 @@ from pip.utils.deprecation import RemovedInPip8Warning
 logger = logging.getLogger(__name__)
 
 
-class InstallCommand(Command):
+class InstallCommand(RequirementCommand):
     """
     Install packages from:
 
@@ -252,39 +252,11 @@ class InstallCommand(Command):
                     isolated=options.isolated_mode,
                 )
 
-                for name in args:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_line(
-                            name, None, isolated=options.isolated_mode,
-                        )
-                    )
-
-                for name in options.editables:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_editable(
-                            name,
-                            default_vcs=options.default_vcs,
-                            isolated=options.isolated_mode,
-                        )
-                    )
-
-                for filename in options.requirements:
-                    for req in parse_requirements(
-                            filename,
-                            finder=finder, options=options, session=session):
-                        requirement_set.add_requirement(req)
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session, self.name,
+                )
 
                 if not requirement_set.has_requirements:
-                    opts = {'name': self.name}
-                    if options.find_links:
-                        msg = ('You must give at least one requirement to '
-                               '%(name)s (maybe you meant "pip %(name)s '
-                               '%(links)s"?)' %
-                               dict(opts, links=' '.join(options.find_links)))
-                    else:
-                        msg = ('You must give at least one requirement '
-                               'to %(name)s (see "pip help %(name)s")' % opts)
-                    logger.warning(msg)
                     return
 
                 try:

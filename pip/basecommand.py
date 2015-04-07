@@ -17,6 +17,7 @@ from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
@@ -274,6 +275,49 @@ class Command(object):
             return UNKNOWN_ERROR
 
         return SUCCESS
+
+
+class RequirementCommand(Command):
+
+    @staticmethod
+    def populate_requirement_set(requirement_set, args, options, finder,
+                                 session, name):
+        """
+        Marshal cmd line args into a requirement set.
+        """
+        for name in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(
+                    name, None, isolated=options.isolated_mode,
+                )
+            )
+
+        for name in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(
+                    name,
+                    default_vcs=options.default_vcs,
+                    isolated=options.isolated_mode,
+                )
+            )
+
+        for filename in options.requirements:
+            for req in parse_requirements(
+                    filename,
+                    finder=finder, options=options, session=session):
+                requirement_set.add_requirement(req)
+
+        if not requirement_set.has_requirements:
+            opts = {'name': name}
+            if options.find_links:
+                msg = ('You must give at least one requirement to '
+                       '%(name)s (maybe you meant "pip %(name)s '
+                       '%(links)s"?)' %
+                       dict(opts, links=' '.join(options.find_links)))
+            else:
+                msg = ('You must give at least one requirement '
+                       'to %(name)s (see "pip help %(name)s")' % opts)
+            logger.warning(msg)
 
 
 def format_exc(exc_info=None):
