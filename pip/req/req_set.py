@@ -607,6 +607,7 @@ class RequirementSet(object):
             if self._pip_has_created_build_dir():
                 logger.debug('Removing temporary dir %s...', self.build_dir)
                 rmtree(self.build_dir)
+        logger.debug('Done cleaning up.')
 
     def _pip_has_created_build_dir(self):
         return (
