@@ -17,7 +17,10 @@ def test_install_from_future_wheel_version(script, data):
                                 editable=False)
 
     package = data.packages.join("futurewheel-1.9-py2.py3-none-any.whl")
-    result = script.pip('install', package, '--no-index', expect_error=False)
+    result = script.pip(
+        'install', package, '--no-index', expect_error=False,
+        expect_stderr=True,
+    )
     result.assert_installed('futurewheel', without_egg_link=True,
                             editable=False)
 

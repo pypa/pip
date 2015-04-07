@@ -55,7 +55,8 @@ def test_uptodate_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
     result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--uptodate'
+        'list', '-f', data.find_links, '--no-index', '--uptodate',
+        expect_stderr=True,
     )
     assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
     assert 'pip-test-package' not in result.stdout  # editables excluded
@@ -78,6 +79,7 @@ def test_outdated_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
+        expect_stderr=True,
     )
     assert 'simple (Current: 1.0 Latest: 3.0 [sdist])' in result.stdout
     assert 'simplewheel (Current: 1.0 Latest: 2.0 [wheel])' in result.stdout

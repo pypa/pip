@@ -16,7 +16,6 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.six.moves import configparser
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 import pip.wheel
 
@@ -233,6 +232,15 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
+    def populate_link(self, finder, upgrade):
+        """Ensure that if a link can be found for this, that it is found.
+
+        Note that self.link may still be None - if Upgrade is False and the
+        requirement is already installed.
+        """
+        if self.link is None:
+            self.link = finder.find_requirement(self, upgrade)
+
     @property
     def specifier(self):
         return self.req.specifier
@@ -311,13 +319,8 @@ class InstallRequirement(object):
         return native_str(self.req.project_name)
 
     @property
-    def url_name(self):
-        if self.req is None:
-            return None
-        return urllib_parse.quote(self.req.project_name.lower())
-
-    @property
     def setup_py(self):
+        assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
         except ImportError:
@@ -842,13 +845,10 @@ exec(compile(
                 install_args += ["--no-compile"]
 
             if running_under_virtualenv():
-                # FIXME: I'm not sure if this is a reasonable location;
-                # probably not but we can't put it in the default location, as
-                # that is a virtualenv symlink that isn't writable
                 py_ver_str = 'python' + sysconfig.get_python_version()
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
-                                              py_ver_str)]
+                                              py_ver_str, self.name)]
             logger.info('Running setup.py install for %s', self.name)
             with indent_log():
                 call_subprocess(
@@ -906,6 +906,20 @@ exec(compile(
                 os.remove(record_filename)
             rmtree(temp_location)
 
+    def ensure_has_source_dir(self, parent_dir):
+        """Ensure that a source_dir is set.
+
+        This will create a temporary build dir if the name of the requirement
+        isn't known yet.
+
+        :param parent_dir: The ideal pip parent_dir for the source_dir.
+            Generally src_dir for editables and build_dir for sdists.
+        :return: self.source_dir
+        """
+        if self.source_dir is None:
+            self.source_dir = self.build_location(parent_dir)
+        return self.source_dir
+
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
@@ -953,8 +967,8 @@ exec(compile(
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
-        self.conflicts_with appropriately."""
-
+        self.conflicts_with appropriately.
+        """
         if self.req is None:
             return False
         try:

@@ -260,12 +260,17 @@ def make_path_relative(path, rel_to):
     return os.path.sep.join(full_parts)
 
 
-def normalize_path(path):
+def normalize_path(path, resolve_symlinks=True):
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    return os.path.normcase(os.path.realpath(os.path.expanduser(path)))
+    path = os.path.expanduser(path)
+    if resolve_symlinks:
+        path = os.path.realpath(path)
+    else:
+        path = os.path.abspath(path)
+    return os.path.normcase(path)
 
 
 def splitext(path):

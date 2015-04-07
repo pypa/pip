@@ -22,16 +22,32 @@
 * Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
   when used (:pull:`2441`).
 
-* Properly parse commit hashes when using the SSH transport to access a VCS
-  (:pull:`2513`).
-
 * Display a warning when an undefined extra has been requested. (:pull:`2142`)
 
 * Speed up installing a directory in certain cases by creating a sdist instead
   of copying the entire directory. (:pull:`2535`)
 
-* Speed up upgrading by skipping packages which use ``==`` and the specified
-  version is already installed. (:pull:`2493`)
+* Don't follow symlinks when uninstalling files (:pull:`2552`)
+
+* Upgrade the bundled copy of cachecontrol from 0.11.1 to 0.11.2.
+  Fixes :issue:`2481` (:pull:`2595`)
+
+* Attempt to more smartly choose the order of installation to try and install
+  dependencies before the projects that depend on them. (:pull:`2616`)
+
+* Skip trying to install libraries which are part of the standard library.
+  (:pull:`2636`, :pull:`2602`)
+
+* Support arch specific wheels that are not tied to a specific Python ABI.
+  (:pull:`2561`)
+
+* Output warnings and errors to stderr instead of stdout. (:pull:`2543`)
+
+* Adjust the cache dir file checks to only check ownership if the effective
+  user is root. (:pull:`2396`)
+
+* Install headers into a per project name directory instead of all of them into
+  the root directory when inside of a virtual environment. (:pull:`2421`)
 
 
 **6.0.8 (2015-02-04)**
@@ -179,7 +195,7 @@
   it's internal HTTP cache which supplants the ``--download-cache`` the
   existing options have been made non functional but will still be accepted
   until their removal in pip v8.0. For more information please see
-  https://pip.pypa.io/en/latest/reference/pip_install.html#caching
+  https://pip.pypa.io/en/stable/reference/pip_install.html#caching
 
 * **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
   *NOT* deprecated.  This reverses the deprecation that occurred in v1.5.3. See

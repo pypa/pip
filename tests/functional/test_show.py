@@ -67,7 +67,7 @@ def test_missing_argument(script):
     Test show command with no arguments.
     """
     result = script.pip('show', expect_error=True)
-    assert 'ERROR: Please provide a package name or names.' in result.stdout
+    assert 'ERROR: Please provide a package name or names.' in result.stderr
 
 
 def test_find_package_not_found():

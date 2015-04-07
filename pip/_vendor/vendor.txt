@@ -3,7 +3,7 @@ html5lib==0.999  # See: https://github.com/html5lib/html5lib-python/issues/161
 six==1.9.0
 colorama==0.3.3
 requests==2.6.0
-CacheControl==0.11.1
+CacheControl==0.11.2
 lockfile==0.10.2
 progress==1.2
 ipaddress==1.0.7  # Only needed on 2.6, 2.7, and 3.2
