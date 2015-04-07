@@ -201,7 +201,6 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers():
-            # Only log if we haven't already got install_req from somewhere.
             logger.debug("Ignore %s: markers %r don't match",
                          install_req.name, install_req.markers)
             return []
