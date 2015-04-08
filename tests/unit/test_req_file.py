@@ -275,10 +275,13 @@ class TestParseRequirements(object):
         parse_requirements(tmpdir.join("req.txt"), session=PipSession())
 
     def test_install_requirements_with_options(self, tmpdir, finder, session):
+        global_option = '--dry-run'
+        install_option = '--prefix=/opt'
+
         content = '''
-        INITools == 2.0 --global-option="--one-two-3" \
-                        --install-option "--prefix=/opt"
-        '''
+        INITools == 2.0 --global-option="{global_option}" \
+                        --install-option "{install_option}"
+        '''.format(global_option=global_option, install_option=install_option)
 
         req_path = tmpdir.join('requirements.txt')
         with open(req_path, 'w') as fh:
@@ -294,7 +297,7 @@ class TestParseRequirements(object):
                 pass
 
             call = popen.call_args_list[0][0][0]
-            for i in '--one-two-3', '--prefix=/opt':
+            for i in global_option, install_option:
                 assert i in call
 
         # TODO: assert that --global-option come before --install-option.
