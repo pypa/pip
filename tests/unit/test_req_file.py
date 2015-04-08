@@ -46,7 +46,8 @@ class TestPartitionLine(object):
         assert 'req', '--option=value' == partition_line('req --option=value')
 
     def test_split_req_with_option_and_flag(self):
-        assert 'req', '--option=value --flag' == partition_line('req --option=value --flag')
+        assert 'req', '--option=value --flag' == \
+            partition_line('req --option=value --flag')
 
 
 class TestJoinLines(object):
@@ -77,27 +78,33 @@ class TestParseRequirementOptions(object):
 
     def test_install_options_no_quotes(self):
         args = '--install-option --user'
-        assert {'install_options': ['--user']} == parse_requirement_options(args)
+        assert {'install_options': ['--user']} == \
+            parse_requirement_options(args)
 
     def test_install_options_quotes(self):
         args = "--install-option '--user'"
-        assert {'install_options': ['--user']} == parse_requirement_options(args)
+        assert {'install_options': ['--user']} == \
+            parse_requirement_options(args)
 
     def test_install_options_equals(self):
         args = "--install-option='--user'"
-        assert {'install_options': ['--user']} == parse_requirement_options(args)
+        assert {'install_options': ['--user']} == \
+            parse_requirement_options(args)
 
     def test_install_options_with_spaces(self):
         args = "--install-option='--arg=value1 value2 value3'"
-        assert {'install_options': ['--arg=value1 value2 value3']} == parse_requirement_options(args)
+        assert {'install_options': ['--arg=value1 value2 value3']} == \
+            parse_requirement_options(args)
 
     def test_install_options_multiple(self):
         args = "--install-option='--user' --install-option='--root'"
-        assert {'install_options': ['--user', '--root']} == parse_requirement_options(args)
+        assert {'install_options': ['--user', '--root']} == \
+            parse_requirement_options(args)
 
     def test_install_and_global_options(self):
         args = "--install-option='--user' --global-option='--author'"
-        result = {'global_options': ['--author'], 'install_options': ['--user']}
+        result = {'global_options': ['--author'],
+                  'install_options': ['--user']}
         assert result == parse_requirement_options(args)
 
 
@@ -170,9 +177,13 @@ class TestParseContent(object):
         content = '-r another_file'
         req = InstallRequirement.from_line('SomeProject')
         import pip.req.req_file
-        call = lambda req_url, finder, comes_from, options, session: [req]
-        parse_requirements_stub = stub(call=call)
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', parse_requirements_stub.call)
+
+        def stub_parse_requirements(req_url, finder, comes_from, options,
+                                    session):
+            return [req]
+        parse_requirements_stub = stub(call=stub_parse_requirements)
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
+                            parse_requirements_stub.call)
         assert list(parse_content('filename', content)) == [req]
 
 
@@ -196,10 +207,11 @@ class TestParseRequirements(object):
         """
         Test parsing a simple remote requirements file
         """
-        # this requirements file just contains a comment
-        # previously this has failed in py3: https://github.com/pypa/pip/issues/760
+        # this requirements file just contains a comment previously this has
+        # failed in py3: https://github.com/pypa/pip/issues/760
         for req in parse_requirements(
-                'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
+                'https://raw.githubusercontent.com/pypa/'
+                'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
 
@@ -287,7 +299,8 @@ class TestParseRequirements(object):
         with open(req_path, 'w') as fh:
             fh.write(content)
 
-        req = next(parse_requirements(req_path, finder=finder, session=session))
+        req = next(parse_requirements(req_path, finder=finder,
+                                      session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
