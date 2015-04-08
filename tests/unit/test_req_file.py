@@ -1,5 +1,9 @@
-import pytest
+import os
+import subprocess
+from textwrap import dedent
 
+from mock import patch
+import pytest
 from pretend import stub
 
 from pip.download import PipSession
@@ -49,8 +53,23 @@ class TestJoinLines(object):
     """tests for `join_lines`"""
 
     def test_join_lines(self):
-        lines = ['line1_begin \\', 'line1_end', 'line2']
-        assert ['line1_begin line1_end', 'line2'] == list(join_lines(lines))
+        lines = dedent('''\
+        line 1
+        line 2:1 \\
+        line 2:2
+        line 3:1 \\
+        line 3:2 \\
+        line 3:3
+        line 4
+        ''').splitlines()
+
+        expect = [
+            'line 1',
+            'line 2:1 line 2:2',
+            'line 3:1 line 3:2 line 3:3',
+            'line 4',
+        ]
+        assert expect == list(join_lines(lines))
 
 
 class TestParseRequirementOptions(object):
@@ -68,11 +87,15 @@ class TestParseRequirementOptions(object):
         args = "--install-option='--user'"
         assert {'install_options': ['--user']} == parse_requirement_options(args)
 
+    def test_install_options_with_spaces(self):
+        args = "--install-option='--arg=value1 value2 value3'"
+        assert {'install_options': ['--arg=value1 value2 value3']} == parse_requirement_options(args)
+
     def test_install_options_multiple(self):
         args = "--install-option='--user' --install-option='--root'"
         assert {'install_options': ['--user', '--root']} == parse_requirement_options(args)
 
-    def test_install__global_options(self):
+    def test_install_and_global_options(self):
         args = "--install-option='--user' --global-option='--author'"
         result = {'global_options': ['--author'], 'install_options': ['--user']}
         assert result == parse_requirement_options(args)
@@ -96,7 +119,14 @@ class TestParseLine(object):
         assert parse_line('--no-index') == (FLAG, '--no-index')
 
     def test_parse_line_option(self):
-        assert parse_line('--index-url=url') == (OPTION, ('--index-url', 'url'))
+        result = (OPTION, ('--index-url', 'url'))
+        assert parse_line('--index-url=url') == result
+        assert parse_line('--index-url  =  url') == result
+        assert parse_line('--index-url url') == result
+        result = (OPTION, ('-i', 'url'))
+        assert parse_line('-i=url') == result
+        assert parse_line('-i  =  url') == result
+        assert parse_line('-i url') == result
 
     def test_parse_line_ignore(self):
         assert parse_line('--use-wheel') == (IGNORE, '--use-wheel')
@@ -144,6 +174,16 @@ class TestParseContent(object):
         parse_requirements_stub = stub(call=call)
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements', parse_requirements_stub.call)
         assert list(parse_content('filename', content)) == [req]
+
+
+@pytest.fixture
+def session():
+    return PipSession()
+
+
+@pytest.fixture
+def finder(session):
+    return PackageFinder([], [], session=session)
 
 
 class TestParseRequirements(object):
@@ -233,3 +273,28 @@ class TestParseRequirements(object):
             """)
 
         parse_requirements(tmpdir.join("req.txt"), session=PipSession())
+
+    def test_install_requirements_with_options(self, tmpdir, finder, session):
+        content = '''
+        INITools == 2.0 --global-option="--one-two-3" \
+                        --install-option "--prefix=/opt"
+        '''
+
+        req_path = tmpdir.join('requirements.txt')
+        with open(req_path, 'w') as fh:
+            fh.write(content)
+
+        req = next(parse_requirements(req_path, finder=finder, session=session))
+
+        req.source_dir = os.curdir
+        with patch.object(subprocess, 'Popen') as popen:
+            try:
+                req.install([])
+            except:
+                pass
+
+            call = popen.call_args_list[0][0][0]
+            for i in '--one-two-3', '--prefix=/opt':
+                assert i in call
+
+        # TODO: assert that --global-option come before --install-option.
