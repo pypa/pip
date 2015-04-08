@@ -297,7 +297,6 @@ class TestParseRequirements(object):
                 pass
 
             call = popen.call_args_list[0][0][0]
-            for i in global_option, install_option:
-                assert i in call
-
-        # TODO: assert that --global-option come before --install-option.
+            assert call.index(install_option) > \
+                call.index('install') > \
+                call.index(global_option) > 0
