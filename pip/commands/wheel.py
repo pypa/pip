@@ -9,7 +9,7 @@ from pip.basecommand import RequirementCommand
 from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
-from pip.utils import import_or_raise, ensure_dir, normalize_path
+from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.wheel import WheelBuilder
@@ -168,10 +168,6 @@ class WheelCommand(RequirementCommand):
                     wheel_download_dir=options.wheel_dir
                 )
 
-                # make the wheelhouse
-                options.wheel_dir = normalize_path(options.wheel_dir)
-                ensure_dir(options.wheel_dir)
-
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                 )
@@ -184,7 +180,6 @@ class WheelCommand(RequirementCommand):
                     wb = WheelBuilder(
                         requirement_set,
                         finder,
-                        options.wheel_dir,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                     )
