@@ -6,6 +6,7 @@ from mock import patch
 import pytest
 from pretend import stub
 
+from pip.exceptions import RequirementsFileParseError
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
@@ -111,9 +112,6 @@ class TestParseRequirementOptions(object):
 class TestParseLine(object):
     """tests for `parse_line`"""
 
-    # TODO
-    # parser error tests
-
     def test_parse_line_editable(self):
         assert parse_line('-e url') == (REQUIREMENT_EDITABLE, 'url')
         assert parse_line('--editable url') == (REQUIREMENT_EDITABLE, 'url')
@@ -146,6 +144,15 @@ class TestParseLine(object):
             REQUIREMENT,
             ('SomeProject', {'install_options': ['--user']})
         )
+
+    def test_flag_with_value_raises(self):
+        with pytest.raises(RequirementsFileParseError):
+            parse_line('--no-index url')
+
+    def test_option_with_no_value_raises(self):
+        with pytest.raises(RequirementsFileParseError):
+            parse_line('--index-url')
+
 
 
 class TestParseContent(object):
