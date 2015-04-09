@@ -321,7 +321,7 @@ similarly to that of a web browser. While the cache is on by default and is
 designed do the right thing by default you can disable the cache and always
 access PyPI by utilizing the ``--no-cache-dir`` option.
 
-When making any HTTP request pip will first check it's local cache to determine
+When making any HTTP request pip will first check its local cache to determine
 if it has a suitable response stored for that request which has not expired. If
 it does then it simply returns that response and doesn't make the request.
 
