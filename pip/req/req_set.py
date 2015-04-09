@@ -211,9 +211,7 @@ class RequirementSet(object):
             requirement is applicable and has just been added.
         """
         name = install_req.name
-        if ((not name or not self.has_requirement(name)) and not
-                install_req.match_markers()):
-            # Only log if we haven't already got install_req from somewhere.
+        if not install_req.match_markers():
             logger.debug("Ignore %s: markers %r don't match",
                          install_req.name, install_req.markers)
             return []
