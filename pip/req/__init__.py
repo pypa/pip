@@ -5,5 +5,6 @@ from .req_set import RequirementSet, Requirements
 from .req_file import parse_requirements
 
 __all__ = [
-    RequirementSet, Requirements, InstallRequirement, parse_requirements,
+    "RequirementSet", "Requirements", "InstallRequirement",
+    "parse_requirements",
 ]
