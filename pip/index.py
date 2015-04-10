@@ -648,7 +648,6 @@ class PackageFinder(object):
 
                 all_locations.append(link)
 
-    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
@@ -742,7 +741,7 @@ class PackageFinder(object):
                 version = wheel.version
 
         if not version:
-            version = self._egg_info_matches(egg_info, search_name, link)
+            version = egg_info_matches(egg_info, search_name, link)
         if version is None:
             self._log_skipped_link(
                 link, 'wrong project name (not %s)' % search_name)
@@ -783,23 +782,37 @@ class PackageFinder(object):
 
         return InstallationCandidate(search_name, version, link)
 
-    def _egg_info_matches(self, egg_info, search_name, link):
-        match = self._egg_info_re.search(egg_info)
-        if not match:
-            logger.debug('Could not parse version from link: %s', link)
-            return None
-        name = match.group(0).lower()
-        # To match the "safe" name that pkg_resources creates:
-        name = name.replace('_', '-')
-        # project name and version must be separated by a dash
-        look_for = search_name.lower() + "-"
-        if name.startswith(look_for):
-            return match.group(0)[len(look_for):]
-        else:
-            return None
-
     def _get_page(self, link):
         return HTMLPage.get_page(link, session=self.session)
+
+
+def egg_info_matches(
+        egg_info, search_name, link,
+        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    """Pull the version part out of a string.
+
+    :param egg_info: The string to parse. E.g. foo-2.1
+    :param search_name: The name of the package this belongs to. None to
+        infer the name. Note that this cannot unambiguously parse strings
+        like foo-2-2 which might be foo, 2-2 or foo-2, 2.
+    :param link: The link the string came from, for logging on failure.
+    """
+    match = _egg_info_re.search(egg_info)
+    if not match:
+        logger.debug('Could not parse version from link: %s', link)
+        return None
+    if search_name is None:
+        full_match = match.group(0)
+        return full_match[full_match.index('-'):]
+    name = match.group(0).lower()
+    # To match the "safe" name that pkg_resources creates:
+    name = name.replace('_', '-')
+    # project name and version must be separated by a dash
+    look_for = search_name.lower() + "-"
+    if name.startswith(look_for):
+        return match.group(0)[len(look_for):]
+    else:
+        return None
 
 
 class HTMLPage(object):
