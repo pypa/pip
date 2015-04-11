@@ -212,7 +212,7 @@ class TestParseContent(object):
         assert finder.index_urls == ['url']
 
     def test_parse_content_join_lines(self):
-        content = '--index-url \\url'
+        content = '--index-url \\\n url'
         filename = 'filename'
         finder = stub()
         list(parse_content(filename, content, finder=finder))
