@@ -154,16 +154,12 @@ class TestParseLine(object):
             parse_line('--index-url')
 
 
-
 class TestParseContent(object):
     """tests for `parse_content`"""
 
-    # TODO
-    # isolated mode
-    # comments
-    # finder options
-    # join
-    # comes_from
+    def setup(self):
+        self.options = stub(isolated_mode=False, default_vcs=None,
+                            skip_requirements_regex=False)
 
     def test_parse_content_requirement(self):
         content = 'SomeProject'
@@ -192,6 +188,40 @@ class TestParseContent(object):
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
                             parse_requirements_stub.call)
         assert list(parse_content('filename', content)) == [req]
+
+    def test_parse_set_isolated(self):
+        content = 'SomeProject'
+        filename = 'filename'
+        self.options.isolated_mode = True
+        result = parse_content(filename, content, options=self.options)
+        assert list(result)[0].isolated
+
+    def test_parse_set_default_vcs(self):
+        url = 'https://url#egg=SomeProject'
+        content = '-e %s' % url
+        filename = 'filename'
+        self.options.default_vcs = 'git'
+        result = parse_content(filename, content, options=self.options)
+        assert list(result)[0].link.url == 'git+' + url
+
+    def test_parse_set_finder(self):
+        content = '--index-url url'
+        filename = 'filename'
+        finder = stub()
+        list(parse_content(filename, content, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_parse_content_join_lines(self):
+        content = '--index-url \\url'
+        filename = 'filename'
+        finder = stub()
+        list(parse_content(filename, content, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_parse_content_ignore_comment(self):
+        content = '# SomeProject'
+        filename = 'filename'
+        assert list(parse_content(filename, content)) == []
 
 
 @pytest.fixture
