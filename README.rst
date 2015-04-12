@@ -10,7 +10,8 @@ tool for installing Python packages.
 * `Changelog <https://pip.pypa.io/en/stable/news.html>`_
 * `Github Page <https://github.com/pypa/pip>`_
 * `Issue Tracking <https://github.com/pypa/pip/issues>`_
-* `Mailing list <http://groups.google.com/group/python-virtualenv>`_
+* `User mailing list <http://groups.google.com/group/python-virtualenv>`_
+* `Dev mailing list <http://groups.google.com/group/pypa-dev>`_
 * User IRC: #pypa on Freenode.
 * Dev IRC: #pypa-dev on Freenode.
 
