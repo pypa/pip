@@ -74,6 +74,7 @@ Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
     <requirement specifier>
+    <requirement specifier> [--install-option="..."] [--global-option="..."]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
@@ -89,6 +90,9 @@ See the :ref:`pip install Examples<pip install Examples>` for examples of all th
 A line that begins with ``#`` is treated as a comment and ignored. Whitespace
 followed by a ``#`` causes the ``#`` and the remainder of the line to be
 treated as a comment.
+
+A line ending in an unescaped ``\`` is treated as a line continuation
+and the newline following it is effectively ignored.
 
 Additionally, the following Package Index Options are supported:
 
@@ -138,6 +142,40 @@ Some Examples:
   Don't use single or double quotes in a ``requirements.txt`` file.
 
 
+.. _`Per-requirement Overrides`:
+
+Per-requirement Overrides
++++++++++++++++++++++++++
+
+When pip installs packages, it normally executes the ``setup.py`` file
+behind the scenes. You may extend the arguments with which the
+``setup.py`` file is called through the ``--global-option`` and
+``--install-option`` options. For example:
+
+ ::
+
+    FooProject >= 1.2 --global-option="--no-user-cfg" \
+                      --install-option="--prefix='/usr/local'" \
+                      --install-option="--no-compile"
+
+The above translates roughly into running FooProject's ``setup.py``
+script as:
+
+ ::
+
+   python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+
+Note that the only way of giving more than one option to ``setup.py``
+is through multiple ``--global-option`` and ``--install-option``
+options, as shown in the example above. The value of each option is
+passed as a single argument to the ``setup.py`` script. Therefore, a
+line such as the following is invalid and would result in an
+installation error.
+
+::
+
+   # Invalid. Please use '--install-option' twice as shown above.
+   FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
 
 
 .. _`Pre Release Versions`:
