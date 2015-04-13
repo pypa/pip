@@ -289,6 +289,7 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_line(
                     name, None, isolated=options.isolated_mode,
+                    cache_root=options.cache_dir
                 )
             )
 
@@ -298,6 +299,7 @@ class RequirementCommand(Command):
                     name,
                     default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
+                    cache_root=options.cache_dir
                 )
             )
 

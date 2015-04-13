@@ -77,7 +77,7 @@ IGNORE = 5
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None):
+                       session=None, cache_root=None):
     """
     Parse a requirements file and yield InstallRequirement instances.
 
@@ -87,7 +87,6 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     :param options:    Global options.
     :param session:    Instance of pip.download.PipSession.
     """
-
     if session is None:
         raise TypeError(
             "parse_requirements() missing 1 required keyword argument: "
@@ -99,7 +98,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     )
 
     parser = parse_content(
-        filename, content, finder, comes_from, options, session
+        filename, content, finder, comes_from, options, session, cache_root
     )
 
     for item in parser:
@@ -107,7 +106,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
 
 def parse_content(filename, content, finder=None, comes_from=None,
-                  options=None, session=None):
+                  options=None, session=None, cache_root=None):
 
     # Split, sanitize and join lines with continuations.
     content = content.splitlines()
@@ -129,8 +128,8 @@ def parse_content(filename, content, finder=None, comes_from=None,
             comes_from = '-r %s (line %s)' % (filename, line_number)
             isolated = options.isolated_mode if options else False
             yield InstallRequirement.from_line(
-                req, comes_from, isolated=isolated, options=opts
-            )
+                req, comes_from, isolated=isolated, options=opts,
+                cache_root=cache_root)
 
         # ---------------------------------------------------------------------
         elif linetype == REQUIREMENT_EDITABLE:
@@ -139,8 +138,8 @@ def parse_content(filename, content, finder=None, comes_from=None,
             default_vcs = options.default_vcs if options else None
             yield InstallRequirement.from_editable(
                 value, comes_from=comes_from,
-                default_vcs=default_vcs, isolated=isolated
-            )
+                default_vcs=default_vcs, isolated=isolated,
+                cache_root=cache_root)
 
         # ---------------------------------------------------------------------
         elif linetype == REQUIREMENT_FILE:
@@ -152,8 +151,8 @@ def parse_content(filename, content, finder=None, comes_from=None,
                 req_url = os.path.join(os.path.dirname(filename), value)
             # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
             parser = parse_requirements(
-                req_url, finder, comes_from, options, session
-            )
+                req_url, finder, comes_from, options, session,
+                cache_root=cache_root)
             for req in parser:
                 yield req
 

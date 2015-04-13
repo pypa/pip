@@ -159,6 +159,7 @@ class WheelCommand(RequirementCommand):
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(
                     build_dir=build_dir,
+                    cache_root=options.cache_dir,
                     src_dir=options.src_dir,
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,

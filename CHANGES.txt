@@ -22,6 +22,9 @@
 * Support ``--install-option`` and ``--global-option`` per requirement in
   requirement files (:pull:`2537`)
 
+* Build Wheels prior to installing from sdist, caching them in the pip cache
+  directory to speed up subsequent installs. (:pull:`2618`)
+
 **6.1.1 (2015-04-07)**
 
 * No longer ignore dependencies which have been added to the standard library,

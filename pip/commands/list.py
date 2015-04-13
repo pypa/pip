@@ -131,6 +131,7 @@ class ListCommand(Command):
             for dist in installed_packages:
                 req = InstallRequirement.from_line(
                     dist.key, None, isolated=options.isolated_mode,
+                    cache_root=options.cache_dir,
                 )
                 typ = 'unknown'
                 try:
