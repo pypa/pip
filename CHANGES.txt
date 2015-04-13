@@ -19,6 +19,8 @@
 * Ignores bz2 archives if Python wasn't compiled with bz2 support.
   Fixes :issue:`497`
 
+* Support ``--install-option`` and ``--global-option`` per requirement in
+  requirement files (:pull:`2537`)
 
 **6.1.1 (2015-04-07)**
 
