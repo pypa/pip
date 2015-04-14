@@ -16,7 +16,7 @@ env:
   - TOXENV=py27 VENDOR=no WHEELS=yes
   - TOXENV=py34 VENDOR=no WHEELS=yes
 
-install: .travis/install.sh
+install: travis_retry .travis/install.sh
 
 script: .travis/run.sh
 
