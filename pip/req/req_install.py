@@ -12,6 +12,7 @@ import zipfile
 from distutils.util import change_root
 from distutils import sysconfig
 from email.parser import FeedParser
+from textwrap import dedent
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
@@ -427,28 +428,28 @@ class InstallRequirement(object):
 
     # FIXME: This is a lame hack, entirely for PasteScript which has
     # a self-provided entry point that causes this awkwardness
-    _run_setup_py = """
-__file__ = __SETUP_PY__
-from setuptools.command import egg_info
-import pkg_resources
-import os
-import tokenize
-def replacement_run(self):
-    self.mkpath(self.egg_info)
-    installer = self.distribution.fetch_build_egg
-    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
-        # require=False is the change we're making:
-        writer = ep.load(require=False)
-        if writer:
-            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
-    self.find_sources()
-egg_info.egg_info.run = replacement_run
-exec(compile(
-    getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'),
-    __file__,
-    'exec'
-))
-"""
+    _run_setup_py = dedent("""\
+        __file__ = __SETUP_PY__
+        from setuptools.command import egg_info
+        import pkg_resources
+        import os
+        import tokenize
+        def replacement_run(self):
+            self.mkpath(self.egg_info)
+            installer = self.distribution.fetch_build_egg
+            for ep in pkg_resources.iter_entry_points('egg_info.writers'):
+                # require=False is the change we're making:
+                writer = ep.load(require=False)
+                if writer:
+                    writer(self, ep.name, os.path.join(self.egg_info,ep.name))
+            self.find_sources()
+        egg_info.egg_info.run = replacement_run
+        exec(compile(
+            getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'),
+            __file__,
+            'exec'
+        ))
+    """)
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:
