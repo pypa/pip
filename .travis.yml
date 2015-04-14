@@ -36,7 +36,7 @@ matrix:
     - python: nightly
 
 
-install: .travis/install.sh
+install: travis_retry .travis/install.sh
 
 
 script: .travis/run.sh
