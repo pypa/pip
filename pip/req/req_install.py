@@ -806,14 +806,13 @@ exec(compile(
         return name
 
     def _get_setup_py_command(self, setup_py_path):
+        # Note that this is one big one-liner. Care must be taken to
+        # avoid setting local or global variables as they may affect
+        # the execution of the user's setup.py in unpredictable ways.
         cmd = (
-            'import setuptools, tokenize ;'
-            '__file__ = %r ;'
-            '_open = getattr(tokenize, "open", open) ;'
-            'setup_py = _open(__file__).read() ;'
-            'setup_py = setup_py.replace("\\r\\n", "\\n") ;'
-            'codeobj = compile(setup_py, __file__, "exec") ;'
-            'exec(codeobj)'
+            "import setuptools, tokenize; __file__=%r;"
+            "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
+            ".replace('\\r\\n', '\\n'), __file__, 'exec'))"
         )
 
         return cmd % setup_py_path
