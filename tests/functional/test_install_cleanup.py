@@ -32,7 +32,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
         'install', '--no-clean', '--no-index', '--build', build,
         '--find-links=%s' % data.find_links, 'simple',
     )
-    assert exists(build)
+    assert exists(build / 'simple' / 'setup.py')
 
 
 @pytest.mark.network
