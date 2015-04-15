@@ -47,7 +47,7 @@ class Bazaar(VersionControl):
             rmtree(location)
         try:
             self.run_command(['export', location], cwd=temp_dir,
-                             filter_stdout=self._filter, show_stdout=False)
+                             show_stdout=False)
         finally:
             rmtree(temp_dir)
 
