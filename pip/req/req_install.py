@@ -388,7 +388,7 @@ class InstallRequirement(object):
                 rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
 
             script = self._run_setup_py
-            script = script.replace('__SETUP_PY__', repr(self.setup_py))
+            script = script.replace('__SETUP_PY__', repr(os.path.abspath(self.setup_py)))
             script = script.replace('__PKG_NAME__', repr(self.name))
             base_cmd = [sys.executable, '-c', script]
             if self.isolated:
