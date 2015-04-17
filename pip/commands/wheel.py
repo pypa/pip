@@ -59,20 +59,20 @@ class WheelCommand(RequirementCommand):
             help=("Build wheels into <dir>, where the default is "
                   "'<cwd>/wheelhouse'."),
         )
-        cmd_opts.add_option(cmdoptions.use_wheel.make())
-        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
+        cmd_opts.add_option(cmdoptions.use_wheel())
+        cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',
             metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
-        cmd_opts.add_option(cmdoptions.editable.make())
-        cmd_opts.add_option(cmdoptions.requirements.make())
-        cmd_opts.add_option(cmdoptions.download_cache.make())
-        cmd_opts.add_option(cmdoptions.src.make())
-        cmd_opts.add_option(cmdoptions.no_deps.make())
-        cmd_opts.add_option(cmdoptions.build_dir.make())
+        cmd_opts.add_option(cmdoptions.editable())
+        cmd_opts.add_option(cmdoptions.requirements())
+        cmd_opts.add_option(cmdoptions.download_cache())
+        cmd_opts.add_option(cmdoptions.src())
+        cmd_opts.add_option(cmdoptions.no_deps())
+        cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(
             '--global-option',
@@ -90,7 +90,7 @@ class WheelCommand(RequirementCommand):
                   "pip only finds stable versions."),
         )
 
-        cmd_opts.add_option(cmdoptions.no_clean.make())
+        cmd_opts.add_option(cmdoptions.no_clean())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,

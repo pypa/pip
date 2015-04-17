@@ -50,8 +50,8 @@ parser_compat = set([
 #   INITools==0.2 --install-option="--prefix=/opt" --global-option="-v"
 # We use optparse to reliably parse these lines.
 _req_parser = optparse.OptionParser(add_help_option=False)
-_req_parser.add_option(cmdoptions.install_options.make())
-_req_parser.add_option(cmdoptions.global_options.make())
+_req_parser.add_option(cmdoptions.install_options())
+_req_parser.add_option(cmdoptions.global_options())
 _req_parser.disable_interspersed_args()
 
 

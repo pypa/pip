@@ -23,7 +23,7 @@ def make_option_group(group, parser):
     """
     option_group = OptionGroup(parser, group['name'])
     for option in group['options']:
-        option_group.add_option(option.make())
+        option_group.add_option(option())
     return option_group
 
 
@@ -39,6 +39,10 @@ class OptionMaker(object):
         args_copy = copy.deepcopy(self.args)
         kwargs_copy = copy.deepcopy(self.kwargs)
         return Option(*args_copy, **kwargs_copy)
+
+    def __call__(self):
+        return self.make()
+
 
 ###########
 # options #
