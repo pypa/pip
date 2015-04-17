@@ -56,9 +56,9 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(cmdoptions.editable.make())
-        cmd_opts.add_option(cmdoptions.requirements.make())
-        cmd_opts.add_option(cmdoptions.build_dir.make())
+        cmd_opts.add_option(cmdoptions.editable())
+        cmd_opts.add_option(cmdoptions.requirements())
+        cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(
             '-t', '--target',
@@ -80,8 +80,8 @@ class InstallCommand(RequirementCommand):
                   "regardless of what's already installed."),
         )
 
-        cmd_opts.add_option(cmdoptions.download_cache.make())
-        cmd_opts.add_option(cmdoptions.src.make())
+        cmd_opts.add_option(cmdoptions.download_cache())
+        cmd_opts.add_option(cmdoptions.src())
 
         cmd_opts.add_option(
             '-U', '--upgrade',
@@ -105,10 +105,10 @@ class InstallCommand(RequirementCommand):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
-        cmd_opts.add_option(cmdoptions.no_deps.make())
+        cmd_opts.add_option(cmdoptions.no_deps())
 
-        cmd_opts.add_option(cmdoptions.install_options.make())
-        cmd_opts.add_option(cmdoptions.global_options.make())
+        cmd_opts.add_option(cmdoptions.install_options())
+        cmd_opts.add_option(cmdoptions.global_options())
 
         cmd_opts.add_option(
             '--user',
@@ -151,8 +151,8 @@ class InstallCommand(RequirementCommand):
             help="Do not compile py files to pyc",
         )
 
-        cmd_opts.add_option(cmdoptions.use_wheel.make())
-        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
+        cmd_opts.add_option(cmdoptions.use_wheel())
+        cmd_opts.add_option(cmdoptions.no_use_wheel())
 
         cmd_opts.add_option(
             '--pre',
@@ -161,7 +161,7 @@ class InstallCommand(RequirementCommand):
             help="Include pre-release and development versions. By default, "
                  "pip only finds stable versions.")
 
-        cmd_opts.add_option(cmdoptions.no_clean.make())
+        cmd_opts.add_option(cmdoptions.no_clean())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,

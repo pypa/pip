@@ -78,14 +78,14 @@ class PipOptions(rst.Directive):
 class PipGeneralOptions(PipOptions):
     def process_options(self):
         self._format_options(
-            [o.make() for o in cmdoptions.general_group['options']]
+            [o() for o in cmdoptions.general_group['options']]
         )
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
         self._format_options(
-            [o.make() for o in cmdoptions.index_group['options']]
+            [o() for o in cmdoptions.index_group['options']]
         )
 
 
