@@ -1,6 +1,5 @@
-
 """
-Routines for parsing requirements files (i.e. requirements.txt).
+Requirements file parsing
 """
 
 from __future__ import absolute_import
@@ -15,65 +14,39 @@ from pip._vendor.six.moves import filterfalse
 
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
-from pip.exceptions import RequirementsFileParseError
+from pip.exceptions import (RequirementsFileParseError,
+                            ReqFileOnlyOneReqPerLineError,
+                            ReqFileOnleOneOptionPerLineError,
+                            ReqFileOptionNotAllowedWithReqError)
 from pip.utils import normalize_name
 from pip import cmdoptions
 
+__all__ = ['parse_requirements']
 
-# ----------------------------------------------------------------------------
-# Flags that don't take any options.
-parser_flags = set([
-    '--no-index',
-    '--allow-all-external',
-    '--no-use-wheel',
-])
+SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
+COMMENT_RE = re.compile(r'(^|\s)+#.*$')
 
-# Flags that take options.
-parser_options = set([
-    '-i', '--index-url',
-    '-f', '--find-links',
-    '--extra-index-url',
-    '--allow-external',
-    '--allow-unverified',
-])
+SUPPORTED_OPTIONS = [
+    cmdoptions.editable,
+    cmdoptions.requirements,
+    cmdoptions.no_index,
+    cmdoptions.index_url,
+    cmdoptions.find_links,
+    cmdoptions.extra_index_url,
+    cmdoptions.allow_external,
+    cmdoptions.no_allow_external,
+    cmdoptions.allow_unsafe,
+    cmdoptions.no_allow_unsafe,
+    cmdoptions.use_wheel,
+    cmdoptions.no_use_wheel,
+    cmdoptions.always_unzip,
+]
 
-# Encountering any of these is a no-op.
-parser_compat = set([
-    '-Z', '--always-unzip',
-    '--use-wheel',          # Default in 1.5
-    '--no-allow-external',  # Remove in 7.0
-    '--no-allow-insecure',  # Remove in 7.0
-])
-
-# ----------------------------------------------------------------------------
-# Requirement lines may take options. For example:
-#   INITools==0.2 --install-option="--prefix=/opt" --global-option="-v"
-# We use optparse to reliably parse these lines.
-_req_parser = optparse.OptionParser(add_help_option=False)
-_req_parser.add_option(cmdoptions.install_options())
-_req_parser.add_option(cmdoptions.global_options())
-_req_parser.disable_interspersed_args()
-
-
-# By default optparse sys.exits on parsing errors. We want to wrap
-# that in our own exception.
-def parser_exit(self, msg):
-    raise RequirementsFileParseError(msg)
-_req_parser.exit = parser_exit
-
-# ----------------------------------------------------------------------------
-# Pre-compiled regex.
-_scheme_re = re.compile(r'^(http|https|file):', re.I)
-_comment_re = re.compile(r'(^|\s)+#.*$')
-
-# ----------------------------------------------------------------------------
-# The types of lines understood by the requirements file parser.
-REQUIREMENT = 0
-REQUIREMENT_FILE = 1
-REQUIREMENT_EDITABLE = 2
-FLAG = 3
-OPTION = 4
-IGNORE = 5
+# options allowed on requirement lines
+SUPPORTED_OPTIONS_REQ = [
+    cmdoptions.install_options,
+    cmdoptions.global_options,
+]
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
@@ -97,166 +70,152 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         filename, comes_from=comes_from, session=session
     )
 
-    parser = parse_content(
-        filename, content, finder, comes_from, options, session, cache_root
-    )
+    lines = content.splitlines()
+    lines = ignore_comments(lines)
+    lines = join_lines(lines)
+    lines = skip_regex(lines, options)
 
-    for item in parser:
-        yield item
-
-
-def parse_content(filename, content, finder=None, comes_from=None,
-                  options=None, session=None, cache_root=None):
-
-    # Split, sanitize and join lines with continuations.
-    content = content.splitlines()
-    content = ignore_comments(content)
-    content = join_lines(content)
-
-    # Optionally exclude lines that match '--skip-requirements-regex'.
-    skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        content = filterfalse(re.compile(skip_regex).search, content)
-
-    for line_number, line in enumerate(content, 1):
-        # The returned value depends on the type of line that was parsed.
-        linetype, value = parse_line(line)
-
-        # ---------------------------------------------------------------------
-        if linetype == REQUIREMENT:
-            req, opts = value
-            comes_from = '-r %s (line %s)' % (filename, line_number)
-            isolated = options.isolated_mode if options else False
-            yield InstallRequirement.from_line(
-                req, comes_from, isolated=isolated, options=opts,
-                cache_root=cache_root)
-
-        # ---------------------------------------------------------------------
-        elif linetype == REQUIREMENT_EDITABLE:
-            comes_from = '-r %s (line %s)' % (filename, line_number)
-            isolated = options.isolated_mode if options else False
-            default_vcs = options.default_vcs if options else None
-            yield InstallRequirement.from_editable(
-                value, comes_from=comes_from,
-                default_vcs=default_vcs, isolated=isolated,
-                cache_root=cache_root)
-
-        # ---------------------------------------------------------------------
-        elif linetype == REQUIREMENT_FILE:
-            if _scheme_re.search(filename):
-                # Relative to an URL.
-                req_url = urllib_parse.urljoin(filename, value)
-            elif not _scheme_re.search(value):
-                req_dir = os.path.dirname(filename)
-                req_url = os.path.join(os.path.dirname(filename), value)
-            # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
-            parser = parse_requirements(
-                req_url, finder, comes_from, options, session,
-                cache_root=cache_root)
-            for req in parser:
-                yield req
-
-        # ---------------------------------------------------------------------
-        elif linetype == FLAG:
-            if not finder:
-                continue
-
-            if finder and value == '--no-use-wheel':
-                finder.use_wheel = False
-            elif value == '--no-index':
-                finder.index_urls = []
-            elif value == '--allow-all-external':
-                finder.allow_all_external = True
-
-        # ---------------------------------------------------------------------
-        elif linetype == OPTION:
-            if not finder:
-                continue
-
-            opt, value = value
-            if opt == '-i' or opt == '--index-url':
-                finder.index_urls = [value]
-            elif opt == '--extra-index-url':
-                finder.index_urls.append(value)
-            elif opt == '--allow-external':
-                finder.allow_external |= set([normalize_name(value).lower()])
-            elif opt == '--allow-insecure':
-                # Remove after 7.0
-                finder.allow_unverified |= set([normalize_name(line).lower()])
-            elif opt == '-f' or opt == '--find-links':
-                # FIXME: it would be nice to keep track of the source
-                # of the find_links: support a find-links local path
-                # relative to a requirements file.
-                req_dir = os.path.dirname(os.path.abspath(filename))
-                relative_to_reqs_file = os.path.join(req_dir, value)
-                if os.path.exists(relative_to_reqs_file):
-                    value = relative_to_reqs_file
-                finder.find_links.append(value)
-
-        # ---------------------------------------------------------------------
-        elif linetype == IGNORE:
-            pass
+    for line_number, line in enumerate(lines, 1):
+        req_iter = process_line(line, filename, line_number, finder,
+                                comes_from, options, session)
+        for req in req_iter:
+            yield req
 
 
-def parse_line(line):
-    if not line.startswith('-'):
-        # Split the requirement from the options.
-        if ' --' in line:
-            req, opts = line.split(' --', 1)
-            opts = parse_requirement_options('--%s' % opts)
-        else:
-            req = line
-            opts = {}
+def process_line(line, filename, line_number, finder=None, comes_from=None,
+                 options=None, session=None, cache_root=None):
+    """
+    Process a single requirements line; This can result in creating/yielding
+    requirements, or updating the finder.
+    """
 
-        return REQUIREMENT, (req, opts)
+    parser = build_parser()
+    args = shlex.split(line)
+    opts, args = parser.parse_args(args)
+    req = None
 
-    firstword, rest = partition_line(line)
-    # -------------------------------------------------------------------------
-    if firstword == '-e' or firstword == '--editable':
-        return REQUIREMENT_EDITABLE, rest
+    if args:
+        # don't allow multiple requirements
+        if len(args) > 1:
+            msg = 'Only one requirement supported per line.'
+            raise ReqFileOnlyOneReqPerLineError(msg)
+        for key, value in opts.__dict__.items():
+            # only certain options can be on req lines
+            if value and key not in get_options_dest(SUPPORTED_OPTIONS_REQ):
+                msg = 'Option not supported on a requirement line: %s' % key
+                raise ReqFileOptionNotAllowedWithReqError(msg)
+        req = args[0]
 
-    # -------------------------------------------------------------------------
-    if firstword == '-r' or firstword == '--requirement':
-        return REQUIREMENT_FILE, rest
+    # don't allow multiple/different options (on non-req lines)
+    if not args and len(
+            [v for v in opts.__dict__.values() if v is not None]) > 1:
+        msg = 'Only one option allowed per line.'
+        raise ReqFileOnleOneOptionPerLineError(msg)
 
-    # -------------------------------------------------------------------------
-    if firstword in parser_flags:
-        if rest:
-            msg = 'Option %r does not accept values.' % firstword
-            raise RequirementsFileParseError(msg)
-        return FLAG, firstword
+    # yield a line requirement
+    if req:
+        comes_from = '-r %s (line %s)' % (filename, line_number)
+        isolated = options.isolated_mode if options else False
+        # trim the None items
+        keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
+        for key in keys:
+            delattr(opts, key)
+        yield InstallRequirement.from_line(
+            req, comes_from, isolated=isolated, options=opts.__dict__
+        )
 
-    # -------------------------------------------------------------------------
-    if firstword in parser_options:
-        if not rest:
-            msg = 'Option %r requires value.' % firstword
-            raise RequirementsFileParseError(msg)
-        return OPTION, (firstword, rest)
+    # yield an editable requirement
+    elif opts.editables:
+        comes_from = '-r %s (line %s)' % (filename, line_number)
+        isolated = options.isolated_mode if options else False
+        default_vcs = options.default_vcs if options else None
+        yield InstallRequirement.from_editable(
+            opts.editables[0], comes_from=comes_from,
+            default_vcs=default_vcs, isolated=isolated
+        )
 
-    # -------------------------------------------------------------------------
-    if firstword in parser_compat:
-        return IGNORE, line
+    # parse a nested requirements file
+    elif opts.requirements:
+        req_file = opts.requirements[0]
+        if SCHEME_RE.search(filename):
+            # Relative to an URL.
+            req_url = urllib_parse.urljoin(filename, req_file)
+        elif not SCHEME_RE.search(req_file):
+            req_dir = os.path.dirname(filename)
+            req_url = os.path.join(os.path.dirname(filename), req_file)
+        # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
+        parser = parse_requirements(
+            req_url, finder, comes_from, options, session, cache_root
+        )
+        for req in parser:
+            yield req
+
+    # set finder options
+    elif finder:
+        if opts.use_wheel is not None:
+            finder.use_wheel = opts.use_wheel
+        elif opts.no_index is not None:
+            finder.index_urls = []
+        elif opts.allow_all_external is not None:
+            finder.allow_all_external = opts.allow_all_external
+        elif opts.index_url:
+            finder.index_urls = [opts.index_url]
+        elif opts.extra_index_urls:
+            finder.index_urls.append(opts.extra_index_url)
+        elif opts.allow_external is not None:
+            finder.allow_external |= set(
+                [normalize_name(opts.allow_external).lower()])
+        elif opts.allow_unverified is not None:
+            # Remove after 7.0
+            # TODO: the value was previously line?
+            finder.allow_unverified |= set(
+                [normalize_name(opts.allow_unverified).lower()])
+        elif opts.find_links:
+            # FIXME: it would be nice to keep track of the source
+            # of the find_links: support a find-links local path
+            # relative to a requirements file.
+            value = opts.find_links[0]
+            req_dir = os.path.dirname(os.path.abspath(filename))
+            relative_to_reqs_file = os.path.join(req_dir, value)
+            if os.path.exists(relative_to_reqs_file):
+                value = relative_to_reqs_file
+            finder.find_links.append(value)
 
 
-def parse_requirement_options(args):
-    args = shlex.split(args)
-    opts, _ = _req_parser.parse_args(args)
+def build_parser():
+    """
+    Return a parser for parsing requirement lines
+    """
+    parser = optparse.OptionParser(add_help_option=False)
 
-    # Remove None keys from result.
-    keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
-    for key in keys:
-        delattr(opts, key)
+    options = SUPPORTED_OPTIONS + SUPPORTED_OPTIONS_REQ
+    for option in options:
+        option = option()
+        # we want no default values; defaults are handled in `pip install`
+        # parsing. just concerned with values that are specifically set.
+        option.default = None
+        parser.add_option(option)
 
-    return opts.__dict__
+    # By default optparse sys.exits on parsing errors. We want to wrap
+    # that in our own exception.
+    def parser_exit(self, msg):
+        raise RequirementsFileParseError(msg)
+    parser.exit = parser_exit
+
+    return parser
 
 
-# -----------------------------------------------------------------------------
-# Utility functions related to requirements file parsing.
+def get_options_dest(options):
+    """
+    Return a list of 'dest' strings from a list of cmdoptions
+    """
+    return [o().dest for o in options]
+
+
 def join_lines(iterator):
     """
     Joins a line ending in '\' with the previous line.
     """
-
     lines = []
     for line in iterator:
         if not line.endswith('\\'):
@@ -277,24 +236,18 @@ def ignore_comments(iterator):
     """
     Strips and filters empty or commented lines.
     """
-
     for line in iterator:
-        line = _comment_re.sub('', line)
+        line = COMMENT_RE.sub('', line)
         line = line.strip()
         if line:
             yield line
 
 
-def partition_line(line):
-    firstword, _, rest = line.partition('=')
-    firstword = firstword.strip()
-
-    if ' ' in firstword:
-        firstword, _, rest = line.partition(' ')
-        firstword = firstword.strip()
-
-    rest = rest.strip()
-    return firstword, rest
-
-
-__all__ = 'parse_requirements'
+def skip_regex(lines, options):
+    """
+    Optionally exclude lines that match '--skip-requirements-regex'
+    """
+    skip_regex = options.skip_requirements_regex if options else None
+    if skip_regex:
+        lines = filterfalse(re.compile(skip_regex).search, lines)
+    return lines

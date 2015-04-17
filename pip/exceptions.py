@@ -19,8 +19,21 @@ class DistributionNotFound(InstallationError):
 
 
 class RequirementsFileParseError(PipError):
-    """Raised when an invalid state is encountered during requirement file
-    parsing."""
+    """Raised when a general error occurs parsing a requirements file line."""
+
+
+class ReqFileOnlyOneReqPerLineError(PipError):
+    """Raised when more than one requirement is found on a line in a requirements
+       file."""
+
+
+class ReqFileOnleOneOptionPerLineError(PipError):
+    """Raised when an option is not allowed in a requirements file."""
+
+
+class ReqFileOptionNotAllowedWithReqError(PipError):
+    """Raised when an option is not allowed on a requirement line in a requirements
+       file."""
 
 
 class BestVersionAlreadyInstalled(PipError):
