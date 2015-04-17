@@ -11,7 +11,9 @@ from __future__ import absolute_import
 
 from functools import partial
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.index import PyPI
+
+from pip.index import (
+    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_use_wheel)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
@@ -25,6 +27,12 @@ def make_option_group(group, parser):
     for option in group['options']:
         option_group.add_option(option())
     return option_group
+
+
+def resolve_wheel_no_use_binary(options):
+    if not options.use_wheel:
+        control = options.format_control
+        fmt_ctl_no_use_wheel(control)
 
 
 ###########
@@ -339,6 +347,7 @@ src = partial(
     'The default for global installs is "<current dir>/src".'
 )
 
+# XXX: deprecated, remove in 9.0
 use_wheel = partial(
     Option,
     '--use-wheel',
@@ -354,8 +363,52 @@ no_use_wheel = partial(
     action='store_false',
     default=True,
     help=('Do not Find and prefer wheel archives when searching indexes and '
-          'find-links locations.'),
+          'find-links locations. DEPRECATED in favour of --no-binary.'),
 )
+
+
+def _get_format_control(values, option):
+    """Get a format_control object."""
+    return getattr(values, option.dest)
+
+
+def _handle_no_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    fmt_ctl_handle_mutual_exclude(
+        value, existing.no_binary, existing.only_binary)
+
+
+def _handle_only_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    fmt_ctl_handle_mutual_exclude(
+        value, existing.only_binary, existing.no_binary)
+
+
+def no_binary():
+    return Option(
+        "--no-binary", dest="format_control", action="callback",
+        callback=_handle_no_binary, type="str",
+        default=FormatControl(set(), set()),
+        help="Do not use binary packages. Can be supplied multiple times, and "
+             "each time adds to the existing value. Accepts either :all: to "
+             "disable all binary packages, :none: to empty the set, or one or "
+             "more package names with commas between them. Note that some "
+             "packages are tricky to compile and may fail to install when "
+             "this option is used on them.")
+
+
+def only_binary():
+    return Option(
+        "--only-binary", dest="format_control", action="callback",
+        callback=_handle_only_binary, type="str",
+        default=FormatControl(set(), set()),
+        help="Do not use source packages. Can be supplied multiple times, and "
+             "each time adds to the existing value. Accepts either :all: to "
+             "disable all source packages, :none: to empty the set, or one or "
+             "more package names with commas between them. Packages without "
+             "binary distributions will fail to install when this option is "
+             "used on them.")
+
 
 cache_dir = partial(
     Option,

@@ -333,7 +333,7 @@ class TestUpgradeSetuptools(object):
             self, script, data, virtualenv):
         self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
         result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-use-wheel', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-binary=:all:', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert (

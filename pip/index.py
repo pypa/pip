@@ -34,7 +34,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
 
 
-__all__ = ['PackageFinder']
+__all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 
 
 # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
@@ -97,14 +97,20 @@ class PackageFinder(object):
     """This finds packages.
 
     This is meant to match easy_install's technique for looking for
-    packages, by reading pages and looking for appropriate links
+    packages, by reading pages and looking for appropriate links.
     """
 
     def __init__(self, find_links, index_urls,
-                 use_wheel=True, allow_external=(), allow_unverified=(),
+                 allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None):
+                 session=None, format_control=None):
+        """Create a PackageFinder.
+
+        :param format_control: A FormatControl object or None. Used to control
+            the selection of source packages / binary packages when consulting
+            the index and links.
+        """
         if session is None:
             raise TypeError(
                 "PackageFinder() missing 1 required keyword argument: "
@@ -130,7 +136,7 @@ class PackageFinder(object):
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
 
-        self.use_wheel = use_wheel
+        self.format_control = format_control or FormatControl(set(), set())
 
         # Do we allow (safe and verifiable) externally hosted files?
         self.allow_external = set(normalize_name(n) for n in allow_external)
@@ -413,13 +419,9 @@ class PackageFinder(object):
         for location in url_locations:
             logger.debug('* %s', location)
 
-        formats = set(["source"])
-        if self.use_wheel:
-            formats.add("binary")
-        search = Search(
-            project_name.lower(),
-            pkg_resources.safe_name(project_name).lower(),
-            frozenset(formats))
+        canonical_name = pkg_resources.safe_name(project_name).lower()
+        formats = fmt_ctl_formats(self.format_control, canonical_name)
+        search = Search(project_name.lower(), canonical_name, formats)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
@@ -686,6 +688,7 @@ class PackageFinder(object):
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
+            ext = link.ext
         else:
             egg_info, ext = link.splitext()
             if not ext:
@@ -742,6 +745,12 @@ class PackageFinder(object):
                         )
                         return
                 version = wheel.version
+
+        # This should be up by the search.ok_binary check, but see issue 2700.
+        if "source" not in search.formats and ext != wheel_ext:
+            self._log_skipped_link(
+                link, 'No sources permitted for %s' % search.supplied)
+            return
 
         if not version:
             version = egg_info_matches(egg_info, search.supplied, link)
@@ -1190,6 +1199,56 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
+
+
+FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
+"""This object has two fields, no_binary and only_binary.
+
+If a field is falsy, it isn't set. If it is {':all:'}, it should match all
+packages except those listed in the other field. Only one field can be set
+to {':all:'} at a time. The rest of the time exact package name matches
+are listed, with any given package only showing up in one field at a time.
+"""
+
+
+def fmt_ctl_handle_mutual_exclude(value, target, other):
+    new = value.split(',')
+    while ':all:' in new:
+        other.clear()
+        target.clear()
+        target.add(':all:')
+        del new[:new.index(':all:') + 1]
+        if ':none:' not in new:
+            # Without a none, we want to discard everything as :all: covers it
+            return
+    for name in new:
+        if name == ':none:':
+            target.clear()
+            continue
+        name = pkg_resources.safe_name(name).lower()
+        other.discard(name)
+        target.add(name)
+
+
+def fmt_ctl_formats(fmt_ctl, canonical_name):
+    result = set(["binary", "source"])
+    if canonical_name in fmt_ctl.only_binary:
+        result.discard('source')
+    elif canonical_name in fmt_ctl.no_binary:
+        result.discard('binary')
+    elif ':all:' in fmt_ctl.only_binary:
+        result.discard('source')
+    elif ':all:' in fmt_ctl.no_binary:
+        result.discard('binary')
+    return frozenset(result)
+
+
+def fmt_ctl_no_use_wheel(fmt_ctl):
+    fmt_ctl_handle_mutual_exclude(
+        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
+    warnings.warn(
+        '--no-use-wheel is deprecated and will be removed in the future. '
+        ' Please use --no-binary :all: instead.')
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

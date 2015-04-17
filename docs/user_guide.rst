@@ -123,7 +123,7 @@ to building and installing from source archives. For more information, see the
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
 Pip prefers Wheels where they are available. To disable this, use the
-:ref:`--no-use-wheel <install_--no-use-wheel>` flag for :ref:`pip install`.
+:ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
 If no satisfactory wheels are found, pip will default to finding source archives.
 

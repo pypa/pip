@@ -112,7 +112,8 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`--allow-external <--allow-external>`
   *  :ref:`--allow-all-external <--allow-external>`
   *  :ref:`--allow-unverified <--allow-unverified>`
-  *  :ref:`--no-use-wheel <install_--no-use-wheel>`
+  *  :ref:`--no-binary <install_--no-binary>`
+  *  :ref:`--only-binary <install_--only-binary>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 

@@ -12,6 +12,7 @@ import optparse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
 
+import pip
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import (RequirementsFileParseError,
@@ -45,6 +46,8 @@ SUPPORTED_OPTIONS = [
 SUPPORTED_OPTIONS_REQ = [
     cmdoptions.install_options,
     cmdoptions.global_options,
+    cmdoptions.no_binary,
+    cmdoptions.only_binary,
 ]
 
 # the 'dest' string values
@@ -91,12 +94,27 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
     """
-
     parser = build_parser()
+    values = parser.get_default_values()
+    if finder:
+        values.format_control = finder.format_control
+    else:
+        # Undo the hack that removes defaults so that
+        # this can be parsed correctly.
+        values.format_control = pip.index.FormatControl(set(), set())
+    orig_no_binary = frozenset(values.format_control.no_binary)
+    orig_only_binary = frozenset(values.format_control.only_binary)
     args = shlex.split(line)
-    opts, args = parser.parse_args(args)
-    req = None
+    opts, args = parser.parse_args(args, values)
+    if opts.use_wheel is False and finder:
+        pip.index.fmt_ctl_no_use_wheel(finder.format_control)
+        setattr(values, 'use_wheel', None)
+    if (orig_no_binary == opts.format_control.no_binary and
+            orig_only_binary == opts.format_control.only_binary):
+        # Make the per-requirement-line check work.
+        setattr(values, 'format_control', None)
 
+    req = None
     if args:
         for key, value in opts.__dict__.items():
             # only certain options can be on req lines

@@ -6,6 +6,7 @@ from mock import patch
 import pytest
 from pretend import stub
 
+import pip
 from pip.exceptions import (RequirementsFileParseError,
                             ReqFileOnleOneOptionPerLineError,
                             ReqFileOptionNotAllowedWithReqError)
@@ -175,11 +176,13 @@ class TestProcessLine(object):
 
     def test_set_finder_use_wheel(self, finder):
         list(process_line("--use-wheel", "file", 1, finder=finder))
-        assert finder.use_wheel is True
+        no_use_wheel_fmt = pip.index.FormatControl(set(), set())
+        assert finder.format_control == no_use_wheel_fmt
 
     def test_set_finder_no_use_wheel(self, finder):
         list(process_line("--no-use-wheel", "file", 1, finder=finder))
-        assert finder.use_wheel is False
+        no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
+        assert finder.format_control == no_use_wheel_fmt
 
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set
@@ -261,6 +264,14 @@ class TestParseRequirements(object):
                                 session=PipSession()))
 
         assert finder.index_urls == ['url1', 'url2']
+
+    def test_req_file_parse_no_only_binary(self, data):
+        finder = PackageFinder([], [], session=PipSession())
+        list(parse_requirements(
+            data.reqfiles.join("supported_options2.txt"), finder,
+            session=PipSession()))
+        expected = pip.index.FormatControl(set(['fred']), set(['wilma']))
+        assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
         """

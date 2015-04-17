@@ -6,7 +6,7 @@ from pip._vendor import pkg_resources
 
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
-from pip.index import PackageFinder, Search
+from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
 from pip.wheel import WheelCache
@@ -131,7 +131,8 @@ class ListCommand(Command):
                 user_only=options.user,
                 include_editables=False,
             )
-            wheel_cache = WheelCache(options.cache_dir)
+            format_control = FormatControl(set(), set())
+            wheel_cache = WheelCache(options.cache_dir, format_control)
             for dist in installed_packages:
                 req = InstallRequirement.from_line(
                     dist.key, None, isolated=options.isolated_mode,
@@ -148,10 +149,12 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
+                    canonical_name = pkg_resources.safe_name(req.name).lower()
+                    formats = fmt_ctl_formats(format_control, canonical_name)
                     search = Search(
                         req.name,
-                        pkg_resources.safe_name(req.name).lower(),
-                        ["source", "binary"])
+                        canonical_name,
+                        formats)
                     remote_version = finder._link_package_versions(
                         link, search).version
                     if link.is_wheel:

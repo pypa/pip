@@ -5,7 +5,9 @@ import pip.pep425tags
 
 from pkg_resources import parse_version, Distribution
 from pip.req import InstallRequirement
-from pip.index import InstallationCandidate, PackageFinder, Link
+from pip.index import (
+    InstallationCandidate, PackageFinder, Link, FormatControl,
+    fmt_ctl_formats)
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
@@ -760,3 +762,16 @@ def test_find_all_versions_find_links_and_index(data):
     versions = finder._find_all_versions('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
+
+
+def test_fmt_ctl_matches():
+    fmt = FormatControl(set(), set())
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source", "binary"])
+    fmt = FormatControl(set(["fred"]), set())
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
+    fmt = FormatControl(set(["fred"]), set([":all:"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
+    fmt = FormatControl(set(), set(["fred"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])
+    fmt = FormatControl(set([":all:"]), set(["fred"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])

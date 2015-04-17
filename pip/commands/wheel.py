@@ -61,6 +61,8 @@ class WheelCommand(RequirementCommand):
         )
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
+        cmd_opts.add_option(cmdoptions.no_binary())
+        cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',
@@ -122,6 +124,7 @@ class WheelCommand(RequirementCommand):
 
     def run(self, options, args):
         self.check_required_packages()
+        cmdoptions.resolve_wheel_no_use_binary(options)
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -143,8 +146,8 @@ class WheelCommand(RequirementCommand):
 
             finder = PackageFinder(
                 find_links=options.find_links,
+                format_control=options.format_control,
                 index_urls=index_urls,
-                use_wheel=options.use_wheel,
                 allow_external=options.allow_external,
                 allow_unverified=options.allow_unverified,
                 allow_all_external=options.allow_all_external,
@@ -155,7 +158,7 @@ class WheelCommand(RequirementCommand):
             )
 
             build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir)
+            wheel_cache = WheelCache(options.cache_dir, options.format_control)
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(

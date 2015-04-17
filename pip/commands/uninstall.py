@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pip
 from pip.wheel import WheelCache
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
@@ -43,7 +44,8 @@ class UninstallCommand(Command):
 
     def run(self, options, args):
         with self._build_session(options) as session:
-            wheel_cache = WheelCache(options.cache_dir)
+            format_control = pip.index.FormatControl(set(), set())
+            wheel_cache = WheelCache(options.cache_dir, format_control)
             requirement_set = RequirementSet(
                 build_dir=None,
                 src_dir=None,
