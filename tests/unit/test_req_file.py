@@ -67,9 +67,6 @@ class TestJoinLines(object):
 class TestProcessLine(object):
     """tests for `process_line`"""
 
-    # TODO: variants
-    # short vs long
-
     def setup(self):
         self.options = stub(isolated_mode=False, default_vcs=None,
                             skip_requirements_regex=False)
@@ -181,6 +178,35 @@ class TestProcessLine(object):
     def test_noop_finder_no_allow_unsafe(self, finder):
         # noop, but confirm it can be set
         list(process_line("--no-allow-insecure", "file", 1, finder=finder))
+
+
+class TestOptionVariants(object):
+
+    # this suite is really just testing optparse, but added it anyway
+
+    def test_variant1(self, finder):
+        list(process_line("-i url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_variant2(self, finder):
+        list(process_line("-i 'url'", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_variant3(self, finder):
+        list(process_line("--i=url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_variant4(self, finder):
+        list(process_line("--index-url=url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_variant5(self, finder):
+        list(process_line("--index-url url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_variant6(self, finder):
+        list(process_line("--index-url='url'", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
 
 
 class TestParseRequirements(object):
