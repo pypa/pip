@@ -179,8 +179,10 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
     script.scratch_path.join("home1").mkdir()
     script.scratch_path.join("home2").mkdir()
 
-    script.scratch_path.join("reqs.txt").write(textwrap.dedent("""\
-        simple --install-option='--home=%s'""" % script.scratch_path.join("home1")))
+    script.scratch_path.join("reqs.txt").write(
+        textwrap.dedent(
+            """simple --install-option='--home=%s'"""
+            % script.scratch_path.join("home1")))
 
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-r',
