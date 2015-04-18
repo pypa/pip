@@ -101,8 +101,15 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             raise ReqFileOnlyOneReqPerLineError(msg)
         for key, value in opts.__dict__.items():
             # only certain options can be on req lines
-            if value and key not in get_options_dest(SUPPORTED_OPTIONS_REQ):
-                msg = 'Option not supported on a requirement line: %s' % key
+            dest_strings = [o().dest for o in SUPPORTED_OPTIONS_REQ]
+            if value is not None and key not in dest_strings:
+                # get the option string
+                # the option must be supported to get to this point
+                for o in SUPPORTED_OPTIONS:
+                    o = o()
+                    if o.dest == key:
+                        opt_string = o.get_opt_string()
+                msg = 'Option not supported on a requirement line: %s' % opt_string
                 raise ReqFileOptionNotAllowedWithReqError(msg)
         req = args[0]
 
@@ -202,13 +209,6 @@ def build_parser():
     parser.exit = parser_exit
 
     return parser
-
-
-def get_options_dest(options):
-    """
-    Return a list of 'dest' strings from a list of cmdoptions
-    """
-    return [o().dest for o in options]
 
 
 def join_lines(iterator):
