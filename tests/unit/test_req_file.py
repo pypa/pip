@@ -208,12 +208,6 @@ class TestOptionVariants(object):
 class TestParseRequirements(object):
     """tests for `parse_requirements`"""
 
-    # TODO:
-    # joins
-    # comments
-    # regex
-    # list options
-
     @pytest.mark.network
     def test_remote_reqs_parse(self):
         """
@@ -226,6 +220,37 @@ class TestParseRequirements(object):
                 'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
+
+    def test_multiple_appending_options(self, tmpdir, finder):
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("--extra-index-url url1 \n")
+            fp.write("--extra-index-url url2 ")
+
+        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+                                session=PipSession()))
+
+        assert finder.index_urls == ['url1', 'url2']
+
+    def test_skip_regex(self, tmpdir, finder):
+        options = stub(isolated_mode=False, default_vcs=None,
+                       skip_requirements_regex='.*Bad.*')
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("--extra-index-url Bad \n")
+            fp.write("--extra-index-url Good ")
+
+        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+                                options=options, session=PipSession()))
+
+        assert finder.index_urls == ['Good']
+
+    def test_join_lines(self, tmpdir, finder):
+        with open(tmpdir.join("req1.txt"), "w") as fp:
+            fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
+
+        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+                                session=PipSession()))
+
+        assert finder.index_urls == ['url1', 'url2']
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
         """
