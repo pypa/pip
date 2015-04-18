@@ -231,17 +231,6 @@ class TestParseRequirements(object):
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
 
-    def test_req_file_parse_no_use_wheel(self, data):
-        """
-        Test parsing --no-use-wheel from a req file
-        """
-        finder = PackageFinder([], [], session=PipSession())
-        for req in parse_requirements(
-                data.reqfiles.join("supported_options.txt"), finder,
-                session=PipSession()):
-            pass
-        assert not finder.use_wheel
-
     def test_req_file_parse_comment_start_of_line(self, tmpdir):
         """
         Test parsing comments in a requirements file
