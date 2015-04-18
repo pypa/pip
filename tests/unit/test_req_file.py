@@ -156,11 +156,13 @@ class TestProcessLine(object):
         assert finder.index_urls == ['url']
 
     def test_set_finder_allow_external(self, finder):
-        list(process_line("--allow-external=SomeProject", "file", 1, finder=finder))
+        list(process_line("--allow-external=SomeProject",
+                          "file", 1, finder=finder))
         assert finder.allow_external == set(['someproject'])
 
     def test_set_finder_allow_unsafe(self, finder):
-        list(process_line("--allow-unverified=SomeProject", "file", 1, finder=finder))
+        list(process_line("--allow-unverified=SomeProject",
+                          "file", 1, finder=finder))
         assert finder.allow_unverified == set(['someproject'])
 
     def test_set_finder_use_wheel(self, finder):
