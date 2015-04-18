@@ -109,7 +109,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
                     o = o()
                     if o.dest == key:
                         opt_string = o.get_opt_string()
-                msg = 'Option not supported on a requirement line: %s' % opt_string
+                msg = ('Option not supported on a'
+                       ' requirement line: %s' % opt_string)
                 raise ReqFileOptionNotAllowedWithReqError(msg)
         req = args[0]
 
