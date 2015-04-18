@@ -193,18 +193,14 @@ class TestOptionVariants(object):
         assert finder.index_urls == ['url']
 
     def test_variant3(self, finder):
-        list(process_line("--i=url", "file", 1, finder=finder))
-        assert finder.index_urls == ['url']
-
-    def test_variant4(self, finder):
         list(process_line("--index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_variant5(self, finder):
+    def test_variant4(self, finder):
         list(process_line("--index-url url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_variant6(self, finder):
+    def test_variant5(self, finder):
         list(process_line("--index-url='url'", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
@@ -231,41 +227,38 @@ class TestParseRequirements(object):
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
 
-    def test_req_file_parse_comment_start_of_line(self, tmpdir):
+    def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
         """
         Test parsing comments in a requirements file
         """
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        finder = PackageFinder([], [], session=PipSession())
         reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
                     session=PipSession()))
 
         assert not reqs
 
-    def test_req_file_parse_comment_end_of_line_with_url(self, tmpdir):
+    def test_req_file_parse_comment_end_of_line_with_url(self, tmpdir, finder):
         """
         Test parsing comments in a requirements file
         """
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        finder = PackageFinder([], [], session=PipSession())
         reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
         assert reqs[0].link.url == "https://example.com/foo.tar.gz"
 
-    def test_req_file_parse_egginfo_end_of_line_with_url(self, tmpdir):
+    def test_req_file_parse_egginfo_end_of_line_with_url(self, tmpdir, finder):
         """
         Test parsing comments in a requirements file
         """
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        finder = PackageFinder([], [], session=PipSession())
         reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
                     session=PipSession()))
 

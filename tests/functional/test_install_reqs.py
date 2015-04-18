@@ -170,7 +170,7 @@ def test_install_local_editable_with_subdirectory(script):
 
     result.assert_installed('version-subpkg', sub_dir='version_subdir')
 
-
+# TODO: test overriding req over cli
 def test_install_option_in_requirements_file(script, data, virtualenv):
     virtualenv.system_site_packages = True
     script.scratch_path.join("reqs.txt").write(textwrap.dedent("""\
