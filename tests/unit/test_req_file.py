@@ -17,6 +17,16 @@ from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments)
 
 
+@pytest.fixture
+def session():
+    return PipSession()
+
+
+@pytest.fixture
+def finder(session):
+    return PackageFinder([], [], session=session)
+
+
 class TestIgnoreComments(object):
     """tests for `ignore_comment`"""
 
@@ -57,9 +67,8 @@ class TestJoinLines(object):
 class TestProcessLine(object):
     """tests for `process_line`"""
 
-    # TODO
-    # test setting all finder options
-    # override
+    # TODO: variants
+    # short vs long
 
     def setup(self):
         self.options = stub(isolated_mode=False, default_vcs=None,
@@ -133,15 +142,45 @@ class TestProcessLine(object):
         result = process_line(line, filename, 1, options=self.options)
         assert list(result)[0].link.url == 'git+' + url
 
+    def test_set_finder_no_index(self, finder):
+        list(process_line("--no-index", "file", 1, finder=finder))
+        assert finder.index_urls == []
 
-@pytest.fixture
-def session():
-    return PipSession()
+    def test_set_finder_index_url(self, finder):
+        list(process_line("--index-url=url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
 
+    def test_set_finder_find_links(self, finder):
+        list(process_line("--find-links=url", "file", 1, finder=finder))
+        assert finder.find_links == ['url']
 
-@pytest.fixture
-def finder(session):
-    return PackageFinder([], [], session=session)
+    def test_set_finder_extra_index_urls(self, finder):
+        list(process_line("--extra-index-url=url", "file", 1, finder=finder))
+        assert finder.index_urls == ['url']
+
+    def test_set_finder_allow_external(self, finder):
+        list(process_line("--allow-external=SomeProject", "file", 1, finder=finder))
+        assert finder.allow_external == set(['someproject'])
+
+    def test_set_finder_allow_unsafe(self, finder):
+        list(process_line("--allow-unverified=SomeProject", "file", 1, finder=finder))
+        assert finder.allow_unverified == set(['someproject'])
+
+    def test_set_finder_use_wheel(self, finder):
+        list(process_line("--use-wheel", "file", 1, finder=finder))
+        assert finder.use_wheel is True
+
+    def test_set_finder_no_use_wheel(self, finder):
+        list(process_line("--no-use-wheel", "file", 1, finder=finder))
+        assert finder.use_wheel is False
+
+    def test_noop_always_unzip(self, finder):
+        # noop, but confirm it can be set
+        list(process_line("--always-unzip", "file", 1, finder=finder))
+
+    def test_noop_finder_no_allow_unsafe(self, finder):
+        # noop, but confirm it can be set
+        list(process_line("--no-allow-insecure", "file", 1, finder=finder))
 
 
 class TestParseRequirements(object):
@@ -151,6 +190,7 @@ class TestParseRequirements(object):
     # joins
     # comments
     # regex
+    # list options
 
     @pytest.mark.network
     def test_remote_reqs_parse(self):

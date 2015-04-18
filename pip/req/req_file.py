@@ -158,19 +158,18 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             finder.index_urls = []
         elif opts.allow_all_external is not None:
             finder.allow_all_external = opts.allow_all_external
-        elif opts.index_url:
+        elif opts.index_url is not None:
             finder.index_urls = [opts.index_url]
-        elif opts.extra_index_urls:
-            finder.index_urls.append(opts.extra_index_url)
+        elif opts.extra_index_urls is not None:
+            finder.index_urls.extend(opts.extra_index_urls)
         elif opts.allow_external is not None:
             finder.allow_external |= set(
-                [normalize_name(opts.allow_external).lower()])
+                [normalize_name(v).lower() for v in opts.allow_external])
         elif opts.allow_unverified is not None:
             # Remove after 7.0
-            # TODO: the value was previously line?
             finder.allow_unverified |= set(
-                [normalize_name(opts.allow_unverified).lower()])
-        elif opts.find_links:
+                [normalize_name(v).lower() for v in opts.allow_unverified])
+        elif opts.find_links is not None:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
             # relative to a requirements file.
