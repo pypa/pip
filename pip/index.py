@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import logging
 import cgi
+from collections import namedtuple
 import itertools
 import sys
 import os
@@ -412,10 +413,17 @@ class PackageFinder(object):
         for location in url_locations:
             logger.debug('* %s', location)
 
+        formats = set(["source"])
+        if self.use_wheel:
+            formats.add("binary")
+        search = Search(
+            project_name.lower(),
+            pkg_resources.safe_name(project_name).lower(),
+            frozenset(formats))
         find_links_versions = list(self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
-            project_name.lower()
+            search
         ))
 
         page_versions = []
@@ -423,11 +431,11 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, project_name.lower())
+                    self._package_versions(page.links, search)
                 )
 
         dependency_versions = list(self._package_versions(
-            (Link(url) for url in self.dependency_links), project_name.lower()
+            (Link(url) for url in self.dependency_links), search
         ))
         if dependency_versions:
             logger.debug(
@@ -438,10 +446,7 @@ class PackageFinder(object):
             )
 
         file_versions = list(
-            self._package_versions(
-                file_locations,
-                project_name.lower()
-            )
+            self._package_versions(file_locations, search)
         )
         if file_versions:
             file_versions.sort(reverse=True)
@@ -663,9 +668,9 @@ class PackageFinder(object):
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _package_versions(self, links, search_name):
+    def _package_versions(self, links, search):
         for link in self._sort_links(links):
-            v = self._link_package_versions(link, search_name)
+            v = self._link_package_versions(link, search)
             if v is not None:
                 yield v
 
@@ -674,7 +679,7 @@ class PackageFinder(object):
             logger.debug('Skipping link %s; %s', link, reason)
             self.logged_links.add(link)
 
-    def _link_package_versions(self, link, search_name):
+    def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
         platform = get_platform()
 
@@ -690,8 +695,9 @@ class PackageFinder(object):
                 self._log_skipped_link(
                     link, 'unsupported archive format: %s' % ext)
                 return
-            if not self.use_wheel and ext == wheel_ext:
-                self._log_skipped_link(link, '--no-use-wheel used')
+            if "binary" not in search.formats and ext == wheel_ext:
+                self._log_skipped_link(
+                    link, 'No binaries permitted for %s' % search.supplied)
                 return
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
@@ -703,9 +709,9 @@ class PackageFinder(object):
                     self._log_skipped_link(link, 'invalid wheel filename')
                     return
                 if (pkg_resources.safe_name(wheel.name).lower() !=
-                        pkg_resources.safe_name(search_name).lower()):
+                        search.canonical):
                     self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search_name)
+                        link, 'wrong project name (not %s)' % search.supplied)
                     return
                 if not wheel.supported():
                     self._log_skipped_link(
@@ -738,15 +744,15 @@ class PackageFinder(object):
                 version = wheel.version
 
         if not version:
-            version = egg_info_matches(egg_info, search_name, link)
+            version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'wrong project name (not %s)' % search_name)
+                link, 'wrong project name (not %s)' % search.supplied)
             return
 
         if (link.internal is not None and not
                 link.internal and not
-                normalize_name(search_name).lower()
+                normalize_name(search.supplied).lower()
                 in self.allow_external and not
                 self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
@@ -757,7 +763,7 @@ class PackageFinder(object):
 
         if (link.verifiable is not None and not
                 link.verifiable and not
-                (normalize_name(search_name).lower()
+                (normalize_name(search.supplied).lower()
                     in self.allow_unverified)):
             # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
@@ -777,7 +783,7 @@ class PackageFinder(object):
                 return
         logger.debug('Found link %s, version: %s', link, version)
 
-        return InstallationCandidate(search_name, version, link)
+        return InstallationCandidate(search.supplied, version, link)
 
     def _get_page(self, link):
         return HTMLPage.get_page(link, session=self.session)
@@ -1184,3 +1190,13 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
+
+
+Search = namedtuple('Search', 'supplied canonical formats')
+"""Capture key aspects of a search.
+
+:attribute user: The user supplied package.
+:attribute canonical: The canonical package name.
+:attribute formats: The formats allowed for this package. Should be a set
+    with 'binary' or 'source' or both in it.
+"""
