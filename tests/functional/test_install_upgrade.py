@@ -372,7 +372,7 @@ class TestUpgradeSetuptools(object):
             self, script, data, virtualenv):
         self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
         result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--use-wheel', '--no-index',
+            self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'setuptools'
         )
         assert "Found existing installation: setuptools 0.9.7" in result.stdout

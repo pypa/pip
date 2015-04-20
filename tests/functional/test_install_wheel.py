@@ -41,7 +41,7 @@ def test_install_from_wheel(script, data):
     Test installing from a wheel (that has a script)
     """
     result = script.pip(
-        'install', 'has.script==1.0', '--use-wheel', '--no-index',
+        'install', 'has.script==1.0', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -58,7 +58,7 @@ def test_install_from_wheel_with_extras(script, data):
     Test installing from a wheel with extras.
     """
     result = script.pip(
-        'install', 'complex-dist[simple]', '--use-wheel', '--no-index',
+        'install', 'complex-dist[simple]', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -107,7 +107,7 @@ def test_install_wheel_with_target(script, data):
     script.pip('install', 'wheel')
     target_dir = script.scratch_path / 'target'
     result = script.pip(
-        'install', 'simple.dist==0.1', '-t', target_dir, '--use-wheel',
+        'install', 'simple.dist==0.1', '-t', target_dir,
         '--no-index', '--find-links=' + data.find_links,
     )
     assert Path('scratch') / 'target' / 'simpledist' in result.files_created, (
@@ -121,7 +121,7 @@ def test_install_wheel_with_root(script, data):
     """
     root_dir = script.scratch_path / 'root'
     result = script.pip(
-        'install', 'simple.dist==0.1', '--root', root_dir, '--use-wheel',
+        'install', 'simple.dist==0.1', '--root', root_dir,
         '--no-index', '--find-links=' + data.find_links,
     )
     assert Path('scratch') / 'root' in result.files_created
@@ -161,7 +161,7 @@ def test_install_user_wheel(script, virtualenv, data):
     virtualenv.system_site_packages = True
     script.pip('install', 'wheel')
     result = script.pip(
-        'install', 'has.script==1.0', '--user', '--use-wheel', '--no-index',
+        'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links=' + data.find_links,
     )
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
@@ -175,7 +175,7 @@ def test_install_from_wheel_gen_entrypoint(script, data):
     Test installing scripts (entry points are generated)
     """
     result = script.pip(
-        'install', 'script.wheel1a==0.1', '--use-wheel', '--no-index',
+        'install', 'script.wheel1a==0.1', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -194,7 +194,7 @@ def test_install_from_wheel_with_legacy(script, data):
     Test installing scripts (legacy scripts are preserved)
     """
     result = script.pip(
-        'install', 'script.wheel2a==0.1', '--use-wheel', '--no-index',
+        'install', 'script.wheel2a==0.1', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -212,7 +212,7 @@ def test_install_from_wheel_no_setuptools_entrypoint(script, data):
     the wheel are skipped.
     """
     result = script.pip(
-        'install', 'script.wheel1==0.1', '--use-wheel', '--no-index',
+        'install', 'script.wheel1==0.1', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -237,7 +237,7 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, data):
     setuptools wrappers)
     """
     result = script.pip(
-        'install', 'script.wheel2==0.1', '--use-wheel', '--no-index',
+        'install', 'script.wheel2==0.1', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )
@@ -256,7 +256,7 @@ def test_install_from_wheel_gui_entrypoint(script, data):
     Test installing scripts (gui entry points are generated)
     """
     result = script.pip(
-        'install', 'script.wheel3==0.1', '--use-wheel', '--no-index',
+        'install', 'script.wheel3==0.1', '--no-index',
         '--find-links=' + data.find_links,
         expect_error=False,
     )

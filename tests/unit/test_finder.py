@@ -126,7 +126,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         with pytest.raises(DistributionNotFound):
@@ -151,7 +150,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
@@ -172,7 +170,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         found = finder.find_requirement(req, True)
@@ -189,7 +186,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         found = finder.find_requirement(req, True)
@@ -211,7 +207,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
@@ -253,7 +248,6 @@ class TestWheel:
         ]
 
         finder = PackageFinder([], [], session=PipSession())
-        finder.use_wheel = True
 
         results = finder._sort_versions(links)
         results2 = finder._sort_versions(reversed(links))
@@ -269,7 +263,7 @@ class TestWheel:
                 Link('simple-1.0-py2.py3-none-TEST.whl'),
             ),
         ]
-        finder = PackageFinder([], [], use_wheel=True, session=PipSession())
+        finder = PackageFinder([], [], session=PipSession())
         with pytest.raises(InstallationError):
             finder._sort_versions(links)
 
@@ -698,7 +692,6 @@ class test_link_package_versions(object):
         self.finder = PackageFinder(
             [],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
