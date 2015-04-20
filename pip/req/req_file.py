@@ -77,15 +77,16 @@ IGNORE = 5
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None, cache_root=None):
+                       session=None, wheel_cache=None):
     """
     Parse a requirements file and yield InstallRequirement instances.
 
-    :param filename:   Path or url of requirements file.
-    :param finder:     Instance of pip.index.PackageFinder.
-    :param comes_from: Origin description of requirements.
-    :param options:    Global options.
-    :param session:    Instance of pip.download.PipSession.
+    :param filename:    Path or url of requirements file.
+    :param finder:      Instance of pip.index.PackageFinder.
+    :param comes_from:  Origin description of requirements.
+    :param options:     Global options.
+    :param session:     Instance of pip.download.PipSession.
+    :param wheel_cache: Instance of pip.wheel.WheelCache
     """
     if session is None:
         raise TypeError(
@@ -98,7 +99,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     )
 
     parser = parse_content(
-        filename, content, finder, comes_from, options, session, cache_root
+        filename, content, finder, comes_from, options, session, wheel_cache
     )
 
     for item in parser:
@@ -106,7 +107,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
 
 def parse_content(filename, content, finder=None, comes_from=None,
-                  options=None, session=None, cache_root=None):
+                  options=None, session=None, wheel_cache=None):
 
     # Split, sanitize and join lines with continuations.
     content = content.splitlines()
@@ -129,7 +130,7 @@ def parse_content(filename, content, finder=None, comes_from=None,
             isolated = options.isolated_mode if options else False
             yield InstallRequirement.from_line(
                 req, comes_from, isolated=isolated, options=opts,
-                cache_root=cache_root)
+                wheel_cache=wheel_cache)
 
         # ---------------------------------------------------------------------
         elif linetype == REQUIREMENT_EDITABLE:
@@ -139,7 +140,7 @@ def parse_content(filename, content, finder=None, comes_from=None,
             yield InstallRequirement.from_editable(
                 value, comes_from=comes_from,
                 default_vcs=default_vcs, isolated=isolated,
-                cache_root=cache_root)
+                wheel_cache=wheel_cache)
 
         # ---------------------------------------------------------------------
         elif linetype == REQUIREMENT_FILE:
@@ -152,7 +153,7 @@ def parse_content(filename, content, finder=None, comes_from=None,
             # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
             parser = parse_requirements(
                 req_url, finder, comes_from, options, session,
-                cache_root=cache_root)
+                wheel_cache=wheel_cache)
             for req in parser:
                 yield req
 
