@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from pip.wheel import WheelCache
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
@@ -42,20 +43,20 @@ class UninstallCommand(Command):
 
     def run(self, options, args):
         with self._build_session(options) as session:
-
+            wheel_cache = WheelCache(options.cache_dir)
             requirement_set = RequirementSet(
                 build_dir=None,
-                cache_root=options.cache_dir,
                 src_dir=None,
                 download_dir=None,
                 isolated=options.isolated_mode,
                 session=session,
+                wheel_cache=wheel_cache,
             )
             for name in args:
                 requirement_set.add_requirement(
                     InstallRequirement.from_line(
                         name, isolated=options.isolated_mode,
-                        cache_root=options.cache_dir,
+                        wheel_cache=wheel_cache
                     )
                 )
             for filename in options.requirements:
@@ -63,7 +64,7 @@ class UninstallCommand(Command):
                         filename,
                         options=options,
                         session=session,
-                        cache_root=options.cache_dir):
+                        wheel_cache=wheel_cache):
                     requirement_set.add_requirement(req)
             if not requirement_set.has_requirements:
                 raise InstallationError(

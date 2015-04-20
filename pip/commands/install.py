@@ -22,7 +22,7 @@ from pip import cmdoptions
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
-from pip.wheel import WheelBuilder
+from pip.wheel import WheelCache, WheelBuilder
 
 
 logger = logging.getLogger(__name__)
@@ -239,11 +239,11 @@ class InstallCommand(RequirementCommand):
 
             finder = self._build_package_finder(options, index_urls, session)
             build_delete = (not (options.no_clean or options.build_dir))
+            wheel_cache = WheelCache(options.cache_dir)
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(
                     build_dir=build_dir,
-                    cache_root=options.cache_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
@@ -256,10 +256,12 @@ class InstallCommand(RequirementCommand):
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache,
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
+                    wheel_cache
                 )
 
                 if not requirement_set.has_requirements:
