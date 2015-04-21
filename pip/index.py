@@ -1243,12 +1243,17 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
     return frozenset(result)
 
 
-def fmt_ctl_no_use_wheel(fmt_ctl):
+def fmt_ctl_no_binary(fmt_ctl):
     fmt_ctl_handle_mutual_exclude(
         ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
+
+
+def fmt_ctl_no_use_wheel(fmt_ctl):
+    fmt_ctl_no_binary(fmt_ctl)
     warnings.warn(
         '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.')
+        ' Please use --no-binary :all: instead.', DeprecationWarning,
+        stacklevel=2)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

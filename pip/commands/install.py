@@ -194,6 +194,7 @@ class InstallCommand(RequirementCommand):
 
     def run(self, options, args):
         cmdoptions.resolve_wheel_no_use_binary(options)
+        cmdoptions.check_install_build_global(options)
 
         if options.download_dir:
             options.ignore_installed = True
