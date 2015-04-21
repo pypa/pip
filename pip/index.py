@@ -235,24 +235,21 @@ class PackageFinder(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        if self.use_wheel:
-            support_num = len(supported_tags)
-            if candidate.location == INSTALLED_VERSION:
-                pri = 1
-            elif candidate.location.is_wheel:
-                # can raise InvalidWheelFilename
-                wheel = Wheel(candidate.location.filename)
-                if not wheel.supported():
-                    raise UnsupportedWheel(
-                        "%s is not a supported wheel for this platform. It "
-                        "can't be sorted." % wheel.filename
-                    )
-                pri = -(wheel.support_index_min())
-            else:  # sdist
-                pri = -(support_num)
-            return (candidate.version, pri)
-        else:
-            return candidate.version
+        support_num = len(supported_tags)
+        if candidate.location == INSTALLED_VERSION:
+            pri = 1
+        elif candidate.location.is_wheel:
+            # can raise InvalidWheelFilename
+            wheel = Wheel(candidate.location.filename)
+            if not wheel.supported():
+                raise UnsupportedWheel(
+                    "%s is not a supported wheel for this platform. It "
+                    "can't be sorted." % wheel.filename
+                )
+            pri = -(wheel.support_index_min())
+        else:  # sdist
+            pri = -(support_num)
+        return (candidate.version, pri)
 
     def _sort_versions(self, applicable_versions):
         """
