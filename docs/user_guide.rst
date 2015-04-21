@@ -576,4 +576,4 @@ Once you have a bundle, you can then install it using::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --use-wheel --no-deps $tempdir/*
+    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*

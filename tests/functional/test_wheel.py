@@ -104,14 +104,13 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
 @pytest.mark.network
 def test_pip_wheel_source_deps(script, data):
     """
-    Test 'pip wheel --use-wheel' finds and builds source archive dependencies
+    Test 'pip wheel' finds and builds source archive dependencies
     of wheels
     """
     # 'requires_source' is a wheel that depends on the 'source' project
     script.pip('install', 'wheel')
     result = script.pip(
-        'wheel', '--use-wheel', '--no-index', '-f', data.find_links,
-        'requires_source',
+        'wheel', '--no-index', '-f', data.find_links, 'requires_source',
     )
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
