@@ -12,6 +12,7 @@ from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
 from pip.req.req_install import parse_editable
+from pip.req.req_cache import RequirementCache
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
@@ -27,8 +28,10 @@ class TestRequirementSet(object):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def basic_reqset(self):
+        build_dir = os.path.join(self.tempdir, 'build')
+        req_cache = RequirementCache(path=build_dir)
         return RequirementSet(
-            build_dir=os.path.join(self.tempdir, 'build'),
+            req_cache=req_cache,
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             session=PipSession(),
@@ -338,7 +341,7 @@ def test_exclusive_environment_markers():
     ne26 = InstallRequirement.from_line(
         "Django>=1.6.10,<1.8 ; python_version != '2.6'")
 
-    req_set = RequirementSet('', '', '', session=PipSession())
+    req_set = RequirementSet(RequirementCache(), '', '', session=PipSession())
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pip
 from pip.wheel import WheelCache
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip.req.req_cache import RequirementCache
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
 
@@ -46,11 +47,12 @@ class UninstallCommand(Command):
         with self._build_session(options) as session:
             format_control = pip.index.FormatControl(set(), set())
             wheel_cache = WheelCache(options.cache_dir, format_control)
+            req_cache = RequirementCache()
             requirement_set = RequirementSet(
-                build_dir=None,
                 src_dir=None,
                 download_dir=None,
                 isolated=options.isolated_mode,
+                req_cache=req_cache,
                 session=session,
                 wheel_cache=wheel_cache,
             )

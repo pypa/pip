@@ -787,7 +787,7 @@ class WheelBuilder(object):
                         # set the build directory again - name is known from
                         # the work prepare_files did.
                         req.source_dir = req.build_location(
-                            self.requirement_set.build_dir)
+                            self.requirement_set.req_cache.path)
                         # Update the link for this.
                         req.link = pip.index.Link(
                             path_to_url(wheel_file))

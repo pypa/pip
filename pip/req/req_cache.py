@@ -6,37 +6,40 @@ import tempfile
 from pip.utils import rmtree
 
 
-class BuildDirectory(object):
+class RequirementCache(object):
 
-    def __init__(self, name=None, delete=None):
+    def __init__(self, path=None, delete=None):
         # If we were not given an explicit directory, and we were not given an
         # explicit delete option, then we'll default to deleting.
-        if name is None and delete is None:
+        if path is None and delete is None:
             delete = True
+        self._path = path
 
-        if name is None:
+        self.path = None
+        self.delete = delete
+
+    def __repr__(self):
+        return "<{} {!r}>".format(self.__class__.__name__, self.path)
+
+    def __enter__(self):
+        if self._path is None:
             # We realpath here because some systems have their default tmpdir
             # symlinked to another directory.  This tends to confuse build
             # scripts, so we canonicalize the path by traversing potential
             # symlinks here.
-            name = os.path.realpath(tempfile.mkdtemp(prefix="pip-build-"))
+            self.path = os.path.realpath(tempfile.mkdtemp(prefix="pip-build-"))
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.
-            if delete is None:
-                delete = True
-
-        self.name = name
-        self.delete = delete
-
-    def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
-
-    def __enter__(self):
-        return self.name
+            if self.delete is None:
+                self.delete = True
+        else:
+            self.path = self._path
+        return self
 
     def __exit__(self, exc, value, tb):
         self.cleanup()
 
     def cleanup(self):
         if self.delete:
-            rmtree(self.name)
+            rmtree(self.path)
+        self.path = None

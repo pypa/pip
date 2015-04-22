@@ -10,7 +10,7 @@ from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
-from pip.utils.build import BuildDirectory
+from pip.req.req_cache import RequirementCache
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
@@ -173,15 +173,15 @@ class WheelCommand(RequirementCommand):
 
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with RequirementCache(
+                    options.build_dir, delete=build_delete) as req_cache:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_installed=True,
                     isolated=options.isolated_mode,
+                    req_cache=req_cache,
                     session=session,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir

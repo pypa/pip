@@ -135,7 +135,7 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
+    def __init__(self, req_cache, src_dir, download_dir, upgrade=False,
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
@@ -153,13 +153,13 @@ class RequirementSet(object):
         :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
         """
-        if session is None:
-            raise TypeError(
-                "RequirementSet() missing 1 required keyword argument: "
-                "'session'"
-            )
-
-        self.build_dir = build_dir
+        for name in ["session", "req_cache"]:
+            if locals().get(name, None) is None:
+                raise TypeError(
+                    "RequirementSet() missing 1 required argument: "
+                    "'%s'" % name
+                )
+        self.req_cache = req_cache
         self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
@@ -442,7 +442,7 @@ class RequirementSet(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(self.build_dir)
+                req_to_install.ensure_has_source_dir(self.req_cache.path)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.

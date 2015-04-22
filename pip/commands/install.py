@@ -19,8 +19,8 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.req.req_cache import RequirementCache
 from pip.utils import ensure_dir
-from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelCache, WheelBuilder
@@ -264,10 +264,9 @@ class InstallCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with RequirementCache(
+                    options.build_dir, delete=build_delete) as req_cache:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
@@ -277,6 +276,7 @@ class InstallCommand(RequirementCommand):
                     force_reinstall=options.force_reinstall,
                     use_user_site=options.use_user_site,
                     target_dir=temp_target_dir,
+                    req_cache=req_cache,
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
