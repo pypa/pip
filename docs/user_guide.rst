@@ -546,13 +546,9 @@ Three things are required to fully guarantee a repeatable installation using req
 
 3. The installation is performed against an index or find-links location that is
    guaranteed to *not* allow archives to be changed and updated without a
-   version increase.  Unfortunately, this is *not* true on PyPI. It is possible
-   for the same pypi distribution to have a different hash over time. Project
-   authors are allowed to delete a distribution, and then upload a new one with
-   the same name and version, but a different hash. See `Issue #1175
-   <https://github.com/pypa/pip/issues/1175>`_ for plans to add hash
-   confirmation to pip, or a new "lock file" notion, but for now, know that the `peep
-   project <https://pypi.python.org/pypi/peep>`_ offers this feature on top of pip
+   version increase.  While this is safe on PyPI, it may not be safe for other
+   indices. If you are working with an unsafe index, consider the `peep project
+   <https://pypi.python.org/pypi/peep>`_ which offers this feature on top of pip
    using requirements file comments.
 
 
