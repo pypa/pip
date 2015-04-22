@@ -196,6 +196,10 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--quiet'])
         assert options1.quiet == options2.quiet == 1
 
+        options3, args3 = main(['--quiet', '--quiet', 'fake'])
+        options4, args4 = main(['fake', '--quiet', '--quiet'])
+        assert options3.quiet == options4.quiet == 2
+
     def test_log(self):
         options1, args1 = main(['--log', 'path', 'fake'])
         options2, args2 = main(['fake', '--log', 'path'])
