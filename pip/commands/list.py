@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import logging
 
+from pip._vendor import pkg_resources
+
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
-from pip.index import PackageFinder
+from pip.index import PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
 from pip.cmdoptions import make_option_group, index_group
@@ -144,9 +146,12 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
+                    search = Search(
+                        req.name,
+                        pkg_resources.safe_name(req.name).lower(),
+                        ["source", "binary"])
                     remote_version = finder._link_package_versions(
-                        link, req.name
-                    ).version
+                        link, search).version
                     if link.is_wheel:
                         typ = 'wheel'
                     else:
