@@ -420,11 +420,11 @@ class PackageFinder(object):
             project_name.lower(),
             pkg_resources.safe_name(project_name).lower(),
             frozenset(formats))
-        find_links_versions = list(self._package_versions(
+        find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
             search
-        ))
+        )
 
         page_versions = []
         for page in self._get_pages(url_locations, project_name):
@@ -434,9 +434,9 @@ class PackageFinder(object):
                     self._package_versions(page.links, search)
                 )
 
-        dependency_versions = list(self._package_versions(
+        dependency_versions = self._package_versions(
             (Link(url) for url in self.dependency_links), search
-        ))
+        )
         if dependency_versions:
             logger.debug(
                 'dependency_links found: %s',
@@ -445,9 +445,7 @@ class PackageFinder(object):
                 ])
             )
 
-        file_versions = list(
-            self._package_versions(file_locations, search)
-        )
+        file_versions = self._package_versions(file_locations, search)
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -669,10 +667,12 @@ class PackageFinder(object):
         return no_eggs + eggs
 
     def _package_versions(self, links, search):
+        result = []
         for link in self._sort_links(links):
             v = self._link_package_versions(link, search)
             if v is not None:
-                yield v
+                result.append(v)
+        return result
 
     def _log_skipped_link(self, link, reason):
         if link not in self.logged_links:
