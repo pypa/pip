@@ -47,6 +47,9 @@ SUPPORTED_OPTIONS_REQ = [
     cmdoptions.global_options,
 ]
 
+# the 'dest' string values
+SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
+
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
                        session=None, cache_root=None):
@@ -96,8 +99,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     if args:
         for key, value in opts.__dict__.items():
             # only certain options can be on req lines
-            dest_strings = [o().dest for o in SUPPORTED_OPTIONS_REQ]
-            if value is not None and key not in dest_strings:
+            if value is not None and key not in SUPPORTED_OPTIONS_REQ_DEST:
                 # get the option string
                 # the option must be supported to get to this point
                 for o in SUPPORTED_OPTIONS:
