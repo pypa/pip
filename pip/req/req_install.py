@@ -105,6 +105,11 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
+        # Where should temporary data for the requirement be written.
+        self._req_cache = None
+        # If the requirement is editable, where are we doing to checkout the
+        # source?
+        self.src_dir = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
@@ -262,6 +267,15 @@ class InstallRequirement(object):
                 logger.debug('Using cached wheel link: %s', self._link)
 
     @property
+    def req_cache(self):
+        return self._req_cache
+
+    @req_cache.setter
+    def req_cache(self, req_cache):
+        assert self._req_cache is None
+        self._req_cache = req_cache
+
+    @property
     def specifier(self):
         return self.req.specifier
 
@@ -278,7 +292,12 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def build_location(self, build_dir):
+    def build_location(self):
+        assert self.req_cache is not None
+        if self.editable:
+            build_dir = self.src_dir
+        else:
+            build_dir = self.req_cache.path
         if self._temp_build_dir is not None:
             return self._temp_build_dir
         if self.req is None:
@@ -317,7 +336,7 @@ class InstallRequirement(object):
         assert self._ideal_build_dir
         old_location = self._temp_build_dir
         self._temp_build_dir = None
-        new_location = self.build_location(self._ideal_build_dir)
+        new_location = self.build_location()
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
@@ -896,7 +915,7 @@ exec(compile(
                 os.remove(record_filename)
             rmtree(temp_location)
 
-    def ensure_has_source_dir(self, parent_dir):
+    def ensure_has_source_dir(self):
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -907,7 +926,7 @@ exec(compile(
         :return: self.source_dir
         """
         if self.source_dir is None:
-            self.source_dir = self.build_location(parent_dir)
+            self.source_dir = self.build_location()
         return self.source_dir
 
     def remove_temporary_source(self):

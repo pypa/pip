@@ -226,6 +226,9 @@ class RequirementSet(object):
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
+        if not install_req.req_cache:
+            install_req.req_cache = self.req_cache
+        install_req.src_dir = self.src_dir
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
@@ -428,8 +431,13 @@ class RequirementSet(object):
             # ################################ #
             # # vcs update or unpack archive # #
             # ################################ #
+            # @@ if filesystem packages are not marked
+            # editable in a req, a non deterministic error
+            # occurs when the script attempts to unpack the
+            # build directory.
+            if not req_to_install.satisfied_by:
+                req_to_install.ensure_has_source_dir()
             if req_to_install.editable:
-                req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
@@ -438,11 +446,6 @@ class RequirementSet(object):
             elif req_to_install.satisfied_by:
                 abstract_dist = Installed(req_to_install)
             else:
-                # @@ if filesystem packages are not marked
-                # editable in a req, a non deterministic error
-                # occurs when the script attempts to unpack the
-                # build directory
-                req_to_install.ensure_has_source_dir(self.req_cache.path)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.

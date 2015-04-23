@@ -784,10 +784,10 @@ class WheelBuilder(object):
                                 "bad source dir - missing marker")
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
-                        # set the build directory again - name is known from
+                        # reset the build directory again - name is known from
                         # the work prepare_files did.
-                        req.source_dir = req.build_location(
-                            self.requirement_set.req_cache.path)
+                        req.source_dir = None
+                        req.ensure_has_source_dir()
                         # Update the link for this.
                         req.link = pip.index.Link(
                             path_to_url(wheel_file))
