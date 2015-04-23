@@ -7,7 +7,6 @@ import pytest
 from pretend import stub
 
 from pip.exceptions import (RequirementsFileParseError,
-                            ReqFileOnlyOneReqPerLineError,
                             ReqFileOnleOneOptionPerLineError,
                             ReqFileOptionNotAllowedWithReqError)
 from pip.download import PipSession
@@ -76,7 +75,8 @@ class TestProcessLine(object):
             list(process_line("--bogus", "file", 1))
 
     def test_only_one_req_per_line(self):
-        with pytest.raises(ReqFileOnlyOneReqPerLineError):
+        # pkg_resources raises the ValueError
+        with pytest.raises(ValueError):
             list(process_line("req1 req2", "file", 1))
 
     def test_only_one_option_per_line(self):
@@ -93,6 +93,14 @@ class TestProcessLine(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+
+    def test_yield_line_requirement_with_spaces_in_specifier(self):
+        line = 'SomeProject >= 2'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+        assert req.req.specs == [('>=', '2')]
 
     def test_yield_editable_requirement(self):
         url = 'git+https://url#egg=SomeProject'

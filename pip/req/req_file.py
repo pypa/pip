@@ -15,7 +15,6 @@ from pip._vendor.six.moves import filterfalse
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import (RequirementsFileParseError,
-                            ReqFileOnlyOneReqPerLineError,
                             ReqFileOnleOneOptionPerLineError,
                             ReqFileOptionNotAllowedWithReqError)
 from pip.utils import normalize_name
@@ -95,10 +94,6 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     req = None
 
     if args:
-        # don't allow multiple requirements
-        if len(args) > 1:
-            msg = 'Only one requirement supported per line.'
-            raise ReqFileOnlyOneReqPerLineError(msg)
         for key, value in opts.__dict__.items():
             # only certain options can be on req lines
             dest_strings = [o().dest for o in SUPPORTED_OPTIONS_REQ]
@@ -112,7 +107,6 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
                 msg = ('Option not supported on a'
                        ' requirement line: %s' % opt_string)
                 raise ReqFileOptionNotAllowedWithReqError(msg)
-        req = args[0]
 
     # don't allow multiple/different options (on non-req lines)
     if not args and len(
@@ -121,7 +115,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         raise ReqFileOnleOneOptionPerLineError(msg)
 
     # yield a line requirement
-    if req:
+    if args:
+        args_line = ' '.join(args)
         comes_from = '-r %s (line %s)' % (filename, line_number)
         isolated = options.isolated_mode if options else False
         # trim the None items
@@ -129,7 +124,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         for key in keys:
             delattr(opts, key)
         yield InstallRequirement.from_line(
-            req, comes_from, isolated=isolated, options=opts.__dict__
+            args_line, comes_from, isolated=isolated, options=opts.__dict__
         )
 
     # yield an editable requirement
