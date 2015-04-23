@@ -44,6 +44,20 @@ VERSION_COMPATIBLE = (1, 0)
 logger = logging.getLogger(__name__)
 
 
+class WheelCache(object):
+    """A cache of wheels for future installs."""
+
+    def __init__(self, cache_dir):
+        """Create a wheel cache.
+
+        :param cache_dir: The root of the cache.
+        """
+        self._cache_dir = cache_dir
+
+    def cached_wheel(self, link):
+        return cached_wheel(self._cache_dir, link)
+
+
 def _cache_for_filename(cache_dir, sdistfilename):
     """Return a directory to store cached wheels in for sdistfilename.
 
@@ -598,10 +612,10 @@ class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(self, requirement_set, finder, build_options=None,
-                 global_options=None, cache_root=None):
+                 global_options=None):
         self.requirement_set = requirement_set
         self.finder = finder
-        self._cache_root = requirement_set._cache_root
+        self._cache_root = requirement_set._wheel_cache._cache_dir
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []

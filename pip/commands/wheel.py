@@ -12,7 +12,7 @@ from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
-from pip.wheel import WheelBuilder
+from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
@@ -155,22 +155,24 @@ class WheelCommand(RequirementCommand):
             )
 
             build_delete = (not (options.no_clean or options.build_dir))
+            wheel_cache = WheelCache(options.cache_dir)
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(
                     build_dir=build_dir,
-                    cache_root=options.cache_dir,
                     src_dir=options.src_dir,
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_installed=True,
                     isolated=options.isolated_mode,
                     session=session,
+                    wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
+                    wheel_cache
                 )
 
                 if not requirement_set.has_requirements:

@@ -9,6 +9,7 @@ from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
+from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -130,10 +131,11 @@ class ListCommand(Command):
                 user_only=options.user,
                 include_editables=False,
             )
+            wheel_cache = WheelCache(options.cache_dir)
             for dist in installed_packages:
                 req = InstallRequirement.from_line(
                     dist.key, None, isolated=options.isolated_mode,
-                    cache_root=options.cache_dir,
+                    wheel_cache=wheel_cache
                 )
                 typ = 'unknown'
                 try:

@@ -281,7 +281,7 @@ class RequirementCommand(Command):
 
     @staticmethod
     def populate_requirement_set(requirement_set, args, options, finder,
-                                 session, name):
+                                 session, name, wheel_cache):
         """
         Marshal cmd line args into a requirement set.
         """
@@ -289,7 +289,7 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_line(
                     name, None, isolated=options.isolated_mode,
-                    cache_root=options.cache_dir
+                    wheel_cache=wheel_cache
                 )
             )
 
@@ -299,14 +299,15 @@ class RequirementCommand(Command):
                     name,
                     default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
-                    cache_root=options.cache_dir
+                    wheel_cache=wheel_cache
                 )
             )
 
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
-                    finder=finder, options=options, session=session):
+                    finder=finder, options=options, session=session,
+                    wheel_cache=wheel_cache):
                 requirement_set.add_requirement(req)
 
         if not requirement_set.has_requirements:
