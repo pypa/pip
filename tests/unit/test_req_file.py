@@ -116,7 +116,7 @@ class TestProcessLine(object):
         import pip.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, cache_root):
+                                    session, wheel_cache):
             return [req]
         parse_requirements_stub = stub(call=stub_parse_requirements)
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements',

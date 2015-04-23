@@ -79,7 +79,7 @@ def test_nonexistent_extra_warns_user_with_wheel(script, data):
     This exercises wheel installs.
     """
     result = script.pip(
-        'install', '--use-wheel', '--no-index',
+        'install', '--no-index',
         '--find-links=' + data.find_links,
         'simplewheel[nonexistent]', expect_stderr=True,
     )
@@ -94,7 +94,7 @@ def test_nonexistent_options_listed_in_order(script, data):
     Warn the user for each extra that doesn't exist.
     """
     result = script.pip(
-        'install', '--use-wheel', '--no-index',
+        'install', '--no-index',
         '--find-links=' + data.find_links,
         'simplewheel[nonexistent, nope]', expect_stderr=True,
     )

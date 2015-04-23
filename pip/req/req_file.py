@@ -52,15 +52,16 @@ SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None, cache_root=None):
+                       session=None, wheel_cache=None):
     """
     Parse a requirements file and yield InstallRequirement instances.
 
-    :param filename:   Path or url of requirements file.
-    :param finder:     Instance of pip.index.PackageFinder.
-    :param comes_from: Origin description of requirements.
-    :param options:    Global options.
-    :param session:    Instance of pip.download.PipSession.
+    :param filename:    Path or url of requirements file.
+    :param finder:      Instance of pip.index.PackageFinder.
+    :param comes_from:  Origin description of requirements.
+    :param options:     Global options.
+    :param session:     Instance of pip.download.PipSession.
+    :param wheel_cache: Instance of pip.wheel.WheelCache
     """
     if session is None:
         raise TypeError(
@@ -79,13 +80,13 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
     for line_number, line in enumerate(lines, 1):
         req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session)
+                                comes_from, options, session, wheel_cache)
         for req in req_iter:
             yield req
 
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
-                 options=None, session=None, cache_root=None):
+                 options=None, session=None, wheel_cache=None):
     """
     Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
@@ -126,7 +127,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         for key in keys:
             delattr(opts, key)
         yield InstallRequirement.from_line(
-            args_line, comes_from, isolated=isolated, options=opts.__dict__
+            args_line, comes_from, isolated=isolated, options=opts.__dict__,
+            wheel_cache=wheel_cache
         )
 
     # yield an editable requirement
@@ -136,7 +138,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         default_vcs = options.default_vcs if options else None
         yield InstallRequirement.from_editable(
             opts.editables[0], comes_from=comes_from,
-            default_vcs=default_vcs, isolated=isolated
+            default_vcs=default_vcs, isolated=isolated,
+            wheel_cache=wheel_cache
         )
 
     # parse a nested requirements file
@@ -150,7 +153,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             req_url = os.path.join(os.path.dirname(filename), req_file)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
-            req_url, finder, comes_from, options, session, cache_root
+            req_url, finder, comes_from, options, session,
+            wheel_cache=wheel_cache
         )
         for req in parser:
             yield req

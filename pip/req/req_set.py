@@ -140,7 +140,7 @@ class RequirementSet(object):
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
                  isolated=False, wheel_download_dir=None,
-                 cache_root=None):
+                 wheel_cache=None):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -150,7 +150,7 @@ class RequirementSet(object):
         :param download_dir: Where still packed archives should be written to.
             If None they are not saved, and are deleted immediately after
             unpacking.
-        :param cache_root: The root of the pip cache, for passing to
+        :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
         """
         if session is None:
@@ -185,7 +185,7 @@ class RequirementSet(object):
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
-        self._cache_root = cache_root
+        self._wheel_cache = wheel_cache
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 
@@ -517,7 +517,7 @@ class RequirementSet(object):
                     str(subreq),
                     req_to_install,
                     isolated=self.isolated,
-                    cache_root=self._cache_root,
+                    wheel_cache=self._wheel_cache,
                 )
                 more_reqs.extend(self.add_requirement(
                     sub_install_req, req_to_install.name))

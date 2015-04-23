@@ -74,7 +74,7 @@ class InstallRequirement(object):
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
                  pycompile=True, markers=None, isolated=False, options=None,
-                 cache_root=None):
+                 wheel_cache=None):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -89,7 +89,7 @@ class InstallRequirement(object):
             editable_options = {}
 
         self.editable_options = editable_options
-        self._cache_root = cache_root
+        self._wheel_cache = wheel_cache
         self.link = link
         self.as_egg = as_egg
         self.markers = markers
@@ -120,7 +120,7 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False, options=None, cache_root=None):
+                      isolated=False, options=None, wheel_cache=None):
         from pip.index import Link
 
         name, url, extras_override, editable_options = parse_editable(
@@ -136,7 +136,7 @@ class InstallRequirement(object):
                   editable_options=editable_options,
                   isolated=isolated,
                   options=options if options else {},
-                  cache_root=cache_root)
+                  wheel_cache=wheel_cache)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -146,7 +146,7 @@ class InstallRequirement(object):
     @classmethod
     def from_line(
             cls, name, comes_from=None, isolated=False, options=None,
-            cache_root=None):
+            wheel_cache=None):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -213,7 +213,8 @@ class InstallRequirement(object):
 
         options = options if options else {}
         return cls(req, comes_from, link=link, markers=markers,
-                   isolated=isolated, options=options, cache_root=cache_root)
+                   isolated=isolated, options=options,
+                   wheel_cache=wheel_cache)
 
     def __str__(self):
         if self.req:
@@ -253,8 +254,10 @@ class InstallRequirement(object):
     @link.setter
     def link(self, link):
         # Lookup a cached wheel, if possible.
-        link = pip.wheel.cached_wheel(self._cache_root, link)
-        self._link = link
+        if self._wheel_cache is None:
+            self._link = link
+        else:
+            self._link = self._wheel_cache.cached_wheel(link)
 
     @property
     def specifier(self):

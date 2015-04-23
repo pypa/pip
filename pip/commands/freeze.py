@@ -4,6 +4,7 @@ import sys
 
 from pip.basecommand import Command
 from pip.operations.freeze import freeze
+from pip.wheel import WheelCache
 
 
 class FreezeCommand(Command):
@@ -54,6 +55,7 @@ class FreezeCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        wheel_cache = WheelCache(options.cache_dir)
         freeze_kwargs = dict(
             requirement=options.requirement,
             find_links=options.find_links,
@@ -61,7 +63,7 @@ class FreezeCommand(Command):
             user_only=options.user,
             skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode,
-            cache_root=options.cache_dir)
+            wheel_cache=wheel_cache)
 
         for line in freeze(**freeze_kwargs):
             sys.stdout.write(line + '\n')
