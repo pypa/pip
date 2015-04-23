@@ -453,6 +453,7 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
+.. _`controlling-setup-requires`:
 
 Controlling setup_requires
 ++++++++++++++++++++++++++
