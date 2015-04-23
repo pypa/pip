@@ -172,13 +172,22 @@ def test_install_local_editable_with_subdirectory(script):
 
 
 def test_install_option_in_requirements_file(script, data, virtualenv):
-    virtualenv.system_site_packages = True
-    script.scratch_path.join("reqs.txt").write(textwrap.dedent("""\
-        simple --install-option='--user'
-        """))
+    """
+    Test --install-option in requirements file overrides same option in cli
+    """
+
+    script.scratch_path.join("home1").mkdir()
+    script.scratch_path.join("home2").mkdir()
+
+    script.scratch_path.join("reqs.txt").write(
+        textwrap.dedent(
+            """simple --install-option='--home=%s'"""
+            % script.scratch_path.join("home1")))
+
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-r',
-        script.scratch_path / 'reqs.txt'
-    )
-    package_dir = script.user_site / 'simple'
+        script.scratch_path / 'reqs.txt',
+        '--install-option=--home=%s' % script.scratch_path.join("home2"))
+
+    package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
     assert package_dir in result.files_created
