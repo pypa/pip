@@ -109,7 +109,12 @@ class Command(object):
         options, args = self.parse_args(args)
 
         if options.quiet:
-            level = "WARNING"
+            if options.quiet == 1:
+                level = "WARNING"
+            if options.quiet == 2:
+                level = "ERROR"
+            else:
+                level = "CRITICAL"
         elif options.verbose:
             level = "DEBUG"
         else:
