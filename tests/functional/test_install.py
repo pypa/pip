@@ -9,6 +9,7 @@ import pytest
 
 from pip import pep425tags
 from pip.utils import appdirs, rmtree
+from pip.status_codes import ERROR
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
                        requirements_file)
@@ -81,6 +82,15 @@ def test_pip_second_command_line_interface_works(script, data):
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
     assert initools_folder in result.files_created, str(result)
+
+
+def test_install_exit_status_code_when_no_requirements(script):
+    """
+    Test install exit status code when no requirements specified
+    """
+    result = script.pip('install', expect_error=True)
+    assert "You must give at least one requirement to install" in result.stderr
+    assert result.returncode == ERROR
 
 
 @pytest.mark.network
