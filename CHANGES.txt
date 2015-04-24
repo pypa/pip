@@ -28,8 +28,12 @@
 * Allow fine grained control over the use of wheels and source builds.
   (:pull:`2699`)
 
+* ``--no-use-wheel`` and ``--use-wheel`` are deprecated in favour of new
+  options ``--no-binary`` and ``--only-binary``. The equivalent of
+  ``--no-use-wheel`` is ``--no-binary=:all:``. (:pull:`2699`)
+
 * The use of ``--install-option``, ``--global-option`` or ``--build-option``
-  disable the use of wheels, and the autobuilding of wheels. (:pull:`2711`))
+  disable the use of wheels, and the autobuilding of wheels. (:pull:`2711`)
   Fixes :issue:`2677`
 
 **6.1.1 (2015-04-07)**
