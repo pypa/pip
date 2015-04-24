@@ -5,7 +5,7 @@ import pytest
 from os.path import exists
 
 from pip.locations import write_delete_marker_file
-from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
+from pip.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
@@ -18,6 +18,16 @@ def test_pip_wheel_fails_without_wheel(script, data):
         expect_error=True,
     )
     assert "'pip wheel' requires the 'wheel' package" in result.stderr
+
+
+def test_wheel_exit_status_code_when_no_requirements(script):
+    """
+    Test wheel exit status code when no requirements specified
+    """
+    script.pip('install', 'wheel')
+    result = script.pip('wheel', expect_error=True)
+    assert "You must give at least one requirement to wheel" in result.stderr
+    assert result.returncode == ERROR
 
 
 @pytest.mark.network
