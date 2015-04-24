@@ -5,6 +5,7 @@ import os
 
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
+from pip.status_codes import ERROR
 from pip import cmdoptions
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
@@ -117,7 +118,7 @@ class DownloadCommand(RequirementCommand):
                 )
 
                 if not requirement_set.has_requirements:
-                    return
+                    return ERROR
 
                 requirement_set.prepare_files(finder)
 
