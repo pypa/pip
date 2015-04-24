@@ -19,6 +19,7 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.status_codes import ERROR
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
@@ -269,7 +270,7 @@ class InstallCommand(RequirementCommand):
                 )
 
                 if not requirement_set.has_requirements:
-                    return
+                    return ERROR
 
                 try:
                     if options.download_dir or not wheel:

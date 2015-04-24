@@ -9,6 +9,7 @@ from pip.basecommand import RequirementCommand
 from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
+from pip.status_codes import ERROR
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
@@ -180,7 +181,7 @@ class WheelCommand(RequirementCommand):
                 )
 
                 if not requirement_set.has_requirements:
-                    return
+                    return ERROR
 
                 try:
                     # build wheels
