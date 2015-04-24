@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import sys
 
+import pip
 from pip.basecommand import Command
 from pip.operations.freeze import freeze
 from pip.wheel import WheelCache
@@ -55,7 +56,8 @@ class FreezeCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        wheel_cache = WheelCache(options.cache_dir)
+        format_control = pip.index.FormatControl(set(), set())
+        wheel_cache = WheelCache(options.cache_dir, format_control)
         freeze_kwargs = dict(
             requirement=options.requirement,
             find_links=options.find_links,

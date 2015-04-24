@@ -257,7 +257,7 @@ class InstallRequirement(object):
         if self._wheel_cache is None:
             self._link = link
         else:
-            self._link = self._wheel_cache.cached_wheel(link)
+            self._link = self._wheel_cache.cached_wheel(link, self.name)
 
     @property
     def specifier(self):

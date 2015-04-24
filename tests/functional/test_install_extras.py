@@ -61,7 +61,7 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
     This exercises source installs.
     """
     result = script.pip(
-        'install', '--no-use-wheel', '--no-index',
+        'install', '--no-binary=:all:', '--no-index',
         '--find-links=' + data.find_links,
         'simple[nonexistent]', expect_stderr=True,
     )

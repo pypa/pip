@@ -47,15 +47,19 @@ logger = logging.getLogger(__name__)
 class WheelCache(object):
     """A cache of wheels for future installs."""
 
-    def __init__(self, cache_dir):
+    def __init__(self, cache_dir, format_control):
         """Create a wheel cache.
 
         :param cache_dir: The root of the cache.
+        :param format_control: A pip.index.FormatControl object to limit
+            binaries being read from the cache.
         """
         self._cache_dir = cache_dir
+        self._format_control = format_control
 
-    def cached_wheel(self, link):
-        return cached_wheel(self._cache_dir, link)
+    def cached_wheel(self, link, package_name):
+        return cached_wheel(
+            self._cache_dir, link, self._format_control, package_name)
 
 
 def _cache_for_filename(cache_dir, sdistfilename):
@@ -78,12 +82,18 @@ def _cache_for_filename(cache_dir, sdistfilename):
     return os.path.join(cache_dir, 'wheels', sdistfilename)
 
 
-def cached_wheel(cache_dir, link):
+def cached_wheel(cache_dir, link, format_control, package_name):
     if not cache_dir:
         return link
     if not link:
         return link
     if link.is_wheel:
+        return link
+    if not package_name:
+        return link
+    canonical_name = pkg_resources.safe_name(package_name).lower()
+    formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
+    if "binary" not in formats:
         return link
     root = _cache_for_filename(cache_dir, link.filename)
     try:
@@ -692,6 +702,13 @@ class WheelBuilder(object):
                     if pip.index.egg_info_matches(base, None, link) is None:
                         # Doesn't look like a package - don't autobuild a wheel
                         # because we'll have no way to lookup the result sanely
+                        continue
+                    if "binary" not in pip.index.fmt_ctl_formats(
+                            self.finder.format_control,
+                            pkg_resources.safe_name(req.name).lower()):
+                        logger.info(
+                            "Skipping bdist_wheel for %s, due to binaries "
+                            "being disabled for it.", req.name)
                         continue
                 buildset.append(req)
 

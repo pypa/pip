@@ -22,7 +22,7 @@ def test_without_setuptools(script, data):
         "'install', "
         "'INITools==0.2', "
         "'-f', '%s', "
-        "'--no-use-wheel'])" % data.packages,
+        "'--no-binary=:all:'])" % data.packages,
         expect_error=True,
     )
     assert (
@@ -605,7 +605,7 @@ def test_compiles_pyc(script):
     Test installing with --compile on
     """
     del script.environ["PYTHONDONTWRITEBYTECODE"]
-    script.pip("install", "--compile", "--no-use-wheel", "INITools==0.2")
+    script.pip("install", "--compile", "--no-binary=:all:", "INITools==0.2")
 
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -626,7 +626,7 @@ def test_no_compiles_pyc(script, data):
     Test installing from wheel with --compile on
     """
     del script.environ["PYTHONDONTWRITEBYTECODE"]
-    script.pip("install", "--no-compile", "--no-use-wheel", "INITools==0.2")
+    script.pip("install", "--no-compile", "--no-binary=:all:", "INITools==0.2")
 
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -714,3 +714,51 @@ def test_install_builds_wheels(script, data):
     assert "Running setup.py install for requires-wheel" in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
+
+
+def test_install_no_binary_disables_building_wheels(script, data):
+    script.pip('install', 'wheel')
+    to_install = data.packages.join('requires_wheelbroken_upper')
+    res = script.pip(
+        'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
+        to_install, expect_stderr=True)
+    expected = ("Successfully installed requires-wheelbroken-upper-0"
+                " upper-2.0 wheelbroken-0.1")
+    # Must have installed it all
+    assert expected in str(res), str(res)
+    root = appdirs.user_cache_dir('pip')
+    wheels = []
+    for top, dirs, files in os.walk(root):
+        wheels.extend(files)
+    # and built wheels for wheelbroken only
+    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    # But not requires_wheel... which is a local dir and thus uncachable.
+    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # Nor upper, which was blacklisted
+    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    # wheelbroken has to run install
+    # into the cache
+    assert wheels != [], str(res)
+    # the local tree can't build a wheel (because we can't assume that every
+    # build will have a suitable unique key to cache on).
+    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # And these two fell back to sdist based installed.
+    assert "Running setup.py install for wheelb" in str(res), str(res)
+    assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_no_binary_disables_cached_wheels(script, data):
+    script.pip('install', 'wheel')
+    # Seed the cache
+    script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        'upper')
+    script.pip('uninstall', 'upper', '-y')
+    res = script.pip(
+        'install', '--no-index', '--no-binary=:all:', '-f', data.find_links,
+        'upper', expect_stderr=True)
+    assert "Successfully installed upper-2.0" in str(res), str(res)
+    # No wheel building for upper, which was blacklisted
+    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    # Must have used source, not a cached wheel to install upper.
+    assert "Running setup.py install for upper" in str(res), str(res)
