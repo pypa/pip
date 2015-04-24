@@ -11,9 +11,11 @@ from __future__ import absolute_import
 
 from functools import partial
 from optparse import OptionGroup, SUPPRESS_HELP, Option
+import warnings
 
 from pip.index import (
-    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_use_wheel)
+    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
+    fmt_ctl_no_use_wheel)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
@@ -33,6 +35,27 @@ def resolve_wheel_no_use_binary(options):
     if not options.use_wheel:
         control = options.format_control
         fmt_ctl_no_use_wheel(control)
+
+
+def check_install_build_global(options, check_options=None):
+    """Disable wheels if per-setup.py call options are set.
+
+    :param options: The OptionParser options to update.
+    :param check_options: The options to check, if not supplied defaults to
+        options.
+    """
+    if check_options is None:
+        check_options = options
+
+    def getname(n):
+        return getattr(check_options, n, None)
+    names = ["build_options", "global_options", "install_options"]
+    if any(map(getname, names)):
+        control = options.format_control
+        fmt_ctl_no_binary(control)
+        warnings.warn(
+            'Disabling all use of wheels due to the use of --build-options '
+            '/ --global-options / --install-options.', stacklevel=2)
 
 
 ###########
@@ -353,9 +376,11 @@ use_wheel = partial(
     '--use-wheel',
     dest='use_wheel',
     action='store_true',
+    default=True,
     help=SUPPRESS_HELP,
 )
 
+# XXX: deprecated, remove in 9.0
 no_use_wheel = partial(
     Option,
     '--no-use-wheel',

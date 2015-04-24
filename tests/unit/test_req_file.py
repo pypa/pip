@@ -1,3 +1,4 @@
+from optparse import Values
 import os
 import subprocess
 from textwrap import dedent
@@ -11,7 +12,7 @@ from pip.exceptions import (RequirementsFileParseError,
                             ReqFileOnleOneOptionPerLineError,
                             ReqFileOptionNotAllowedWithReqError)
 from pip.download import PipSession
-from pip.index import PackageFinder
+from pip.index import FormatControl, PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments)
@@ -68,8 +69,10 @@ class TestProcessLine(object):
     """tests for `process_line`"""
 
     def setup(self):
-        self.options = stub(isolated_mode=False, default_vcs=None,
-                            skip_requirements_regex=False)
+        self.options = stub(
+            isolated_mode=False, default_vcs=None,
+            skip_requirements_regex=False,
+            format_control=pip.index.FormatControl(set(), set()))
 
     def test_parser_error(self):
         with pytest.raises(RequirementsFileParseError):
@@ -335,6 +338,7 @@ class TestParseRequirements(object):
         install_option = '--prefix=/opt'
 
         content = '''
+        --only-binary :all:
         INITools==2.0 --global-option="{global_option}" \
                         --install-option "{install_option}"
         '''.format(global_option=global_option, install_option=install_option)
@@ -343,8 +347,12 @@ class TestParseRequirements(object):
         with open(req_path, 'w') as fh:
             fh.write(content)
 
-        req = next(parse_requirements(req_path, finder=finder,
-                                      session=session))
+        options = Values()
+        options.format_control = FormatControl(set(), set())
+        options.skip_requirements_regex = None
+        options.isolated_mode = False
+        req = next(parse_requirements(
+            req_path, finder=finder, options=options, session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
@@ -357,3 +365,5 @@ class TestParseRequirements(object):
             assert call.index(install_option) > \
                 call.index('install') > \
                 call.index(global_option) > 0
+        assert options.format_control.no_binary == set([':all:'])
+        assert options.format_control.only_binary == set([])

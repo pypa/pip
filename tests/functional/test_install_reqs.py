@@ -187,7 +187,8 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-r',
         script.scratch_path / 'reqs.txt',
-        '--install-option=--home=%s' % script.scratch_path.join("home2"))
+        '--install-option=--home=%s' % script.scratch_path.join("home2"),
+        expect_stderr=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
     assert package_dir in result.files_created

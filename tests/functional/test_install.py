@@ -304,7 +304,7 @@ def test_install_global_option(script):
     """
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
-    )
+        expect_stderr=True)
     assert '0.1\n' in result.stdout
 
 
@@ -335,8 +335,8 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(url, tmpdir.join("cache")),
-        '--install-option=--script-dir=%s' % folder
-    )
+        '--install-option=--script-dir=%s' % folder,
+        expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
         folder / 'pip-test-package' + script.exe
@@ -352,8 +352,8 @@ def test_install_global_option_using_editable(script, tmpdir):
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip(
         'install', '--global-option=--version', '-e',
-        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache"))
-    )
+        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache")),
+        expect_stderr=True)
     assert 'Successfully installed anyjson' in result.stdout
 
 

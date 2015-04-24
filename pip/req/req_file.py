@@ -140,6 +140,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         args_line = ' '.join(args)
         comes_from = '-r %s (line %s)' % (filename, line_number)
         isolated = options.isolated_mode if options else False
+        if options:
+            cmdoptions.check_install_build_global(options, opts)
         # trim the None items
         keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
         for key in keys:
@@ -215,8 +217,8 @@ def build_parser():
     parser = optparse.OptionParser(add_help_option=False)
 
     options = SUPPORTED_OPTIONS + SUPPORTED_OPTIONS_REQ
-    for option in options:
-        option = option()
+    for option_factory in options:
+        option = option_factory()
         # we want no default values; defaults are handled in `pip install`
         # parsing. just concerned with values that are specifically set.
         option.default = None
