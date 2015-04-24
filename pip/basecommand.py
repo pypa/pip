@@ -302,14 +302,14 @@ class RequirementCommand(Command):
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}
             if options.find_links:
-                msg = ('You must give at least one requirement to '
-                       '%(name)s (maybe you meant "pip %(name)s '
-                       '%(links)s"?)' %
-                       dict(opts, links=' '.join(options.find_links)))
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(maybe you meant "pip %(name)s %(links)s"?)' %
+                    dict(opts, links=' '.join(options.find_links)))
             else:
-                msg = ('You must give at least one requirement '
-                       'to %(name)s (see "pip help %(name)s")' % opts)
-            logger.warning(msg)
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(see "pip help %(name)s")' % opts)
 
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,

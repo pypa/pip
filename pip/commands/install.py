@@ -313,9 +313,6 @@ class InstallCommand(RequirementCommand):
                     wheel_cache
                 )
 
-                if not requirement_set.has_requirements:
-                    return
-
                 try:
                     if (options.download_dir or not wheel or not
                             options.cache_dir):
