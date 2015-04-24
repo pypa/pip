@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+import logging
 import os.path
 import shutil
 import tempfile
 
 from pip.download import url_to_path
 from pip.utils import display_path, ensure_dir, rmtree, _make_build_dir
+
+
+logger = logging.getLogger(__name__)
 
 
 class RequirementCache(object):
@@ -77,6 +81,7 @@ class RequirementCache(object):
 
     def cleanup(self):
         if self.delete:
+            logger.debug('Cleaning up...')
             rmtree(self.path)
         self.path = None
         self._urls = None

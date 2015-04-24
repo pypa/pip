@@ -341,12 +341,8 @@ class InstallCommand(RequirementCommand):
                                 'Successfully downloaded %s', downloaded
                             )
                 except PreviousBuildDirError:
-                    options.no_clean = True
+                    req_cache.delete = False
                     raise
-                finally:
-                    # Clean up
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
 
         if options.target_dir:
             ensure_dir(options.target_dir)

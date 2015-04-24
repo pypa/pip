@@ -175,7 +175,6 @@ class RequirementSet(object):
         self.ignore_dependencies = ignore_dependencies
         self.successfully_downloaded = []
         self.successfully_installed = []
-        self.reqs_to_cleanup = []
         self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
@@ -557,9 +556,6 @@ class RequirementSet(object):
                 for subreq in dist.requires(available_requested):
                     add_req(subreq)
 
-            # cleanup tmp src
-            self.reqs_to_cleanup.append(req_to_install)
-
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
                 # downloaded' for only non-editable reqs, even though we took
@@ -567,13 +563,6 @@ class RequirementSet(object):
                 self.successfully_downloaded.append(req_to_install)
 
         return more_reqs
-
-    def cleanup_files(self):
-        """Clean up files, remove builds."""
-        logger.debug('Cleaning up...')
-        with indent_log():
-            for req in self.reqs_to_cleanup:
-                req.remove_temporary_source()
 
     def _to_install(self):
         """Create the installation order.

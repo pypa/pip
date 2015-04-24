@@ -208,8 +208,5 @@ class WheelCommand(RequirementCommand):
                             "Failed to build one or more wheels"
                         )
                 except PreviousBuildDirError:
-                    options.no_clean = True
+                    req_cache.delete = False
                     raise
-                finally:
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
