@@ -2,6 +2,7 @@ import os
 import textwrap
 import pytest
 
+from pip.status_codes import ERROR
 from tests.lib.path import Path
 
 
@@ -159,3 +160,14 @@ def test_download_vcs_link(script):
         in result.files_created
     )
     assert script.site_packages / 'piptestpackage' not in result.files_created
+
+
+def test_download_exit_status_code_when_no_requirements(script):
+    """
+    Test wheel exit status code when no requirements specified
+    """
+    result = script.pip('download', expect_error=True)
+    assert (
+        "You must give at least one requirement to download" in result.stderr
+    )
+    assert result.returncode == ERROR
