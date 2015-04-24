@@ -8,6 +8,7 @@ from os.path import join, curdir, pardir
 import pytest
 
 from pip.utils import appdirs, rmtree
+from pip.status_codes import ERROR
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url)
 from tests.lib.local_repos import local_checkout
@@ -51,6 +52,14 @@ def test_pip_second_command_line_interface_works(script, data):
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
     assert initools_folder in result.files_created, str(result)
+
+
+def test_install_exit_status_code_when_no_requirements(script):
+    """
+    Test install exit status code when no requirements specified
+    """
+    result = script.pip('install', expect_error=True)
+    assert result.returncode == ERROR
 
 
 @pytest.mark.network

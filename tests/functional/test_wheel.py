@@ -5,7 +5,7 @@ import pytest
 from os.path import exists
 
 from pip.locations import write_delete_marker_file
-from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
+from pip.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
@@ -151,3 +151,13 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
 
     # Then I see that the error code is the right one
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
+
+
+@pytest.mark.network
+def test_wheel_exit_status_code_when_no_requirements(script):
+    """
+    Test wheel exit status code when no requirements specified
+    """
+    script.pip('install', 'wheel')
+    result = script.pip('wheel', expect_error=True)
+    assert result.returncode == ERROR
