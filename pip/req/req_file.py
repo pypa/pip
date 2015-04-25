@@ -153,20 +153,20 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         if opts.use_wheel is False:
             finder.use_wheel = False
             pip.index.fmt_ctl_no_use_wheel(finder.format_control)
-        elif opts.no_index is True:
+        if opts.no_index is True:
             finder.index_urls = []
-        elif opts.allow_all_external:
+        if opts.allow_all_external:
             finder.allow_all_external = opts.allow_all_external
-        elif opts.extra_index_urls:
+        if opts.extra_index_urls:
             finder.index_urls.extend(opts.extra_index_urls)
-        elif opts.allow_external:
+        if opts.allow_external:
             finder.allow_external |= set(
                 [normalize_name(v).lower() for v in opts.allow_external])
-        elif opts.allow_unverified:
+        if opts.allow_unverified:
             # Remove after 7.0
             finder.allow_unverified |= set(
                 [normalize_name(v).lower() for v in opts.allow_unverified])
-        elif opts.find_links:
+        if opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
             # relative to a requirements file.
