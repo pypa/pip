@@ -22,15 +22,6 @@ class RequirementsFileParseError(InstallationError):
     """Raised when a general error occurs parsing a requirements file line."""
 
 
-class ReqFileOnleOneOptionPerLineError(InstallationError):
-    """Raised when an option is not allowed in a requirements file."""
-
-
-class ReqFileOptionNotAllowedWithReqError(InstallationError):
-    """Raised when an option is not allowed on a requirement line in a requirements
-       file."""
-
-
 class BestVersionAlreadyInstalled(PipError):
     """Raised when the most up-to-date version of a package is already
     installed."""
