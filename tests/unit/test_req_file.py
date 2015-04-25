@@ -322,7 +322,8 @@ class TestParseRequirements(object):
 
         parse_requirements(tmpdir.join("req.txt"), session=PipSession())
 
-    def test_install_requirements_with_options(self, tmpdir, finder, session, options):
+    def test_install_requirements_with_options(self, tmpdir, finder, session,
+                                               options):
         global_option = '--dry-run'
         install_option = '--prefix=/opt'
 
