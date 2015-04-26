@@ -459,12 +459,9 @@ def is_archive_file(name):
     return False
 
 
-def unpack_vcs_link(link, location, only_download=False):
+def unpack_vcs_link(link, location):
     vcs_backend = _get_used_vcs_backend(link)
-    if only_download:
-        vcs_backend.export(location)
-    else:
-        vcs_backend.unpack(location)
+    vcs_backend.unpack(location)
 
 
 def _get_used_vcs_backend(link):
@@ -804,13 +801,11 @@ def unpack_url(link, location, download_dir=None,
     """
     # non-editable vcs urls
     if is_vcs_url(link):
-        unpack_vcs_link(link, location, only_download)
+        unpack_vcs_link(link, location)
 
     # file urls
     elif is_file_url(link):
         unpack_file_url(link, location, download_dir)
-        if only_download:
-            write_delete_marker_file(location)
 
     # http urls
     else:
@@ -823,8 +818,8 @@ def unpack_url(link, location, download_dir=None,
             download_dir,
             session,
         )
-        if only_download:
-            write_delete_marker_file(location)
+    if only_download:
+        write_delete_marker_file(location)
 
 
 def _download_http_url(link, session, temp_dir):
