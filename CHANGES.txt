@@ -36,6 +36,9 @@
   disable the use of wheels, and the autobuilding of wheels. (:pull:`2711`)
   Fixes :issue:`2677`
 
+* Improve logging when a requirement marker doesn't match your environment
+  (:pull:`2735`)
+
 **6.1.1 (2015-04-07)**
 
 * No longer ignore dependencies which have been added to the standard library,
