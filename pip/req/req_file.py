@@ -15,9 +15,7 @@ from pip._vendor.six.moves import filterfalse
 import pip
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
-from pip.exceptions import (RequirementsFileParseError,
-                            ReqFileOnleOneOptionPerLineError,
-                            ReqFileOptionNotAllowedWithReqError)
+from pip.exceptions import (RequirementsFileParseError)
 from pip.utils import normalize_name
 from pip import cmdoptions
 
@@ -40,14 +38,14 @@ SUPPORTED_OPTIONS = [
     cmdoptions.use_wheel,
     cmdoptions.no_use_wheel,
     cmdoptions.always_unzip,
-]
-
-# options allowed on requirement lines
-SUPPORTED_OPTIONS_REQ = [
-    cmdoptions.install_options,
-    cmdoptions.global_options,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+]
+
+# options to be passed to requirements
+SUPPORTED_OPTIONS_REQ = [
+    cmdoptions.install_options,
+    cmdoptions.global_options
 ]
 
 # the 'dest' string values
@@ -90,50 +88,29 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
                  options=None, session=None, wheel_cache=None):
-    """
-    Process a single requirements line; This can result in creating/yielding
+    """Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
+
+    For lines that contain requirements, the only options that have an effect
+    are from SUPPORTED_OPTIONS_REQ, and they are scoped to the
+    requirement. Other options from SUPPORTED_OPTIONS may be present, but are
+    ignored.
+
+    For lines that do not contain requirements, the only options that have an
+    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may
+    be present, but are ignored. These lines may contain multiple options
+    (although our docs imply only one is supported), and all our parsed and
+    affect the finder.
+
     """
+
     parser = build_parser()
-    values = parser.get_default_values()
+    defaults = parser.get_default_values()
+    defaults.index_url = None
     if finder:
-        values.format_control = finder.format_control
-    else:
-        # Undo the hack that removes defaults so that
-        # this can be parsed correctly.
-        values.format_control = pip.index.FormatControl(set(), set())
-    orig_no_binary = frozenset(values.format_control.no_binary)
-    orig_only_binary = frozenset(values.format_control.only_binary)
-    args = shlex.split(line)
-    opts, args = parser.parse_args(args, values)
-    if opts.use_wheel is False and finder:
-        pip.index.fmt_ctl_no_use_wheel(finder.format_control)
-        setattr(values, 'use_wheel', None)
-    if (orig_no_binary == opts.format_control.no_binary and
-            orig_only_binary == opts.format_control.only_binary):
-        # Make the per-requirement-line check work.
-        setattr(values, 'format_control', None)
-
-    req = None
-    if args:
-        for key, value in opts.__dict__.items():
-            # only certain options can be on req lines
-            if value is not None and key not in SUPPORTED_OPTIONS_REQ_DEST:
-                # get the option string
-                # the option must be supported to get to this point
-                for o in SUPPORTED_OPTIONS:
-                    o = o()
-                    if o.dest == key:
-                        opt_string = o.get_opt_string()
-                msg = ('Option not supported on a'
-                       ' requirement line: %s' % opt_string)
-                raise ReqFileOptionNotAllowedWithReqError(msg)
-
-    # don't allow multiple/different options (on non-req lines)
-    if not args and len(
-            [v for v in opts.__dict__.values() if v is not None]) > 1:
-        msg = 'Only one option allowed per line.'
-        raise ReqFileOnleOneOptionPerLineError(msg)
+        # `finder.format_control` will be updated during parsing
+        defaults.format_control = finder.format_control
+    opts, args = parser.parse_args(shlex.split(line), defaults)
 
     # yield a line requirement
     if args:
@@ -142,12 +119,13 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         isolated = options.isolated_mode if options else False
         if options:
             cmdoptions.check_install_build_global(options, opts)
-        # trim the None items
-        keys = [opt for opt in opts.__dict__ if getattr(opts, opt) is None]
-        for key in keys:
-            delattr(opts, key)
+        # get the options that apply to requirements
+        req_options = {}
+        for dest in SUPPORTED_OPTIONS_REQ_DEST:
+            if dest in opts.__dict__ and opts.__dict__[dest]:
+                req_options[dest] = opts.__dict__[dest]
         yield InstallRequirement.from_line(
-            args_line, comes_from, isolated=isolated, options=opts.__dict__,
+            args_line, comes_from, isolated=isolated, options=req_options,
             wheel_cache=wheel_cache
         )
 
@@ -181,24 +159,25 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # set finder options
     elif finder:
-        if opts.use_wheel is not None:
-            finder.use_wheel = opts.use_wheel
-        elif opts.no_index is not None:
-            finder.index_urls = []
-        elif opts.allow_all_external is not None:
-            finder.allow_all_external = opts.allow_all_external
-        elif opts.index_url is not None:
+        if opts.index_url:
             finder.index_urls = [opts.index_url]
-        elif opts.extra_index_urls is not None:
+        if opts.use_wheel is False:
+            finder.use_wheel = False
+            pip.index.fmt_ctl_no_use_wheel(finder.format_control)
+        if opts.no_index is True:
+            finder.index_urls = []
+        if opts.allow_all_external:
+            finder.allow_all_external = opts.allow_all_external
+        if opts.extra_index_urls:
             finder.index_urls.extend(opts.extra_index_urls)
-        elif opts.allow_external is not None:
+        if opts.allow_external:
             finder.allow_external |= set(
                 [normalize_name(v).lower() for v in opts.allow_external])
-        elif opts.allow_unverified is not None:
+        if opts.allow_unverified:
             # Remove after 7.0
             finder.allow_unverified |= set(
                 [normalize_name(v).lower() for v in opts.allow_unverified])
-        elif opts.find_links is not None:
+        if opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
             # relative to a requirements file.
@@ -216,12 +195,9 @@ def build_parser():
     """
     parser = optparse.OptionParser(add_help_option=False)
 
-    options = SUPPORTED_OPTIONS + SUPPORTED_OPTIONS_REQ
-    for option_factory in options:
+    option_factories = SUPPORTED_OPTIONS + SUPPORTED_OPTIONS_REQ
+    for option_factory in option_factories:
         option = option_factory()
-        # we want no default values; defaults are handled in `pip install`
-        # parsing. just concerned with values that are specifically set.
-        option.default = None
         parser.add_option(option)
 
     # By default optparse sys.exits on parsing errors. We want to wrap

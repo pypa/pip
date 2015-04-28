@@ -1,4 +1,3 @@
-from optparse import Values
 import os
 import subprocess
 from textwrap import dedent
@@ -8,11 +7,9 @@ import pytest
 from pretend import stub
 
 import pip
-from pip.exceptions import (RequirementsFileParseError,
-                            ReqFileOnleOneOptionPerLineError,
-                            ReqFileOptionNotAllowedWithReqError)
+from pip.exceptions import (RequirementsFileParseError)
 from pip.download import PipSession
-from pip.index import FormatControl, PackageFinder
+from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments)
@@ -26,6 +23,14 @@ def session():
 @pytest.fixture
 def finder(session):
     return PackageFinder([], [], session=session)
+
+
+@pytest.fixture
+def options(session):
+    return stub(
+        isolated_mode=False, default_vcs=None, index_url='default_url',
+        skip_requirements_regex=False,
+        format_control=pip.index.FormatControl(set(), set()))
 
 
 class TestIgnoreComments(object):
@@ -68,12 +73,6 @@ class TestJoinLines(object):
 class TestProcessLine(object):
     """tests for `process_line`"""
 
-    def setup(self):
-        self.options = stub(
-            isolated_mode=False, default_vcs=None,
-            skip_requirements_regex=False,
-            format_control=pip.index.FormatControl(set(), set()))
-
     def test_parser_error(self):
         with pytest.raises(RequirementsFileParseError):
             list(process_line("--bogus", "file", 1))
@@ -82,14 +81,6 @@ class TestProcessLine(object):
         # pkg_resources raises the ValueError
         with pytest.raises(ValueError):
             list(process_line("req1 req2", "file", 1))
-
-    def test_only_one_option_per_line(self):
-        with pytest.raises(ReqFileOnleOneOptionPerLineError):
-            list(process_line("--index-url=url --no-use-wheel", "file", 1))
-
-    def test_option_not_allowed_on_req_line(self):
-        with pytest.raises(ReqFileOptionNotAllowedWithReqError):
-            list(process_line("req --index-url=url", "file", 1))
 
     def test_yield_line_requirement(self):
         line = 'SomeProject'
@@ -136,19 +127,19 @@ class TestProcessLine(object):
             'global_options': ['yo3', 'yo4'],
             'install_options': ['yo1', 'yo2']}
 
-    def test_set_isolated(self):
+    def test_set_isolated(self, options):
         line = 'SomeProject'
         filename = 'filename'
-        self.options.isolated_mode = True
-        result = process_line(line, filename, 1, options=self.options)
+        options.isolated_mode = True
+        result = process_line(line, filename, 1, options=options)
         assert list(result)[0].isolated
 
-    def test_set_default_vcs(self):
+    def test_set_default_vcs(self, options):
         url = 'https://url#egg=SomeProject'
         line = '-e %s' % url
         filename = 'filename'
-        self.options.default_vcs = 'git'
-        result = process_line(line, filename, 1, options=self.options)
+        options.default_vcs = 'git'
+        result = process_line(line, filename, 1, options=options)
         assert list(result)[0].link.url == 'git+' + url
 
     def test_set_finder_no_index(self, finder):
@@ -237,19 +228,18 @@ class TestParseRequirements(object):
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
 
-    def test_multiple_appending_options(self, tmpdir, finder):
+    def test_multiple_appending_options(self, tmpdir, finder, options):
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
 
         list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
-                                session=PipSession()))
+                                session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
 
-    def test_skip_regex(self, tmpdir, finder):
-        options = stub(isolated_mode=False, default_vcs=None,
-                       skip_requirements_regex='.*Bad.*')
+    def test_skip_regex(self, tmpdir, finder, options):
+        options.skip_requirements_regex = '.*Bad.*'
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("--extra-index-url Bad \n")
             fp.write("--extra-index-url Good ")
@@ -268,8 +258,7 @@ class TestParseRequirements(object):
 
         assert finder.index_urls == ['url1', 'url2']
 
-    def test_req_file_parse_no_only_binary(self, data):
-        finder = PackageFinder([], [], session=PipSession())
+    def test_req_file_parse_no_only_binary(self, data, finder):
         list(parse_requirements(
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
@@ -333,7 +322,8 @@ class TestParseRequirements(object):
 
         parse_requirements(tmpdir.join("req.txt"), session=PipSession())
 
-    def test_install_requirements_with_options(self, tmpdir, finder, session):
+    def test_install_requirements_with_options(self, tmpdir, finder, session,
+                                               options):
         global_option = '--dry-run'
         install_option = '--prefix=/opt'
 
@@ -347,10 +337,6 @@ class TestParseRequirements(object):
         with open(req_path, 'w') as fh:
             fh.write(content)
 
-        options = Values()
-        options.format_control = FormatControl(set(), set())
-        options.skip_requirements_regex = None
-        options.isolated_mode = False
         req = next(parse_requirements(
             req_path, finder=finder, options=options, session=session))
 
