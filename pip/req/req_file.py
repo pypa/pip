@@ -97,10 +97,10 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     ignored.
 
     For lines that do not contain requirements, the only options that have an
-    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may be
-    present, but are ignored. These lines may contain multiple options (although
-    our docs imply only one is supported), and all our parsed and affect the
-    finder.
+    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may
+    be present, but are ignored. These lines may contain multiple options
+    (although our docs imply only one is supported), and all our parsed and
+    affect the finder.
 
     """
 
