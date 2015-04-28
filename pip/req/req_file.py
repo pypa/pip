@@ -88,9 +88,20 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
                  options=None, session=None, wheel_cache=None):
-    """
-    Process a single requirements line; This can result in creating/yielding
+    """Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
+
+    For lines that contain requirements, the only options that have an effect
+    are from SUPPORTED_OPTIONS_REQ, and they are scoped to the
+    requirement. Other options from SUPPORTED_OPTIONS may be present, but are
+    ignored.
+
+    For lines that do not contain requirements, the only options that have an
+    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may be
+    present, but are ignored. These lines may contain multiple options (although
+    our docs imply only one is supported), and all our parsed and affect the
+    finder.
+
     """
 
     parser = build_parser()
