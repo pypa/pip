@@ -217,8 +217,8 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers():
-            logger.debug("Ignore %s: markers %r don't match",
-                         install_req.name, install_req.markers)
+            logger.warning("Ignoring %s: markers %r don't match your "
+                           "environment", install_req.name, install_req.markers)
             return []
 
         install_req.as_egg = self.as_egg
