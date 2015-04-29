@@ -290,32 +290,34 @@ class RequirementCommand(Command):
         """
         Marshal cmd line args into a requirement set.
         """
-        for name in args:
+        for req in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(
-                    name, None, isolated=options.isolated_mode,
+                    req, None, isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
                 )
             )
 
-        for name in options.editables:
+        for req in options.editables:
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(
-                    name,
+                    req,
                     default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
                 )
             )
 
+        found_req_in_file = False
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
+                found_req_in_file = True
                 requirement_set.add_requirement(req)
 
-        if not requirement_set.has_requirements:
+        if not (args or options.editables or found_req_in_file):
             opts = {'name': name}
             if options.find_links:
                 msg = ('You must give at least one requirement to '
