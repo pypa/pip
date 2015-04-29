@@ -49,7 +49,6 @@ class UninstallCommand(Command):
             wheel_cache = WheelCache(options.cache_dir, format_control)
             req_cache = RequirementCache()
             requirement_set = RequirementSet(
-                src_dir=None,
                 download_dir=None,
                 isolated=options.isolated_mode,
                 req_cache=req_cache,

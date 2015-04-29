@@ -107,9 +107,6 @@ class InstallRequirement(object):
         self.isolated = isolated
         # Where should temporary data for the requirement be written.
         self._req_cache = None
-        # If the requirement is editable, where are we doing to checkout the
-        # source?
-        self.src_dir = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
@@ -295,7 +292,7 @@ class InstallRequirement(object):
     def build_location(self):
         assert self.req_cache is not None
         if self.editable:
-            build_dir = self.src_dir
+            build_dir = self.req_cache.src_dir
         else:
             build_dir = self.req_cache.path
         if self._temp_build_dir is not None:
@@ -921,8 +918,6 @@ exec(compile(
         This will create a temporary build dir if the name of the requirement
         isn't known yet.
 
-        :param parent_dir: The ideal pip parent_dir for the source_dir.
-            Generally src_dir for editables and build_dir for sdists.
         :return: self.source_dir
         """
         if self.source_dir is None:

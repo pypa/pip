@@ -135,7 +135,7 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, req_cache, src_dir, download_dir, upgrade=False,
+    def __init__(self, req_cache, download_dir, upgrade=False,
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
@@ -160,7 +160,6 @@ class RequirementSet(object):
                     "'%s'" % name
                 )
         self.req_cache = req_cache
-        self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
@@ -228,7 +227,6 @@ class RequirementSet(object):
         install_req.pycompile = self.pycompile
         if not install_req.req_cache:
             install_req.req_cache = self.req_cache
-        install_req.src_dir = self.src_dir
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)

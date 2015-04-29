@@ -174,9 +174,9 @@ class WheelCommand(RequirementCommand):
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
             with RequirementCache(
-                    options.build_dir, delete=build_delete) as req_cache:
+                    options.build_dir, delete=build_delete,
+                    src_dir=options.src_dir) as req_cache:
                 requirement_set = RequirementSet(
-                    src_dir=options.src_dir,
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_installed=True,

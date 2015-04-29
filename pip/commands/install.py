@@ -218,7 +218,6 @@ class InstallCommand(RequirementCommand):
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
-        options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
             if virtualenv_no_global():
@@ -265,9 +264,9 @@ class InstallCommand(RequirementCommand):
                 options.cache_dir = None
 
             with RequirementCache(
-                    options.build_dir, delete=build_delete) as req_cache:
+                    options.build_dir, delete=build_delete,
+                    src_dir=options.src_dir) as req_cache:
                 requirement_set = RequirementSet(
-                    src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
                     as_egg=options.as_egg,

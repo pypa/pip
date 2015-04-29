@@ -8,7 +8,17 @@ from pip.utils import rmtree
 
 class RequirementCache(object):
 
-    def __init__(self, path=None, delete=None):
+    def __init__(self, path=None, delete=None, src_dir=None):
+        """Create a RequirementCache.
+
+        :param path: The path to store working data - wheels, sdists, etc. If
+            None then a temp dir will be made on __enter__.
+        :param delete: If False then path will not be deleted on __exit__.
+            If None, then path will be deleted on __exit__ only if path was
+            None. If True then path will be deleted on __exit__.
+        :param src_dir: The parent path that editable requirements will
+            be checked out under. Will be created on demand if needed.
+        """
         # If we were not given an explicit directory, and we were not given an
         # explicit delete option, then we'll default to deleting.
         if path is None and delete is None:
@@ -17,6 +27,7 @@ class RequirementCache(object):
 
         self.path = None
         self.delete = delete
+        self.src_dir = os.path.abspath(src_dir) if src_dir else None
 
     def __repr__(self):
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
