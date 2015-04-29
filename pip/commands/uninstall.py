@@ -47,31 +47,31 @@ class UninstallCommand(Command):
         with self._build_session(options) as session:
             format_control = pip.index.FormatControl(set(), set())
             wheel_cache = WheelCache(options.cache_dir, format_control)
-            req_cache = RequirementCache()
-            requirement_set = RequirementSet(
-                download_dir=None,
-                isolated=options.isolated_mode,
-                req_cache=req_cache,
-                session=session,
-                wheel_cache=wheel_cache,
-            )
-            for name in args:
-                requirement_set.add_requirement(
-                    InstallRequirement.from_line(
-                        name, isolated=options.isolated_mode,
-                        wheel_cache=wheel_cache
+            with RequirementCache() as req_cache:
+                requirement_set = RequirementSet(
+                    download_dir=None,
+                    isolated=options.isolated_mode,
+                    req_cache=req_cache,
+                    session=session,
+                    wheel_cache=wheel_cache,
+                )
+                for name in args:
+                    requirement_set.add_requirement(
+                        InstallRequirement.from_line(
+                            name, isolated=options.isolated_mode,
+                            wheel_cache=wheel_cache
+                        )
                     )
-                )
-            for filename in options.requirements:
-                for req in parse_requirements(
-                        filename,
-                        options=options,
-                        session=session,
-                        wheel_cache=wheel_cache):
-                    requirement_set.add_requirement(req)
-            if not requirement_set.has_requirements:
-                raise InstallationError(
-                    'You must give at least one requirement to %(name)s (see '
-                    '"pip help %(name)s")' % dict(name=self.name)
-                )
-            requirement_set.uninstall(auto_confirm=options.yes)
+                for filename in options.requirements:
+                    for req in parse_requirements(
+                            filename,
+                            options=options,
+                            session=session,
+                            wheel_cache=wheel_cache):
+                        requirement_set.add_requirement(req)
+                if not requirement_set.has_requirements:
+                    raise InstallationError(
+                        'You must give at least one requirement to %(name)s (see '
+                        '"pip help %(name)s")' % dict(name=self.name)
+                    )
+                requirement_set.uninstall(auto_confirm=options.yes)

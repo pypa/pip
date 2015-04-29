@@ -33,6 +33,7 @@ from pip.utils import (
     get_installed_version
 )
 from pip.utils.logging import indent_log
+from pip.req.req_cache import CachedRequirement
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
@@ -56,7 +57,7 @@ def _strip_extras(path):
 
 class InstallRequirement(object):
 
-    def __init__(self, req, comes_from, source_dir=None, editable=False,
+    def __init__(self, req, comes_from, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
                  pycompile=True, markers=None, isolated=False, options=None,
                  wheel_cache=None, constraint=False):
@@ -68,7 +69,6 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        self.source_dir = source_dir
         self.editable = editable
 
         if editable_options is None:
@@ -86,11 +86,6 @@ class InstallRequirement(object):
         # This hold the pkg_resources.Distribution object if this requirement
         # conflicts with another installed distribution:
         self.conflicts_with = None
-        # Temporary build location
-        self._temp_build_dir = None
-        # Used to store the global directory where the _temp_build_dir should
-        # have been created. Cf _correct_build_location method.
-        self._ideal_build_dir = None
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
@@ -107,6 +102,8 @@ class InstallRequirement(object):
         self.isolated = isolated
         # Where should temporary data for the requirement be written.
         self._req_cache = None
+        # The cachable data for this requirement.
+        self._cached_req = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
@@ -116,12 +113,8 @@ class InstallRequirement(object):
 
         name, url, extras_override, editable_options = parse_editable(
             editable_req, default_vcs)
-        if url.startswith('file:'):
-            source_dir = url_to_path(url)
-        else:
-            source_dir = None
 
-        res = cls(name, comes_from, source_dir=source_dir,
+        res = cls(name, comes_from,
                   editable=True,
                   link=Link(url),
                   constraint=constraint,
@@ -289,64 +282,17 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def build_location(self):
+    @property
+    def build_path(self):
         assert self.req_cache is not None
-        if self.editable:
-            build_dir = self.req_cache.src_dir
-        else:
-            build_dir = self.req_cache.path
-        if self._temp_build_dir is not None:
-            return self._temp_build_dir
-        if self.req is None:
-            # for requirement via a path to a directory: the name of the
-            # package is not available yet so we create a temp directory
-            # Once run_egg_info will have run, we'll be able
-            # to fix it via _correct_build_location
-            self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
-            self._ideal_build_dir = build_dir
-            return self._temp_build_dir
-        if self.editable:
-            name = self.name.lower()
-        else:
-            name = self.name
-        # FIXME: Is there a better place to create the build_dir? (hg and bzr
-        # need this)
-        if not os.path.exists(build_dir):
-            logger.debug('Creating directory %s', build_dir)
-            _make_build_dir(build_dir)
-        return os.path.join(build_dir, name)
-
-    def _correct_build_location(self):
-        """Move self._temp_build_dir to self._ideal_build_dir/self.req.name
-
-        For some requirements (e.g. a path to a directory), the name of the
-        package is not available until we run egg_info, so the build_location
-        will return a temporary directory and store the _ideal_build_dir.
-
-        This is only called by self.egg_info_path to fix the temporary build
-        directory.
-        """
-        if self.source_dir is not None:
-            return
-        assert self.req is not None
-        assert self._temp_build_dir
-        assert self._ideal_build_dir
-        old_location = self._temp_build_dir
-        self._temp_build_dir = None
-        new_location = self.build_location()
-        if os.path.exists(new_location):
-            raise InstallationError(
-                'A package already exists in %s; please remove it to continue'
-                % display_path(new_location))
-        logger.debug(
-            'Moving package %s from %s to new location %s',
-            self, display_path(old_location), display_path(new_location),
-        )
-        shutil.move(old_location, new_location)
-        self._temp_build_dir = new_location
-        self._ideal_build_dir = None
-        self.source_dir = new_location
-        self._egg_info_path = None
+        if self._cached_req is None:
+            name = self.req.project_name if self.req else None
+            url = self.link.url if self.link else None
+            cached_req = CachedRequirement(
+                name=name, url=url, editable=self.editable)
+            self.req_cache.add(cached_req)
+            self._cached_req = cached_req
+        return self.req_cache.build_path(self._cached_req)
 
     @property
     def name(self):
@@ -356,7 +302,8 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-        assert self.source_dir, "No source dir for %s" % self
+        assert self._cached_req
+        assert self._cached_req.build_path, "No source dir for %s" % self
         try:
             import setuptools  # noqa
         except ImportError:
@@ -369,12 +316,12 @@ class InstallRequirement(object):
         setup_file = 'setup.py'
 
         if self.editable_options and 'subdirectory' in self.editable_options:
-            setup_py = os.path.join(self.source_dir,
+            setup_py = os.path.join(self.build_path,
                                     self.editable_options['subdirectory'],
                                     setup_file)
 
         else:
-            setup_py = os.path.join(self.source_dir, setup_file)
+            setup_py = os.path.join(self.build_path, setup_file)
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -383,7 +330,7 @@ class InstallRequirement(object):
         return setup_py
 
     def run_egg_info(self):
-        assert self.source_dir
+        assert self._cached_req.build_path
         if self.name:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
@@ -409,10 +356,10 @@ class InstallRequirement(object):
             if self.editable:
                 egg_base_option = []
             else:
-                egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
+                egg_info_dir = os.path.join(self.build_path, 'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
-            cwd = self.source_dir
+            cwd = self.build_path
             if self.editable_options and \
                     'subdirectory' in self.editable_options:
                 cwd = os.path.join(cwd, self.editable_options['subdirectory'])
@@ -436,7 +383,6 @@ class InstallRequirement(object):
                     op,
                     self.pkg_info()["Version"],
                 ]))
-            self._correct_build_location()
 
     # FIXME: This is a lame hack, entirely for PasteScript which has
     # a self-provided entry point that causes this awkwardness
@@ -468,7 +414,7 @@ exec(compile(
             if not self.satisfied_by.has_metadata(filename):
                 return None
             return self.satisfied_by.get_metadata(filename)
-        assert self.source_dir
+        assert self.build_path
         filename = self.egg_info_path(filename)
         if not os.path.exists(filename):
             return None
@@ -478,9 +424,9 @@ exec(compile(
     def egg_info_path(self, filename):
         if self._egg_info_path is None:
             if self.editable:
-                base = self.source_dir
+                base = self.build_path
             else:
-                base = os.path.join(self.source_dir, 'pip-egg-info')
+                base = os.path.join(self.build_path, 'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
                 filenames = []
@@ -547,7 +493,7 @@ exec(compile(
         return get_installed_version(self.name)
 
     def assert_source_matches_version(self):
-        assert self.source_dir
+        assert self._cached_req.build_path
         version = self.pkg_info()['version']
         if version not in self.req:
             logger.warning(
@@ -558,7 +504,7 @@ exec(compile(
         else:
             logger.debug(
                 'Source in %s has version %s, which satisfies requirement %s',
-                display_path(self.source_dir),
+                display_path(self.build_path),
                 version,
                 self,
             )
@@ -568,11 +514,10 @@ exec(compile(
             logger.debug(
                 "Cannot update repository at %s; repository location is "
                 "unknown",
-                self.source_dir,
+                self.build_path,
             )
             return
         assert self.editable
-        assert self.source_dir
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
@@ -584,9 +529,9 @@ exec(compile(
         if backend:
             vcs_backend = backend(self.link.url)
             if obtain:
-                vcs_backend.obtain(self.source_dir)
+                vcs_backend.obtain(self.build_path)
             else:
-                vcs_backend.export(self.source_dir)
+                vcs_backend.export(self.build_path)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
@@ -745,7 +690,7 @@ exec(compile(
             )
 
     def archive(self, build_dir):
-        assert self.source_dir
+        assert self._cached_req.build_path
         create_archive = True
         archive_name = '%s-%s.zip' % (self.name, self.pkg_info()["version"])
         archive_path = os.path.join(build_dir, archive_name)
@@ -771,7 +716,7 @@ exec(compile(
                 archive_path, 'w', zipfile.ZIP_DEFLATED,
                 allowZip64=True
             )
-            dir = os.path.normcase(os.path.abspath(self.source_dir))
+            dir = os.path.normcase(os.path.abspath(self.build_path))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
@@ -809,10 +754,10 @@ exec(compile(
             self.install_editable(install_options, global_options)
             return
         if self.is_wheel:
-            version = pip.wheel.wheel_version(self.source_dir)
+            version = pip.wheel.wheel_version(self.build_path)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root)
+            self.move_wheel_files(self.build_path, root=root)
             self.install_succeeded = True
             return
 
@@ -860,7 +805,7 @@ exec(compile(
             with indent_log():
                 call_subprocess(
                     install_args + install_options,
-                    cwd=self.source_dir,
+                    cwd=self.build_path,
                     show_stdout=False,
                 )
 
@@ -912,29 +857,16 @@ exec(compile(
                 os.remove(record_filename)
             rmtree(temp_location)
 
-    def ensure_has_source_dir(self):
-        """Ensure that a source_dir is set.
-
-        This will create a temporary build dir if the name of the requirement
-        isn't known yet.
-
-        :return: self.source_dir
-        """
-        if self.source_dir is None:
-            self.source_dir = self.build_location()
-        return self.source_dir
-
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
-        if self.source_dir and os.path.exists(
-                os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
-            logger.debug('Removing source in %s', self.source_dir)
-            rmtree(self.source_dir)
-        self.source_dir = None
-        if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-            rmtree(self._temp_build_dir)
-        self._temp_build_dir = None
+        if (self._cached_req and self._cached_req.build_path and 
+            os.path.exists(
+                os.path.join(self.build_path, PIP_DELETE_MARKER_FILENAME))):
+            logger.debug('Removing source in %s', self.build_path)
+            rmtree(self.build_path)
+        if self._cached_req:
+            self._cached_req.build_path = None
 
     def install_editable(self, install_options, global_options=()):
         logger.info('Running setup.py develop for %s', self.name)
@@ -944,7 +876,7 @@ exec(compile(
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            cwd = self.source_dir
+            cwd = self.build_path
             if self.editable_options and \
                     'subdirectory' in self.editable_options:
                 cwd = os.path.join(cwd, self.editable_options['subdirectory'])

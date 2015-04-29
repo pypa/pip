@@ -694,7 +694,7 @@ class WheelBuilder(object):
         wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
             + self.build_options
         try:
-            call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
+            call_subprocess(wheel_args, cwd=req.build_path, show_stdout=False)
             return True
         except:
             logger.error('Failed building wheel for %s', req.name)
@@ -728,7 +728,7 @@ class WheelBuilder(object):
                         req.name)
             elif autobuilding and req.link and not req.link.is_artifact:
                 pass
-            elif autobuilding and not req.source_dir:
+            elif autobuilding and req.satisfied_by:
                 pass
             else:
                 if autobuilding:
@@ -778,23 +778,19 @@ class WheelBuilder(object):
                         # method.
                         # The code below assumes temporary source dirs -
                         # prevent it doing bad things.
-                        if req.source_dir and not os.path.exists(os.path.join(
-                                req.source_dir, PIP_DELETE_MARKER_FILENAME)):
+                        if req.build_path and not os.path.exists(os.path.join(
+                                req.build_path, PIP_DELETE_MARKER_FILENAME)):
                             raise AssertionError(
                                 "bad source dir - missing marker")
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
-                        # reset the build directory again - name is known from
-                        # the work prepare_files did.
-                        req.source_dir = None
-                        req.ensure_has_source_dir()
                         # Update the link for this.
                         req.link = pip.index.Link(
                             path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(
-                            req.link, req.source_dir, None, False,
+                            req.link, req.build_path, None, False,
                             session=self.requirement_set.session)
                 else:
                     build_failure.append(req)

@@ -84,8 +84,9 @@ class DistAbstraction(object):
 def make_abstract_dist(req_to_install):
     """Factory to make an abstract dist object.
 
-    Preconditions: Either an editable req with a source_dir, or satisfied_by or
-    a wheel link, or a non-editable req with a source_dir.
+    Preconditions: Either an editable req with code checked out, or
+    satisfied_by or a wheel link, or a non-editable req with code present on
+    disk.
 
     :return: A concrete DistAbstraction.
     """
@@ -101,7 +102,7 @@ class IsWheel(DistAbstraction):
 
     def dist(self, finder):
         return list(pkg_resources.find_distributions(
-            self.req_to_install.source_dir))[0]
+            self.req_to_install.build_path))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -433,8 +434,6 @@ class RequirementSet(object):
             # editable in a req, a non deterministic error
             # occurs when the script attempts to unpack the
             # build directory.
-            if not req_to_install.satisfied_by:
-                req_to_install.ensure_has_source_dir()
             if req_to_install.editable:
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
@@ -444,21 +443,6 @@ class RequirementSet(object):
             elif req_to_install.satisfied_by:
                 abstract_dist = Installed(req_to_install)
             else:
-                # If a checkout exists, it's unwise to keep going.  version
-                # inconsistencies are logged later, but do not fail the
-                # installation.
-                # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `req_to_install.source_dir`
-                if os.path.exists(
-                        os.path.join(req_to_install.source_dir, 'setup.py')):
-                    raise PreviousBuildDirError(
-                        "pip can't proceed with requirements '%s' due to a"
-                        " pre-existing build directory (%s). This is "
-                        "likely due to a previous installation that failed"
-                        ". pip is being responsible and not assuming it "
-                        "can delete this. Please delete it and try again."
-                        % (req_to_install, req_to_install.source_dir)
-                    )
                 req_to_install.populate_link(finder, self.upgrade)
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
@@ -487,7 +471,7 @@ class RequirementSet(object):
                             # wheel.
                             autodelete_unpacked = False
                     unpack_url(
-                        req_to_install.link, req_to_install.source_dir,
+                        req_to_install.link, req_to_install.build_path,
                         download_dir, autodelete_unpacked,
                         session=self.session)
                 except requests.HTTPError as exc:
@@ -505,7 +489,7 @@ class RequirementSet(object):
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
-                    # Make a .zip of the source_dir we already created.
+                    # Make a .zip of the build_path we already created.
                     if req_to_install.link.scheme in vcs.all_schemes:
                         req_to_install.archive(self.download_dir)
                 # req_to_install.req is only avail after unpack for URL

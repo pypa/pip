@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 import os.path
+import shutil
 import tempfile
 
-from pip.utils import rmtree
+from pip.download import url_to_path
+from pip.utils import display_path, ensure_dir, rmtree, _make_build_dir
 
 
 class RequirementCache(object):
@@ -67,6 +69,7 @@ class RequirementCache(object):
             self.path = self._path
         self._urls = {}  # type: Dict[str, CachedRequirement]
         self._names = defaultdict(dict) # type: Dict[str, Dict[str, CachedRequirement]]
+        self._reqs = set() # type: Set[CachedRequirement]
         return self
 
     def __exit__(self, exc, value, tb):
@@ -78,6 +81,7 @@ class RequirementCache(object):
         self.path = None
         self._urls = None
         self._names = None
+        self._reqs = None
 
     def add(self, req):
         """Allocate a slot for req in the cache.
@@ -96,7 +100,11 @@ class RequirementCache(object):
         """
         if req.editable and not req.url.startswith('file://'):
             assert self.src_dir
+            if not req.name:
+                raise ValueError(req)
         assert self._urls is not None
+        if req in self._reqs:
+            raise ValueError(req)
         if req.url:
             if req.url in self._urls:
                 raise ValueError(req)
@@ -105,7 +113,42 @@ class RequirementCache(object):
             if req.version in self._names[req.name]:
                 raise ValueError(req)
             self._names[req.name][req.version] = req
+        self._reqs.add(req)
 
+    def build_path(self, req):
+        """Assert the build path for req.
+
+        This is:
+         - the local url for editable file:/// requirements that point to
+           source dirs.
+         - self.src_dir + / + req.name for editable non-file:/// requirements
+           - these require the name to be set in
+             InstallRequirement.from_editable.
+         - a temporary path in self.path for all other requirements.
+
+        The build path is calculated once only for a req and cached on the
+        req object as build_path.
+
+        The first time this is called for a req a directory is ensured. For
+        non editable requirements the whole build path is created, and for
+        editable requirements the parent directory of the build path is
+        created.
+        """
+        if req not in self._reqs:
+            raise KeyError(req)
+        if req.build_path:
+            return req.build_path
+        if req.editable and req.url.startswith('file:'):
+            build_path = url_to_path(req.url)
+        elif req.editable:
+            assert req.name
+            build_path = os.path.join(self.src_dir, req.name)
+        else:
+            build_path = tempfile.mkdtemp('-build', 'pip-', self.path)
+        if req.editable:
+            ensure_dir(os.path.dirname(build_path))
+        req.build_path = build_path
+        return req.build_path
 
     def lookup_url(self, url):
         """Lookup a requirement.
@@ -143,6 +186,7 @@ class CachedRequirement(object):
         known (also for URL specified requirements).
     :attr editable: The editability of a requirement affects the directory
         that will be used.
+    :attr build_path: The path where the requirement is being built.
     """
 
     def __init__(self, name=None, version=None, url=None, editable=False):
@@ -165,3 +209,4 @@ class CachedRequirement(object):
         self.name = name
         self.version = version
         self.editable = editable
+        self.build_path = None
