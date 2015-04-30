@@ -1,5 +1,5 @@
 distlib==0.2.0
-html5lib==0.999  # See: https://github.com/html5lib/html5lib-python/issues/161
+html5lib==1.0b5
 six==1.9.0
 colorama==0.3.3
 requests==2.6.0

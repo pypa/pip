@@ -1,9 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 from pip._vendor.six import text_type
 
-import gettext
-_ = gettext.gettext
-
 try:
     from functools import reduce
 except ImportError:
@@ -35,7 +32,7 @@ else:
                 v = utils.surrogatePairToCodepoint(v)
             else:
                 v = ord(v)
-            if not v in encode_entity_map or k.islower():
+            if v not in encode_entity_map or k.islower():
                 # prefer &lt; over &LT; and similarly for &amp;, &gt;, etc.
                 encode_entity_map[v] = k
 
@@ -208,7 +205,7 @@ class HTMLSerializer(object):
                 if token["systemId"]:
                     if token["systemId"].find('"') >= 0:
                         if token["systemId"].find("'") >= 0:
-                            self.serializeError(_("System identifer contains both single and double quote characters"))
+                            self.serializeError("System identifer contains both single and double quote characters")
                         quote_char = "'"
                     else:
                         quote_char = '"'
@@ -220,7 +217,7 @@ class HTMLSerializer(object):
             elif type in ("Characters", "SpaceCharacters"):
                 if type == "SpaceCharacters" or in_cdata:
                     if in_cdata and token["data"].find("</") >= 0:
-                        self.serializeError(_("Unexpected </ in CDATA"))
+                        self.serializeError("Unexpected </ in CDATA")
                     yield self.encode(token["data"])
                 else:
                     yield self.encode(escape(token["data"]))
@@ -231,7 +228,7 @@ class HTMLSerializer(object):
                 if name in rcdataElements and not self.escape_rcdata:
                     in_cdata = True
                 elif in_cdata:
-                    self.serializeError(_("Unexpected child element of a CDATA element"))
+                    self.serializeError("Unexpected child element of a CDATA element")
                 for (attr_namespace, attr_name), attr_value in token["data"].items():
                     # TODO: Add namespace support here
                     k = attr_name
@@ -279,20 +276,20 @@ class HTMLSerializer(object):
                 if name in rcdataElements:
                     in_cdata = False
                 elif in_cdata:
-                    self.serializeError(_("Unexpected child element of a CDATA element"))
+                    self.serializeError("Unexpected child element of a CDATA element")
                 yield self.encodeStrict("</%s>" % name)
 
             elif type == "Comment":
                 data = token["data"]
                 if data.find("--") >= 0:
-                    self.serializeError(_("Comment contains --"))
+                    self.serializeError("Comment contains --")
                 yield self.encodeStrict("<!--%s-->" % token["data"])
 
             elif type == "Entity":
                 name = token["name"]
                 key = name + ";"
-                if not key in entities:
-                    self.serializeError(_("Entity %s not recognized" % name))
+                if key not in entities:
+                    self.serializeError("Entity %s not recognized" % name)
                 if self.resolve_entities and key not in xmlEntities:
                     data = entities[key]
                 else:
