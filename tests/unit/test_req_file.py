@@ -2,7 +2,7 @@ import os
 import subprocess
 from textwrap import dedent
 
-from mock import patch
+from mock import patch, Mock
 import pytest
 from pretend import stub
 
@@ -185,6 +185,69 @@ class TestProcessLine(object):
     def test_noop_finder_no_allow_unsafe(self, finder):
         # noop, but confirm it can be set
         list(process_line("--no-allow-insecure", "file", 1, finder=finder))
+
+    def test_relative_local_find_links(self, finder, monkeypatch):
+        req_file = '/path/req_file.txt'
+        nested_link = '/path/rel_path'
+        exists_ = os.path.exists
+
+        def exists(path):
+            if path == nested_link:
+                return True
+            else:
+                exists_(path)
+        monkeypatch.setattr(os.path, 'exists', exists)
+        list(process_line("--find-links=rel_path", req_file, 1,
+                          finder=finder))
+        assert finder.find_links == [nested_link]
+
+    def test_relative_http_nested_req_files(self, finder, monkeypatch):
+        req_file = 'http://me.com/me/req_file.txt'
+
+        def parse(*args, **kwargs):
+            return iter([])
+        mock_parse = Mock()
+        mock_parse.side_effect = parse
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
+        call = mock_parse.mock_calls[0]
+        assert call[1][0] == 'http://me.com/me/reqs.txt'
+
+    def test_relative_local_nested_req_files(self, finder, monkeypatch):
+        req_file = '/path/req_file.txt'
+
+        def parse(*args, **kwargs):
+            return iter([])
+        mock_parse = Mock()
+        mock_parse.side_effect = parse
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
+        call = mock_parse.mock_calls[0]
+        assert call[1][0] == '/path/reqs.txt'
+
+    def test_absolute_local_nested_req_files(self, finder, monkeypatch):
+        req_file = '/path/req_file.txt'
+
+        def parse(*args, **kwargs):
+            return iter([])
+        mock_parse = Mock()
+        mock_parse.side_effect = parse
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        list(process_line("-r /other/reqs.txt", req_file, 1, finder=finder))
+        call = mock_parse.mock_calls[0]
+        assert call[1][0] == '/other/reqs.txt'
+
+    def test_absolute_http_nested_req_file_in_local(self, finder, monkeypatch):
+        req_file = '/path/req_file.txt'
+
+        def parse(*args, **kwargs):
+            return iter([])
+        mock_parse = Mock()
+        mock_parse.side_effect = parse
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        list(process_line("-r http://me.com/me/reqs.txt", req_file, 1, finder=finder))
+        call = mock_parse.mock_calls[0]
+        assert call[1][0] == 'http://me.com/me/reqs.txt'
 
 
 class TestOptionVariants(object):
