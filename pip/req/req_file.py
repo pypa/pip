@@ -142,16 +142,19 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # parse a nested requirements file
     elif opts.requirements:
-        req_file = opts.requirements[0]
+        req_path = opts.requirements[0]
+        # original file is over http
         if SCHEME_RE.search(filename):
-            # Relative to an URL.
-            req_url = urllib_parse.urljoin(filename, req_file)
-        elif not SCHEME_RE.search(req_file):
+            # do a url join so relative paths work
+            req_path = urllib_parse.urljoin(filename, req_path)
+        # original file and nested file are paths
+        elif not SCHEME_RE.search(req_path):
+            # do a join so relative paths work
             req_dir = os.path.dirname(filename)
-            req_url = os.path.join(os.path.dirname(filename), req_file)
+            req_path = os.path.join(os.path.dirname(filename), req_path)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
-            req_url, finder, comes_from, options, session,
+            req_path, finder, comes_from, options, session,
             wheel_cache=wheel_cache
         )
         for req in parser:
