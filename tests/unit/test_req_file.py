@@ -245,7 +245,8 @@ class TestProcessLine(object):
         mock_parse = Mock()
         mock_parse.side_effect = parse
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
-        list(process_line("-r http://me.com/me/reqs.txt", req_file, 1, finder=finder))
+        list(process_line("-r http://me.com/me/reqs.txt", req_file, 1,
+                          finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
 
