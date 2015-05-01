@@ -187,6 +187,9 @@ class TestProcessLine(object):
         list(process_line("--no-allow-insecure", "file", 1, finder=finder))
 
     def test_relative_local_find_links(self, finder, monkeypatch):
+        """
+        Test a relative find_links path is joined with the req file directory
+        """
         req_file = '/path/req_file.txt'
         nested_link = '/path/rel_path'
         exists_ = os.path.exists
@@ -202,6 +205,9 @@ class TestProcessLine(object):
         assert finder.find_links == [nested_link]
 
     def test_relative_http_nested_req_files(self, finder, monkeypatch):
+        """
+        Test a relative nested req file path is joined with the req file url
+        """
         req_file = 'http://me.com/me/req_file.txt'
 
         def parse(*args, **kwargs):
@@ -214,6 +220,9 @@ class TestProcessLine(object):
         assert call[1][0] == 'http://me.com/me/reqs.txt'
 
     def test_relative_local_nested_req_files(self, finder, monkeypatch):
+        """
+        Test a relative nested req file path is joined with the req file dir
+        """
         req_file = '/path/req_file.txt'
 
         def parse(*args, **kwargs):
@@ -226,6 +235,9 @@ class TestProcessLine(object):
         assert call[1][0] == '/path/reqs.txt'
 
     def test_absolute_local_nested_req_files(self, finder, monkeypatch):
+        """
+        Test an absolute nested req file path
+        """
         req_file = '/path/req_file.txt'
 
         def parse(*args, **kwargs):
@@ -238,6 +250,9 @@ class TestProcessLine(object):
         assert call[1][0] == '/other/reqs.txt'
 
     def test_absolute_http_nested_req_file_in_local(self, finder, monkeypatch):
+        """
+        Test a nested req file url in a local req file
+        """
         req_file = '/path/req_file.txt'
 
         def parse(*args, **kwargs):
