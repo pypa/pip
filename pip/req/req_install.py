@@ -69,6 +69,18 @@ def _filter_install(line):
     return (level, line)
 
 
+def _strip_extras(path):
+    m = re.match(r'^(.+)(\[[^\]]+\])$', path)
+    extras = None
+    if m:
+        path_no_extras = m.group(1)
+        extras = m.group(2)
+    else:
+        path_no_extras = path
+
+    return path_no_extras, extras
+
+
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
@@ -167,25 +179,29 @@ class InstallRequirement(object):
         req = None
         path = os.path.normpath(os.path.abspath(name))
         link = None
+        extras = None
 
         if is_url(name):
             link = Link(name)
-        elif (os.path.isdir(path) and
-                (os.path.sep in name or name.startswith('.'))):
-            if not is_installable_dir(path):
-                raise InstallationError(
-                    "Directory %r is not installable. File 'setup.py' not "
-                    "found." % name
-                )
-            link = Link(path_to_url(name))
-        elif is_archive_file(path):
-            if not os.path.isfile(path):
-                logger.warning(
-                    'Requirement %r looks like a filename, but the file does '
-                    'not exist',
-                    name
-                )
-            link = Link(path_to_url(name))
+        else:
+            p, extras = _strip_extras(name)
+            if (os.path.isdir(p) and
+                    (os.path.sep in name or name.startswith('.'))):
+                
+                if not is_installable_dir(p):
+                    raise InstallationError(
+                        "Directory %r is not installable. File 'setup.py' not "
+                        "found." % name
+                    )
+                link = Link(path_to_url(p))
+            elif is_archive_file(p):
+                if not os.path.isfile(p):
+                    logger.warning(
+                        'Requirement %r looks like a filename, but the file does '
+                        'not exist',
+                        name
+                    )
+                link = Link(path_to_url(p))
 
         # it's a local file, dir, or url
         if link:
@@ -212,9 +228,16 @@ class InstallRequirement(object):
             req = name
 
         options = options if options else {}
-        return cls(req, comes_from, link=link, markers=markers,
+        res = cls(req, comes_from, link=link, markers=markers,
                    isolated=isolated, options=options,
                    wheel_cache=wheel_cache)
+
+        if extras:
+            res.extras = pkg_resources.Requirement.parse(
+                             '__placeholder__' + extras
+                         ).extras
+
+        return res
 
     def __str__(self):
         if self.req:
