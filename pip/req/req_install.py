@@ -184,21 +184,21 @@ class InstallRequirement(object):
         if is_url(name):
             link = Link(name)
         else:
-            p, extras = _strip_extras(name)
+            p, extras = _strip_extras(path)
             if (os.path.isdir(p) and
                     (os.path.sep in name or name.startswith('.'))):
-                
+
                 if not is_installable_dir(p):
                     raise InstallationError(
-                        "Directory %r is not installable. File 'setup.py' not "
-                        "found." % name
+                        "Directory %r is not installable. File 'setup.py' "
+                        "not found." % name
                     )
                 link = Link(path_to_url(p))
             elif is_archive_file(p):
                 if not os.path.isfile(p):
                     logger.warning(
-                        'Requirement %r looks like a filename, but the file does '
-                        'not exist',
+                        'Requirement %r looks like a filename, but the '
+                        'file does not exist',
                         name
                     )
                 link = Link(path_to_url(p))
@@ -229,13 +229,12 @@ class InstallRequirement(object):
 
         options = options if options else {}
         res = cls(req, comes_from, link=link, markers=markers,
-                   isolated=isolated, options=options,
-                   wheel_cache=wheel_cache)
+                  isolated=isolated, options=options,
+                  wheel_cache=wheel_cache)
 
         if extras:
-            res.extras = pkg_resources.Requirement.parse(
-                             '__placeholder__' + extras
-                         ).extras
+            res.extras = pkg_resources.Requirement.parse('__placeholder__' +
+                                                         extras).extras
 
         return res
 
