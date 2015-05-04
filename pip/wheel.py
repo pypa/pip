@@ -641,7 +641,7 @@ class WheelBuilder(object):
                 try:
                     wheel_name = os.listdir(tempd)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
-                    os.rename(os.path.join(tempd, wheel_name), wheel_path)
+                    shutil.move(os.path.join(tempd, wheel_name), wheel_path)
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
                 except:
