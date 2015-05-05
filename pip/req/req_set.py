@@ -399,9 +399,7 @@ class RequirementSet(object):
 
         req_to_install.prepared = True
 
-        if req_to_install.editable:
-            logger.info('Obtaining %s', req_to_install)
-        else:
+        if not req_to_install.editable:
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
             assert req_to_install.satisfied_by is None
@@ -434,6 +432,7 @@ class RequirementSet(object):
             # occurs when the script attempts to unpack the
             # build directory.
             if req_to_install.editable:
+                logger.info('Obtaining %s', req_to_install)
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
