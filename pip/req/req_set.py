@@ -314,6 +314,7 @@ class RequirementSet(object):
         if self.wheel_download_dir:
             ensure_dir(self.wheel_download_dir)
 
+        handler = functools.partial(self._prepare_file, finder))
         # The list() here is to avoid potential mutate-while-iterating bugs.
         discovered_reqs = []
         reqs = itertools.chain(
@@ -381,38 +382,31 @@ class RequirementSet(object):
 
         :return: A list of addition InstallRequirements to also install.
         """
-        # Tell user what we are doing for this requirement:
-        # obtain (editable), skipping, processing (local url), collecting
-        # (remote url or package name)
+        # XXX: TODO: move constraints logic to resolver core.
         if req_to_install.constraint or req_to_install.prepared:
             return []
 
         req_to_install.prepared = True
-
-        if not req_to_install.editable:
-            # satisfied_by is only evaluated by calling _check_skip_installed,
-            # so it must be None here.
-            assert req_to_install.satisfied_by is None
-            if not self.ignore_installed:
-                self._check_skip_installed(req_to_install, finder)
-
-            if req_to_install.satisfied_by:
-                assert req_to_install.skip_reason is not None, (
-                    '_check_skip_installed returned None but '
-                    'req_to_install.satisfied_by is set to %r'
-                    % (req_to_install.satisfied_by,))
-                logger.debug(
-                    'Requirement already %s: %s', req_to_install.skip_reason,
-                    req_to_install)
-            else:
-                if (req_to_install.link and
-                        req_to_install.link.scheme == 'file'):
-                    path = url_to_path(req_to_install.link.url)
-                    logger.debug('Processing %s', display_path(path))
-                else:
-                    logger.debug('Collecting %s', req_to_install)
-
+        # Indent the log information about the processing of a given
+        # constraint.
+        logger.debug('Processing %s', req_to_install.trace_label())
         with indent_log():
+            if not req_to_install.editable:
+                # satisfied_by is only evaluated by calling _check_skip_installed,
+                # so it must be None here.
+                assert req_to_install.satisfied_by is None
+                if not self.ignore_installed:
+                    self._check_skip_installed(req_to_install, finder)
+
+                if req_to_install.satisfied_by:
+                    assert req_to_install.skip_reason is not None, (
+                        '_check_skip_installed returned None but '
+                        'req_to_install.satisfied_by is set to %r'
+                        % (req_to_install.satisfied_by,))
+                    logger.debug(
+                        'Requirement already %s: %s', req_to_install.skip_reason,
+                        req_to_install)
+
             # ################################ #
             # # vcs update or unpack archive # #
             # ################################ #

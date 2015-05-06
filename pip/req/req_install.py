@@ -235,6 +235,19 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
+    def trace_label(self):
+        """Provide a human readable description of this requirement.
+        
+        This is specifically for tracing in requirements resolution.
+        """
+        if self.name:
+            label = self.name
+        elif self.link.scheme == 'file':
+            label = display_path(url_to_path(self.link.url))
+        else:
+            label = str(self)
+        return label
+
     def populate_link(self, finder, upgrade):
         """Ensure that if a link can be found for this, that it is found.
 
