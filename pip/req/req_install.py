@@ -104,6 +104,8 @@ class InstallRequirement(object):
         self._req_cache = None
         # The cachable data for this requirement.
         self._cached_req = None
+        # If this requirement is not being touched, why not?
+        self.skip_reason = None
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,

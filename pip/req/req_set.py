@@ -382,9 +382,9 @@ class RequirementSet(object):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
                     req_to_install.satisfied_by = None
-            return skip_reason
+            req_to_install.skip_reason = skip_reason
         else:
-            return None
+            req_to_install.skip_reason = None
 
     def _prepare_file(self, finder, req_to_install):
         """Prepare a single requirements files.
@@ -404,24 +404,23 @@ class RequirementSet(object):
             # so it must be None here.
             assert req_to_install.satisfied_by is None
             if not self.ignore_installed:
-                skip_reason = self._check_skip_installed(
-                    req_to_install, finder)
+                self._check_skip_installed(req_to_install, finder)
 
             if req_to_install.satisfied_by:
-                assert skip_reason is not None, (
+                assert req_to_install.skip_reason is not None, (
                     '_check_skip_installed returned None but '
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
-                logger.info(
-                    'Requirement already %s: %s', skip_reason,
+                logger.debug(
+                    'Requirement already %s: %s', req_to_install.skip_reason,
                     req_to_install)
             else:
                 if (req_to_install.link and
                         req_to_install.link.scheme == 'file'):
                     path = url_to_path(req_to_install.link.url)
-                    logger.info('Processing %s', display_path(path))
+                    logger.debug('Processing %s', display_path(path))
                 else:
-                    logger.info('Collecting %s', req_to_install)
+                    logger.debug('Collecting %s', req_to_install)
 
         with indent_log():
             # ################################ #
@@ -432,7 +431,7 @@ class RequirementSet(object):
             # occurs when the script attempts to unpack the
             # build directory.
             if req_to_install.editable:
-                logger.info('Obtaining %s', req_to_install)
+                logger.debug('Obtaining %s', req_to_install)
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
@@ -506,11 +505,8 @@ class RequirementSet(object):
                                 req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
                     else:
-                        logger.info(
-                            'Requirement already satisfied (use '
-                            '--upgrade to upgrade): %s',
-                            req_to_install,
-                        )
+                        req_to_install.skip_reason = \
+                            'satisfied (use --upgrade to upgrade)'
 
             # ###################### #
             # # parse dependencies # #
@@ -577,6 +573,9 @@ class RequirementSet(object):
         ordered_reqs = set()
 
         def schedule(req):
+            if req.satisfied_by:
+                logger.info(
+                    'Requirement already %s: %s', req.skip_reason, req)
             if req.satisfied_by or req in ordered_reqs:
                 return
             if req.constraint:
