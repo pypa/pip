@@ -306,23 +306,6 @@ class RequirementSet(object):
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
 
-    def _walk_req_to_install(self, handler):
-        """Call handler for all pending reqs.
-
-        :param handler: Handle a single requirement. Should take a requirement
-            to install. Can optionally return an iterable of additional
-            InstallRequirements to cover.
-        """
-        # The list() here is to avoid potential mutate-while-iterating bugs.
-        discovered_reqs = []
-        reqs = itertools.chain(
-            list(self.unnamed_requirements), list(self.requirements.values()),
-            discovered_reqs)
-        for req_to_install in reqs:
-            more_reqs = handler(req_to_install)
-            if more_reqs:
-                discovered_reqs.extend(more_reqs)
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -331,8 +314,15 @@ class RequirementSet(object):
         if self.wheel_download_dir:
             ensure_dir(self.wheel_download_dir)
 
-        self._walk_req_to_install(
-            functools.partial(self._prepare_file, finder))
+        # The list() here is to avoid potential mutate-while-iterating bugs.
+        discovered_reqs = []
+        reqs = itertools.chain(
+            list(self.unnamed_requirements), list(self.requirements.values()),
+            discovered_reqs)
+        for req_to_install in reqs:
+            more_reqs = self._prepare_file(finder, req_to_install)
+            if more_reqs:
+                discovered_reqs.extend(more_reqs)
 
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
