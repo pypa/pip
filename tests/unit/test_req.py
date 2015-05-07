@@ -27,32 +27,15 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self):
+    def basic_reqset(self, finder):
         build_dir = os.path.join(self.tempdir, 'build')
-        req_cache = RequirementCache(path=build_dir)
+        req_cache = RequirementCache(
+            path=build_dir, src_dir=os.path.join(self.tempdir, 'src'),
+            finder=finder)
         return RequirementSet(
             req_cache=req_cache,
-            src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             session=PipSession(),
-        )
-
-    def test_no_reuse_existing_build_dir(self, data):
-        """Test prepare_files raise exception with previous build dir"""
-
-        build_dir = os.path.join(self.tempdir, 'build', 'simple')
-        os.makedirs(build_dir)
-        open(os.path.join(build_dir, "setup.py"), 'w')
-        reqset = self.basic_reqset()
-        req = InstallRequirement.from_line('simple')
-        reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
-        assert_raises_regexp(
-            PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
-            (req, build_dir.replace('\\', '\\\\')),
-            reqset.prepare_files,
-            finder,
         )
 
     def test_environment_marker_extras(self, data):
@@ -60,17 +43,18 @@ class TestRequirementSet(object):
         Test that the environment marker extras are used with
         non-wheel installs.
         """
-        reqset = self.basic_reqset()
-        req = InstallRequirement.from_editable(
-            data.packages.join("LocalEnvironMarker"))
-        reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
-        reqset.prepare_files(finder)
-        # This is hacky but does test both case in py2 and py3
-        if sys.version_info[:2] in ((2, 7), (3, 4)):
-            assert reqset.has_requirement('simple')
-        else:
-            assert not reqset.has_requirement('simple')
+        reqset = self.basic_reqset(finder)
+        with reqset.req_cache:
+            req = InstallRequirement.from_editable(
+                data.packages.join("LocalEnvironMarker"))
+            reqset.add_requirement(req)
+            reqset.prepare_files(finder)
+            # This is hacky but does test both case in py2 and py3
+            if sys.version_info[:2] in ((2, 7), (3, 4)):
+                assert reqset.has_requirement('simple')
+            else:
+                assert not reqset.has_requirement('simple')
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [

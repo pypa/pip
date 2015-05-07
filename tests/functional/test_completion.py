@@ -74,7 +74,6 @@ def test_completion_for_un_snippet(script):
     """
     Test getting completion for ``un`` should return uninstall
     """
-
     res, env = setup_completion(script, 'pip un', '1')
     assert res.stdout.strip().split() == ['uninstall'], res.stdout
 

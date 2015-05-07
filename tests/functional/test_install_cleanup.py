@@ -117,24 +117,3 @@ def test_cleanup_after_egg_info_exception(script, data):
     build = script.venv_path / 'build'
     assert not exists(build), "build/ dir still exists: %s" % result.stdout
     script.assert_no_temp()
-
-
-@pytest.mark.network
-def test_cleanup_prevented_upon_build_dir_exception(script, data):
-    """
-    Test no cleanup occurs after a PreviousBuildDirError
-    """
-    build = script.venv_path / 'build'
-    build_simple = build / 'simple'
-    os.makedirs(build_simple)
-    write_delete_marker_file(build)
-    build_simple.join("setup.py").write("#")
-    result = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple',
-        '--build', build,
-        expect_error=True,
-    )
-
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
-    assert "pip can't proceed" in result.stderr
-    assert exists(build_simple)

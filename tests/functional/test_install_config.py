@@ -13,7 +13,7 @@ def test_options_from_env_vars(script):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No matching distribution found for INITools"
+        "DistributionNotFound: No distribution found for initools"
         in result.stdout
     )
 
@@ -68,13 +68,13 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "DistributionNotFound: No matching distribution found for INITools"
+        "DistributionNotFound: No distribution found for initools"
         in result.stdout
     )
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Successfully installed INITools" in result.stdout
+    assert "Successfully installed initools" in result.stdout
 
 
 @pytest.mark.network
@@ -193,7 +193,7 @@ def test_options_from_venv_config(script, virtualenv):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     assert (
-        "DistributionNotFound: No matching distribution found for INITools"
+        "DistributionNotFound: No distribution found for initools"
         in result.stdout
     )
 

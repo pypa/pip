@@ -126,32 +126,6 @@ def test_multiple_constraints_files(script, data):
     assert 'installed Upper-1.0' in result.stdout
 
 
-def test_respect_order_in_requirements_file(script, data):
-    script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
-        parent
-        child
-        simple
-        """))
-
-    result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-r',
-        script.scratch_path / 'frameworks-req.txt'
-    )
-
-    downloaded = [line for line in result.stdout.split('\n')
-                  if 'Collecting' in line]
-
-    assert 'parent' in downloaded[0], (
-        'First download should be "parent" but was "%s"' % downloaded[0]
-    )
-    assert 'child' in downloaded[1], (
-        'Second download should be "child" but was "%s"' % downloaded[1]
-    )
-    assert 'simple' in downloaded[2], (
-        'Third download should be "simple" but was "%s"' % downloaded[2]
-    )
-
-
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.join("LocalExtras")
     res = script.pip(
@@ -169,21 +143,11 @@ def test_install_local_editable_with_extras(script, data):
 
 
 @pytest.mark.network
-def test_install_collected_dependancies_first(script):
-    result = script.pip(
-        'install', 'paramiko',
-    )
-    text = [line for line in result.stdout.split('\n')
-            if 'Installing' in line][0]
-    assert text.endswith('paramiko')
-
-
-@pytest.mark.network
 def test_install_local_editable_with_subdirectory(script):
     version_pkg_path = _create_test_package_with_subdirectory(script,
                                                               'version_subdir')
     result = script.pip(
-        'install', '-e',
+        'install', '-v', '-e',
         '%s#egg=version_subpkg&subdirectory=version_subdir' %
         ('git+file://%s' % version_pkg_path,)
     )
@@ -233,13 +197,13 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
             % script.scratch_path.join("home1")))
 
     result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-r',
+        'install', '-v', '--no-index', '-f', data.find_links, '-r',
         script.scratch_path / 'reqs.txt',
         '--install-option=--home=%s' % script.scratch_path.join("home2"),
         expect_stderr=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    assert package_dir in result.files_created
+    assert package_dir in result.files_created, str(result)
 
 
 def test_constraints_not_installed_by_default(script, data):

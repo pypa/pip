@@ -96,9 +96,6 @@ class InstallRequirement(object):
         self.target_dir = None
         self.options = options if options else {}
         self.pycompile = pycompile
-        # Set to True after successful preparation of this requirement
-        self.prepared = False
-
         self.isolated = isolated
         # Where should temporary data for the requirement be written.
         self._req_cache = None
@@ -301,13 +298,62 @@ class InstallRequirement(object):
     def build_path(self):
         assert self.req_cache is not None
         if self._cached_req is None:
-            name = self.req.project_name if self.req else None
-            url = self.link.url if self.link else None
-            cached_req = CachedRequirement(
-                name=name, url=url, editable=self.editable)
-            self.req_cache.add(cached_req)
+            # Only ever encountered for user supplied req before we've done
+            # resolution.
+            cached_req = None
+            if self.req:
+                # The user has told us at least the name.
+                name = self.req.project_name
+                name = pkg_resources.safe_name(name).lower()
+            else:
+                name = None
+            if not self.link:
+                # We're looking up by constraints.
+                url = None
+                try:
+                    # Oh the ugly. Finish the refactor Robert.
+                    version = pkg_resources.parse_version(
+                        self.req.specs[0][1])
+                    cached_req = self.req_cache.lookup_name(name, version)
+                except KeyError:
+                    pass
+            else:
+                # Looking up by location
+                url = self.link
+                version = None
+            # Probably try a lookup here and fallback otherwise?
+            if cached_req is None:
+                cached_req = CachedRequirement(
+                    name=name, url=url, editable=self.editable,
+                    editable_options=self.editable_options)
+                self.req_cache.add(cached_req)
             self._cached_req = cached_req
         return self.req_cache.build_path(self._cached_req)
+
+    def dist(self):
+        # Make a concrete dist, only intended to be called:
+        # - once
+        # - before resolving, by the req_set setup code.
+        # Get an appropriate handler and stash on the cached_req.
+        # XXX: Make this a simpler, public method.
+        self.build_path
+        self._cached_req._abstract_dist = self._cached_req._inspect_disk(
+            self.link)
+        dist = self._cached_req.dist(self.req_cache)
+        if (self._cached_req.name is None or
+                self._cached_req.version is None):
+            # URL / path requirement
+            self.req_cache.update_name(
+                self._cached_req, dist.project_name, dist.version)
+            # Since the user requested a URL, no other versions are acceptable,
+            # only this one. XXX: Future: setup-requires may still need other
+            # versions so we'll want to be more nuanced in future.
+            self.req_cache.lock_version(self._cached_req)
+        # Capture the exact version that was chosen, vs perhaps vague user
+        # input.
+        self.req = pkg_resources.Requirement.parse(
+            "%s===%s" % (dist.project_name, dist.version))
+        return dist
 
     @property
     def name(self):
@@ -360,7 +406,6 @@ class InstallRequirement(object):
         with indent_log():
             script = self._run_setup_py
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
-            script = script.replace('__PKG_NAME__', repr(self.name))
             base_cmd = [sys.executable, '-c', script]
             if self.isolated:
                 base_cmd += ["--no-user-cfg"]
@@ -541,16 +586,15 @@ exec(compile(
             return
         vc_type, url = self.link.url.split('+', 1)
         backend = vcs.get_backend(vc_type)
-        if backend:
-            vcs_backend = backend(self.link.url)
-            if obtain:
-                vcs_backend.obtain(self.build_path)
-            else:
-                vcs_backend.export(self.build_path)
-        else:
-            assert 0, (
+        if not backend:
+            raise AssertionError(
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
+        vcs_backend = backend(self.link.url)
+        if obtain:
+            vcs_backend.obtain(self.build_path)
+        else:
+            vcs_backend.export(self.build_path)
 
     def uninstall(self, auto_confirm=False):
         """
@@ -704,60 +748,6 @@ exec(compile(
                 "Can't commit %s, nothing uninstalled.", self.project_name,
             )
 
-    def archive(self, build_dir):
-        assert self._cached_req.build_path
-        create_archive = True
-        archive_name = '%s-%s.zip' % (self.name, self.pkg_info()["version"])
-        archive_path = os.path.join(build_dir, archive_name)
-        if os.path.exists(archive_path):
-            response = ask_path_exists(
-                'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
-                display_path(archive_path), ('i', 'w', 'b'))
-            if response == 'i':
-                create_archive = False
-            elif response == 'w':
-                logger.warning('Deleting %s', display_path(archive_path))
-                os.remove(archive_path)
-            elif response == 'b':
-                dest_file = backup_dir(archive_path)
-                logger.warning(
-                    'Backing up %s to %s',
-                    display_path(archive_path),
-                    display_path(dest_file),
-                )
-                shutil.move(archive_path, dest_file)
-        if create_archive:
-            zip = zipfile.ZipFile(
-                archive_path, 'w', zipfile.ZIP_DEFLATED,
-                allowZip64=True
-            )
-            dir = os.path.normcase(os.path.abspath(self.build_path))
-            for dirpath, dirnames, filenames in os.walk(dir):
-                if 'pip-egg-info' in dirnames:
-                    dirnames.remove('pip-egg-info')
-                for dirname in dirnames:
-                    dirname = os.path.join(dirpath, dirname)
-                    name = self._clean_zip_name(dirname, dir)
-                    zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')
-                    zipdir.external_attr = 0x1ED << 16  # 0o755
-                    zip.writestr(zipdir, '')
-                for filename in filenames:
-                    if filename == PIP_DELETE_MARKER_FILENAME:
-                        continue
-                    filename = os.path.join(dirpath, filename)
-                    name = self._clean_zip_name(filename, dir)
-                    zip.write(filename, self.name + '/' + name)
-            zip.close()
-            logger.info('Saved %s', display_path(archive_path))
-
-    def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
-        )
-        name = name[len(prefix) + 1:]
-        name = name.replace(os.path.sep, '/')
-        return name
-
     def match_markers(self):
         if self.markers is not None:
             return markers_interpret(self.markers)
@@ -765,6 +755,7 @@ exec(compile(
             return True
 
     def install(self, install_options, global_options=[], root=None):
+        logger.info("Installing %s" % self.name)
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -1096,3 +1087,132 @@ def parse_editable(editable_req, default_vcs=None):
 
     package = _strip_postfix(req)
     return package, url, None, options
+
+
+class _DistAbstraction(object):
+    """Abstracts out the wheel vs non-wheel prepare_files logic.
+
+    The requirements for anything installable are as follows:
+     - we must be able to determine the requirement name
+       (or we can't correctly handle the non-upgrade case).
+     - we must be able to generate a list of run-time dependencies
+       without installing any additional packages (or we would
+       have to either burn time by doing temporary isolated installs
+       or alternatively violate pips 'don't start installing unless
+       all requirements are available' rule - neither of which are
+       desirable).
+     - for packages with setup requirements, we must also be able
+       to determine their requirements without installing additional
+       packages (for the same reason as run-time dependencies)
+     - we must be able to create a Distribution object exposing the
+       above metadata.
+    """
+
+    def __init__(self, path):
+        self._path = path
+
+    def dist(self, req_cache):
+        """Return a setuptools Dist object."""
+        raise NotImplementedError(self.dist)
+
+
+class _IsWheel(_DistAbstraction):
+
+    def dist(self, req_cache):
+        return list(pkg_resources.find_distributions(
+            self._path))[0]
+
+
+class _IsSDist(_DistAbstraction):
+
+    def __init__(self, path, editable_options, editable):
+        super(_IsSDist, self).__init__(path)
+        self._editable_options = editable_options
+        self._editable = editable
+
+    def dist(self, req_cache):
+        logger.debug("Running setup.py egg_info for %s" % self._path)
+        with indent_log():
+            script = self._run_setup_py
+            script = script.replace('__SETUP_PY__', repr(self.setup_py))
+            base_cmd = [sys.executable, '-c', script]
+            if req_cache.isolated:
+                base_cmd += ["--no-user-cfg"]
+            egg_info_cmd = base_cmd + ['egg_info']
+            # We can't put the .egg-info files at the root, because then the
+            # source code will be mistaken for an installed egg, causing
+            # problems. editable installs will need the egg info moved into
+            # the root during the install stage.
+            egg_base_option = ['--egg-base', 'pip-egg-info']
+            cwd = self._path
+            cwd = os.path.join(
+                self._path, self._editable_options.get('subdirectory', ''))
+            egg_info_dir = os.path.join(cwd, 'pip-egg-info')
+            ensure_dir(egg_info_dir)
+            call_subprocess(
+                egg_info_cmd + egg_base_option,
+                cwd=cwd,
+                show_stdout=False,
+                command_level=logging.DEBUG,
+                command_desc='python setup.py egg_info')
+
+            # NB: editable installs need a root level .egg-info, but
+            # we can move that into place later, and having a dedicated
+            # directory m
+            filenames = os.listdir(egg_info_dir)
+            if not filenames:
+                raise InstallationError(
+                    'No files/directories in %s (from %s)'
+                    % (egg_info_dir, filename))
+        egg_info = os.path.join(egg_info_dir, filenames[0])
+        metadata = pkg_resources.PathMetadata(egg_info_dir, egg_info)
+        dist_name = os.path.splitext(filenames[0])[0]
+        return pkg_resources.Distribution(
+            os.path.dirname(egg_info),
+            project_name=dist_name,
+            metadata=metadata)
+
+    # FIXME: This is a lame hack, entirely for PasteScript which has
+    # a self-provided entry point that causes this awkwardness
+    _run_setup_py = """
+__file__ = __SETUP_PY__
+from setuptools.command import egg_info
+import pkg_resources
+import os
+import tokenize
+def replacement_run(self):
+    self.mkpath(self.egg_info)
+    installer = self.distribution.fetch_build_egg
+    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
+        # require=False is the change we're making:
+        writer = ep.load(require=False)
+        if writer:
+            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
+    self.find_sources()
+egg_info.egg_info.run = replacement_run
+exec(compile(
+    getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'),
+    __file__,
+    'exec'
+))
+"""
+
+    @property
+    def setup_py(self):
+        try:
+            import setuptools  # noqa
+        except ImportError:
+            # Setuptools is not available
+            raise InstallationError(
+                "setuptools must be installed to install from a source "
+                "distribution"
+            )
+
+        subdir = self._editable_options.get('subdirectory', '')
+        setup_py = os.path.join(self._path, subdir, 'setup.py')
+
+        # Python2 __file__ should not be unicode
+        if six.PY2 and isinstance(setup_py, six.text_type):
+            setup_py = setup_py.encode(sys.getfilesystemencoding())
+
+        return setup_py

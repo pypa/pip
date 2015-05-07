@@ -101,6 +101,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     script.scratch_path.join("customdl").mkdir()
     result = script.pip(
         'install',
+        '-v',
         '-e',
         '%s#egg=initools-dev' %
         local_checkout(
@@ -251,7 +252,8 @@ def test_install_as_egg(script, data):
     Test installing as egg, instead of flat install.
     """
     to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=False)
+    result = script.pip(
+        'install', '-v', to_install, '--egg', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
@@ -300,7 +302,7 @@ def test_install_global_option(script):
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
-    assert '0.1\n' in result.stdout
+    assert '(0.1)' in result.stdout
 
 
 def test_install_with_pax_header(script, data):
@@ -656,7 +658,7 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
               version='0.1',
               install_requires=['pkga'])
     """))
-    script.pip('install', '--upgrade', '--editable', pkgb_path)
+    script.pip('install', '-v', '--upgrade', '--editable', pkgb_path)
     result = script.pip('list')
     assert "pkgb" in result.stdout
 
@@ -664,8 +666,10 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
 def test_install_topological_sort(script, data):
     args = ['install', 'TopoRequires4', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
-    order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
-    order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
+    order1 = 'toporequires(0.0.1), toporequires2(0.0.1), ' \
+        'toporequires3(0.0.1), toporequires4(0.0.1)'
+    order2 = 'toporequires(0.0.1), toporequires3(0.0.1), ' \
+        'toporequires2(0.0.1), toporequires4(0.0.1)'
     assert order1 in res or order2 in res, res
 
 
@@ -757,3 +761,6 @@ def test_install_no_binary_disables_cached_wheels(script, data):
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+# XXX tests needed:
+# failed-egg-info-doesn't-halt-resolving.

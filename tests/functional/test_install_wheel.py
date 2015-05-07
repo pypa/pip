@@ -146,9 +146,8 @@ def test_install_from_wheel_no_deps(script, data):
     # 'requires_source' depends on the 'source' project
     package = data.packages.join("requires_source-1.0-py2.py3-none-any.whl")
     result = script.pip(
-        'install', '--no-index', '--find-links', data.find_links, '--no-deps',
-        package,
-    )
+        'install', '-v', '--no-index', '--find-links', data.find_links,
+        '--no-deps', package)
     pkg_folder = script.site_packages / 'source'
     assert pkg_folder not in result.files_created
 

@@ -85,7 +85,7 @@ def test_upgrade_force_reinstall_newest(script):
     result2 = script.pip(
         'install', '--upgrade', '--force-reinstall', 'INITools'
     )
-    assert result2.files_updated, 'upgrade to INITools 0.3 failed'
+    assert result2.files_updated, 'reinstall of INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
@@ -257,16 +257,15 @@ def test_install_with_ignoreinstalled_requested(script):
     """
     Test old conflicting package is completely ignored
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
+    script.pip('install', '-v', 'INITools==0.1', expect_error=True)
     result = script.pip('install', '-I', 'INITools==0.3', expect_error=True)
     assert result.files_created, 'pip install -I did not install'
     # both the old and new metadata should be present.
-    assert os.path.exists(
-        script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion
-    )
-    assert os.path.exists(
-        script.site_packages_path / 'INITools-0.3-py%s.egg-info' % pyversion
-    )
+    template = script.site_packages_path / 'INITools-0.%s-py%s.egg-info'
+    old_egg = template % (1, pyversion)
+    new_egg = template % (3, pyversion)
+    assert os.path.exists(old_egg), str(result)
+    assert os.path.exists(new_egg), str(result)
 
 
 @pytest.mark.network
@@ -356,9 +355,8 @@ class TestUpgradeDistributeToSetuptools(object):
             self.ve_bin / 'pip', 'install', '--no-index',
             '--find-links=%s' % data.find_links, '-U', 'distribute'
         )
-        assert (
-            "Found existing installation: distribute 0.6.34" in result.stdout
-        )
+        msg = "Found existing installation: distribute 0.6.34"
+        assert msg in result.stdout, str(result)
         result = self.script.run(self.ve_bin / 'pip', 'list')
         assert "setuptools (0.9.8)" in result.stdout
         assert "distribute (0.7.3)" in result.stdout

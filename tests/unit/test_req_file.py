@@ -5,6 +5,7 @@ from textwrap import dedent
 from mock import patch, Mock
 import pytest
 from pretend import stub
+from pip._vendor import pkg_resources
 
 import pip
 from pip.exceptions import (RequirementsFileParseError)
@@ -13,6 +14,7 @@ from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments, break_args_options)
+from pip.req import req_cache
 
 
 @pytest.fixture
@@ -470,16 +472,24 @@ class TestParseRequirements(object):
             req_path, finder=finder, options=options, session=session))
 
         req.source_dir = os.curdir
+        cached_req = req_cache.CachedRequirement(
+            name='initools', version=pkg_resources.parse_version('2.0'))
+        cached_req.build_path = '/dev/null'
+        cache = req_cache.RequirementCache()
+        req._cached_req = cached_req
+        req.req_cache = cache
         with patch.object(subprocess, 'Popen') as popen:
             popen.return_value.stdout.readline.return_value = ""
-            try:
-                req.install([])
-            except:
-                pass
+            with cache:
+                cache.add(cached_req)
+                try:
+                    req.install([])
+                except:
+                    pass
 
-            call = popen.call_args_list[0][0][0]
-            assert call.index(install_option) > \
-                call.index('install') > \
-                call.index(global_option) > 0
-        assert options.format_control.no_binary == set([':all:'])
-        assert options.format_control.only_binary == set([])
+                call = popen.call_args_list[0][0][0]
+                assert call.index(install_option) > \
+                    call.index('install') > \
+                    call.index(global_option) > 0
+            assert options.format_control.no_binary == set([':all:'])
+            assert options.format_control.only_binary == set([])

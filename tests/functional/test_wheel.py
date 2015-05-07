@@ -1,11 +1,8 @@
 """'pip wheel' tests"""
-import os
+import os.path
 import pytest
 
-from os.path import exists
-
 from pip.locations import write_delete_marker_file
-from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
@@ -106,8 +103,11 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
         'wheel', '--no-clean', '--no-index', '--build', build,
         '--find-links=%s' % data.find_links, 'simple',
     )
-    build = build / 'simple'
-    assert exists(build), "build/simple should still exist %s" % str(result)
+    found = False
+    for path, subdirs, _ in os.walk(build):
+        if 'simple' in subdirs:
+            return
+    assert 0, 'simple build dir not found'
 
 
 @pytest.mark.network
@@ -125,29 +125,3 @@ def test_pip_wheel_source_deps(script, data):
     wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout
-
-
-@pytest.mark.network
-def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
-    """
-    Test when 'pip wheel' tries to install a package that has a previous build
-    directory
-    """
-
-    script.pip('install', 'wheel')
-
-    # Given that I have a previous build dir of the `simple` package
-    build = script.venv_path / 'build' / 'simple'
-    os.makedirs(build)
-    write_delete_marker_file(script.venv_path / 'build')
-    build.join('setup.py').write('#')
-
-    # When I call pip trying to install things again
-    result = script.pip(
-        'wheel', '--no-index', '--find-links=%s' % data.find_links,
-        '--build', script.venv_path / 'build',
-        'simple==3.0', expect_error=True,
-    )
-
-    # Then I see that the error code is the right one
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result

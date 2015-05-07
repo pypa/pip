@@ -11,7 +11,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     Test cloning from Git with https.
     """
     result = script.pip(
-        'install', '-e',
+        'install', '-v', '-e',
         '%s#egg=pip-test-package' %
         local_checkout(
             'git+https://github.com/pypa/pip-test-package.git',
