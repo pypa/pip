@@ -2,6 +2,8 @@ from __future__ import absolute_import, division, unicode_literals
 
 from types import ModuleType
 
+from pip._vendor.six import text_type
+
 try:
     import xml.etree.cElementTree as default_etree
 except ImportError:
@@ -9,7 +11,26 @@ except ImportError:
 
 
 __all__ = ["default_etree", "MethodDispatcher", "isSurrogatePair",
-           "surrogatePairToCodepoint", "moduleFactoryFactory"]
+           "surrogatePairToCodepoint", "moduleFactoryFactory",
+           "supports_lone_surrogates"]
+
+
+# Platforms not supporting lone surrogates (\uD800-\uDFFF) should be
+# caught by the below test. In general this would be any platform
+# using UTF-16 as its encoding of unicode strings, such as
+# Jython. This is because UTF-16 itself is based on the use of such
+# surrogates, and there is no mechanism to further escape such
+# escapes.
+try:
+    _x = eval('"\\uD800"')
+    if not isinstance(_x, text_type):
+        # We need this with u"" because of http://bugs.jython.org/issue2039
+        _x = eval('u"\\uD800"')
+        assert isinstance(_x, text_type)
+except:
+    supports_lone_surrogates = False
+else:
+    supports_lone_surrogates = True
 
 
 class MethodDispatcher(dict):

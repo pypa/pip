@@ -18,6 +18,7 @@ from .constants import cdataElements, rcdataElements
 from .constants import tokenTypes, ReparseException, namespaces
 from .constants import htmlIntegrationPointElements, mathmlTextIntegrationPointElements
 from .constants import adjustForeignAttributes as adjustForeignAttributesMap
+from .constants import E
 
 
 def parse(doc, treebuilder="etree", encoding=None,
@@ -128,6 +129,17 @@ class HTMLParser(object):
         self.beforeRCDataPhase = None
 
         self.framesetOK = True
+
+    @property
+    def documentEncoding(self):
+        """The name of the character encoding
+        that was used to decode the input stream,
+        or :obj:`None` if that is not determined yet.
+
+        """
+        if not hasattr(self, 'tokenizer'):
+            return None
+        return self.tokenizer.stream.charEncoding[0]
 
     def isHTMLIntegrationPoint(self, element):
         if (element.name == "annotation-xml" and
@@ -245,7 +257,7 @@ class HTMLParser(object):
         # XXX The idea is to make errorcode mandatory.
         self.errors.append((self.tokenizer.stream.position(), errorcode, datavars))
         if self.strict:
-            raise ParseError
+            raise ParseError(E[errorcode] % datavars)
 
     def normalizeToken(self, token):
         """ HTML5 specific normalizations to the token stream """
@@ -868,7 +880,7 @@ def getPhases(debug):
             self.startTagHandler = utils.MethodDispatcher([
                 ("html", self.startTagHtml),
                 (("base", "basefont", "bgsound", "command", "link", "meta",
-                  "noframes", "script", "style", "title"),
+                  "script", "style", "title"),
                  self.startTagProcessInHead),
                 ("body", self.startTagBody),
                 ("frameset", self.startTagFrameset),
@@ -1205,8 +1217,7 @@ def getPhases(debug):
             attributes["name"] = "isindex"
             self.processStartTag(impliedTagToken("input", "StartTag",
                                                  attributes=attributes,
-                                                 selfClosing=
-                                                 token["selfClosing"]))
+                                                 selfClosing=token["selfClosing"]))
             self.processEndTag(impliedTagToken("label"))
             self.processStartTag(impliedTagToken("hr", "StartTag"))
             self.processEndTag(impliedTagToken("form"))
