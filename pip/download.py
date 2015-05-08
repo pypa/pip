@@ -14,6 +14,12 @@ import shutil
 import sys
 import tempfile
 
+try:
+    import ssl  # noqa
+    HAS_TLS = True
+except ImportError:
+    HAS_TLS = False
+
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 

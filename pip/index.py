@@ -25,7 +25,7 @@ from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip.download import url_to_path, path_to_url
+from pip.download import HAS_TLS, url_to_path, path_to_url
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
@@ -174,6 +174,19 @@ class PackageFinder(object):
 
         # The Session we'll use to make requests
         self.session = session
+
+        # If we don't have TLS enabled, then WARN if anyplace we're looking
+        # relies on TLS.
+        if not HAS_TLS:
+            for link in itertools.chain(self.index_urls, self.find_links):
+                parsed = urllib_parse.urlparse(link)
+                if parsed.scheme == "https":
+                    logger.warning(
+                        "pip is configured with locations that require "
+                        "TLS/SSL, however the ssl module in Python is not "
+                        "available."
+                    )
+                    break
 
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only
