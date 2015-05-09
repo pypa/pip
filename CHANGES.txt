@@ -39,6 +39,12 @@
 * Improve logging when a requirement marker doesn't match your environment
   (:pull:`2735`)
 
+* Removed the temporary modifications (that began in pip v1.4 when distribute
+  and setuptools merged) that allowed distribute to be considered a conflict to
+  setuptools. ``pip install -U setuptools`` will no longer upgrade "distribute"
+  to "setuptools".  Instead, use ``pip install -U distribute`` (:pull:`2767`).
+
+
 **6.1.1 (2015-04-07)**
 
 * No longer ignore dependencies which have been added to the standard library,
