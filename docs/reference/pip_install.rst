@@ -91,8 +91,11 @@ and like arguments to :ref:`pip install`, the following forms are supported::
 Since version 6.0, pip also supports markers using the "; " separator.
 Examples::
 
-    futures; python_version < '2.7'
-    http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'
+    "futures; python_version < '2.7'"
+    "http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'"
+
+Requirements with markers must be quoted. For example, use ``"SomeProject;
+python_version < '2.7'"``, not simply ``SomeProject; python_version < '2.7'``.
 
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
