@@ -44,6 +44,13 @@
   setuptools. ``pip install -U setuptools`` will no longer upgrade "distribute"
   to "setuptools".  Instead, use ``pip install -U distribute`` (:pull:`2767`).
 
+* Only display a warning to upgrade pip when the newest version is a final
+  release and it is not a post release of the version we already have
+  installed (:pull:`2766`).
+
+* Display a warning when attempting to access a repository that uses HTTPS when
+  we don't have Python compiled with SSL support (:pull:`2761`).
+
 
 **6.1.1 (2015-04-07)**
 
