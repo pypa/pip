@@ -264,7 +264,7 @@ variable ``PIP_CONFIG_FILE``.
 
 **Site-wide**:
 
-* On Unix the file may be located in in :file:`/etc/pip.conf`. Alternatively
+* On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
   it may be in a "pip" subdirectory of any of the paths set in the
   environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
   :file:`/etc/xdg/pip/pip.conf`.
