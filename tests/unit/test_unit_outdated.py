@@ -26,7 +26,7 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
 
     resp = pretend.stub(
         raise_for_status=pretend.call_recorder(lambda: None),
-        json=pretend.call_recorder(lambda: {"info": {"version": newver}}),
+        json=pretend.call_recorder(lambda: {"releases": {newver: {}}}),
     )
     session = pretend.stub(
         get=pretend.call_recorder(lambda u, headers=None: resp),

@@ -7,7 +7,7 @@ import os.path
 import sys
 
 from pip._vendor import lockfile
-from pip._vendor import pkg_resources
+from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import total_seconds
 from pip.index import PyPI
@@ -122,15 +122,23 @@ def pip_version_check(session):
                 headers={"Accept": "application/json"},
             )
             resp.raise_for_status()
-            pypi_version = resp.json()["info"]["version"]
+            pypi_version = [
+                v for v in sorted(
+                    list(resp.json()["releases"]),
+                    key=packaging_version.parse,
+                )
+                if not packaging_version.parse(v).is_prerelease
+            ][-1]
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
-        pip_version = pkg_resources.parse_version(pip.__version__)
+        pip_version = packaging_version.parse(pip.__version__)
+        remote_version = packaging_version.parse(pypi_version)
 
         # Determine if our pypi_version is older
-        if pip_version < pkg_resources.parse_version(pypi_version):
+        if (pip_version < remote_version and
+                pip_version.base_version != remote_version.base_version):
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
