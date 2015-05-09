@@ -131,12 +131,14 @@ def pip_version_check(session):
 
         # Determine if our pypi_version is older
         if pip_version < pkg_resources.parse_version(pypi_version):
-            logger.warning(
-                "You are using pip version %s, however version %s is "
-                "available.\nYou should consider upgrading via the "
-                "'pip install --upgrade pip' command." % (pip.__version__,
-                                                          pypi_version)
-            )
+            # Check to make sure we reminding someone already upgrading
+            if " ".join(sys.argv) == "pip install --upgrade pip":
+                logger.warning(
+                    "You are using pip version %s, however version %s is "
+                    "available.\nYou should consider upgrading via the "
+                    "'pip install --upgrade pip' command." % (pip.__version__,
+                                                            pypi_version)
+                )
 
     except Exception:
         logger.debug(
