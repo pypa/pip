@@ -68,7 +68,6 @@ class InstallationCandidate(object):
         return hash(self._key)
 
     def __lt__(self, other):
-
         return self._compare(other, lambda s, o: s < o)
 
     def __le__(self, other):
@@ -1272,7 +1271,7 @@ def fmt_ctl_no_use_wheel(fmt_ctl):
 Search = namedtuple('Search', 'supplied canonical formats')
 """Capture key aspects of a search.
 
-:attribute user: The user supplied package.
+:attribute supplied: The user supplied package.
 :attribute canonical: The canonical package name.
 :attribute formats: The formats allowed for this package. Should be a set
     with 'binary' or 'source' or both in it.
