@@ -20,7 +20,7 @@ WHEEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Actually look inside of WHEEL_DIR to find .whl files and add them to the
 # front of our sys.path.
-sys.path = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
+sys.path[:] = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
 
 class VendorAlias(object):
