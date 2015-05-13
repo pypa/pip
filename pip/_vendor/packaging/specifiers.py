@@ -152,12 +152,23 @@ class _IndividualSpecifier(BaseSpecifier):
         return version
 
     @property
+    def operator(self):
+        return self._spec[0]
+
+    @property
+    def version(self):
+        return self._spec[1]
+
+    @property
     def prereleases(self):
         return self._prereleases
 
     @prereleases.setter
     def prereleases(self, value):
         self._prereleases = value
+
+    def __contains__(self, item):
+        return self.contains(item)
 
     def contains(self, item, prereleases=None):
         # Determine if prereleases are to be allowed or not.
@@ -176,7 +187,7 @@ class _IndividualSpecifier(BaseSpecifier):
 
         # Actually do the comparison to determine if this item is contained
         # within this Specifier or not.
-        return self._get_operator(self._spec[0])(item, self._spec[1])
+        return self._get_operator(self.operator)(item, self.version)
 
     def filter(self, iterable, prereleases=None):
         yielded = False
@@ -526,7 +537,7 @@ class Specifier(_IndividualSpecifier):
         # operators, and if they are if they are including an explicit
         # prerelease.
         operator, version = self._spec
-        if operator in ["==", ">=", "<=", "~="]:
+        if operator in ["==", ">=", "<=", "~=", "==="]:
             # The == specifier can include a trailing .*, if it does we
             # want to remove before parsing.
             if operator == "==" and version.endswith(".*"):
@@ -666,6 +677,12 @@ class SpecifierSet(BaseSpecifier):
 
         return self._specs != other._specs
 
+    def __len__(self):
+        return len(self._specs)
+
+    def __iter__(self):
+        return iter(self._specs)
+
     @property
     def prereleases(self):
         # If we have been given an explicit prerelease modifier, then we'll
@@ -686,6 +703,9 @@ class SpecifierSet(BaseSpecifier):
     @prereleases.setter
     def prereleases(self, value):
         self._prereleases = value
+
+    def __contains__(self, item):
+        return self.contains(item)
 
     def contains(self, item, prereleases=None):
         # Ensure that our item is a Version or LegacyVersion instance.
