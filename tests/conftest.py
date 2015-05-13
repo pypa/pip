@@ -151,7 +151,8 @@ def virtualenv(tmpdir, monkeypatch, isolate):
     )
 
     # Clean out our cache: creating the venv injects wheels into it.
-    shutil.rmtree(appdirs.user_cache_dir("pip"))
+    if os.path.exists(appdirs.user_cache_dir("pip")):
+        shutil.rmtree(appdirs.user_cache_dir("pip"))
 
     # Undo our monkeypatching of shutil
     monkeypatch.undo()
