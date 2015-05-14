@@ -2,10 +2,6 @@
 set -e
 set -x
 
-# This is required in order to get UTF-8 output inside of the subprocesses that
-# our tests use.
-export LC_CTYPE=en_US.UTF-8
-
 # We want to create the virtual environment here, but not actually run anything
 tox --notest
 
