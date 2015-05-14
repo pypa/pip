@@ -265,6 +265,42 @@ class TestProcessLine(object):
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
 
+    def test_extras_for_line_path_requirement(self):
+        line = 'SomeProject[ex1,ex2]'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        assert len(req.extras) == 2
+        assert req.extras[0] == 'ex1'
+        assert req.extras[1] == 'ex2'
+
+    def test_extras_for_line_url_requirement(self):
+        line = 'git+https://url#egg=SomeProject[ex1,ex2]'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        assert len(req.extras) == 2
+        assert req.extras[0] == 'ex1'
+        assert req.extras[1] == 'ex2'
+
+    def test_extras_for_editable_path_requirement(self):
+        url = '.[ex1,ex2]'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        assert len(req.extras) == 2
+        assert req.extras[0] == 'ex1'
+        assert req.extras[1] == 'ex2'
+
+    def test_extras_for_editable_url_requirement(self):
+        url = 'git+https://url#egg=SomeProject[ex1,ex2]'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        assert len(req.extras) == 2
+        assert req.extras[0] == 'ex1'
+        assert req.extras[1] == 'ex2'
+
 
 class TestOptionVariants(object):
 
