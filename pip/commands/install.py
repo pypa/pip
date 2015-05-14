@@ -272,7 +272,8 @@ class InstallCommand(RequirementCommand):
                     return
 
                 try:
-                    if options.download_dir or not wheel:
+                    if (options.download_dir or not wheel or not
+                            options.cache_dir):
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
                         # not installed.
