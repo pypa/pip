@@ -32,8 +32,10 @@ def indent_log(num=2):
     log messages emited inside it.
     """
     _log_state.indentation += num
-    yield
-    _log_state.indentation -= num
+    try:
+        yield
+    finally:
+        _log_state.indentation -= num
 
 
 def get_indentation():
