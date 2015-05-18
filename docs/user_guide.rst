@@ -321,6 +321,17 @@ set like this:
     ignore-installed = true
     no-dependencies = yes
 
+To enable the boolean options ``--no-compile`` and ``--no-cache-dir``, falsy
+values have to be used:
+
+.. code-block:: ini
+
+    [global]
+    no-cache-dir = false
+
+    [install]
+    no-compile = no
+
 Appending options like ``--find-links`` can be written on multiple lines:
 
 .. code-block:: ini
