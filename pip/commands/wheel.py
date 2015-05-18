@@ -52,6 +52,12 @@ class WheelCommand(RequirementCommand):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(
+            '--upload-to-index',
+            dest='upload_to_index',
+            metavar='index_url',
+            help=("Upload built wheels to package index at <index_url>"),
+        )
+        cmd_opts.add_option(
             '-w', '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
@@ -123,6 +129,12 @@ class WheelCommand(RequirementCommand):
             )
 
     def run(self, options, args):
+        if options.upload_to_index:
+            if options.build_options is None:
+                options.build_options = []
+            options.build_options.extend(
+                ['upload', '-r', options.upload_to_index])
+
         self.check_required_packages()
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
