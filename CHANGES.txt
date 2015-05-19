@@ -56,6 +56,9 @@
 * Display a warning when attempting to access a repository that uses HTTPS when
   we don't have Python compiled with SSL support (:pull:`2761`).
 
+* Allowing using extras when installing from a file path without requiring the
+  use of an editable (:pull`2785`).
+
 
 **6.1.1 (2015-04-07)**
 
