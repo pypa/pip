@@ -1,8 +1,7 @@
 import hashlib
 import os
 
-from pip._vendor.lockfile import FileLock
-
+from pip._vendor.lockfile.mkdirlockfile import MkdirLockFile
 from ..cache import BaseCache
 from ..controller import CacheController
 
@@ -83,7 +82,7 @@ class FileCache(BaseCache):
         except (IOError, OSError):
             pass
 
-        with FileLock(name) as lock:
+        with MkdirLockFile(name) as lock:
             # Write our actual file
             with _secure_open_write(lock.path, self.filemode) as fh:
                 fh.write(value)

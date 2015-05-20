@@ -28,8 +28,14 @@ class LinkLockFile(LockBase):
             # Try and create a hard link to it.
             try:
                 os.link(self.unique_name, self.lock_file)
-            except OSError:
-                # Link creation failed.  Maybe we've double-locked?
+            except OSError as e:
+                if e.strerror in ('Operation not permitted',
+                                  'Invalid cross-device link'):
+                    # Linking  accross devices is not supported
+                    os.unlink(self.unique_name)
+                    raise LockFailed("Creation of %s is not permitted"
+                                     % self.unique_name)
+                # Maybe we've double-locked?
                 nlinks = os.stat(self.unique_name).st_nlink
                 if nlinks == 2:
                     # The original link plus the one I created == 2.  We're
