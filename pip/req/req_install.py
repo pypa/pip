@@ -818,6 +818,18 @@ exec(compile(
         name = name.replace(os.path.sep, '/')
         return name
 
+    def _get_setup_py_command(self, setup_py_path):
+        # Note that this is one big one-liner. Care must be taken to
+        # avoid setting local or global variables as they may affect
+        # the execution of the user's setup.py in unpredictable ways.
+        cmd = (
+            "import setuptools, tokenize; __file__=%r;"
+            "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
+            ".replace('\\r\\n', '\\n'), __file__, 'exec'))"
+        )
+
+        return cmd % setup_py_path
+
     def match_markers(self):
         if self.markers is not None:
             return markers_interpret(self.markers)
@@ -850,15 +862,10 @@ exec(compile(
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [sys.executable]
-            install_args.append('-c')
-            install_args.append(
-                "import setuptools, tokenize;__file__=%r;"
-                "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
-                ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
-            )
-            install_args += list(global_options) + \
-                ['install', '--record', record_filename]
+            setup_py_cmd = self._get_setup_py_command(self.setup_py)
+            install_args = [sys.executable, '-c', setup_py_cmd]
+            install_args += list(global_options)
+            install_args += ['install', '--record', record_filename]
 
             if not self.as_egg:
                 install_args += ['--single-version-externally-managed']
@@ -971,20 +978,18 @@ exec(compile(
             if self.editable_options and \
                     'subdirectory' in self.editable_options:
                 cwd = os.path.join(cwd, self.editable_options['subdirectory'])
-            call_subprocess(
-                [
-                    sys.executable,
-                    '-c',
-                    "import setuptools, tokenize; __file__=%r; exec(compile("
-                    "getattr(tokenize, 'open', open)(__file__).read().replace"
-                    "('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
-                ] +
-                list(global_options) +
-                ['develop', '--no-deps'] +
-                list(install_options),
 
-                cwd=cwd, filter_stdout=self._filter_install,
-                show_stdout=False)
+            setup_py_cmd = self._get_setup_py_command(self.setup_py)
+            install_args = [sys.executable, '-c', setup_py_cmd]
+            install_args += list(global_options)
+            install_args += ['develop', '--no-deps']
+            install_args += list(install_options)
+
+            call_subprocess(
+                install_args, cwd=cwd,
+                show_stdout=False,
+                filter_stdout=self._filter_install
+            )
 
         self.install_succeeded = True
 
