@@ -342,7 +342,7 @@ class PipSession(requests.Session):
         # require manual evication from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
+                cache=SafeFileCache(cache, use_dir_lock=True),
                 max_retries=retries,
             )
         else:

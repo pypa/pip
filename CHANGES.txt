@@ -59,6 +59,9 @@
 * Allowing using extras when installing from a file path without requiring the
   use of an editable (:pull`2785`).
 
+* Fix an infinite loop when the cache directory is stored on a file system
+  which does not support hard links (:pull:`2796`).
+
 
 **6.1.1 (2015-04-07)**
 
