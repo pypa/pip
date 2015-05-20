@@ -112,10 +112,6 @@ def test_search(script):
 
 
 @pytest.mark.network
-@pytest.mark.xfail(
-    reason=("See: https://bitbucket.org/pypa/pypi/issue/286/search-"
-            "functionality-broken")
-)
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
