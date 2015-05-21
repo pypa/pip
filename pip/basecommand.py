@@ -22,9 +22,8 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import appdirs, get_prog, normalize_path
+from pip.utils import get_prog, normalize_path
 from pip.utils.deprecation import RemovedInPip8Warning
-from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -120,13 +119,6 @@ class Command(object):
         else:
             level = "INFO"
 
-        # Compute the path for our debug log.
-        debug_log_path = os.path.join(appdirs.user_log_dir("pip"), "debug.log")
-
-        # Ensure that the path for our debug log is owned by the current user
-        # and if it is not, disable the debug log.
-        write_debug_log = check_path_owner(debug_log_path)
-
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
@@ -160,15 +152,6 @@ class Command(object):
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
-                "debug_log": {
-                    "level": "DEBUG",
-                    "class": "pip.utils.logging.BetterRotatingFileHandler",
-                    "filename": debug_log_path,
-                    "maxBytes": 10 * 1000 * 1000,  # 10 MB
-                    "backupCount": 1,
-                    "delay": True,
-                    "formatter": "indent",
-                },
                 "user_log": {
                     "level": "DEBUG",
                     "class": "pip.utils.logging.BetterRotatingFileHandler",
@@ -182,7 +165,6 @@ class Command(object):
                 "handlers": list(filter(None, [
                     "console",
                     "console_errors",
-                    "debug_log" if write_debug_log else None,
                     "user_log" if options.log else None,
                 ])),
             },
@@ -203,17 +185,6 @@ class Command(object):
                 for name in ["pip._vendor", "distlib", "requests", "urllib3"]
             ),
         })
-
-        # We add this warning here instead of up above, because the logger
-        # hasn't been configured until just now.
-        if not write_debug_log:
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the debug log has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                os.path.dirname(debug_log_path),
-            )
 
         if options.log_explicit_levels:
             warnings.warn(
