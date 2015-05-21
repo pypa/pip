@@ -62,6 +62,9 @@
 * Fix an infinite loop when the cache directory is stored on a file system
   which does not support hard links (:pull:`2796`).
 
+* Remove the implicit debug log that was written on every invocation, instead
+  users will need to use ``--log`` if they wish to have one (:pull:`2798`).
+
 
 **6.1.1 (2015-04-07)**
 
