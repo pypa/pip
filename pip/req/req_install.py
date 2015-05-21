@@ -40,33 +40,7 @@ from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
-_FILTER_INSTALL_OUTPUT_REGEX = re.compile(r"""
-    (?:^running\s.*) |
-    (?:^writing\s.*) |
-    (?:creating\s.*) |
-    (?:[Cc]opying\s.*) |
-    (?:^reading\s.*') |
-    (?:^removing\s.*\.egg-info'\s\(and\severything\sunder\sit\)$) |
-    (?:^byte-compiling) |
-    (?:^SyntaxError:) |
-    (?:^SyntaxWarning:) |
-    (?:^\s*Skipping\simplicit\sfixer:) |
-    (?:^\s*(warning:\s)?no\spreviously-included\s(files|directories)) |
-    (?:^\s*warning:\sno\sfiles\sfound matching\s\'.*\') |
-    (?:^\s*changing\smode\sof) |
-    # Not sure what this warning is, but it seems harmless:
-    (?:^warning:\smanifest_maker:\sstandard\sfile\s'-c'\snot found$)
-    """, re.VERBOSE)
-
-
 logger = logging.getLogger(__name__)
-
-
-def _filter_install(line):
-    level = logging.INFO
-    if _FILTER_INSTALL_OUTPUT_REGEX.search(line.strip()):
-        level = logging.DEBUG
-    return (level, line)
 
 
 def _strip_extras(path):
@@ -423,7 +397,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
-                filter_stdout=_filter_install,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -881,7 +854,6 @@ exec(compile(
                 call_subprocess(
                     install_args + install_options,
                     cwd=self.source_dir,
-                    filter_stdout=_filter_install,
                     show_stdout=False,
                 )
 
@@ -983,13 +955,10 @@ exec(compile(
                 ['develop', '--no-deps'] +
                 list(install_options),
 
-                cwd=cwd, filter_stdout=self._filter_install,
+                cwd=cwd,
                 show_stdout=False)
 
         self.install_succeeded = True
-
-    def _filter_install(self, line):
-        return _filter_install(line)
 
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts

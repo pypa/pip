@@ -457,6 +457,7 @@ class TestParseRequirements(object):
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
+            popen.return_value.stdout.readline.return_value = ""
             try:
                 req.install([])
             except:

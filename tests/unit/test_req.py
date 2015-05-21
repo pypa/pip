@@ -11,7 +11,7 @@ from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
-from pip.req.req_install import parse_editable, _filter_install
+from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
@@ -293,27 +293,6 @@ def test_parse_editable_local_extras(
     assert parse_editable('foo[bar,baz]', 'git') == (
         None, 'file:///some/path/foo', ('bar', 'baz'), {},
     )
-
-
-def test_filter_install():
-    from logging import DEBUG, INFO
-
-    assert _filter_install('running setup.py install') == (
-        DEBUG, 'running setup.py install')
-    assert _filter_install('writing foo.bar') == (
-        DEBUG, 'writing foo.bar')
-    assert _filter_install('creating foo.bar') == (
-        DEBUG, 'creating foo.bar')
-    assert _filter_install('copying foo.bar') == (
-        DEBUG, 'copying foo.bar')
-    assert _filter_install('SyntaxError: blah blah') == (
-        DEBUG, 'SyntaxError: blah blah')
-    assert _filter_install('This should not be filtered') == (
-        INFO, 'This should not be filtered')
-    assert _filter_install('foo bar') == (
-        INFO, 'foo bar')
-    assert _filter_install('I made a SyntaxError') == (
-        INFO, 'I made a SyntaxError')
 
 
 def test_exclusive_environment_markers():

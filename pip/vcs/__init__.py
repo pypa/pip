@@ -106,9 +106,6 @@ class VersionControl(object):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
 
-    def _filter(self, line):
-        return (logging.DEBUG, line)
-
     def _is_local_repository(self, repo):
         """
            posix absolute paths start with os.path.sep,
@@ -301,8 +298,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def run_command(self, cmd, show_stdout=True,
-                    filter_stdout=None, cwd=None,
+    def run_command(self, cmd, show_stdout=True, cwd=None,
                     raise_on_returncode=True,
                     command_level=logging.DEBUG, command_desc=None,
                     extra_environ=None):
@@ -313,7 +309,7 @@ class VersionControl(object):
         """
         cmd = [self.name] + cmd
         try:
-            return call_subprocess(cmd, show_stdout, filter_stdout, cwd,
+            return call_subprocess(cmd, show_stdout, cwd,
                                    raise_on_returncode, command_level,
                                    command_desc, extra_environ)
         except OSError as e:
