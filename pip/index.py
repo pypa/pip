@@ -41,6 +41,7 @@ __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 SECURE_ORIGINS = [
     # protocol, hostname, port
     ("https", "*", "*"),
+    ("ssh", "*", "*"),
     ("*", "localhost", "*"),
     ("*", "127.0.0.0/8", "*"),
     ("*", "::1/128", "*"),
