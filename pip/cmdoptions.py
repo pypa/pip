@@ -148,6 +148,15 @@ proxy = partial(
     default='',
     help="Specify a proxy in the form [user:passwd@]proxy.server:port.")
 
+netloc_credentials = partial(
+    Option,
+    '--auth', '--netloc-credentials',
+    dest='credentials',
+    action='append',
+    type='str',
+    default=[],
+    help="Specify credentials in the form user:passwd@private.server[:port].")
+
 retries = partial(
     Option,
     '--retries',
@@ -539,6 +548,7 @@ general_group = {
         log_explicit_levels,
         no_input,
         proxy,
+        netloc_credentials,
         retries,
         timeout,
         default_vcs,
