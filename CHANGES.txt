@@ -1,4 +1,4 @@
-**7.0.0 (unreleased)**
+**7.0.0 (2015-05-21)**
 
 * **BACKWARD INCOMPATIBLE** Removed the deprecated ``--mirror``,
   ``--use-mirrors``, and ``-M`` options.
