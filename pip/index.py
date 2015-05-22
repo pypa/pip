@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import logging
 import cgi
+from collections import namedtuple
+import itertools
 import sys
 import os
 import re
@@ -15,24 +17,24 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
-    Inf, cached_property, normalize_name, splitext, normalize_path)
-from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+    Inf, cached_property, normalize_name, splitext, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS)
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip.download import url_to_path, path_to_url
+from pip.download import HAS_TLS, url_to_path, path_to_url
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip.req.req_requirement import InstallationCandidate
 from pip._vendor import html5lib, requests, pkg_resources, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
 
 
-__all__ = ['PackageFinder']
+__all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 
 
 # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
@@ -49,18 +51,65 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
+class InstallationCandidate(object):
+
+    def __init__(self, project, version, location):
+        self.project = project
+        self.version = parse_version(version)
+        self.location = location
+        self._key = (self.project, self.version, self.location)
+
+    def __repr__(self):
+        return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
+            self.project, self.version, self.location,
+        )
+
+    def __hash__(self):
+        return hash(self._key)
+
+    def __lt__(self, other):
+        return self._compare(other, lambda s, o: s < o)
+
+    def __le__(self, other):
+        return self._compare(other, lambda s, o: s <= o)
+
+    def __eq__(self, other):
+        return self._compare(other, lambda s, o: s == o)
+
+    def __ge__(self, other):
+        return self._compare(other, lambda s, o: s >= o)
+
+    def __gt__(self, other):
+        return self._compare(other, lambda s, o: s > o)
+
+    def __ne__(self, other):
+        return self._compare(other, lambda s, o: s != o)
+
+    def _compare(self, other, method):
+        if not isinstance(other, InstallationCandidate):
+            return NotImplemented
+
+        return method(self._key, other._key)
+
+
 class PackageFinder(object):
     """This finds packages.
 
     This is meant to match easy_install's technique for looking for
-    packages, by reading pages and looking for appropriate links
+    packages, by reading pages and looking for appropriate links.
     """
 
     def __init__(self, find_links, index_urls,
-                 use_wheel=True, allow_external=(), allow_unverified=(),
+                 allow_external=(), allow_unverified=(),
                  allow_all_external=False, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None):
+                 session=None, format_control=None):
+        """Create a PackageFinder.
+
+        :param format_control: A FormatControl object or None. Used to control
+            the selection of source packages / binary packages when consulting
+            the index and links.
+        """
         if session is None:
             raise TypeError(
                 "PackageFinder() missing 1 required keyword argument: "
@@ -86,7 +135,7 @@ class PackageFinder(object):
         # These are boring links that have already been logged somehow:
         self.logged_links = set()
 
-        self.use_wheel = use_wheel
+        self.format_control = format_control or FormatControl(set(), set())
 
         # Do we allow (safe and verifiable) externally hosted files?
         self.allow_external = set(normalize_name(n) for n in allow_external)
@@ -125,6 +174,19 @@ class PackageFinder(object):
         # The Session we'll use to make requests
         self.session = session
 
+        # If we don't have TLS enabled, then WARN if anyplace we're looking
+        # relies on TLS.
+        if not HAS_TLS:
+            for link in itertools.chain(self.index_urls, self.find_links):
+                parsed = urllib_parse.urlparse(link)
+                if parsed.scheme == "https":
+                    logger.warning(
+                        "pip is configured with locations that require "
+                        "TLS/SSL, however the ssl module in Python is not "
+                        "available."
+                    )
+                    break
+
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only
         # # apply to requirements of the package that specifies the
@@ -134,11 +196,12 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip7Warning,
+                RemovedInPip8Warning,
             )
             self.dependency_links.extend(links)
 
-    def _sort_locations(self, locations):
+    @staticmethod
+    def _sort_locations(locations, expand_dir=False):
         """
         Sort locations into "files" (archives) and "urls", and return
         a pair of lists (files,urls)
@@ -158,19 +221,19 @@ class PackageFinder(object):
 
             is_local_path = os.path.exists(url)
             is_file_url = url.startswith('file:')
-            is_find_link = url in self.find_links
 
             if is_local_path or is_file_url:
                 if is_local_path:
                     path = url
                 else:
                     path = url_to_path(url)
-                if is_find_link and os.path.isdir(path):
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif is_file_url and os.path.isdir(path):
-                    urls.append(url)
+                if os.path.isdir(path):
+                    if expand_dir:
+                        path = os.path.realpath(path)
+                        for item in os.listdir(path):
+                            sort_path(os.path.join(path, item))
+                    elif is_file_url:
+                        urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
             else:
@@ -191,24 +254,21 @@ class PackageFinder(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        if self.use_wheel:
-            support_num = len(supported_tags)
-            if candidate.location == INSTALLED_VERSION:
-                pri = 1
-            elif candidate.location.is_wheel:
-                # can raise InvalidWheelFilename
-                wheel = Wheel(candidate.location.filename)
-                if not wheel.supported():
-                    raise UnsupportedWheel(
-                        "%s is not a supported wheel for this platform. It "
-                        "can't be sorted." % wheel.filename
-                    )
-                pri = -(wheel.support_index_min())
-            else:  # sdist
-                pri = -(support_num)
-            return (candidate.version, pri)
-        else:
-            return candidate.version
+        support_num = len(supported_tags)
+        if candidate.location == INSTALLED_VERSION:
+            pri = 1
+        elif candidate.location.is_wheel:
+            # can raise InvalidWheelFilename
+            wheel = Wheel(candidate.location.filename)
+            if not wheel.supported():
+                raise UnsupportedWheel(
+                    "%s is not a supported wheel for this platform. It "
+                    "can't be sorted." % wheel.filename
+                )
+            pri = -(wheel.support_index_min())
+        else:  # sdist
+            pri = -(support_num)
+        return (candidate.version, pri)
 
     def _sort_versions(self, applicable_versions):
         """
@@ -269,27 +329,22 @@ class PackageFinder(object):
                 continue
 
             # If we've gotten here, then this origin matches the current
-            # secure origin and we should break out of the loop and continue
-            # on.
-            break
-        else:
-            # If the loop successfully completed without a break, that means
-            # that the origin we are testing is not a secure origin.
-            logger.warning(
-                "This repository located at %s is not a trusted host, if "
-                "this repository is available via HTTPS it is recommend to "
-                "use HTTPS instead, otherwise you may silence this warning "
-                "with '--trusted-host %s'.",
-                parsed.hostname,
-                parsed.hostname,
-            )
+            # secure origin and we should return True
+            return True
 
-            warnings.warn(
-                "Implicitly allowing locations which are not hosted at a "
-                "secure origin is deprecated and will require the use of "
-                "--trusted-host in the future.",
-                RemovedInPip7Warning,
-            )
+        # If we've gotten to this point, then the origin isn't secure and we
+        # will not accept it as a valid location to search. We will however
+        # log a warning that we are ignoring it.
+        logger.warning(
+            "The repository located at %s is not a trusted or secure host and "
+            "is being ignored. If this repository is available via HTTPS it "
+            "is recommended to use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyways with '--trusted-host %s'.",
+            parsed.hostname,
+            parsed.hostname,
+        )
+
+        return False
 
     def _get_index_urls_locations(self, project_name):
         """Returns the locations found via self.index_urls
@@ -347,44 +402,55 @@ class PackageFinder(object):
         See _link_package_versions for details on which files are accepted
         """
         index_locations = self._get_index_urls_locations(project_name)
-        file_locations, url_locations = self._sort_locations(index_locations)
-        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links)
-        file_locations.extend(fl_file_loc)
-        url_locations.extend(fl_url_loc)
+        index_file_loc, index_url_loc = self._sort_locations(index_locations)
+        fl_file_loc, fl_url_loc = self._sort_locations(
+            self.find_links, expand_dir=True)
+        dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        _flocations, _ulocations = self._sort_locations(self.dependency_links)
-        file_locations.extend(_flocations)
+        file_locations = (
+            Link(url) for url in itertools.chain(
+                index_file_loc, fl_file_loc, dep_file_loc)
+        )
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
-        locations = [Link(url, trusted=True) for url in url_locations]
-
         # We explicitly do not trust links that came from dependency_links
-        locations.extend([Link(url) for url in _ulocations])
+        # We want to filter out any thing which does not have a secure origin.
+        url_locations = [
+            link for link in itertools.chain(
+                (Link(url, trusted=True) for url in index_url_loc),
+                (Link(url, trusted=True) for url in fl_url_loc),
+                (Link(url) for url in dep_url_loc),
+            )
+            if self._validate_secure_origin(logger, link)
+        ]
 
         logger.debug('%d location(s) to search for versions of %s:',
-                     len(locations), project_name)
-        for location in locations:
-            logger.debug('* %s', location)
-            self._validate_secure_origin(logger, location)
+                     len(url_locations), project_name)
 
-        find_links_versions = list(self._package_versions(
+        for location in url_locations:
+            logger.debug('* %s', location)
+
+        canonical_name = pkg_resources.safe_name(project_name).lower()
+        formats = fmt_ctl_formats(self.format_control, canonical_name)
+        search = Search(project_name.lower(), canonical_name, formats)
+        find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f', trusted=True) for url in self.find_links),
-            project_name.lower()
-        ))
+            search
+        )
 
         page_versions = []
-        for page in self._get_pages(locations, project_name):
+        for page in self._get_pages(url_locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, project_name.lower())
+                    self._package_versions(page.links, search)
                 )
 
-        dependency_versions = list(self._package_versions(
-            (Link(url) for url in self.dependency_links), project_name.lower()
-        ))
+        dependency_versions = self._package_versions(
+            (Link(url) for url in self.dependency_links), search
+        )
         if dependency_versions:
             logger.debug(
                 'dependency_links found: %s',
@@ -393,12 +459,7 @@ class PackageFinder(object):
                 ])
             )
 
-        file_versions = list(
-            self._package_versions(
-                (Link(url) for url in file_locations),
-                project_name.lower()
-            )
-        )
+        file_versions = self._package_versions(file_locations, search)
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -528,13 +589,6 @@ class PackageFinder(object):
                 "%s is potentially insecure and unverifiable.", req.name,
             )
 
-        if selected_version._deprecated_regex:
-            warnings.warn(
-                "%s discovered using a deprecated method of parsing, in the "
-                "future it will no longer be discovered." % req.name,
-                RemovedInPip7Warning,
-            )
-
         return selected_version
 
     def _find_url_name(self, index_url, url_name):
@@ -608,8 +662,6 @@ class PackageFinder(object):
 
                 all_locations.append(link)
 
-    _egg_fragment_re = re.compile(r'#egg=([^&]*)')
-    _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     def _sort_links(self, links):
@@ -628,73 +680,57 @@ class PackageFinder(object):
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _package_versions(self, links, search_name):
+    def _package_versions(self, links, search):
+        result = []
         for link in self._sort_links(links):
-            v = self._link_package_versions(link, search_name)
+            v = self._link_package_versions(link, search)
             if v is not None:
-                yield v
+                result.append(v)
+        return result
 
-    def _known_extensions(self):
-        extensions = ('.tar.gz', '.tar.bz2', '.tar', '.tgz', '.zip')
-        if self.use_wheel:
-            return extensions + (wheel_ext,)
-        return extensions
+    def _log_skipped_link(self, link, reason):
+        if link not in self.logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self.logged_links.add(link)
 
-    def _link_package_versions(self, link, search_name):
+    def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
         platform = get_platform()
 
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
+            ext = link.ext
         else:
             egg_info, ext = link.splitext()
             if not ext:
-                if link not in self.logged_links:
-                    logger.debug('Skipping link %s; not a file', link)
-                    self.logged_links.add(link)
+                self._log_skipped_link(link, 'not a file')
                 return
-            if egg_info.endswith('.tar'):
-                # Special double-extension case:
-                egg_info = egg_info[:-4]
-                ext = '.tar' + ext
-            if ext not in self._known_extensions():
-                if link not in self.logged_links:
-                    logger.debug(
-                        'Skipping link %s; unknown archive format: %s',
-                        link,
-                        ext,
-                    )
-                    self.logged_links.add(link)
+            if ext not in SUPPORTED_EXTENSIONS:
+                self._log_skipped_link(
+                    link, 'unsupported archive format: %s' % ext)
+                return
+            if "binary" not in search.formats and ext == wheel_ext:
+                self._log_skipped_link(
+                    link, 'No binaries permitted for %s' % search.supplied)
                 return
             if "macosx10" in link.path and ext == '.zip':
-                if link not in self.logged_links:
-                    logger.debug('Skipping link %s; macosx10 one', link)
-                    self.logged_links.add(link)
+                self._log_skipped_link(link, 'macosx10 one')
                 return
             if ext == wheel_ext:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
-                    logger.debug(
-                        'Skipping %s because the wheel filename is invalid',
-                        link
-                    )
+                    self._log_skipped_link(link, 'invalid wheel filename')
                     return
                 if (pkg_resources.safe_name(wheel.name).lower() !=
-                        pkg_resources.safe_name(search_name).lower()):
-                    logger.debug(
-                        'Skipping link %s; wrong project name (not %s)',
-                        link,
-                        search_name,
-                    )
+                        search.canonical):
+                    self._log_skipped_link(
+                        link, 'wrong project name (not %s)' % search.supplied)
                     return
                 if not wheel.supported():
-                    logger.debug(
-                        'Skipping %s because it is not compatible with this '
-                        'Python',
-                        link,
-                    )
+                    self._log_skipped_link(
+                        link, 'it is not compatible with this Python')
                     return
                 # This is a dirty hack to prevent installing Binary Wheels from
                 # PyPI unless it is a Windows or Mac Binary Wheel. This is
@@ -714,46 +750,47 @@ class PackageFinder(object):
                             comes_from.url
                         ).netloc.endswith(PyPI.netloc)):
                     if not wheel.supported(tags=supported_tags_noarch):
-                        logger.debug(
-                            "Skipping %s because it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform",
+                        self._log_skipped_link(
                             link,
+                            "it is a pypi-hosted binary "
+                            "Wheel on an unsupported platform",
                         )
                         return
                 version = wheel.version
 
+        # This should be up by the search.ok_binary check, but see issue 2700.
+        if "source" not in search.formats and ext != wheel_ext:
+            self._log_skipped_link(
+                link, 'No sources permitted for %s' % search.supplied)
+            return
+
         if not version:
-            version = self._egg_info_matches(egg_info, search_name, link)
+            version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
-            logger.debug(
-                'Skipping link %s; wrong project name (not %s)',
-                link,
-                search_name,
-            )
+            self._log_skipped_link(
+                link, 'wrong project name (not %s)' % search.supplied)
             return
 
         if (link.internal is not None and not
                 link.internal and not
-                normalize_name(search_name).lower()
+                normalize_name(search.supplied).lower()
                 in self.allow_external and not
                 self.allow_all_external):
             # We have a link that we are sure is external, so we should skip
             #   it unless we are allowing externals
-            logger.debug("Skipping %s because it is externally hosted.", link)
+            self._log_skipped_link(link, 'it is externally hosted')
             self.need_warn_external = True
             return
 
         if (link.verifiable is not None and not
                 link.verifiable and not
-                (normalize_name(search_name).lower()
+                (normalize_name(search.supplied).lower()
                     in self.allow_unverified)):
             # We have a link that we are sure we cannot verify its integrity,
             #   so we should skip it unless we are allowing unsafe installs
             #   for this requirement.
-            logger.debug(
-                "Skipping %s because it is an insecure and unverifiable file.",
-                link,
-            )
+            self._log_skipped_link(
+                link, 'it is an insecure and unverifiable file')
             self.need_warn_unverified = True
             return
 
@@ -762,43 +799,48 @@ class PackageFinder(object):
             version = version[:match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                logger.debug(
-                    'Skipping %s because Python version is incorrect', link
-                )
+                self._log_skipped_link(
+                    link, 'Python version is incorrect')
                 return
         logger.debug('Found link %s, version: %s', link, version)
 
-        return InstallationCandidate(search_name, version, link)
-
-    def _egg_info_matches(self, egg_info, search_name, link):
-        match = self._egg_info_re.search(egg_info)
-        if not match:
-            logger.debug('Could not parse version from link: %s', link)
-            return None
-        name = match.group(0).lower()
-        # To match the "safe" name that pkg_resources creates:
-        name = name.replace('_', '-')
-        # project name and version must be separated by a dash
-        look_for = search_name.lower() + "-"
-        if name.startswith(look_for):
-            return match.group(0)[len(look_for):]
-        else:
-            return None
+        return InstallationCandidate(search.supplied, version, link)
 
     def _get_page(self, link):
         return HTMLPage.get_page(link, session=self.session)
 
 
+def egg_info_matches(
+        egg_info, search_name, link,
+        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    """Pull the version part out of a string.
+
+    :param egg_info: The string to parse. E.g. foo-2.1
+    :param search_name: The name of the package this belongs to. None to
+        infer the name. Note that this cannot unambiguously parse strings
+        like foo-2-2 which might be foo, 2-2 or foo-2, 2.
+    :param link: The link the string came from, for logging on failure.
+    """
+    match = _egg_info_re.search(egg_info)
+    if not match:
+        logger.debug('Could not parse version from link: %s', link)
+        return None
+    if search_name is None:
+        full_match = match.group(0)
+        return full_match[full_match.index('-'):]
+    name = match.group(0).lower()
+    # To match the "safe" name that pkg_resources creates:
+    name = name.replace('_', '-')
+    # project name and version must be separated by a dash
+    look_for = search_name.lower() + "-"
+    if name.startswith(look_for):
+        return match.group(0)[len(look_for):]
+    else:
+        return None
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
-
-    # FIXME: these regexes are horrible hacks:
-    _homepage_re = re.compile(b'<th>\\s*home\\s*page', re.I)
-    _download_re = re.compile(b'<th>\\s*download\\s+url', re.I)
-    _href_re = re.compile(
-        b'href=(?:"([^"]*)"|\'([^\']*)\'|([^>\\s\\n]*))',
-        re.I | re.S
-    )
 
     def __init__(self, content, url, headers=None, trusted=None):
         # Determine if we have any encoding information in our headers
@@ -842,7 +884,7 @@ class HTMLPage(object):
         try:
             if skip_archives:
                 filename = link.filename
-                for bad_ext in ['.tar', '.tar.gz', '.tar.bz2', '.tgz', '.zip']:
+                for bad_ext in ARCHIVE_EXTENSIONS:
                     if filename.endswith(bad_ext):
                         content_type = cls._get_content_type(
                             url, session=session,
@@ -982,13 +1024,7 @@ class HTMLPage(object):
 
                 yield Link(url, self, internal=internal)
 
-    def rel_links(self):
-        for url in self.explicit_rel_links():
-            yield url
-        for url in self.scraped_rel_links():
-            yield url
-
-    def explicit_rel_links(self, rels=('homepage', 'download')):
+    def rel_links(self, rels=('homepage', 'download')):
         """Yields all links with the given relations"""
         rels = set(rels)
 
@@ -1004,29 +1040,6 @@ class HTMLPage(object):
                     )
                     yield Link(url, self, trusted=False)
 
-    def scraped_rel_links(self):
-        # Can we get rid of this horrible horrible method?
-        for regex in (self._homepage_re, self._download_re):
-            match = regex.search(self.content)
-            if not match:
-                continue
-            href_match = self._href_re.search(self.content, pos=match.end())
-            if not href_match:
-                continue
-            url = (
-                href_match.group(1) or
-                href_match.group(2) or
-                href_match.group(3)
-            )
-            if not url:
-                continue
-            try:
-                url = url.decode("ascii")
-            except UnicodeDecodeError:
-                continue
-            url = self.clean_link(urllib_parse.urljoin(self.base_url, url))
-            yield Link(url, self, trusted=False, _deprecated_regex=True)
-
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
     def clean_link(self, url):
@@ -1039,8 +1052,7 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None, internal=None, trusted=None,
-                 _deprecated_regex=False):
+    def __init__(self, url, comes_from=None, internal=None, trusted=None):
 
         # url can be a UNC windows share
         if url != Inf and url.startswith('\\\\'):
@@ -1050,7 +1062,6 @@ class Link(object):
         self.comes_from = comes_from
         self.internal = internal
         self.trusted = trusted
-        self._deprecated_regex = _deprecated_regex
 
     def __str__(self):
         if self.comes_from:
@@ -1200,3 +1211,68 @@ class Link(object):
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.
 INSTALLED_VERSION = Link(Inf)
+
+
+FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
+"""This object has two fields, no_binary and only_binary.
+
+If a field is falsy, it isn't set. If it is {':all:'}, it should match all
+packages except those listed in the other field. Only one field can be set
+to {':all:'} at a time. The rest of the time exact package name matches
+are listed, with any given package only showing up in one field at a time.
+"""
+
+
+def fmt_ctl_handle_mutual_exclude(value, target, other):
+    new = value.split(',')
+    while ':all:' in new:
+        other.clear()
+        target.clear()
+        target.add(':all:')
+        del new[:new.index(':all:') + 1]
+        if ':none:' not in new:
+            # Without a none, we want to discard everything as :all: covers it
+            return
+    for name in new:
+        if name == ':none:':
+            target.clear()
+            continue
+        name = pkg_resources.safe_name(name).lower()
+        other.discard(name)
+        target.add(name)
+
+
+def fmt_ctl_formats(fmt_ctl, canonical_name):
+    result = set(["binary", "source"])
+    if canonical_name in fmt_ctl.only_binary:
+        result.discard('source')
+    elif canonical_name in fmt_ctl.no_binary:
+        result.discard('binary')
+    elif ':all:' in fmt_ctl.only_binary:
+        result.discard('source')
+    elif ':all:' in fmt_ctl.no_binary:
+        result.discard('binary')
+    return frozenset(result)
+
+
+def fmt_ctl_no_binary(fmt_ctl):
+    fmt_ctl_handle_mutual_exclude(
+        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
+
+
+def fmt_ctl_no_use_wheel(fmt_ctl):
+    fmt_ctl_no_binary(fmt_ctl)
+    warnings.warn(
+        '--no-use-wheel is deprecated and will be removed in the future. '
+        ' Please use --no-binary :all: instead.', DeprecationWarning,
+        stacklevel=2)
+
+
+Search = namedtuple('Search', 'supplied canonical formats')
+"""Capture key aspects of a search.
+
+:attribute supplied: The user supplied package.
+:attribute canonical: The canonical package name.
+:attribute formats: The formats allowed for this package. Should be a set
+    with 'binary' or 'source' or both in it.
+"""

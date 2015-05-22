@@ -22,7 +22,7 @@ __title__ = "packaging"
 __summary__ = "Core utilities for Python packages"
 __uri__ = "https://github.com/pypa/packaging"
 
-__version__ = "15.0"
+__version__ = "15.2"
 
 __author__ = "Donald Stufft"
 __email__ = "donald@stufft.io"

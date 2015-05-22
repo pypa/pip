@@ -9,9 +9,13 @@ pass on state. To be consistent, all options will follow this design.
 """
 from __future__ import absolute_import
 
-import copy
+from functools import partial
 from optparse import OptionGroup, SUPPRESS_HELP, Option
-from pip.index import PyPI
+import warnings
+
+from pip.index import (
+    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
+    fmt_ctl_no_use_wheel)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 
 
@@ -23,34 +27,50 @@ def make_option_group(group, parser):
     """
     option_group = OptionGroup(parser, group['name'])
     for option in group['options']:
-        option_group.add_option(option.make())
+        option_group.add_option(option())
     return option_group
 
 
-class OptionMaker(object):
-    """Class that stores the args/kwargs that would be used to make an Option,
-    for making them later, and uses deepcopy's to reset state."""
+def resolve_wheel_no_use_binary(options):
+    if not options.use_wheel:
+        control = options.format_control
+        fmt_ctl_no_use_wheel(control)
 
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
 
-    def make(self):
-        args_copy = copy.deepcopy(self.args)
-        kwargs_copy = copy.deepcopy(self.kwargs)
-        return Option(*args_copy, **kwargs_copy)
+def check_install_build_global(options, check_options=None):
+    """Disable wheels if per-setup.py call options are set.
+
+    :param options: The OptionParser options to update.
+    :param check_options: The options to check, if not supplied defaults to
+        options.
+    """
+    if check_options is None:
+        check_options = options
+
+    def getname(n):
+        return getattr(check_options, n, None)
+    names = ["build_options", "global_options", "install_options"]
+    if any(map(getname, names)):
+        control = options.format_control
+        fmt_ctl_no_binary(control)
+        warnings.warn(
+            'Disabling all use of wheels due to the use of --build-options '
+            '/ --global-options / --install-options.', stacklevel=2)
+
 
 ###########
 # options #
 ###########
 
-help_ = OptionMaker(
+help_ = partial(
+    Option,
     '-h', '--help',
     dest='help',
     action='help',
     help='Show help.')
 
-isolated_mode = OptionMaker(
+isolated_mode = partial(
+    Option,
     "--isolated",
     dest="isolated_mode",
     action="store_true",
@@ -61,7 +81,8 @@ isolated_mode = OptionMaker(
     ),
 )
 
-require_virtualenv = OptionMaker(
+require_virtualenv = partial(
+    Option,
     # Run only if inside a virtualenv, bail if not.
     '--require-virtualenv', '--require-venv',
     dest='require_venv',
@@ -69,7 +90,8 @@ require_virtualenv = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
-verbose = OptionMaker(
+verbose = partial(
+    Option,
     '-v', '--verbose',
     dest='verbose',
     action='count',
@@ -77,27 +99,31 @@ verbose = OptionMaker(
     help='Give more output. Option is additive, and can be used up to 3 times.'
 )
 
-version = OptionMaker(
+version = partial(
+    Option,
     '-V', '--version',
     dest='version',
     action='store_true',
     help='Show version and exit.')
 
-quiet = OptionMaker(
+quiet = partial(
+    Option,
     '-q', '--quiet',
     dest='quiet',
     action='count',
     default=0,
     help='Give less output.')
 
-log = OptionMaker(
+log = partial(
+    Option,
     "--log", "--log-file", "--local-log",
     dest="log",
     metavar="path",
     help="Path to a verbose appending log."
 )
 
-log_explicit_levels = OptionMaker(
+log_explicit_levels = partial(
+    Option,
     # Writes the log levels explicitely to the log'
     '--log-explicit-levels',
     dest='log_explicit_levels',
@@ -105,7 +131,8 @@ log_explicit_levels = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
-no_input = OptionMaker(
+no_input = partial(
+    Option,
     # Don't ask for input
     '--no-input',
     dest='no_input',
@@ -113,14 +140,16 @@ no_input = OptionMaker(
     default=False,
     help=SUPPRESS_HELP)
 
-proxy = OptionMaker(
+proxy = partial(
+    Option,
     '--proxy',
     dest='proxy',
     type='str',
     default='',
     help="Specify a proxy in the form [user:passwd@]proxy.server:port.")
 
-retries = OptionMaker(
+retries = partial(
+    Option,
     '--retries',
     dest='retries',
     type='int',
@@ -128,7 +157,8 @@ retries = OptionMaker(
     help="Maximum number of retries each connection should attempt "
          "(default %default times).")
 
-timeout = OptionMaker(
+timeout = partial(
+    Option,
     '--timeout', '--default-timeout',
     metavar='sec',
     dest='timeout',
@@ -136,7 +166,8 @@ timeout = OptionMaker(
     default=15,
     help='Set the socket timeout (default %default seconds).')
 
-default_vcs = OptionMaker(
+default_vcs = partial(
+    Option,
     # The default version control system for editables, e.g. 'svn'
     '--default-vcs',
     dest='default_vcs',
@@ -144,7 +175,8 @@ default_vcs = OptionMaker(
     default='',
     help=SUPPRESS_HELP)
 
-skip_requirements_regex = OptionMaker(
+skip_requirements_regex = partial(
+    Option,
     # A regex to be used to skip requirements
     '--skip-requirements-regex',
     dest='skip_requirements_regex',
@@ -152,19 +184,23 @@ skip_requirements_regex = OptionMaker(
     default='',
     help=SUPPRESS_HELP)
 
-exists_action = OptionMaker(
-    # Option when path already exist
-    '--exists-action',
-    dest='exists_action',
-    type='choice',
-    choices=['s', 'i', 'w', 'b'],
-    default=[],
-    action='append',
-    metavar='action',
-    help="Default action when a path already exists: "
-    "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
 
-cert = OptionMaker(
+def exists_action():
+    return Option(
+        # Option when path already exist
+        '--exists-action',
+        dest='exists_action',
+        type='choice',
+        choices=['s', 'i', 'w', 'b'],
+        default=[],
+        action='append',
+        metavar='action',
+        help="Default action when a path already exists: "
+        "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
+
+
+cert = partial(
+    Option,
     '--cert',
     dest='cert',
     type='str',
@@ -172,7 +208,8 @@ cert = OptionMaker(
     metavar='path',
     help="Path to alternate CA bundle.")
 
-client_cert = OptionMaker(
+client_cert = partial(
+    Option,
     '--client-cert',
     dest='client_cert',
     type='str',
@@ -181,65 +218,61 @@ client_cert = OptionMaker(
     help="Path to SSL client certificate, a single file containing the "
          "private key and the certificate in PEM format.")
 
-index_url = OptionMaker(
+index_url = partial(
+    Option,
     '-i', '--index-url', '--pypi-url',
     dest='index_url',
     metavar='URL',
     default=PyPI.simple_url,
     help='Base URL of Python Package Index (default %default).')
 
-extra_index_url = OptionMaker(
-    '--extra-index-url',
-    dest='extra_index_urls',
-    metavar='URL',
-    action='append',
-    default=[],
-    help='Extra URLs of package indexes to use in addition to --index-url.')
 
-no_index = OptionMaker(
+def extra_index_url():
+    return Option(
+        '--extra-index-url',
+        dest='extra_index_urls',
+        metavar='URL',
+        action='append',
+        default=[],
+        help='Extra URLs of package indexes to use in addition to --index-url.'
+    )
+
+
+no_index = partial(
+    Option,
     '--no-index',
     dest='no_index',
     action='store_true',
     default=False,
     help='Ignore package index (only looking at --find-links URLs instead).')
 
-find_links = OptionMaker(
-    '-f', '--find-links',
-    dest='find_links',
-    action='append',
-    default=[],
-    metavar='url',
-    help="If a url or path to an html file, then parse for links to archives. "
-         "If a local path or file:// url that's a directory, then look for "
-         "archives in the directory listing.")
 
-# TODO: Remove after 6.0
-use_mirrors = OptionMaker(
-    '-M', '--use-mirrors',
-    dest='use_mirrors',
-    action='store_true',
-    default=False,
-    help=SUPPRESS_HELP)
+def find_links():
+    return Option(
+        '-f', '--find-links',
+        dest='find_links',
+        action='append',
+        default=[],
+        metavar='url',
+        help="If a url or path to an html file, then parse for links to "
+             "archives. If a local path or file:// url that's a directory,"
+             "then look for archives in the directory listing.")
 
-# TODO: Remove after 6.0
-mirrors = OptionMaker(
-    '--mirrors',
-    dest='mirrors',
-    metavar='URL',
-    action='append',
-    default=[],
-    help=SUPPRESS_HELP)
 
-allow_external = OptionMaker(
-    "--allow-external",
-    dest="allow_external",
-    action="append",
-    default=[],
-    metavar="PACKAGE",
-    help="Allow the installation of a package even if it is externally hosted",
-)
+def allow_external():
+    return Option(
+        "--allow-external",
+        dest="allow_external",
+        action="append",
+        default=[],
+        metavar="PACKAGE",
+        help="Allow the installation of a package even if it is externally "
+             "hosted",
+    )
 
-allow_all_external = OptionMaker(
+
+allow_all_external = partial(
+    Option,
     "--allow-all-external",
     dest="allow_all_external",
     action="store_true",
@@ -247,18 +280,22 @@ allow_all_external = OptionMaker(
     help="Allow the installation of all packages that are externally hosted",
 )
 
-trusted_host = OptionMaker(
-    "--trusted-host",
-    dest="trusted_hosts",
-    action="append",
-    metavar="HOSTNAME",
-    default=[],
-    help="Mark this host as trusted, even though it does not have valid or "
-         "any HTTPS.",
-)
+
+def trusted_host():
+    return Option(
+        "--trusted-host",
+        dest="trusted_hosts",
+        action="append",
+        metavar="HOSTNAME",
+        default=[],
+        help="Mark this host as trusted, even though it does not have valid "
+             "or any HTTPS.",
+    )
+
 
 # Remove after 7.0
-no_allow_external = OptionMaker(
+no_allow_external = partial(
+    Option,
     "--no-allow-external",
     dest="allow_all_external",
     action="store_false",
@@ -266,19 +303,22 @@ no_allow_external = OptionMaker(
     help=SUPPRESS_HELP,
 )
 
+
 # Remove --allow-insecure after 7.0
-allow_unsafe = OptionMaker(
-    "--allow-unverified", "--allow-insecure",
-    dest="allow_unverified",
-    action="append",
-    default=[],
-    metavar="PACKAGE",
-    help="Allow the installation of a package even if it is hosted "
-    "in an insecure and unverifiable way",
-)
+def allow_unsafe():
+    return Option(
+        "--allow-unverified", "--allow-insecure",
+        dest="allow_unverified",
+        action="append",
+        default=[],
+        metavar="PACKAGE",
+        help="Allow the installation of a package even if it is hosted "
+        "in an insecure and unverifiable way",
+    )
 
 # Remove after 7.0
-no_allow_unsafe = OptionMaker(
+no_allow_unsafe = partial(
+    Option,
     "--no-allow-insecure",
     dest="allow_all_insecure",
     action="store_false",
@@ -287,7 +327,8 @@ no_allow_unsafe = OptionMaker(
 )
 
 # Remove after 1.5
-process_dependency_links = OptionMaker(
+process_dependency_links = partial(
+    Option,
     "--process-dependency-links",
     dest="process_dependency_links",
     action="store_true",
@@ -295,26 +336,31 @@ process_dependency_links = OptionMaker(
     help="Enable the processing of dependency links.",
 )
 
-requirements = OptionMaker(
-    '-r', '--requirement',
-    dest='requirements',
-    action='append',
-    default=[],
-    metavar='file',
-    help='Install from the given requirements file. '
-    'This option can be used multiple times.')
 
-editable = OptionMaker(
-    '-e', '--editable',
-    dest='editables',
-    action='append',
-    default=[],
-    metavar='path/url',
-    help=('Install a project in editable mode (i.e. setuptools '
-          '"develop mode") from a local project path or a VCS url.'),
-)
+def requirements():
+    return Option(
+        '-r', '--requirement',
+        dest='requirements',
+        action='append',
+        default=[],
+        metavar='file',
+        help='Install from the given requirements file. '
+        'This option can be used multiple times.')
 
-src = OptionMaker(
+
+def editable():
+    return Option(
+        '-e', '--editable',
+        dest='editables',
+        action='append',
+        default=[],
+        metavar='path/url',
+        help=('Install a project in editable mode (i.e. setuptools '
+              '"develop mode") from a local project path or a VCS url.'),
+    )
+
+src = partial(
+    Option,
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
     metavar='dir',
@@ -324,23 +370,73 @@ src = OptionMaker(
     'The default for global installs is "<current dir>/src".'
 )
 
-use_wheel = OptionMaker(
+# XXX: deprecated, remove in 9.0
+use_wheel = partial(
+    Option,
     '--use-wheel',
     dest='use_wheel',
     action='store_true',
+    default=True,
     help=SUPPRESS_HELP,
 )
 
-no_use_wheel = OptionMaker(
+# XXX: deprecated, remove in 9.0
+no_use_wheel = partial(
+    Option,
     '--no-use-wheel',
     dest='use_wheel',
     action='store_false',
     default=True,
     help=('Do not Find and prefer wheel archives when searching indexes and '
-          'find-links locations.'),
+          'find-links locations. DEPRECATED in favour of --no-binary.'),
 )
 
-cache_dir = OptionMaker(
+
+def _get_format_control(values, option):
+    """Get a format_control object."""
+    return getattr(values, option.dest)
+
+
+def _handle_no_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    fmt_ctl_handle_mutual_exclude(
+        value, existing.no_binary, existing.only_binary)
+
+
+def _handle_only_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    fmt_ctl_handle_mutual_exclude(
+        value, existing.only_binary, existing.no_binary)
+
+
+def no_binary():
+    return Option(
+        "--no-binary", dest="format_control", action="callback",
+        callback=_handle_no_binary, type="str",
+        default=FormatControl(set(), set()),
+        help="Do not use binary packages. Can be supplied multiple times, and "
+             "each time adds to the existing value. Accepts either :all: to "
+             "disable all binary packages, :none: to empty the set, or one or "
+             "more package names with commas between them. Note that some "
+             "packages are tricky to compile and may fail to install when "
+             "this option is used on them.")
+
+
+def only_binary():
+    return Option(
+        "--only-binary", dest="format_control", action="callback",
+        callback=_handle_only_binary, type="str",
+        default=FormatControl(set(), set()),
+        help="Do not use source packages. Can be supplied multiple times, and "
+             "each time adds to the existing value. Accepts either :all: to "
+             "disable all source packages, :none: to empty the set, or one or "
+             "more package names with commas between them. Packages without "
+             "binary distributions will fail to install when this option is "
+             "used on them.")
+
+
+cache_dir = partial(
+    Option,
     "--cache-dir",
     dest="cache_dir",
     default=USER_CACHE_DIR,
@@ -348,34 +444,39 @@ cache_dir = OptionMaker(
     help="Store the cache data in <dir>."
 )
 
-no_cache = OptionMaker(
+no_cache = partial(
+    Option,
     "--no-cache-dir",
     dest="cache_dir",
     action="store_false",
     help="Disable the cache.",
 )
 
-download_cache = OptionMaker(
+download_cache = partial(
+    Option,
     '--download-cache',
     dest='download_cache',
     default=None,
     help=SUPPRESS_HELP)
 
-no_deps = OptionMaker(
+no_deps = partial(
+    Option,
     '--no-deps', '--no-dependencies',
     dest='ignore_dependencies',
     action='store_true',
     default=False,
     help="Don't install package dependencies.")
 
-build_dir = OptionMaker(
+build_dir = partial(
+    Option,
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
     help='Directory to unpack packages into and build in.'
 )
 
-install_options = OptionMaker(
+install_options = partial(
+    Option,
     '--install-option',
     dest='install_options',
     action='append',
@@ -386,7 +487,8 @@ install_options = OptionMaker(
          "options to setup.py install. If you are using an option with a "
          "directory path, be sure to use absolute path.")
 
-global_options = OptionMaker(
+global_options = partial(
+    Option,
     '--global-option',
     dest='global_options',
     action='append',
@@ -394,19 +496,31 @@ global_options = OptionMaker(
     help="Extra global options to be supplied to the setup.py "
          "call before the install command.")
 
-no_clean = OptionMaker(
+no_clean = partial(
+    Option,
     '--no-clean',
     action='store_true',
     default=False,
     help="Don't clean up build directories.")
 
-disable_pip_version_check = OptionMaker(
+disable_pip_version_check = partial(
+    Option,
     "--disable-pip-version-check",
     dest="disable_pip_version_check",
     action="store_true",
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.")
+
+# Deprecated, Remove later
+always_unzip = partial(
+    Option,
+    '-Z', '--always-unzip',
+    dest='always_unzip',
+    action='store_true',
+    help=SUPPRESS_HELP,
+)
+
 
 ##########
 # groups #
@@ -446,8 +560,6 @@ index_group = {
         extra_index_url,
         no_index,
         find_links,
-        use_mirrors,
-        mirrors,
         allow_external,
         allow_all_external,
         no_allow_external,

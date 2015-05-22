@@ -7,7 +7,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
-from pip.utils import rmtree
+from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url)
 from tests.lib.local_repos import local_checkout
@@ -22,7 +22,7 @@ def test_without_setuptools(script, data):
         "'install', "
         "'INITools==0.2', "
         "'-f', '%s', "
-        "'--no-use-wheel'])" % data.packages,
+        "'--no-binary=:all:'])" % data.packages,
         expect_error=True,
     )
     assert (
@@ -129,87 +129,6 @@ def test_download_editable_to_custom_path(script, tmpdir):
 
 
 @pytest.mark.network
-def test_editable_no_install_followed_by_no_download(script, tmpdir):
-    """
-    Test installing an editable in two steps (first with --no-install, then
-    with --no-download).
-    """
-    result = script.pip(
-        'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache"),
-        ),
-        '--no-install',
-        expect_error=True,
-    )
-    result.assert_installed(
-        'INITools', without_egg_link=True, with_files=['.svn'],
-    )
-
-    result = script.pip(
-        'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache"),
-        ),
-        '--no-download',
-        expect_error=True,
-    )
-    result.assert_installed('INITools', without_files=[curdir, '.svn'])
-
-
-def test_no_install_followed_by_no_download(script):
-    """
-    Test installing in two steps (first with --no-install, then with
-    --no-download).
-    """
-    egg_info_folder = (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
-    )
-    initools_folder = script.site_packages / 'initools'
-    build_dir = script.venv / 'build' / 'INITools'
-
-    result1 = script.pip_install_local(
-        'INITools==0.2', '--no-install', expect_error=True,
-    )
-    assert egg_info_folder not in result1.files_created, str(result1)
-    assert initools_folder not in result1.files_created, (
-        sorted(result1.files_created)
-    )
-    assert build_dir in result1.files_created, result1.files_created
-    assert build_dir / 'INITools.egg-info' in result1.files_created
-
-    result2 = script.pip_install_local(
-        'INITools==0.2', '--no-download', expect_error=True,
-    )
-    assert egg_info_folder in result2.files_created, str(result2)
-    assert initools_folder in result2.files_created, (
-        sorted(result2.files_created)
-    )
-    assert build_dir not in result2.files_created
-    assert build_dir / 'INITools.egg-info' not in result2.files_created
-
-
-def test_bad_install_with_no_download(script):
-    """
-    Test that --no-download behaves sensibly if the package source can't be
-    found.
-    """
-    result = script.pip(
-        'install', 'INITools==0.2', '--no-download', expect_error=True,
-    )
-    assert (
-        "perhaps --no-download was used without first running "
-        "an equivalent install with --no-install?" in result.stderr
-    )
-
-
-@pytest.mark.network
 def test_install_dev_version_from_pypi(script):
     """
     Test using package==dev.
@@ -225,12 +144,22 @@ def test_install_dev_version_from_pypi(script):
     )
 
 
-def test_install_editable_from_git(script, tmpdir):
+def _test_install_editable_from_git(script, tmpdir, wheel):
     """Test cloning from Git."""
+    if wheel:
+        script.pip('install', 'wheel')
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
     args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('testpackage', with_files=['.git'])
+
+
+def test_install_editable_from_git(script, tmpdir):
+    _test_install_editable_from_git(script, tmpdir, False)
+
+
+def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
+    _test_install_editable_from_git(script, tmpdir, True)
 
 
 def test_install_editable_from_hg(script, tmpdir):
@@ -375,7 +304,7 @@ def test_install_global_option(script):
     """
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
-    )
+        expect_stderr=True)
     assert '0.1\n' in result.stdout
 
 
@@ -406,8 +335,8 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(url, tmpdir.join("cache")),
-        '--install-option=--script-dir=%s' % folder
-    )
+        '--install-option=--script-dir=%s' % folder,
+        expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
         folder / 'pip-test-package' + script.exe
@@ -423,8 +352,8 @@ def test_install_global_option_using_editable(script, tmpdir):
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip(
         'install', '--global-option=--version', '-e',
-        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache"))
-    )
+        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache")),
+        expect_stderr=True)
     assert 'Successfully installed anyjson' in result.stdout
 
 
@@ -676,7 +605,7 @@ def test_compiles_pyc(script):
     Test installing with --compile on
     """
     del script.environ["PYTHONDONTWRITEBYTECODE"]
-    script.pip("install", "--compile", "--no-use-wheel", "INITools==0.2")
+    script.pip("install", "--compile", "--no-binary=:all:", "INITools==0.2")
 
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -697,7 +626,7 @@ def test_no_compiles_pyc(script, data):
     Test installing from wheel with --compile on
     """
     del script.environ["PYTHONDONTWRITEBYTECODE"]
-    script.pip("install", "--no-compile", "--no-use-wheel", "INITools==0.2")
+    script.pip("install", "--no-compile", "--no-binary=:all:", "INITools==0.2")
 
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -743,3 +672,93 @@ def test_install_topological_sort(script, data):
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
+
+
+def test_install_wheel_broken(script, data):
+    script.pip('install', 'wheel')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links, 'wheelbroken',
+        expect_stderr=True)
+    assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
+
+
+def test_install_builds_wheels(script, data):
+    # NB This incidentally tests a local tree + tarball inputs
+    # see test_install_editable_from_git_autobuild_wheel for editable
+    # vcs coverage.
+    script.pip('install', 'wheel')
+    to_install = data.packages.join('requires_wheelbroken_upper')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        to_install, expect_stderr=True)
+    expected = ("Successfully installed requires-wheelbroken-upper-0"
+                " upper-2.0 wheelbroken-0.1")
+    # Must have installed it all
+    assert expected in str(res), str(res)
+    root = appdirs.user_cache_dir('pip')
+    wheels = []
+    for top, dirs, files in os.walk(root):
+        wheels.extend(files)
+    # and built wheels for upper and wheelbroken
+    assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
+    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    # But not requires_wheel... which is a local dir and thus uncachable.
+    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # wheelbroken has to run install
+    # into the cache
+    assert wheels != [], str(res)
+    # and installed from the wheel
+    assert "Running setup.py install for upper" not in str(res), str(res)
+    # the local tree can't build a wheel (because we can't assume that every
+    # build will have a suitable unique key to cache on).
+    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # wheelbroken has to run install
+    assert "Running setup.py install for wheelb" in str(res), str(res)
+
+
+def test_install_no_binary_disables_building_wheels(script, data):
+    script.pip('install', 'wheel')
+    to_install = data.packages.join('requires_wheelbroken_upper')
+    res = script.pip(
+        'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
+        to_install, expect_stderr=True)
+    expected = ("Successfully installed requires-wheelbroken-upper-0"
+                " upper-2.0 wheelbroken-0.1")
+    # Must have installed it all
+    assert expected in str(res), str(res)
+    root = appdirs.user_cache_dir('pip')
+    wheels = []
+    for top, dirs, files in os.walk(root):
+        wheels.extend(files)
+    # and built wheels for wheelbroken only
+    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    # But not requires_wheel... which is a local dir and thus uncachable.
+    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # Nor upper, which was blacklisted
+    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    # wheelbroken has to run install
+    # into the cache
+    assert wheels != [], str(res)
+    # the local tree can't build a wheel (because we can't assume that every
+    # build will have a suitable unique key to cache on).
+    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # And these two fell back to sdist based installed.
+    assert "Running setup.py install for wheelb" in str(res), str(res)
+    assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_no_binary_disables_cached_wheels(script, data):
+    script.pip('install', 'wheel')
+    # Seed the cache
+    script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        'upper')
+    script.pip('uninstall', 'upper', '-y')
+    res = script.pip(
+        'install', '--no-index', '--no-binary=:all:', '-f', data.find_links,
+        'upper', expect_stderr=True)
+    assert "Successfully installed upper-2.0" in str(res), str(res)
+    # No wheel building for upper, which was blacklisted
+    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    # Must have used source, not a cached wheel to install upper.
+    assert "Running setup.py install for upper" in str(res), str(res)

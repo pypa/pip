@@ -152,12 +152,23 @@ class _IndividualSpecifier(BaseSpecifier):
         return version
 
     @property
+    def operator(self):
+        return self._spec[0]
+
+    @property
+    def version(self):
+        return self._spec[1]
+
+    @property
     def prereleases(self):
         return self._prereleases
 
     @prereleases.setter
     def prereleases(self, value):
         self._prereleases = value
+
+    def __contains__(self, item):
+        return self.contains(item)
 
     def contains(self, item, prereleases=None):
         # Determine if prereleases are to be allowed or not.
@@ -176,7 +187,7 @@ class _IndividualSpecifier(BaseSpecifier):
 
         # Actually do the comparison to determine if this item is contained
         # within this Specifier or not.
-        return self._get_operator(self._spec[0])(item, self._spec[1])
+        return self._get_operator(self.operator)(item, self.version)
 
     def filter(self, iterable, prereleases=None):
         yielded = False
@@ -526,7 +537,7 @@ class Specifier(_IndividualSpecifier):
         # operators, and if they are if they are including an explicit
         # prerelease.
         operator, version = self._spec
-        if operator in ["==", ">=", "<=", "~="]:
+        if operator in ["==", ">=", "<=", "~=", "==="]:
             # The == specifier can include a trailing .*, if it does we
             # want to remove before parsing.
             if operator == "==" and version.endswith(".*"):
@@ -666,6 +677,12 @@ class SpecifierSet(BaseSpecifier):
 
         return self._specs != other._specs
 
+    def __len__(self):
+        return len(self._specs)
+
+    def __iter__(self):
+        return iter(self._specs)
+
     @property
     def prereleases(self):
         # If we have been given an explicit prerelease modifier, then we'll
@@ -673,20 +690,33 @@ class SpecifierSet(BaseSpecifier):
         if self._prereleases is not None:
             return self._prereleases
 
+        # If we don't have any specifiers, and we don't have a forced value,
+        # then we'll just return None since we don't know if this should have
+        # pre-releases or not.
+        if not self._specs:
+            return None
+
         # Otherwise we'll see if any of the given specifiers accept
         # prereleases, if any of them do we'll return True, otherwise False.
-        # Note: The use of any() here means that an empty set of specifiers
-        #       will always return False, this is an explicit design decision.
         return any(s.prereleases for s in self._specs)
 
     @prereleases.setter
     def prereleases(self, value):
         self._prereleases = value
 
+    def __contains__(self, item):
+        return self.contains(item)
+
     def contains(self, item, prereleases=None):
         # Ensure that our item is a Version or LegacyVersion instance.
         if not isinstance(item, (LegacyVersion, Version)):
             item = parse(item)
+
+        # Determine if we're forcing a prerelease or not, if we're not forcing
+        # one for this particular filter call, then we'll use whatever the
+        # SpecifierSet thinks for whether or not we should support prereleases.
+        if prereleases is None:
+            prereleases = self.prereleases
 
         # We can determine if we're going to allow pre-releases by looking to
         # see if any of the underlying items supports them. If none of them do
@@ -694,20 +724,8 @@ class SpecifierSet(BaseSpecifier):
         # short circuit that here.
         # Note: This means that 1.0.dev1 would not be contained in something
         #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0
-        if (not (self.prereleases or prereleases)) and item.is_prerelease:
+        if not prereleases and item.is_prerelease:
             return False
-
-        # Determine if we're forcing a prerelease or not, we bypass
-        # self.prereleases here and use self._prereleases because we want to
-        # only take into consideration actual *forced* values. The underlying
-        # specifiers will handle the other logic.
-        # The logic here is: If prereleases is anything but None, we'll just
-        #                    go aheand and continue to use that. However if
-        #                    prereleases is None, then we'll use whatever the
-        #                    value of self._prereleases is as long as it is not
-        #                    None itself.
-        if prereleases is None and self._prereleases is not None:
-            prereleases = self._prereleases
 
         # We simply dispatch to the underlying specs here to make sure that the
         # given version is contained within all of them.
@@ -719,24 +737,18 @@ class SpecifierSet(BaseSpecifier):
         )
 
     def filter(self, iterable, prereleases=None):
-        # Determine if we're forcing a prerelease or not, we bypass
-        # self.prereleases here and use self._prereleases because we want to
-        # only take into consideration actual *forced* values. The underlying
-        # specifiers will handle the other logic.
-        # The logic here is: If prereleases is anything but None, we'll just
-        #                    go aheand and continue to use that. However if
-        #                    prereleases is None, then we'll use whatever the
-        #                    value of self._prereleases is as long as it is not
-        #                    None itself.
-        if prereleases is None and self._prereleases is not None:
-            prereleases = self._prereleases
+        # Determine if we're forcing a prerelease or not, if we're not forcing
+        # one for this particular filter call, then we'll use whatever the
+        # SpecifierSet thinks for whether or not we should support prereleases.
+        if prereleases is None:
+            prereleases = self.prereleases
 
         # If we have any specifiers, then we want to wrap our iterable in the
         # filter method for each one, this will act as a logical AND amongst
         # each specifier.
         if self._specs:
             for spec in self._specs:
-                iterable = spec.filter(iterable, prereleases=prereleases)
+                iterable = spec.filter(iterable, prereleases=bool(prereleases))
             return iterable
         # If we do not have any specifiers, then we need to have a rough filter
         # which will filter out any pre-releases, unless there are no final

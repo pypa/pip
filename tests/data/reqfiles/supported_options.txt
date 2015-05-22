@@ -1,2 +1,0 @@
-# requirement file containing various supported options
---no-use-wheel

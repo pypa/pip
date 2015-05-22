@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
 import datetime
-import errno
 import json
 import logging
 import os.path
 import sys
 
 from pip._vendor import lockfile
-from pip._vendor import pkg_resources
+from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import total_seconds
 from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
+from pip.utils import ensure_dir
 from pip.utils.filesystem import check_path_owner
 
 
@@ -65,11 +65,7 @@ class GlobalSelfCheckState(object):
 
         # Now that we've ensured the directory is owned by this user, we'll go
         # ahead and make sure that all our directories are created.
-        try:
-            os.makedirs(os.path.dirname(self.statefile_path))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
+        ensure_dir(os.path.dirname(self.statefile_path))
 
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
@@ -126,15 +122,23 @@ def pip_version_check(session):
                 headers={"Accept": "application/json"},
             )
             resp.raise_for_status()
-            pypi_version = resp.json()["info"]["version"]
+            pypi_version = [
+                v for v in sorted(
+                    list(resp.json()["releases"]),
+                    key=packaging_version.parse,
+                )
+                if not packaging_version.parse(v).is_prerelease
+            ][-1]
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
-        pip_version = pkg_resources.parse_version(pip.__version__)
+        pip_version = packaging_version.parse(pip.__version__)
+        remote_version = packaging_version.parse(pypi_version)
 
         # Determine if our pypi_version is older
-        if pip_version < pkg_resources.parse_version(pypi_version):
+        if (pip_version < remote_version and
+                pip_version.base_version != remote_version.base_version):
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "

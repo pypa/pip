@@ -6,14 +6,12 @@ import tempfile
 import pytest
 
 from mock import Mock, patch, mock_open
-from pip.exceptions import (
-    PreviousBuildDirError, InvalidWheelFilename, UnsupportedWheel,
-)
+from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
+                            UnsupportedWheel)
 from pip.download import PipSession
 from pip.index import PackageFinder
-from pip.req import (InstallRequirement, RequirementSet,
-                     Requirements, parse_requirements)
-from pip.req.req_install import parse_editable, _filter_install
+from pip.req import (InstallRequirement, RequirementSet, Requirements)
+from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from tests.lib import assert_raises_regexp
@@ -297,111 +295,14 @@ def test_parse_editable_local_extras(
     )
 
 
-@pytest.mark.network
-def test_remote_reqs_parse():
-    """
-    Test parsing a simple remote requirements file
-    """
-    # this requirements file just contains a comment
-    # previously this has failed in py3: https://github.com/pypa/pip/issues/760
-    for req in parse_requirements(
-            'https://raw.githubusercontent.com/pypa/pip-test-package/master/'
-            'tests/req_just_comment.txt', session=PipSession()):
-        pass
+def test_exclusive_environment_markers():
+    """Make sure RequirementSet accepts several excluding env markers"""
+    eq26 = InstallRequirement.from_line(
+        "Django>=1.6.10,<1.7 ; python_version == '2.6'")
+    ne26 = InstallRequirement.from_line(
+        "Django>=1.6.10,<1.8 ; python_version != '2.6'")
 
-
-def test_req_file_parse_no_use_wheel(data):
-    """
-    Test parsing --no-use-wheel from a req file
-    """
-    finder = PackageFinder([], [], session=PipSession())
-    for req in parse_requirements(
-            data.reqfiles.join("supported_options.txt"), finder,
-            session=PipSession()):
-        pass
-    assert not finder.use_wheel
-
-
-def test_req_file_parse_comment_start_of_line(tmpdir):
-    """
-    Test parsing comments in a requirements file
-    """
-    with open(tmpdir.join("req1.txt"), "w") as fp:
-        fp.write("# Comment ")
-
-    finder = PackageFinder([], [], session=PipSession())
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
-                session=PipSession()))
-
-    assert not reqs
-
-
-def test_req_file_parse_comment_end_of_line_with_url(tmpdir):
-    """
-    Test parsing comments in a requirements file
-    """
-    with open(tmpdir.join("req1.txt"), "w") as fp:
-        fp.write("https://example.com/foo.tar.gz # Comment ")
-
-    finder = PackageFinder([], [], session=PipSession())
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
-                session=PipSession()))
-
-    assert len(reqs) == 1
-    assert reqs[0].link.url == "https://example.com/foo.tar.gz"
-
-
-def test_req_file_parse_egginfo_end_of_line_with_url(tmpdir):
-    """
-    Test parsing comments in a requirements file
-    """
-    with open(tmpdir.join("req1.txt"), "w") as fp:
-        fp.write("https://example.com/foo.tar.gz#egg=wat")
-
-    finder = PackageFinder([], [], session=PipSession())
-    reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
-                session=PipSession()))
-
-    assert len(reqs) == 1
-    assert reqs[0].name == "wat"
-
-
-def test_req_file_no_finder(tmpdir):
-    """
-    Test parsing a requirements file without a finder
-    """
-    with open(tmpdir.join("req.txt"), "w") as fp:
-        fp.write("""
---find-links https://example.com/
---index-url https://example.com/
---extra-index-url https://two.example.com/
---no-use-wheel
---no-index
---allow-external foo
---allow-all-external
---allow-insecure foo
---allow-unverified foo
-        """)
-
-    parse_requirements(tmpdir.join("req.txt"), session=PipSession())
-
-
-def test_filter_install():
-    from logging import DEBUG, INFO
-
-    assert _filter_install('running setup.py install') == (
-        DEBUG, 'running setup.py install')
-    assert _filter_install('writing foo.bar') == (
-        DEBUG, 'writing foo.bar')
-    assert _filter_install('creating foo.bar') == (
-        DEBUG, 'creating foo.bar')
-    assert _filter_install('copying foo.bar') == (
-        DEBUG, 'copying foo.bar')
-    assert _filter_install('SyntaxError: blah blah') == (
-        DEBUG, 'SyntaxError: blah blah')
-    assert _filter_install('This should not be filtered') == (
-        INFO, 'This should not be filtered')
-    assert _filter_install('foo bar') == (
-        INFO, 'foo bar')
-    assert _filter_install('I made a SyntaxError') == (
-        INFO, 'I made a SyntaxError')
+    req_set = RequirementSet('', '', '', session=PipSession())
+    req_set.add_requirement(eq26)
+    req_set.add_requirement(ne26)
+    assert req_set.has_requirement('Django')

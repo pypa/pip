@@ -4,6 +4,8 @@ import shutil
 import py
 import pytest
 
+from pip.utils import appdirs
+
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -12,6 +14,8 @@ from tests.lib.venv import VirtualEnvironment
 
 def pytest_collection_modifyitems(items):
     for item in items:
+        if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
+            continue
         module_path = os.path.relpath(
             item.module.__file__,
             os.path.commonprefix([__file__, item.module.__file__]),
@@ -117,7 +121,7 @@ def isolate(tmpdir):
 
 
 @pytest.fixture
-def virtualenv(tmpdir, monkeypatch):
+def virtualenv(tmpdir, monkeypatch, isolate):
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
@@ -145,6 +149,10 @@ def virtualenv(tmpdir, monkeypatch):
         tmpdir.join("workspace", "venv"),
         pip_source_dir=pip_src,
     )
+
+    # Clean out our cache: creating the venv injects wheels into it.
+    if os.path.exists(appdirs.user_cache_dir("pip")):
+        shutil.rmtree(appdirs.user_cache_dir("pip"))
 
     # Undo our monkeypatching of shutil
     monkeypatch.undo()

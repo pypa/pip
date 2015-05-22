@@ -6,23 +6,29 @@ import os
 import tempfile
 import shutil
 import warnings
+try:
+    import wheel
+except ImportError:
+    wheel = None
 
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
-from pip.locations import build_prefix, virtualenv_no_global, distutils_scheme
-from pip.basecommand import Command
+from pip.req import RequirementSet
+from pip.basecommand import RequirementCommand
+from pip.locations import virtualenv_no_global, distutils_scheme
 from pip.index import PackageFinder
 from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
+from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning
+from pip.wheel import WheelCache, WheelBuilder
 
 
 logger = logging.getLogger(__name__)
 
 
-class InstallCommand(Command):
+class InstallCommand(RequirementCommand):
     """
     Install packages from:
 
@@ -50,9 +56,9 @@ class InstallCommand(Command):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(cmdoptions.editable.make())
-        cmd_opts.add_option(cmdoptions.requirements.make())
-        cmd_opts.add_option(cmdoptions.build_dir.make())
+        cmd_opts.add_option(cmdoptions.editable())
+        cmd_opts.add_option(cmdoptions.requirements())
+        cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(
             '-t', '--target',
@@ -74,8 +80,8 @@ class InstallCommand(Command):
                   "regardless of what's already installed."),
         )
 
-        cmd_opts.add_option(cmdoptions.download_cache.make())
-        cmd_opts.add_option(cmdoptions.src.make())
+        cmd_opts.add_option(cmdoptions.download_cache())
+        cmd_opts.add_option(cmdoptions.src())
 
         cmd_opts.add_option(
             '-U', '--upgrade',
@@ -99,26 +105,10 @@ class InstallCommand(Command):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
-        cmd_opts.add_option(cmdoptions.no_deps.make())
+        cmd_opts.add_option(cmdoptions.no_deps())
 
-        cmd_opts.add_option(
-            '--no-install',
-            dest='no_install',
-            action='store_true',
-            help="DEPRECATED. Download and unpack all packages, but don't "
-                 "actually install them."
-        )
-
-        cmd_opts.add_option(
-            '--no-download',
-            dest='no_download',
-            action="store_true",
-            help="DEPRECATED. Don't download any packages, just install the "
-                 "ones already downloaded (completes an install run with "
-                 "--no-install).")
-
-        cmd_opts.add_option(cmdoptions.install_options.make())
-        cmd_opts.add_option(cmdoptions.global_options.make())
+        cmd_opts.add_option(cmdoptions.install_options())
+        cmd_opts.add_option(cmdoptions.global_options())
 
         cmd_opts.add_option(
             '--user',
@@ -161,8 +151,10 @@ class InstallCommand(Command):
             help="Do not compile py files to pyc",
         )
 
-        cmd_opts.add_option(cmdoptions.use_wheel.make())
-        cmd_opts.add_option(cmdoptions.no_use_wheel.make())
+        cmd_opts.add_option(cmdoptions.use_wheel())
+        cmd_opts.add_option(cmdoptions.no_use_wheel())
+        cmd_opts.add_option(cmdoptions.no_binary())
+        cmd_opts.add_option(cmdoptions.only_binary())
 
         cmd_opts.add_option(
             '--pre',
@@ -171,7 +163,7 @@ class InstallCommand(Command):
             help="Include pre-release and development versions. By default, "
                  "pip only finds stable versions.")
 
-        cmd_opts.add_option(cmdoptions.no_clean.make())
+        cmd_opts.add_option(cmdoptions.no_clean())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -189,8 +181,8 @@ class InstallCommand(Command):
         """
         return PackageFinder(
             find_links=options.find_links,
+            format_control=options.format_control,
             index_urls=index_urls,
-            use_wheel=options.use_wheel,
             allow_external=options.allow_external,
             allow_unverified=options.allow_unverified,
             allow_all_external=options.allow_all_external,
@@ -201,25 +193,10 @@ class InstallCommand(Command):
         )
 
     def run(self, options, args):
-
-        if (
-            options.no_install or
-            options.no_download
-        ):
-            warnings.warn(
-                "--no-install and --no-download are deprecated. "
-                "See https://github.com/pypa/pip/issues/906.",
-                RemovedInPip7Warning,
-            )
-
-        # If we have --no-install or --no-download and no --build we use the
-        # legacy static build dir
-        if (options.build_dir is None and
-                (options.no_install or options.no_download)):
-            options.build_dir = build_prefix
+        cmdoptions.resolve_wheel_no_use_binary(options)
+        cmdoptions.check_install_build_global(options)
 
         if options.download_dir:
-            options.no_install = True
             options.ignore_installed = True
 
         if options.build_dir:
@@ -254,23 +231,6 @@ class InstallCommand(Command):
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
-        if options.use_mirrors:
-            warnings.warn(
-                "--use-mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-
-        if options.mirrors:
-            warnings.warn(
-                "--mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-            index_urls += options.mirrors
-
         if options.download_cache:
             warnings.warn(
                 "--download-cache has been deprecated and will be removed in "
@@ -282,8 +242,8 @@ class InstallCommand(Command):
         with self._build_session(options) as session:
 
             finder = self._build_package_finder(options, index_urls, session)
-
             build_delete = (not (options.no_clean or options.build_dir))
+            wheel_cache = WheelCache(options.cache_dir, options.format_control)
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(
@@ -300,52 +260,37 @@ class InstallCommand(Command):
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache,
                 )
 
-                for name in args:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_line(
-                            name, None, isolated=options.isolated_mode,
-                        )
-                    )
-
-                for name in options.editables:
-                    requirement_set.add_requirement(
-                        InstallRequirement.from_editable(
-                            name,
-                            default_vcs=options.default_vcs,
-                            isolated=options.isolated_mode,
-                        )
-                    )
-
-                for filename in options.requirements:
-                    for req in parse_requirements(
-                            filename,
-                            finder=finder, options=options, session=session):
-                        requirement_set.add_requirement(req)
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session, self.name,
+                    wheel_cache
+                )
 
                 if not requirement_set.has_requirements:
-                    opts = {'name': self.name}
-                    if options.find_links:
-                        msg = ('You must give at least one requirement to '
-                               '%(name)s (maybe you meant "pip %(name)s '
-                               '%(links)s"?)' %
-                               dict(opts, links=' '.join(options.find_links)))
-                    else:
-                        msg = ('You must give at least one requirement '
-                               'to %(name)s (see "pip help %(name)s")' % opts)
-                    logger.warning(msg)
                     return
 
                 try:
-                    if not options.no_download:
+                    if (options.download_dir or not wheel or not
+                            options.cache_dir):
+                        # on -d don't do complex things like building
+                        # wheels, and don't try to build wheels when wheel is
+                        # not installed.
                         requirement_set.prepare_files(finder)
                     else:
-                        # This is the only call site of locate_files. Nuke with
-                        # fire.
-                        requirement_set.locate_files()
+                        # build wheels before install.
+                        wb = WheelBuilder(
+                            requirement_set,
+                            finder,
+                            build_options=[],
+                            global_options=[],
+                        )
+                        # Ignore the result: a failed wheel will be
+                        # installed from the sdist/vcs whatever.
+                        wb.build(autobuilding=True)
 
-                    if not options.no_install:
+                    if not options.download_dir:
                         requirement_set.install(
                             install_options,
                             global_options,
@@ -381,14 +326,11 @@ class InstallCommand(Command):
                     raise
                 finally:
                     # Clean up
-                    if ((not options.no_clean) and
-                            ((not options.no_install) or
-                                options.download_dir)):
+                    if not options.no_clean:
                         requirement_set.cleanup_files()
 
         if options.target_dir:
-            if not os.path.exists(options.target_dir):
-                os.makedirs(options.target_dir)
+            ensure_dir(options.target_dir)
 
             lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
 

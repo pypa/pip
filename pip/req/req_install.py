@@ -30,9 +30,9 @@ from pip.locations import (
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
-    call_subprocess, read_text_file, FakeFile, _make_build_dir,
+    call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
 )
-from pip.utils.deprecation import RemovedInPip7Warning, RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -40,40 +40,27 @@ from pip.wheel import move_wheel_files, Wheel
 from pip._vendor.packaging.version import Version
 
 
-_FILTER_INSTALL_OUTPUT_REGEX = re.compile(r"""
-    (?:^running\s.*) |
-    (?:^writing\s.*) |
-    (?:creating\s.*) |
-    (?:[Cc]opying\s.*) |
-    (?:^reading\s.*') |
-    (?:^removing\s.*\.egg-info'\s\(and\severything\sunder\sit\)$) |
-    (?:^byte-compiling) |
-    (?:^SyntaxError:) |
-    (?:^SyntaxWarning:) |
-    (?:^\s*Skipping\simplicit\sfixer:) |
-    (?:^\s*(warning:\s)?no\spreviously-included\s(files|directories)) |
-    (?:^\s*warning:\sno\sfiles\sfound matching\s\'.*\') |
-    (?:^\s*changing\smode\sof) |
-    # Not sure what this warning is, but it seems harmless:
-    (?:^warning:\smanifest_maker:\sstandard\sfile\s'-c'\snot found$)
-    """, re.VERBOSE)
-
-
 logger = logging.getLogger(__name__)
 
 
-def _filter_install(line):
-    level = logging.INFO
-    if _FILTER_INSTALL_OUTPUT_REGEX.search(line.strip()):
-        level = logging.DEBUG
-    return (level, line)
+def _strip_extras(path):
+    m = re.match(r'^(.+)(\[[^\]]+\])$', path)
+    extras = None
+    if m:
+        path_no_extras = m.group(1)
+        extras = m.group(2)
+    else:
+        path_no_extras = path
+
+    return path_no_extras, extras
 
 
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
-                 pycompile=True, markers=None, isolated=False):
+                 pycompile=True, markers=None, isolated=False, options=None,
+                 wheel_cache=None):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -88,6 +75,7 @@ class InstallRequirement(object):
             editable_options = {}
 
         self.editable_options = editable_options
+        self._wheel_cache = wheel_cache
         self.link = link
         self.as_egg = as_egg
         self.markers = markers
@@ -111,25 +99,14 @@ class InstallRequirement(object):
         self.uninstalled = None
         self.use_user_site = False
         self.target_dir = None
-
+        self.options = options if options else {}
         self.pycompile = pycompile
 
         self.isolated = isolated
 
-    @property
-    def url(self):
-        warnings.warn(
-            "The InstallRequirement.url attribute has been removed and should "
-            "not be used. It was temporary left here as a shim for projects "
-            "which used it even though it was not a public API.",
-            RemovedInPip7Warning,
-        )
-
-        return self.link.url
-
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False):
+                      isolated=False, options=None, wheel_cache=None):
         from pip.index import Link
 
         name, url, extras_override, editable_options = parse_editable(
@@ -143,7 +120,9 @@ class InstallRequirement(object):
                   editable=True,
                   link=Link(url),
                   editable_options=editable_options,
-                  isolated=isolated)
+                  isolated=isolated,
+                  options=options if options else {},
+                  wheel_cache=wheel_cache)
 
         if extras_override is not None:
             res.extras = extras_override
@@ -151,7 +130,9 @@ class InstallRequirement(object):
         return res
 
     @classmethod
-    def from_line(cls, name, comes_from=None, isolated=False):
+    def from_line(
+            cls, name, comes_from=None, isolated=False, options=None,
+            wheel_cache=None):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -172,25 +153,29 @@ class InstallRequirement(object):
         req = None
         path = os.path.normpath(os.path.abspath(name))
         link = None
+        extras = None
 
         if is_url(name):
             link = Link(name)
-        elif (os.path.isdir(path) and
-                (os.path.sep in name or name.startswith('.'))):
-            if not is_installable_dir(path):
-                raise InstallationError(
-                    "Directory %r is not installable. File 'setup.py' not "
-                    "found." % name
-                )
-            link = Link(path_to_url(name))
-        elif is_archive_file(path):
-            if not os.path.isfile(path):
-                logger.warning(
-                    'Requirement %r looks like a filename, but the file does '
-                    'not exist',
-                    name
-                )
-            link = Link(path_to_url(name))
+        else:
+            p, extras = _strip_extras(path)
+            if (os.path.isdir(p) and
+                    (os.path.sep in name or name.startswith('.'))):
+
+                if not is_installable_dir(p):
+                    raise InstallationError(
+                        "Directory %r is not installable. File 'setup.py' "
+                        "not found." % name
+                    )
+                link = Link(path_to_url(p))
+            elif is_archive_file(p):
+                if not os.path.isfile(p):
+                    logger.warning(
+                        'Requirement %r looks like a filename, but the '
+                        'file does not exist',
+                        name
+                    )
+                link = Link(path_to_url(p))
 
         # it's a local file, dir, or url
         if link:
@@ -216,8 +201,16 @@ class InstallRequirement(object):
         else:
             req = name
 
-        return cls(req, comes_from, link=link, markers=markers,
-                   isolated=isolated)
+        options = options if options else {}
+        res = cls(req, comes_from, link=link, markers=markers,
+                  isolated=isolated, options=options,
+                  wheel_cache=wheel_cache)
+
+        if extras:
+            res.extras = pkg_resources.Requirement.parse('__placeholder__' +
+                                                         extras).extras
+
+        return res
 
     def __str__(self):
         if self.req:
@@ -249,6 +242,18 @@ class InstallRequirement(object):
         """
         if self.link is None:
             self.link = finder.find_requirement(self, upgrade)
+
+    @property
+    def link(self):
+        return self._link
+
+    @link.setter
+    def link(self, link):
+        # Lookup a cached wheel, if possible.
+        if self._wheel_cache is None:
+            self._link = link
+        else:
+            self._link = self._wheel_cache.cached_wheel(link, self.name)
 
     @property
     def specifier(self):
@@ -369,18 +374,6 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            # if it's distribute>=0.7, it won't contain an importable
-            # setuptools, and having an egg-info dir blocks the ability of
-            # setup.py to find setuptools plugins, so delete the egg-info dir
-            # if no setuptools. it will get recreated by the run of egg_info
-            # NOTE: this self.name check only works when installing from a
-            #       specifier (not archive path/urls)
-            # TODO: take this out later
-            if (self.name == 'distribute' and not
-                    os.path.isdir(
-                        os.path.join(self.source_dir, 'setuptools'))):
-                rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
-
             script = self._run_setup_py
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
@@ -395,8 +388,7 @@ class InstallRequirement(object):
                 egg_base_option = []
             else:
                 egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
-                if not os.path.exists(egg_info_dir):
-                    os.makedirs(egg_info_dir)
+                ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             cwd = self.source_dir
             if self.editable_options and \
@@ -405,7 +397,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
-                filter_stdout=_filter_install,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -806,7 +797,7 @@ exec(compile(
         else:
             return True
 
-    def install(self, install_options, global_options=(), root=None):
+    def install(self, install_options, global_options=[], root=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -817,6 +808,14 @@ exec(compile(
             self.move_wheel_files(self.source_dir, root=root)
             self.install_succeeded = True
             return
+
+        # Extend the list of global and install options passed on to
+        # the setup.py call with the ones from the requirements file.
+        # Options specified in requirements file override those
+        # specified on the command line, since the last option given
+        # to setup.py is the one that is used.
+        global_options += self.options.get('global_options', [])
+        install_options += self.options.get('install_options', [])
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
@@ -855,7 +854,6 @@ exec(compile(
                 call_subprocess(
                     install_args + install_options,
                     cwd=self.source_dir,
-                    filter_stdout=_filter_install,
                     show_stdout=False,
                 )
 
@@ -957,13 +955,10 @@ exec(compile(
                 ['develop', '--no-deps'] +
                 list(install_options),
 
-                cwd=cwd, filter_stdout=self._filter_install,
+                cwd=cwd,
                 show_stdout=False)
 
         self.install_succeeded = True
-
-    def _filter_install(self, line):
-        return _filter_install(line)
 
     def check_if_exists(self):
         """Find an installed distribution that satisfies or conflicts
@@ -973,17 +968,7 @@ exec(compile(
         if self.req is None:
             return False
         try:
-            # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-            # if we've already set distribute as a conflict to setuptools
-            # then this check has already run before.  we don't want it to
-            # run again, and return False, since it would block the uninstall
-            # TODO: remove this later
-            if (self.req.project_name == 'setuptools' and
-                    self.conflicts_with and
-                    self.conflicts_with.project_name == 'distribute'):
-                return True
-            else:
-                self.satisfied_by = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(self.req)
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:

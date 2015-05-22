@@ -26,8 +26,7 @@ class Mercurial(VersionControl):
         self.unpack(temp_dir)
         try:
             self.run_command(
-                ['archive', location],
-                filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
+                ['archive', location], show_stdout=False, cwd=temp_dir)
         finally:
             rmtree(temp_dir)
 

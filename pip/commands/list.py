@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 import logging
-import warnings
+
+from pip._vendor import pkg_resources
 
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
-from pip.index import PackageFinder
+from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
-from pip.utils.deprecation import RemovedInPip7Warning
+from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -113,23 +114,6 @@ class ListCommand(Command):
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
-        if options.use_mirrors:
-            warnings.warn(
-                "--use-mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-
-        if options.mirrors:
-            warnings.warn(
-                "--mirrors has been deprecated and will be removed in the "
-                "future. Explicit uses of --index-url and/or --extra-index-url"
-                " is suggested.",
-                RemovedInPip7Warning,
-            )
-            index_urls += options.mirrors
-
         dependency_links = []
         for dist in get_installed_distributions(local_only=options.local,
                                                 user_only=options.user):
@@ -147,9 +131,12 @@ class ListCommand(Command):
                 user_only=options.user,
                 include_editables=False,
             )
+            format_control = FormatControl(set(), set())
+            wheel_cache = WheelCache(options.cache_dir, format_control)
             for dist in installed_packages:
                 req = InstallRequirement.from_line(
                     dist.key, None, isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache
                 )
                 typ = 'unknown'
                 try:
@@ -162,9 +149,14 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
+                    canonical_name = pkg_resources.safe_name(req.name).lower()
+                    formats = fmt_ctl_formats(format_control, canonical_name)
+                    search = Search(
+                        req.name,
+                        canonical_name,
+                        formats)
                     remote_version = finder._link_package_versions(
-                        link, req.name
-                    ).version
+                        link, search).version
                     if link.is_wheel:
                         typ = 'wheel'
                     else:

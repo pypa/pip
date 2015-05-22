@@ -16,6 +16,15 @@ Description
 .. pip-command-description:: install
 
 
+Overview
+++++++++
+
+Pip install has several stages:
+
+1. Resolve dependencies. What will be installed is determined here.
+2. Build wheels. All the dependencies that can be are built into wheels.
+3. Install the packages (and uninstall anything being upgraded/replaced).
+
 Installation Order
 ++++++++++++++++++
 
@@ -74,6 +83,7 @@ Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
     <requirement specifier>
+    <requirement specifier> [--install-option="..."] [--global-option="..."]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
@@ -81,14 +91,20 @@ and like arguments to :ref:`pip install`, the following forms are supported::
 Since version 6.0, pip also supports markers using the "; " separator.
 Examples::
 
-    futures; python_version < '2.7'
-    http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'
+    "futures; python_version < '2.7'"
+    "http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'"
+
+Requirements with markers must be quoted. For example, use ``"SomeProject;
+python_version < '2.7'"``, not simply ``SomeProject; python_version < '2.7'``.
 
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
 A line that begins with ``#`` is treated as a comment and ignored. Whitespace
 followed by a ``#`` causes the ``#`` and the remainder of the line to be
 treated as a comment.
+
+A line ending in an unescaped ``\`` is treated as a line continuation
+and the newline following it is effectively ignored.
 
 Additionally, the following Package Index Options are supported:
 
@@ -99,7 +115,8 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`--allow-external <--allow-external>`
   *  :ref:`--allow-all-external <--allow-external>`
   *  :ref:`--allow-unverified <--allow-unverified>`
-  *  :ref:`--no-use-wheel <install_--no-use-wheel>`
+  *  :ref:`--no-binary <install_--no-binary>`
+  *  :ref:`--only-binary <install_--only-binary>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
@@ -138,6 +155,40 @@ Some Examples:
   Don't use single or double quotes in a ``requirements.txt`` file.
 
 
+.. _`Per-requirement Overrides`:
+
+Per-requirement Overrides
++++++++++++++++++++++++++
+
+When pip installs packages, it normally executes the ``setup.py`` file
+behind the scenes. You may extend the arguments with which the
+``setup.py`` file is called through the ``--global-option`` and
+``--install-option`` options. For example:
+
+ ::
+
+    FooProject >= 1.2 --global-option="--no-user-cfg" \
+                      --install-option="--prefix='/usr/local'" \
+                      --install-option="--no-compile"
+
+The above translates roughly into running FooProject's ``setup.py``
+script as:
+
+ ::
+
+   python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+
+Note that the only way of giving more than one option to ``setup.py``
+is through multiple ``--global-option`` and ``--install-option``
+options, as shown in the example above. The value of each option is
+passed as a single argument to the ``setup.py`` script. Therefore, a
+line such as the following is invalid and would result in an
+installation error.
+
+::
+
+   # Invalid. Please use '--install-option' twice as shown above.
+   FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
 
 
 .. _`Pre Release Versions`:
@@ -347,7 +398,27 @@ Unix
 OS X
   :file:`~/Library/Caches/pip`.
 Windows
-  :file:`<CSIDL_LOCAL_APPDATA>\pip\Cache`
+  :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
+
+
+Wheel cache
+***********
+
+Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
+any packages found there. This is disabled via the same ``no-cache-dir`` option
+that disables the HTTP cache. The internal structure of that cache is not part
+of the Pip API. As of 7.0 pip uses a subdirectory per sdist that wheels were
+built from, and wheels within that subdirectory.
+
+Pip attempts to choose the best wheels from those built in preference to
+building a new wheel. Note that this means when a package has both optional
+C extensions and builds `py` tagged wheels when the C extension can't be built
+that pip will not attempt to build a better wheel for Python's that would have
+supported it, once any generic wheel is built. To correct this, make sure that
+the wheel's are built with Python specific tags - e.g. pp on Pypy.
+
+When no wheels are found for an sdist, pip will attempt to build a wheel
+automatically and insert it into the wheel cache.
 
 
 Hash Verification
@@ -386,6 +457,7 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
+.. _`controlling-setup-requires`:
 
 Controlling setup_requires
 ++++++++++++++++++++++++++
@@ -443,6 +515,10 @@ implement the following command::
 
 This should implement the complete process of installing the package in
 "editable" mode.
+
+All packages will be attempted to built into wheels::
+
+    setup.py bdist_wheel -d XXX
 
 One further ``setup.py`` command is invoked by ``pip install``::
 

@@ -5,13 +5,14 @@ import pip.pep425tags
 
 from pkg_resources import parse_version, Distribution
 from pip.req import InstallRequirement
-from pip.index import PackageFinder, Link
+from pip.index import (
+    InstallationCandidate, PackageFinder, Link, FormatControl,
+    fmt_ctl_formats)
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
 from pip.utils import Inf
 from pip.download import PipSession
-from pip.req.req_requirement import InstallationCandidate
 
 from mock import Mock, patch
 
@@ -127,14 +128,13 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
 
         assert (
-            "invalid.whl because the wheel filename is invalid"
+            "invalid.whl; invalid wheel filename"
             in caplog.text()
         )
 
@@ -152,7 +152,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
@@ -173,7 +172,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         found = finder.find_requirement(req, True)
@@ -190,7 +188,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
         found = finder.find_requirement(req, True)
@@ -212,7 +209,6 @@ class TestWheel:
         finder = PackageFinder(
             [data.find_links],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
@@ -254,7 +250,6 @@ class TestWheel:
         ]
 
         finder = PackageFinder([], [], session=PipSession())
-        finder.use_wheel = True
 
         results = finder._sort_versions(links)
         results2 = finder._sort_versions(reversed(links))
@@ -270,7 +265,7 @@ class TestWheel:
                 Link('simple-1.0-py2.py3-none-TEST.whl'),
             ),
         ]
-        finder = PackageFinder([], [], use_wheel=True, session=PipSession())
+        finder = PackageFinder([], [], session=PipSession())
         with pytest.raises(InstallationError):
             finder._sort_versions(links)
 
@@ -699,7 +694,6 @@ class test_link_package_versions(object):
         self.finder = PackageFinder(
             [],
             [],
-            use_wheel=True,
             session=PipSession(),
         )
 
@@ -768,3 +762,16 @@ def test_find_all_versions_find_links_and_index(data):
     versions = finder._find_all_versions('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
+
+
+def test_fmt_ctl_matches():
+    fmt = FormatControl(set(), set())
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source", "binary"])
+    fmt = FormatControl(set(["fred"]), set())
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
+    fmt = FormatControl(set(["fred"]), set([":all:"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
+    fmt = FormatControl(set(), set(["fred"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])
+    fmt = FormatControl(set([":all:"]), set(["fred"]))
+    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])

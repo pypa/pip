@@ -11,6 +11,7 @@ except ImportError:
     import dummy_threading as threading
 
 from pip.compat import WINDOWS
+from pip.utils import ensure_dir
 
 try:
     from pip._vendor import colorama
@@ -31,8 +32,10 @@ def indent_log(num=2):
     log messages emited inside it.
     """
     _log_state.indentation += num
-    yield
-    _log_state.indentation -= num
+    try:
+        yield
+    finally:
+        _log_state.indentation -= num
 
 
 def get_indentation():
@@ -114,10 +117,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
 
     def _open(self):
-        # Ensure the directory exists
-        if not os.path.exists(os.path.dirname(self.baseFilename)):
-            os.makedirs(os.path.dirname(self.baseFilename))
-
+        ensure_dir(os.path.dirname(self.baseFilename))
         return logging.handlers.RotatingFileHandler._open(self)
 
 

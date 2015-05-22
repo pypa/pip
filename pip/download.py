@@ -14,6 +14,12 @@ import shutil
 import sys
 import tempfile
 
+try:
+    import ssl  # noqa
+    HAS_TLS = True
+except ImportError:
+    HAS_TLS = False
+
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -23,7 +29,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       call_subprocess)
+                       call_subprocess, ARCHIVE_EXTENSIONS)
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -336,7 +342,7 @@ class PipSession(requests.Session):
         # require manual evication from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
+                cache=SafeFileCache(cache, use_dir_lock=True),
                 max_retries=retries,
             )
         else:
@@ -453,21 +459,15 @@ def path_to_url(path):
 
 def is_archive_file(name):
     """Return True if `name` is a considered as an archive file."""
-    archives = (
-        '.zip', '.tar.gz', '.tar.bz2', '.tgz', '.tar', '.whl'
-    )
     ext = splitext(name)[1].lower()
-    if ext in archives:
+    if ext in ARCHIVE_EXTENSIONS:
         return True
     return False
 
 
-def unpack_vcs_link(link, location, only_download=False):
+def unpack_vcs_link(link, location):
     vcs_backend = _get_used_vcs_backend(link)
-    if only_download:
-        vcs_backend.export(location)
-    else:
-        vcs_backend.unpack(location)
+    vcs_backend.unpack(location)
 
 
 def _get_used_vcs_backend(link):
@@ -807,13 +807,11 @@ def unpack_url(link, location, download_dir=None,
     """
     # non-editable vcs urls
     if is_vcs_url(link):
-        unpack_vcs_link(link, location, only_download)
+        unpack_vcs_link(link, location)
 
     # file urls
     elif is_file_url(link):
         unpack_file_url(link, location, download_dir)
-        if only_download:
-            write_delete_marker_file(location)
 
     # http urls
     else:
@@ -826,8 +824,8 @@ def unpack_url(link, location, download_dir=None,
             download_dir,
             session,
         )
-        if only_download:
-            write_delete_marker_file(location)
+    if only_download:
+        write_delete_marker_file(location)
 
 
 def _download_http_url(link, session, temp_dir):

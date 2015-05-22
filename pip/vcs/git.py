@@ -56,7 +56,7 @@ class Git(VersionControl):
                 location = location + '/'
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
-                filter_stdout=self._filter, show_stdout=False, cwd=temp_dir)
+                show_stdout=False, cwd=temp_dir)
         finally:
             rmtree(temp_dir)
 

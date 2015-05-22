@@ -17,13 +17,13 @@ from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import appdirs, get_prog, normalize_path
+from pip.utils import get_prog, normalize_path
 from pip.utils.deprecation import RemovedInPip8Warning
-from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -108,18 +108,16 @@ class Command(object):
         options, args = self.parse_args(args)
 
         if options.quiet:
-            level = "WARNING"
+            if options.quiet == 1:
+                level = "WARNING"
+            if options.quiet == 2:
+                level = "ERROR"
+            else:
+                level = "CRITICAL"
         elif options.verbose:
             level = "DEBUG"
         else:
             level = "INFO"
-
-        # Compute the path for our debug log.
-        debug_log_path = os.path.join(appdirs.user_log_dir("pip"), "debug.log")
-
-        # Ensure that the path for our debug log is owned by the current user
-        # and if it is not, disable the debug log.
-        write_debug_log = check_path_owner(debug_log_path)
 
         logging_dictConfig({
             "version": 1,
@@ -154,15 +152,6 @@ class Command(object):
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
-                "debug_log": {
-                    "level": "DEBUG",
-                    "class": "pip.utils.logging.BetterRotatingFileHandler",
-                    "filename": debug_log_path,
-                    "maxBytes": 10 * 1000 * 1000,  # 10 MB
-                    "backupCount": 1,
-                    "delay": True,
-                    "formatter": "indent",
-                },
                 "user_log": {
                     "level": "DEBUG",
                     "class": "pip.utils.logging.BetterRotatingFileHandler",
@@ -176,7 +165,6 @@ class Command(object):
                 "handlers": list(filter(None, [
                     "console",
                     "console_errors",
-                    "debug_log" if write_debug_log else None,
                     "user_log" if options.log else None,
                 ])),
             },
@@ -197,17 +185,6 @@ class Command(object):
                 for name in ["pip._vendor", "distlib", "requests", "urllib3"]
             ),
         })
-
-        # We add this warning here instead of up above, because the logger
-        # hasn't been configured until just now.
-        if not write_debug_log:
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the debug log has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                os.path.dirname(debug_log_path),
-            )
 
         if options.log_explicit_levels:
             warnings.warn(
@@ -274,6 +251,54 @@ class Command(object):
             return UNKNOWN_ERROR
 
         return SUCCESS
+
+
+class RequirementCommand(Command):
+
+    @staticmethod
+    def populate_requirement_set(requirement_set, args, options, finder,
+                                 session, name, wheel_cache):
+        """
+        Marshal cmd line args into a requirement set.
+        """
+        for req in args:
+            requirement_set.add_requirement(
+                InstallRequirement.from_line(
+                    req, None, isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache
+                )
+            )
+
+        for req in options.editables:
+            requirement_set.add_requirement(
+                InstallRequirement.from_editable(
+                    req,
+                    default_vcs=options.default_vcs,
+                    isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache
+                )
+            )
+
+        found_req_in_file = False
+        for filename in options.requirements:
+            for req in parse_requirements(
+                    filename,
+                    finder=finder, options=options, session=session,
+                    wheel_cache=wheel_cache):
+                found_req_in_file = True
+                requirement_set.add_requirement(req)
+
+        if not (args or options.editables or found_req_in_file):
+            opts = {'name': name}
+            if options.find_links:
+                msg = ('You must give at least one requirement to '
+                       '%(name)s (maybe you meant "pip %(name)s '
+                       '%(links)s"?)' %
+                       dict(opts, links=' '.join(options.find_links)))
+            else:
+                msg = ('You must give at least one requirement '
+                       'to %(name)s (see "pip help %(name)s")' % opts)
+            logger.warning(msg)
 
 
 def format_exc(exc_info=None):

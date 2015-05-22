@@ -21,7 +21,8 @@ def freeze(
         find_links=None, local_only=None, user_only=None, skip_regex=None,
         find_tags=False,
         default_vcs=None,
-        isolated=False):
+        isolated=False,
+        wheel_cache=None):
     find_links = find_links or []
     skip_match = None
 
@@ -75,11 +76,13 @@ def freeze(
                         line,
                         default_vcs=default_vcs,
                         isolated=isolated,
+                        wheel_cache=wheel_cache,
                     )
                 else:
                     line_req = InstallRequirement.from_line(
                         line,
                         isolated=isolated,
+                        wheel_cache=wheel_cache,
                     )
 
                 if not line_req.name:

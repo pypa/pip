@@ -12,9 +12,9 @@ from pip._vendor import requests
 from pip.download import (url_to_path, unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
-from pip.locations import (PIP_DELETE_MARKER_FILENAME, build_prefix)
 from pip.req.req_install import InstallRequirement
-from pip.utils import (display_path, rmtree, dist_in_usersite, normalize_path)
+from pip.utils import (
+    display_path, dist_in_usersite, ensure_dir, normalize_path)
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
 
@@ -139,7 +139,20 @@ class RequirementSet(object):
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
-                 isolated=False, wheel_download_dir=None):
+                 isolated=False, wheel_download_dir=None,
+                 wheel_cache=None):
+        """Create a RequirementSet.
+
+        :param wheel_download_dir: Where still-packed .whl files should be
+            written to. If None they are written to the download_dir parameter.
+            Separate to download_dir to permit only keeping wheel archives for
+            pip wheel.
+        :param download_dir: Where still packed archives should be written to.
+            If None they are not saved, and are deleted immediately after
+            unpacking.
+        :param wheel_cache: The pip wheel cache, for passing to
+            InstallRequirement.
+        """
         if session is None:
             raise TypeError(
                 "RequirementSet() missing 1 required keyword argument: "
@@ -149,7 +162,8 @@ class RequirementSet(object):
         self.build_dir = build_dir
         self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
-        # be combinable.
+        # be combined if we're willing to have non-wheel archives present in
+        # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
         self.ignore_installed = ignore_installed
@@ -171,6 +185,7 @@ class RequirementSet(object):
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
+        self._wheel_cache = wheel_cache
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 
@@ -201,11 +216,10 @@ class RequirementSet(object):
             requirement is applicable and has just been added.
         """
         name = install_req.name
-        if ((not name or not self.has_requirement(name)) and not
-                install_req.match_markers()):
-            # Only log if we haven't already got install_req from somewhere.
-            logger.debug("Ignore %s: markers %r don't match",
-                         install_req.name, install_req.markers)
+        if not install_req.match_markers():
+            logger.warning("Ignoring %s: markers %r don't match your "
+                           "environment", install_req.name,
+                           install_req.markers)
             return []
 
         install_req.as_egg = self.as_egg
@@ -291,56 +305,14 @@ class RequirementSet(object):
             if more_reqs:
                 discovered_reqs.extend(more_reqs)
 
-    def locate_files(self):
-        """Remove in 7.0: used by --no-download"""
-        self._walk_req_to_install(self._locate_file)
-
-    def _locate_file(self, req_to_install):
-        install_needed = True
-        if not self.ignore_installed and not req_to_install.editable:
-            req_to_install.check_if_exists()
-            if req_to_install.satisfied_by:
-                if self.upgrade:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (self.use_user_site and
-                            not dist_in_usersite(
-                                req_to_install.satisfied_by
-                            )):
-                        req_to_install.conflicts_with = \
-                            req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
-                else:
-                    install_needed = False
-                    logger.info(
-                        'Requirement already satisfied (use --upgrade to '
-                        'upgrade): %s',
-                        req_to_install,
-                    )
-
-        if req_to_install.editable:
-            if req_to_install.source_dir is None:
-                req_to_install.source_dir = req_to_install.build_location(
-                    self.src_dir
-                )
-        elif install_needed:
-            req_to_install.source_dir = req_to_install.build_location(
-                self.build_dir,
-            )
-
-        if (req_to_install.source_dir is not None and not
-                os.path.isdir(req_to_install.source_dir)):
-            raise InstallationError(
-                'Could not install requirement %s because source folder %s'
-                ' does not exist (perhaps --no-download was used without '
-                'first running an equivalent install with --no-install?)' %
-                (req_to_install, req_to_install.source_dir)
-            )
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
         """
+        # make the wheelhouse
+        if self.wheel_download_dir:
+            ensure_dir(self.wheel_download_dir)
+
         self._walk_req_to_install(
             functools.partial(self._prepare_file, finder))
 
@@ -474,18 +446,27 @@ class RequirementSet(object):
                 # otherwise a result is guaranteed.
                 assert req_to_install.link
                 try:
-                    if req_to_install.link.is_wheel and \
-                            self.wheel_download_dir:
-                        # when doing 'pip wheel`
+                    download_dir = self.download_dir
+                    # We always delete unpacked sdists after pip ran.
+                    autodelete_unpacked = True
+                    if req_to_install.link.is_wheel \
+                            and self.wheel_download_dir:
+                        # when doing 'pip wheel` we download wheels to a
+                        # dedicated dir.
                         download_dir = self.wheel_download_dir
-                        do_download = True
-                    else:
-                        download_dir = self.download_dir
-                        do_download = self.is_download
+                    if req_to_install.link.is_wheel:
+                        if download_dir:
+                            # When downloading, we only unpack wheels to get
+                            # metadata.
+                            autodelete_unpacked = True
+                        else:
+                            # When installing a wheel, we use the unpacked
+                            # wheel.
+                            autodelete_unpacked = False
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
-                        download_dir, do_download, session=self.session,
-                    )
+                        download_dir, autodelete_unpacked,
+                        session=self.session)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -537,6 +518,7 @@ class RequirementSet(object):
                     str(subreq),
                     req_to_install,
                     isolated=self.isolated,
+                    wheel_cache=self._wheel_cache,
                 )
                 more_reqs.extend(self.add_requirement(
                     sub_install_req, req_to_install.name))
@@ -586,18 +568,6 @@ class RequirementSet(object):
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
 
-            if self._pip_has_created_build_dir():
-                logger.debug('Removing temporary dir %s...', self.build_dir)
-                rmtree(self.build_dir)
-
-    def _pip_has_created_build_dir(self):
-        return (
-            self.build_dir == build_prefix and
-            os.path.exists(
-                os.path.join(self.build_dir, PIP_DELETE_MARKER_FILENAME)
-            )
-        )
-
     def _to_install(self):
         """Create the installation order.
 
@@ -629,20 +599,6 @@ class RequirementSet(object):
         """
         to_install = self._to_install()
 
-        # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-        # move the distribute-0.7.X wrapper to the end because it does not
-        # install a setuptools package. by moving it to the end, we ensure it's
-        # setuptools dependency is handled first, which will provide the
-        # setuptools package
-        # TODO: take this out later
-        distribute_req = pkg_resources.Requirement.parse("distribute>=0.7")
-        for req in to_install:
-            if (req.name == 'distribute' and
-                    req.installed_version is not None and
-                    req.installed_version in distribute_req):
-                to_install.remove(req)
-                to_install.append(req)
-
         if to_install:
             logger.info(
                 'Installing collected packages: %s',
@@ -651,33 +607,6 @@ class RequirementSet(object):
 
         with indent_log():
             for requirement in to_install:
-
-                # DISTRIBUTE TO SETUPTOOLS UPGRADE HACK (1 of 3 parts)
-                # when upgrading from distribute-0.6.X to the new merged
-                # setuptools in py2, we need to force setuptools to uninstall
-                # distribute. In py3, which is always using distribute, this
-                # conversion is already happening in distribute's
-                # pkg_resources. It's ok *not* to check if setuptools>=0.7
-                # because if someone were actually trying to ugrade from
-                # distribute to setuptools 0.6.X, then all this could do is
-                # actually help, although that upgade path was certainly never
-                # "supported"
-                # TODO: remove this later
-                if requirement.name == 'setuptools':
-                    try:
-                        # only uninstall distribute<0.7. For >=0.7, setuptools
-                        # will also be present, and that's what we need to
-                        # uninstall
-                        distribute_requirement = \
-                            pkg_resources.Requirement.parse("distribute<0.7")
-                        existing_distribute = \
-                            pkg_resources.get_distribution("distribute")
-                        if existing_distribute in distribute_requirement:
-                            requirement.conflicts_with = existing_distribute
-                    except pkg_resources.DistributionNotFound:
-                        # distribute wasn't installed, so nothing to do
-                        pass
-
                 if requirement.conflicts_with:
                     logger.info(
                         'Found existing installation: %s',

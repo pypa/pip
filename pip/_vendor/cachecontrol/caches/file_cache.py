@@ -1,7 +1,8 @@
 import hashlib
 import os
 
-from pip._vendor.lockfile import FileLock
+from pip._vendor.lockfile import LockFile
+from pip._vendor.lockfile.mkdirlockfile import MkdirLockFile
 
 from ..cache import BaseCache
 from ..controller import CacheController
@@ -49,11 +50,23 @@ def _secure_open_write(filename, fmode):
 
 class FileCache(BaseCache):
     def __init__(self, directory, forever=False, filemode=0o0600,
-                 dirmode=0o0700):
+                 dirmode=0o0700, use_dir_lock=None, lock_class=None):
+
+        if use_dir_lock is not None and lock_class is not None:
+            raise ValueError("Cannot use use_dir_lock and lock_class together")
+
+        if use_dir_lock:
+            lock_class = MkdirLockFile
+
+        if lock_class is None:
+            lock_class = LockFile
+
         self.directory = directory
         self.forever = forever
         self.filemode = filemode
         self.dirmode = dirmode
+        self.lock_class = lock_class
+
 
     @staticmethod
     def encode(x):
@@ -83,7 +96,7 @@ class FileCache(BaseCache):
         except (IOError, OSError):
             pass
 
-        with FileLock(name) as lock:
+        with self.lock_class(name) as lock:
             # Write our actual file
             with _secure_open_write(lock.path, self.filemode) as fh:
                 fh.write(value)

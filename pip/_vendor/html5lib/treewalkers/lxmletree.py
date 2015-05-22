@@ -4,9 +4,6 @@ from pip._vendor.six import text_type
 from lxml import etree
 from ..treebuilders.etree import tag_regexp
 
-from gettext import gettext
-_ = gettext
-
 from . import _base
 
 from .. import ihatexml
@@ -130,7 +127,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
     def getNodeDetails(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
             return _base.TEXT, ensure_str(getattr(node, key))
 
         elif isinstance(node, Root):
@@ -169,7 +166,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
                     attrs, len(node) > 0 or node.text)
 
     def getFirstChild(self, node):
-        assert not isinstance(node, tuple), _("Text nodes have no children")
+        assert not isinstance(node, tuple), "Text nodes have no children"
 
         assert len(node) or node.text, "Node has no children"
         if node.text:
@@ -180,7 +177,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
     def getNextSibling(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
             if key == "text":
                 # XXX: we cannot use a "bool(node) and node[0] or None" construct here
                 # because node[0] might evaluate to False if it has no child element
@@ -196,7 +193,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
     def getParentNode(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
             if key == "text":
                 return node
             # else: fallback to "normal" processing

@@ -7,8 +7,6 @@ except ImportError:
         from ordereddict import OrderedDict
     except ImportError:
         OrderedDict = dict
-import gettext
-_ = gettext.gettext
 
 import re
 

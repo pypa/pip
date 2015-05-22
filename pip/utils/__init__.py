@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import contextlib
+import errno
 import locale
 import logging
 import re
@@ -21,7 +22,6 @@ from pip.locations import (
 )
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import input
-from pip._vendor.six.moves import cStringIO
 from pip._vendor.six import PY2
 from pip._vendor.retrying import retry
 
@@ -38,10 +38,23 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'make_path_relative', 'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'remove_tracebacks']
+           'captured_stdout', 'remove_tracebacks', 'ensure_dir',
+           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS']
 
 
 logger = logging.getLogger(__name__)
+
+
+BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
+ZIP_EXTENSIONS = ('.zip', '.whl')
+TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
+ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+try:
+    import bz2  # noqa
+    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+except ImportError:
+    logger.debug('bz2 module is not available')
+    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 
 def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
@@ -49,6 +62,15 @@ def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
         return __import__(pkg_or_module_string)
     except ImportError:
         raise ExceptionType(*args, **kwargs)
+
+
+def ensure_dir(path):
+    """os.path.makedirs without EEXIST."""
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 
 def get_prog():
@@ -502,8 +524,7 @@ def unzip_file(filename, location, flatten=True):
     written. Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
-    if not os.path.exists(location):
-        os.makedirs(location)
+    ensure_dir(location)
     zipfp = open(filename, 'rb')
     try:
         zip = zipfile.ZipFile(zipfp, allowZip64=True)
@@ -516,13 +537,11 @@ def unzip_file(filename, location, flatten=True):
                 fn = split_leading_dir(name)[1]
             fn = os.path.join(location, fn)
             dir = os.path.dirname(fn)
-            if not os.path.exists(dir):
-                os.makedirs(dir)
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
-                if not os.path.exists(fn):
-                    os.makedirs(fn)
+                ensure_dir(fn)
             else:
+                ensure_dir(dir)
                 fp = open(fn, 'wb')
                 try:
                     fp.write(data)
@@ -548,12 +567,10 @@ def untar_file(filename, location):
     written.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
-    if not os.path.exists(location):
-        os.makedirs(location)
+    ensure_dir(location)
     if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
         mode = 'r:gz'
-    elif (filename.lower().endswith('.bz2') or
-            filename.lower().endswith('.tbz')):
+    elif filename.lower().endswith(BZ2_EXTENSIONS):
         mode = 'r:bz2'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
@@ -577,8 +594,7 @@ def untar_file(filename, location):
                 fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
             if member.isdir():
-                if not os.path.exists(path):
-                    os.makedirs(path)
+                ensure_dir(path)
             elif member.issym():
                 try:
                     tar._extract_member(member, path)
@@ -601,8 +617,7 @@ def untar_file(filename, location):
                         filename, member.name, exc,
                     )
                     continue
-                if not os.path.exists(os.path.dirname(path)):
-                    os.makedirs(os.path.dirname(path))
+                ensure_dir(os.path.dirname(path))
                 destfp = open(path, 'wb')
                 try:
                     shutil.copyfileobj(fp, destfp)
@@ -621,8 +636,7 @@ def untar_file(filename, location):
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
     if (content_type == 'application/zip' or
-            filename.endswith('.zip') or
-            filename.endswith('.whl') or
+            filename.lower().endswith(ZIP_EXTENSIONS) or
             zipfile.is_zipfile(filename)):
         unzip_file(
             filename,
@@ -631,8 +645,7 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip' or
             tarfile.is_tarfile(filename) or
-            splitext(filename)[1].lower() in (
-                '.tar', '.tar.gz', '.tar.bz2', '.tgz', '.tbz')):
+            filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS)):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html') and
             is_svn_page(file_contents(filename))):
@@ -663,8 +676,7 @@ def remove_tracebacks(output):
     return re.sub(r"\*\*\* Error compiling (?:.*)", '', output)
 
 
-def call_subprocess(cmd, show_stdout=True,
-                    filter_stdout=None, cwd=None,
+def call_subprocess(cmd, show_stdout=True, cwd=None,
                     raise_on_returncode=True,
                     command_level=logging.DEBUG, command_desc=None,
                     extra_environ=None):
@@ -694,26 +706,13 @@ def call_subprocess(cmd, show_stdout=True,
         raise
     all_output = []
     if stdout is not None:
-        stdout = remove_tracebacks(console_to_str(proc.stdout.read()))
-        stdout = cStringIO(stdout)
-        all_output = stdout.readlines()
-        if show_stdout:
-            while 1:
-                line = stdout.readline()
-                if not line:
-                    break
-                line = line.rstrip()
-                all_output.append(line + '\n')
-                if filter_stdout:
-                    level = filter_stdout(line)
-                    if isinstance(level, tuple):
-                        level, line = level
-                    logger.log(level, line)
-                    # if not logger.stdout_level_matches(level) and False:
-                    #     # TODO(dstufft): Handle progress bar.
-                    #     logger.show_progress()
-                else:
-                    logger.debug(line)
+        while True:
+            line = console_to_str(proc.stdout.readline())
+            if not line:
+                break
+            line = line.rstrip()
+            all_output.append(line + '\n')
+            logger.debug(line)
     if not all_output:
         returned_stdout, returned_stderr = proc.communicate()
         all_output = [returned_stdout or '']

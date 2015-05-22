@@ -25,7 +25,7 @@ def test_download_wheel(script):
            --find-links has a bug https://github.com/pypa/pip/issues/1111
     """
     result = script.pip(
-        'install', '--use-wheel',
+        'install',
         '-f', 'https://bitbucket.org/pypa/pip-test-package/downloads',
         '-d', '.', 'pip-test-package'
     )

@@ -298,12 +298,27 @@ def test_upgrade_vcs_req_with_dist_found(script):
     assert "pypi.python.org" not in result.stdout, result.stdout
 
 
-class TestUpgradeSetuptools(object):
+class TestUpgradeDistributeToSetuptools(object):
     """
-    Tests for upgrading to setuptools (using pip from src tree)
-    The tests use a *fixed* set of packages from our test packages dir
-    note: virtualenv-1.9.1 contains distribute-0.6.34
-    note: virtualenv-1.10 contains setuptools-0.9.7
+    From pip1.4 to pip6, pip supported a set of "hacks" (see Issue #1122) to
+    allow distribute to conflict with setuptools, so that the following would
+    work to upgrade distribute:
+
+     ``pip install -U  setuptools``
+
+    In pip7, the hacks were removed.  This test remains to at least confirm pip
+    can upgrade distribute to setuptools using:
+
+      ``pip install -U distribute``
+
+    The reason this works is that a final version of distribute (v0.7.3) was
+    released that is simple wrapper with:
+
+      install_requires=['setuptools>=0.7']
+
+    The test use a fixed set of packages from our test packages dir. Note that
+    virtualenv-1.9.1 contains distribute-0.6.34 and virtualenv-1.10 contains
+    setuptools-0.9.7
     """
 
     def prep_ve(self, script, version, pip_src, distribute=False):
@@ -328,82 +343,18 @@ class TestUpgradeSetuptools(object):
             expect_stderr=True,
         )
 
-    @pytest.mark.skipif("sys.version_info >= (3,0)")
-    def test_py2_from_setuptools_6_to_setuptools_7(
-            self, script, data, virtualenv):
-        self.prep_ve(script, '1.9.1', virtualenv.pip_source_dir)
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-use-wheel', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
-        )
-        assert (
-            "Found existing installation: setuptools 0.6rc11" in result.stdout
-        )
-        result = self.script.run(self.ve_bin / 'pip', 'list')
-        assert "setuptools (0.9.8)" in result.stdout
-
-    def test_py2_py3_from_distribute_6_to_setuptools_7(
+    def test_from_distribute_6_to_setuptools_7(
             self, script, data, virtualenv):
         self.prep_ve(
             script, '1.9.1', virtualenv.pip_source_dir, distribute=True
         )
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
+            '--find-links=%s' % data.find_links, '-U', 'distribute'
         )
         assert (
             "Found existing installation: distribute 0.6.34" in result.stdout
         )
         result = self.script.run(self.ve_bin / 'pip', 'list')
         assert "setuptools (0.9.8)" in result.stdout
-        assert "distribute (0.7.3)" not in result.stdout
-
-    def test_from_setuptools_7_to_setuptools_7(self, script, data, virtualenv):
-        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
-        )
-        assert "Found existing installation: setuptools 0.9.7" in result.stdout
-        result = self.script.run(self.ve_bin / 'pip', 'list')
-        assert "setuptools (0.9.8)" in result.stdout
-
-    def test_from_setuptools_7_to_setuptools_7_using_wheel(
-            self, script, data, virtualenv):
-        self.prep_ve(script, '1.10', virtualenv.pip_source_dir)
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--use-wheel', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
-        )
-        assert "Found existing installation: setuptools 0.9.7" in result.stdout
-        # only wheels use dist-info
-        assert 'setuptools-0.9.8.dist-info' in str(result.files_created)
-        result = self.script.run(self.ve_bin / 'pip', 'list')
-        assert "setuptools (0.9.8)" in result.stdout
-
-    # disabling intermittent travis failure:
-    #   https://github.com/pypa/pip/issues/1379
-    @pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
-    def test_from_setuptools_7_to_setuptools_7_with_distribute_7_installed(
-            self, script, data, virtualenv):
-        self.prep_ve(
-            script, '1.9.1', virtualenv.pip_source_dir, distribute=True
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, 'setuptools==0.9.6'
-        )
-        result = self.script.run(self.ve_bin / 'pip', 'list')
-        assert "setuptools (0.9.6)" in result.stdout
-        assert "distribute (0.7.3)" not in result.stdout
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'setuptools'
-        )
-        assert "Found existing installation: setuptools 0.9.6" in result.stdout
-        result = self.script.run(self.ve_bin / 'pip', 'list')
-        assert "setuptools (0.9.8)" in result.stdout
+        assert "distribute (0.7.3)" in result.stdout

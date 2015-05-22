@@ -36,14 +36,6 @@ pip offers the :ref:`--log <--log>` option for specifying a file where a maximum
 verbosity log will be kept.  This option is empty by default. This log appends
 to previous logging.
 
-Additionally, pip writes a "debug log" for every command. This log appends and
-will periodically rotate and clean itself up to limit on disk file size. The
-default location is as follows:
-
-* On Unix: :file:`$HOME/.cache/pip/log/debug.log`
-* On Mac OS X: :file:`$HOME/Library/Logs/pip/debug.log`
-* On Windows: :file:`C:\\Users\<username>\AppData\Local\pip\Logs\debug.log`
-
 Like all pip options, ``--log`` can also be set as an environment variable, or
 placed into the pip config file.  See the :ref:`Configuration` section.
 
