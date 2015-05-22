@@ -154,6 +154,16 @@ def bootstrap(tmpdir=None):
         except ImportError:
             packages += ["setuptools"]
 
+    # Check if the user has requested us not to install wheel
+    if "--no-wheel" in args or os.environ.get("PIP_NO_WHEEL"):
+        args = [x for x in args if x != "--no-wheel"]
+    else:
+        # We want to see if wheel is available before attempting to install it.
+        try:
+            import wheel  # noqa
+        except ImportError:
+            args += ["wheel"]
+
     delete_tmpdir = False
     try:
         # Create a temporary directory to act as a working directory if we were
