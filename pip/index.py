@@ -269,7 +269,10 @@ class PackageFinder(object):
         # configured on this PackageFinder instance.
         for secure_origin in (SECURE_ORIGINS + self.secure_origins):
             # Check to see if the protocol matches
-            if origin[0] != secure_origin[0] and secure_origin[0] != "*":
+            # Don't count the repository type as part of the protocol, in
+            # things such as "git+ssh". (Only verify against the last scheme.)
+            protocol = origin[0].rsplit('+', 1)[-1]
+            if protocol != secure_origin[0] and secure_origin[0] != "*":
                 continue
 
             try:
