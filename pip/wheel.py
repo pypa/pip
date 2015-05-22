@@ -62,8 +62,9 @@ class WheelCache(object):
             self._cache_dir, link, self._format_control, package_name)
 
 
-def _cache_for_filename(cache_dir, sdistfilename):
-    """Return a directory to store cached wheels in for sdistfilename.
+def _cache_for_link(cache_dir, link):
+    """
+    Return a directory to store cached wheels in for link.
 
     Because there are M wheels for any one sdist, we provide a directory
     to cache them in, and then consult that directory when looking up
@@ -76,10 +77,30 @@ def _cache_for_filename(cache_dir, sdistfilename):
     the same wheel even if the source has been edited.
 
     :param cache_dir: The cache_dir being used by pip.
-    :param sdistfilename: The filename of the sdist for which this will cache
-        wheels.
+    :param link: The link of the sdist for which this will cache wheels.
     """
-    return os.path.join(cache_dir, 'wheels', sdistfilename)
+
+    # We want to generate an url to use as our cache key, we don't want to just
+    # re-use the URL because it might have other items in the fragment and we
+    # don't care about those.
+    key_parts = [link.url_without_fragment]
+    if link.hash_name is not None and link.hash is not None:
+        key_parts.append("=".join([link.hash_name, link.hash]))
+    key_url = "#".join(key_parts)
+
+    # Encode our key url with sha224, we'll use this because it has similar
+    # security properties to sha256, but with a shorter total output (and thus
+    # less secure). However the differences don't make a lot of difference for
+    # our use case here.
+    hashed = hashlib.sha224(key_url.encode()).hexdigest()
+
+    # We want to nest the directories some to prevent having a ton of top level
+    # directories where we might run out of sub directories on some FS.
+    parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
+
+    # Inside of the base location for cached wheels, expand our parts and join
+    # them all together.
+    return os.path.join(cache_dir, "wheels", *parts)
 
 
 def cached_wheel(cache_dir, link, format_control, package_name):
@@ -95,7 +116,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
     if "binary" not in formats:
         return link
-    root = _cache_for_filename(cache_dir, link.filename)
+    root = _cache_for_link(cache_dir, link)
     try:
         wheel_names = os.listdir(root)
     except OSError as e:
@@ -724,8 +745,7 @@ class WheelBuilder(object):
             build_success, build_failure = [], []
             for req in buildset:
                 if autobuilding:
-                    output_dir = _cache_for_filename(
-                        self._cache_root, req.link.filename)
+                    output_dir = _cache_for_link(self._cache_root, req.link)
                     ensure_dir(output_dir)
                 else:
                     output_dir = self._wheel_dir
