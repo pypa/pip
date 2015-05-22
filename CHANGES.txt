@@ -60,7 +60,7 @@
   we don't have Python compiled with SSL support (:pull:`2761`).
 
 * Allowing using extras when installing from a file path without requiring the
-  use of an editable (:pull`2785`).
+  use of an editable (:pull:`2785`).
 
 * Fix an infinite loop when the cache directory is stored on a file system
   which does not support hard links (:pull:`2796`).
