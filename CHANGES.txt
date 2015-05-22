@@ -1,3 +1,11 @@
+**7.0.1 (2015-05-22)**
+
+* Don't build and cache wheels for non-editable installations from VCSs.
+
+* Allow ``--allow-all-external`` inside of a requirements.txt file, fixing a
+  regression in 7.0.
+
+
 **7.0.0 (2015-05-21)**
 
 * **BACKWARD INCOMPATIBLE** Removed the deprecated ``--mirror``,
