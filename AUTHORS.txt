@@ -123,6 +123,7 @@ Luke Macken <lmacken@redhat.com>
 Marc Abramowitz <marc@marc-abramowitz.com>
 Marc Tamlyn <marc.tamlyn@gmail.com>
 Marcus Smith <qwcode@gmail.com>
+Mark Kohler <mark.kohler@proteinsimple.com>
 Markus Hametner <fin+github@xbhd.org>
 Masklinn <bitbucket.org@masklinn.net>
 Matej Stuchlik <mstuchli@redhat.com>
@@ -132,10 +133,12 @@ Matt Robenolt <matt@ydekproductions.com>
 Matthew Einhorn <moiein2000@gmail.com>
 Matthew Gilliard <matthew.gilliard@gmail.com>
 Matthew Iversen <teh.ivo@gmail.com>
+Matthew Trumbell <matthew@thirdstonepartners.com>
 Maxime Rouyrre <rouyrre+git@gmail.com>
 Michael E. Karpeles <michael.karpeles@gmail.com>
 Michael Williamson <mike@zwobble.org>
 Miguel Araujo Perez <miguel.araujo.perez@gmail.com>
+Mihir Singh <git.service@mihirsingh.com>
 MinRK <benjaminrk@gmail.com>
 Monty Taylor <mordred@inaugust.com>
 Nick Stenning <nick@whiteink.com>
@@ -166,6 +169,7 @@ Przemek Wrzos <hetmankp@none>
 Qiangning Hong <hongqn@gmail.com>
 Rafael Caricio <rafael.jacinto@gmail.com>
 Ralf Schmitt <ralf@systemexit.de>
+Razzi Abuissa <razzi53@gmail.com>
 Remi Rampin <remirampin@gmail.com>
 Rene Dudfield <renesd@gmail.com>
 Richard Jones <r1chardj0n3s@gmail.com>
@@ -188,6 +192,7 @@ Steven Myint <git@stevenmyint.com>
 Stéphane Klein <contact@stephane-klein.info>
 Takayuki SHIMIZUKAWA <shimizukawa@gmail.com>
 Thomas Fenzl <thomas.fenzl@gmail.com>
+Thomas Guettler <tguettler@tbz-pariv.de>
 Thomas Johansson <devnull@localhost>
 Thomas Kluyver <takowl@gmail.com>
 Tim Harder <radhermit@gmail.com>
