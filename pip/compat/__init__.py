@@ -16,7 +16,12 @@ except ImportError:
 try:
     import ipaddress
 except ImportError:
-    from pip._vendor import ipaddress
+    try:
+        from pip._vendor import ipaddress
+    except ImportError:
+        import ipaddr as ipaddress
+        ipaddress.ip_address = ipaddress.IPAddress
+        ipaddress.ip_network = ipaddress.IPNetwork
 
 
 __all__ = [
