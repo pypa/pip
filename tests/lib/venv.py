@@ -52,6 +52,7 @@ class VirtualEnvironment(object):
             clear=clear,
             never_download=True,
             no_pip=True,
+            no_wheel=True,
         )
 
         # Install our development version of pip install the virtual

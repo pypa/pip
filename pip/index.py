@@ -1207,6 +1207,19 @@ class Link(object):
     def is_wheel(self):
         return self.ext == wheel_ext
 
+    @property
+    def is_artifact(self):
+        """
+        Determines if this points to an actual artifact (e.g. a tarball) or if
+        it points to an "abstract" thing like a path or a VCS location.
+        """
+        from pip.vcs import vcs
+
+        if self.scheme in vcs.all_schemes:
+            return False
+
+        return True
+
 
 # An object to represent the "link" for the installed version of a requirement.
 # Using Inf as the url makes it sort higher.

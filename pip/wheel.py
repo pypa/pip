@@ -110,6 +110,8 @@ def cached_wheel(cache_dir, link, format_control, package_name):
         return link
     if link.is_wheel:
         return link
+    if not link.is_artifact:
+        return link
     if not package_name:
         return link
     canonical_name = pkg_resources.safe_name(package_name).lower()
@@ -714,6 +716,8 @@ class WheelBuilder(object):
                     logger.info(
                         'Skipping bdist_wheel for %s, due to being editable',
                         req.name)
+            elif autobuilding and req.link and not req.link.is_artifact:
+                pass
             elif autobuilding and not req.source_dir:
                 pass
             else:

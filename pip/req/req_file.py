@@ -32,6 +32,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.find_links,
     cmdoptions.extra_index_url,
     cmdoptions.allow_external,
+    cmdoptions.allow_all_external,
     cmdoptions.no_allow_external,
     cmdoptions.allow_unsafe,
     cmdoptions.no_allow_unsafe,

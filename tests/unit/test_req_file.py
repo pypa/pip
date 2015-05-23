@@ -469,3 +469,13 @@ class TestParseRequirements(object):
                 call.index(global_option) > 0
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])
+
+    def test_allow_all_external(self, tmpdir):
+        req_path = tmpdir.join("requirements.txt")
+        with open(req_path, "w") as fh:
+            fh.write("""
+        --allow-all-external
+        foo
+        """)
+
+        list(parse_requirements(req_path, session=PipSession()))
