@@ -95,6 +95,16 @@ class Command(object):
                 "https": options.proxy,
             }
 
+        # Handle configured credentials
+        if len(options.credentials):
+            for netloc_cred in options.credentials:
+                if netloc_cred.find("@") == -1 or netloc_cred.find(":") == -1:
+                    logger.warn("Invalid credentials format: %s", netloc_cred)
+                else:
+                    username_password, netloc = netloc_cred.split("@")
+                    username, password = username_password.split(":")
+                    session.auth.passwords[netloc] = (username, password)
+
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
 
