@@ -17,7 +17,10 @@ try:
     import ipaddress
 except ImportError:
     from pip._vendor import ipaddress
-
+finally:
+    import ipaddr as ipaddress
+    ipaddress.ip_address = ipaddress.IPAddress
+    ipaddress.ip_network = ipaddress.IPNetwork
 
 __all__ = [
     "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
