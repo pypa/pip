@@ -716,7 +716,7 @@ class WheelBuilder(object):
                     logger.info(
                         'Skipping bdist_wheel for %s, due to being editable',
                         req.name)
-            elif autobuilding and not req.link.is_artifact:
+            elif autobuilding and req.link and not req.link.is_artifact:
                 pass
             elif autobuilding and not req.source_dir:
                 pass
