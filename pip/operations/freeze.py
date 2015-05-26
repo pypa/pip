@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import re
+import shlex
 
 import pip
 from pip.compat import stdlib_pkgs
@@ -66,6 +67,10 @@ def freeze(
                             '--extra-index-url'))):
                     yield line.rstrip()
                     continue
+
+                # as of pip v7, using markers in requirements files requires
+                # quoting, which requires shlex to parse correctly.
+                line = ' '.join(shlex.split(line))
 
                 if line.startswith('-e') or line.startswith('--editable'):
                     if line.startswith('-e'):

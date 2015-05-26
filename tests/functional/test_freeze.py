@@ -292,6 +292,7 @@ def test_freeze_with_requirement_option(script):
     script.scratch_path.join("hint.txt").write(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2
+        "simple==3.0; python_version > '1.0'"
         """) + ignores)
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
@@ -306,6 +307,7 @@ Requirement file contains NoExist==4.2, but that package is not installed
 
 -- stdout: --------------------
 INITools==0.2
+simple==3.0
 """ + ignores + "## The following requirements were added by pip freeze:..."
     _check_output(result, expected)
 
