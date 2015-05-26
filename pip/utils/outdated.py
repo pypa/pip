@@ -9,7 +9,7 @@ import sys
 from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
-from pip.compat import total_seconds
+from pip.compat import total_seconds, WINDOWS
 from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir
@@ -139,11 +139,18 @@ def pip_version_check(session):
         # Determine if our pypi_version is older
         if (pip_version < remote_version and
                 pip_version.base_version != remote_version.base_version):
+            # Advise "python -m pip" on Windows to avoid issues
+            # with overwriting pip.exe.
+            if WINDOWS:
+                pip_cmd = "python -m pip"
+            else:
+                pip_cmd = "pip"
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
-                "'pip install --upgrade pip' command." % (pip.__version__,
-                                                          pypi_version)
+                "'%s install --upgrade pip' command." % (pip.__version__,
+                                                         pypi_version,
+                                                         pip_cmd)
             )
 
     except Exception:
