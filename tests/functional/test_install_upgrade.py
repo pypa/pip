@@ -343,6 +343,10 @@ class TestUpgradeDistributeToSetuptools(object):
             expect_stderr=True,
         )
 
+    @pytest.mark.skipif(
+        sys.version_info >= (3, 5),
+        reason="distribute doesn't work on Python 3.5",
+    )
     def test_from_distribute_6_to_setuptools_7(
             self, script, data, virtualenv):
         self.prep_ve(

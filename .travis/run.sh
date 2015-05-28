@@ -2,6 +2,13 @@
 set -e
 set -x
 
+# If we're running under Python 3.5 make sure our Python 3.5 bin directory is
+# added to the $PATH
+if [[ $TOXENV = "py35" ]]; then
+    export PATH="/opt/python/3.5-dev/bin:$PATH"
+    export TOXARGS="--assert=plain"
+fi
+
 # We want to create the virtual environment here, but not actually run anything
 tox --notest
 
@@ -32,14 +39,14 @@ if [[ $VENDOR = "no" ]]; then
 fi
 
 # Run the unit tests
-tox -- -m unit --cov pip/ --cov-report xml
+tox -- -m unit --cov pip/ --cov-report xml $TOXARGS
 
 # Run our integration tests
 # Note: There is an issue with Python 3.2 where concurrent imports will corrupt
 #       the generated .pyc files and we'll get very strange errors. However as
 #       long as we continue to run the unit tests first and in a seperate step
 #       then this should work fine.
-tox -- -m integration -n 8
+tox -- -m integration -n 8 $TOXARGS
 
 if [[ $TRAVIS_PULL_REQUEST != "false" ]]
 then
