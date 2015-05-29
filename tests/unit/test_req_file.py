@@ -120,12 +120,19 @@ class TestProcessLine(object):
 
     def test_options_on_a_requirement_line(self):
         line = 'SomeProject --install-option=yo1 --install-option yo2 '\
-               '--global-option="yo3" --global-option "yo4"'
+               '--global-option=yo3 --global-option yo4'
         filename = 'filename'
         req = list(process_line(line, filename, 1))[0]
         assert req.options == {
             'global_options': ['yo3', 'yo4'],
             'install_options': ['yo1', 'yo2']}
+
+    def test_options_and_markers(self):
+        line = 'SomeProject --install-option=yo1 ; python_version=="2.6"'
+        filename = 'filename'
+        req = list(process_line(line, filename, 1))[0]
+        assert req.options == {'install_options': ['yo1']}
+        assert req.markers == 'python_version=="2.6"'
 
     def test_set_isolated(self, options):
         line = 'SomeProject'
@@ -311,19 +318,11 @@ class TestOptionVariants(object):
         assert finder.index_urls == ['url']
 
     def test_variant2(self, finder):
-        list(process_line("-i 'url'", "file", 1, finder=finder))
-        assert finder.index_urls == ['url']
-
-    def test_variant3(self, finder):
         list(process_line("--index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_variant4(self, finder):
+    def test_variant3(self, finder):
         list(process_line("--index-url url", "file", 1, finder=finder))
-        assert finder.index_urls == ['url']
-
-    def test_variant5(self, finder):
-        list(process_line("--index-url='url'", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
 
@@ -444,8 +443,8 @@ class TestParseRequirements(object):
 
         content = '''
         --only-binary :all:
-        INITools==2.0 --global-option="{global_option}" \
-                        --install-option "{install_option}"
+        INITools==2.0 --global-option={global_option} \
+                        --install-option {install_option}
         '''.format(global_option=global_option, install_option=install_option)
 
         req_path = tmpdir.join('requirements.txt')
