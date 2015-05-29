@@ -6,7 +6,6 @@ from __future__ import absolute_import
 
 import os
 import re
-import shlex
 import optparse
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -111,7 +110,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     if finder:
         # `finder.format_control` will be updated during parsing
         defaults.format_control = finder.format_control
-    opts, args = parser.parse_args(shlex.split(line), defaults)
+    opts, args = parser.parse_args(line.split(), defaults)
 
     # yield a line requirement
     if args:
