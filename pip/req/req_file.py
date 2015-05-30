@@ -198,13 +198,15 @@ def break_args_options(line):
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
     """
-    tokens = shlex.split(line)
+    tokens = line.split(' ')
     args = []
-    options = tokens
+    options = tokens[:]
     for token in tokens:
         if token.startswith('-') or token.startswith('--'):
             break
-        args.append(options.pop(0))
+        else:
+            args.append(token)
+            options.pop(0)
     return ' '.join(args), ' '.join(options)
 
 
