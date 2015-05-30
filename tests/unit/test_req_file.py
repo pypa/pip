@@ -12,7 +12,7 @@ from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments)
+                              ignore_comments, break_args_options)
 
 
 @pytest.fixture
@@ -264,6 +264,23 @@ class TestProcessLine(object):
                           finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
+
+
+class TestBreakOptionsArgs(object):
+
+    def test_no_args(self):
+        assert ['', '--option'] == break_args_options('--option')
+
+    def test_no_options(self):
+        assert ['arg arg', ''] == break_args_options('arg arg')
+
+    def test_args_short_options(self):
+        result = break_args_options('arg arg -s')
+        assert ['arg arg', '-s'] == result
+
+    def test_args_long_options(self):
+        result = break_args_options('arg arg --long')
+        assert ['arg arg', '--long'] == result
 
 
 class TestOptionVariants(object):
