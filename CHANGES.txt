@@ -1,5 +1,9 @@
 **7.1.0 (unreleased)**
 
+**7.0.2 (unreleased)**
+
+* Revert the change (released in v7.0.0) that required quoting in requirements
+  around specifiers containing environment markers.
 
 **7.0.1 (2015-05-22)**
 
