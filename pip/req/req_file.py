@@ -111,11 +111,11 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     if finder:
         # `finder.format_control` will be updated during parsing
         defaults.format_control = finder.format_control
-    opts, args = parser.parse_args(shlex.split(line), defaults)
+    args_str, options_str = break_args_options(line)
+    opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
     # yield a line requirement
-    if args:
-        args_line = ' '.join(args)
+    if args_str:
         comes_from = '-r %s (line %s)' % (filename, line_number)
         isolated = options.isolated_mode if options else False
         if options:
@@ -126,7 +126,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
         yield InstallRequirement.from_line(
-            args_line, comes_from, isolated=isolated, options=req_options,
+            args_str, comes_from, isolated=isolated, options=req_options,
             wheel_cache=wheel_cache
         )
 
@@ -191,6 +191,23 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
             finder.find_links.append(value)
+
+
+def break_args_options(line):
+    """Break up the line into an args and options string.  We only want to shlex
+    (and then optparse) the options, not the args.  args can contain markers
+    which are corrupted by shlex.
+    """
+    tokens = line.split(' ')
+    args = []
+    options = tokens[:]
+    for token in tokens:
+        if token.startswith('-') or token.startswith('--'):
+            break
+        else:
+            args.append(token)
+            options.pop(0)
+    return ' '.join(args), ' '.join(options)
 
 
 def build_parser():
