@@ -82,20 +82,13 @@ Requirements File Format
 Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
-    <requirement specifier>
-    <requirement specifier> [--install-option="..."] [--global-option="..."]
+    [[--option]...]
+    <requirement specifier> [; markers] [[--option]...]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
 
-Since version 6.0, pip also supports markers using the "; " separator.
-Examples::
-
-    "futures; python_version < '2.7'"
-    "http://my.package.repo/SomePackage-1.0.4.zip; python_version >= '3.4'"
-
-Requirements with markers must be quoted. For example, use ``"SomeProject;
-python_version < '2.7'"``, not simply ``SomeProject; python_version < '2.7'``.
+For details on requirement specifiers, see :ref:`Requirement Specifiers`.
 
 See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
 
@@ -136,23 +129,38 @@ Lastly, if you wish, you can refer to other requirements files, like this::
 Requirement Specifiers
 ++++++++++++++++++++++
 
-pip supports installing from "requirement specifiers" as implemented in
-`pkg_resources Requirements <http://packages.python.org/setuptools/pkg_resources.html#requirement-objects>`_
+pip supports installing from a package index using a :term:`requirement
+specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
+specifier is composed of a project name followed by optional :term:`version
+specifiers <pypug:Version Specifier>`.  :ref:`PEP440 <pypa:PEP440s>` contains
+a `full specification
+<https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_ of the
+currently supported specifiers.
 
-Some Examples:
+Some examples:
 
  ::
 
-  'FooProject >= 1.2'
-  Fizzy [foo, bar]
-  'PickyThing<1.6,>1.9,!=1.9.6,<2.0a0,==2.4c1'
-  SomethingWhoseVersionIDontCareAbout
+  SomeProject
+  SomeProject == 1.3
+  SomeProject >=1.2,<.2.0
+  SomeProject[foo, bar]
+  SomeProject~=1.4.2
+
+Since version 6.0, pip also supports specifers containing `environment markers
+<https://www.python.org/dev/peps/pep-0426/#environment-markers>`_ like so:
+
+ ::
+
+  SomeProject ==5.4 ; python_version < '2.7'
+  SomeProject; sys.platform == 'win32'
+
+Environment markers are supported in the command line and in requirements files.
 
 .. note::
 
-  Use single or double quotes around specifiers when using them in a shell to avoid ``>`` and ``<`` being
-  interpreted as shell redirects. e.g. ``pip install 'FooProject>=1.2'``.
-  Don't use single or double quotes in a ``requirements.txt`` file.
+   Use quotes around specifiers in the shell when using ``>``, ``<``, or when
+   using environment markers. Don't use quotes in requirement files. [1]_
 
 
 .. _`Per-requirement Overrides`:
@@ -160,10 +168,12 @@ Some Examples:
 Per-requirement Overrides
 +++++++++++++++++++++++++
 
-When pip installs packages, it normally executes the ``setup.py`` file
-behind the scenes. You may extend the arguments with which the
-``setup.py`` file is called through the ``--global-option`` and
-``--install-option`` options. For example:
+Since version 7.0 pip supports controlling the command line options given to
+``setup.py`` via requirements files. This disables the use of wheels (cached or
+otherwise) for that package, as ``setup.py`` does not exist for wheels.
+
+The ``--global-option`` and ``--install-option`` options are used to pass
+options to ``setup.py``. For example:
 
  ::
 
@@ -631,3 +641,8 @@ Examples
  ::
 
   $ pip install --pre SomePackage
+
+----
+
+.. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
+       around specifiers containing environment markers in requirement files.

@@ -10,6 +10,7 @@ env:
   - TOXENV=py32
   - TOXENV=py33
   - TOXENV=py34
+  - TOXENV=py35
   - TOXENV=pypy
   - TOXENV=py27 VENDOR=no
   - TOXENV=py34 VENDOR=no

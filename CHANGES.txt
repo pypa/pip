@@ -1,3 +1,19 @@
+**7.0.2 (unreleased)**
+
+* **BACKWARD INCOMPATIBLE** Revert the change (released in v7.0.0) that
+  required quoting in requirements files around specifiers containing
+  environment markers. (:pull:`2841`)
+
+* **BACKWARD INCOMPATIBLE** Revert the accidental introduction of support for
+  options interleaved with requirements, version specifiers etc in
+  ``requirements`` files. (:pull:`2841`)
+
+* Expand ``~`` in the cache directory when caching wheels, fixes :issue:`2816`.
+
+* Use ``python -m pip`` instead of ``pip`` when recommending an upgrade command
+  to Windows users.
+
+
 **7.0.1 (2015-05-22)**
 
 * Don't build and cache wheels for non-editable installations from VCSs.
