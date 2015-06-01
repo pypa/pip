@@ -390,3 +390,10 @@ class TestWheelBuilder(object):
             wb.build()
             assert "due to being editable" in caplog.text()
             assert mock_build_one.mock_calls == []
+
+
+class TestWheelCache:
+
+    def test_expands_path(self):
+        wc = wheel.WheelCache("~/.foo/", None)
+        assert wc._cache_dir == os.path.expanduser("~/.foo/")
