@@ -8,6 +8,8 @@
   options interleaved with requirements, version specifiers etc in
   ``requirements`` files. (:pull:`2841`)
 
+* Expand ``~`` in the cache directory when caching wheels, fixes :issue:`2816`.
+
 
 **7.0.1 (2015-05-22)**
 
