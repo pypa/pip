@@ -82,7 +82,8 @@ Requirements File Format
 Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
 
-    <requirement specifier> [--install-option="..."] [--global-option="..."]
+    [[--option]...]
+    <requirement specifier> [; markers] [[--option]...]
     <archive url/path>
     [-e] <local project path>
     [-e] <vcs project url>
@@ -130,19 +131,19 @@ Requirement Specifiers
 
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
-specifier is composed of a project name followed by an optional :term:`version
-specifier <pypug:Version Specifier>`.  :ref:`PEP440 <pypa:PEP440s>` contains a
-`full specification
+specifier is composed of a project name followed by optional :term:`version
+specifiers <pypug:Version Specifier>`.  :ref:`PEP440 <pypa:PEP440s>` contains
+a `full specification
 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_ of the
 currently supported specifiers.
 
-Below are some examples:
+Some examples:
 
  ::
 
   SomeProject
-  SomeProject==1.3
-  SomeProject>=1.2,<.2.0
+  SomeProject == 1.3
+  SomeProject >=1.2,<.2.0
   SomeProject[foo, bar]
   SomeProject~=1.4.2
 
@@ -151,7 +152,7 @@ Since version 6.0, pip also supports specifers containing `environment markers
 
  ::
 
-  SomeProject; python_version < '2.7'
+  SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys.platform == 'win32'
 
 Environment markers are supported in the command line and in requirements files.
@@ -167,10 +168,12 @@ Environment markers are supported in the command line and in requirements files.
 Per-requirement Overrides
 +++++++++++++++++++++++++
 
-When pip installs packages, it normally executes the ``setup.py`` file
-behind the scenes. You may extend the arguments with which the
-``setup.py`` file is called through the ``--global-option`` and
-``--install-option`` options. For example:
+Since version 7.0 pip supports controlling the command line options given to
+``setup.py`` via requirements files. This disables the use of wheels (cached or
+otherwise) for that package, as ``setup.py`` does not exist for wheels.
+
+The ``--global-option`` and ``--install-option`` options are used to pass
+options to ``setup.py``. For example:
 
  ::
 
