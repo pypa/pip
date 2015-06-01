@@ -283,6 +283,23 @@ class TestBreakOptionsArgs(object):
         assert ('arg arg', '--long') == result
 
 
+class TestBreakOptionsArgs(object):
+
+    def test_no_args(self):
+        assert ('', '--option') == break_args_options('--option')
+
+    def test_no_options(self):
+        assert ('arg arg', '') == break_args_options('arg arg')
+
+    def test_args_short_options(self):
+        result = break_args_options('arg arg -s')
+        assert ('arg arg', '-s') == result
+
+    def test_args_long_options(self):
+        result = break_args_options('arg arg --long')
+        assert ('arg arg', '--long') == result
+
+
 class TestOptionVariants(object):
 
     # this suite is really just testing optparse, but added it anyway

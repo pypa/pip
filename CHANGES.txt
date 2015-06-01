@@ -1,6 +1,7 @@
 **7.1.0 (unreleased)**
 
-**7.0.2 (unreleased)**
+
+**7.0.2 (2015-06-01)**
 
 * **BACKWARD INCOMPATIBLE** Revert the change (released in v7.0.0) that
   required quoting in requirements files around specifiers containing
@@ -11,6 +12,9 @@
   ``requirements`` files. (:pull:`2841`)
 
 * Expand ``~`` in the cache directory when caching wheels, fixes :issue:`2816`.
+
+* Use ``python -m pip`` instead of ``pip`` when recommending an upgrade command
+  to Windows users.
 
 
 **7.0.1 (2015-05-22)**
