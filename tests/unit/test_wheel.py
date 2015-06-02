@@ -397,3 +397,7 @@ class TestWheelCache:
     def test_expands_path(self):
         wc = wheel.WheelCache("~/.foo/", None)
         assert wc._cache_dir == os.path.expanduser("~/.foo/")
+
+    def test_falsey_path_none(self):
+        wc = wheel.WheelCache(False, None)
+        assert wc._cache_dir is None

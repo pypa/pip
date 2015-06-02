@@ -55,7 +55,7 @@ class WheelCache(object):
         :param format_control: A pip.index.FormatControl object to limit
             binaries being read from the cache.
         """
-        self._cache_dir = os.path.expanduser(cache_dir)
+        self._cache_dir = os.path.expanduser(cache_dir) if cache_dir else None
         self._format_control = format_control
 
     def cached_wheel(self, link, package_name):
