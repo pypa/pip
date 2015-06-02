@@ -1,3 +1,9 @@
+**7.0.3 (2015-06-01)**
+
+* Fixed a regression where ``--no-cache-dir`` would raise an exception, fixes
+  :issue:`2855`.
+
+
 **7.0.2 (2015-06-01)**
 
 * **BACKWARD INCOMPATIBLE** Revert the change (released in v7.0.0) that
