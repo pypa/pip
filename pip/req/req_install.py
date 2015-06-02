@@ -60,7 +60,7 @@ class InstallRequirement(object):
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True, editable_options=None,
                  pycompile=True, markers=None, isolated=False, options=None,
-                 wheel_cache=None):
+                 wheel_cache=None, constraint=False):
         self.extras = ()
         if isinstance(req, six.string_types):
             req = pkg_resources.Requirement.parse(req)
@@ -68,6 +68,7 @@ class InstallRequirement(object):
 
         self.req = req
         self.comes_from = comes_from
+        self.constraint = constraint
         self.source_dir = source_dir
         self.editable = editable
 
@@ -106,7 +107,8 @@ class InstallRequirement(object):
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False, options=None, wheel_cache=None):
+                      isolated=False, options=None, wheel_cache=None,
+                      constraint=False):
         from pip.index import Link
 
         name, url, extras_override, editable_options = parse_editable(
@@ -119,6 +121,7 @@ class InstallRequirement(object):
         res = cls(name, comes_from, source_dir=source_dir,
                   editable=True,
                   link=Link(url),
+                  constraint=constraint,
                   editable_options=editable_options,
                   isolated=isolated,
                   options=options if options else {},
@@ -132,7 +135,7 @@ class InstallRequirement(object):
     @classmethod
     def from_line(
             cls, name, comes_from=None, isolated=False, options=None,
-            wheel_cache=None):
+            wheel_cache=None, constraint=False):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -204,7 +207,7 @@ class InstallRequirement(object):
         options = options if options else {}
         res = cls(req, comes_from, link=link, markers=markers,
                   isolated=isolated, options=options,
-                  wheel_cache=wheel_cache)
+                  wheel_cache=wheel_cache, constraint=constraint)
 
         if extras:
             res.extras = pkg_resources.Requirement.parse('__placeholder__' +

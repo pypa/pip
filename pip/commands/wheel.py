@@ -69,6 +69,7 @@ class WheelCommand(RequirementCommand):
             metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+        cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.download_cache())

@@ -708,6 +708,8 @@ class WheelBuilder(object):
 
         buildset = []
         for req in reqset:
+            if req.constraint:
+                continue
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(

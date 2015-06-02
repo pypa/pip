@@ -106,6 +106,16 @@ def test_multiple_requirements_files(script, tmpdir):
     assert script.venv / 'src' / 'initools' in result.files_created
 
 
+def test_multiple_constraints_files(script, data):
+    script.scratch_path.join("outer.txt").write("-c inner.txt")
+    script.scratch_path.join("inner.txt").write(
+        "Upper==1.0")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'outer.txt', 'Upper')
+    assert 'installed Upper-1.0' in result.stdout
+
+
 def test_respect_order_in_requirements_file(script, data):
     script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
         parent
@@ -192,3 +202,19 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
     assert package_dir in result.files_created
+
+
+def test_constraints_not_installed_by_default(script, data):
+    script.scratch_path.join("c.txt").write("requiresupper")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'c.txt', 'Upper')
+    assert 'requiresupper' not in result.stdout
+
+
+def test_constraints_only_causes_error(script, data):
+    script.scratch_path.join("c.txt").write("requiresupper")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'c.txt', expect_error=True)
+    assert 'installed requiresupper' not in result.stdout
