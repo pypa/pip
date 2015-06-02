@@ -3,7 +3,7 @@ shared options and groups
 
 The principle here is to define options once, but *not* instantiate them
 globally. One reason being that options with action='append' can carry state
-between parses. pip parse's general options twice internally, and shouldn't
+between parses. pip parses general options twice internally, and shouldn't
 pass on state. To be consistent, all options will follow this design.
 
 """
