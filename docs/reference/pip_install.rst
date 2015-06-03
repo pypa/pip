@@ -260,7 +260,10 @@ the :ref:`--editable <install_--editable>` option) or not.
   for global installs.  The :ref:`--src <install_--src>` option can be used to
   modify this location.
 * For non-editable installs, the project is built locally in a temp dir and then
-  installed normally.
+  installed normally. Note that if a satisfactory version of the package is
+  already installed, the VCS source will not overwrite it without an `--upgrade`
+  flag. VCS requirements pin the package version (specified in the `setup.py`
+  file) of the target commit, not necessarily the commit itself.
 
 The "project name" component of the url suffix "egg=<project name>-<version>"
 is used by pip in its dependency logic to identify the project prior
