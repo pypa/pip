@@ -56,6 +56,7 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts = self.cmd_opts
 
+        cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.build_dir())

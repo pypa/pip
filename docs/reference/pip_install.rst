@@ -120,9 +120,13 @@ For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links 
 --find-links http://some.archives.com/archives
 
 
-Lastly, if you wish, you can refer to other requirements files, like this::
+If you wish, you can refer to other requirements files, like this::
 
     -r more_requirements.txt
+
+You can also refer to constraints files, like this::
+
+    -c some_constraints.txt
 
 .. _`Requirement Specifiers`:
 

@@ -25,6 +25,7 @@ SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
 COMMENT_RE = re.compile(r'(^|\s)+#.*$')
 
 SUPPORTED_OPTIONS = [
+    cmdoptions.constraints,
     cmdoptions.editable,
     cmdoptions.requirements,
     cmdoptions.no_index,
@@ -54,15 +55,16 @@ SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None, wheel_cache=None):
-    """
-    Parse a requirements file and yield InstallRequirement instances.
+                       session=None, constraint=False, wheel_cache=None):
+    """Parse a requirements file and yield InstallRequirement instances.
 
     :param filename:    Path or url of requirements file.
     :param finder:      Instance of pip.index.PackageFinder.
     :param comes_from:  Origin description of requirements.
     :param options:     Global options.
     :param session:     Instance of pip.download.PipSession.
+    :param constraint:  If true, parsing a constraint file rather than
+        requirements file.
     :param wheel_cache: Instance of pip.wheel.WheelCache
     """
     if session is None:
@@ -82,13 +84,15 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
 
     for line_number, line in enumerate(lines, 1):
         req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache)
+                                comes_from, options, session, wheel_cache,
+                                constraint=constraint)
         for req in req_iter:
             yield req
 
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
-                 options=None, session=None, wheel_cache=None):
+                 options=None, session=None, wheel_cache=None,
+                 constraint=False):
     """Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
 
@@ -103,8 +107,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     (although our docs imply only one is supported), and all our parsed and
     affect the finder.
 
+    :param constraint: If True, parsing a constraints file.
     """
-
     parser = build_parser()
     defaults = parser.get_default_values()
     defaults.index_url = None
@@ -114,9 +118,12 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     args_str, options_str = break_args_options(line)
     opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
+    # preserve for the nested code path
+    line_comes_from = '%s %s (line %s)' % (
+        '-c' if constraint else '-r', filename, line_number)
+
     # yield a line requirement
     if args_str:
-        comes_from = '-r %s (line %s)' % (filename, line_number)
         isolated = options.isolated_mode if options else False
         if options:
             cmdoptions.check_install_build_global(options, opts)
@@ -126,24 +133,28 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
         yield InstallRequirement.from_line(
-            args_str, comes_from, isolated=isolated, options=req_options,
-            wheel_cache=wheel_cache
+            args_str, line_comes_from, constraint=constraint,
+            isolated=isolated, options=req_options, wheel_cache=wheel_cache
         )
 
     # yield an editable requirement
     elif opts.editables:
-        comes_from = '-r %s (line %s)' % (filename, line_number)
         isolated = options.isolated_mode if options else False
         default_vcs = options.default_vcs if options else None
         yield InstallRequirement.from_editable(
-            opts.editables[0], comes_from=comes_from,
-            default_vcs=default_vcs, isolated=isolated,
+            opts.editables[0], comes_from=line_comes_from,
+            constraint=constraint, default_vcs=default_vcs, isolated=isolated,
             wheel_cache=wheel_cache
         )
 
     # parse a nested requirements file
-    elif opts.requirements:
-        req_path = opts.requirements[0]
+    elif opts.requirements or opts.constraints:
+        if opts.requirements:
+            req_path = opts.requirements[0]
+            nested_constraint = False
+        else:
+            req_path = opts.constraints[0]
+            nested_constraint = True
         # original file is over http
         if SCHEME_RE.search(filename):
             # do a url join so relative paths work
@@ -156,7 +167,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
             req_path, finder, comes_from, options, session,
-            wheel_cache=wheel_cache
+            constraint=nested_constraint, wheel_cache=wheel_cache
         )
         for req in parser:
             yield req

@@ -373,7 +373,7 @@ class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            wheel_req = Mock(is_wheel=True, editable=False)
+            wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
@@ -383,8 +383,8 @@ class TestWheelBuilder(object):
 
     def test_skip_building_editables(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            editable_req = Mock(editable=True, is_wheel=False)
-            reqset = Mock(requirements=Mock(values=lambda: [editable_req]),
+            editable = Mock(editable=True, is_wheel=False, constraint=False)
+            reqset = Mock(requirements=Mock(values=lambda: [editable]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
             wb.build()

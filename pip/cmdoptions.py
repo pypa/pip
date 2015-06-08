@@ -337,6 +337,17 @@ process_dependency_links = partial(
 )
 
 
+def constraints():
+    return Option(
+        '-c', '--constraint',
+        dest='constraints',
+        action='append',
+        default=[],
+        metavar='file',
+        help='Constrain versions using the given constraints file. '
+        'This option can be used multiple times.')
+
+
 def requirements():
     return Option(
         '-r', '--requirement',
