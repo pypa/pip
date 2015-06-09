@@ -29,6 +29,34 @@ matrix:
           env: TOXENV=py27 VENDOR=no WHEELS=yes
         - python: 3.4
           env: TOXENV=py34 VENDOR=no WHEELS=yes
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py26
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py27
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py32
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py33
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py34
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=py35
+        - language: generic
+          os: osx
+          osx_image: beta-xcode6.3
+          env: TOXENV=pypy
 
 
 install: .travis/install.sh

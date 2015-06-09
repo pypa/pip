@@ -2,6 +2,13 @@
 set -e
 set -x
 
+# If we're running under OSX, then we need to activate pyenv and our virtual
+# environment.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    eval "$(pyenv init -)"
+    source ~/.venv/bin/activate
+fi
+
 # If we're running under Python 3.5, we can't use anything but --asert=plain
 if [[ $TOXENV = "py35" ]]; then
     export TOXARGS="--assert=plain"
