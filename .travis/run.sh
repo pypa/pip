@@ -2,10 +2,8 @@
 set -e
 set -x
 
-# If we're running under Python 3.5 make sure our Python 3.5 bin directory is
-# added to the $PATH
+# If we're running under Python 3.5, we can't use anything but --asert=plain
 if [[ $TOXENV = "py35" ]]; then
-    export PATH="/opt/python/3.5-dev/bin:$PATH"
     export TOXARGS="--assert=plain"
 fi
 
