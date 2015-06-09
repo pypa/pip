@@ -3,6 +3,8 @@
 * Allow constraining versions globally without having to know exactly what will
   be installed by the pip command. :issue:`2731`.
 
+* Accept --no-binary and --only-binary via pip.conf. :issue`2867`.
+
 **7.0.3 (2015-06-01)**
 
 * Fixed a regression where ``--no-cache-dir`` would raise an exception, fixes
