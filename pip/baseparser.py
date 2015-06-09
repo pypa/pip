@@ -100,13 +100,15 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
 
 class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
-    """Custom help formatter for use in ConfigOptionParser that updates
-    the defaults before expanding them, allowing them to show up correctly
-    in the help listing"""
+    """Custom help formatter for use in ConfigOptionParser.
+
+    This is updates the defaults before expanding them, allowing
+    them to show up correctly in the help listing.
+    """
 
     def expand_default(self, option):
         if self.parser is not None:
-            self.parser.update_defaults(self.parser.defaults)
+            self.parser._update_defaults(self.parser.defaults)
         return optparse.IndentedHelpFormatter.expand_default(self, option)
 
 
@@ -193,7 +195,7 @@ class ConfigOptionParser(CustomOptionParser):
             print("An error occurred during configuration: %s" % exc)
             sys.exit(3)
 
-    def update_defaults(self, defaults):
+    def _update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
@@ -207,22 +209,43 @@ class ConfigOptionParser(CustomOptionParser):
         # 2. environmental variables
         if not self.isolated:
             config.update(self.normalize_keys(self.get_environ_vars()))
+        # Accumulate complex default state.
+        self.values = optparse.Values(self.defaults)
+        late_eval = set()
         # Then set the options with those values
         for key, val in config.items():
-            option = self.get_option(key)
-            if option is not None:
-                # ignore empty values
-                if not val:
-                    continue
-                if option.action in ('store_true', 'store_false', 'count'):
-                    val = strtobool(val)
-                if option.action == 'append':
-                    val = val.split()
-                    val = [self.check_default(option, key, v) for v in val]
-                else:
-                    val = self.check_default(option, key, val)
+            # ignore empty values
+            if not val:
+                continue
 
-                defaults[option.dest] = val
+            option = self.get_option(key)
+            # Ignore options not present in this parser. E.g. non-globals put
+            # in [global] by users that want them to apply to all applicable
+            # commands.
+            if option is None:
+                continue
+
+            if option.action in ('store_true', 'store_false', 'count'):
+                val = strtobool(val)
+            elif option.action == 'append':
+                val = val.split()
+                val = [self.check_default(option, key, v) for v in val]
+            elif option.action == 'callback':
+                late_eval.add(option.dest)
+                opt_str = option.get_opt_string()
+                val = option.convert_value(opt_str, val)
+                # From take_action
+                args = option.callback_args or ()
+                kwargs = option.callback_kwargs or {}
+                option.callback(option, opt_str, val, self, *args, **kwargs)
+            else:
+                val = self.check_default(option, key, val)
+
+            defaults[option.dest] = val
+
+        for key in late_eval:
+            defaults[key] = getattr(self.values, key)
+        self.values = None
         return defaults
 
     def normalize_keys(self, items):
@@ -251,12 +274,12 @@ class ConfigOptionParser(CustomOptionParser):
 
     def get_default_values(self):
         """Overridding to make updating the defaults after instantiation of
-        the option parser possible, update_defaults() does the dirty work."""
+        the option parser possible, _update_defaults() does the dirty work."""
         if not self.process_default_values:
             # Old, pre-Optik 1.5 behaviour.
             return optparse.Values(self.defaults)
 
-        defaults = self.update_defaults(self.defaults.copy())  # ours
+        defaults = self._update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
             if isinstance(default, string_types):
