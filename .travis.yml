@@ -1,25 +1,44 @@
 language: python
 
-env:
-  - TOXENV=pep8
-  - TOXENV=py3pep8
-  - TOXENV=docs
-  - TOXENV=packaging
-  - TOXENV=py26
-  - TOXENV=py27
-  - TOXENV=py32
-  - TOXENV=py33
-  - TOXENV=py34
-  - TOXENV=py35
-  - TOXENV=pypy
-  - TOXENV=py27 VENDOR=no
-  - TOXENV=py34 VENDOR=no
-  - TOXENV=py27 VENDOR=no WHEELS=yes
-  - TOXENV=py34 VENDOR=no WHEELS=yes
+
+matrix:
+    include:
+        - python: 2.6 # these are just to make travis's UI a bit prettier
+          env: TOXENV=py26
+        - python: 2.7
+          env: TOXENV=py27
+        - python: 3.2
+          env: TOXENV=py32
+        - python: 3.3
+          env: TOXENV=py33
+        - python: 3.4
+          env: TOXENV=py34
+        - env: TOXENV=py35
+        - python: pypy
+          env: TOXENV=pypy
+        - python: 2.7
+          env: TOXENV=py27 VENDOR=no
+        - python: 3.4
+          env: TOXENV=py34 VENDOR=no
+        - python: 2.7
+          env: TOXENV=py27 VENDOR=no WHEELS=yes
+        - python: 3.4
+          env: TOXENV=py34 VENDOR=no WHEELS=yes
+        - python: 2.7
+          env: TOXENV=docs
+        - python: 2.6
+          env: TOXENV=pep8
+        - python: 3.2
+          env: TOXENV=py3pep8
+        - python: 2.7
+          env: TOXENV=packaging
+
 
 install: .travis/install.sh
 
+
 script: .travis/run.sh
+
 
 notifications:
   irc:
