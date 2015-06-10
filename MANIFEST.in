@@ -11,6 +11,7 @@ exclude .travis.yml
 exclude pip/_vendor/Makefile
 exclude tox.ini
 exclude dev-requirements.txt
+exclude pip/_vendor/pkg_resources/api_tests.txt
 
 recursive-include pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
