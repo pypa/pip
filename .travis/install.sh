@@ -47,9 +47,13 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
 
     pyenv rehash
     pip install virtualenv
+    if pip list | grp wheel &> /dev/null; then
+        pip uninstall -y wheel
+    fi
     pyenv rehash
     virtualenv ~/.venv
     source ~/.venv/bin/activate
+    pip uninstall -y wheel
 fi
 
 
