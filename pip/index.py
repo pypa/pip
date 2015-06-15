@@ -28,7 +28,7 @@ from pip.exceptions import (
 )
 from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import supported_tags
+from pip.pep425tags import get_platform, get_supported
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -104,12 +104,20 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None, format_control=None):
+                 session=None, format_control=None, platform=None,
+                 versions=None):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
+        :param platform: A string or None. If None, searches for packages
+            that are supported by the current system. Otherwise, will find
+            packages that can be built on the platform passed in. It is
+            understood that these packages will only be downloaded for
+            distribution: they will not be built locally.
+        :param versions: A list of strings or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
         """
         if session is None:
             raise TypeError(
@@ -152,6 +160,19 @@ class PackageFinder(object):
 
         # The Session we'll use to make requests
         self.session = session
+
+        # The platform for which to find compatible packages
+        self.platform = platform or get_platform()
+
+        # The valid tags to check potential found wheel candidates against
+        self.valid_tags = get_supported(
+            versions=versions,
+            specificplatform=self.platform
+        )
+        self.valid_tags_noarch = get_supported(
+            versions=versions,
+            noarch=True
+        )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
@@ -236,22 +257,24 @@ class PackageFinder(object):
         If not finding wheels, then sorted by version only.
         If finding wheels, then the sort order is by version, then:
           1. existing installs
-          2. wheels ordered via Wheel.support_index_min()
+          2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        support_num = len(supported_tags)
-        if candidate.location.is_wheel:
+        support_num = len(self.valid_tags)
+        if candidate.location == INSTALLED_VERSION:
+            pri = 1
+        elif candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
-            if not wheel.supported():
+            if not wheel.supported(self.valid_tags):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
-            pri = -(wheel.support_index_min())
+            pri = -(wheel.support_index_min(self.valid_tags))
         else:  # sdist
             pri = -(support_num)
         return (candidate.version, pri)
@@ -581,6 +604,7 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
+        platform = self.platform
 
         version = None
         if link.egg_fragment:
@@ -612,7 +636,8 @@ class PackageFinder(object):
                     self._log_skipped_link(
                         link, 'wrong project name (not %s)' % search.supplied)
                     return
-                if not wheel.supported():
+
+                if not wheel.supported(self.valid_tags):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return
