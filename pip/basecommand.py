@@ -311,7 +311,8 @@ class RequirementCommand(Command):
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warning(msg)
 
-    def _build_package_finder(self, options, session):
+    def _build_package_finder(self, options, session,
+                              platform=None, desired_interp_versions=None):
         """
         Create a package finder appropriate to this requirement command.
         """
@@ -328,4 +329,6 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            platform=platform,
+            versions=desired_interp_versions,
         )

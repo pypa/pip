@@ -223,12 +223,14 @@ def get_darwin_arches(major, minor, machine):
     return arches
 
 
-def get_supported(versions=None, noarch=False):
+def get_supported(versions=None, noarch=False, specificplatform=None):
     """Return a list of supported tags for each version specified in
     `versions`.
 
     :param versions: a list of string versions, of the form ["33", "32"],
         or None. The first version will be assumed to support our ABI.
+    :param specificplatform: specify the exact platform you want valid
+        tags for, or None. If None, use the local system platform.
     """
     supported = []
 
@@ -260,7 +262,7 @@ def get_supported(versions=None, noarch=False):
     abis.append('none')
 
     if not noarch:
-        arch = get_platform()
+        arch = specificplatform or get_platform()
         if sys.platform == 'darwin':
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
