@@ -146,3 +146,29 @@ def test_download_vcs_link(script):
         in result.files_created
     )
     assert script.site_packages / 'piptestpackage' not in result.files_created
+
+
+@pytest.mark.network
+def test_pip_install_download_specify_platform(script, data):
+    """
+    Test using "pip install --download --platform" to download a .whl archive
+    supported for a specific platform
+    """
+    result = script.pip(
+        'install', '--no-index', '--find-links', data.find_links,
+        '--download', '.', '--platform', 'linux_x86_64', 'simplewheel'
+    )
+    assert (
+        Path('scratch') / 'simplewheel-2.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'install', '--no-index', '--find-links', data.find_links,
+        '--download', '.', '--platform', 'macosx_10_9_x86_64',
+        'requires_source'
+    )
+    assert (
+        Path('scratch') / 'requires_source-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )

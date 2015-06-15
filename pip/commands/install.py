@@ -14,6 +14,7 @@ except ImportError:
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
 from pip.locations import virtualenv_no_global, distutils_scheme
+from pip.pep425tags import get_platform
 from pip.index import PackageFinder
 from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
@@ -80,6 +81,33 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=("Download packages into <dir> instead of installing them, "
                   "regardless of what's already installed."),
+        )
+
+        cmd_opts.add_option(
+            '--platform',
+            dest='platform',
+            metavar='platform',
+            default=get_platform(),
+            help=("Specifically download wheels compatible with <platform> "
+                  "where the default is the platfrom of the local computer. "
+                  "This option may only be used if --download is also being "
+                  "used."),
+        )
+
+        cmd_opts.add_option(
+            '--interpreter-version',
+            dest='interpreter_version',
+            metavar='version',
+            default='',
+            help=("Specifically download wheels compatible with Python "
+                  "interpreter version <version>. If not specified, then the "
+                  "current system interpreter version is used. This option "
+                  "may only be used if --download is also being used. This "
+                  "is a stricter approach compared to the native search "
+                  "performed without this option specified: this does not "
+                  "accept previous minor versions of Python. It is meant to "
+                  "be used when you want to download packages that support an "
+                  "exact version of Python."),
         )
 
         cmd_opts.add_option(cmdoptions.download_cache())
@@ -175,7 +203,14 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls, session):
+    def _build_package_finder(
+        self,
+        options,
+        index_urls,
+        session,
+        platform,
+        desired_interp_versions
+    ):
         """
         Create a package finder appropriate to this install command.
         This method is meant to be overridden by subclasses, not
@@ -192,6 +227,8 @@ class InstallCommand(RequirementCommand):
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            platform=platform,
+            versions=desired_interp_versions,
         )
 
     def run(self, options, args):
@@ -200,6 +237,26 @@ class InstallCommand(RequirementCommand):
 
         if options.download_dir:
             options.ignore_installed = True
+
+        desired_platform = options.platform
+        if desired_platform != get_platform() and not options.download_dir:
+            raise CommandError(
+                "Usage: Cannot use --platform without also using "
+                "--download option."
+            )
+
+        if options.interpreter_version:
+            if options.download_dir:
+                desired_interp_versions = [
+                    options.interpreter_version
+                ]
+            else:
+                raise CommandError(
+                    "Usage: Cannot use --interpreter-version "
+                    "without also using --download option."
+                )
+        else:
+            desired_interp_versions = None
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
@@ -243,8 +300,13 @@ class InstallCommand(RequirementCommand):
             )
 
         with self._build_session(options) as session:
-
-            finder = self._build_package_finder(options, index_urls, session)
+            finder = self._build_package_finder(
+                options,
+                index_urls,
+                session,
+                desired_platform,
+                desired_interp_versions
+            )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
             if options.cache_dir and not check_path_owner(options.cache_dir):
