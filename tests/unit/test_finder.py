@@ -149,6 +149,7 @@ class TestWheel:
             [],
             session=PipSession(),
         )
+        finder.valid_tags = pip.pep425tags.supported_tags
 
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
@@ -210,11 +211,6 @@ class TestWheel:
         with pytest.raises(BestVersionAlreadyInstalled):
             finder.find_requirement(req, True)
 
-    @patch('pip.pep425tags.supported_tags', [
-        ('pyT', 'none', 'TEST'),
-        ('pyT', 'TEST', 'any'),
-        ('pyT', 'none', 'any'),
-    ])
     def test_link_sorting(self):
         """
         Test link sorting
@@ -242,9 +238,12 @@ class TestWheel:
                 Link('simple-1.0.tar.gz'),
             ),
         ]
-
         finder = PackageFinder([], [], session=PipSession())
-
+        finder.valid_tags = [
+            ('pyT', 'none', 'TEST'),
+            ('pyT', 'TEST', 'any'),
+            ('pyT', 'none', 'any'),
+        ]
         results = sorted(links,
                          key=finder._candidate_sort_key, reverse=True)
         results2 = sorted(reversed(links),
