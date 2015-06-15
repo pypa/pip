@@ -6,6 +6,7 @@ import os
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
 from pip import cmdoptions
+from pip.pep425tags import get_platform
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
@@ -63,6 +64,33 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
+        cmd_opts.add_option(
+            '--platform',
+            dest='platform',
+            metavar='platform',
+            default=get_platform(),
+            help=("Specifically download wheels compatible with <platform> "
+                  "where the default is the platfrom of the local computer. "
+                  "This option may only be used if --download is also being "
+                  "used."),
+        )
+
+        cmd_opts.add_option(
+            '--interpreter-version',
+            dest='interpreter_version',
+            metavar='version',
+            default='',
+            help=("Specifically download wheels compatible with Python "
+                  "interpreter version <version>. If not specified, then the "
+                  "current system interpreter version is used. This option "
+                  "may only be used if --download is also being used. This "
+                  "is a stricter approach compared to the native search "
+                  "performed without this option specified: this does not "
+                  "accept previous minor versions of Python. It is meant to "
+                  "be used when you want to download packages that support an "
+                  "exact version of Python."),
+        )
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.non_deprecated_index_group,
             self.parser,
@@ -73,14 +101,24 @@ class DownloadCommand(RequirementCommand):
 
     def run(self, options, args):
         options.ignore_installed = True
+
+        if options.interpreter_version:
+            desired_interp_versions = [options.interpreter_version]
+        else:
+            desired_interp_versions = None
+
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
 
         ensure_dir(options.download_dir)
 
         with self._build_session(options) as session:
-
-            finder = self._build_package_finder(options, session)
+            finder = self._build_package_finder(
+                options=options,
+                session=session,
+                platform=options.platform,
+                desired_interp_versions=desired_interp_versions,
+            )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
