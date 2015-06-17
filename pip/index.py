@@ -746,6 +746,7 @@ class PackageFinder(object):
                             platform == 'cli'
                         ) and
                         comes_from is not None and
+                        hasattr(comes_from, 'url') and
                         urllib_parse.urlparse(
                             comes_from.url
                         ).netloc.endswith(PyPI.netloc)):
