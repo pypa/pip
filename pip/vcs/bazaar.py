@@ -115,8 +115,6 @@ class Bazaar(VersionControl):
         repo = self.get_url(location)
         if not repo:
             return None
-        if not repo.lower().startswith('bzr:'):
-            repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
         current_rev = self.get_revision(location)
         tag_revs = self.get_tag_revs(location)
@@ -126,7 +124,7 @@ class Bazaar(VersionControl):
             full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
         else:
             full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
-        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+        return 'bzr+%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
 
 vcs.register(Bazaar)

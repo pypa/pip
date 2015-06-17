@@ -38,6 +38,16 @@ def test_git_get_src_requirements():
         '#egg=pip_test_package-bar'
     ])
 
+    git_url = 'git://github.com/pypa/pip-test-package'
+    git.get_url = Mock(return_value=git_url)
+    ret = git.get_src_requirement(dist, location='.', find_tags=None)
+
+    assert ret == ''.join([
+        'git+git://github.com/pypa/pip-test-package',
+        '@5547fa909e83df8bd743d3978d6667497983a4b7',
+        '#egg=pip_test_package-bar'
+    ])
+
 
 def test_translate_egg_surname():
     vc = VersionControl()

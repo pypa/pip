@@ -114,8 +114,6 @@ class Mercurial(VersionControl):
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
-        if not repo.lower().startswith('hg:'):
-            repo = 'hg+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
         if not repo:
             return None
@@ -134,6 +132,6 @@ class Mercurial(VersionControl):
             )
         else:
             full_egg_name = '%s-dev' % egg_project_name
-        return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
+        return 'hg+%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
 
 vcs.register(Mercurial)
