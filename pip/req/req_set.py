@@ -393,8 +393,10 @@ class RequirementSet(object):
         # Tell user what we are doing for this requirement:
         # obtain (editable), skipping, processing (local url), collecting
         # (remote url or package name)
-        if req_to_install.constraint:
+        if req_to_install.constraint or req_to_install.prepared:
             return []
+
+        req_to_install.prepared = True
 
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
