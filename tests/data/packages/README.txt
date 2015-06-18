@@ -71,7 +71,7 @@ priority-*
 ----------
 used for testing wheel priority over sdists
 
-TopoRequires[123][-0.0.1.tar.gz]
+TopoRequires[1234][-0.0.1.tar.gz]
 --------------------------------
 
 These are used for testing topological handling of requirements: we have
