@@ -102,6 +102,8 @@ class InstallRequirement(object):
         self.target_dir = None
         self.options = options if options else {}
         self.pycompile = pycompile
+        # Set to True after successful preparation of this requirement
+        self.prepared = False
 
         self.isolated = isolated
 
