@@ -675,11 +675,15 @@ class WheelBuilder(object):
             rmtree(tempd)
 
     def __build_one(self, req, tempd):
+        if sys.hexversion < 0x03000000:
+            replacing = ").read().replace('\\r\\n', '\\n'), "
+        else:
+            replacing = ", 'rb').read().replace(b'\\r\\n', b'\\n'), "
         base_args = [
             sys.executable, '-c',
-            "import setuptools;__file__=%r;"
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
-            "__file__, 'exec'))" % req.setup_py
+            ("import setuptools;__file__=%r;" % req.setup_py) + \
+            "exec(compile(open(__file__" + replacing + \
+            "__file__, 'exec'))"
         ] + list(self.global_options)
 
         logger.info('Running setup.py bdist_wheel for %s', req.name)
