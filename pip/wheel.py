@@ -681,8 +681,8 @@ class WheelBuilder(object):
             replacing = ", 'rb').read().replace(b'\\r\\n', b'\\n'), "
         base_args = [
             sys.executable, '-c',
-            ("import setuptools;__file__=%r;" % req.setup_py) + \
-            "exec(compile(open(__file__" + replacing + \
+            ("import setuptools;__file__=%r;" % req.setup_py) +
+            "exec(compile(open(__file__" + replacing +
             "__file__, 'exec'))"
         ] + list(self.global_options)
 
