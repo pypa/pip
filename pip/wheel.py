@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 class WheelCache(object):
     """A cache of wheels for future installs."""
 
-    def __init__(self, cache_dir, format_control, cache_ignore_prefix=[]):
+    def __init__(self, cache_dir, format_control, cache_ignore_prefix=None):
         """Create a wheel cache.
 
         :param cache_dir: The root of the cache.
@@ -59,20 +59,14 @@ class WheelCache(object):
         """
         self._cache_dir = os.path.expanduser(cache_dir) if cache_dir else None
         self._format_control = format_control
-        self._cache_ignore_prefix = []
-        for url in cache_ignore_prefix:
-            if url.startswith('file:'):
-                # convert to an absolute path
-                path = url_to_path(url)
-                url = path_to_url(path)
-            self._cache_ignore_prefix.append(url)
+        self._cache_ignore_prefix = cache_ignore_prefix or []
 
     def cached_wheel(self, link, package_name):
         return cached_wheel(
             self._cache_dir, link, self._format_control, package_name, self._cache_ignore_prefix)
 
 
-def _cache_for_link(cache_dir, link, cache_ignore_prefix):
+def _cache_for_link(cache_dir, link, cache_ignore_prefix=[]):
     """
     Return a directory to store cached wheels in for link.
 
@@ -88,6 +82,8 @@ def _cache_for_link(cache_dir, link, cache_ignore_prefix):
 
     :param cache_dir: The cache_dir being used by pip.
     :param link: The link of the sdist for which this will cache wheels.
+    :param cache_ignore_prefix: Ignore these prefixes on the links for
+        cached files.
     """
 
     # We want to generate an url to use as our cache key, we don't want to just
@@ -95,6 +91,10 @@ def _cache_for_link(cache_dir, link, cache_ignore_prefix):
     # don't care about those.
     url = link.url_without_fragment
     for prefix in cache_ignore_prefix:
+        if prefix.startswith('file:'):
+            # convert to an absolute path
+            path = url_to_path(prefix)
+            prefix = path_to_url(path)
         if url.startswith(prefix):
             url = url[len(prefix):]
             break
@@ -664,6 +664,7 @@ class WheelBuilder(object):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
+        self._cache_ignore_prefix = requirement_set._wheel_cache._cache_ignore_prefix
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
@@ -766,7 +767,8 @@ class WheelBuilder(object):
             build_success, build_failure = [], []
             for req in buildset:
                 if autobuilding:
-                    output_dir = _cache_for_link(self._cache_root, req.link)
+                    output_dir = _cache_for_link(self._cache_root, req.link,
+                                                 self._cache_ignore_prefix)
                     ensure_dir(output_dir)
                 else:
                     output_dir = self._wheel_dir
