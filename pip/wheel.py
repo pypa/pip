@@ -24,7 +24,7 @@ from email.parser import Parser
 from pip._vendor.six import StringIO
 
 import pip
-from pip.download import path_to_url, unpack_url
+from pip.download import path_to_url, url_to_path, unpack_url
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
@@ -48,22 +48,31 @@ logger = logging.getLogger(__name__)
 class WheelCache(object):
     """A cache of wheels for future installs."""
 
-    def __init__(self, cache_dir, format_control):
+    def __init__(self, cache_dir, format_control, cache_ignore_prefix=[]):
         """Create a wheel cache.
 
         :param cache_dir: The root of the cache.
         :param format_control: A pip.index.FormatControl object to limit
             binaries being read from the cache.
+        :param cache_ignore_prefix: Ignore these prefixes on the links for
+            cached files.
         """
         self._cache_dir = os.path.expanduser(cache_dir) if cache_dir else None
         self._format_control = format_control
+        self._cache_ignore_prefix = []
+        for url in cache_ignore_prefix:
+            if url.startswith('file:'):
+                # convert to an absolute path
+                path = url_to_path(url)
+                url = path_to_url(path)
+            self._cache_ignore_prefix.append(url)
 
     def cached_wheel(self, link, package_name):
         return cached_wheel(
-            self._cache_dir, link, self._format_control, package_name)
+            self._cache_dir, link, self._format_control, package_name, self._cache_ignore_prefix)
 
 
-def _cache_for_link(cache_dir, link):
+def _cache_for_link(cache_dir, link, cache_ignore_prefix):
     """
     Return a directory to store cached wheels in for link.
 
@@ -84,7 +93,12 @@ def _cache_for_link(cache_dir, link):
     # We want to generate an url to use as our cache key, we don't want to just
     # re-use the URL because it might have other items in the fragment and we
     # don't care about those.
-    key_parts = [link.url_without_fragment]
+    url = link.url_without_fragment
+    for prefix in cache_ignore_prefix:
+        if url.startswith(prefix):
+            url = url[len(prefix):]
+            break
+    key_parts = [url]
     if link.hash_name is not None and link.hash is not None:
         key_parts.append("=".join([link.hash_name, link.hash]))
     key_url = "#".join(key_parts)
@@ -104,7 +118,7 @@ def _cache_for_link(cache_dir, link):
     return os.path.join(cache_dir, "wheels", *parts)
 
 
-def cached_wheel(cache_dir, link, format_control, package_name):
+def cached_wheel(cache_dir, link, format_control, package_name, cache_ignore_prefix=[]):
     if not cache_dir:
         return link
     if not link:
@@ -119,7 +133,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
     if "binary" not in formats:
         return link
-    root = _cache_for_link(cache_dir, link)
+    root = _cache_for_link(cache_dir, link, cache_ignore_prefix)
     try:
         wheel_names = os.listdir(root)
     except OSError as e:

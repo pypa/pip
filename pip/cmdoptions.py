@@ -463,6 +463,15 @@ no_cache = partial(
     help="Disable the cache.",
 )
 
+def cache_ignore_prefix():
+    return Option(
+        "--cache-ignore-prefix",
+        dest="cache_ignore_prefix",
+        action="append",
+        default=[],
+        metavar="url",
+        help="Ignore this prefix on cached files.")
+
 download_cache = partial(
     Option,
     '--download-cache',
@@ -560,6 +569,7 @@ general_group = {
         client_cert,
         cache_dir,
         no_cache,
+        cache_ignore_prefix,
         disable_pip_version_check,
     ]
 }

@@ -244,7 +244,8 @@ class InstallCommand(RequirementCommand):
 
             finder = self._build_package_finder(options, index_urls, session)
             build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            wheel_cache = WheelCache(options.cache_dir, options.format_control,
+                                     options.cache_ignore_prefix)
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(
