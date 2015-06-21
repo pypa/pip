@@ -115,7 +115,9 @@ def _cache_for_link(cache_dir, link, cache_ignore_prefix=[]):
 
     # Inside of the base location for cached wheels, expand our parts and join
     # them all together.
-    return os.path.join(cache_dir, "wheels", *parts)
+    base_dir = os.path.join(cache_dir, "wheels", *parts)
+    logger.debug('Link %s cache info: key %s dir %s', link, key_url, base_dir)
+    return base_dir
 
 
 def cached_wheel(cache_dir, link, format_control, package_name, cache_ignore_prefix=[]):
