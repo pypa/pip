@@ -106,6 +106,16 @@ def test_multiple_requirements_files(script, tmpdir):
     assert script.venv / 'src' / 'initools' in result.files_created
 
 
+def test_package_in_constraints_and_dependencies(script, data):
+    script.scratch_path.join("constraints.txt").write(
+        "TopoRequires2==0.0.1\nTopoRequires==0.0.1"
+    )
+    result = script.pip('install', '--no-index', '-f',
+                        data.find_links, '-c', script.scratch_path /
+                        'constraints.txt', 'TopoRequires2')
+    assert 'installed TopoRequires-0.0.1' in result.stdout
+
+
 def test_multiple_constraints_files(script, data):
     script.scratch_path.join("outer.txt").write("-c inner.txt")
     script.scratch_path.join("inner.txt").write(
