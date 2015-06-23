@@ -21,7 +21,7 @@ import os
 import io
 import time
 import re
-import imp
+import types
 import zipfile
 import zipimport
 import warnings
@@ -38,6 +38,12 @@ import email.parser
 import tempfile
 import textwrap
 from pkgutil import get_importer
+
+try:
+    import _imp
+except ImportError:
+    # Python 3.2 compatibility
+    import imp as _imp
 
 PY3 = sys.version_info > (3,)
 PY2 = not PY3
@@ -69,9 +75,9 @@ from os.path import isdir, split
 
 # Avoid try/except due to potential problems with delayed import mechanisms.
 if sys.version_info >= (3, 3) and sys.implementation.name == "cpython":
-    import importlib._bootstrap as importlib_bootstrap
+    import importlib.machinery as importlib_machinery
 else:
-    importlib_bootstrap = None
+    importlib_machinery = None
 
 try:
     import parser
@@ -81,6 +87,12 @@ except ImportError:
 import pip._vendor.packaging.version
 import pip._vendor.packaging.specifiers
 packaging = pip._vendor.packaging
+
+
+# declare some globals that will be defined later to
+# satisfy the linters.
+require = None
+working_set = None
 
 
 class PEP440Warning(RuntimeWarning):
@@ -1477,6 +1489,10 @@ class MarkerEvaluation(object):
             'in': lambda x, y: x in y,
             '==': operator.eq,
             '!=': operator.ne,
+            '<':  operator.lt,
+            '>':  operator.gt,
+            '<=': operator.le,
+            '>=': operator.ge,
         }
         if hasattr(symbol, 'or_test'):
             ops[symbol.or_test] = cls.test
@@ -1708,8 +1724,8 @@ class DefaultProvider(EggProvider):
 
 register_loader_type(type(None), DefaultProvider)
 
-if importlib_bootstrap is not None:
-    register_loader_type(importlib_bootstrap.SourceFileLoader, DefaultProvider)
+if importlib_machinery is not None:
+    register_loader_type(importlib_machinery.SourceFileLoader, DefaultProvider)
 
 
 class EmptyProvider(NullProvider):
@@ -2116,8 +2132,8 @@ def find_on_path(importer, path_item, only=False):
                         break
 register_finder(pkgutil.ImpImporter, find_on_path)
 
-if importlib_bootstrap is not None:
-    register_finder(importlib_bootstrap.FileFinder, find_on_path)
+if importlib_machinery is not None:
+    register_finder(importlib_machinery.FileFinder, find_on_path)
 
 _declare_state('dict', _namespace_handlers={})
 _declare_state('dict', _namespace_packages={})
@@ -2151,7 +2167,7 @@ def _handle_ns(packageName, path_item):
         return None
     module = sys.modules.get(packageName)
     if module is None:
-        module = sys.modules[packageName] = imp.new_module(packageName)
+        module = sys.modules[packageName] = types.ModuleType(packageName)
         module.__path__ = []
         _set_parent_ns(packageName)
     elif not hasattr(module,'__path__'):
@@ -2170,7 +2186,7 @@ def _handle_ns(packageName, path_item):
 def declare_namespace(packageName):
     """Declare that package 'packageName' is a namespace package"""
 
-    imp.acquire_lock()
+    _imp.acquire_lock()
     try:
         if packageName in _namespace_packages:
             return
@@ -2197,18 +2213,18 @@ def declare_namespace(packageName):
             _handle_ns(packageName, path_item)
 
     finally:
-        imp.release_lock()
+        _imp.release_lock()
 
 def fixup_namespace_packages(path_item, parent=None):
     """Ensure that previously-declared namespace packages include path_item"""
-    imp.acquire_lock()
+    _imp.acquire_lock()
     try:
         for package in _namespace_packages.get(parent,()):
             subpath = _handle_ns(package, path_item)
             if subpath:
                 fixup_namespace_packages(subpath, package)
     finally:
-        imp.release_lock()
+        _imp.release_lock()
 
 def file_ns_handler(importer, path_item, packageName, module):
     """Compute an ns-package subpath for a filesystem or zipfile importer"""
@@ -2225,8 +2241,8 @@ def file_ns_handler(importer, path_item, packageName, module):
 register_namespace_handler(pkgutil.ImpImporter, file_ns_handler)
 register_namespace_handler(zipimport.zipimporter, file_ns_handler)
 
-if importlib_bootstrap is not None:
-    register_namespace_handler(importlib_bootstrap.FileFinder, file_ns_handler)
+if importlib_machinery is not None:
+    register_namespace_handler(importlib_machinery.FileFinder, file_ns_handler)
 
 
 def null_ns_handler(importer, path_item, packageName, module):
@@ -2522,7 +2538,7 @@ class Distribution(object):
         if not is_legacy:
             return
 
-        # While an empty version is techincally a legacy version and
+        # While an empty version is technically a legacy version and
         # is not a valid PEP 440 version, it's also unlikely to
         # actually come from someone and instead it is more likely that
         # it comes from setuptools attempting to parse a filename and
@@ -2536,7 +2552,7 @@ class Distribution(object):
             non PEP 440,
             version. You may find odd behavior and sort order.
             In particular it will be sorted as less than 0.0. It
-            is recommend to migrate to PEP 440 compatible
+            is recommended to migrate to PEP 440 compatible
             versions.
             """).strip().replace('\n', ' ')
 
@@ -2841,6 +2857,11 @@ def issue_warning(*args,**kw):
     warnings.warn(stacklevel=level + 1, *args, **kw)
 
 
+class RequirementParseError(ValueError):
+    def __str__(self):
+        return ' '.join(self.args)
+
+
 def parse_requirements(strs):
     """Yield ``Requirement`` objects for each specification in `strs`
 
@@ -2859,14 +2880,13 @@ def parse_requirements(strs):
                     line = next(lines)
                     p = 0
                 except StopIteration:
-                    raise ValueError(
-                        "\\ must not appear on the last nonblank line"
-                    )
+                    msg = "\\ must not appear on the last nonblank line"
+                    raise RequirementParseError(msg)
 
             match = ITEM(line, p)
             if not match:
                 msg = "Expected " + item_name + " in"
-                raise ValueError(msg, line, "at", line[p:])
+                raise RequirementParseError(msg, line, "at", line[p:])
 
             items.append(match.group(*groups))
             p = match.end()
@@ -2877,7 +2897,7 @@ def parse_requirements(strs):
                 p = match.end()
             elif not TERMINATOR(line, p):
                 msg = "Expected ',' or end-of-list in"
-                raise ValueError(msg, line, "at", line[p:])
+                raise RequirementParseError(msg, line, "at", line[p:])
 
         match = TERMINATOR(line, p)
         # skip the terminator, if any
@@ -2888,7 +2908,7 @@ def parse_requirements(strs):
     for line in lines:
         match = DISTRO(line)
         if not match:
-            raise ValueError("Missing distribution spec", line)
+            raise RequirementParseError("Missing distribution spec", line)
         project_name = match.group(1)
         p = match.end()
         extras = []
@@ -3039,28 +3059,49 @@ def _mkstemp(*args,**kw):
 warnings.filterwarnings("ignore", category=PEP440Warning, append=True)
 
 
-# Set up global resource manager (deliberately not state-saved)
-_manager = ResourceManager()
-def _initialize(g):
-    for name in dir(_manager):
+# from jaraco.functools 1.3
+def _call_aside(f, *args, **kwargs):
+    f(*args, **kwargs)
+    return f
+
+
+@_call_aside
+def _initialize(g=globals()):
+    "Set up global resource manager (deliberately not state-saved)"
+    manager = ResourceManager()
+    g['_manager'] = manager
+    for name in dir(manager):
         if not name.startswith('_'):
-            g[name] = getattr(_manager, name)
-_initialize(globals())
+            g[name] = getattr(manager, name)
 
-# Prepare the master working set and make the ``require()`` API available
-working_set = WorkingSet._build_master()
-_declare_state('object', working_set=working_set)
 
-require = working_set.require
-iter_entry_points = working_set.iter_entry_points
-add_activation_listener = working_set.subscribe
-run_script = working_set.run_script
-# backward compatibility
-run_main = run_script
-# Activate all distributions already on sys.path, and ensure that
-# all distributions added to the working set in the future (e.g. by
-# calling ``require()``) will get activated as well.
-add_activation_listener(lambda dist: dist.activate())
-working_set.entries=[]
-# match order
-list(map(working_set.add_entry, sys.path))
+@_call_aside
+def _initialize_master_working_set():
+    """
+    Prepare the master working set and make the ``require()``
+    API available.
+
+    This function has explicit effects on the global state
+    of pkg_resources. It is intended to be invoked once at
+    the initialization of this module.
+
+    Invocation by other packages is unsupported and done
+    at their own risk.
+    """
+    working_set = WorkingSet._build_master()
+    _declare_state('object', working_set=working_set)
+
+    require = working_set.require
+    iter_entry_points = working_set.iter_entry_points
+    add_activation_listener = working_set.subscribe
+    run_script = working_set.run_script
+    # backward compatibility
+    run_main = run_script
+    # Activate all distributions already on sys.path, and ensure that
+    # all distributions added to the working set in the future (e.g. by
+    # calling ``require()``) will get activated as well.
+    add_activation_listener(lambda dist: dist.activate())
+    working_set.entries=[]
+    # match order
+    list(map(working_set.add_entry, sys.path))
+    globals().update(locals())
