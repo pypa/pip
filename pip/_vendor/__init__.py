@@ -85,11 +85,8 @@ class VendorAlias(object):
             # We can't import the vendor name, so we'll try to import the
             # "real" name.
             real_name = name[len(self._vendor_pkg):]
-            try:
-                __import__(real_name)
-                module = sys.modules[real_name]
-            except ImportError:
-                raise ImportError("No module named '%s'" % (name,))
+            __import__(real_name)
+            module = sys.modules[real_name]
 
         # If we've gotten here we've found the module we're looking for, either
         # as part of our vendored package, or as the real name, so we'll add
