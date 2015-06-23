@@ -307,6 +307,27 @@ class TestPEP425Tags(object):
         with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
             assert len(pip.pep425tags.get_supported())
 
+    def test_no_hyphen_tag(self):
+        """
+        Test that no tag contains a hyphen.
+        """
+        import pip.pep425tags
+
+        get_config_var = pip.pep425tags.sysconfig.get_config_var
+
+        def mock_soabi(var):
+            if var == 'SOABI':
+                return 'cpython-35m-darwin'
+            return get_config_var(var)
+
+        with patch('pip.pep425tags.sysconfig.get_config_var', mock_soabi):
+            supported = pip.pep425tags.get_supported()
+
+        for (py, abi, plat) in supported:
+            assert '-' not in py
+            assert '-' not in abi
+            assert '-' not in plat
+
 
 class TestMoveWheelFiles(object):
     """
