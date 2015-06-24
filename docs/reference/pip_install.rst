@@ -131,7 +131,7 @@ You can also refer to constraints files, like this::
 .. _`Example Requirements File`:
 
 Example Requirements File
-=========================
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use ``pip install -r dev-requirements.txt`` to install::
 
