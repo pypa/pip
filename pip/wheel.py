@@ -63,7 +63,8 @@ class WheelCache(object):
 
     def cached_wheel(self, link, package_name):
         return cached_wheel(
-            self._cache_dir, link, self._format_control, package_name, self._cache_ignore_prefix)
+            self._cache_dir, link, self._format_control, package_name,
+            self._cache_ignore_prefix)
 
 
 def _cache_for_link(cache_dir, link, cache_ignore_prefix=[]):
@@ -120,7 +121,8 @@ def _cache_for_link(cache_dir, link, cache_ignore_prefix=[]):
     return base_dir
 
 
-def cached_wheel(cache_dir, link, format_control, package_name, cache_ignore_prefix=[]):
+def cached_wheel(cache_dir, link, format_control, package_name,
+                 cache_ignore_prefix=[]):
     if not cache_dir:
         return link
     if not link:
@@ -666,7 +668,8 @@ class WheelBuilder(object):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
-        self._cache_ignore_prefix = requirement_set._wheel_cache._cache_ignore_prefix
+        self._cache_ignore_prefix = requirement_set._wheel_cache \
+                                                   ._cache_ignore_prefix
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
