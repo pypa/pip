@@ -484,11 +484,18 @@ class PackageFinder(object):
         May raise DistributionNotFound or BestVersionAlreadyInstalled
         """
         all_versions = self._find_all_versions(req.name)
-        # Filter out anything which doesn't match our specifier
 
+        # Filter out anything which doesn't match our specifier
         _versions = set(
             req.specifier.filter(
-                [x.version for x in all_versions],
+                # We turn the version object into a str here because otherwise
+                # when we're debundled but setuptools isn't, Python will see
+                # packaging.version.Version and
+                # pkg_resources._vendor.packaging.version.Version as different
+                # types. This way we'll use a str as a common data interchange
+                # format. If we stop using the pkg_resources provided specifier
+                # and start using our own, we can drop the cast to str().
+                [str(x.version) for x in all_versions],
                 prereleases=(
                     self.allow_all_prereleases
                     if self.allow_all_prereleases else None
@@ -496,7 +503,8 @@ class PackageFinder(object):
             )
         )
         applicable_versions = [
-            x for x in all_versions if x.version in _versions
+            # Again, converting to str to deal with debundling.
+            x for x in all_versions if str(x.version) in _versions
         ]
 
         if req.satisfied_by is not None:
