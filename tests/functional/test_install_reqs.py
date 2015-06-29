@@ -256,3 +256,61 @@ def test_constraints_only_causes_error(script, data):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'c.txt', expect_error=True)
     assert 'installed requiresupper' not in result.stdout
+
+
+def test_constraints_local_editable_install_causes_error(script, data):
+    script.scratch_path.join("constraints.txt").write(
+        "singlemodule==0.0.0"
+    )
+    to_install = data.src.join("singlemodule")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'constraints.txt', '-e',
+        to_install, expect_error=True)
+    assert 'Could not satisfy constraints for' in result.stderr
+
+
+def test_constraints_local_install_causes_error(script, data):
+    script.scratch_path.join("constraints.txt").write(
+        "singlemodule==0.0.0"
+    )
+    to_install = data.src.join("singlemodule")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'constraints.txt',
+        to_install, expect_error=True)
+    assert 'Could not satisfy constraints for' in result.stderr
+
+
+@pytest.mark.xfail
+def test_constraints_constrain_to_local_editable(script, data):
+    to_install = data.src.join("singlemodule")
+    script.scratch_path.join("constraints.txt").write(
+        "-e file://%s#egg=singlemodule" % to_install
+    )
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'constraints.txt', 'singlemodule')
+    assert 'Running setup.py develop for singlemodule' in result.stdout
+
+
+def test_constraints_constrain_to_local(script, data):
+    to_install = data.src.join("singlemodule")
+    script.scratch_path.join("constraints.txt").write(
+        "file://%s#egg=singlemodule" % to_install
+    )
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'constraints.txt', 'singlemodule')
+    assert 'Running setup.py install for singlemodule' in result.stdout
+
+
+def test_constrained_to_url_install_same_url(script, data):
+    to_install = data.src.join("singlemodule")
+    script.scratch_path.join("constraints.txt").write(
+        "file://%s#egg=singlemodule" % to_install
+    )
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'constraints.txt', to_install)
+    assert 'Running setup.py install for singlemodule' in result.stdout
