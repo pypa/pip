@@ -1,5 +1,6 @@
 language: python
 
+sudo: false
 
 matrix:
     include:
