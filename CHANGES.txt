@@ -1,4 +1,4 @@
-**7.1.0 (unreleased)**
+**7.1.0 (2015-06-30)**
 
 * Allow constraining versions globally without having to know exactly what will
   be installed by the pip command. :issue:`2731`.
