@@ -231,11 +231,16 @@ class RequirementSet(object):
             self.unnamed_requirements.append(install_req)
             return [install_req]
         else:
-            if parent_req_name is None and self.has_requirement(name):
+            try:
+                existing_req = self.get_requirement(name)
+            except KeyError:
+                existing_req = None
+            if (parent_req_name is None and existing_req and not
+                    existing_req.constraint):
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
-                    % (install_req, self.get_requirement(name), name))
-            if not self.has_requirement(name):
+                    % (install_req, existing_req, name))
+            if not existing_req:
                 # Add requirement
                 self.requirements[name] = install_req
                 # FIXME: what about other normalizations?  E.g., _ vs. -?
@@ -243,10 +248,19 @@ class RequirementSet(object):
                     self.requirement_aliases[name.lower()] = name
                 result = [install_req]
             else:
-                # Canonicalise to the already-added object
-                install_req = self.get_requirement(name)
-                # No need to scan, this is a duplicate requirement.
-                result = []
+                if not existing_req.constraint:
+                    # No need to scan, we've already encountered this for
+                    # scanning.
+                    result = []
+                elif not install_req.constraint:
+                    # If we're now installing a constraint, mark the existing
+                    # object for real installation.
+                    existing_req.constraint = False
+                    # And now we need to scan this.
+                    result = [existing_req]
+                # Canonicalise to the already-added object for the backref
+                # check below.
+                install_req = existing_req
             if parent_req_name:
                 parent_req = self.get_requirement(parent_req_name)
                 self._dependencies[parent_req].append(install_req)
@@ -260,7 +274,8 @@ class RequirementSet(object):
 
     @property
     def has_requirements(self):
-        return list(self.requirements.values()) or self.unnamed_requirements
+        return list(req for req in self.requirements.values() if not
+                    req.constraint) or self.unnamed_requirements
 
     @property
     def is_download(self):
@@ -285,6 +300,8 @@ class RequirementSet(object):
 
     def uninstall(self, auto_confirm=False):
         for req in self.requirements.values():
+            if req.constraint:
+                continue
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
 
@@ -376,6 +393,11 @@ class RequirementSet(object):
         # Tell user what we are doing for this requirement:
         # obtain (editable), skipping, processing (local url), collecting
         # (remote url or package name)
+        if req_to_install.constraint or req_to_install.prepared:
+            return []
+
+        req_to_install.prepared = True
+
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
         else:
@@ -583,6 +605,8 @@ class RequirementSet(object):
 
         def schedule(req):
             if req.satisfied_by or req in ordered_reqs:
+                return
+            if req.constraint:
                 return
             ordered_reqs.add(req)
             for dep in self._dependencies[req]:

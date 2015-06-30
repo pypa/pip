@@ -196,3 +196,22 @@ def test_options_from_venv_config(script, virtualenv):
         "DistributionNotFound: No matching distribution found for INITools"
         in result.stdout
     )
+
+
+def test_install_no_binary_via_config_disables_cached_wheels(script, data):
+    script.pip('install', 'wheel')
+    config_file = tempfile.NamedTemporaryFile(mode='wt')
+    script.environ['PIP_CONFIG_FILE'] = config_file.name
+    config_file.write(textwrap.dedent("""\
+        [global]
+        no-binary = :all:
+        """))
+    config_file.flush()
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links,
+        'upper', expect_stderr=True)
+    assert "Successfully installed upper-2.0" in str(res), str(res)
+    # No wheel building for upper, which was blacklisted
+    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    # Must have used source, not a cached wheel to install upper.
+    assert "Running setup.py install for upper" in str(res), str(res)

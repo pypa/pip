@@ -3,7 +3,6 @@ distributions."""
 from __future__ import absolute_import, division
 
 import os
-import imp
 import sys
 
 from pip._vendor.six import text_type
@@ -30,7 +29,16 @@ __all__ = [
 ]
 
 
-uses_pycache = hasattr(imp, 'cache_from_source')
+if sys.version_info >= (3, 4):
+    uses_pycache = True
+    from importlib.util import cache_from_source
+else:
+    import imp
+    uses_pycache = hasattr(imp, 'cache_from_source')
+    if uses_pycache:
+        cache_from_source = imp.cache_from_source
+    else:
+        cache_from_source = None
 
 
 if sys.version_info >= (3,):

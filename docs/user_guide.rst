@@ -110,6 +110,39 @@ See also:
   <https://caremad.io/blog/setup-vs-requirement/>`_
 
 
+.. _`Constraints Files`:
+
+Constraints Files
+*****************
+
+Constraints files are requirements files that only control which version of a
+requirement is installed, not whether it is installed or not. Their syntax and
+contents is nearly identical to :ref:`Requirements Files`. There is one key
+difference: Including a package in a constraints file does not trigger
+installation of the package.
+
+Use a constraints file like so:
+
+ ::
+
+   pip install -c constraints.txt
+
+Constraints files are used for exactly the same reason as requirements files
+when you don't know exactly what things you want to install. For instance, say
+that the "helloworld" package doesn't work in your environment, so you have a
+local patched version. Some things you install depend on "helloworld", and some
+don't.
+
+One way to ensure that the patched version is used consistently is to
+manually audit the dependencies of everything you install, and if "helloworld"
+is present, write a requirements file to use when installing that thing.
+
+Constraints files offer a better way: write a single constraints file for your
+organisation and use that everywhere. If the thing being installed requires
+"helloworld" to be installed, your fixed version specified in your constraints
+file will be used.
+
+Constraints file support was added in pip 7.1.
 
 .. _`Installing from Wheels`:
 
@@ -320,6 +353,17 @@ set like this:
     [install]
     ignore-installed = true
     no-dependencies = yes
+
+To enable the boolean options ``--no-compile`` and ``--no-cache-dir``, falsy
+values have to be used:
+
+.. code-block:: ini
+
+    [global]
+    no-cache-dir = false
+
+    [install]
+    no-compile = no
 
 Appending options like ``--find-links`` can be written on multiple lines:
 

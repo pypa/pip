@@ -1,14 +1,13 @@
 """
 tests specific to "pip install --user"
 """
-import imp
 import os
 import textwrap
 import pytest
 
 from os.path import curdir, isdir, isfile
 
-from pip.compat import uses_pycache
+from pip.compat import uses_pycache, cache_from_source
 
 from tests.lib.local_repos import local_checkout
 from tests.lib import pyversion
@@ -29,7 +28,7 @@ def _patch_dist_in_site_packages(script):
     #   file to be sure
     #   See: https://github.com/pypa/pip/pull/893#issuecomment-16426701
     if uses_pycache:
-        cache_path = imp.cache_from_source(sitecustomize_path)
+        cache_path = cache_from_source(sitecustomize_path)
         if os.path.isfile(cache_path):
             os.remove(cache_path)
 

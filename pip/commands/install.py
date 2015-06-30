@@ -56,6 +56,7 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts = self.cmd_opts
 
+        cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.build_dir())
@@ -211,6 +212,7 @@ class InstallCommand(RequirementCommand):
                     "are not visible in this virtualenv."
                 )
             install_options.append('--user')
+            install_options.append('--prefix=')
 
         temp_target_dir = None
         if options.target_dir:

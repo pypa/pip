@@ -89,6 +89,16 @@ class TestProcessLine(object):
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
+    def test_yield_line_constraint(self):
+        line = 'SomeProject'
+        filename = 'filename'
+        comes_from = '-c %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_line(
+            line, comes_from=comes_from, constraint=True)
+        found_req = list(process_line(line, filename, 1, constraint=True))[0]
+        assert repr(found_req) == repr(req)
+        assert found_req.constraint is True
+
     def test_yield_line_requirement_with_spaces_in_specifier(self):
         line = 'SomeProject >= 2'
         filename = 'filename'
@@ -105,18 +115,42 @@ class TestProcessLine(object):
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
+    def test_yield_editable_constraint(self):
+        url = 'git+https://url#egg=SomeProject'
+        line = '-e %s' % url
+        filename = 'filename'
+        comes_from = '-c %s (line %s)' % (filename, 1)
+        req = InstallRequirement.from_editable(
+            url, comes_from=comes_from, constraint=True)
+        found_req = list(process_line(line, filename, 1, constraint=True))[0]
+        assert repr(found_req) == repr(req)
+        assert found_req.constraint is True
+
     def test_nested_requirements_file(self, monkeypatch):
         line = '-r another_file'
         req = InstallRequirement.from_line('SomeProject')
         import pip.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache):
-            return [req]
+                                    session, wheel_cache, constraint):
+            return [(req, constraint)]
         parse_requirements_stub = stub(call=stub_parse_requirements)
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
                             parse_requirements_stub.call)
-        assert list(process_line(line, 'filename', 1)) == [req]
+        assert list(process_line(line, 'filename', 1)) == [(req, False)]
+
+    def test_nested_constraints_file(self, monkeypatch):
+        line = '-c another_file'
+        req = InstallRequirement.from_line('SomeProject')
+        import pip.req.req_file
+
+        def stub_parse_requirements(req_url, finder, comes_from, options,
+                                    session, wheel_cache, constraint):
+            return [(req, constraint)]
+        parse_requirements_stub = stub(call=stub_parse_requirements)
+        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
+                            parse_requirements_stub.call)
+        assert list(process_line(line, 'filename', 1)) == [(req, True)]
 
     def test_options_on_a_requirement_line(self):
         line = 'SomeProject --install-option=yo1 --install-option yo2 '\
@@ -264,42 +298,6 @@ class TestProcessLine(object):
                           finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
-
-    def test_extras_for_line_path_requirement(self):
-        line = 'SomeProject[ex1,ex2]'
-        filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
-        assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
-
-    def test_extras_for_line_url_requirement(self):
-        line = 'git+https://url#egg=SomeProject[ex1,ex2]'
-        filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
-        assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
-
-    def test_extras_for_editable_path_requirement(self):
-        url = '.[ex1,ex2]'
-        filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
-        assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
-
-    def test_extras_for_editable_url_requirement(self):
-        url = 'git+https://url#egg=SomeProject[ex1,ex2]'
-        filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
-        assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
 
 
 class TestBreakOptionsArgs(object):

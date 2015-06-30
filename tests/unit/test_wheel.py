@@ -307,6 +307,27 @@ class TestPEP425Tags(object):
         with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
             assert len(pip.pep425tags.get_supported())
 
+    def test_no_hyphen_tag(self):
+        """
+        Test that no tag contains a hyphen.
+        """
+        import pip.pep425tags
+
+        get_config_var = pip.pep425tags.sysconfig.get_config_var
+
+        def mock_soabi(var):
+            if var == 'SOABI':
+                return 'cpython-35m-darwin'
+            return get_config_var(var)
+
+        with patch('pip.pep425tags.sysconfig.get_config_var', mock_soabi):
+            supported = pip.pep425tags.get_supported()
+
+        for (py, abi, plat) in supported:
+            assert '-' not in py
+            assert '-' not in abi
+            assert '-' not in plat
+
 
 class TestMoveWheelFiles(object):
     """
@@ -373,7 +394,7 @@ class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            wheel_req = Mock(is_wheel=True, editable=False)
+            wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
@@ -383,8 +404,8 @@ class TestWheelBuilder(object):
 
     def test_skip_building_editables(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            editable_req = Mock(editable=True, is_wheel=False)
-            reqset = Mock(requirements=Mock(values=lambda: [editable_req]),
+            editable = Mock(editable=True, is_wheel=False, constraint=False)
+            reqset = Mock(requirements=Mock(values=lambda: [editable]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
             wb.build()

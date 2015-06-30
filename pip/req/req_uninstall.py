@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import imp
 import logging
 import os
 import sys
 import tempfile
 
-from pip.compat import uses_pycache, WINDOWS
+from pip.compat import uses_pycache, WINDOWS, cache_from_source
 from pip.exceptions import UninstallationError
 from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
                        normalize_path)
@@ -58,7 +57,7 @@ class UninstallPathSet(object):
         # __pycache__ files can show up after 'installed-files.txt' is created,
         # due to imports
         if os.path.splitext(path)[1] == '.py' and uses_pycache:
-            self.add(imp.cache_from_source(path))
+            self.add(cache_from_source(path))
 
     def add_pth(self, pth_file, entry):
         pth_file = normalize_path(pth_file)

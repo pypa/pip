@@ -106,6 +106,26 @@ def test_multiple_requirements_files(script, tmpdir):
     assert script.venv / 'src' / 'initools' in result.files_created
 
 
+def test_package_in_constraints_and_dependencies(script, data):
+    script.scratch_path.join("constraints.txt").write(
+        "TopoRequires2==0.0.1\nTopoRequires==0.0.1"
+    )
+    result = script.pip('install', '--no-index', '-f',
+                        data.find_links, '-c', script.scratch_path /
+                        'constraints.txt', 'TopoRequires2')
+    assert 'installed TopoRequires-0.0.1' in result.stdout
+
+
+def test_multiple_constraints_files(script, data):
+    script.scratch_path.join("outer.txt").write("-c inner.txt")
+    script.scratch_path.join("inner.txt").write(
+        "Upper==1.0")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'outer.txt', 'Upper')
+    assert 'installed Upper-1.0' in result.stdout
+
+
 def test_respect_order_in_requirements_file(script, data):
     script.scratch_path.join("frameworks-req.txt").write(textwrap.dedent("""\
         parent
@@ -171,6 +191,34 @@ def test_install_local_editable_with_subdirectory(script):
     result.assert_installed('version-subpkg', sub_dir='version_subdir')
 
 
+def test_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+    virtualenv.system_site_packages = True
+    homedir = script.environ["HOME"]
+    script.scratch_path.join("bin").mkdir()
+    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+        cfg.write(textwrap.dedent("""
+            [install]
+            prefix=%s""" % script.scratch_path))
+
+    result = script.pip('install', '--user', '--no-index', '-f',
+                        data.find_links, 'requiresupper')
+    assert 'installed requiresupper' in result.stdout
+
+
+def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+    virtualenv.system_site_packages = True
+    homedir = script.environ["HOME"]
+    script.scratch_path.join("bin").mkdir()
+    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+        cfg.write(textwrap.dedent("""
+            [install]
+            prefix=%s""" % script.scratch_path))
+
+    result = script.pip('install', '--no-use-wheel', '--user', '--no-index',
+                        '-f', data.find_links, 'requiresupper')
+    assert 'installed requiresupper' in result.stdout
+
+
 def test_install_option_in_requirements_file(script, data, virtualenv):
     """
     Test --install-option in requirements file overrides same option in cli
@@ -192,3 +240,19 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
     assert package_dir in result.files_created
+
+
+def test_constraints_not_installed_by_default(script, data):
+    script.scratch_path.join("c.txt").write("requiresupper")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'c.txt', 'Upper')
+    assert 'requiresupper' not in result.stdout
+
+
+def test_constraints_only_causes_error(script, data):
+    script.scratch_path.join("c.txt").write("requiresupper")
+    result = script.pip(
+        'install', '--no-index', '-f', data.find_links, '-c',
+        script.scratch_path / 'c.txt', expect_error=True)
+    assert 'installed requiresupper' not in result.stdout

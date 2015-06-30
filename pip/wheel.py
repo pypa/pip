@@ -123,7 +123,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     try:
         wheel_names = os.listdir(root)
     except OSError as e:
-        if e.errno == errno.ENOENT:
+        if e.errno in (errno.ENOENT, errno.ENOTDIR):
             return link
         raise
     candidates = []
@@ -708,6 +708,8 @@ class WheelBuilder(object):
 
         buildset = []
         for req in reqset:
+            if req.constraint:
+                continue
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(

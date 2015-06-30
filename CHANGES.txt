@@ -1,3 +1,24 @@
+**7.1.0 (unreleased)**
+
+* Allow constraining versions globally without having to know exactly what will
+  be installed by the pip command. :issue:`2731`.
+
+* Accept --no-binary and --only-binary via pip.conf. :issue`2867`.
+
+* Allow ``--allow-all-external`` within a requirements file.
+
+* Fixed an issue where ``--user`` could not be used when ``--prefix`` was used
+  in a distutils configuration file.
+
+* Fixed an issue where the SOABI tags were not correctly being generated on
+  Python 3.5.
+
+* Fixed an issue where we were advising windows users to upgrade by directly
+  executing pip, when that would always fail on Windows.
+
+* Allow ``~`` to be expanded within a cache directory in all situations.
+
+
 **7.0.3 (2015-06-01)**
 
 * Fixed a regression where ``--no-cache-dir`` would raise an exception, fixes
@@ -87,7 +108,7 @@
   we don't have Python compiled with SSL support (:pull:`2761`).
 
 * Allowing using extras when installing from a file path without requiring the
-  use of an editable (:pull`2785`).
+  use of an editable (:pull:`2785`).
 
 * Fix an infinite loop when the cache directory is stored on a file system
   which does not support hard links (:pull:`2796`).

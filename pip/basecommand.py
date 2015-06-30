@@ -261,6 +261,13 @@ class RequirementCommand(Command):
         """
         Marshal cmd line args into a requirement set.
         """
+        for filename in options.constraints:
+            for req in parse_requirements(
+                    filename,
+                    constraint=True, finder=finder, options=options,
+                    session=session, wheel_cache=wheel_cache):
+                requirement_set.add_requirement(req)
+
         for req in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(

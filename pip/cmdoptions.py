@@ -3,7 +3,7 @@ shared options and groups
 
 The principle here is to define options once, but *not* instantiate them
 globally. One reason being that options with action='append' can carry state
-between parses. pip parse's general options twice internally, and shouldn't
+between parses. pip parses general options twice internally, and shouldn't
 pass on state. To be consistent, all options will follow this design.
 
 """
@@ -335,6 +335,17 @@ process_dependency_links = partial(
     default=False,
     help="Enable the processing of dependency links.",
 )
+
+
+def constraints():
+    return Option(
+        '-c', '--constraint',
+        dest='constraints',
+        action='append',
+        default=[],
+        metavar='file',
+        help='Constrain versions using the given constraints file. '
+        'This option can be used multiple times.')
 
 
 def requirements():
