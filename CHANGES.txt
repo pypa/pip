@@ -5,7 +5,7 @@
 * Allow constraining versions globally without having to know exactly what will
   be installed by the pip command. :issue:`2731`.
 
-* Accept --no-binary and --only-binary via pip.conf. :issue`2867`.
+* Accept --no-binary and --only-binary via pip.conf. :issue:`2867`.
 
 * Allow ``--allow-all-external`` within a requirements file.
 
