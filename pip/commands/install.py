@@ -22,6 +22,7 @@ from pip import cmdoptions
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelCache, WheelBuilder
 
 
@@ -246,6 +247,17 @@ class InstallCommand(RequirementCommand):
             finder = self._build_package_finder(options, index_urls, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            if options.cache_dir and not check_path_owner(options.cache_dir):
+                logger.warning(
+                    "The directory '%s' or its parent directory is not owned "
+                    "by the current user and caching wheels has been "
+                    "disabled. check the permissions and owner of that "
+                    "directory. If executing pip with sudo, you may want "
+                    "sudo's -H flag.",
+                    options.cache_dir,
+                )
+                options.cache_dir = None
+
             with BuildDirectory(options.build_dir,
                                 delete=build_delete) as build_dir:
                 requirement_set = RequirementSet(

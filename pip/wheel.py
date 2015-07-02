@@ -753,7 +753,13 @@ class WheelBuilder(object):
             for req in buildset:
                 if autobuilding:
                     output_dir = _cache_for_link(self._cache_root, req.link)
-                    ensure_dir(output_dir)
+                    try:
+                        ensure_dir(output_dir)
+                    except OSError as e:
+                        logger.warn("Building wheel for %s failed: %s",
+                                    req.name, e)
+                        build_failure.append(req)
+                        continue
                 else:
                     output_dir = self._wheel_dir
                 wheel_file = self._build_one(req, output_dir)
