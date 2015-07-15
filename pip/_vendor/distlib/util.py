@@ -163,7 +163,7 @@ def get_executable():
 #    else:
 #        result = sys.executable
 #    return result
-    return sys.executable
+    return os.path.normcase(sys.executable)
 
 
 def proceed(prompt, allowed_chars, error_prompt=None, default=None):
@@ -397,7 +397,7 @@ class FileOperator(object):
         self.record_as_written(path)
 
     def set_mode(self, bits, mask, files):
-        if os.name == 'posix':
+        if os.name == 'posix' or (os.name == 'java' and os._name == 'posix'):
             # Set the executable bits (owner, group, and world) on
             # all the files specified.
             for f in files:

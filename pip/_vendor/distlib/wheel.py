@@ -74,7 +74,7 @@ FILENAME_RE = re.compile(r'''
 (-(?P<bn>\d+[^-]*))?
 -(?P<py>\w+\d+(\.\w+\d+)*)
 -(?P<bi>\w+)
--(?P<ar>\w+)
+-(?P<ar>\w+(\.\w+)*)
 \.whl$
 ''', re.IGNORECASE | re.VERBOSE)
 
