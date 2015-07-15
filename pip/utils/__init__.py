@@ -39,7 +39,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS']
+           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
+           'get_installed_version']
 
 
 logger = logging.getLogger(__name__)
@@ -845,3 +846,20 @@ class cached_property(object):
             return self
         value = obj.__dict__[self.func.__name__] = self.func(obj)
         return value
+
+
+def get_installed_version(dist_name):
+    """Get the installed version of dist_name avoiding pkg_resources cache"""
+    # Create a requirement that we'll look for inside of setuptools.
+    req = pkg_resources.Requirement.parse(dist_name)
+
+    # We want to avoid having this cached, so we need to construct a new
+    # working set each time.
+    working_set = pkg_resources.WorkingSet()
+
+    # Get the installed distribution from our working set
+    dist = working_set.find(req)
+
+    # Check to see if we got an installed distribution or not, if we did
+    # we want to return it's version.
+    return dist.version if dist else None

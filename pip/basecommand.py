@@ -210,15 +210,6 @@ class Command(object):
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
-        # Check if we're using the latest version of pip available
-        if (not options.disable_pip_version_check and not
-                getattr(options, "no_index", False)):
-            with self._build_session(
-                    options,
-                    retries=0,
-                    timeout=min(5, options.timeout)) as session:
-                pip_version_check(session)
-
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
@@ -249,6 +240,15 @@ class Command(object):
             logger.critical('Exception:\n%s', format_exc())
 
             return UNKNOWN_ERROR
+        finally:
+            # Check if we're using the latest version of pip available
+            if (not options.disable_pip_version_check and not
+                    getattr(options, "no_index", False)):
+                with self._build_session(
+                        options,
+                        retries=0,
+                        timeout=min(5, options.timeout)) as session:
+                    pip_version_check(session)
 
         return SUCCESS
 
