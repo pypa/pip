@@ -120,6 +120,12 @@ class ResourceFinder(object):
     """
     Resource finder for file system resources.
     """
+
+    if sys.platform.startswith('java'):
+        skipped_extensions = ('.pyc', '.pyo', '.class')
+    else:
+        skipped_extensions = ('.pyc', '.pyo')
+
     def __init__(self, module):
         self.module = module
         self.loader = getattr(module, '__loader__', None)
@@ -170,13 +176,34 @@ class ResourceFinder(object):
 
     def get_resources(self, resource):
         def allowed(f):
-            return f != '__pycache__' and not f.endswith(('.pyc', '.pyo'))
+            return (f != '__pycache__' and not
+                    f.endswith(self.skipped_extensions))
         return set([f for f in os.listdir(resource.path) if allowed(f)])
 
     def is_container(self, resource):
         return self._is_directory(resource.path)
 
     _is_directory = staticmethod(os.path.isdir)
+
+    def iterator(self, resource_name):
+        resource = self.find(resource_name)
+        if resource is not None:
+            todo = [resource]
+            while todo:
+                resource = todo.pop(0)
+                yield resource
+                if resource.is_container:
+                    rname = resource.name
+                    for name in resource.resources:
+                        if not rname:
+                            new_name = name
+                        else:
+                            new_name = '/'.join([rname, name])
+                        child = self.find(new_name)
+                        if child.is_container:
+                            todo.append(child)
+                        else:
+                            yield child
 
 
 class ZipResourceFinder(ResourceFinder):

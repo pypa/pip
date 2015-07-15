@@ -10,7 +10,7 @@ import os
 import re
 import sys
 
-if sys.version_info[0] < 3:
+if sys.version_info[0] < 3:  # pragma: no cover
     from StringIO import StringIO
     string_types = basestring,
     text_type = unicode
@@ -53,7 +53,7 @@ if sys.version_info[0] < 3:
         if match: return match.group(1, 2)
         return None, host
 
-else:
+else:  # pragma: no cover
     from io import StringIO
     string_types = str,
     text_type = str
@@ -81,7 +81,7 @@ else:
 
 try:
     from ssl import match_hostname, CertificateError
-except ImportError:
+except ImportError: # pragma: no cover
     class CertificateError(ValueError):
         pass
 
@@ -181,7 +181,7 @@ except ImportError:
 
 try:
     from types import SimpleNamespace as Container
-except ImportError:
+except ImportError:  # pragma: no cover
     class Container(object):
         """
         A generic container for when multiple values need to be returned
@@ -192,7 +192,7 @@ except ImportError:
 
 try:
     from shutil import which
-except ImportError:
+except ImportError:  # pragma: no cover
     # Implementation from Python 3.3
     def which(cmd, mode=os.F_OK | os.X_OK, path=None):
         """Given a command, mode, and a PATH string, return the path which
@@ -261,7 +261,7 @@ except ImportError:
 
 from zipfile import ZipFile as BaseZipFile
 
-if hasattr(BaseZipFile, '__enter__'):
+if hasattr(BaseZipFile, '__enter__'):  # pragma: no cover
     ZipFile = BaseZipFile
 else:
     from zipfile import ZipExtFile as BaseZipExtFile

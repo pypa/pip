@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2014 Vinay Sajip.
+# Copyright (C) 2013-2015 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -80,7 +80,8 @@ class ScriptMaker(object):
         self.force = False
         self.clobber = False
         # It only makes sense to set mode bits on POSIX.
-        self.set_mode = (os.name == 'posix')
+        self.set_mode = (os.name == 'posix') or (os.name == 'java' and
+                                                 os._name == 'posix')
         self.variants = set(('', 'X.Y'))
         self._fileop = fileop or FileOperator(dry_run)
 
@@ -90,6 +91,31 @@ class ScriptMaker(object):
             fn = fn.replace('python', 'pythonw')
             executable = os.path.join(dn, fn)
         return executable
+
+    if sys.platform.startswith('java'):  # pragma: no cover
+        def _is_shell(self, executable):
+            """
+            Determine if the specified executable is a script
+            (contains a #! line)
+            """
+            try:
+                with open(executable) as fp:
+                    return fp.read(2) == '#!'
+            except (OSError, IOError):
+                logger.warning('Failed to open %s', executable)
+                return False
+
+        def _fix_jython_executable(self, executable):
+            if self._is_shell(executable):
+                # Workaround for Jython is not needed on Linux systems.
+                import java
+
+                if java.lang.System.getProperty('os.name') == 'Linux':
+                    return executable
+            elif executable.lower().endswith('jython.exe'):
+                # Use wrapper exe for Jython on Windows
+                return executable
+            return '/usr/bin/env %s' % executable
 
     def _get_shebang(self, encoding, post_interp=b'', options=None):
         enquote = True
@@ -109,6 +135,10 @@ class ScriptMaker(object):
         if options:
             executable = self._get_alternate_executable(executable, options)
 
+        if sys.platform.startswith('java'):  # pragma: no cover
+            executable = self._fix_jython_executable(executable)
+        # Normalise case for Windows
+        executable = os.path.normcase(executable)
         # If the user didn't specify an executable, it may be necessary to
         # cater for executable paths with spaces (not uncommon on Windows)
         if enquote and ' ' in executable:

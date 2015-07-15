@@ -366,9 +366,11 @@ class Distribution(object):
         return plist
 
     def _get_requirements(self, req_attr):
-        reqts = getattr(self.metadata, req_attr)
-        return set(self.metadata.get_requirements(reqts, extras=self.extras,
-                                                  env=self.context))
+        md = self.metadata
+        logger.debug('Getting requirements from metadata %r', md.todict())
+        reqts = getattr(md, req_attr)
+        return set(md.get_requirements(reqts, extras=self.extras,
+                                       env=self.context))
 
     @property
     def run_requires(self):
