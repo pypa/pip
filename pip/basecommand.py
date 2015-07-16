@@ -4,11 +4,8 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
-import traceback
 import optparse
 import warnings
-
-from pip._vendor.six import StringIO
 
 from pip import cmdoptions
 from pip.locations import running_under_virtualenv
@@ -218,26 +215,26 @@ class Command(object):
                 return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError, BadCommand) as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except CommandError as exc:
             logger.critical('ERROR: %s', exc)
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except KeyboardInterrupt:
             logger.critical('Operation cancelled by user')
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except:
-            logger.critical('Exception:\n%s', format_exc())
+            logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR
         finally:
@@ -306,11 +303,3 @@ class RequirementCommand(Command):
                 msg = ('You must give at least one requirement '
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warning(msg)
-
-
-def format_exc(exc_info=None):
-    if exc_info is None:
-        exc_info = sys.exc_info()
-    out = StringIO()
-    traceback.print_exception(*exc_info, **dict(file=out))
-    return out.getvalue()
