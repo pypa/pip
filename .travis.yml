@@ -13,7 +13,7 @@ matrix:
           env: TOXENV=py33
         - python: 3.4
           env: TOXENV=py34
-        - python: nightly
+        - python: 3.5-dev
           env: TOXENV=py35
         - python: pypy
           env: TOXENV=pypy
