@@ -51,7 +51,7 @@ def search_packages_info(query):
     """
     installed = dict(
         [(p.project_name.lower(), p) for p in pkg_resources.working_set])
-    query_names = [name.lower() for name in query]
+    query_names = [pkg_resources.safe_name(name).lower() for name in query]
     for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
         package = {
             'name': dist.project_name,
