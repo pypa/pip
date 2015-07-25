@@ -165,6 +165,20 @@ class InstallCommand(RequirementCommand):
             help="Include pre-release and development versions. By default, "
                  "pip only finds stable versions.")
 
+        cmd_opts.add_option(
+            '--save',
+            action='store_true',
+            dest='save',
+            default=False,
+            help='Add package(s) to requirements.txt'
+        )
+
+        cmd_opts.add_option(
+            '--save-dest',
+            dest='save',
+            help='Specify file to add package in requirements format'
+        )
+
         cmd_opts.add_option(cmdoptions.no_clean())
 
         index_opts = cmdoptions.make_option_group(
@@ -377,4 +391,16 @@ class InstallCommand(RequirementCommand):
                     target_item_dir
                 )
             shutil.rmtree(temp_target_dir)
+        if options.save:
+            if isinstance(options.save, bool):
+                req_file = 'requirements.txt'
+            else:
+                req_file = options.save
+            with open(req_file, 'a') as requirements_file:
+                for requirement in requirement_set.requirements.values():
+                    if not requirement.comes_from:
+                        requirements_file.write(
+                            '{pkg}=={pkg_version}\n'
+                            .format(pkg=requirement.name,
+                                    pkg_version=requirement.installed_version))
         return requirement_set
