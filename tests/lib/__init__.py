@@ -329,7 +329,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # about the lack of an SSLContext. Expect it when running commands
         # that will touch the outside world.
         if (pyversion_tuple < (2, 7, 9) and
-                args and args[0] in ('search', 'install')):
+                args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
 
         return self.run("pip", *args, **kwargs)

@@ -7,6 +7,7 @@ Reference Guide
 
    pip
    pip_install
+   pip_download
    pip_uninstall
    pip_freeze
    pip_list

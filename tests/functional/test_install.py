@@ -111,6 +111,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
         'customsrc',
         '--download',
         'customdl',
+        expect_stderr=True
     )
     customsrc = Path('scratch') / 'customsrc' / 'initools'
     assert customsrc in result.files_created, (
@@ -126,6 +127,9 @@ def test_download_editable_to_custom_path(script, tmpdir):
         if filename.startswith(customdl)
     ]
     assert customdl_files_created
+    assert ('DEPRECATION: pip install --download has been deprecated and will '
+            'be removed in the future. Pip now has a download command that '
+            'should be used instead.') in result.stderr
 
 
 @pytest.mark.network
