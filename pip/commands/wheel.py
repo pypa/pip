@@ -6,7 +6,6 @@ import os
 import warnings
 
 from pip.basecommand import RequirementCommand
-from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
@@ -128,11 +127,6 @@ class WheelCommand(RequirementCommand):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.info('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
         if options.download_cache:
             warnings.warn(
                 "--download-cache has been deprecated and will be removed in "
@@ -146,19 +140,7 @@ class WheelCommand(RequirementCommand):
 
         with self._build_session(options) as session:
 
-            finder = PackageFinder(
-                find_links=options.find_links,
-                format_control=options.format_control,
-                index_urls=index_urls,
-                allow_external=options.allow_external,
-                allow_unverified=options.allow_unverified,
-                allow_all_external=options.allow_all_external,
-                allow_all_prereleases=options.pre,
-                trusted_hosts=options.trusted_hosts,
-                process_dependency_links=options.process_dependency_links,
-                session=session,
-            )
-
+            finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
             with BuildDirectory(options.build_dir,

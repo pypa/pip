@@ -4,6 +4,7 @@ Package containing all pip commands
 from __future__ import absolute_import
 
 from pip.commands.completion import CompletionCommand
+from pip.commands.download import DownloadCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.help import HelpCommand
 from pip.commands.list import ListCommand
@@ -22,6 +23,7 @@ commands_dict = {
     ShowCommand.name: ShowCommand,
     InstallCommand.name: InstallCommand,
     UninstallCommand.name: UninstallCommand,
+    DownloadCommand.name: DownloadCommand,
     ListCommand.name: ListCommand,
     WheelCommand.name: WheelCommand,
 }
@@ -29,6 +31,7 @@ commands_dict = {
 
 commands_order = [
     InstallCommand,
+    DownloadCommand,
     UninstallCommand,
     FreezeCommand,
     ListCommand,
