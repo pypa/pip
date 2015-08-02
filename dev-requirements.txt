@@ -2,7 +2,6 @@ https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
 pretend
 pytest
 pytest-capturelog
-pytest-cov
 pytest-timeout
 pytest-xdist
 mock<1.1
