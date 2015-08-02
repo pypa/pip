@@ -260,6 +260,8 @@ class InstallRequirement(object):
             self._link = link
         else:
             self._link = self._wheel_cache.cached_wheel(link, self.name)
+            if self._link != link:
+                logger.debug('Using cached wheel link: %s', self._link)
 
     @property
     def specifier(self):
