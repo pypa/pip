@@ -324,6 +324,8 @@ def _parse_letter_version(letter, number):
             letter = "b"
         elif letter in ["c", "pre", "preview"]:
             letter = "rc"
+        elif letter in ["rev", "r"]:
+            letter = "post"
 
         return letter, int(number)
     if not letter and number:
