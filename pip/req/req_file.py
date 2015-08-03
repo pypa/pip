@@ -43,6 +43,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.always_unzip,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.trusted_host,
 ]
 
 # options to be passed to requirements
@@ -218,6 +219,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
             finder.find_links.append(value)
+        if opts.trusted_hosts:
+            finder.secure_origins.extend(
+                ("*", host, "*") for host in opts.trusted_hosts)
 
 
 def break_args_options(line):
