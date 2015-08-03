@@ -43,6 +43,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.always_unzip,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.pre,
     cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
 ]
@@ -220,6 +221,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
             finder.find_links.append(value)
+        if opts.pre:
+            finder.allow_all_prereleases = True
         if opts.process_dependency_links:
             finder.process_dependency_links = True
         if opts.trusted_hosts:
