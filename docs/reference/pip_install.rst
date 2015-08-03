@@ -124,7 +124,7 @@ If you wish, you can refer to other requirements files, like this::
 
     -r more_requirements.txt
 
-You can also refer to constraints files, like this::
+You can also refer to :ref:`constraints files <Constraints Files>`, like this::
 
     -c some_constraints.txt
 
