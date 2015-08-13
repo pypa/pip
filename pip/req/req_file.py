@@ -78,11 +78,8 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     )
 
     lines = content.splitlines()
-    lines = ignore_comments(lines)
-    lines = join_lines(lines)
-    lines = skip_regex(lines, options)
 
-    for line_number, line in enumerate(lines, 1):
+    for line_number, line in enumerate_lines(lines, options):
         req_iter = process_line(line, filename, line_number, finder,
                                 comes_from, options, session, wheel_cache,
                                 constraint=constraint)
@@ -241,42 +238,47 @@ def build_parser():
     return parser
 
 
-def join_lines(iterator):
-    """
-    Joins a line ending in '\' with the previous line.
-    """
-    lines = []
-    for line in iterator:
-        if not line.endswith('\\'):
-            if lines:
-                lines.append(line)
-                yield ''.join(lines)
-                lines = []
-            else:
-                yield line
-        else:
-            lines.append(line.strip('\\'))
+def enumerate_lines(lines, options):
+    """Iterates through logical line, returning line number as well
 
-    # TODO: handle space after '\'.
-    # TODO: handle '\' on last line.
-
-
-def ignore_comments(iterator):
-    """
-    Strips and filters empty or commented lines.
-    """
-    for line in iterator:
-        line = COMMENT_RE.sub('', line)
-        line = line.strip()
-        if line:
-            yield line
-
-
-def skip_regex(lines, options):
-    """
-    Optionally exclude lines that match '--skip-requirements-regex'
+    :param lines:   Iterable of strings.
+    :param options: Global options.
     """
     skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        lines = filterfalse(re.compile(skip_regex).search, lines)
-    return lines
+    skip_regex = re.compile(skip_regex) if skip_regex else None
+
+    # For lines broken with \\
+    accumulator = []
+    start_line = None
+    for line_number, line in enumerate(lines, 1):
+        # Strip comments
+        line = COMMENT_RE.sub('', line).strip()
+
+        # Join lines
+        if line.endswith('\\'):
+            if not accumulator:
+                start_line = line_number
+            accumulator.append(line.strip('\\'))
+            continue
+        if accumulator:
+            accumulator.append(line)
+
+            full_line = ''.join(accumulator)
+            if not(skip_regex and skip_regex.search(full_line)):
+                yield (start_line, full_line)
+            accumulator = []
+            line_number = None
+            continue
+
+        # Exclude lines that match '--skip-requirements-regex'
+        if skip_regex and skip_regex.search(line):
+            line = None
+
+        if line:
+            yield line_number, line
+
+    # There could be a backslash on the last line.
+    if accumulator:
+        full_line = ''.join(accumulator)
+        if not(skip_regex and skip_regex.search(full_line)):
+            yield (start_line, full_line)
