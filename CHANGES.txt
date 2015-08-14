@@ -16,6 +16,8 @@
 
 * Allow ``--trusted-host`` within a requirements file. :issue:`2822`.
 
+* Allow ``--process-dependency-links`` within a requirements file. :issue:`1274`.
+
 
 **7.1.2 (2015-08-22)**
 
