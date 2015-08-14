@@ -205,7 +205,6 @@ class TestEnumerateLines(object):
         assert list(enumerate_lines(lines, options)) == expected
 
 
-
 class TestProcessLine(object):
     """tests for `process_line`"""
 
