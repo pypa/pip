@@ -480,7 +480,7 @@ class PackageFinder(object):
         """Try to find an InstallationCandidate for req
 
         Expects req, an InstallRequirement and upgrade, a boolean
-        Returns an InstallationCandidate or None
+        Returns a Link or None
         May raise DistributionNotFound or BestVersionAlreadyInstalled
         """
         all_versions = self._find_all_versions(req.name)
