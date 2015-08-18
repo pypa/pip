@@ -282,7 +282,6 @@ def test_constraints_local_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
-@pytest.mark.xfail
 def test_constraints_constrain_to_local_editable(script, data):
     to_install = data.src.join("singlemodule")
     script.scratch_path.join("constraints.txt").write(
