@@ -1,4 +1,30 @@
-**7.2.0 (unreleased)**
+**7.1.1 (unreleased)**
+
+* Check that the wheel cache directory is writable before we attempt to write
+  cached files to them.
+
+* Move the pip version check until *after* any installs have been performed,
+  thus removing the extraenous warning when upgrading pip.
+
+* Added debug logging when using a cached wheel.
+
+* Respect platlib by default on platforms that have it separated from purlib.
+
+* Upgrade packaging to 15.3.
+
+  * Normalize post-release spellings for rev/r prefixes.
+
+* Upgrade distlib to 0.2.1.
+
+  * Updated launchers to decode shebangs using UTF-8. This allows non-ASCII
+    pathnames to be correctly handled.
+
+  * Ensured that the executable written to shebangs is normcased.
+
+  * Changed ScriptMaker to work better under Jython.
+
+* Upgrade ipaddress to 1.0.13.
+
 
 **7.1.0 (2015-06-30)**
 
