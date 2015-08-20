@@ -386,7 +386,7 @@ similarly to that of a web browser. While the cache is on by default and is
 designed do the right thing by default you can disable the cache and always
 access PyPI by utilizing the ``--no-cache-dir`` option.
 
-When making any HTTP request pip will first check it's local cache to determine
+When making any HTTP request pip will first check its local cache to determine
 if it has a suitable response stored for that request which has not expired. If
 it does then it simply returns that response and doesn't make the request.
 
@@ -396,13 +396,13 @@ response telling pip to simply use the cached item (and refresh the expiration
 timer) or it will return a whole new response which pip can then store in the
 cache.
 
-When storing items in the cache pip will respect the ``CacheControl`` header
+When storing items in the cache, pip will respect the ``CacheControl`` header
 if it exists, or it will fall back to the ``Expires`` header if that exists.
 This allows pip to function as a browser would, and allows the index server
 to communicate to pip how long it is reasonable to cache any particular item.
 
 While this cache attempts to minimize network activity, it does not prevent
-network access all together. If you want a fast/local install solution that
+network access altogether. If you want a fast/local install solution that
 circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
 
 The default location for the cache directory depends on the Operating System:
@@ -421,15 +421,15 @@ Wheel cache
 Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
 any packages found there. This is disabled via the same ``no-cache-dir`` option
 that disables the HTTP cache. The internal structure of that cache is not part
-of the Pip API. As of 7.0 pip uses a subdirectory per sdist that wheels were
+of the pip API. As of 7.0 pip uses a subdirectory per sdist that wheels were
 built from, and wheels within that subdirectory.
 
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
 C extensions and builds `py` tagged wheels when the C extension can't be built
-that pip will not attempt to build a better wheel for Python's that would have
+that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
-the wheel's are built with Python specific tags - e.g. pp on Pypy.
+the wheels are built with Python specific tags - e.g. pp on Pypy.
 
 When no wheels are found for an sdist, pip will attempt to build a wheel
 automatically and insert it into the wheel cache.
