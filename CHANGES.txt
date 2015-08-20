@@ -1,4 +1,4 @@
-**7.1.1 (unreleased)**
+**7.1.1 (2015-08-20)**
 
 * Check that the wheel cache directory is writable before we attempt to write
   cached files to them.
