@@ -46,7 +46,7 @@ if [[ $VENDOR = "no" ]]; then
 fi
 
 # Run the unit tests
-tox -- -m unit --cov pip/ --cov-report xml $TOXARGS
+tox -- -m unit $TOXARGS
 
 # Run our integration tests
 # Note: There is an issue with Python 3.2 where concurrent imports will corrupt

@@ -98,6 +98,9 @@ class TestDisutilsScheme:
         scheme = distutils_scheme('example')
         assert scheme['scripts'] == '/somewhere/else'
 
+    # when we request install-lib, we should install everything (.py &
+    # .so) into that path; i.e. ensure platlib & purelib are set to
+    # this path
     def test_install_lib_takes_precedence(self, tmpdir, monkeypatch):
         f = tmpdir.mkdir("config").join("setup.cfg")
         f.write("[install]\ninstall-lib=/somewhere/else/")

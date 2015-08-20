@@ -31,6 +31,7 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
+    get_installed_version
 )
 from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
@@ -259,6 +260,8 @@ class InstallRequirement(object):
             self._link = link
         else:
             self._link = self._wheel_cache.cached_wheel(link, self.name)
+            if self._link != link:
+                logger.debug('Using cached wheel link: %s', self._link)
 
     @property
     def specifier(self):
@@ -527,20 +530,7 @@ exec(compile(
 
     @property
     def installed_version(self):
-        # Create a requirement that we'll look for inside of setuptools.
-        req = pkg_resources.Requirement.parse(self.name)
-
-        # We want to avoid having this cached, so we need to construct a new
-        # working set each time.
-        working_set = pkg_resources.WorkingSet()
-
-        # Get the installed distribution from our working set
-        dist = working_set.find(req)
-
-        # Check to see if we got an installed distribution or not, if we did
-        # we want to return it's version.
-        if dist:
-            return dist.version
+        return get_installed_version(self.name)
 
     def assert_source_matches_version(self):
         assert self.source_dir

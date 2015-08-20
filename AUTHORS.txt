@@ -88,7 +88,7 @@ Ionel Cristian Mărieș <contact@ionelmc.ro>
 Ionel Maries Cristian <ionel.mc@gmail.com>
 Jakub Stasiak <kuba.stasiak@gmail.com>
 Jakub Vysoky <jakub@borka.cz>
-James Cleveland <jamescleveland@gmail.com>
+James Cleveland <jc@blit.cc>
 James Polley <jp@jamezpolley.com>
 Jan Pokorný <jpokorny@redhat.com>
 Jannis Leidel <jannis@leidel.info>

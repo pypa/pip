@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2014 Vinay Sajip.
+# Copyright (C) 2012-2015 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -165,8 +165,13 @@ class Locator(object):
         for a given project release.
         """
         t = urlparse(url)
+        basename = posixpath.basename(t.path)
+        compatible = True
+        is_wheel = basename.endswith('.whl')
+        if is_wheel:
+            compatible = is_compatible(Wheel(basename), self.wheel_tags)
         return (t.scheme != 'https', 'pypi.python.org' in t.netloc,
-                posixpath.basename(t.path))
+                is_wheel, compatible, basename)
 
     def prefer_url(self, url1, url2):
         """
@@ -174,8 +179,9 @@ class Locator(object):
         archives for the same version of a distribution (for example,
         .tar.gz vs. zip).
 
-        The current implement favours http:// URLs over https://, archives
-        from PyPI over those from other locations and then the archive name.
+        The current implementation favours https:// URLs over http://, archives
+        from PyPI over those from other locations, wheel compatibility (if a
+        wheel) and then the archive name.
         """
         result = url2
         if url1:
@@ -332,11 +338,13 @@ class Locator(object):
         self.matcher = matcher = scheme.matcher(r.requirement)
         logger.debug('matcher: %s (%s)', matcher, type(matcher).__name__)
         versions = self.get_project(r.name)
-        if versions:
+        if len(versions) > 2:   # urls and digests keys are present
             # sometimes, versions are invalid
             slist = []
             vcls = matcher.version_class
             for k in versions:
+                if k in ('urls', 'digests'):
+                    continue
                 try:
                     if not matcher.match(k):
                         logger.debug('%s did not match %r', matcher, k)
@@ -447,17 +455,39 @@ class PyPIJSONLocator(Locator):
             md.keywords = data.get('keywords', [])
             md.summary = data.get('summary')
             dist = Distribution(md)
+            dist.locator = self
             urls = d['urls']
-            if urls:
-                info = urls[0]
-                md.source_url = info['url']
-                dist.digest = self._get_digest(info)
-                dist.locator = self
-                result[md.version] = dist
-                for info in urls:
+            result[md.version] = dist
+            for info in d['urls']:
+                url = info['url']
+                dist.download_urls.add(url)
+                dist.digests[url] = self._get_digest(info)
+                result['urls'].setdefault(md.version, set()).add(url)
+                result['digests'][url] = self._get_digest(info)
+            # Now get other releases
+            for version, infos in d['releases'].items():
+                if version == md.version:
+                    continue    # already done
+                omd = Metadata(scheme=self.scheme)
+                omd.name = md.name
+                omd.version = version
+                odist = Distribution(omd)
+                odist.locator = self
+                result[version] = odist
+                for info in infos:
                     url = info['url']
-                    result['urls'].setdefault(md.version, set()).add(url)
-                    result['digests'][url] = digest
+                    odist.download_urls.add(url)
+                    odist.digests[url] = self._get_digest(info)
+                    result['urls'].setdefault(version, set()).add(url)
+                    result['digests'][url] = self._get_digest(info)
+#            for info in urls:
+#                md.source_url = info['url']
+#                dist.digest = self._get_digest(info)
+#                dist.locator = self
+#                for info in urls:
+#                    url = info['url']
+#                    result['urls'].setdefault(md.version, set()).add(url)
+#                    result['digests'][url] = self._get_digest(info)
         except Exception as e:
             logger.exception('JSON fetch failed: %s', e)
         return result
@@ -885,11 +915,12 @@ class DistPathLocator(Locator):
     def _get_project(self, name):
         dist = self.distpath.get_distribution(name)
         if dist is None:
-            result = {}
+            result = {'urls': {}, 'digests': {}}
         else:
             result = {
                 dist.version: dist,
-                'urls': {dist.version: set([dist.source_url])}
+                'urls': {dist.version: set([dist.source_url])},
+                'digests': {dist.version: set([None])}
             }
         return result
 

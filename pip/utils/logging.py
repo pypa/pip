@@ -39,7 +39,7 @@ def indent_log(num=2):
 
 
 def get_indentation():
-    return _log_state.indentation
+    return getattr(_log_state, 'indentation', 0)
 
 
 class IndentingFormatter(logging.Formatter):
