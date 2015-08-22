@@ -99,7 +99,11 @@ def pip_version_check(session):
     the active virtualenv or in the user's USER_CACHE_DIR keyed off the prefix
     of the pip script path.
     """
-    pip_version = packaging_version.parse(get_installed_version('pip'))
+    installed_version = get_installed_version("pip")
+    if installed_version is None:
+        return
+
+    pip_version = packaging_version.parse(installed_version)
     pypi_version = None
 
     try:
