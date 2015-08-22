@@ -140,7 +140,7 @@ if WINDOWS:
         config_basename,
     )
 else:
-    bin_py = os.path.join(sys.prefix, 'bin')
+    bin_py = os.path.realpath(os.path.join(sys.prefix, 'bin'))
     bin_user = os.path.join(user_site, 'bin')
 
     config_basename = 'pip.conf'
