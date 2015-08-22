@@ -7,6 +7,7 @@ import os.path
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip.exceptions import InstallationError
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 
@@ -104,13 +105,21 @@ class Git(VersionControl):
             rev_options = [rev]
             rev_display = ' (to %s)' % rev
         else:
+            rev = 'master'
             rev_options = ['origin/master']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
-            self.run_command(['clone', '-q', url, dest])
+            try:
+                self.run_command([
+                    'clone', '-q', '--branch', rev, '--depth', '1', url, dest])
+            except InstallationError as e:
+                if '128' in str(e):  # commit sha's can't be shallow cloned
+                    self.run_command(['clone', '-q', url, dest])
+                else:
+                    raise
 
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
@@ -201,9 +210,14 @@ class Git(VersionControl):
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        self.run_command(
-            ['submodule', 'update', '--init', '--recursive', '-q'],
-            cwd=location,
-        )
+        cmd = ['submodule', 'update', '--init', '--recursive', '-q']
+        try:
+            self.run_command(cmd + ['--depth', '1'], cwd=location)
+        except InstallationError as e:
+            if '128' in str(e):  # commit sha's can't be shallow cloned
+                self.run_command(cmd, cwd=location)
+            else:
+                raise
+
 
 vcs.register(Git)
