@@ -30,7 +30,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "7.2.0.dev0"
+__version__ = "7.1.2"
 
 
 logger = logging.getLogger(__name__)

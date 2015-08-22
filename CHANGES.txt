@@ -1,3 +1,9 @@
+**7.1.2 (2015-08-22)**
+
+* Don't raise an error if pip is not installed when checking for the latest pip
+  version.
+
+
 **7.1.1 (2015-08-20)**
 
 * Check that the wheel cache directory is writable before we attempt to write
