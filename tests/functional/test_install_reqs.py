@@ -313,3 +313,46 @@ def test_constrained_to_url_install_same_url(script, data):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', to_install)
     assert 'Running setup.py install for singlemodule' in result.stdout
+
+
+def test_install_with_extras_from_constraints(script, data):
+    to_install = data.packages.join("LocalExtras")
+    script.scratch_path.join("constraints.txt").write(
+        "file://%s#egg=LocalExtras[bar]" % to_install
+    )
+    result = script.pip_install_local(
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
+    assert script.site_packages / 'simple' in result.files_created
+
+
+def test_install_with_extras_from_install(script, data):
+    to_install = data.packages.join("LocalExtras")
+    script.scratch_path.join("constraints.txt").write(
+        "file://%s#egg=LocalExtras" % to_install
+    )
+    result = script.pip_install_local(
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
+    assert script.site_packages / 'singlemodule.py'in result.files_created
+
+
+def test_install_with_extras_joined(script, data):
+    to_install = data.packages.join("LocalExtras")
+    script.scratch_path.join("constraints.txt").write(
+        "file://%s#egg=LocalExtras[bar]" % to_install
+    )
+    result = script.pip_install_local(
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
+    )
+    assert script.site_packages / 'simple' in result.files_created
+    assert script.site_packages / 'singlemodule.py'in result.files_created
+
+
+def test_install_with_extras_editable_joined(script, data):
+    to_install = data.packages.join("LocalExtras")
+    script.scratch_path.join("constraints.txt").write(
+        "-e file://%s#egg=LocalExtras[bar]" % to_install
+    )
+    result = script.pip_install_local(
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
+    assert script.site_packages / 'simple' in result.files_created
+    assert script.site_packages / 'singlemodule.py'in result.files_created
