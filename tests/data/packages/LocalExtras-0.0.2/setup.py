@@ -22,8 +22,9 @@ DEP_URL = path_to_url(DEP_PATH)
 
 setup(
     name='LocalExtras',
-    version='0.0.1',
+    version='0.0.2',
     packages=find_packages(),
-    extras_require={ 'bar': ['simple'], 'baz': ['singlemodule'] },
+    install_requires=['simple==1.0'],
+    extras_require={ 'bar': ['simple==2.0'], 'baz': ['singlemodule'] },
     dependency_links=[DEP_URL]
 )

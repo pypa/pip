@@ -241,7 +241,8 @@ class RequirementSet(object):
             except KeyError:
                 existing_req = None
             if (parent_req_name is None and existing_req and not
-                    existing_req.constraint):
+                    existing_req.constraint and
+                    existing_req.extras == install_req.extras):
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, existing_req, name))
@@ -267,6 +268,11 @@ class RequirementSet(object):
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False
+                    existing_req.extras = tuple(
+                        sorted(set(existing_req.extras).union(
+                               set(install_req.extras))))
+                    logger.debug("Setting %s extras to: %s" % (
+                        existing_req, existing_req.extras))
                     # And now we need to scan this.
                     result = [existing_req]
                 # Canonicalise to the already-added object for the backref
