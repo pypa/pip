@@ -6,7 +6,7 @@ Installation
 Python & OS Support
 -------------------
 
-pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4 and also pypy.
+pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and also pypy.
 
 pip works on Unix/Linux, OS X, and Windows.
 
