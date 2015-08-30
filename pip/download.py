@@ -881,6 +881,8 @@ def _download_http_url(link, session, temp_dir):
         ext = os.path.splitext(resp.url)[1]
         if ext:
             filename += ext
+    if sys.version_info[0] < 3:
+        temp_dir = temp_dir.decode(sys.getfilesystemencoding())
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
         _download_url(resp, link, content_file)
