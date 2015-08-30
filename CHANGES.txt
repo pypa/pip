@@ -106,6 +106,9 @@
   (:pull:`2725`).  For example, use ``"SomeProject; python_version < '2.7'"``,
   not simply ``SomeProject; python_version < '2.7'``
 
+* `get-pip.py` now installs the "wheel" package, when it's not already installed
+  (:pull:`2800`).
+
 * Ignores bz2 archives if Python wasn't compiled with bz2 support.
   Fixes :issue:`497`
 
