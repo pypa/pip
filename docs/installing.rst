@@ -12,7 +12,8 @@ pip works on Unix/Linux, OS X, and Windows.
 
 .. note::
 
-  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through v1.1.
+  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through
+  v1.1.
 
 
 Do I need to install pip?
@@ -34,16 +35,28 @@ Installing pip
 To install pip, securely download `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. [2]_
 
-Then run the following (which may require administrator access):
+Then run the following (which may require sudo or administrator access):
 
 ::
 
  python get-pip.py
 
-If `setuptools`_ is not already installed, ``get-pip.py`` will install
-`setuptools`_ for you. [3]_
 
-To upgrade an existing `setuptools`_, run ``pip install -U setuptools``.
+`get-pip.py` will also intall :ref:`pypug:setuptools` and :ref:`pypug:wheel`, if
+it's not already.
+
+
+get-pip.py options
+~~~~~~~~~~~~~~~~~~~
+
+.. option:: --no-setuptools
+
+    If set, don't attempt to install :ref:`pypug:setuptools`
+
+.. option:: --no-wheel
+
+    If set, don't attempt to install :ref:`pypug:wheel`
+
 
 Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
 install Options>` and the :ref:`general options <General Options>`. Below are
@@ -115,6 +128,3 @@ On Fedora::
        <https://github.com/pypa/pip/issues/1668>`_.
 
 .. [5] https://github.com/pypa/pip/issues/1299
-
-.. _setuptools: https://pypi.python.org/pypi/setuptools
-.. _distribute: https://pypi.python.org/pypi/distribute
