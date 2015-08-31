@@ -66,20 +66,67 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Installing with OS Package Managers
------------------------------------
+Installing with Linux Package Managers
+--------------------------------------
 
-On Linux, pip will generally be available for the system install of python using
-the system package manager, although often the latest version will be
-unavailable.
+Fedora
+~~~~~~
 
-On Debian/Ubuntu::
+To get the version supplied by the distribution:
+
+* < Fedora 23:
+
+ * Python 2: ``sudo yum install python-pip``
+ * Python 3: ``sudo yum install python3-pip``
+
+* >= Fedora 23:
+
+ * Python 2: ``sudo dnf install python-pip``
+ * Python 3: ``sudo dnf install python3-pip``
+
+To get newer versions of pip (and also setuptools and wheel), you can enable the
+"unofficial" `PyPA Copr Repo <https://copr.fedoraproject.org/coprs/pypa/pypa/>`_
+using `these instructions
+<https://fedorahosted.org/copr/wiki/HowToEnableRepo>`__, and run the same
+commands as above.
+
+
+CentOS/RHEL
+~~~~~~~~~~~
+
+CentOS and RHEL don't offer ``python-pip`` in their core repositories.
+
+It's common practice to install pip from the `EPEL repository
+<https://fedoraproject.org/wiki/EPEL>`_. Enable EPEL using `these instructions
+<https://fedoraproject.org/wiki/EPEL#How_can_I_use_these_extra_packages.3F>`__,
+and install like so::
+
+   sudo yum install python-pip
+
+You can also use the "unofficial" `PyPA Copr Repo
+<https://copr.fedoraproject.org/coprs/pypa/pypa/>`_ using `these instructions
+<https://fedorahosted.org/copr/wiki/HowToEnableRepo>`__ [5]_, and run the same
+command as above.  The Copr repository has an advantage over EPEL in that it
+also maintains packages of ``python-wheel`` and newer versions of
+``python-setuptools``.
+
+Lastly, If you're using the `IUS repository
+<https://iuscommunity.org/pages/Repos.html>`_ to install alternative Python
+versions, be aware that IUS also maintains packages for newer versions of pip,
+setuptools, and wheel that are consistent with the alternative Python versions.
+The IUS packages will not work with the system Python.
+
+
+
+Debian/Ubuntu
+~~~~~~~~~~~~~
+
+To get the version supplied by the distribution:
+
+::
 
    sudo apt-get install python-pip
 
-On Fedora/CentOS/RHEL::
-
-   sudo yum install python-pip
 
 Upgrading
 ---------
@@ -129,4 +176,7 @@ pip works on Unix/Linux, OS X, and Windows.
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
 
-.. [5] https://github.com/pypa/pip/issues/1299
+.. [5] Currently, there is no "copr" yum plugin available for CentOS/RHEL, so
+       the only option is to manually place the repo files as described.
+
+.. [6] https://github.com/pypa/pip/issues/1299
