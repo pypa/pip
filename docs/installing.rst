@@ -10,8 +10,10 @@ Distributions of Python 2.7.9 and later (in the Python 2 series), and
 Python 3.4 and later (in the Python 3 series) may already include pip by
 default. [1]_
 
-Additionally, it's common to be using a tool like :ref:`pypug:virtualenv` or
-:ref:`pyvenv <pypug:venv>`, which installs pip for you.
+Additionally, it's common to be working in a :ref:`Virtual Envionment
+<pypug:Creating and using Virtual Environments>` created by a tool like
+:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`, which handles installing
+pip for you.
 
 
 .. _`get-pip`:
