@@ -3,19 +3,6 @@
 Installation
 ============
 
-Python & OS Support
--------------------
-
-pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and also pypy.
-
-pip works on Unix/Linux, OS X, and Windows.
-
-.. note::
-
-  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through
-  v1.1.
-
-
 Do I need to install pip?
 -------------------------
 
@@ -29,8 +16,8 @@ Additionally, it's common to be using a tool like :ref:`pypug:virtualenv` or
 
 .. _`get-pip`:
 
-Installing pip
---------------
+Installing with get-pip.py
+--------------------------
 
 To install pip, securely download `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. [2]_
@@ -42,8 +29,8 @@ Then run the following (which may require sudo or administrator access):
  python get-pip.py
 
 
-`get-pip.py` will also intall :ref:`pypug:setuptools` and :ref:`pypug:wheel`, if
-it's not already.
+get-pip.py will also intall :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
+if it's not already.
 
 
 get-pip.py options
@@ -75,8 +62,23 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Upgrading pip
--------------
+Installing with OS Package Managers
+-----------------------------------
+
+On Linux, pip will generally be available for the system install of python using
+the system package manager, although often the latest version will be
+unavailable.
+
+On Debian and Ubuntu::
+
+   sudo apt-get install python-pip
+
+On Fedora::
+
+   sudo yum install python-pip
+
+Upgrading
+---------
 
 On Linux or OS X:
 
@@ -92,21 +94,17 @@ On Windows [5]_:
  python -m pip install -U pip
 
 
+Python and OS Compatibility
+---------------------------
 
-Using OS Package Managers
--------------------------
+pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and also pypy.
 
-On Linux, pip will generally be available for the system install of python using
-the system package manager, although often the latest version will be
-unavailable.
+pip works on Unix/Linux, OS X, and Windows.
 
-On Debian and Ubuntu::
+.. note::
 
-   sudo apt-get install python-pip
-
-On Fedora::
-
-   sudo yum install python-pip
+  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through
+  v1.1.
 
 
 ----
