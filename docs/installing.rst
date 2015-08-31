@@ -14,15 +14,22 @@ pip works on Unix/Linux, OS X, and Windows.
 
   Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through v1.1.
 
-pip included with Python
-------------------------
-Python 2.7.9 and later (on the python2 series), and Python 3.4
-and later include pip by default [1]_, so you may have pip already.
+
+Do I need to install pip?
+-------------------------
+
+Distributions of Python 2.7.9 and later (in the Python 2 series), and
+Python 3.4 and later (in the Python 3 series) may already include pip by
+default. [1]_
+
+Additionally, it's common to be using a tool like :ref:`pypug:virtualenv` or
+:ref:`pyvenv <pypug:venv>`, which installs pip for you.
+
 
 .. _`get-pip`:
 
-Install pip
------------
+Installing pip
+--------------
 
 To install pip, securely download `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. [2]_
@@ -55,8 +62,8 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Upgrade pip
------------
+Upgrading pip
+-------------
 
 On Linux or OS X:
 
@@ -91,7 +98,8 @@ On Fedora::
 
 ----
 
-.. [1] https://docs.python.org/3/installing/
+.. [1] For Python 2, see https://docs.python.org/2/installing, and for Python3,
+       see https://docs.python.org/3/installing.
 
 .. [2] "Secure" in this context means using a modern browser or a
        tool like `curl` that verifies SSL certificates when downloading from
