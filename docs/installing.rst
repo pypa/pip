@@ -70,11 +70,11 @@ On Linux, pip will generally be available for the system install of python using
 the system package manager, although often the latest version will be
 unavailable.
 
-On Debian and Ubuntu::
+On Debian/Ubuntu::
 
    sudo apt-get install python-pip
 
-On Fedora::
+On Fedora/CentOS/RHEL::
 
    sudo yum install python-pip
 
