@@ -8,10 +8,12 @@ import optparse
 import warnings
 
 from pip import cmdoptions
+from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
+
 from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
@@ -303,3 +305,25 @@ class RequirementCommand(Command):
                 msg = ('You must give at least one requirement '
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warning(msg)
+
+    def _build_package_finder(self, options, session):
+        """
+        Create a package finder appropriate to this requirement command.
+        """
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            index_urls = []
+
+        return PackageFinder(
+            find_links=options.find_links,
+            format_control=options.format_control,
+            index_urls=index_urls,
+            allow_external=options.allow_external,
+            allow_unverified=options.allow_unverified,
+            allow_all_external=options.allow_all_external,
+            trusted_hosts=options.trusted_hosts,
+            allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
+            session=session,
+        )

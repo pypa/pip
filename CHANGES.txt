@@ -32,6 +32,10 @@
 * Upgrade ipaddress to 1.0.13.
 
 
+* Implement a top-level pip download command and add a deprecation warning to
+  pip install --download.
+
+
 **7.1.0 (2015-06-30)**
 
 * Allow constraining versions globally without having to know exactly what will
