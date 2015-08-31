@@ -74,7 +74,7 @@ Installing with Linux Package Managers
 Fedora
 ~~~~~~
 
-To get the version supplied by the distribution:
+To install the supported version of pip:
 
 * < Fedora 23:
 
@@ -96,7 +96,7 @@ commands as above.
 CentOS/RHEL
 ~~~~~~~~~~~
 
-CentOS and RHEL don't offer ``python-pip`` in their core repositories.
+CentOS and RHEL don't offer pip in their core repositories.
 
 It's common practice to install pip from the `EPEL repository
 <https://fedoraproject.org/wiki/EPEL>`_. Enable EPEL using `these instructions
@@ -119,11 +119,10 @@ setuptools, and wheel that are consistent with the alternative Python versions.
 The IUS packages will not work with the system Python.
 
 
-
 Debian/Ubuntu
 ~~~~~~~~~~~~~
 
-To get the version supplied by the distribution:
+To install the supported version of pip:
 
 ::
 
@@ -140,7 +139,7 @@ On Linux or OS X:
  pip install -U pip
 
 
-On Windows [5]_:
+On Windows [6]_:
 
 ::
 
