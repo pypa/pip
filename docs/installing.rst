@@ -30,8 +30,11 @@ Then run the following (which may require sudo or administrator access):
 
 
 get-pip.py will also intall :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
-if it's not already. Both are required to be able to build a :ref:`Wheel
-cache`, which improves installation speed.
+if they're not already. :ref:`pypug:setuptools` is required to install
+:term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
+required to be able to build a :ref:`Wheel cache` (which improves installation
+speed), although neither are required to install pre-built :term:`wheels
+<pypug:Wheel>`.
 
 
 get-pip.py options
