@@ -415,6 +415,8 @@ Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
 
+.. _`Wheel cache`:
+
 Wheel cache
 ***********
 
