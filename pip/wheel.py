@@ -28,9 +28,7 @@ from pip.download import path_to_url, unpack_url
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
-from pip.utils import (
-    call_subprocess, ensure_dir, make_path_relative, captured_stdout,
-    rmtree)
+from pip.utils import call_subprocess, ensure_dir, captured_stdout, rmtree
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -268,7 +266,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
         logger.debug(stdout.getvalue())
 
     def normpath(src, p):
-        return make_path_relative(src, p).replace(os.path.sep, '/')
+        return os.path.relpath(src, p).replace(os.path.sep, '/')
 
     def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
