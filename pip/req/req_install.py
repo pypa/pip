@@ -6,7 +6,6 @@ import re
 import shutil
 import sys
 import tempfile
-import warnings
 import zipfile
 
 from distutils.util import change_root
@@ -33,7 +32,6 @@ from pip.utils import (
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
     get_installed_version
 )
-from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -637,14 +635,12 @@ exec(compile(
                     paths_to_remove.add(path + '.pyc')
 
         elif distutils_egg_info:
-            warnings.warn(
-                "Uninstalling a distutils installed project ({0}) has been "
-                "deprecated and will be removed in a future version. This is "
-                "due to the fact that uninstalling a distutils project will "
-                "only partially uninstall the project.".format(self.name),
-                RemovedInPip8Warning,
+            raise UninstallationError(
+                "Detected a distutils installed project ({0!r}) which we "
+                "cannot uninstall. The metadata provided by distutils does "
+                "not contain a list of files which have been installed, so "
+                "pip does not know which files to uninstall.".format(self.name)
             )
-            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install

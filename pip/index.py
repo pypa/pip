@@ -19,7 +19,7 @@ from pip.compat import ipaddress
 from pip.utils import (
     Inf, cached_property, normalize_name, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS)
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -172,7 +172,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip8Warning,
+                RemovedInPip9Warning,
             )
             self.dependency_links.extend(links)
 
@@ -330,7 +330,7 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, project_url_name)
+            loc = posixpath.join(url, urllib_parse.quote(project_name.lower()))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -340,31 +340,7 @@ class PackageFinder(object):
                 loc = loc + '/'
             return loc
 
-        project_url_name = urllib_parse.quote(project_name.lower())
-
-        if self.index_urls:
-            # Check that we have the url_name correctly spelled:
-
-            # Only check main index if index URL is given
-            main_index_url = Link(mkurl_pypi_url(self.index_urls[0]))
-
-            page = self._get_page(main_index_url)
-            if page is None and PyPI.netloc not in str(main_index_url):
-                warnings.warn(
-                    "Failed to find %r at %s. It is suggested to upgrade "
-                    "your index to support normalized names as the name in "
-                    "/simple/{name}." % (project_name, main_index_url),
-                    RemovedInPip8Warning,
-                )
-
-                project_url_name = self._find_url_name(
-                    Link(self.index_urls[0]),
-                    project_url_name,
-                ) or project_url_name
-
-        if project_url_name is not None:
-            return [mkurl_pypi_url(url) for url in self.index_urls]
-        return []
+        return [mkurl_pypi_url(url) for url in self.index_urls]
 
     def _find_all_versions(self, project_name):
         """Find all available versions for project_name

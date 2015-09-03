@@ -122,15 +122,6 @@ log = partial(
     help="Path to a verbose appending log."
 )
 
-log_explicit_levels = partial(
-    Option,
-    # Writes the log levels explicitely to the log'
-    '--log-explicit-levels',
-    dest='log_explicit_levels',
-    action='store_true',
-    default=False,
-    help=SUPPRESS_HELP)
-
 no_input = partial(
     Option,
     # Don't ask for input
@@ -461,13 +452,6 @@ no_cache = partial(
     help="Disable the cache.",
 )
 
-download_cache = partial(
-    Option,
-    '--download-cache',
-    dest='download_cache',
-    default=None,
-    help=SUPPRESS_HELP)
-
 no_deps = partial(
     Option,
     '--no-deps', '--no-dependencies',
@@ -545,7 +529,6 @@ general_group = {
         version,
         quiet,
         log,
-        log_explicit_levels,
         no_input,
         proxy,
         retries,

@@ -11,7 +11,7 @@ from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip8Warning, RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
@@ -72,7 +72,6 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.download_cache())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
@@ -156,14 +155,6 @@ class WheelCommand(RequirementCommand):
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
-
-        if options.download_cache:
-            warnings.warn(
-                "--download-cache has been deprecated and will be removed in "
-                "the future. Pip now automatically uses and configures its "
-                "cache.",
-                RemovedInPip8Warning,
-            )
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)

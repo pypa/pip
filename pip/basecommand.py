@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import optparse
-import warnings
 
 from pip import cmdoptions
 from pip.locations import running_under_virtualenv
@@ -20,7 +19,6 @@ from pip.status_codes import (
     PREVIOUS_BUILD_DIR_ERROR,
 )
 from pip.utils import get_prog, normalize_path
-from pip.utils.deprecation import RemovedInPip8Warning
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -128,11 +126,7 @@ class Command(object):
             "formatters": {
                 "indent": {
                     "()": IndentingFormatter,
-                    "format": (
-                        "%(message)s"
-                        if not options.log_explicit_levels
-                        else "[%(levelname)s] %(message)s"
-                    ),
+                    "format": "%(message)s",
                 },
             },
             "handlers": {
@@ -182,13 +176,6 @@ class Command(object):
                 for name in ["pip._vendor", "distlib", "requests", "urllib3"]
             ),
         })
-
-        if options.log_explicit_levels:
-            warnings.warn(
-                "--log-explicit-levels has been deprecated and will be removed"
-                " in a future version.",
-                RemovedInPip8Warning,
-            )
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.

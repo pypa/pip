@@ -21,7 +21,7 @@ from pip.exceptions import (
 from pip import cmdoptions
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip8Warning, RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelCache, WheelBuilder
 
@@ -82,7 +82,6 @@ class InstallCommand(RequirementCommand):
                   "regardless of what's already installed."),
         )
 
-        cmd_opts.add_option(cmdoptions.download_cache())
         cmd_opts.add_option(cmdoptions.src())
 
         cmd_opts.add_option(
@@ -254,14 +253,6 @@ class InstallCommand(RequirementCommand):
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
-
-        if options.download_cache:
-            warnings.warn(
-                "--download-cache has been deprecated and will be removed in "
-                "the future. Pip now automatically uses and configures its "
-                "cache.",
-                RemovedInPip8Warning,
-            )
 
         with self._build_session(options) as session:
 
