@@ -547,7 +547,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     set of packages as it requires a prepared index.html file and
     subdirectory-per-package structure.
     """
-    Dinner = os.path.join(data.find_links3, 'Dinner', 'Dinner-1.0.tar.gz')
+    Dinner = os.path.join(data.find_links3, 'dinner', 'Dinner-1.0.tar.gz')
     result = script.pip(
         'install', '--index-url', data.find_links3, Dinner, 'requiredinner'
     )

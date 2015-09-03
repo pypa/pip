@@ -3,6 +3,12 @@
 * **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
   ones directly linked from the index or find-links pages.
 
+* **BACKWARD INCOMPATIBLE** Remove the ``--download-cache`` which had been
+  deprecated and no-op'd in 6.0.
+
+* **BACKWARD INCOMPATIBLE** Remove the ``--log-explicit-levels`` which had been
+  deprecated in 6.0.
+
 * Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
   ``--allow-unverified`` functionality that was added as part of PEP 438. With
   changes made to the repository protocol made in PEP 470, these options are no
