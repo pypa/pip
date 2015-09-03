@@ -30,7 +30,11 @@ def get_abbr_impl():
 
 def get_impl_ver():
     """Return implementation version."""
-    impl_ver = sysconfig.get_config_var("py_version_nodot")
+    try:
+        impl_ver = sysconfig.get_config_var("py_version_nodot")
+    except IOError as e:  # Issue #1074
+        warnings.warn("{0}".format(e), RuntimeWarning)
+        impl_ver = None
     if not impl_ver or get_abbr_impl() == 'pp':
         impl_ver = ''.join(map(str, get_impl_version_info()))
     return impl_ver
@@ -62,9 +66,9 @@ def get_abi_tag():
         u = 'u' if sys.maxunicode == 0x10ffff else ''
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
-        abi = 'cp' + soabi.split('-', 1)[-1]
+        abi = 'cp' + soabi.split('-')[1]
     elif soabi:
-        abi = soabi
+        abi = soabi.replace('.', '_').replace('-', '_')
     else:
         abi = None
     return abi
