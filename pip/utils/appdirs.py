@@ -1,6 +1,6 @@
 """
 This code was taken from https://github.com/ActiveState/appdirs and modified
-to suite our purposes.
+to suit our purposes.
 """
 from __future__ import absolute_import
 

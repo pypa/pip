@@ -396,9 +396,9 @@ class RequirementSet(object):
             return None
 
     def _prepare_file(self, finder, req_to_install):
-        """Prepare a single requirements files.
+        """Prepare a single requirements file.
 
-        :return: A list of addition InstallRequirements to also install.
+        :return: A list of additional InstallRequirements to also install.
         """
         # Tell user what we are doing for this requirement:
         # obtain (editable), skipping, processing (local url), collecting

@@ -561,7 +561,7 @@ def _download_url(resp, link, content_file):
             # Special case for urllib3.
             for chunk in resp.raw.stream(
                     chunk_size,
-                    # We use decode_content=False here because we do
+                    # We use decode_content=False here because we don't
                     # want urllib3 to mess with the raw bytes we get
                     # from the server. If we decompress inside of
                     # urllib3 then we cannot verify the checksum
