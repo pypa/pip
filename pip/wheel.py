@@ -140,7 +140,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
         return link
     candidates.sort()
     path = os.path.join(root, candidates[0][1])
-    return pip.index.Link(path_to_url(path), trusted=True)
+    return pip.index.Link(path_to_url(path))
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):
@@ -783,7 +783,7 @@ class WheelBuilder(object):
                             self.requirement_set.build_dir)
                         # Update the link for this.
                         req.link = pip.index.Link(
-                            path_to_url(wheel_file), trusted=True)
+                            path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(

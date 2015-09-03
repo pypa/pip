@@ -192,16 +192,6 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_allow_external(self, finder):
-        list(process_line("--allow-external=SomeProject",
-                          "file", 1, finder=finder))
-        assert finder.allow_external == set(['someproject'])
-
-    def test_set_finder_allow_unsafe(self, finder):
-        list(process_line("--allow-unverified=SomeProject",
-                          "file", 1, finder=finder))
-        assert finder.allow_unverified == set(['someproject'])
-
     def test_set_finder_use_wheel(self, finder):
         list(process_line("--use-wheel", "file", 1, finder=finder))
         no_use_wheel_fmt = pip.index.FormatControl(set(), set())
@@ -444,10 +434,6 @@ class TestParseRequirements(object):
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-    --allow-external foo
-    --allow-all-external
-    --allow-insecure foo
-    --allow-unverified foo
             """)
 
         parse_requirements(tmpdir.join("req.txt"), session=PipSession())
@@ -484,13 +470,3 @@ class TestParseRequirements(object):
                 call.index(global_option) > 0
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])
-
-    def test_allow_all_external(self, tmpdir):
-        req_path = tmpdir.join("requirements.txt")
-        with open(req_path, "w") as fh:
-            fh.write("""
-        --allow-all-external
-        foo
-        """)
-
-        list(parse_requirements(req_path, session=PipSession()))

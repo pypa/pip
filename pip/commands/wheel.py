@@ -11,7 +11,7 @@ from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning, RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
@@ -128,6 +128,30 @@ class WheelCommand(RequirementCommand):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
+        if options.allow_external:
+            warnings.warn(
+                "--allow-external has been deprecated and will be removed in "
+                "the future. Due to changes in the repository protocol, it no "
+                "longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_all_external:
+            warnings.warn(
+                "--allow-all-external has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_unverified:
+            warnings.warn(
+                "--allow-unverified has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
@@ -150,9 +174,6 @@ class WheelCommand(RequirementCommand):
                 find_links=options.find_links,
                 format_control=options.format_control,
                 index_urls=index_urls,
-                allow_external=options.allow_external,
-                allow_unverified=options.allow_unverified,
-                allow_all_external=options.allow_all_external,
                 allow_all_prereleases=options.pre,
                 trusted_hosts=options.trusted_hosts,
                 process_dependency_links=options.process_dependency_links,

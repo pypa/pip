@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import warnings
 
 from pip._vendor import pkg_resources
 
@@ -9,6 +10,7 @@ from pip.exceptions import DistributionNotFound
 from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions, dist_is_editable
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
 
@@ -81,9 +83,6 @@ class ListCommand(Command):
         return PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls,
-            allow_external=options.allow_external,
-            allow_unverified=options.allow_unverified,
-            allow_all_external=options.allow_all_external,
             allow_all_prereleases=options.pre,
             trusted_hosts=options.trusted_hosts,
             process_dependency_links=options.process_dependency_links,
@@ -91,6 +90,30 @@ class ListCommand(Command):
         )
 
     def run(self, options, args):
+        if options.allow_external:
+            warnings.warn(
+                "--allow-external has been deprecated and will be removed in "
+                "the future. Due to changes in the repository protocol, it no "
+                "longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_all_external:
+            warnings.warn(
+                "--allow-all-external has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_unverified:
+            warnings.warn(
+                "--allow-unverified has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
         if options.outdated:
             self.run_outdated(options)
         elif options.uptodate:
