@@ -266,8 +266,7 @@ def allow_external():
         action="append",
         default=[],
         metavar="PACKAGE",
-        help="Allow the installation of a package even if it is externally "
-             "hosted",
+        help=SUPPRESS_HELP,
     )
 
 
@@ -277,7 +276,7 @@ allow_all_external = partial(
     dest="allow_all_external",
     action="store_true",
     default=False,
-    help="Allow the installation of all packages that are externally hosted",
+    help=SUPPRESS_HELP,
 )
 
 
@@ -312,8 +311,7 @@ def allow_unsafe():
         action="append",
         default=[],
         metavar="PACKAGE",
-        help="Allow the installation of a package even if it is hosted "
-        "in an insecure and unverifiable way",
+        help=SUPPRESS_HELP,
     )
 
 # Remove after 7.0

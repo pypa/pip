@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import optparse
+import warnings
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
@@ -16,7 +17,7 @@ import pip
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import (RequirementsFileParseError)
-from pip.utils import normalize_name
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip import cmdoptions
 
 __all__ = ['parse_requirements']
@@ -174,6 +175,30 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # set finder options
     elif finder:
+        if opts.allow_external:
+            warnings.warn(
+                "--allow-external has been deprecated and will be removed in "
+                "the future. Due to changes in the repository protocol, it no "
+                "longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if opts.allow_all_external:
+            warnings.warn(
+                "--allow-all-external has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if opts.allow_unverified:
+            warnings.warn(
+                "--allow-unverified has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
         if opts.index_url:
             finder.index_urls = [opts.index_url]
         if opts.use_wheel is False:
@@ -181,17 +206,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             pip.index.fmt_ctl_no_use_wheel(finder.format_control)
         if opts.no_index is True:
             finder.index_urls = []
-        if opts.allow_all_external:
-            finder.allow_all_external = opts.allow_all_external
         if opts.extra_index_urls:
             finder.index_urls.extend(opts.extra_index_urls)
-        if opts.allow_external:
-            finder.allow_external |= set(
-                [normalize_name(v).lower() for v in opts.allow_external])
-        if opts.allow_unverified:
-            # Remove after 7.0
-            finder.allow_unverified |= set(
-                [normalize_name(v).lower() for v in opts.allow_unverified])
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path

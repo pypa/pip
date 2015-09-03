@@ -19,6 +19,10 @@ class RemovedInPip9Warning(PipDeprecationWarning, PendingDeprecationWarning):
     pass
 
 
+class RemovedInPip10Warning(PipDeprecationWarning, PendingDeprecationWarning):
+    pass
+
+
 DEPRECATIONS = [RemovedInPip8Warning, RemovedInPip9Warning]
 
 

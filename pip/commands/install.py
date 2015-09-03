@@ -21,7 +21,7 @@ from pip.exceptions import (
 from pip import cmdoptions
 from pip.utils import ensure_dir
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip8Warning, RemovedInPip10Warning
 from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelCache, WheelBuilder
 
@@ -185,9 +185,6 @@ class InstallCommand(RequirementCommand):
             find_links=options.find_links,
             format_control=options.format_control,
             index_urls=index_urls,
-            allow_external=options.allow_external,
-            allow_unverified=options.allow_unverified,
-            allow_all_external=options.allow_all_external,
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
@@ -197,6 +194,30 @@ class InstallCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
+
+        if options.allow_external:
+            warnings.warn(
+                "--allow-external has been deprecated and will be removed in "
+                "the future. Due to changes in the repository protocol, it no "
+                "longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_all_external:
+            warnings.warn(
+                "--allow-all-external has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_unverified:
+            warnings.warn(
+                "--allow-unverified has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
 
         if options.download_dir:
             options.ignore_installed = True

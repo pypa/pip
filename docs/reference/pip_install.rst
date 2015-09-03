@@ -105,9 +105,6 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`--extra-index-url <--extra-index-url>`
   *  :ref:`--no-index <--no-index>`
   *  :ref:`-f, --find-links <--find-links>`
-  *  :ref:`--allow-external <--allow-external>`
-  *  :ref:`--allow-all-external <--allow-external>`
-  *  :ref:`--allow-unverified <--allow-unverified>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
 
@@ -223,37 +220,6 @@ that will enable installing pre-releases and development releases.
 
 
 .. _PEP426: http://www.python.org/dev/peps/pep-0426
-
-.. _`Externally Hosted Files`:
-
-Externally Hosted Files
-+++++++++++++++++++++++
-
-Starting with v1.4, pip will warn about installing any file that does not come
-from the primary index. As of version 1.5, pip defaults to ignoring these files
-unless asked to consider them.
-
-The ``pip install`` command supports a
-:ref:`--allow-external PROJECT <--allow-external>` option that will enable
-installing links that are linked directly from the simple index but to an
-external host that also have a supported hash fragment. Externally hosted
-files for all projects may be enabled using the
-:ref:`--allow-all-external <--allow-all-external>` flag to the ``pip install``
-command.
-
-The ``pip install`` command also supports a
-:ref:`--allow-unverified PROJECT <--allow-unverified>` option that will enable
-installing insecurely linked files. These are either directly linked (as above)
-files without a hash, or files that are linked from either the home page or the
-download url of a package.
-
-These options can be used in a requirements file.  Assuming some fictional
-`ExternalPackage` that is hosted external and unverified, then your requirements
-file would be like so::
-
-    --allow-external ExternalPackage
-    --allow-unverified ExternalPackage
-    ExternalPackage
 
 
 .. _`VCS Support`:
