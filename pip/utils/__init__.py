@@ -35,7 +35,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'make_path_relative', 'normalize_path',
+           'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks', 'ensure_dir',
@@ -252,35 +252,6 @@ def has_leading_dir(paths):
         elif prefix != common_prefix:
             return False
     return True
-
-
-def make_path_relative(path, rel_to):
-    """
-    Make a filename relative, where the filename path, and it is
-    relative to rel_to
-
-        >>> make_path_relative('/usr/share/something/a-file.pth',
-        ...                    '/usr/share/another-place/src/Directory')
-        '../../../something/a-file.pth'
-        >>> make_path_relative('/usr/share/something/a-file.pth',
-        ...                    '/home/user/src/Directory')
-        '../../../usr/share/something/a-file.pth'
-        >>> make_path_relative('/usr/share/a-file.pth', '/usr/share/')
-        'a-file.pth'
-    """
-    path_filename = os.path.basename(path)
-    path = os.path.dirname(path)
-    path = os.path.normpath(os.path.abspath(path))
-    rel_to = os.path.normpath(os.path.abspath(rel_to))
-    path_parts = path.strip(os.path.sep).split(os.path.sep)
-    rel_to_parts = rel_to.strip(os.path.sep).split(os.path.sep)
-    while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
-        path_parts.pop(0)
-        rel_to_parts.pop(0)
-    full_parts = ['..'] * len(rel_to_parts) + path_parts + [path_filename]
-    if full_parts == ['']:
-        return '.' + os.path.sep
-    return os.path.sep.join(full_parts)
 
 
 def normalize_path(path, resolve_symlinks=True):

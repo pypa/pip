@@ -29,7 +29,7 @@ from pip.locations import (
 )
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
-    dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
+    dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
     get_installed_version
 )
@@ -889,7 +889,7 @@ exec(compile(
                     if os.path.isdir(filename):
                         filename += os.path.sep
                     new_lines.append(
-                        make_path_relative(
+                        os.path.relpath(
                             prepend_root(filename), egg_info_dir)
                     )
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
