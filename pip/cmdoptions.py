@@ -10,6 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 from __future__ import absolute_import
 
 from functools import partial
+import hashlib
 from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
 
@@ -521,6 +522,44 @@ always_unzip = partial(
     action='store_true',
     help=SUPPRESS_HELP,
 )
+
+def _good_hashes():
+    """Return names of hashlib algorithms at least as strong as sha256.
+
+    Preserve the order from hashlib.algorithms so --help comes out in
+    deterministic order.
+
+    """
+    # Remove getattr when 2.6 dies.
+    algos = getattr(hashlib,
+                    'algorithms',
+                    ('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512'))
+    return [a for a in algos if a not in set(['md5', 'sha1', 'sha224'])]
+
+def _merge_mapping(option, opt_str, value, parser):
+    """Append the value to a list pointed to by the option name in a dict."""
+    if not parser.values.hashes:
+        parser.values.hashes = {}
+    parser.values.hashes.setdefault(opt_str[2:], []).append(value)
+
+def hash_options():
+    """Return an iterable of options named after hashlib's algorithms.
+
+    Leave out ones weaker than sha256.
+
+    """
+    for algo_name in _good_hashes():
+        yield partial(Option,
+                      '--' + algo_name,
+                      # Hash values eventually end up in
+                      # InstallRequirement.hashes due to __dict__ copying in
+                      # process_line().
+                      dest='hashes',
+                      action='callback',
+                      callback=_merge_mapping,
+                      type='string',
+                      help="Verify that the package's archive matches this "
+                           'hash before installing.')
 
 
 ##########
