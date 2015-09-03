@@ -1,5 +1,8 @@
 **8.0.0 (unreleased)**
 
+* **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
+  ones directly linked from the index or find-links pages.
+
 * Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
   ``--allow-unverified`` functionality that was added as part of PEP 438. With
   changes made to the repository protocol made in PEP 470, these options are no

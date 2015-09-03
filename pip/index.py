@@ -578,13 +578,10 @@ class PackageFinder(object):
     def _get_pages(self, locations, project_name):
         """
         Yields (page, page_url) from the given locations, skipping
-        locations that have errors, and adding download/homepage links
+        locations that have errors.
         """
-        all_locations = list(locations)
         seen = set()
-
-        while all_locations:
-            location = all_locations.pop(0)
+        for location in locations:
             if location in seen:
                 continue
             seen.add(location)
@@ -594,9 +591,6 @@ class PackageFinder(object):
                 continue
 
             yield page
-
-            for link in page.rel_links():
-                all_locations.append(link)
 
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
@@ -905,22 +899,6 @@ class HTMLPage(object):
                     urllib_parse.urljoin(self.base_url, href)
                 )
                 yield Link(url, self)
-
-    def rel_links(self, rels=('homepage', 'download')):
-        """Yields all links with the given relations"""
-        rels = set(rels)
-
-        for anchor in self.parsed.findall(".//a"):
-            if anchor.get("rel") and anchor.get("href"):
-                found_rels = set(anchor.get("rel").split())
-                # Determine the intersection between what rels were found and
-                #   what rels were being looked for
-                if found_rels & rels:
-                    href = anchor.get("href")
-                    url = self.clean_link(
-                        urllib_parse.urljoin(self.base_url, href)
-                    )
-                    yield Link(url, self)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
