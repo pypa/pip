@@ -31,7 +31,7 @@ else:
     from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'Inf', 'normalize_name', 'splitext',
+           'ask', 'Inf', 'splitext',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
@@ -184,13 +184,6 @@ class _Inf(object):
 
 Inf = _Inf()  # this object is not currently used as a sortable in our code
 del _Inf
-
-
-_normalize_re = re.compile(r'[^a-z]', re.I)
-
-
-def normalize_name(name):
-    return _normalize_re.sub('-', name.lower())
 
 
 def format_size(bytes):
