@@ -24,12 +24,18 @@ Installing with get-pip.py
 To install pip, securely download `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. [2]_
 
-Then run the following (which may require sudo or administrator access):
+Then run the following:
 
 ::
 
  python get-pip.py
 
+
+.. warning::
+
+   If you're using a Python install that's managed by your operating system or
+   another package manager, then be cautious. "get-pip.py" does not coordinate
+   with those tools, and may leave your system in an inconsistent state.
 
 get-pip.py will also intall :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
 if they're not already. :ref:`pypug:setuptools` is required to install
@@ -74,7 +80,7 @@ Installing with Linux Package Managers
 Fedora
 ~~~~~~
 
-To install the supported version of pip:
+To install the Fedora supported version of pip:
 
 * < Fedora 23:
 
@@ -122,7 +128,7 @@ The IUS packages will not work with the system Python.
 Debian/Ubuntu
 ~~~~~~~~~~~~~
 
-To install the supported version of pip:
+To install the Debian or Ubuntu supported version of pip:
 
 ::
 
