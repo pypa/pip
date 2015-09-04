@@ -345,8 +345,8 @@ class PackageFinder(object):
     def _find_all_versions(self, project_name):
         """Find all available versions for project_name
 
-        This checks index_urls, find_links and dependency_links
-        All versions found are returned
+        This checks index_urls, find_links and dependency_links.
+        All versions found are returned as an InstallationCandidate list.
 
         See _link_package_versions for details on which files are accepted
         """
@@ -426,11 +426,11 @@ class PackageFinder(object):
         )
 
     def find_requirement(self, req, upgrade):
-        """Try to find an InstallationCandidate for req
+        """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
-        Returns a Link or None
-        May raise DistributionNotFound or BestVersionAlreadyInstalled
+        Returns a Link if found,
+        Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         all_versions = self._find_all_versions(req.name)
 
