@@ -15,6 +15,14 @@ import distutils.util
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 
+def get_config_var(var):
+    try:
+        return sysconfig.get_config_var(var)
+    except IOError as e:  # Issue #1074
+        warnings.warn("{0}".format(e), RuntimeWarning)
+        return None
+
+
 def get_abbr_impl():
     """Return abbreviated implementation name."""
     if hasattr(sys, 'pypy_version_info'):
@@ -30,11 +38,7 @@ def get_abbr_impl():
 
 def get_impl_ver():
     """Return implementation version."""
-    try:
-        impl_ver = sysconfig.get_config_var("py_version_nodot")
-    except IOError as e:  # Issue #1074
-        warnings.warn("{0}".format(e), RuntimeWarning)
-        impl_ver = None
+    impl_ver = get_config_var("py_version_nodot")
     if not impl_ver or get_abbr_impl() == 'pp':
         impl_ver = ''.join(map(str, get_impl_version_info()))
     return impl_ver
@@ -54,15 +58,11 @@ def get_impl_version_info():
 def get_abi_tag():
     """Return the ABI tag based on SOABI (if available) or emulate SOABI
     (CPython 2, PyPy)."""
-    try:
-        soabi = sysconfig.get_config_var('SOABI')
-    except IOError as e:  # Issue #1074
-        warnings.warn("{0}".format(e), RuntimeWarning)
-        soabi = None
+    soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
     if not soabi and impl in ('cp', 'pp'):
-        d = 'd' if hasattr(sys, 'pydebug') and sys.pydebug else ''
-        m = 'm' if impl == 'cp' else ''
+        d = 'd' if get_config_var('Py_DEBUG') else ''
+        m = 'm' if get_config_var('WITH_PYMALLOC') else ''
         u = 'u' if sys.maxunicode == 0x10ffff else ''
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
