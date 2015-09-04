@@ -17,7 +17,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
-    Inf, cached_property, normalize_name, splitext, normalize_path,
+    Inf, cached_property, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS)
 from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
@@ -526,30 +526,6 @@ class PackageFinder(object):
         selected_version = applicable_versions[0].location
 
         return selected_version
-
-    def _find_url_name(self, index_url, url_name):
-        """
-        Finds the true URL name of a package, when the given name isn't quite
-        correct.
-        This is usually used to implement case-insensitivity.
-        """
-        if not index_url.url.endswith('/'):
-            # Vaguely part of the PyPI API... weird but true.
-            # FIXME: bad to modify this?
-            index_url.url += '/'
-        page = self._get_page(index_url)
-        if page is None:
-            logger.critical('Cannot fetch index base URL %s', index_url)
-            return
-        norm_name = normalize_name(url_name)
-        for link in page.links:
-            base = posixpath.basename(link.path.rstrip('/'))
-            if norm_name == normalize_name(base):
-                logger.debug(
-                    'Real name of requirement %s is %s', url_name, base,
-                )
-                return base
-        return None
 
     def _get_pages(self, locations, project_name):
         """
