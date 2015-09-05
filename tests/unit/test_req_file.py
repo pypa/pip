@@ -202,6 +202,10 @@ class TestProcessLine(object):
         no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
         assert finder.format_control == no_use_wheel_fmt
 
+    def test_set_finder_trusted_host(self, finder):
+        list(process_line("--trusted-host=url", "file", 1, finder=finder))
+        assert finder.secure_origins == [('*', 'url', '*')]
+
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set
         list(process_line("--always-unzip", "file", 1, finder=finder))

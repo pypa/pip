@@ -14,6 +14,8 @@
   changes made to the repository protocol made in PEP 470, these options are no
   longer functional.
 
+* Allow ``--trusted-host`` within a requirements file. :issue:`2822`.
+
 
 **7.1.2 (2015-08-22)**
 
