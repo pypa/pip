@@ -18,7 +18,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.compat import ipaddress
 from pip.utils import (
     Inf, cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS)
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonical)
 from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -29,7 +29,7 @@ from pip.download import HAS_TLS, url_to_path, path_to_url
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests, pkg_resources, six
+from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
 
@@ -380,7 +380,7 @@ class PackageFinder(object):
         for location in url_locations:
             logger.debug('* %s', location)
 
-        canonical_name = pkg_resources.safe_name(project_name).lower()
+        canonical_name = canonical(project_name)
         formats = fmt_ctl_formats(self.format_control, canonical_name)
         search = Search(project_name.lower(), canonical_name, formats)
         find_links_versions = self._package_versions(
@@ -605,8 +605,7 @@ class PackageFinder(object):
                 except InvalidWheelFilename:
                     self._log_skipped_link(link, 'invalid wheel filename')
                     return
-                if (pkg_resources.safe_name(wheel.name).lower() !=
-                        search.canonical):
+                if canonical(wheel.name) != search.canonical:
                     self._log_skipped_link(
                         link, 'wrong project name (not %s)' % search.supplied)
                     return
@@ -1025,7 +1024,7 @@ def fmt_ctl_handle_mutual_exclude(value, target, other):
         if name == ':none:':
             target.clear()
             continue
-        name = pkg_resources.safe_name(name).lower()
+        name = canonical(name)
         other.discard(name)
         target.add(name)
 

@@ -3,13 +3,12 @@ from __future__ import absolute_import
 import logging
 import warnings
 
-from pip._vendor import pkg_resources
-
 from pip.basecommand import Command
 from pip.exceptions import DistributionNotFound
 from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
-from pip.utils import get_installed_distributions, dist_is_editable
+from pip.utils import (
+    get_installed_distributions, dist_is_editable, canonical)
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
@@ -172,7 +171,7 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
-                    canonical_name = pkg_resources.safe_name(req.name).lower()
+                    canonical_name = canonical(req.name)
                     formats = fmt_ctl_formats(format_control, canonical_name)
                     search = Search(
                         req.name,
