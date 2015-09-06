@@ -17,6 +17,7 @@ from mock import Mock, patch
 from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
+from pip.utils.build import BuildDirectory
 from pip.utils.encoding import auto_decode
 from pip.utils.hashes import Hashes, MissingHashes
 from pip._vendor.six import BytesIO
@@ -468,3 +469,22 @@ class TestEncoding(object):
     def test_auto_decode_pep263_headers(self):
         latin1_req = u'# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
+
+
+class TestBuildDirectory(object):
+    # No need to test symlinked directories on Windows
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_build_directory(self):
+        with BuildDirectory() as build_dir:
+            tmp_dir = tempfile.mkdtemp(prefix="pip-build-test")
+            assert (
+                os.path.dirname(build_dir) ==
+                os.path.dirname(os.path.realpath(tmp_dir))
+            )
+            # are we on a system where /tmp is a symlink
+            if os.path.realpath(tmp_dir) != os.path.abspath(tmp_dir):
+                assert os.path.dirname(build_dir) != os.path.dirname(tmp_dir)
+            else:
+                assert os.path.dirname(build_dir) == os.path.dirname(tmp_dir)
+            os.rmdir(tmp_dir)
+            assert not os.path.exists(tmp_dir)
