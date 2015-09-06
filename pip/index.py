@@ -382,7 +382,7 @@ class PackageFinder(object):
 
         canonical_name = canonical(project_name)
         formats = fmt_ctl_formats(self.format_control, canonical_name)
-        search = Search(project_name.lower(), canonical_name, formats)
+        search = Search(project_name, canonical_name, formats)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f') for url in self.find_links),
