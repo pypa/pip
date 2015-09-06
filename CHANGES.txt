@@ -17,6 +17,9 @@
 * Fix PipDeprecationWarning so that warnings can be turned off by
   ``-W`` / ``PYTHONWARNINGS`` (:pull:`3455`)
 
+* Fix the build on systems with symlinked /tmp directory for custom
+  builds such as numpy.
+
 
 **8.0.2 (2016-01-21)**
 
