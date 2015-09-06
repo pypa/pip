@@ -45,6 +45,9 @@
 * Correctly display the line to add to a requirements.txt for an URL based
   dependency when ``--require-hashes`` is enabled.
 
+* Fix the build on systems with symlinked /tmp directory for custom
+  builds such as numpy.
+
 
 **8.0.3 (2016-02-25)**
 
