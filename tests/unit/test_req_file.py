@@ -214,6 +214,10 @@ class TestProcessLine(object):
         # noop, but confirm it can be set
         list(process_line("--no-allow-insecure", "file", 1, finder=finder))
 
+    def test_set_finder_allow_all_prereleases(self, finder):
+        list(process_line("--pre", "file", 1, finder=finder))
+        assert finder.allow_all_prereleases
+
     def test_relative_local_find_links(self, finder, monkeypatch):
         """
         Test a relative find_links path is joined with the req file directory

@@ -18,6 +18,8 @@
 
 * Allow ``--process-dependency-links`` within a requirements file. :issue:`1274`.
 
+* Allow ``--pre`` within a requirements file. :issue:`1273`.
+
 
 **7.1.2 (2015-08-22)**
 

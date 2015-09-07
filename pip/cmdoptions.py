@@ -496,6 +496,14 @@ no_clean = partial(
     default=False,
     help="Don't clean up build directories.")
 
+pre = partial(
+    Option,
+    '--pre',
+    action='store_true',
+    default=False,
+    help="Include pre-release and development versions. By default, "
+         "pip only finds stable versions.")
+
 disable_pip_version_check = partial(
     Option,
     "--disable-pip-version-check",

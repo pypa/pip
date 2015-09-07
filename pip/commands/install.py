@@ -156,13 +156,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
-
-        cmd_opts.add_option(
-            '--pre',
-            action='store_true',
-            default=False,
-            help="Include pre-release and development versions. By default, "
-                 "pip only finds stable versions.")
+        cmd_opts.add_option(cmdoptions.pre())
 
         cmd_opts.add_option(cmdoptions.no_clean())
 
