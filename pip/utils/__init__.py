@@ -35,7 +35,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'normalize_path', 'canonical',
+           'normalize_path', 'canonicalize_name',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks', 'ensure_dir',
@@ -829,6 +829,6 @@ def get_installed_version(dist_name):
     return dist.version if dist else None
 
 
-def canonical(name):
+def canonicalize_name(name):
     """Convert an arbitrary string to a canonical name used for comparison"""
     return pkg_resources.safe_name(name).lower()

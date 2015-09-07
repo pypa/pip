@@ -29,7 +29,7 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, canonical)
+    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -114,7 +114,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
         return link
     if not package_name:
         return link
-    canonical_name = canonical(package_name)
+    canonical_name = canonicalize_name(package_name)
     formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
     if "binary" not in formats:
         return link
@@ -732,7 +732,7 @@ class WheelBuilder(object):
                         continue
                     if "binary" not in pip.index.fmt_ctl_formats(
                             self.finder.format_control,
-                            canonical(req.name)):
+                            canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
                             "being disabled for it.", req.name)

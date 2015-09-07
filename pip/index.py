@@ -18,7 +18,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.compat import ipaddress
 from pip.utils import (
     Inf, cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonical)
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
 from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -380,7 +380,7 @@ class PackageFinder(object):
         for location in url_locations:
             logger.debug('* %s', location)
 
-        canonical_name = canonical(project_name)
+        canonical_name = canonicalize_name(project_name)
         formats = fmt_ctl_formats(self.format_control, canonical_name)
         search = Search(project_name, canonical_name, formats)
         find_links_versions = self._package_versions(
@@ -605,7 +605,7 @@ class PackageFinder(object):
                 except InvalidWheelFilename:
                     self._log_skipped_link(link, 'invalid wheel filename')
                     return
-                if canonical(wheel.name) != search.canonical:
+                if canonicalize_name(wheel.name) != search.canonical:
                     self._log_skipped_link(
                         link, 'wrong project name (not %s)' % search.supplied)
                     return
@@ -1024,7 +1024,7 @@ def fmt_ctl_handle_mutual_exclude(value, target, other):
         if name == ':none:':
             target.clear()
             continue
-        name = canonical(name)
+        name = canonicalize_name(name)
         other.discard(name)
         target.add(name)
 

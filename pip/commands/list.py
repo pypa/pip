@@ -8,7 +8,7 @@ from pip.exceptions import DistributionNotFound
 from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import (
-    get_installed_distributions, dist_is_editable, canonical)
+    get_installed_distributions, dist_is_editable, canonicalize_name)
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
@@ -171,7 +171,7 @@ class ListCommand(Command):
                 except DistributionNotFound:
                     continue
                 else:
-                    canonical_name = canonical(req.name)
+                    canonical_name = canonicalize_name(req.name)
                     formats = fmt_ctl_formats(format_control, canonical_name)
                     search = Search(
                         req.name,
