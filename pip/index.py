@@ -37,14 +37,16 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 
 
-# Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
 SECURE_ORIGINS = [
     # protocol, hostname, port
+    # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
     ("https", "*", "*"),
     ("*", "localhost", "*"),
     ("*", "127.0.0.0/8", "*"),
     ("*", "::1/128", "*"),
     ("file", "*", None),
+    # ssh is always secure
+    ("ssh", "*", "*"),
 ]
 
 
@@ -261,7 +263,8 @@ class PackageFinder(object):
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
-        origin = (parsed.scheme, parsed.hostname, parsed.port)
+        scheme = parsed.scheme.split('+', 1)[-1]
+        origin = (scheme, parsed.hostname, parsed.port)
 
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
