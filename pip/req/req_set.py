@@ -2,19 +2,23 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 import functools
-import itertools
+from itertools import chain
 import logging
 import os
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 
-from pip.download import url_to_path, unpack_url
+from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
+                          unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
-                            DistributionNotFound, PreviousBuildDirError)
+                            DistributionNotFound, PreviousBuildDirError,
+                            HashError, HashErrors, HashUnpinned,
+                            DirectoryUrlHashUnsupported, VcsHashUnsupported)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (
     display_path, dist_in_usersite, ensure_dir, normalize_path)
+from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
 
@@ -140,7 +144,7 @@ class RequirementSet(object):
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
                  isolated=False, wheel_download_dir=None,
-                 wheel_cache=None):
+                 wheel_cache=None, require_hashes=False):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -186,6 +190,7 @@ class RequirementSet(object):
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
         self._wheel_cache = wheel_cache
+        self._require_hashes = require_hashes
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 
@@ -315,23 +320,6 @@ class RequirementSet(object):
             req.uninstall(auto_confirm=auto_confirm)
             req.commit_uninstall()
 
-    def _walk_req_to_install(self, handler):
-        """Call handler for all pending reqs.
-
-        :param handler: Handle a single requirement. Should take a requirement
-            to install. Can optionally return an iterable of additional
-            InstallRequirements to cover.
-        """
-        # The list() here is to avoid potential mutate-while-iterating bugs.
-        discovered_reqs = []
-        reqs = itertools.chain(
-            list(self.unnamed_requirements), list(self.requirements.values()),
-            discovered_reqs)
-        for req_to_install in reqs:
-            more_reqs = handler(req_to_install)
-            if more_reqs:
-                discovered_reqs.extend(more_reqs)
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -340,8 +328,37 @@ class RequirementSet(object):
         if self.wheel_download_dir:
             ensure_dir(self.wheel_download_dir)
 
-        self._walk_req_to_install(
-            functools.partial(self._prepare_file, finder))
+        # If any top-level requirement has a hash specified, enter
+        # hash-checking mode, which requires hashes from all.
+        root_reqs = self.unnamed_requirements + self.requirements.values()
+        require_hashes = (self._require_hashes or
+                          any(req.has_hash_options for req in root_reqs))
+        if require_hashes and self.as_egg:
+            raise InstallationError(
+                '--egg is not allowed with --require-hashes mode, since it '
+                'delegates dependency resolution to setuptools and could thus '
+                'result in installation of unhashed packages.')
+
+        # Actually prepare the files, and collect any exceptions. The
+        # *HashUnsupported exceptions cannot be checked ahead of time, because
+        # req.populate_links() needs to be called before we can examine the
+        # link type.
+        discovered_reqs = []
+        hash_errors = HashErrors()
+        for req in chain(root_reqs, discovered_reqs):
+            try:
+                discovered_reqs.extend(self._prepare_file(
+                    finder,
+                    req,
+                    require_hashes=require_hashes,
+                    ignore_dependencies=self.ignore_dependencies))
+            except HashError as exc:
+                exc.req = req
+                hash_errors.append(exc)
+
+        if hash_errors:
+            raise hash_errors
+
 
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
@@ -395,7 +412,11 @@ class RequirementSet(object):
         else:
             return None
 
-    def _prepare_file(self, finder, req_to_install):
+    def _prepare_file(self,
+                      finder,
+                      req_to_install,
+                      require_hashes=False,
+                      ignore_dependencies=False):
         """Prepare a single requirements file.
 
         :return: A list of additional InstallRequirements to also install.
@@ -442,6 +463,11 @@ class RequirementSet(object):
             # # vcs update or unpack archive # #
             # ################################ #
             if req_to_install.editable:
+                if require_hashes:
+                    raise InstallationError(
+                        'The editable requirement %s cannot be installed when '
+                        'requiring hashes, because there is no single file to '
+                        'hash.' % req_to_install)
                 req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not self.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
@@ -449,6 +475,12 @@ class RequirementSet(object):
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
             elif req_to_install.satisfied_by:
+                if require_hashes:
+                    logger.info(
+                        'Since it is already installed, we are trusting this '
+                        'package without checking its hash. To ensure a '
+                        'completely repeatable environment, install into an '
+                        'empty virtualenv.')
                 abstract_dist = Installed(req_to_install)
             else:
                 # @@ if filesystem packages are not marked
@@ -480,6 +512,41 @@ class RequirementSet(object):
                 # If no new versions are found, DistributionNotFound is raised,
                 # otherwise a result is guaranteed.
                 assert req_to_install.link
+                link = req_to_install.link
+
+                # Now that we have the real link, we can tell what kind of
+                # requirements we have and raise some more informative errors
+                # than otherwise. (For example, we can raise VcsHashUnsupported
+                # for a VCS URL rather than HashMissing.)
+                if require_hashes:
+                    # We could check these first 2 conditions inside
+                    # unpack_url and save repetition of conditions, but then
+                    # we would report less-useful error messages for
+                    # unhashable requirements, complaining that there's no
+                    # hash provided.
+                    if is_vcs_url(link):
+                        raise VcsHashUnsupported()
+                    elif is_file_url(link) and is_dir_url(link):
+                        raise DirectoryUrlHashUnsupported()
+                    if (not req_to_install.original_link and
+                        not req_to_install.is_pinned):
+                        # Unpinned packages are asking for trouble when a new
+                        # version is uploaded. This isn't a security check, but
+                        # it saves users a surprising hash mismatch in the
+                        # future.
+                        #
+                        # file:/// URLs aren't pinnable, so don't complain
+                        # about them not being pinned.
+                        raise HashUnpinned()
+                hashes = req_to_install.hashes(
+                    trust_internet=not require_hashes)
+                if require_hashes and not hashes:
+                    # Known-good hashes are missing for this requirement, so
+                    # shim it with a facade object that will provoke hash
+                    # computation and then raise a HashMissing exception
+                    # showing the user what the hash should be.
+                    hashes = MissingHashes()
+
                 try:
                     download_dir = self.download_dir
                     # We always delete unpacked sdists after pip ran.
@@ -501,7 +568,7 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session)
+                        session=self.session, hashes=hashes)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -564,7 +631,11 @@ class RequirementSet(object):
                 # 'unnamed' requirements will get added here
                 self.add_requirement(req_to_install, None)
 
-            if not self.ignore_dependencies:
+            if not ignore_dependencies and not require_hashes:
+                # --require-hashes implies --no-deps because, otherwise,
+                # unhashed dependencies could creep in. In the future, we
+                # should report unhashed dependencies rather than just not
+                # installing them.
                 if (req_to_install.extras):
                     logger.debug(
                         "Installing extra requirements: %r",

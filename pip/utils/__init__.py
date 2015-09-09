@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import deque
 import contextlib
 import errno
 import locale
@@ -832,3 +833,8 @@ def get_installed_version(dist_name):
 def canonicalize_name(name):
     """Convert an arbitrary string to a canonical name used for comparison"""
     return pkg_resources.safe_name(name).lower()
+
+
+def consume(iterator):
+    """Consume an iterable at C speed."""
+    deque(iterator, maxlen=0)

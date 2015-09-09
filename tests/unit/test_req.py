@@ -8,9 +8,12 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
                             UnsupportedWheel)
-from pip.download import PipSession
+from pip.download import path_to_url, PipSession
+from pip.exceptions import (HashMissing, HashUnpinned, VcsHashUnsupported,
+                            HashErrors, InstallationError)
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
+from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
@@ -26,12 +29,13 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self):
+    def basic_reqset(self, **kwargs):
         return RequirementSet(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             session=PipSession(),
+            **kwargs
         )
 
     def test_no_reuse_existing_build_dir(self, data):
@@ -68,6 +72,158 @@ class TestRequirementSet(object):
             assert reqset.has_requirement('simple')
         else:
             assert not reqset.has_requirement('simple')
+
+    @pytest.mark.network
+    def test_missing_hash_checking(self, data):
+        """Make sure prepare_files() raises an error when a requirement has no
+        hash in implicit hash-checking mode.
+        """
+        reqset = self.basic_reqset()
+        # No flags here. This tests that detection of later flags nonetheless
+        # requires earlier packages to have hashes:
+        reqset.add_requirement(
+            list(process_line('blessings==1.0', 'file', 1))[0])
+        # This flag activates --require-hashes mode:
+        reqset.add_requirement(
+            list(process_line('tracefront==0.1 --sha256=somehash', 'file', 2))[0])
+        # This hash should be accepted because it came from the reqs file, not
+        # from the internet:
+        reqset.add_requirement(
+            list(process_line('https://pypi.python.org/packages/source/m/more-'
+                              'itertools/more-itertools-1.0.tar.gz#md5=b21850c'
+                              '3cfa7efbb70fd662ab5413bdd', 'file', 3))[0])
+        finder = PackageFinder([],
+                               ['https://pypi.python.org/simple'],
+                               session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'These requirements were missing hashes.*\n'
+            r'    blessings==1.0 --sha256=[0-9a-f]+\n'
+            r'THESE PACKAGES DID NOT MATCH THE HASHES.*\n'
+            r'    tracefront==0.1 .*:\n'
+            r'        Expected sha256 somehash\n'
+            r'             Got        [0-9a-f]+$',
+            reqset.prepare_files,
+            finder)
+
+    def test_missing_hash_with_require_hashes(self, data):
+        """Setting --require-hashes explicitly should raise errors if hashes
+        are missing.
+        """
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line('simple==1.0', 'file', 1))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'These requirements were missing hashes.*\n'
+            r'    simple==1.0 --sha256=393043e672415891885c9a2a0929b1af95fb866'
+                                     r'd6ca016b42d2e6ce53619b653$',
+            reqset.prepare_files,
+            finder)
+
+    def test_unsupported_hashes(self, data):  # NEXT: Add any other test cases needed, probably delete the ones in test_install or just have one or two functional tests to make sure prepare_files() gets called when we expect (so we can actually stop on hash errors), clean up, and call it a day. Make sure we test that hashes are checked all 3 places in pip.download. Test http success.
+        """VCS and dir links should raise errors when --require-hashes is
+        on.
+
+        In addition, complaints about the type of requirement (VCS or dir)
+        should trump the presence or absence of a hash.
+
+        """
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line(
+                'git+git://github.com/pypa/pip-test-package --sha256=12345',
+                'file',
+                1))[0])
+        dir_path = data.packages.join('FSPkg')
+        reqset.add_requirement(
+            list(process_line(
+                'file://%s' % (dir_path,),
+                'file',
+                2))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r"Can't verify hashes for these requirements because we don't "
+            r"have a way to hash version control repositories:\n"
+            r"    git\+git://github\.com/pypa/pip-test-package \(from -r file "
+            r"\(line 1\)\)\n"
+            r"Can't verify hashes for these file:// requirements because they "
+            r"point to directories:\n"
+            r"    file:///.*/data/packages/FSPkg \(from -r file \(line 2\)\)",
+            reqset.prepare_files,
+            finder)
+
+    def test_unpinned_hash_checking(self, data):
+        """Make sure prepare_files() raises an error when a requirement is not
+        version-pinned in hash-checking mode.
+        """
+        reqset = self.basic_reqset()
+        # Test that there must be exactly 1 specifier:
+        reqset.add_requirement(
+            list(process_line('simple --sha256=a90427ae31f5d1d0d7ec06ee97d9fcf'
+                              '2d0fc9a786985250c1c83fd68df5911dd',
+                              'file',
+                              1))[0])
+        # Test that the operator must be ==:
+        reqset.add_requirement(
+            list(process_line('simple2>1.0 --sha256=3ad45e1e9aa48b4462af0123f6'
+                              'a7e44a9115db1ef945d4d92c123dfe21815a06',
+                              'file',
+                              2))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            # Make sure all failing requirements are listed:
+            r'version pinned with ==. These do not:\n'
+            r'    simple .* \(from -r file \(line 1\)\)\n'
+            r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
+            reqset.prepare_files,
+            finder)
+
+    def test_hash_mismatch(self, data):
+        """A hash mismatch should raise an error."""
+        file_url = path_to_url(
+            (data.packages / 'simple-1.0.tar.gz').abspath)
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line('%s --sha256=badbad' % file_url, 'file', 1))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'THESE PACKAGES DID NOT MATCH THE HASHES.*\n'
+            r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
+            r'        Expected sha256 badbad\n'
+            r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
+                                    r'6ca016b42d2e6ce53619b653$',
+            reqset.prepare_files,
+            finder)
+
+    def test_no_deps_on_require_hashes(self, data):
+        """Make sure --require-hashes mode implies --no-deps."""
+        reqset = self.basic_reqset()
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        req = list(process_line(
+            'TopoRequires2==0.0.1 '
+            '--sha256=eaf9a01242c9f2f42cf2bd82a6a848cd'
+                     'e3591d14f7896bdbefcf48543720c970',
+            'file', 1))[0]
+        deps = reqset._prepare_file(finder, req, require_hashes=True)
+        assert deps == [], ('_prepare_files() resolved dependencies even '
+                            'though --require-hashes was on.')
+
+    def test_no_egg_on_require_hashes(self, data):
+        """Make sure --egg is illegal with --require-hashes.
+
+        --egg would cause dependencies to always be installed, since it cedes
+        control directly to setuptools.
+
+        """
+        reqset = self.basic_reqset(require_hashes=True, as_egg=True)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        with pytest.raises(InstallationError):
+            reqset.prepare_files(finder)
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [

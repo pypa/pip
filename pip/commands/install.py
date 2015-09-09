@@ -159,6 +159,15 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts.add_option(cmdoptions.no_clean())
 
+        cmd_opts.add_option(
+            '--require-hashes',
+            dest='require_hashes',
+            action='store_true',
+            help='Perform a provably repeatable installation by requiring a '
+                 'hash to check each package against. Implied by the presence '
+                 'of a hash flag, like --sha256, on any individual '
+                 'requirement')
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
@@ -266,6 +275,7 @@ class InstallCommand(RequirementCommand):
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
+                    require_hashes=options.require_hashes,
                 )
 
                 self.populate_requirement_set(

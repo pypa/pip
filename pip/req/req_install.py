@@ -32,6 +32,7 @@ from pip.utils import (
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
     get_installed_version
 )
+from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -76,7 +77,7 @@ class InstallRequirement(object):
 
         self.editable_options = editable_options
         self._wheel_cache = wheel_cache
-        self.link = link
+        self.link = self.original_link = link
         self.as_egg = as_egg
         self.markers = markers
         self._egg_info_path = None
@@ -264,6 +265,15 @@ class InstallRequirement(object):
     @property
     def specifier(self):
         return self.req.specifier
+
+    @property
+    def is_pinned(self):
+        """Return whether I am pinned to an exact version.
+
+        For example, some-package==1.2 is pinned; some-package>1.2 is not.
+        """
+        specifiers = self.specifier
+        return len(specifiers) == 1 and next(iter(specifiers)).operator == '=='
 
     def from_path(self):
         if self.req is None:
@@ -1004,6 +1014,36 @@ exec(compile(
             os.path.dirname(egg_info),
             project_name=dist_name,
             metadata=metadata)
+
+    @property
+    def has_hash_options(self):
+        """Return whether any known-good hashes are specified as options.
+
+        These activate --require-hashes mode; hashes specified as part of a
+        URL do not.
+
+        """
+        return bool(self.options.get('hashes', {}))
+
+    def hashes(self, trust_internet=True):
+        """Return a hash-comparer that considers my option- and URL-based
+        hashes to be known-good.
+
+        Hashes in URLs are almost peers with ones from flags. They satisfy
+        --require-hashes (whether it was implicitly or explicitly activated)
+        but do not activate it. md5 and sha224 are not allowed in flags, which
+        should nudge people toward good algos. We always OR all hashes
+        together, even ones from URLs.
+
+        :param trust_internet: Whether to trust URL-based (#md5=...) hashes
+            downloaded from the internet, as by populate_link()
+
+        """
+        good_hashes = self.options.get('hashes', {}).copy()
+        link = self.link if trust_internet else self.original_link
+        if link and link.hash:
+            good_hashes.setdefault(link.hash_name, []).append(link.hash)
+        return Hashes(good_hashes)
 
 
 def _strip_postfix(req):

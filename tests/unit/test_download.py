@@ -16,6 +16,7 @@ from pip.download import (
     unpack_file_url,
 )
 from pip.index import Link
+from pip.utils.hashes import Hashes
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -105,6 +106,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
             'location',
             download_dir=download_dir,
             session=session,
+            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
         )
 
         # despite existence of downloaded file with bad hash, downloaded again
@@ -209,7 +211,9 @@ class Test_unpack_file_url(object):
         self.prep(tmpdir, data)
         self.dist_url.url = "%s#md5=bogus" % self.dist_url.url
         with pytest.raises(HashMismatch):
-            unpack_file_url(self.dist_url, self.build_dir)
+            unpack_file_url(self.dist_url,
+                            self.build_dir,
+                            hashes=Hashes({'md5': ['bogus']}))
 
     def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
                                                monkeypatch):
@@ -235,7 +239,8 @@ class Test_unpack_file_url(object):
             dist_path_md5
         )
         unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+                        download_dir=self.download_dir,
+                        hashes=Hashes({'md5': [dist_path_md5]}))
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed

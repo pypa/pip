@@ -13,6 +13,7 @@ from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments, break_args_options)
+from tests.lib import requirements_file
 
 
 @pytest.fixture
@@ -480,12 +481,11 @@ class TestParseRequirements(object):
                         --install-option "{install_option}"
         '''.format(global_option=global_option, install_option=install_option)
 
-        req_path = tmpdir.join('requirements.txt')
-        with open(req_path, 'w') as fh:
-            fh.write(content)
-
-        req = next(parse_requirements(
-            req_path, finder=finder, options=options, session=session))
+        with requirements_file(content, tmpdir) as reqs_file:
+            req = next(parse_requirements(reqs_file.abspath,
+                                          finder=finder,
+                                          options=options,
+                                          session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:

@@ -29,7 +29,7 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       call_subprocess, ARCHIVE_EXTENSIONS)
+                       call_subprocess, ARCHIVE_EXTENSIONS, consume)
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -485,57 +485,22 @@ def is_file_url(link):
     return link.url.lower().startswith('file:')
 
 
-def _check_hash(download_hash, link):
-    if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
-        logger.critical(
-            "Hash digest size of the package %d (%s) doesn't match the "
-            "expected hash name %s!",
-            download_hash.digest_size, link, link.hash_name,
-        )
-        raise HashMismatch('Hash name mismatch for package %s' % link)
-    if download_hash.hexdigest() != link.hash:
-        logger.critical(
-            "Hash of the package %s (%s) doesn't match the expected hash %s!",
-            link, download_hash.hexdigest(), link.hash,
-        )
-        raise HashMismatch(
-            'Bad %s hash for package %s' % (link.hash_name, link)
-        )
+def is_dir_url(link):
+    """Return whether a file:// Link points to a directory.
 
+    ``link`` must not have any other scheme but file://. Call is_file_url()
+    first.
 
-def _get_hash_from_file(target_file, link):
-    try:
-        download_hash = hashlib.new(link.hash_name)
-    except (ValueError, TypeError):
-        logger.warning(
-            "Unsupported hash name %s for package %s", link.hash_name, link,
-        )
-        return None
-
-    with open(target_file, 'rb') as fp:
-        while True:
-            chunk = fp.read(4096)
-            if not chunk:
-                break
-            download_hash.update(chunk)
-    return download_hash
+    """
+    link_path = url_to_path(link.url_without_fragment)
+    return os.path.isdir(link_path)
 
 
 def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
-def _download_url(resp, link, content_file):
-    download_hash = None
-    if link.hash and link.hash_name:
-        try:
-            download_hash = hashlib.new(link.hash_name)
-        except ValueError:
-            logger.warning(
-                "Unsupported hash name %s for package %s",
-                link.hash_name, link,
-            )
-
+def _download_url(resp, link, content_file, hashes):
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -593,6 +558,11 @@ def _download_url(resp, link, content_file):
                     break
                 yield chunk
 
+    def written_chunks(chunks):
+        for chunk in chunks:
+            content_file.write(chunk)
+            yield chunk
+
     progress_indicator = _progress_indicator
 
     if link.netloc == PyPI.netloc:
@@ -614,13 +584,12 @@ def _download_url(resp, link, content_file):
 
     logger.debug('Downloading from URL %s', link)
 
-    for chunk in progress_indicator(resp_read(4096), 4096):
-        if download_hash is not None:
-            download_hash.update(chunk)
-        content_file.write(chunk)
-    if link.hash and link.hash_name:
-        _check_hash(download_hash, link)
-    return download_hash
+    downloaded_chunks = written_chunks(progress_indicator(resp_read(4096),
+                                                          4096))
+    if hashes:
+         hashes.check_against_chunks(downloaded_chunks)
+    else:
+        consume(downloaded_chunks)
 
 
 def _copy_file(filename, location, content_type, link):
@@ -648,7 +617,11 @@ def _copy_file(filename, location, content_type, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link, location, download_dir=None, session=None):
+def unpack_http_url(link,
+                    location,
+                    download_dir=None,
+                    session=None,
+                    hashes=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -659,14 +632,19 @@ def unpack_http_url(link, location, download_dir=None, session=None):
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir)
+        already_downloaded_path = _check_download_dir(link,
+                                                      download_dir,
+                                                      hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        from_path, content_type = _download_http_url(link, session, temp_dir)
+        from_path, content_type = _download_http_url(link,
+                                                     session,
+                                                     temp_dir,
+                                                     hashes)
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
@@ -681,15 +659,16 @@ def unpack_http_url(link, location, download_dir=None, session=None):
     rmtree(temp_dir)
 
 
-def unpack_file_url(link, location, download_dir=None):
+def unpack_file_url(link, location, download_dir=None, hashes=None):
     """Unpack link into location.
-    If download_dir is provided and link points to a file, make a copy
-    of the link file inside download_dir."""
 
+    If download_dir is provided and link points to a file, make a copy
+    of the link file inside download_dir.
+    """
     link_path = url_to_path(link.url_without_fragment)
 
     # If it's a url to a local directory
-    if os.path.isdir(link_path):
+    if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
@@ -697,15 +676,17 @@ def unpack_file_url(link, location, download_dir=None):
             logger.info('Link is a directory, ignoring download_dir')
         return
 
-    # if link has a hash, let's confirm it matches
-    if link.hash:
-        link_path_hash = _get_hash_from_file(link_path, link)
-        _check_hash(link_path_hash, link)
+    # If --require-hashes is off, `hashes` is either empty, the link hash, or
+    # MissingHashes, and it's required to match. If --require-hashes is on, we
+    # are satisfied by any hash in `hashes` matching: a URL-based or an
+    # option-based one; no internet-sourced hash will be in `hashes`.
+    if hashes:
+        hashes.check_against_path(link_path)
 
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir)
+        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -752,7 +733,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None):
+               only_download=False, session=None, hashes=None):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -761,6 +742,11 @@ def unpack_url(link, location, download_dir=None,
          - unpack into location
          - if download_dir, copy the file into download_dir
          - if only_download, mark location for deletion
+
+    :param hashes: A Hashes object, one of whose embedded hashes must match,
+        or I'll raise HashMismatch. If the Hashes is empty, no matches are
+        required, and unhashable types of requirements (like VCS ones, which
+        would ordinarily raise HashUnsupported) are allowed.
     """
     # non-editable vcs urls
     if is_vcs_url(link):
@@ -768,7 +754,7 @@ def unpack_url(link, location, download_dir=None,
 
     # file urls
     elif is_file_url(link):
-        unpack_file_url(link, location, download_dir)
+        unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
     else:
@@ -780,12 +766,13 @@ def unpack_url(link, location, download_dir=None,
             location,
             download_dir,
             session,
+            hashes=hashes
         )
     if only_download:
         write_delete_marker_file(location)
 
 
-def _download_http_url(link, session, temp_dir):
+def _download_http_url(link, session, temp_dir, hashes):
     """Download link url into temp_dir using provided session"""
     target_url = link.url.split('#', 1)[0]
     try:
@@ -840,11 +827,11 @@ def _download_http_url(link, session, temp_dir):
             filename += ext
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file)
+        _download_url(resp, link, content_file, hashes)
     return file_path, content_type
 
 
-def _check_download_dir(link, download_dir):
+def _check_download_dir(link, download_dir, hashes):
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """
@@ -852,10 +839,9 @@ def _check_download_dir(link, download_dir):
     if os.path.exists(download_path):
         # If already downloaded, does its hash match?
         logger.info('File was already downloaded %s', download_path)
-        if link.hash:
-            download_hash = _get_hash_from_file(download_path, link)
+        if hashes:
             try:
-                _check_hash(download_hash, link)
+                hashes.check_against_path(download_path)
             except HashMismatch:
                 logger.warning(
                     'Previously-downloaded file %s has bad hash. '

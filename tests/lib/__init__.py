@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 import os
 import sys
 import re
@@ -569,7 +570,22 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
     try:
         run(*args, **kwargs)
         assert False, "%s should have been thrown" % exception
-    except Exception:
+    except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
         assert p.search(str(e)), str(e)
+
+
+@contextmanager
+def requirements_file(contents, tmpdir):
+    """Return a Path to a requirements file of given contents.
+
+    As long as the context manager is open, the requirements file will exist.
+
+    :param tmpdir: A Path to the folder in which to create the file
+
+    """
+    path = tmpdir / 'reqs.txt'
+    path.write(contents)
+    yield path
+    path.remove()
