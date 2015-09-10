@@ -264,14 +264,16 @@ class PackageFinder(object):
         parsed = urllib_parse.urlparse(str(location))
         origin = (parsed.scheme, parsed.hostname, parsed.port)
 
+        # The protocol to use to see if the protocol matches.
+        # Don't count the repository type as part of the protocol: in
+        # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
+        # the last scheme.)
+        protocol = origin[0].rsplit('+', 1)[-1]
+
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
         # configured on this PackageFinder instance.
         for secure_origin in (SECURE_ORIGINS + self.secure_origins):
-            # Check to see if the protocol matches
-            # Don't count the repository type as part of the protocol, in
-            # things such as "git+ssh". (Only verify against the last scheme.)
-            protocol = origin[0].rsplit('+', 1)[-1]
             if protocol != secure_origin[0] and secure_origin[0] != "*":
                 continue
 
