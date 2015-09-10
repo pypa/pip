@@ -25,7 +25,8 @@ from pip._vendor.six import StringIO
 
 import pip
 from pip.download import path_to_url, unpack_url
-from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip.exceptions import (
+    InstallationError, InvalidWheelFilename, UnsupportedWheel)
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
@@ -390,6 +391,13 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # See https://bitbucket.org/pypa/distlib/issue/34/
     # See https://bitbucket.org/pypa/distlib/issue/33/
     def _get_script_text(entry):
+        if entry.suffix is None:
+            raise InstallationError(
+                "Invalid script entry point: %s for req: %s - A callable "
+                "suffix is required. Cf https://packaging.python.org/en/"
+                "latest/distributing.html#console-scripts for more "
+                "information." % (entry, req)
+            )
         return maker.script_template % {
             "module": entry.prefix,
             "import_name": entry.suffix.split(".")[0],
