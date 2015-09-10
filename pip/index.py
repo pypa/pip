@@ -37,15 +37,16 @@ from pip._vendor.requests.exceptions import SSLError
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 
 
-# Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
 SECURE_ORIGINS = [
     # protocol, hostname, port
+    # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
     ("https", "*", "*"),
-    ("ssh", "*", "*"),
     ("*", "localhost", "*"),
     ("*", "127.0.0.0/8", "*"),
     ("*", "::1/128", "*"),
     ("file", "*", None),
+    # ssh is always secure.
+    ("ssh", "*", "*"),
 ]
 
 
