@@ -90,7 +90,7 @@ class InstallRequirement(object):
         self._temp_build_dir = None
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
-        self._ideal_global_dir = None
+        self._ideal_build_dir = None
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
