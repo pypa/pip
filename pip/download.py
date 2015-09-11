@@ -602,12 +602,8 @@ def _download_url(resp, link, content_file):
 
     if show_progress:  # We don't show progress on cached responses
         if total_length:
-            logger.info(
-                "Downloading %s (%s)", url, format_size(total_length),
-            )
-            progress_indicator = DownloadProgressBar(
-                max=total_length,
-            ).iter
+            logger.info("Downloading %s (%s)", url, format_size(total_length))
+            progress_indicator = DownloadProgressBar(max=total_length).iter
         else:
             logger.info("Downloading %s", url)
             progress_indicator = DownloadProgressSpinner().iter
@@ -862,8 +858,8 @@ def _check_download_dir(link, download_dir):
                 _check_hash(download_hash, link)
             except HashMismatch:
                 logger.warning(
-                    'Previously-downloaded file %s has bad hash, '
-                    're-downloading.',
+                    'Previously-downloaded file %s has bad hash. '
+                    'Re-downloading.',
                     download_path
                 )
                 os.unlink(download_path)

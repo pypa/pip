@@ -9,7 +9,7 @@ import os
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 
-from pip.download import (url_to_path, unpack_url)
+from pip.download import url_to_path, unpack_url
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError)
 from pip.req.req_install import InstallRequirement
@@ -408,6 +408,9 @@ class RequirementSet(object):
 
         req_to_install.prepared = True
 
+        # ###################### #
+        # # print log messages # #
+        # ###################### #
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
         else:
