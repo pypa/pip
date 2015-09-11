@@ -107,7 +107,8 @@ def test_search(script):
     """
     output = script.pip('search', 'pip')
     assert (
-        'A tool for installing and managing Python packages' in output.stdout
+        'The PyPA recommended tool for installing '
+        'Python packages.' in output.stdout
     )
 
 
@@ -120,7 +121,8 @@ def test_multiple_search(script):
     """
     output = script.pip('search', 'pip', 'INITools')
     assert (
-        'A tool for installing and managing Python packages' in output.stdout
+        'The PyPA recommended tool for installing '
+        'Python packages.' in output.stdout
     )
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
