@@ -633,6 +633,7 @@ exec(compile(
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
+                    paths_to_remove.add(path + '.pyo')
 
         elif distutils_egg_info:
             raise UninstallationError(
