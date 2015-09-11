@@ -20,6 +20,9 @@
 
 * Allow ``--pre`` within a requirements file. :issue:`1273`.
 
+* Allow repository URLs with secure transports to count as trusted. (E.g.,
+  "git+ssh" is okay.) :issue:`2811`.
+
 
 **7.1.2 (2015-08-22)**
 
