@@ -111,6 +111,10 @@ class MockLogger(object):
         ("http://127.0.0.1", [], False),
         ("http://example.com/something/", [], True),
         ("http://example.com/something/", ["example.com"], False),
+        ("ssh://user@example.com/something/", [], False),
+        ("hg+ssh://user@example.com/something/", [], False),
+        ("git+ssh://user@example.com/something/", [], False),
+        ("vcs+ssh://user@example.com/something/", [], False),
     ],
 )
 def test_secure_origin(location, trusted, expected):
