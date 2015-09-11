@@ -439,20 +439,32 @@ directly with the eval function of you shell, e.g. by adding the following to yo
 
 
 
-.. _`Fast & Local Installs`:
+.. _`Installing from local packages`:
 
-Fast & Local Installs
-*********************
+Installing from local packages
+******************************
 
-Often, you will want a fast install from local archives, without probing PyPI.
+In some cases, you may want to install from local packages only, with no traffic
+to PyPI.
 
 First, download the archives that fulfill your requirements::
 
-$ pip install --download <DIR> -r requirements.txt
+$ pip install --download DIR -r requirements.txt
 
-Then, install using  :ref:`--find-links <--find-links>` and :ref:`--no-index <--no-index>`::
 
-$ pip install --no-index --find-links=[file://]<DIR> -r requirements.txt
+Note that ``pip install --download`` will look in your wheel cache first, before
+trying to download from PyPI.  If you've never installed your requirements
+before, you won't have a wheel cache for those items.  In that case, if some of
+your requirements don't come as wheels from PyPI, and you want wheels, then run
+this instead::
+
+$ pip wheel --wheel-dir DIR -r requirements.txt
+
+
+Then, to install from local only, you'll be using :ref:`--find-links
+<--find-links>` and :ref:`--no-index <--no-index>` like so::
+
+$ pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
