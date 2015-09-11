@@ -1,7 +1,6 @@
 """Locations where we look for configs, install stuff, etc"""
 from __future__ import absolute_import
 
-import getpass
 import os
 import os.path
 import site
@@ -92,14 +91,6 @@ def virtualenv_no_global():
     no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
     if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
-
-
-def __get_username():
-    """ Returns the effective username of the current process. """
-    if WINDOWS:
-        return getpass.getuser()
-    import pwd
-    return pwd.getpwuid(os.geteuid()).pw_name
 
 
 if running_under_virtualenv():
