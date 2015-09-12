@@ -496,17 +496,18 @@ class PackageFinder(object):
             return None
 
         if not applicable_versions:
-            logger.critical(
-                'Could not find a version that satisfies the requirement %s '
-                '(from versions: %s)',
-                req,
-                ', '.join(
-                    sorted(
-                        set(str(i.version) for i in all_versions),
-                        key=parse_version,
+            if all_versions:
+                logger.critical(
+                    'Could not find a version that satisfies the requirement %s '
+                    '(from versions: %s)',
+                    req,
+                    ', '.join(
+                        sorted(
+                            set(str(i.version) for i in all_versions),
+                            key=parse_version,
+                        )
                     )
                 )
-            )
 
             raise DistributionNotFound(
                 'No matching distribution found for %s' % req
