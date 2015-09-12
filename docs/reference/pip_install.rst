@@ -372,8 +372,8 @@ This allows pip to function as a browser would, and allows the index server
 to communicate to pip how long it is reasonable to cache any particular item.
 
 While this cache attempts to minimize network activity, it does not prevent
-network access altogether. If you want a fast/local install solution that
-circumvents accessing PyPI, see :ref:`Fast & Local Installs`.
+network access altogether. If you want a local install solution that
+circumvents accessing PyPI, see :ref:`Installing from local packages`.
 
 The default location for the cache directory depends on the Operating System:
 
