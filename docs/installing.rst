@@ -6,14 +6,13 @@ Installation
 Do I need to install pip?
 -------------------------
 
-Distributions of Python 2.7.9 and later (in the Python 2 series), and
-Python 3.4 and later (in the Python 3 series) may already include pip by
-default. [1]_
+pip is already installed if you're using Python 2 >=2.7.9 or Python 3 >=3.4
+downloaded from `python.org <https://www.python.org>`_, but you'll need to
+:ref:`upgrade pip <Upgrading pip>`.
 
-Additionally, it's common to be working in a :ref:`Virtual Envionment
-<pypug:Creating and using Virtual Environments>` created by a tool like
-:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`, which handles installing
-pip for you.
+Additionally, pip will already be installed if you're working in a :ref:`Virtual
+Envionment <pypug:Creating and using Virtual Environments>` created by
+:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 
 
 .. _`get-pip`:
@@ -90,8 +89,10 @@ On Fedora::
    sudo yum install python-pip
 
 
-Upgrading
----------
+.. _`Upgrading pip`:
+
+Upgrading pip
+-------------
 
 On Linux or OS X:
 
