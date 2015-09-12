@@ -7,7 +7,8 @@ Do I need to install pip?
 -------------------------
 
 pip is already installed if you're using Python 2 >=2.7.9 or Python 3 >=3.4
-downloaded from `python.org <https://www.python.org>`_.
+downloaded from `python.org <https://www.python.org>`_, but you'll need to
+:ref:`upgrade pip <Upgrading pip>`.
 
 Additionally, pip will already be installed if you're working in a :ref:`Virtual Envionment
 <pypug:Creating and using Virtual Environments>` created by a tool like
@@ -88,8 +89,10 @@ On Fedora::
    sudo yum install python-pip
 
 
-Upgrading
----------
+.. _`Upgrading pip`:
+
+Upgrading pip
+-------------
 
 On Linux or OS X:
 
