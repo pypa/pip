@@ -21,3 +21,12 @@ tool for installing Python packages.
 
 .. image:: https://secure.travis-ci.org/pypa/pip.png?branch=develop
    :target: http://travis-ci.org/pypa/pip
+
+
+Code of Conduct
+---------------
+
+Everyone interacting in the pip project's codebases, issue trackers, chat
+rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
+
+.. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
