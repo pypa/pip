@@ -685,10 +685,10 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
-                logger.info(
+                logger.critical(
                     'Complete output from command %s:', command_desc,
                 )
-                logger.info(
+                logger.critical(
                     ''.join(all_output) +
                     '\n----------------------------------------'
                 )
