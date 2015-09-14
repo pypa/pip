@@ -177,6 +177,14 @@ class Command(object):
             ),
         })
 
+        if options.disable_urllib3_warnings:
+            from pip._vendor.requests.packages import urllib3
+            category = getattr(urllib3.exceptions,
+                               options.disable_urllib3_warnings,
+                               urllib3.exceptions.HTTPWarning)
+            logger.debug('Disabling urllib3 warnings: %r' % category)
+            urllib3.disable_warnings(category)
+
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
 
