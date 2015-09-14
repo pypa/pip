@@ -113,7 +113,6 @@ def test_search(script):
 
 
 @pytest.mark.network
-@pytest.mark.xfail
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
@@ -153,7 +152,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     Test SearchCommand.run for no matches
     """
     command = SearchCommand()
-    cmdline = "--index=http://pypi.python.org/pypi non-existent-package"
+    cmdline = "--index=http://pypi.python.org/pypi nonexistentpackage"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
@@ -173,5 +172,5 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
     """
-    result = script.pip('search', 'non-existent-package', expect_error=True)
+    result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
