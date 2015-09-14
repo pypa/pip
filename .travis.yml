@@ -13,18 +13,20 @@ matrix:
           env: TOXENV=py33
         - python: 3.4
           env: TOXENV=py34
-        - python: 3.5-dev
+        - python: 3.5
           env: TOXENV=py35
+        - python: nightly
+          env: TOXENV=py36
         - python: pypy
           env: TOXENV=pypy
         - python: 2.7
           env: TOXENV=py27 VENDOR=no
-        - python: 3.4
-          env: TOXENV=py34 VENDOR=no
+        - python: 3.5
+          env: TOXENV=py35 VENDOR=no
         - python: 2.7
           env: TOXENV=py27 VENDOR=no WHEELS=yes
-        - python: 3.4
-          env: TOXENV=py34 VENDOR=no WHEELS=yes
+        - python: 3.5
+          env: TOXENV=py35 VENDOR=no WHEELS=yes
         - env: TOXENV=docs
         - env: TOXENV=pep8
         - env: TOXENV=py3pep8
