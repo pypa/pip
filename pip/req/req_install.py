@@ -1061,6 +1061,8 @@ def parse_editable(editable_req, default_vcs=None):
         .[some_extra]
     """
 
+    from pip.index import Link
+
     url = editable_req
     extras = None
 
@@ -1082,9 +1084,10 @@ def parse_editable(editable_req, default_vcs=None):
         url_no_extras = path_to_url(url_no_extras)
 
     if url_no_extras.lower().startswith('file:'):
+        package_name = Link(url_no_extras).egg_fragment
         if extras:
             return (
-                None,
+                package_name,
                 url_no_extras,
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
@@ -1092,7 +1095,7 @@ def parse_editable(editable_req, default_vcs=None):
                 {},
             )
         else:
-            return None, url_no_extras, None, {}
+            return package_name, url_no_extras, None, {}
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
