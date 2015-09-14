@@ -513,6 +513,15 @@ disable_pip_version_check = partial(
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.")
 
+disable_urllib3_warnings = partial(
+    Option,
+    "--disable-urllib3-warnings",
+    dest="disable_urllib3_warnings",
+    metavar='warnings_class',
+    default=False,
+    help="Suppress warnings from urllib3; e.g.: InsecurePlatformWarning "
+         "(see https://urllib3.readthedocs.org/en/latest/security.html)")
+
 # Deprecated, Remove later
 always_unzip = partial(
     Option,
@@ -550,6 +559,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        disable_urllib3_warnings,
     ]
 }
 
