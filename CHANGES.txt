@@ -23,6 +23,9 @@
 * Allow repository URLs with secure transports to count as trusted. (E.g.,
   "git+ssh" is okay.) :issue:`2811`.
 
+* Implement a top-level ``pip download`` command and deprecate
+  ``pip install --download``.
+
 
 **7.1.2 (2015-08-22)**
 

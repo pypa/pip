@@ -553,18 +553,24 @@ general_group = {
     ]
 }
 
-index_group = {
+non_deprecated_index_group = {
     'name': 'Package Index Options',
     'options': [
         index_url,
         extra_index_url,
         no_index,
         find_links,
+        process_dependency_links,
+    ]
+}
+
+index_group = {
+    'name': 'Package Index Options (including deprecated options)',
+    'options': non_deprecated_index_group['options'] + [
         allow_external,
         allow_all_external,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,
-        process_dependency_links,
     ]
 }
