@@ -62,7 +62,7 @@ def tmpdir(request):
     # directory while running the tests.
     request.addfinalizer(lambda: shutil.rmtree(str(tmp), ignore_errors=True))
 
-    return Path(str(tmp))
+    return Path(os.path.realpath(str(tmp)))
 
 
 @pytest.fixture(autouse=True)
