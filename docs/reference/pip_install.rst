@@ -150,13 +150,6 @@ Use ``pip install -r example-requirements.txt`` to install::
     coverage != 3.5             # Version Exclusion. Anything except version 3.5
     Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.1.*
     #
-    ###### Allowing External and Unverified Packages ######
-    #   Must explicitly tell pip which packages are external and unverified.
-    #   Command-line equivalent: 'pip install pyPdf --allow-external pyPdf --allow-unverified pyPdf'
-    --allow-external pyPdf
-    --allow-unverified pyPdf
-    pyPdf
-    #
     ###### Refer to other requirements files ######
     -r other-requirements.txt
     #
