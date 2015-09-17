@@ -63,7 +63,7 @@ def get_abi_tag():
     if not soabi and impl in ('cp', 'pp'):
         d = 'd' if get_config_var('Py_DEBUG') else ''
         m = 'm' if get_config_var('WITH_PYMALLOC') else ''
-        u = 'u' if sys.maxunicode == 0x10ffff else ''
+        u = 'u' if get_config_var('Py_UNICODE_SIZE') == 4 else ''
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
