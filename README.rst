@@ -16,10 +16,10 @@ tool for installing Python packages.
 * Dev IRC: #pypa-dev on Freenode.
 
 
-.. image:: https://pypip.in/v/pip/badge.png
+.. image:: https://img.shields.io/pypi/v/pip.svg
         :target: https://pypi.python.org/pypi/pip
 
-.. image:: https://secure.travis-ci.org/pypa/pip.png?branch=develop
+.. image:: https://img.shields.io/pypi/v/pypa/pip/develop.svg
    :target: http://travis-ci.org/pypa/pip
 
 
