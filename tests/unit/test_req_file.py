@@ -79,23 +79,23 @@ class TestSkipRegex(object):
 
     def test_skip_regex_pattern_match(self):
         options = stub(skip_requirements_regex='.*Bad.*')
-        lines = [(0, '--extra-index-url Bad')]
-        assert [] == list(skip_regex(lines, options))
+        line = '--extra-index-url Bad'
+        assert [] == list(skip_regex(enumerate([line]), options))
 
     def test_skip_regex_pattern_not_match(self):
         options = stub(skip_requirements_regex='.*Bad.*')
-        lines = [(0, '--extra-index-url Good')]
-        assert lines == list(skip_regex(lines, options))
+        line = '--extra-index-url Good'
+        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
 
     def test_skip_regex_no_options(self):
         options = None
-        lines = [(0, '--extra-index-url Good')]
-        assert lines == skip_regex(lines, options)
+        line = '--extra-index-url Good'
+        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
 
     def test_skip_regex_no_skip_option(self):
         options = stub(skip_requirements_regex=None)
-        lines = [(0, '--extra-index-url Good')]
-        assert lines == skip_regex(lines, options)
+        line = '--extra-index-url Good'
+        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
 
 class TestProcessLine(object):
     """tests for `process_line`"""
