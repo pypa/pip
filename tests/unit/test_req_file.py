@@ -12,7 +12,7 @@ from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments, break_args_options)
+                              ignore_comments, break_args_options, skip_regex)
 
 
 @pytest.fixture
@@ -36,39 +36,66 @@ def options(session):
 class TestIgnoreComments(object):
     """tests for `ignore_comment`"""
 
-    def test_strip_empty_line(self):
-        lines = ['req1', '', 'req2']
+    def test_ignore_empty_line(self):
+        lines = [(1, 'req1'), (2, ''), (3, 'req2')]
         result = ignore_comments(lines)
-        assert list(result) == ['req1', 'req2']
+        assert list(result) == [(1, 'req1'), (3, 'req2')]
+
+    def test_ignore_comment(self):
+        lines = [(1, 'req1'), (2, '# comment'), (3, 'req2')]
+        result = ignore_comments(lines)
+        assert list(result) == [(1, 'req1'), (3, 'req2')]
 
     def test_strip_comment(self):
-        lines = ['req1', '# comment', 'req2']
+        lines = [(1, 'req1'), (2, 'req # comment'), (3, 'req2')]
         result = ignore_comments(lines)
-        assert list(result) == ['req1', 'req2']
+        assert list(result) == [(1, 'req1'), (2, 'req'), (3, 'req2')]
 
 
 class TestJoinLines(object):
     """tests for `join_lines`"""
 
     def test_join_lines(self):
-        lines = dedent('''\
-        line 1
-        line 2:1 \\
-        line 2:2
-        line 3:1 \\
-        line 3:2 \\
-        line 3:3
-        line 4
-        ''').splitlines()
-
-        expect = [
+        lines = enumerate([
             'line 1',
-            'line 2:1 line 2:2',
-            'line 3:1 line 3:2 line 3:3',
-            'line 4',
+            'line 2:1 \\',
+            'line 2:2',
+            'line 3:1 \\',
+            'line 3:2 \\',
+            'line 3:3',
+            'line 4'
+        ], start=1)
+        expect = [
+            (1, 'line 1'),
+            (2, 'line 2:1 line 2:2'),
+            (4, 'line 3:1 line 3:2 line 3:3'),
+            (7, 'line 4'),
         ]
         assert expect == list(join_lines(lines))
 
+
+class TestSkipRegex(object):
+    """tests for `skip_reqex``"""
+
+    def test_skip_regex_pattern_match(self):
+        options = stub(skip_requirements_regex='.*Bad.*')
+        lines = [(0, '--extra-index-url Bad')]
+        assert [] == list(skip_regex(lines, options))
+
+    def test_skip_regex_pattern_not_match(self):
+        options = stub(skip_requirements_regex='.*Bad.*')
+        lines = [(0, '--extra-index-url Good')]
+        assert lines == list(skip_regex(lines, options))
+
+    def test_skip_regex_no_options(self):
+        options = None
+        lines = [(0, '--extra-index-url Good')]
+        assert lines == skip_regex(lines, options)
+
+    def test_skip_regex_no_skip_option(self):
+        options = stub(skip_requirements_regex=None)
+        lines = [(0, '--extra-index-url Good')]
+        assert lines == skip_regex(lines, options)
 
 class TestProcessLine(object):
     """tests for `process_line`"""

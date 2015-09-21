@@ -81,12 +81,12 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         filename, comes_from=comes_from, session=session
     )
 
-    lines = content.splitlines()
-    lines = ignore_comments(lines)
-    lines = join_lines(lines)
-    lines = skip_regex(lines, options)
+    lines_enum = enumerate(content.splitlines(), start=1)
+    lines_enum = join_lines(lines_enum)
+    lines_enum = ignore_comments(lines_enum)
+    lines_enum = skip_regex(lines_enum, options)
 
-    for line_number, line in enumerate(lines, 1):
+    for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
                                 comes_from, options, session, wheel_cache,
                                 constraint=constraint)
@@ -267,42 +267,50 @@ def build_parser():
     return parser
 
 
-def join_lines(iterator):
+def join_lines(lines_enum):
+    """Joins a line ending in '\' with the previous line.  The joined line takes on
+    the index of the first line.
     """
-    Joins a line ending in '\' with the previous line.
-    """
-    lines = []
-    for line in iterator:
+    primary_line_number = None
+    new_line = []
+    for line_number, line in lines_enum:
         if not line.endswith('\\'):
-            if lines:
-                lines.append(line)
-                yield ''.join(lines)
-                lines = []
+            if new_line:
+                new_line.append(line)
+                yield primary_line_number, ''.join(new_line)
+                new_line = []
             else:
-                yield line
+                yield line_number, line
         else:
-            lines.append(line.strip('\\'))
+            if not new_line:
+                primary_line_number = line_number
+            new_line.append(line.strip('\\'))
 
     # TODO: handle space after '\'.
     # TODO: handle '\' on last line.
 
 
-def ignore_comments(iterator):
+def ignore_comments(lines_enum):
     """
-    Strips and filters empty or commented lines.
+    Strips comments and filter empty lines.
     """
-    for line in iterator:
+    for line_number, line in lines_enum:
         line = COMMENT_RE.sub('', line)
         line = line.strip()
         if line:
-            yield line
+            yield line_number, line
 
 
-def skip_regex(lines, options):
+def skip_regex(lines_enum, options):
     """
-    Optionally exclude lines that match '--skip-requirements-regex'
+    Skip lines that match '--skip-requirements-regex' pattern
+
+    Note: the regex pattern is only built once
     """
     skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
-        lines = filterfalse(re.compile(skip_regex).search, lines)
-    return lines
+        pattern = re.compile(skip_regex)
+        lines_enum = filterfalse(
+            lambda e: pattern.search(e[1]),
+            lines_enum)
+    return lines_enum
