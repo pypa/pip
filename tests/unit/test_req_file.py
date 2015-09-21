@@ -1,6 +1,5 @@
 import os
 import subprocess
-from textwrap import dedent
 
 from mock import patch, Mock
 import pytest
@@ -96,6 +95,7 @@ class TestSkipRegex(object):
         options = stub(skip_requirements_regex=None)
         line = '--extra-index-url Good'
         assert [(0, line)] == list(skip_regex(enumerate([line]), options))
+
 
 class TestProcessLine(object):
     """tests for `process_line`"""
