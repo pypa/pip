@@ -65,7 +65,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     :param filename:    Path or url of requirements file.
     :param finder:      Instance of pip.index.PackageFinder.
     :param comes_from:  Origin description of requirements.
-    :param options:     Global options.
+    :param options:     cli options.
     :param session:     Instance of pip.download.PipSession.
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
@@ -81,10 +81,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         filename, comes_from=comes_from, session=session
     )
 
-    lines_enum = enumerate(content.splitlines(), start=1)
-    lines_enum = join_lines(lines_enum)
-    lines_enum = ignore_comments(lines_enum)
-    lines_enum = skip_regex(lines_enum, options)
+    lines_enum = preprocess(content, options)
 
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
@@ -92,6 +89,19 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
                                 constraint=constraint)
         for req in req_iter:
             yield req
+
+
+def preprocess(content, options):
+    """Split, filter, and join lines, and return a line iterator
+
+    :param content: the content of the requirements file
+    :param options: cli options
+    """
+    lines_enum = enumerate(content.splitlines(), start=1)
+    lines_enum = ignore_comments(lines_enum)
+    lines_enum = join_lines(lines_enum)
+    lines_enum = skip_regex(lines_enum, options)
+    return lines_enum
 
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
@@ -286,8 +296,11 @@ def join_lines(lines_enum):
                 primary_line_number = line_number
             new_line.append(line.strip('\\'))
 
+    # last line contains \
+    if new_line:
+        yield primary_line_number, ''.join(new_line)
+
     # TODO: handle space after '\'.
-    # TODO: handle '\' on last line.
 
 
 def ignore_comments(lines_enum):
