@@ -116,6 +116,9 @@ class Command(object):
         else:
             level = "INFO"
 
+        if options.upgrade and 'pip' in args:
+            options.disable_pip_version_check = True
+
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
