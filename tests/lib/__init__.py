@@ -567,7 +567,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
     try:
         run(*args, **kwargs)
         assert False, "%s should have been thrown" % exception
-    except Exception:
+    except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
         assert p.search(str(e)), str(e)
