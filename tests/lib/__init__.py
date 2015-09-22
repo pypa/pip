@@ -244,7 +244,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
 
         # Store paths related to the virtual environment
         _virtualenv = kwargs.pop("virtualenv")
-        venv, lib, include, bin = virtualenv.path_locations(_virtualenv)
+        path_locations = virtualenv.path_locations(_virtualenv)
+        # Make sure we have test.lib.path.Path objects
+        venv, lib, include, bin = map(Path, path_locations)
         # workaround for https://github.com/pypa/virtualenv/issues/306
         if hasattr(sys, "pypy_version_info"):
             lib = os.path.join(venv, 'lib-python', pyversion)
