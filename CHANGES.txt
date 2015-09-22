@@ -61,6 +61,9 @@
 * Upgrade ipaddress to 1.0.13.
 
 
+* ``pip show`` now normalize package names. :issue:`2899`.
+
+
 **7.1.0 (2015-06-30)**
 
 * Allow constraining versions globally without having to know exactly what will

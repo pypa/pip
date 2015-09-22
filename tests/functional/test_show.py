@@ -96,3 +96,15 @@ def test_more_than_one_package():
     """
     result = list(search_packages_info(['Pip', 'pytest', 'Virtualenv']))
     assert len(result) == 3
+
+
+def test_show_normalize_name(script, data):
+    """
+    Normalize package names before querying.
+
+    """
+    editable = data.packages.join('normalize_name')
+    script.pip('install', '-e', editable)
+    result = script.pip('show', 'normalize_name')
+    lines = result.stdout.split('\n')
+    assert "Name: normalize-name" in lines

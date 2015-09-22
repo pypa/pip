@@ -6,6 +6,7 @@ import os
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
+from pip.utils import canonicalize_name
 from pip._vendor import pkg_resources
 
 
@@ -51,7 +52,7 @@ def search_packages_info(query):
     """
     installed = dict(
         [(p.project_name.lower(), p) for p in pkg_resources.working_set])
-    query_names = [name.lower() for name in query]
+    query_names = [canonicalize_name(name) for name in query]
     for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
         package = {
             'name': dist.project_name,
