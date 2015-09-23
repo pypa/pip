@@ -73,21 +73,12 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Using OS Package Managers
--------------------------
+Using Linux Package Managers
+----------------------------
 
-On Linux, pip will generally be available for the system install of python using
-the system package manager, although often the latest version will be
-unavailable.
-
-On Debian and Ubuntu::
-
-   sudo apt-get install python-pip
-
-On Fedora::
-
-   sudo yum install python-pip
-
+See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
+the `Python Packaging User Guide
+<https://packaging.python.org/en/latest/current/>`_.
 
 .. _`Upgrading pip`:
 
