@@ -172,10 +172,11 @@ class TestPipResult(object):
                 )
 
             egg_link_file = self.files_created[egg_link_path]
+            normalized_newline_bytes = egg_link_file.bytes.replace('\r\n', '\n')
 
             # FIXME: I don't understand why there's a trailing . here
-            if not (egg_link_file.bytes.endswith('\n.') and
-                    egg_link_file.bytes[:-2].endswith(pkg_dir)):
+            if not (normalized_newline_bytes.endswith('\n.') and
+                    normalized_newline_bytes[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u('''\
                     Incorrect egg_link file %r
                     Expected ending: %r
