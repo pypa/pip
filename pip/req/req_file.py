@@ -51,8 +51,9 @@ SUPPORTED_OPTIONS = [
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ = [
     cmdoptions.install_options,
-    cmdoptions.global_options
-] + list(cmdoptions.hash_options())
+    cmdoptions.global_options,
+    cmdoptions.hash,
+]
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]

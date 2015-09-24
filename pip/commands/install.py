@@ -165,8 +165,7 @@ class InstallCommand(RequirementCommand):
             action='store_true',
             help='Perform a provably repeatable installation by requiring a '
                  'hash to check each package against. Implied by the presence '
-                 'of a hash flag, like --sha256, on any individual '
-                 'requirement')
+                 'of a --hash option on any individual requirement')
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,

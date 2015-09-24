@@ -524,42 +524,43 @@ always_unzip = partial(
 )
 
 def _good_hashes():
-    """Return names of hashlib algorithms at least as strong as sha256.
-
-    Preserve the order from hashlib.algorithms so --help comes out in
-    deterministic order.
-
-    """
+    """Return names of hashlib algorithms at least as strong as sha256."""
     # Remove getattr when 2.6 dies.
-    algos = getattr(hashlib,
-                    'algorithms',
-                    ('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512'))
-    return [a for a in algos if a not in set(['md5', 'sha1', 'sha224'])]
+    algos = set(
+        getattr(hashlib,
+                'algorithms',
+                ('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512')))
+    return algos - set(['md5', 'sha1', 'sha224'])
 
-def _merge_mapping(option, opt_str, value, parser):
-    """Append the value to a list pointed to by the option name in a dict."""
+
+def _merge_hash(option, opt_str, value, parser):
+    """Given a value spelled "algo:digest", append the digest to a list
+    pointed to in a dict by the algo name."""
     if not parser.values.hashes:
         parser.values.hashes = {}
-    parser.values.hashes.setdefault(opt_str[2:], []).append(value)
+    try:
+        algo, digest = value.split(':', 1)
+    except ValueError:
+        parser.error('Arguments to %s must be a hash name '
+                     'followed by a value, like --hash=sha256:abcde...' %
+                     opt_str)
+    goods = _good_hashes()
+    if algo not in goods:
+        parser.error('Allowed hash algorithms for %s are %s.' %
+                     (opt_str, ', '.join(sorted(goods))))
+    parser.values.hashes.setdefault(algo, []).append(digest)
 
-def hash_options():
-    """Return an iterable of options named after hashlib's algorithms.
-
-    Leave out ones weaker than sha256.
-
-    """
-    for algo_name in _good_hashes():
-        yield partial(Option,
-                      '--' + algo_name,
-                      # Hash values eventually end up in
-                      # InstallRequirement.hashes due to __dict__ copying in
-                      # process_line().
-                      dest='hashes',
-                      action='callback',
-                      callback=_merge_mapping,
-                      type='string',
-                      help="Verify that the package's archive matches this "
-                           'hash before installing.')
+hash = partial(
+    Option,
+    '-H', '--hash',
+    # Hash values eventually end up in InstallRequirement.hashes due to
+    # __dict__ copying in process_line().
+    dest='hashes',
+    action='callback',
+    callback=_merge_hash,
+    type='string',
+    help="Verify that the package's archive matches this "
+         'hash before installing. Example: --hash=sha256:abcdef...')
 
 
 ##########

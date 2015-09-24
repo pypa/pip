@@ -85,7 +85,7 @@ class TestRequirementSet(object):
             list(process_line('blessings==1.0', 'file', 1))[0])
         # This flag activates --require-hashes mode:
         reqset.add_requirement(
-            list(process_line('tracefront==0.1 --sha256=somehash', 'file', 2))[0])
+            list(process_line('tracefront==0.1 --hash=sha256:somehash', 'file', 2))[0])
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
         reqset.add_requirement(
@@ -98,7 +98,7 @@ class TestRequirementSet(object):
         assert_raises_regexp(
             HashErrors,
             r'These requirements were missing hashes.*\n'
-            r'    blessings==1.0 --sha256=[0-9a-f]+\n'
+            r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
             r'THESE PACKAGES DID NOT MATCH THE HASHES.*\n'
             r'    tracefront==0.1 .*:\n'
             r'        Expected sha256 somehash\n'
@@ -117,7 +117,7 @@ class TestRequirementSet(object):
         assert_raises_regexp(
             HashErrors,
             r'These requirements were missing hashes.*\n'
-            r'    simple==1.0 --sha256=393043e672415891885c9a2a0929b1af95fb866'
+            r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95fb866'
                                      r'd6ca016b42d2e6ce53619b653$',
             reqset.prepare_files,
             finder)
@@ -133,7 +133,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
             list(process_line(
-                'git+git://github.com/pypa/pip-test-package --sha256=12345',
+                'git+git://github.com/pypa/pip-test-package --hash=sha256:12345',
                 'file',
                 1))[0])
         dir_path = data.packages.join('FSPkg')
@@ -162,13 +162,13 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         # Test that there must be exactly 1 specifier:
         reqset.add_requirement(
-            list(process_line('simple --sha256=a90427ae31f5d1d0d7ec06ee97d9fcf'
+            list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf'
                               '2d0fc9a786985250c1c83fd68df5911dd',
                               'file',
                               1))[0])
         # Test that the operator must be ==:
         reqset.add_requirement(
-            list(process_line('simple2>1.0 --sha256=3ad45e1e9aa48b4462af0123f6'
+            list(process_line('simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0123f6'
                               'a7e44a9115db1ef945d4d92c123dfe21815a06',
                               'file',
                               2))[0])
@@ -188,7 +188,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').abspath)
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
-            list(process_line('%s --sha256=badbad' % file_url, 'file', 1))[0])
+            list(process_line('%s --hash=sha256:badbad' % file_url, 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,
@@ -206,7 +206,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         req = list(process_line(
             'TopoRequires2==0.0.1 '
-            '--sha256=eaf9a01242c9f2f42cf2bd82a6a848cd'
+            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
                      'e3591d14f7896bdbefcf48543720c970',
             'file', 1))[0]
         deps = reqset._prepare_file(finder, req, require_hashes=True)

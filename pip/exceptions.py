@@ -171,14 +171,15 @@ class HashMissing(HashError):
                 'requirements files to pin them down.')
 
     def body(self):
-        return '    %s --%s=%s' % (self.req.req if self.req and
-                                       # In case someone feeds something
-                                       # downright stupid to
-                                       # InstallRequirement's constructor:
-                                       getattr(self.req, 'req', None)
-                                       else 'unknown package',
-                                   FAVORITE_HASH,
-                                   self.gotten_hash)
+        package_name = (self.req.req if self.req and
+                        # In case someone feeds something
+                        # downright stupid to
+                        # InstallRequirement's constructor:
+                        getattr(self.req, 'req', None)
+                        else 'unknown package')
+        return '    %s --hash=%s:%s' % (package_name,
+                                        FAVORITE_HASH,
+                                        self.gotten_hash)
 
 
 class HashUnpinned(HashError):
