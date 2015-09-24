@@ -45,7 +45,11 @@ def user_cache_dir(appname):
         path = os.path.join(path, appname)
     else:
         # Get the base path
-        path = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+        path = os.getenv(
+            "XDG_CACHE_HOME",
+            # Workaround for http://bugs.python.org/issue14768
+            os.path.join(os.path.expanduser("~"), ".cache")
+        )
 
         # Add our app name to it
         path = os.path.join(path, appname)
@@ -90,7 +94,11 @@ def user_data_dir(appname, roaming=False):
         )
     else:
         path = os.path.join(
-            os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share")),
+            os.getenv(
+                'XDG_DATA_HOME',
+                # Workaround for http://bugs.python.org/issue14768
+                os.path.join(os.path.expanduser("~"), ".local/share")
+            ),
             appname,
         )
 
@@ -122,7 +130,11 @@ def user_config_dir(appname, roaming=True):
     elif sys.platform == "darwin":
         path = user_data_dir(appname)
     else:
-        path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser("~/.config"))
+        path = os.getenv(
+            'XDG_CONFIG_HOME',
+            # Workaround for http://bugs.python.org/issue14768
+            os.path.join(os.path.expanduser("~"), ".config")
+        )
         path = os.path.join(path, appname)
 
     return path
