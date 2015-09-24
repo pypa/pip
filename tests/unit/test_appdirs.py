@@ -44,6 +44,14 @@ class TestUserCacheDir:
 
         assert appdirs.user_cache_dir("pip") == "/home/test/.other-cache/pip"
 
+    def test_user_cache_dir_linux_home_slash(self, monkeypatch):
+        # Verify that we are not affected by http://bugs.python.org/issue14768
+        monkeypatch.delenv("XDG_CACHE_HOME")
+        monkeypatch.setenv("HOME", "/")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.user_cache_dir("pip") == "/.cache/pip"
+
 
 class TestSiteConfigDirs:
 
@@ -154,6 +162,14 @@ class TestUserDataDir:
 
         assert appdirs.user_data_dir("pip") == "/home/test/.other-share/pip"
 
+    def test_user_data_dir_linux_home_slash(self, monkeypatch):
+        # Verify that we are not affected by http://bugs.python.org/issue14768
+        monkeypatch.delenv("XDG_DATA_HOME")
+        monkeypatch.setenv("HOME", "/")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.user_data_dir("pip") == "/.local/share/pip"
+
 
 class TestUserConfigDir:
 
@@ -213,3 +229,11 @@ class TestUserConfigDir:
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.user_config_dir("pip") == "/home/test/.other-config/pip"
+
+    def test_user_config_dir_linux_home_slash(self, monkeypatch):
+        # Verify that we are not affected by http://bugs.python.org/issue14768
+        monkeypatch.delenv("XDG_CONFIG_HOME")
+        monkeypatch.setenv("HOME", "/")
+        monkeypatch.setattr(sys, "platform", "linux2")
+
+        assert appdirs.user_config_dir("pip") == "/.config/pip"
