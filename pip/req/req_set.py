@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
-import functools
 from itertools import chain
 import logging
 import os
@@ -359,7 +358,6 @@ class RequirementSet(object):
         if hash_errors:
             raise hash_errors
 
-
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
 
@@ -529,7 +527,7 @@ class RequirementSet(object):
                     elif is_file_url(link) and is_dir_url(link):
                         raise DirectoryUrlHashUnsupported()
                     if (not req_to_install.original_link and
-                        not req_to_install.is_pinned):
+                            not req_to_install.is_pinned):
                         # Unpinned packages are asking for trouble when a new
                         # version is uploaded. This isn't a security check, but
                         # it saves users a surprising hash mismatch in the

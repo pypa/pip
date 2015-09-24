@@ -9,8 +9,7 @@ from mock import Mock, patch, mock_open
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
                             UnsupportedWheel)
 from pip.download import path_to_url, PipSession
-from pip.exceptions import (HashMissing, HashUnpinned, VcsHashUnsupported,
-                            HashErrors, InstallationError)
+from pip.exceptions import HashErrors, InstallationError
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
 from pip.req.req_file import process_line
@@ -85,7 +84,9 @@ class TestRequirementSet(object):
             list(process_line('blessings==1.0', 'file', 1))[0])
         # This flag activates --require-hashes mode:
         reqset.add_requirement(
-            list(process_line('tracefront==0.1 --hash=sha256:somehash', 'file', 2))[0])
+            list(process_line('tracefront==0.1 --hash=sha256:somehash',
+                              'file',
+                              2))[0])
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
         reqset.add_requirement(
@@ -117,12 +118,12 @@ class TestRequirementSet(object):
         assert_raises_regexp(
             HashErrors,
             r'These requirements were missing hashes.*\n'
-            r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95fb866'
-                                     r'd6ca016b42d2e6ce53619b653$',
+            r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
+            r'fb866d6ca016b42d2e6ce53619b653$',
             reqset.prepare_files,
             finder)
 
-    def test_unsupported_hashes(self, data):  # NEXT: Add any other test cases needed, probably delete the ones in test_install or just have one or two functional tests to make sure prepare_files() gets called when we expect (so we can actually stop on hash errors), clean up, and call it a day. Make sure we test that hashes are checked all 3 places in pip.download. Test http success.
+    def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
         on.
 
@@ -133,7 +134,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
             list(process_line(
-                'git+git://github.com/pypa/pip-test-package --hash=sha256:12345',
+                'git+git://github.com/pypa/pip-test-package -H sha256:12345',
                 'file',
                 1))[0])
         dir_path = data.packages.join('FSPkg')
@@ -162,16 +163,16 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset()
         # Test that there must be exactly 1 specifier:
         reqset.add_requirement(
-            list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf'
-                              '2d0fc9a786985250c1c83fd68df5911dd',
+            list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97'
+                              'd9fcf2d0fc9a786985250c1c83fd68df5911dd',
                               'file',
                               1))[0])
         # Test that the operator must be ==:
-        reqset.add_requirement(
-            list(process_line('simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0123f6'
-                              'a7e44a9115db1ef945d4d92c123dfe21815a06',
-                              'file',
-                              2))[0])
+        reqset.add_requirement(list(process_line(
+            'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
+            '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
+            'file',
+            2))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,
@@ -188,7 +189,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').abspath)
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
-            list(process_line('%s --hash=sha256:badbad' % file_url, 'file', 1))[0])
+            list(process_line('%s -H sha256:badbad' % file_url, 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,
@@ -196,7 +197,7 @@ class TestRequirementSet(object):
             r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
             r'        Expected sha256 badbad\n'
             r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
-                                    r'6ca016b42d2e6ce53619b653$',
+            r'6ca016b42d2e6ce53619b653$',
             reqset.prepare_files,
             finder)
 
@@ -207,7 +208,7 @@ class TestRequirementSet(object):
         req = list(process_line(
             'TopoRequires2==0.0.1 '
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
-                     'e3591d14f7896bdbefcf48543720c970',
+            'e3591d14f7896bdbefcf48543720c970',
             'file', 1))[0]
         deps = reqset._prepare_file(finder, req, require_hashes=True)
         assert deps == [], ('_prepare_files() resolved dependencies even '

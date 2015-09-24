@@ -523,6 +523,7 @@ always_unzip = partial(
     help=SUPPRESS_HELP,
 )
 
+
 def _good_hashes():
     """Return names of hashlib algorithms at least as strong as sha256."""
     # Remove getattr when 2.6 dies.
@@ -549,6 +550,7 @@ def _merge_hash(option, opt_str, value, parser):
         parser.error('Allowed hash algorithms for %s are %s.' %
                      (opt_str, ', '.join(sorted(goods))))
     parser.values.hashes.setdefault(algo, []).append(digest)
+
 
 hash = partial(
     Option,

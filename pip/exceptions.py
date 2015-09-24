@@ -115,7 +115,7 @@ class HashError(InstallationError):
     def __str__(self):
         return '%s\n%s' % (self.head(), self.body())
 
-    def _requirement_name(self):  # TODO: Make sure this is the best it can be and is DRY with subclasses.
+    def _requirement_name(self):
         """Return a description of the requirement that triggered me.
 
         This default implementation returns long description of the req, with

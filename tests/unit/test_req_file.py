@@ -168,16 +168,21 @@ class TestProcessLine(object):
         Make sure it reads and preserve multiple hashes.
 
         """
-        line = ('SomeProject '
-            '--hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 '
-            '-H sha384:59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f '
-            '--hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7')
+        line = ('SomeProject --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b1'
+                '61e5c1fa7425e73043362938b9824 '
+                '-H sha384:59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553'
+                'bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f '
+                '--hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8'
+                'e5a6c65260e9cb8a7')
         filename = 'filename'
         req = list(process_line(line, filename, 1))[0]
         assert req.options == {'hashes': {
-            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
-                       '486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7'],
-            'sha384': ['59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f']}}
+            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e730433'
+                       '62938b9824',
+                       '486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65'
+                       '260e9cb8a7'],
+            'sha384': ['59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcd'
+                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}}
 
     def test_set_isolated(self, options):
         line = 'SomeProject'

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import cgi
 import email.utils
-import hashlib
 import getpass
 import json
 import logging
@@ -29,9 +28,8 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       call_subprocess, ARCHIVE_EXTENSIONS, consume)
+                       ARCHIVE_EXTENSIONS, consume)
 from pip.utils.filesystem import check_path_owner
-from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -587,7 +585,7 @@ def _download_url(resp, link, content_file, hashes):
     downloaded_chunks = written_chunks(progress_indicator(resp_read(4096),
                                                           4096))
     if hashes:
-         hashes.check_against_chunks(downloaded_chunks)
+        hashes.check_against_chunks(downloaded_chunks)
     else:
         consume(downloaded_chunks)
 
@@ -686,7 +684,9 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
+        already_downloaded_path = _check_download_dir(link,
+                                                      download_dir,
+                                                      hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
