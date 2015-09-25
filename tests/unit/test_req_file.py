@@ -170,8 +170,8 @@ class TestProcessLine(object):
         """
         line = ('SomeProject --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b1'
                 '61e5c1fa7425e73043362938b9824 '
-                '-H sha384:59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553'
-                'bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f '
+                '--hash=sha384:59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c'
+                '3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f '
                 '--hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8'
                 'e5a6c65260e9cb8a7')
         filename = 'filename'

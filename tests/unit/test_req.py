@@ -134,7 +134,7 @@ class TestRequirementSet(object):
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
             list(process_line(
-                'git+git://github.com/pypa/pip-test-package -H sha256:12345',
+                'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
                 'file',
                 1))[0])
         dir_path = data.packages.join('FSPkg')
@@ -189,7 +189,9 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').abspath)
         reqset = self.basic_reqset(require_hashes=True)
         reqset.add_requirement(
-            list(process_line('%s -H sha256:badbad' % file_url, 'file', 1))[0])
+            list(process_line('%s --hash=sha256:badbad' % file_url,
+                              'file',
+                              1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,

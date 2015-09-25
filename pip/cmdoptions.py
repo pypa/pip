@@ -554,7 +554,7 @@ def _merge_hash(option, opt_str, value, parser):
 
 hash = partial(
     Option,
-    '-H', '--hash',
+    '--hash',
     # Hash values eventually end up in InstallRequirement.hashes due to
     # __dict__ copying in process_line().
     dest='hashes',
