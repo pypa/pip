@@ -177,7 +177,7 @@ class TestRequirementSet(object):
         assert_raises_regexp(
             HashErrors,
             # Make sure all failing requirements are listed:
-            r'version pinned with ==. These do not:\n'
+            r'versions pinned with ==. These do not:\n'
             r'    simple .* \(from -r file \(line 1\)\)\n'
             r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
             reqset.prepare_files,
@@ -203,18 +203,45 @@ class TestRequirementSet(object):
             reqset.prepare_files,
             finder)
 
-    def test_no_deps_on_require_hashes(self, data):
-        """Make sure --require-hashes mode implies --no-deps."""
+    def test_unhashed_deps_on_require_hashes(self, data):
+        """Make sure unhashed, unpinned, or otherwise unrepeatable
+        dependencies get complained about when --require-hashes is on."""
         reqset = self.basic_reqset()
         finder = PackageFinder([data.find_links], [], session=PipSession())
-        req = list(process_line(
-            'TopoRequires2==0.0.1 '
+        reqset.add_requirement(next(process_line(
+            'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
             'e3591d14f7896bdbefcf48543720c970',
-            'file', 1))[0]
-        deps = reqset._prepare_file(finder, req, require_hashes=True)
-        assert deps == [], ('_prepare_files() resolved dependencies even '
-                            'though --require-hashes was on.')
+            'file', 1)))
+        assert_raises_regexp(
+            HashErrors,
+            r'In --require-hashes mode, all requirements must have their '
+            r'versions pinned.*\n'
+            r'    TopoRequires from .*$',
+            reqset.prepare_files,
+            finder)
+
+    def test_hashed_deps_on_require_hashes(self, data):
+        """Make sure hashed dependencies get installed when --require-hashes
+        is on.
+        
+        (We actually just check that no error gets raised while preparing;
+        there is no reason to expect installation to then fail, as the code
+        paths are the same as ever.)
+        
+        """
+        reqset = self.basic_reqset()
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        reqset.add_requirement(next(process_line(
+            'TopoRequires2==0.0.1 '  # requires TopoRequires
+            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+            'e3591d14f7896bdbefcf48543720c970',
+            'file', 1)))
+        reqset.add_requirement(next(process_line(
+            'TopoRequires==0.0.1 '
+            '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
+            '3d0a6d4e8bfa6',
+            'file', 2)))
 
     def test_no_egg_on_require_hashes(self, data):
         """Make sure --egg is illegal with --require-hashes.

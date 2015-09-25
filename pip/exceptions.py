@@ -163,12 +163,12 @@ class HashMissing(HashError):
 
     @classmethod
     def head(cls):
-        return ('These requirements were missing hashes, which leaves them '
-                'open to tampering. (Hashes are required in --require-hashes '
-                'mode, which is implicitly on when a hash is specified for '
-                'any package.) Here are the hashes the downloaded archives '
+        return ('Hashes are required in --require-hashes mode (implicitly on '
+                'when a hash is specified for any package). These '
+                'requirements were missing hashes, leaving them open to '
+                'tampering. These are the hashes the downloaded archives '
                 'actually had. You can add lines like these to your '
-                'requirements files to pin them down.')
+                'requirements files to prevent tampering.')
 
     def body(self):
         package_name = (self.req.req if self.req and
@@ -190,8 +190,8 @@ class HashUnpinned(HashError):
 
     @classmethod
     def head(cls):
-        return ('When a hash is specified, a requirement must also have its '
-                'version pinned with ==. These do not:')
+        return ('In --require-hashes mode, all requirements must have their '
+                'versions pinned with ==. These do not:')
 
 
 class HashMismatch(HashError):

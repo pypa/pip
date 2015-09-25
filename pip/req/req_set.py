@@ -338,10 +338,10 @@ class RequirementSet(object):
                 'delegates dependency resolution to setuptools and could thus '
                 'result in installation of unhashed packages.')
 
-        # Actually prepare the files, and collect any exceptions. The
-        # *HashUnsupported exceptions cannot be checked ahead of time, because
-        # req.populate_links() needs to be called before we can examine the
-        # link type.
+        # Actually prepare the files, and collect any exceptions. Most hash
+        # exceptions cannot be checked ahead of time, because
+        # req.populate_links() needs to be called before we can make decisions
+        # based on link type.
         discovered_reqs = []
         hash_errors = HashErrors()
         for req in chain(root_reqs, discovered_reqs):
@@ -629,11 +629,7 @@ class RequirementSet(object):
                 # 'unnamed' requirements will get added here
                 self.add_requirement(req_to_install, None)
 
-            if not ignore_dependencies and not require_hashes:
-                # --require-hashes implies --no-deps because, otherwise,
-                # unhashed dependencies could creep in. In the future, we
-                # should report unhashed dependencies rather than just not
-                # installing them.
+            if not ignore_dependencies:
                 if (req_to_install.extras):
                     logger.debug(
                         "Installing extra requirements: %r",
