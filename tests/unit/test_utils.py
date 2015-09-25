@@ -17,7 +17,7 @@ from pip.utils import (egg_link_path, Inf, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.operations.freeze import freeze_excludes
-from pip._vendor.six import StringIO
+from pip._vendor.six import BytesIO
 
 
 class Tests_EgglinkPath:
@@ -433,19 +433,19 @@ class TestHashes(object):
         """Hashes should raise HashMismatch when no hashes match."""
         hashes = Hashes({'sha256': ['wrongwrong']})
         with pytest.raises(HashMismatch):
-            hashes.check_against_file(StringIO('hello'))
+            hashes.check_against_file(BytesIO(b'hello'))
 
     def test_missing_hashes(self):
         """MissingHashes should raise HashMissing when any check is done."""
         with pytest.raises(HashMissing):
-            MissingHashes().check_against_file(StringIO('hello'))
+            MissingHashes().check_against_file(BytesIO(b'hello'))
 
     def test_unknown_hash(self):
         """Hashes should raise InstallationError when it encounters an unknown
         hash."""
         hashes = Hashes({'badbad': ['dummy']})
         with pytest.raises(InstallationError):
-            hashes.check_against_file(StringIO('hello'))
+            hashes.check_against_file(BytesIO(b'hello'))
 
     def test_non_zero(self):
         """Test that truthiness tests tell whether any known-good hashes
