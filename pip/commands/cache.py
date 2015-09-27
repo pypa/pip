@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 Record = namedtuple(
     'Record',
-    ('wheel', 'link_path', 'link', 'last_access_time', 'possible_creation_time')
+    ('wheel', 'link_path', 'link', 'size', 'last_access_time', 'possible_creation_time')
 )
 
 
@@ -103,9 +103,10 @@ def iter_record(data):
             logger.warning('Invalid wheel name for: %s', wheel_filename)
             continue
         stat = os.stat(wheel_filename)
+        size = stat.st_size
         last_access_time = datetime.datetime.fromtimestamp(stat.st_atime)  # access time
         possible_creation_time = datetime.datetime.fromtimestamp(stat.st_mtime)  # Possible creation time ?
-        yield Record(wheel, link_path, link, last_access_time, possible_creation_time)
+        yield Record(wheel, link_path, link, size, last_access_time, possible_creation_time)
 
 
 def collect_infos(data, top_dir, names):
@@ -139,7 +140,19 @@ def log_results(results):
         if record.wheel.name != current_name:
             current_name = record.wheel.name
             logger.info(current_name)
-        logger.info('    - %s %s', record.link_path, record.wheel.filename)
+        logger.info('    - %s', record.wheel.filename)
+        logger.info('      Path: %s', record.link_path)
         if record.link:
             logger.info('      Original link: %s', record.link)
-        logger.info('      Last used: %s', record.last_access_time)
+        logger.info(
+            '      Size: %s - Last used: %s',
+            human_readable_size(record.size), record.last_access_time)
+
+
+def human_readable_size(nb_bytes):
+    unit_formatter = ('%db', '%.1fkb', '%.1fMb', '%.1fGb', '%.1fTb')
+    unit_index = 0
+    while nb_bytes > 1024 and unit_index < 4:
+        nb_bytes = nb_bytes / 1024.0
+        unit_index += 1
+    return unit_formatter[unit_index] % (nb_bytes,)
