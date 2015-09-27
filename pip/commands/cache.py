@@ -50,6 +50,12 @@ class CacheCommand(Command):
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of deletions.")
+        self.cmd_opts.add_option(
+            '--not-accessed-since',
+            dest='not_accessed_since',
+            type=int,
+            default=None,
+            help='Select all wheels not accessed since X days')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -81,6 +87,12 @@ class CacheCommand(Command):
             raise CommandError('You cannot pass args with --all option')
 
         records = []
+        if options.not_accessed_since:
+            # check if possible to have:
+            # --not-accessed-since and --not-accessed-since-days
+            min_last_access = datetime.datetime.now() - datetime.timedelta(days=options.not_accessed_since)
+        else:
+            min_last_access = None
         for record in iter_record(wheel_filenames, link_path_infos):
             if not options.all_wheels:
                 # Filter on args
@@ -93,6 +105,9 @@ class CacheCommand(Command):
                     break
                 else:
                     # Ignore this record
+                    continue
+            if min_last_access is not None:
+                if record.last_access_time > min_last_access:
                     continue
 
             records.append(record)
