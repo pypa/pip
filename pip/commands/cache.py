@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import datetime
 import logging
 import os.path
+import functools
 
 from collections import namedtuple
 
@@ -21,6 +22,52 @@ Record = namedtuple(
     'Record',
     ('wheel', 'link_path', 'link', 'size', 'last_access_time', 'possible_creation_time')
 )
+
+
+class WheelCacheRecord(object):
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+        # get link (with caching ?)
+        # get size, last_access/creation, etc
+        self.name = os.path.basename(file_path)
+        self.link_path = os.path.dirname(file_path)
+        self.link = self.get_link_origin()
+
+        try:
+            self.wheel = Wheel(self.name)
+        except InvalidWheelFilename:
+            logger.warning('Invalid wheel name for: %s', file_path)
+            self.wheel = None
+
+        self.project_name = canonicalize_name(self.wheel.name) if self.wheel else None
+        self.version = version.parse(self.wheel.version) if self.wheel else None
+        stat = os.stat(file_path)
+        self.size = stat.st_size
+        self.last_access_time = datetime.datetime.fromtimestamp(stat.st_atime)  # access time
+        self.possible_creation_time = datetime.datetime.fromtimestamp(stat.st_mtime)  # Possible creation time ?
+
+    def get_link_origin(self):
+        # This could be cached
+        link_origin_path = os.path.join(self.link_path, 'link')
+        if os.path.exists(link_origin_path):
+            with open(link_origin_path) as fl:
+                self.link_origin = fl.read()
+        else:
+            self.link_origin = None
+
+    def match_reqs(self, reqs):
+        for req in reqs:
+            if self.project_name != canonicalize_name(req.project_name):
+                continue
+            if self.version not in req.specifier:
+                continue
+            return True
+        else:
+            return False
+
+    def remove(self):
+        os.remove(self.file_path)
 
 
 class CacheCommand(Command):
@@ -62,69 +109,45 @@ class CacheCommand(Command):
     def run(self, options, args):
         reqs = map(pkg_resources.Requirement.parse, args)
 
-        link_path_infos = {}
-        wheel_filenames = []
+        records = []
         for dirpath, dirnames, filenames in os.walk(
                 os.path.join(options.cache_dir, 'wheels')):
 
             # Should we filter on the paths and ignore those that
             # does not conform with the xx/yy/zz/hhhh...hhhh/ patterns ?
             for filename in filenames:
-                if filename == 'link':
-                    with open(os.path.join(dirpath, 'link')) as fl:
-                        link = fl.read()
-                    link_path_infos[dirpath] = link
-                elif filename.endswith('.whl'):
-                    link_path_infos.setdefault(dirpath)
-                    wheel_filenames.append(os.path.join(dirpath, filename))
+                if filename.endswith('.whl'):
+                    records.append(
+                        WheelCacheRecord(os.path.join(dirpath, filename)))
 
-        if not options.all_wheels:
-            if not args:
-                logger.info('Found %s wheels from %s links',
-                            len(wheel_filenames), len(link_path_infos))
-                return SUCCESS
-        elif args:
+        if options.all_wheels and args:
             raise CommandError('You cannot pass args with --all option')
 
-        records = []
         if options.not_accessed_since:
             # check if possible to have:
             # --not-accessed-since and --not-accessed-since-days
             min_last_access = datetime.datetime.now() - datetime.timedelta(days=options.not_accessed_since)
-        else:
-            min_last_access = None
-        for record in iter_record(wheel_filenames, link_path_infos):
-            if not options.all_wheels:
-                # Filter on args
-                for req in reqs:
-                    if canonicalize_name(record.wheel.name) != canonicalize_name(req.project_name):
-                        continue
-                    if version.parse(record.wheel.version) not in req.specifier:
-                        continue
-                    # record matches req !
-                    break
-                else:
-                    # Ignore this record
-                    continue
-            if min_last_access is not None:
-                if record.last_access_time > min_last_access:
-                    continue
+            records = filter(lambda r: r.last_access_time < min_last_access, records)
 
-            records.append(record)
-        if not options.remove:
-            log_results(records)
-        else:
-            wheel_paths = [os.path.join(record.link_path, record.wheel.filename)
-                           for record in records]
+        if reqs:
+            records = filter(lambda r: r.match_reqs(reqs), records)
+
+        if options.remove:
+            wheel_paths = [record.file_path for record in records]
             logger.info('Deleting:\n- %s' % '\n- '.join(wheel_paths))
             if options.yes:
                 response = 'yes'
             else:
                 response = ask('Proceed (yes/no)? ', ('yes', 'no'))
             if response == 'yes':
-                for wheel_path in wheel_paths:
-                    os.remove(wheel_path)
+                for record in records:
+                    record.remove()
             # Should we try to cleanup empty dirs and link files ?
+        else:
+            if not args and not options.all_wheels:
+                logger.info('Found %s cached wheels', len(records))
+            else:
+                log_results(records)
 
         return SUCCESS
 
