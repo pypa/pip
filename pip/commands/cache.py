@@ -54,24 +54,34 @@ class CacheCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        wheels_cache_dir = os.path.join(options.cache_dir, 'wheels')
         reqs = map(pkg_resources.Requirement.parse, args)
 
-        data = {
-            'links': {},
-            'wheel_filenames': [],
-        }
-        os.path.walk(wheels_cache_dir, collect_infos, data)
+        link_path_infos = {}
+        wheel_filenames = []
+        for dirpath, dirnames, filenames in os.walk(
+                os.path.join(options.cache_dir, 'wheels')):
+
+            # Should we filter on the paths and ignore those that
+            # does not conform with the xx/yy/zz/hhhh...hhhh/ patterns ?
+            for filename in filenames:
+                if filename == 'link':
+                    with open(os.path.join(dirpath, 'link')) as fl:
+                        link = fl.read()
+                    link_path_infos[dirpath] = link
+                elif filename.endswith('.whl'):
+                    link_path_infos.setdefault(dirpath)
+                    wheel_filenames.append(os.path.join(dirpath, filename))
 
         if not options.all_wheels:
             if not args:
-                log_basic_stats(data)
+                logger.info('Found %s wheels from %s links',
+                            len(wheel_filenames), len(link_path_infos))
                 return SUCCESS
         elif args:
             raise CommandError('You cannot pass args with --all option')
 
         records = []
-        for record in iter_record(data):
+        for record in iter_record(wheel_filenames, link_path_infos):
             if not options.all_wheels:
                 # Filter on args
                 for req in reqs:
@@ -99,17 +109,18 @@ class CacheCommand(Command):
             if response == 'yes':
                 for wheel_path in wheel_paths:
                     os.remove(wheel_path)
+            # Should we try to cleanup empty dirs and link files ?
 
         return SUCCESS
 
 sort_key = lambda record: (record.wheel.name, record.wheel.version, record.link_path)
 
 
-def iter_record(data):
-    for wheel_filename in data['wheel_filenames']:
+def iter_record(wheel_filenames, link_path_infos):
+    for wheel_filename in wheel_filenames:
         name = os.path.basename(wheel_filename)
         link_path = os.path.dirname(wheel_filename)
-        link = data['links'][link_path]
+        link = link_path_infos[link_path]
 
         try:
             wheel = Wheel(name)
@@ -123,34 +134,10 @@ def iter_record(data):
         yield Record(wheel, link_path, link, size, last_access_time, possible_creation_time)
 
 
-def collect_infos(data, top_dir, names):
-    """Collect link/wheel files into data."""
-    link = None
-    wheel_files = []
-    for name in names:
-        if name == 'link':
-            with open(os.path.join(top_dir, 'link')) as fl:
-                link = fl.read()
-        elif name.endswith('.whl'):
-            # parse name to get project/version/etc
-            wheel_files.append(
-                os.path.join(top_dir, name)
-            )
-    if wheel_files or link is not None:
-        data['links'][top_dir] = link
-        data['wheel_filenames'].extend(wheel_files)
-
-
-def log_basic_stats(data):
-    link_nb = len(data['links'])
-    wheel_nb = len(data['wheel_filenames'])
-    logger.info('Found %s wheels from %s links', wheel_nb, link_nb)
-
-
-def log_results(results):
-    results.sort(key=sort_key)
+def log_results(records):
+    records.sort(key=sort_key)
     current_name = None
-    for record in results:
+    for record in records:
         if record.wheel.name != current_name:
             current_name = record.wheel.name
             logger.info(current_name)
