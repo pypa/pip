@@ -10,7 +10,7 @@ from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
 from pip.basecommand import Command, SUCCESS
 from pip.exceptions import CommandError, InvalidWheelFilename
-from pip.utils import canonicalize_name
+from pip.utils import ask, canonicalize_name
 from pip.wheel import Wheel
 
 
@@ -45,6 +45,12 @@ class CacheCommand(Command):
             action='store_true',
             default=False,
             help='Remove found cached wheels')
+        self.cmd_opts.add_option(
+            '-y', '--yes',
+            dest='yes',
+            action='store_true',
+            help="Don't ask for confirmation of deletions.")
+
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -64,7 +70,7 @@ class CacheCommand(Command):
         elif args:
             raise CommandError('You cannot pass args with --all option')
 
-        results = []
+        records = []
         for record in iter_record(data):
             if not options.all_wheels:
                 # Filter on args
@@ -79,12 +85,20 @@ class CacheCommand(Command):
                     # Ignore this record
                     continue
 
-            results.append(record)
+            records.append(record)
         if not options.remove:
-            log_results(results)
+            log_results(records)
         else:
-            # TODO: ask to delete found records
-            pass
+            wheel_paths = [os.path.join(record.link_path, record.wheel.filename)
+                           for record in records]
+            logger.info('Deleting:\n- %s' % '\n- '.join(wheel_paths))
+            if options.yes:
+                response = 'yes'
+            else:
+                response = ask('Proceed (yes/no)? ', ('yes', 'no'))
+            if response == 'yes':
+                for wheel_path in wheel_paths:
+                    os.remove(wheel_path)
 
         return SUCCESS
 
