@@ -11,7 +11,7 @@ from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
 from pip.basecommand import Command, SUCCESS
 from pip.exceptions import CommandError, InvalidWheelFilename
-from pip.utils import ask, canonicalize_name
+from pip.utils import ask, cached_property, canonicalize_name
 from pip.wheel import Wheel
 
 
@@ -32,7 +32,6 @@ class WheelCacheRecord(object):
         # get size, last_access/creation, etc
         self.name = os.path.basename(file_path)
         self.link_path = os.path.dirname(file_path)
-        self.link = self.get_link_origin()
 
         try:
             self.wheel = Wheel(self.name)
@@ -47,14 +46,14 @@ class WheelCacheRecord(object):
         self.last_access_time = datetime.datetime.fromtimestamp(stat.st_atime)  # access time
         self.possible_creation_time = datetime.datetime.fromtimestamp(stat.st_mtime)  # Possible creation time ?
 
-    def get_link_origin(self):
-        # This could be cached
+    @cached_property
+    def link_origin(self):
         link_origin_path = os.path.join(self.link_path, 'link')
         if os.path.exists(link_origin_path):
             with open(link_origin_path) as fl:
-                self.link_origin = fl.read()
+                return fl.read()
         else:
-            self.link_origin = None
+            return None
 
     def match_reqs(self, reqs):
         for req in reqs:
@@ -181,8 +180,8 @@ def log_results(records):
             logger.info(current_name)
         logger.info('    - %s', record.wheel.filename)
         logger.info('      Path: %s', record.link_path)
-        if record.link:
-            logger.info('      Original link: %s', record.link)
+        if record.link_origin:
+            logger.info('      Original link: %s', record.link_origin)
         logger.info(
             '      Size: %s - Last used: %s',
             human_readable_size(record.size), record.last_access_time)
