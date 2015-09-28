@@ -3,9 +3,6 @@ from __future__ import absolute_import
 import datetime
 import logging
 import os.path
-import functools
-
-from collections import namedtuple
 
 from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
@@ -16,12 +13,6 @@ from pip.wheel import Wheel
 
 
 logger = logging.getLogger(__name__)
-
-
-Record = namedtuple(
-    'Record',
-    ('wheel', 'link_path', 'link', 'size', 'last_access_time', 'possible_creation_time')
-)
 
 
 class WheelCacheRecord(object):
@@ -151,24 +142,6 @@ class CacheCommand(Command):
         return SUCCESS
 
 sort_key = lambda record: (record.wheel.name, record.wheel.version, record.link_path)
-
-
-def iter_record(wheel_filenames, link_path_infos):
-    for wheel_filename in wheel_filenames:
-        name = os.path.basename(wheel_filename)
-        link_path = os.path.dirname(wheel_filename)
-        link = link_path_infos[link_path]
-
-        try:
-            wheel = Wheel(name)
-        except InvalidWheelFilename:
-            logger.warning('Invalid wheel name for: %s', wheel_filename)
-            continue
-        stat = os.stat(wheel_filename)
-        size = stat.st_size
-        last_access_time = datetime.datetime.fromtimestamp(stat.st_atime)  # access time
-        possible_creation_time = datetime.datetime.fromtimestamp(stat.st_mtime)  # Possible creation time ?
-        yield Record(wheel, link_path, link, size, last_access_time, possible_creation_time)
 
 
 def log_results(records):
