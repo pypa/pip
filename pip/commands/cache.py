@@ -47,14 +47,10 @@ class WheelCacheRecord(object):
             return None
 
     def match_reqs(self, reqs):
-        for req in reqs:
-            if self.project_name != canonicalize_name(req.project_name):
-                continue
-            if self.version not in req.specifier:
-                continue
-            return True
-        else:
-            return False
+        return any(
+            self.project_name == canonicalize_name(req.project_name) and
+            self.version in req.specifier
+            for req in reqs)
 
     def remove(self):
         os.remove(self.file_path)
