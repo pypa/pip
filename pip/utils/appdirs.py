@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import os
 import sys
 
-from pip.compat import WINDOWS
+from pip.compat import WINDOWS, expanduser
 
 
 def user_cache_dir(appname):
@@ -39,17 +39,13 @@ def user_cache_dir(appname):
         path = os.path.join(path, appname, "Cache")
     elif sys.platform == "darwin":
         # Get the base path
-        path = os.path.expanduser("~/Library/Caches")
+        path = expanduser("~/Library/Caches")
 
         # Add our app name to it
         path = os.path.join(path, appname)
     else:
         # Get the base path
-        path = os.getenv(
-            "XDG_CACHE_HOME",
-            # Workaround for http://bugs.python.org/issue14768
-            os.path.join(os.path.expanduser("~"), ".cache")
-        )
+        path = os.getenv("XDG_CACHE_HOME", expanduser("~/.cache"))
 
         # Add our app name to it
         path = os.path.join(path, appname)
@@ -89,16 +85,12 @@ def user_data_dir(appname, roaming=False):
         path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
     elif sys.platform == "darwin":
         path = os.path.join(
-            os.path.expanduser('~/Library/Application Support/'),
+            expanduser('~/Library/Application Support/'),
             appname,
         )
     else:
         path = os.path.join(
-            os.getenv(
-                'XDG_DATA_HOME',
-                # Workaround for http://bugs.python.org/issue14768
-                os.path.join(os.path.expanduser("~"), ".local/share")
-            ),
+            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")),
             appname,
         )
 
@@ -130,11 +122,7 @@ def user_config_dir(appname, roaming=True):
     elif sys.platform == "darwin":
         path = user_data_dir(appname)
     else:
-        path = os.getenv(
-            'XDG_CONFIG_HOME',
-            # Workaround for http://bugs.python.org/issue14768
-            os.path.join(os.path.expanduser("~"), ".config")
-        )
+        path = os.getenv('XDG_CONFIG_HOME', expanduser("~/.config"))
         path = os.path.join(path, appname)
 
     return path
@@ -168,7 +156,7 @@ def site_config_dirs(appname):
         xdg_config_dirs = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
         if xdg_config_dirs:
             pathlist = [
-                os.sep.join([os.path.expanduser(x), appname])
+                os.sep.join([expanduser(x), appname])
                 for x in xdg_config_dirs.split(os.pathsep)
             ]
         else:

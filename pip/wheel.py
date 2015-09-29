@@ -24,6 +24,7 @@ from email.parser import Parser
 from pip._vendor.six import StringIO
 
 import pip
+from pip.compat import expanduser
 from pip.download import path_to_url, unpack_url
 from pip.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel)
@@ -55,7 +56,7 @@ class WheelCache(object):
         :param format_control: A pip.index.FormatControl object to limit
             binaries being read from the cache.
         """
-        self._cache_dir = os.path.expanduser(cache_dir) if cache_dir else None
+        self._cache_dir = expanduser(cache_dir) if cache_dir else None
         self._format_control = format_control
 
     def cached_wheel(self, link, package_name):
