@@ -1,6 +1,7 @@
 https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
 pretend
-pytest
+# Pinned to 2.7.2 to avoid an issue with parallel builds
+pytest==2.7.2
 pytest-capturelog
 pytest-timeout
 pytest-xdist
