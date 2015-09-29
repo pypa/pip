@@ -26,6 +26,9 @@
 * Implement a top-level ``pip download`` command and deprecate
   ``pip install --download``.
 
+* When installing, if building a wheel fails, clear up the build directory
+  before falling back to a source install. :issue:`3047`.
+
 
 **7.1.2 (2015-08-22)**
 
