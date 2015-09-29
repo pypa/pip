@@ -58,4 +58,4 @@ tox -- -m unit $TOXARGS
 #       the generated .pyc files and we'll get very strange errors. However as
 #       long as we continue to run the unit tests first and in a seperate step
 #       then this should work fine.
-tox -- -m integration -n 8 $TOXARGS
+tox -- -m integration $TOXARGS
