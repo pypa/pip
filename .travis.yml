@@ -1,5 +1,6 @@
 language: python
 
+sudo: false
 
 matrix:
     include:
@@ -32,12 +33,9 @@ matrix:
         - env: TOXENV=py3pep8
         - env: TOXENV=packaging
 
-
 install: .travis/install.sh
 
-
 script: .travis/run.sh
-
 
 notifications:
   irc:
