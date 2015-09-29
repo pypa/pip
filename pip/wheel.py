@@ -676,18 +676,23 @@ class WheelBuilder(object):
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
                 except:
-                    return None
+                    pass
+            # Ignore return, we can't do anything else useful.
+            self._clean_one(req)
             return None
         finally:
             rmtree(tempd)
 
-    def __build_one(self, req, tempd):
-        base_args = [
+    def _base_setup_args(self, req):
+        return [
             sys.executable, '-c',
             "import setuptools;__file__=%r;"
             "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
             "__file__, 'exec'))" % req.setup_py
         ] + list(self.global_options)
+
+    def __build_one(self, req, tempd):
+        base_args = self._base_setup_args(req)
 
         logger.info('Running setup.py bdist_wheel for %s', req.name)
         logger.debug('Destination directory: %s', tempd)
@@ -698,6 +703,18 @@ class WheelBuilder(object):
             return True
         except:
             logger.error('Failed building wheel for %s', req.name)
+            return False
+
+    def _clean_one(self, req):
+        base_args = self._base_setup_args(req)
+
+        logger.info('Running setup.py clean for %s', req.name)
+        clean_args = base_args + ['clean', '--all']
+        try:
+            call_subprocess(clean_args, cwd=req.source_dir, show_stdout=False)
+            return True
+        except:
+            logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
     def build(self, autobuilding=False):
