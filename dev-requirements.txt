@@ -1,6 +1,6 @@
 https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
 pretend
-pytest
+pytest==2.7.3
 pytest-capturelog
 pytest-timeout
 pytest-xdist
