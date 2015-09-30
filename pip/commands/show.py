@@ -77,12 +77,13 @@ def search_packages_info(query):
                 paths = dist.get_metadata_lines('installed-files.txt')
                 paths = [os.path.join(dist.egg_info, p) for p in paths]
                 file_list = [os.path.relpath(p, dist.location) for p in paths]
-            if dist.has_metadata('entry_points.txt'):
-                entry_points = dist.get_metadata_lines('entry_points.txt')
-                package['entry_points'] = entry_points
 
             if dist.has_metadata('PKG-INFO'):
                 metadata = dist.get_metadata('PKG-INFO')
+
+        if dist.has_metadata('entry_points.txt'):
+            entry_points = dist.get_metadata_lines('entry_points.txt')
+            package['entry_points'] = entry_points
 
         # @todo: Should pkg_resources.Distribution have a
         # `get_pkg_info` method?
@@ -93,8 +94,8 @@ def search_packages_info(query):
                     'home-page', 'author', 'author-email', 'license'):
             package[key] = pkg_info_dict.get(key)
 
-        # use and short-circuit to check for None
-        package['files'] = file_list and sorted(file_list)
+        if file_list:
+            package['files'] = sorted(file_list)
         yield package
 
 
@@ -118,7 +119,7 @@ def print_results(distributions, list_all_files):
         logger.info("Requires: %s" % ', '.join(dist['requires']))
         if list_all_files:
             logger.info("Files:")
-            if dist['files'] is not None:
+            if 'files' in dist:
                 for line in dist['files']:
                     logger.info("  %s" % line.strip())
             else:
