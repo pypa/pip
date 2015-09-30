@@ -107,7 +107,7 @@ See also:
 * :ref:`Requirements File Format`
 * :ref:`pip freeze`
 * `"setup.py vs requirements.txt" (an article by Donald Stufft)
-  <https://caremad.io/blog/setup-vs-requirement/>`_
+  <https://caremad.io/2013/07/setup-vs-requirement/>`_
 
 
 .. _`Constraints Files`:
