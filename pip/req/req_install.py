@@ -30,7 +30,7 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
-    get_installed_version
+    get_installed_version, canonicalize_name
 )
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
@@ -421,6 +421,14 @@ class InstallRequirement(object):
                     self.pkg_info()["Version"],
                 ]))
             self._correct_build_location()
+        else:
+            metadata_name = canonicalize_name(self.pkg_info()["Name"])
+            if canonicalize_name(self.req.project_name) != metadata_name:
+                raise InstallationError(
+                    'Running setup.py (path:%s) egg_info for package %s '
+                    'produced metadata for project name %s' % (
+                        self.setup_py, self.name, metadata_name)
+                )
 
     # FIXME: This is a lame hack, entirely for PasteScript which has
     # a self-provided entry point that causes this awkwardness

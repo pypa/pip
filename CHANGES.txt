@@ -34,6 +34,9 @@
 * Fix user directory expansion when ``HOME=/``. Workaround for Python bug
   http://bugs.python.org/issue14768, reported in :issue:`2996`.
 
+* Abort installation of editable if the provided #egg=name part does not
+  match the metadata produced by `setup.py egg_info`. :issue:`3143`.
+
 
 **7.1.2 (2015-08-22)**
 

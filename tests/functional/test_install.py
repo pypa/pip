@@ -775,3 +775,18 @@ def test_install_no_binary_disables_cached_wheels(script, data):
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_editable_with_wrong_egg_name(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+    result = script.pip(
+        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
+        expect_error=True)
+    assert ("egg_info for package pkgb produced metadata "
+            "for project name pkga") in result.stderr
