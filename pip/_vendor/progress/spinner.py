@@ -14,8 +14,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from __future__ import unicode_literals
-
 from . import Infinite
 from .helpers import WriteMixin
 
@@ -31,12 +29,12 @@ class Spinner(WriteMixin, Infinite):
 
 
 class PieSpinner(Spinner):
-    phases = ['◷', '◶', '◵', '◴']
+    phases = [u'◷', u'◶', u'◵', u'◴']
 
 
 class MoonSpinner(Spinner):
-    phases = ['◑', '◒', '◐', '◓']
+    phases = [u'◑', u'◒', u'◐', u'◓']
 
 
 class LineSpinner(Spinner):
-    phases = ['⎺', '⎻', '⎼', '⎽', '⎼', '⎻']
+    phases = [u'⎺', u'⎻', u'⎼', u'⎽', u'⎼', u'⎻']

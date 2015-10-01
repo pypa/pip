@@ -1,5 +1,7 @@
 **8.0.0 (unreleased)**
 
+* **BACKWARD INCOMPATIBLE** Drop support for Python 3.2.
+
 * **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
   ones directly linked from the index or find-links pages.
 

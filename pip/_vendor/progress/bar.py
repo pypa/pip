@@ -14,9 +14,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from __future__ import unicode_literals
-
-
 from . import Progress
 from .helpers import WritelnMixin
 
@@ -48,22 +45,22 @@ class ChargingBar(Bar):
     suffix = '%(percent)d%%'
     bar_prefix = ' '
     bar_suffix = ' '
-    empty_fill = '∙'
-    fill = '█'
+    empty_fill = u'∙'
+    fill = u'█'
 
 
 class FillingSquaresBar(ChargingBar):
-    empty_fill = '▢'
-    fill = '▣'
+    empty_fill = u'▢'
+    fill = u'▣'
 
 
 class FillingCirclesBar(ChargingBar):
-    empty_fill = '◯'
-    fill = '◉'
+    empty_fill = u'◯'
+    fill = u'◉'
 
 
 class IncrementalBar(Bar):
-    phases = (' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█')
+    phases = (u' ', u'▏', u'▎', u'▍', u'▌', u'▋', u'▊', u'▉', u'█')
 
     def update(self):
         nphases = len(self.phases)
@@ -83,4 +80,4 @@ class IncrementalBar(Bar):
 
 
 class ShadyBar(IncrementalBar):
-    phases = (' ', '░', '▒', '▓', '█')
+    phases = (u' ', u'░', u'▒', u'▓', u'█')
