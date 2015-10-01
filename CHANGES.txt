@@ -11,6 +11,10 @@
 * **BACKWARD INCOMPATIBLE** Remove the ``--log-explicit-levels`` which had been
   deprecated in 6.0.
 
+* **BACKWARD INCOMPATIBLE** Abort installation of editable if the
+  provided #egg=name part does not match the metadata produced by
+  `setup.py egg_info`. :issue:`3143`.
+
 * Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
   ``--allow-unverified`` functionality that was added as part of PEP 438. With
   changes made to the repository protocol made in PEP 470, these options are no
@@ -33,9 +37,6 @@
 
 * Fix user directory expansion when ``HOME=/``. Workaround for Python bug
   http://bugs.python.org/issue14768, reported in :issue:`2996`.
-
-* Abort installation of editable if the provided #egg=name part does not
-  match the metadata produced by `setup.py egg_info`. :issue:`3143`.
 
 
 **7.1.2 (2015-08-22)**
