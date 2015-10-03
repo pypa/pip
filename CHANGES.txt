@@ -28,6 +28,9 @@
 * Implement a top-level ``pip download`` command and deprecate
   ``pip install --download``.
 
+* Fixed :issue:`3141`, when uninstalling, look for the case of paths containing
+  symlinked directories (:pull:`3154`)
+
 * When installing, if building a wheel fails, clear up the build directory
   before falling back to a source install. :issue:`3047`.
 
