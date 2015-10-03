@@ -1,3 +1,4 @@
+import optparse
 import os
 import subprocess
 from textwrap import dedent
@@ -11,8 +12,8 @@ from pip.exceptions import (RequirementsFileParseError)
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
-from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments, break_args_options)
+from pip.req.req_file import (parse_requirements, process_line,
+                              enumerate_lines, break_args_options)
 
 
 @pytest.fixture
@@ -33,24 +34,63 @@ def options(session):
         format_control=pip.index.FormatControl(set(), set()))
 
 
-class TestIgnoreComments(object):
-    """tests for `ignore_comment`"""
+class TestEnumerateLines(object):
+    def test_strip_empty_first_line(self):
+        lines = ['', 'req1', 'req2']
+        expected = [(2, 'req1'), (3, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
 
     def test_strip_empty_line(self):
         lines = ['req1', '', 'req2']
-        result = ignore_comments(lines)
-        assert list(result) == ['req1', 'req2']
+        expected = [(1, 'req1'), (3, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_strip_last_line(self):
+        lines = ['req1', 'req2', '']
+        expected = [(1, 'req1'), (2, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_strip_line_white_spaces(self):
+        lines = ['req1', '  ', 'req2']
+        expected = [(1, 'req1'), (3, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
 
     def test_strip_comment(self):
         lines = ['req1', '# comment', 'req2']
-        result = ignore_comments(lines)
-        assert list(result) == ['req1', 'req2']
+        expected = [(1, 'req1'), (3, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
 
+    def test_strip_comment_last_line(self):
+        lines = ['req1', 'req2', '# comment']
+        expected = [(1, 'req1'), (2, 'req2')]
+        assert list(enumerate_lines(lines, None)) == expected
 
-class TestJoinLines(object):
-    """tests for `join_lines`"""
+    def test_join_line_two_lines(self):
+        lines = ['req1\\', 'req2']
+        expected = [(1, 'req1req2')]
+        assert list(enumerate_lines(lines, None)) == expected
 
-    def test_join_lines(self):
+    def test_join_line_three_lines(self):
+        lines = ['req1\\', 'req2\\', 'req3']
+        expected = [(1, 'req1req2req3')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_join_line_hidden_by_comment(self):
+        lines = ['req1\\', '#req2\\', 'req3']
+        expected = [(1, 'req1'), (3, 'req3')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_join_line_broken_by_comment(self):
+        lines = ['req1\\', '#req2', 'req3']
+        expected = [(1, 'req1'), (3, 'req3')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_join_line_on_last_line(self):
+        lines = ['req1', 'req3\\']
+        expected = [(1, 'req1'), (2, 'req3')]
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_join_line_multiple_lines(self):
         lines = dedent('''\
         line 1
         line 2:1 \\
@@ -61,13 +101,108 @@ class TestJoinLines(object):
         line 4
         ''').splitlines()
 
-        expect = [
-            'line 1',
-            'line 2:1 line 2:2',
-            'line 3:1 line 3:2 line 3:3',
-            'line 4',
+        expected = [
+            (1, 'line 1'),
+            (2, 'line 2:1 line 2:2'),
+            (4, 'line 3:1 line 3:2 line 3:3'),
+            (7, 'line 4'),
         ]
-        assert expect == list(join_lines(lines))
+        assert list(enumerate_lines(lines, None)) == expected
+
+    def test_skip_line_regex(self):
+        lines = dedent('''\
+        line 1
+        line 2
+        line 3
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 2'
+
+        expected = [
+            (1, 'line 1'),
+            (3, 'line 3'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
+
+    def test_skip_line_regex_last_line(self):
+        lines = dedent('''\
+        line 1
+        line 2
+        line 3
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 3'
+
+        expected = [
+            (1, 'line 1'),
+            (2, 'line 2'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
+
+    def test_skip_multiple_line_regex_match_begining(self):
+        lines = dedent('''\
+        line 1\\
+        line 2
+        line 3
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 1'
+
+        expected = [
+            (3, 'line 3'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
+
+    def test_skip_multiple_line_regex_match_end(self):
+        lines = dedent('''\
+        line 1\\
+        line 2
+        line 3
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 2'
+
+        expected = [
+            (3, 'line 3'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
+
+    def test_skip_multiple_line_regex_match_middle(self):
+        lines = dedent('''\
+        line 1\\
+        line 2\\
+        line 3
+        line 4
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 2'
+
+        expected = [
+            (4, 'line 4'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
+
+    def test_skip_multiple_line_regex_match_last_line(self):
+        lines = dedent('''\
+        line 1
+        line 2
+        line 3\\
+        line 4
+        ''').splitlines()
+
+        options = optparse.Values()
+        options.skip_requirements_regex = 'line 4'
+
+        expected = [
+            (1, 'line 1'),
+            (2, 'line 2'),
+        ]
+        assert list(enumerate_lines(lines, options)) == expected
 
 
 class TestProcessLine(object):
