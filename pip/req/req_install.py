@@ -30,7 +30,7 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
-    get_installed_version
+    get_installed_version, normalize_path
 )
 from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
@@ -698,7 +698,7 @@ exec(compile(
                         bin_dir = bin_user
                     else:
                         bin_dir = bin_py
-                    paths_to_remove.add(os.path.join(bin_dir, name))
+                    paths_to_remove.add(normalize_path(os.path.join(bin_dir, name)))
                     if WINDOWS:
                         paths_to_remove.add(
                             os.path.join(bin_dir, name) + '.exe'
