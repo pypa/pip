@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import datetime
+from datetime import datetime, timedelta
 import logging
 import os.path
 
@@ -30,12 +30,17 @@ class WheelCacheRecord(object):
             logger.warning('Invalid wheel name for: %s', file_path)
             self.wheel = None
 
-        self.project_name = canonicalize_name(self.wheel.name) if self.wheel else None
-        self.version = version.parse(self.wheel.version) if self.wheel else None
+        if self.wheel:
+            self.project_name = canonicalize_name(self.wheel.name)
+            self.version = version.parse(self.wheel.version)
+        else:
+            self.project_name = None
+            self.version = None
+
         stat = os.stat(file_path)
         self.size = stat.st_size
-        self.last_access_time = datetime.datetime.fromtimestamp(stat.st_atime)  # access time
-        self.possible_creation_time = datetime.datetime.fromtimestamp(stat.st_mtime)  # Possible creation time ?
+        self.last_access_time = datetime.fromtimestamp(stat.st_atime)
+        self.possible_creation_time = datetime.fromtimestamp(stat.st_mtime)
 
     @cached_property
     def link_origin(self):
@@ -112,8 +117,11 @@ class CacheCommand(Command):
         if options.not_accessed_since:
             # check if possible to have:
             # --not-accessed-since and --not-accessed-since-days
-            min_last_access = datetime.datetime.now() - datetime.timedelta(days=options.not_accessed_since)
-            records = filter(lambda r: r.last_access_time < min_last_access, records)
+            min_last_access = datetime.now() - timedelta(
+                days=options.not_accessed_since)
+            records = filter(
+                lambda r: r.last_access_time < min_last_access,
+                records)
 
         if reqs:
             records = filter(lambda r: r.match_reqs(reqs), records)
@@ -137,7 +145,9 @@ class CacheCommand(Command):
 
         return SUCCESS
 
-sort_key = lambda record: (record.wheel.name, record.wheel.version, record.link_path)
+
+def sort_key(record):
+    return (record.wheel.name, record.wheel.version, record.link_path)
 
 
 def log_results(records):
