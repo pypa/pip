@@ -102,14 +102,9 @@ On Windows [5]_:
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and also pypy.
+pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
 
 pip works on Unix/Linux, OS X, and Windows.
-
-.. note::
-
-  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through
-  v1.1.
 
 
 ----
