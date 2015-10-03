@@ -26,6 +26,9 @@
 * Implement a top-level ``pip download`` command and deprecate
   ``pip install --download``.
 
+* Fixed :issue:`3141`, when uninstalling, look for the case of paths containing
+  symlinked directories (:pull:`3154`)
+
 
 **7.1.2 (2015-08-22)**
 
