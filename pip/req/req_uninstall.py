@@ -50,7 +50,7 @@ class UninstallPathSet(object):
 
         # we normalize the head to resolve parent directory symlinks, but not
         # the tail, since we only want to uninstall symlinks, not their targets
-        path = os.path.join(normalize_path(head), tail)
+        path = os.path.join(normalize_path(head), os.path.normcase(tail))
 
         if not os.path.exists(path):
             return
