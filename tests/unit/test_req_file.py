@@ -38,13 +38,6 @@ class TestPreprocess(object):
     """tests for `preprocess`"""
 
     def test_comments_processed_before_joining_case1(self):
-        """
-        req1 \\
-        # comment \\
-        req2
-
-        should result in: req1 req2
-        """
         content = textwrap.dedent("""\
           req1 \\
           # comment \\
@@ -54,12 +47,6 @@ class TestPreprocess(object):
         assert list(result) == [(1, 'req1 req2')]
 
     def test_comments_processed_before_joining_case2(self):
-        """
-        req1\\
-        # comment
-
-        should result in: req1
-        """
         content = textwrap.dedent("""\
           req1\\
           # comment
@@ -67,14 +54,43 @@ class TestPreprocess(object):
         result = preprocess(content, None)
         assert list(result) == [(1, 'req1')]
 
+    def test_comments_processed_before_joining_case3(self):
+        content = textwrap.dedent("""\
+          req1 \\
+          # comment
+          req2
+        """)
+        result = preprocess(content, None)
+        assert list(result) == [(1, 'req1 req2')]
+
+    def test_skip_regex_after_joining_case1(self, options):
+        content = textwrap.dedent("""\
+          patt\\
+          ern
+          line2
+        """)
+        options.skip_requirements_regex = 'pattern'
+        result = preprocess(content, options)
+        assert list(result) == [(3, 'line2')]
+
+    def test_skip_regex_after_joining_case2(self, options):
+        content = textwrap.dedent("""\
+          pattern \\
+          line2
+          line3
+        """)
+        options.skip_requirements_regex = 'pattern'
+        result = preprocess(content, options)
+        assert list(result) == [(3, 'line3')]
+
 
 class TestIgnoreComments(object):
     """tests for `ignore_comment`"""
 
-    def test_ignore_empty_line(self):
-        lines = [(1, 'req1'), (2, ''), (3, 'req2')]
+    def test_ignore_line(self):
+        lines = [(1, ''), (2, 'req1'), (3, 'req2')]
         result = ignore_comments(lines)
-        assert list(result) == [(1, 'req1'), (3, 'req2')]
+        assert list(result) == [(2, 'req1'), (3, 'req2')]
 
     def test_ignore_comment(self):
         lines = [(1, 'req1'), (2, '# comment'), (3, 'req2')]
