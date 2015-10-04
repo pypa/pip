@@ -1,5 +1,7 @@
 **8.0.0 (unreleased)**
 
+* **BACKWARD INCOMPATIBLE** Drop support for Python 3.2.
+
 * **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
   ones directly linked from the index or find-links pages.
 
@@ -25,6 +27,15 @@
 
 * Implement a top-level ``pip download`` command and deprecate
   ``pip install --download``.
+
+* Fixed :issue:`3141`, when uninstalling, look for the case of paths containing
+  symlinked directories (:pull:`3154`)
+
+* When installing, if building a wheel fails, clear up the build directory
+  before falling back to a source install. :issue:`3047`.
+
+* Fix user directory expansion when ``HOME=/``. Workaround for Python bug
+  http://bugs.python.org/issue14768, reported in :issue:`2996`.
 
 
 **7.1.2 (2015-08-22)**

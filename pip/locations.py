@@ -9,7 +9,7 @@ import sys
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
-from pip.compat import WINDOWS
+from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
 
 
@@ -114,7 +114,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 site_packages = sysconfig.get_python_lib()
 user_site = site.USER_SITE
-user_dir = os.path.expanduser('~')
+user_dir = expanduser('~')
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
     bin_user = os.path.join(user_site, 'Scripts')

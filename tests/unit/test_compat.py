@@ -1,5 +1,5 @@
 import os
-from pip.compat import get_path_uid, native_str
+from pip.compat import expanduser, get_path_uid, native_str
 import pytest
 
 
@@ -42,3 +42,15 @@ def test_to_native_str_type():
     some_unicode = b"test\xE9 et approuv\xE9".decode('iso-8859-15')
     assert isinstance(native_str(some_bytes, True), str)
     assert isinstance(native_str(some_unicode, True), str)
+
+
+@pytest.mark.parametrize("home,path,expanded", [
+    ("/Users/test", "~", "/Users/test"),
+    ("/Users/test", "~/.cache", "/Users/test/.cache"),
+    # Verify that we are not affected by http://bugs.python.org/issue14768
+    ("/", "~", "/"),
+    ("/", "~/.cache", "/.cache"),
+])
+def test_expanduser(home, path, expanded, monkeypatch):
+    monkeypatch.setenv("HOME", home)
+    assert expanduser(path) == expanded
