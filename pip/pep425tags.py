@@ -99,7 +99,7 @@ def get_supported(versions=None, noarch=False):
                     actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
                 arches = []
-                for m in range(int(minor) + 1):
+                for m in reversed(range(int(minor) + 1)):
                     for a in actual_arches:
                         arches.append(tpl % (m, a))
             else:
