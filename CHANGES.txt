@@ -37,6 +37,9 @@
 * Fix user directory expansion when ``HOME=/``. Workaround for Python bug
   http://bugs.python.org/issue14768, reported in :issue:`2996`.
 
+* Fixed :issue:`3009`, correct reporting of requirements file line numbers
+  (:pull:`3125`)
+
 
 **7.1.2 (2015-08-22)**
 
