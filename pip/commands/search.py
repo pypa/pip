@@ -8,6 +8,7 @@ import warnings
 from pip import cmdoptions
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
+from pip.index import PyPI
 from pip.utils import get_terminal_size
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
@@ -34,8 +35,12 @@ class SearchCommand(Command):
             dest='index',
             metavar='URL',
             help='Base URL of Python Package Index (default %default)')
-        self.cmd_opts.add_option(cmdoptions.index_url())
-
+        self.cmd_opts.add_option(
+            '-i', '--index-url', '--pypi-url',
+            dest='index_url',
+            metavar='URL',
+            default=PyPI.pypi_url,
+            help='Base URL of Python Package Index (default %default).')
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
