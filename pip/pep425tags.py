@@ -92,7 +92,7 @@ def get_supported(versions=None, noarch=False):
                 if actual_arch in ('i386', 'x86_64'):
                     actual_arches.append('intel')
                 if actual_arch in ('i386', 'ppc', 'x86_64'):
-                    actual_arches.append('fat3')
+                    actual_arches.append('fat32')
                 if actual_arch in ('ppc64', 'x86_64'):
                     actual_arches.append('fat64')
                 if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
