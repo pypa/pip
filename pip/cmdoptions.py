@@ -565,6 +565,17 @@ hash = partial(
          'hash before installing. Example: --hash=sha256:abcdef...')
 
 
+require_hashes = partial(
+    Option,
+    '--require-hashes',
+    dest='require_hashes',
+    action='store_true',
+    default=False,
+    help='Require a hash to check each requirement against, for '
+         'repeatable installs. Implied by the presence of a --hash '
+         'option on any package in a requirements file')
+
+
 ##########
 # groups #
 ##########

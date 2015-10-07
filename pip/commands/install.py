@@ -156,16 +156,8 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.pre())
-
         cmd_opts.add_option(cmdoptions.no_clean())
-
-        cmd_opts.add_option(
-            '--require-hashes',
-            dest='require_hashes',
-            action='store_true',
-            help='Perform a provably repeatable installation by requiring a '
-                 'hash to check each package against. Implied by the presence '
-                 'of a --hash option on any individual requirement')
+        cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
