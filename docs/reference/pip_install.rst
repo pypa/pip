@@ -423,8 +423,8 @@ Windows
 
 .. _`Wheel cache`:
 
-Wheel cache
-***********
+Wheel Cache
+~~~~~~~~~~~
 
 Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
 any packages found there. This is disabled via the same ``no-cache-dir`` option
