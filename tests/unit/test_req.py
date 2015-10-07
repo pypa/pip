@@ -224,14 +224,13 @@ class TestRequirementSet(object):
     def test_hashed_deps_on_require_hashes(self, data):
         """Make sure hashed dependencies get installed when --require-hashes
         is on.
-        
-        (We actually just check that no error gets raised while preparing;
-        there is no reason to expect installation to then fail, as the code
-        paths are the same as ever.)
-        
+
+        (We actually just check that no "not all dependencies are hashed!"
+        error gets raised while preparing; there is no reason to expect
+        installation to then fail, as the code paths are the same as ever.)
+
         """
         reqset = self.basic_reqset()
-        finder = PackageFinder([data.find_links], [], session=PipSession())
         reqset.add_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
