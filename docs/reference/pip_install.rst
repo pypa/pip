@@ -378,8 +378,8 @@ See the :ref:`pip install Examples<pip install Examples>`.
 SSL Certificate Verification
 ++++++++++++++++++++++++++++
 
-Starting with v1.3, pip provides SSL certificate verification over https, for the purpose
-of providing secure, certified downloads from PyPI.
+Starting with v1.3, pip provides SSL certificate verification over https, to
+prevent man-in-the-middle attacks against PyPI downloads.
 
 
 .. _`Caching`:
@@ -387,7 +387,7 @@ of providing secure, certified downloads from PyPI.
 Caching
 +++++++
 
-Starting with v6.0, pip provides an on by default cache which functions
+Starting with v6.0, pip provides an on-by-default cache which functions
 similarly to that of a web browser. While the cache is on by default and is
 designed do the right thing by default you can disable the cache and always
 access PyPI by utilizing the ``--no-cache-dir`` option.
@@ -443,19 +443,71 @@ When no wheels are found for an sdist, pip will attempt to build a wheel
 automatically and insert it into the wheel cache.
 
 
-Hash Verification
-+++++++++++++++++
+.. _`hash-checking mode`:
 
-PyPI provides md5 hashes in the hash fragment of package download urls.
+Hash-Checking Mode
+++++++++++++++++++
 
-pip supports checking this, as well as any of the
-guaranteed hashlib algorithms (sha1, sha224, sha384, sha256, sha512, md5).
+Since version 8.0, pip can check downloaded package archives against local
+hashes to protect against remote tampering. To verify a package against one or
+more hashes, add them to the end of the line::
 
-The hash fragment is case sensitive (i.e. sha1 not SHA1).
+    FooProject == 1.2 --hash:sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 \
+                      --hash:sha256=486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7
 
-This check is only intended to provide basic download corruption protection.
-It is not intended to provide security against tampering. For that,
-see :ref:`SSL Certificate Verification`
+(The ability to use multiple hashes is important when a package has both
+binary and source distributions or when it offers binary distributions for a
+variety of platforms.)
+
+The recommended hash algorithm at the moment is sha256, but stronger ones are
+allowed, including all those supported by ``hashlib``. However, weak hashes
+such as md5, sha1, and sha224 are excluded to avert false assurances of
+security.
+
+Hash verification is an all-or-nothing proposition. Specifying a ``--hash``
+against any requirement not only checks that hash but also activates
+*hash-checking mode*, which imposes several other security restrictions:
+
+* Hashes are required for all requirements. This is because a partially-hashed
+  requirements file is of little use and thus likely an error: a malicious
+  actor could slip bad code into the installation via one of the unhashed
+  requirements. Note that hashes embedded in URL-style requirements via the
+  ``#md5=...`` syntax suffice to satisfy this rule (regardless of hash
+  strength, for legacy reasons), though you use a stronger hash like sha256
+  whenever possible.
+* Hashes are required for all dependencies. An error is raised if there is a
+  dependency that is not spelled out and hashed in the requirements file.
+* Requirements that take the form of project names (rather than URLs or local
+  filesystem paths) must be pinned to a specific version using ``==``. This
+  prevents a surprising hash mismatch upon the release of a new version
+  that matches the requirement specifier.
+* ``--egg`` is disallowed, because it delegates installation of dependencies
+  to setuptools, giving up pip's ability to enforce any of the above.
+
+Hash-checking mode can be forced on with the ``--require-hashes`` command-line
+option. This can be useful in deploy scripts, to ensure that the author of the
+requirements file provided hashes. It is also a convenient way to bootstrap
+your list of hashes, since it will show the hashes of the packages it
+fetched. (It will fetch only a single archive for each package, so you may
+still need to add additional hashes for alternatives: for instance if there is
+both a binary and a source distribution available.)
+
+.. warning::
+    Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
+    (rare) packages that use it will cause those dependencies to be downloaded
+    by setuptools directly, skipping pip's hash-checking. If you need to use
+    such a package, see :ref:`Controlling
+    setup_requires<controlling-setup-requires>`.
+
+
+Hashes from PyPI
+~~~~~~~~~~~~~~~~
+
+PyPI provides an md5 hash in the fragment portion of each package download
+URL. pip checks this as a protection against download corruption. However,
+since the hash originates remotely, it is not a useful guard against tampering
+and thus does not satisfy the ``--require-hashes`` demand that every package
+have a local hash.
 
 
 .. _`editable-installs`:
