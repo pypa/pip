@@ -20,13 +20,13 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://img.shields.io/travis/pypa/pip/develop.svg
    :target: http://travis-ci.org/pypa/pip
 
-.. image:: https://readthedocs.org/projects/pip/badge/?version=stable
-   :target: http://pip.readthedocs.org/en/stable/?badge=stable
+.. image:: https://img.shields.io/badge/style-flat-green.svg?style=flat
+   :target: https://pip.pypa.io/en/stable/
    :alt: Documentation Status
 
 
 .. _PyPA recommended:
-    https://python-packaging-user-guide.readthedocs.org/en/latest/current/
+    https://packaging.python.org/en/latest/current/
 
 Code of Conduct
 ---------------
