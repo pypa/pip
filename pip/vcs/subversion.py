@@ -259,6 +259,10 @@ class Subversion(VersionControl):
             full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
         return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
 
+    def check_version(self, dest, rev_options):
+        """Always assume the versions don't match"""
+        return False
+
 
 def get_rev_options(url, rev):
     if rev:
