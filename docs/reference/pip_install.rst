@@ -515,6 +515,17 @@ strategies <Repeatability>` is available in the User Guide.
     such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
+.. warning::
+    Be careful not to nullify all your security work when you install your
+    actual project. If you call ``python setup.py install`` after installing
+    your requirements, setuptools will happily go out and download, unchecked,
+    anything you missed in your requirements file—and it’s easy to miss things
+    as your project evolves. One way to be safe is to pack up your project and
+    then install that using pip and :ref:`--no-deps <install_--no-deps>`::
+
+        python setup.py sdist
+        pip install --no-deps dist/yourproject-1.0.tar.gz
+
 
 Hashes from PyPI
 ~~~~~~~~~~~~~~~~
