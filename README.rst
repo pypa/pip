@@ -20,8 +20,8 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://img.shields.io/travis/pypa/pip/develop.svg
    :target: http://travis-ci.org/pypa/pip
 
-.. image:: https://img.shields.io/badge/style-flat-green.svg?style=flat
-   :target: https://pip.pypa.io/en/stable/
+.. image:: https://readthedocs.org/projects/pip/badge/?version=stable
+   :target: http://pip.readthedocs.org/en/stable/?badge=stable
    :alt: Documentation Status
 
 
