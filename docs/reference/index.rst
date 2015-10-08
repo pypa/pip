@@ -14,5 +14,4 @@ Reference Guide
    pip_show
    pip_search
    pip_wheel
-
-
+   pip_hash

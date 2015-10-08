@@ -624,16 +624,15 @@ downloaded packages::
 
 This protects against compromises of PyPI, its CDN, the HTTPS certificate
 chain, and the network between you and the packages. It also guards
-against a package changing without a change in its version number, on
-indexes that allow this. This approach is a good fit for automated
-deployments to servers.
+against a package changing without its version number changing, on indexes
+that allow this. This approach is a good fit for automated server deployments.
 
-Hash-checking mode is a labor-saving alternative to running an internal index
+Hash-checking mode is a labor-saving alternative to running a private index
 server containing approved packages: it removes the need to upload packages,
-maintain ACLs, and keep an audit trail (which a VCS give you for the
+maintain ACLs, and keep an audit trail (which a VCS gives you on the
 requirements file for free). It can also substitute for a vendor library,
 providing easier upgrades and less VCS noise. It does not, of course,
-provide the availability benefits of an internal index or a vendor library.
+provide the availability benefits of a private index or a vendor library.
 
 For more, see :ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
 

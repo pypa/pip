@@ -460,7 +460,7 @@ binary and source distributions or when it offers binary distributions for a
 variety of platforms.)
 
 The recommended hash algorithm at the moment is sha256, but stronger ones are
-allowed, including all those supported by ``hashlib``. However, weak hashes
+allowed, including all those supported by ``hashlib``. However, weaker ones
 such as md5, sha1, and sha224 are excluded to avert false assurances of
 security.
 
@@ -485,12 +485,28 @@ against any requirement not only checks that hash but also activates
   to setuptools, giving up pip's ability to enforce any of the above.
 
 Hash-checking mode can be forced on with the ``--require-hashes`` command-line
-option. This can be useful in deploy scripts, to ensure that the author of the
+option::
+
+    $ pip install --require-hashes -r requirements.txt
+        ...
+        Hashes are required in --require-hashes mode (implicitly on when a hash is
+        specified for any package). These requirements were missing hashes,
+        leaving them open to tampering. These are the hashes the downloaded
+        archives actually had. You can add lines like these to your requirements
+        files to prevent tampering.
+            pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
+            more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
+
+This can be useful in deploy scripts, to ensure that the author of the
 requirements file provided hashes. It is also a convenient way to bootstrap
-your list of hashes, since it will show the hashes of the packages it
-fetched. (It will fetch only a single archive for each package, so you may
-still need to add additional hashes for alternatives: for instance if there is
-both a binary and a source distribution available.)
+your list of hashes, since it shows the hashes of the packages it fetched. It
+fetches only the preferred archive for each package, so you may still need to
+add hashes for alternatives archives using :ref:`pip hash`: for instance if
+there is both a binary and a source distribution.
+
+Hash-checking mode also functions with :ref:`pip download` and :ref:`pip
+wheel`. A :ref:`comparison of hash-checking mode with other repeatability
+strategies <Repeatability>` is available in the User Guide.
 
 .. warning::
     Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
