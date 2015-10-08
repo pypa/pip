@@ -98,9 +98,10 @@ class TestRequirementSet(object):
                                session=PipSession())
         assert_raises_regexp(
             HashErrors,
-            r'These requirements were missing hashes.*\n'
+            r'Hashes are required in --require-hashes mode, but they are '
+            r'missing .*\n'
             r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
-            r'THESE PACKAGES DID NOT MATCH THE HASHES.*\n'
+            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
             r'    tracefront==0.1 .*:\n'
             r'        Expected sha256 somehash\n'
             r'             Got        [0-9a-f]+$',
@@ -117,7 +118,8 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,
-            r'These requirements were missing hashes.*\n'
+            r'Hashes are required in --require-hashes mode, but they are '
+            r'missing .*\n'
             r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
             r'fb866d6ca016b42d2e6ce53619b653$',
             reqset.prepare_files,
@@ -195,7 +197,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             HashErrors,
-            r'THESE PACKAGES DID NOT MATCH THE HASHES.*\n'
+            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
             r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
             r'        Expected sha256 badbad\n'
             r'             Got        393043e672415891885c9a2a0929b1af95fb866d'

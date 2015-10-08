@@ -51,7 +51,8 @@ class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
 
 
-# The recommended hash algo of the moment. Feel free to change this any time.
+# The recommended hash algo of the moment. Change this whenever the state of
+# the art changes; it won't hurt backward compatibility.
 FAVORITE_HASH = 'sha256'
 
 
@@ -68,7 +69,7 @@ class HashErrors(InstallationError):
         lines = []
         self.errors.sort(key=lambda e: e.order)
         for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
-            lines.append(cls.head())
+            lines.append(cls.head)
             lines.extend(e.body() for e in errors_of_cls)
         if lines:
             return '\n'.join(lines)
@@ -88,17 +89,15 @@ class HashError(InstallationError):
         about unpinned packages when he has deeper issues, like VCS
         dependencies, to deal with. Also keeps error reports in a
         deterministic order.
+    :cvar head: A section heading for display above potentially many
+        exceptions of this kind
     :ivar req: The InstallRequirement that triggered this error. This is
         pasted on after the exception is instantiated, because it's not
         typically available earlier.
 
     """
     req = None
-
-    @classmethod
-    def head(cls):
-        """Return a section heading for display above potentially many
-        exceptions of this kind."""
+    head = ''
 
     def body(self):
         """Return a summary of me for display under the heading.
@@ -113,7 +112,7 @@ class HashError(InstallationError):
         return '    %s' % self._requirement_name()
 
     def __str__(self):
-        return '%s\n%s' % (self.head(), self.body())
+        return '%s\n%s' % (self.head, self.body())
 
     def _requirement_name(self):
         """Return a description of the requirement that triggered me.
@@ -130,11 +129,8 @@ class VcsHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 0
-
-    @classmethod
-    def head(cls):
-        return ("Can't verify hashes for these requirements because we don't "
-                "have a way to hash version control repositories:")
+    head = ("Can't verify hashes for these requirements because we don't "
+            "have a way to hash version control repositories:")
 
 
 class DirectoryUrlHashUnsupported(HashError):
@@ -142,17 +138,21 @@ class DirectoryUrlHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 1
-
-    @classmethod
-    def head(cls):
-        return ("Can't verify hashes for these file:// requirements because "
-                "they point to directories:")
+    head = ("Can't verify hashes for these file:// requirements because they "
+            "point to directories:")
 
 
 class HashMissing(HashError):
     """A hash was needed for a requirement but is absent."""
 
     order = 2
+    head = ('Hashes are required in --require-hashes mode, but they are '
+            'missing from some requirements. Here is a list of those '
+            'requirements along with the hashes their downloaded archives '
+            'actually had. Add lines like these to your requirements files to '
+            'prevent tampering. (If you did not enable --require-hashes '
+            'manually, note that it turns on automatically when any package '
+            'has a hash.)')
 
     def __init__(self, gotten_hash):
         """
@@ -160,15 +160,6 @@ class HashMissing(HashError):
             just downloaded
         """
         self.gotten_hash = gotten_hash
-
-    @classmethod
-    def head(cls):
-        return ('Hashes are required in --require-hashes mode (implicitly on '
-                'when a hash is specified for any package). These '
-                'requirements were missing hashes, leaving them open to '
-                'tampering. These are the hashes the downloaded archives '
-                'actually had. You can add lines like these to your '
-                'requirements files to prevent tampering.')
 
     def body(self):
         package_name = (self.req.req if self.req and
@@ -187,11 +178,8 @@ class HashUnpinned(HashError):
     version."""
 
     order = 3
-
-    @classmethod
-    def head(cls):
-        return ('In --require-hashes mode, all requirements must have their '
-                'versions pinned with ==. These do not:')
+    head = ('In --require-hashes mode, all requirements must have their '
+            'versions pinned with ==. These do not:')
 
 
 class HashMismatch(HashError):
@@ -203,6 +191,10 @@ class HashMismatch(HashError):
 
     """
     order = 4
+    head = ('THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS '
+            'FILE. If you have updated the package versions, please update '
+            'the hashes. Otherwise, examine the package contents carefully; '
+            'someone may have tampered with them.')
 
     def __init__(self, goods, gots):
         """
@@ -213,13 +205,6 @@ class HashMismatch(HashError):
         """
         self.goods = goods
         self.gots = gots
-
-    @classmethod
-    def head(cls):
-        return ('THESE PACKAGES DID NOT MATCH THE HASHES FROM THE '
-                'REQUIREMENTS FILE. If you have updated the package versions, '
-                'update the hashes. Otherwise, examine the package contents '
-                'carefully; someone may have tampered with them.')
 
     def body(self):
         return '    %s:\n%s' % (self._requirement_name(),
