@@ -1,5 +1,7 @@
 **8.0.0 (unreleased)**
 
+* **BACKWARD INCOMPATIBLE** Drop support for Python 3.2.
+
 * **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
   ones directly linked from the index or find-links pages.
 
@@ -8,6 +10,10 @@
 
 * **BACKWARD INCOMPATIBLE** Remove the ``--log-explicit-levels`` which had been
   deprecated in 6.0.
+
+* **BACKWARD INCOMPATIBLE** Abort installation of editable if the
+  provided #egg=name part does not match the metadata produced by
+  `setup.py egg_info`. :issue:`3143`.
 
 * Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
   ``--allow-unverified`` functionality that was added as part of PEP 438. With
@@ -25,6 +31,18 @@
 
 * Implement a top-level ``pip download`` command and deprecate
   ``pip install --download``.
+
+* Fixed :issue:`3141`, when uninstalling, look for the case of paths containing
+  symlinked directories (:pull:`3154`)
+
+* When installing, if building a wheel fails, clear up the build directory
+  before falling back to a source install. :issue:`3047`.
+
+* Fix user directory expansion when ``HOME=/``. Workaround for Python bug
+  http://bugs.python.org/issue14768, reported in :issue:`2996`.
+
+* Fixed :issue:`3009`, correct reporting of requirements file line numbers
+  (:pull:`3125`)
 
 
 **7.1.2 (2015-08-22)**

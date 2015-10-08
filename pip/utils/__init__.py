@@ -16,7 +16,7 @@ import tarfile
 import zipfile
 
 from pip.exceptions import InstallationError
-from pip.compat import console_to_str, stdlib_pkgs
+from pip.compat import console_to_str, expanduser, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
@@ -222,7 +222,6 @@ def file_contents(filename):
 
 
 def split_leading_dir(path):
-    path = str(path)
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
                         '\\' not in path):
@@ -253,7 +252,7 @@ def normalize_path(path, resolve_symlinks=True):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    path = os.path.expanduser(path)
+    path = expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
     else:

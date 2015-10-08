@@ -6,6 +6,7 @@ from mock import patch, Mock
 
 from pip._vendor import pkg_resources
 from pip import pep425tags, wheel
+from pip.compat import expanduser
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
@@ -417,7 +418,7 @@ class TestWheelCache:
 
     def test_expands_path(self):
         wc = wheel.WheelCache("~/.foo/", None)
-        assert wc._cache_dir == os.path.expanduser("~/.foo/")
+        assert wc._cache_dir == expanduser("~/.foo/")
 
     def test_falsey_path_none(self):
         wc = wheel.WheelCache(False, None)

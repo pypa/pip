@@ -8,6 +8,7 @@ import os
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 
+from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
                           unpack_url)
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
@@ -294,7 +295,7 @@ class RequirementSet(object):
     @property
     def is_download(self):
         if self.download_dir:
-            self.download_dir = os.path.expanduser(self.download_dir)
+            self.download_dir = expanduser(self.download_dir)
             if os.path.exists(self.download_dir):
                 return True
             else:

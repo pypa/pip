@@ -718,6 +718,20 @@ def test_install_wheel_broken(script, data):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
+def test_cleanup_after_failed_wheel(script, data):
+    script.pip('install', 'wheel')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links, 'wheelbrokenafter',
+        expect_stderr=True)
+    # One of the effects of not cleaning up is broken scripts:
+    script_py = script.bin_path / "script.py"
+    assert script_py.exists, script_py
+    shebang = open(script_py, 'r').readline().strip()
+    assert shebang != '#!python', shebang
+    # OK, assert that we *said* we were cleaning up:
+    assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
+
+
 def test_install_builds_wheels(script, data):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
@@ -798,3 +812,18 @@ def test_install_no_binary_disables_cached_wheels(script, data):
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_editable_with_wrong_egg_name(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+    result = script.pip(
+        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
+        expect_error=True)
+    assert ("egg_info for package pkgb produced metadata "
+            "for project name pkga") in result.stderr

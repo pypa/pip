@@ -91,15 +91,15 @@ def get_supported(versions=None, noarch=False):
                     actual_arches.append('fat')
                 if actual_arch in ('i386', 'x86_64'):
                     actual_arches.append('intel')
-                if actual_arch in ('i386', 'ppc', 'x86_64'):
-                    actual_arches.append('fat3')
                 if actual_arch in ('ppc64', 'x86_64'):
                     actual_arches.append('fat64')
+                if actual_arch in ('i386', 'ppc', 'x86_64'):
+                    actual_arches.append('fat32')
                 if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
                     actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
                 arches = []
-                for m in range(int(minor) + 1):
+                for m in reversed(range(int(minor) + 1)):
                     for a in actual_arches:
                         arches.append(tpl % (m, a))
             else:

@@ -13,7 +13,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from __future__ import print_function
-from __future__ import unicode_literals
 
 
 HIDE_CURSOR = '\x1b[?25l'

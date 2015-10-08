@@ -73,21 +73,12 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Using OS Package Managers
--------------------------
+Using Linux Package Managers
+----------------------------
 
-On Linux, pip will generally be available for the system install of python using
-the system package manager, although often the latest version will be
-unavailable.
-
-On Debian and Ubuntu::
-
-   sudo apt-get install python-pip
-
-On Fedora::
-
-   sudo yum install python-pip
-
+See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
+the `Python Packaging User Guide
+<https://packaging.python.org/en/latest/current/>`_.
 
 .. _`Upgrading pip`:
 
@@ -111,14 +102,9 @@ On Windows [5]_:
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and also pypy.
+pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
 
 pip works on Unix/Linux, OS X, and Windows.
-
-.. note::
-
-  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through
-  v1.1.
 
 
 ----

@@ -99,6 +99,8 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
+Comments are stripped *before* line continuations are processed.
+
 Additionally, the following Package Index Options are supported:
 
   *  :ref:`-i, --index-url <--index-url>`
