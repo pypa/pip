@@ -98,8 +98,8 @@ def preprocess(content, options):
     :param options: cli options
     """
     lines_enum = enumerate(content.splitlines(), start=1)
-    lines_enum = ignore_comments(lines_enum)
     lines_enum = join_lines(lines_enum)
+    lines_enum = ignore_comments(lines_enum)
     lines_enum = skip_regex(lines_enum, options)
     return lines_enum
 
@@ -278,13 +278,16 @@ def build_parser():
 
 
 def join_lines(lines_enum):
-    """Joins a line ending in '\' with the previous line.  The joined line takes on
-    the index of the first line.
+    """Joins a line ending in '\' with the previous line (except when following
+    comments).  The joined line takes on the index of the first line.
     """
     primary_line_number = None
     new_line = []
     for line_number, line in lines_enum:
-        if not line.endswith('\\'):
+        if not line.endswith('\\') or COMMENT_RE.match(line):
+            if COMMENT_RE.match(line):
+                # this ensures comments are always matched later
+                line = ' ' + line
             if new_line:
                 new_line.append(line)
                 yield primary_line_number, ''.join(new_line)

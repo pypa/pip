@@ -37,16 +37,16 @@ def options(session):
 class TestPreprocess(object):
     """tests for `preprocess`"""
 
-    def test_comments_processed_before_joining_case1(self):
+    def test_comments_and_joins_case1(self):
         content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
         """)
         result = preprocess(content, None)
-        assert list(result) == [(1, 'req1 req2')]
+        assert list(result) == [(1, 'req1'), (3, 'req2')]
 
-    def test_comments_processed_before_joining_case2(self):
+    def test_comments_and_joins_case2(self):
         content = textwrap.dedent("""\
           req1\\
           # comment
@@ -54,14 +54,14 @@ class TestPreprocess(object):
         result = preprocess(content, None)
         assert list(result) == [(1, 'req1')]
 
-    def test_comments_processed_before_joining_case3(self):
+    def test_comments_and_joins_case3(self):
         content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
         """)
         result = preprocess(content, None)
-        assert list(result) == [(1, 'req1 req2')]
+        assert list(result) == [(1, 'req1'), (3, 'req2')]
 
     def test_skip_regex_after_joining_case1(self, options):
         content = textwrap.dedent("""\
