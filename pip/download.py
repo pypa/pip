@@ -615,11 +615,8 @@ def _copy_file(filename, location, content_type, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link,
-                    location,
-                    download_dir=None,
-                    session=None,
-                    hashes=None):
+def unpack_http_url(link, location, download_dir=None,
+                    session=None, hashes=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
