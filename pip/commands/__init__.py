@@ -13,6 +13,7 @@ from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
+from pip.commands.resolve import ResolveCommand
 
 
 commands_dict = {
@@ -26,6 +27,7 @@ commands_dict = {
     DownloadCommand.name: DownloadCommand,
     ListCommand.name: ListCommand,
     WheelCommand.name: WheelCommand,
+    ResolveCommand.name: ResolveCommand
 }
 
 
@@ -37,6 +39,7 @@ commands_order = [
     ListCommand,
     ShowCommand,
     SearchCommand,
+    ResolveCommand,
     WheelCommand,
     HelpCommand,
 ]
