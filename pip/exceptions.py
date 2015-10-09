@@ -82,7 +82,8 @@ class HashErrors(InstallationError):
 
 
 class HashError(InstallationError):
-    """A failure to verify a package against known-good hashes
+    """
+    A failure to verify a package against known-good hashes
 
     :cvar order: An int sorting hash exception classes by difficulty of
         recovery (lower being harder), so the user doesn't bother fretting
@@ -183,7 +184,8 @@ class HashUnpinned(HashError):
 
 
 class HashMismatch(HashError):
-    """Distribution file hash values don't match.
+    """
+    Distribution file hash values don't match.
 
     :ivar package_name: The name of the package that triggered the hash
         mismatch. Feel free to write to this after the exception is raise to
@@ -211,7 +213,8 @@ class HashMismatch(HashError):
                                 self._hash_comparison())
 
     def _hash_comparison(self):
-        """Return a comparison of actual and expected hash values.
+        """
+        Return a comparison of actual and expected hash values.
 
         Example::
 
