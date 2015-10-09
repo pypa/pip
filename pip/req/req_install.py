@@ -1038,11 +1038,12 @@ exec(compile(
         """Return a hash-comparer that considers my option- and URL-based
         hashes to be known-good.
 
-        Hashes in URLs are almost peers with ones from flags. They satisfy
-        --require-hashes (whether it was implicitly or explicitly activated)
-        but do not activate it. md5 and sha224 are not allowed in flags, which
-        should nudge people toward good algos. We always OR all hashes
-        together, even ones from URLs.
+        Hashes in URLs--ones embedded in the requirements file, not ones
+        downloaded from an index server--are almost peers with ones from
+        flags. They satisfy --require-hashes (whether it was implicitly or
+        explicitly activated) but do not activate it. md5 and sha224 are not
+        allowed in flags, which should nudge people toward good algos. We
+        always OR all hashes together, even ones from URLs.
 
         :param trust_internet: Whether to trust URL-based (#md5=...) hashes
             downloaded from the internet, as by populate_link()

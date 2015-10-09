@@ -674,10 +674,11 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
             logger.info('Link is a directory, ignoring download_dir')
         return
 
-    # If --require-hashes is off, `hashes` is either empty, the link hash, or
-    # MissingHashes, and it's required to match. If --require-hashes is on, we
-    # are satisfied by any hash in `hashes` matching: a URL-based or an
-    # option-based one; no internet-sourced hash will be in `hashes`.
+    # If --require-hashes is off, `hashes` is either empty, the
+    # link's embeddded hash, or MissingHashes; it is required to
+    # match. If --require-hashes is on, we are satisfied by any
+    # hash in `hashes` matching: a URL-based or an option-based
+    # one; no internet-sourced hash will be in `hashes`.
     if hashes:
         hashes.check_against_path(link_path)
 
@@ -744,7 +745,7 @@ def unpack_url(link, location, download_dir=None,
          - if only_download, mark location for deletion
 
     :param hashes: A Hashes object, one of whose embedded hashes must match,
-        or I'll raise HashMismatch. If the Hashes is empty, no matches are
+        or HashMismatch will be raised. If the Hashes is empty, no matches are
         required, and unhashable types of requirements (like VCS ones, which
         would ordinarily raise HashUnsupported) are allowed.
     """

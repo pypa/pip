@@ -475,8 +475,8 @@ against any requirement not only checks that hash but also activates
   actor could slip bad code into the installation via one of the unhashed
   requirements. Note that hashes embedded in URL-style requirements via the
   ``#md5=...`` syntax suffice to satisfy this rule (regardless of hash
-  strength, for legacy reasons), though you use a stronger hash like sha256
-  whenever possible.
+  strength, for legacy reasons), though you should use a stronger
+  hash like sha256 whenever possible.
 * Hashes are required for all dependencies. An error is raised if there is a
   dependency that is not spelled out and hashed in the requirements file.
 * Requirements that take the form of project names (rather than URLs or local
