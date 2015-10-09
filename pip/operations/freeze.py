@@ -26,7 +26,7 @@ def freeze(
     skip_match = None
 
     if skip_regex:
-        skip_match = re.compile(skip_regex)
+        skip_match = re.compile(skip_regex).search
 
     dependency_links = []
 
@@ -55,7 +55,7 @@ def freeze(
             for line in req_file:
                 if (not line.strip() or
                         line.strip().startswith('#') or
-                        (skip_match and skip_match.search(line)) or
+                        (skip_match and skip_match(line)) or
                         line.startswith((
                             '-r', '--requirement',
                             '-Z', '--always-unzip',
