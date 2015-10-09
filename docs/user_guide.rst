@@ -610,9 +610,10 @@ well, and so on. Perform the installation using :ref:`--no-deps
 anything not explicitly listed.
 
 This strategy is easy to implement and works across OSes and architectures.
-However, it trusts PyPI, its CDN, and the network. It also relies on indices
-and find-links locations not allowing packages to change without a version
-increase. (PyPI does protect against this.)
+However, it trusts PyPI and the certificate authority chain. It
+also relies on indices and find-links locations not allowing
+packages to change without a version increase. (PyPI does protect
+against this.)
 
 Hash-checking Mode
 ------------------
@@ -622,10 +623,10 @@ downloaded packages::
 
     FooProject == 1.2 --hash:sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
 
-This protects against compromises of PyPI, its CDN, the HTTPS certificate
-chain, and the network between you and the packages. It also guards
-against a package changing without its version number changing, on indexes
-that allow this. This approach is a good fit for automated server deployments.
+This protects against a compromise of PyPI or the HTTPS
+certificate chain. It also guards against a package changing
+without its version number changing (on indexes that allow this).
+This approach is a good fit for automated server deployments.
 
 Hash-checking mode is a labor-saving alternative to running a private index
 server containing approved packages: it removes the need to upload packages,
