@@ -10,7 +10,6 @@ pass on state. To be consistent, all options will follow this design.
 from __future__ import absolute_import
 
 from functools import partial
-import hashlib
 from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
 
@@ -524,14 +523,10 @@ always_unzip = partial(
 )
 
 
-def _good_hashes():
-    """Return names of hashlib algorithms at least as strong as sha256."""
-    # Remove getattr when 2.6 dies.
-    algos = set(
-        getattr(hashlib,
-                'algorithms',
-                ('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512')))
-    return algos - set(['md5', 'sha1', 'sha224'])
+def _strong_hashes():
+    """Return names of hashlib algorithms at least as
+    collision-resistant as sha256."""
+    return ['sha256', 'sha384', 'sha512']
 
 
 def _merge_hash(option, opt_str, value, parser):
@@ -545,10 +540,10 @@ def _merge_hash(option, opt_str, value, parser):
         parser.error('Arguments to %s must be a hash name '
                      'followed by a value, like --hash=sha256:abcde...' %
                      opt_str)
-    goods = _good_hashes()
-    if algo not in goods:
+    strongs = _strong_hashes()
+    if algo not in strongs:
         parser.error('Allowed hash algorithms for %s are %s.' %
-                     (opt_str, ', '.join(sorted(goods))))
+                     (opt_str, ', '.join(strongs)))
     parser.values.hashes.setdefault(algo, []).append(digest)
 
 
