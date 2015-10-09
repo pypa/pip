@@ -475,7 +475,7 @@ class RequirementSet(object):
                     req_to_install.archive(self.download_dir)
             elif req_to_install.satisfied_by:
                 if require_hashes:
-                    logger.info(
+                    logger.debug(
                         'Since it is already installed, we are trusting this '
                         'package without checking its hash. To ensure a '
                         'completely repeatable environment, install into an '
