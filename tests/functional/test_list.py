@@ -59,7 +59,7 @@ def test_uptodate_flag(script, data):
         expect_stderr=True,
     )
     assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
-    assert 'pip-test-package' not in result.stdout  # editables excluded
+    assert 'pip-test-package (0.1.1,' in result.stdout  # editables included
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
@@ -75,7 +75,8 @@ def test_outdated_flag(script, data):
     )
     script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1#egg=pip-test-package'
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
@@ -83,7 +84,9 @@ def test_outdated_flag(script, data):
     )
     assert 'simple (Current: 1.0 Latest: 3.0 [sdist])' in result.stdout
     assert 'simplewheel (Current: 1.0 Latest: 2.0 [wheel])' in result.stdout
-    assert 'pip-test-package' not in result.stdout  # editables excluded
+    assert (
+        'pip-test-package (Current: 0.1 Latest: 0.1.1 [sdist])'
+        in result.stdout)
     assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
 
 
@@ -98,6 +101,49 @@ def test_editables_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
     result = script.pip('list', '--editable')
+    assert 'simple (1.0)' not in result.stdout, str(result)
+    assert os.path.join('src', 'pip-test-package') in result.stdout, (
+        str(result)
+    )
+
+
+@pytest.mark.network
+def test_uptodate_editables_flag(script, data):
+    """
+    test the behavior of --editable --uptodate flag in the list command
+    """
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+    result = script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index',
+        '--editable', '--uptodate',
+        expect_stderr=True,
+    )
+    assert 'simple (1.0)' not in result.stdout, str(result)
+    assert os.path.join('src', 'pip-test-package') in result.stdout, (
+        str(result)
+    )
+
+
+@pytest.mark.network
+def test_outdated_editables_flag(script, data):
+    """
+    test the behavior of --editable --outdated flag in the list command
+    """
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+    result = script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1#egg=pip-test-package'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index',
+        '--editable', '--outdated',
+        expect_stderr=True,
+    )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)

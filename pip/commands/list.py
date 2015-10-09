@@ -4,7 +4,7 @@ import logging
 import warnings
 
 from pip.basecommand import Command
-from pip.exceptions import DistributionNotFound
+from pip.exceptions import CommandError, DistributionNotFound
 from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
 from pip.req import InstallRequirement
 from pip.utils import (
@@ -37,12 +37,12 @@ class ListCommand(Command):
             '-o', '--outdated',
             action='store_true',
             default=False,
-            help='List outdated packages (excluding editables)')
+            help='List outdated packages')
         cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
-            help='List uptodate packages (excluding editables)')
+            help='List uptodate packages')
         cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
@@ -112,13 +112,14 @@ class ListCommand(Command):
                 "no longer has any effect.",
                 RemovedInPip10Warning,
             )
+        if options.outdated and options.uptodate:
+            raise CommandError(
+                "Options --outdated and --uptodate cannot be combined.")
 
         if options.outdated:
             self.run_outdated(options)
         elif options.uptodate:
             self.run_uptodate(options)
-        elif options.editable:
-            self.run_editables(options)
         else:
             self.run_listing(options)
 
@@ -137,8 +138,10 @@ class ListCommand(Command):
             index_urls = []
 
         dependency_links = []
-        for dist in get_installed_distributions(local_only=options.local,
-                                                user_only=options.user):
+        for dist in get_installed_distributions(
+                local_only=options.local,
+                user_only=options.user,
+                editables_only=options.editable):
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -151,7 +154,7 @@ class ListCommand(Command):
             installed_packages = get_installed_distributions(
                 local_only=options.local,
                 user_only=options.user,
-                include_editables=False,
+                editables_only=options.editable,
             )
             format_control = FormatControl(set(), set())
             wheel_cache = WheelCache(options.cache_dir, format_control)
@@ -189,14 +192,7 @@ class ListCommand(Command):
         installed_packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
-        )
-        self.output_package_listing(installed_packages)
-
-    def run_editables(self, options):
-        installed_packages = get_installed_distributions(
-            local_only=options.local,
-            user_only=options.user,
-            editables_only=True,
+            editables_only=options.editable,
         )
         self.output_package_listing(installed_packages)
 
