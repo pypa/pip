@@ -7,7 +7,7 @@ import os.path
 from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
 from pip.basecommand import Command, SUCCESS
-from pip.exceptions import CommandError, InvalidWheelFilename
+from pip.exceptions import InvalidWheelFilename
 from pip.utils import ask, cached_property, canonicalize_name
 from pip.wheel import Wheel
 
@@ -72,11 +72,11 @@ class CacheCommand(Command):
         super(CacheCommand, self).__init__(*args, **kw)
 
         self.cmd_opts.add_option(
-            '--all',
-            dest='all_wheels',
+            '--summary',
+            dest='summary',
             action='store_true',
             default=False,
-            help='Consider all wheels in cache')
+            help='Only print a summary')
         self.cmd_opts.add_option(
             '--remove',
             dest='remove',
@@ -111,9 +111,6 @@ class CacheCommand(Command):
                     records.append(
                         WheelCacheRecord(os.path.join(dirpath, filename)))
 
-        if options.all_wheels and args:
-            raise CommandError('You cannot pass args with --all option')
-
         if options.not_accessed_since:
             # check if possible to have:
             # --not-accessed-since and --not-accessed-since-days
@@ -138,8 +135,11 @@ class CacheCommand(Command):
                     record.remove()
             # Should we try to cleanup empty dirs and link files ?
         else:
-            if not args and not options.all_wheels:
-                logger.info('Found %s cached wheels', len(records))
+            if options.summary:
+                total_size = sum(record.size for record in records)
+                logger.info(
+                    'Found %s cached wheels for %s',
+                    len(records), human_readable_size(total_size))
             else:
                 log_results(records)
 
