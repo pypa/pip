@@ -58,7 +58,7 @@ class FreezeCommand(Command):
             help='Only output packages installed in user-site.')
         self.cmd_opts.add_option(
             '--with',
-            dest='whitelist',
+            dest='freeze_whitelist',
             action='append',
             default=[],
             help='Do not skip those packages.')
@@ -70,7 +70,7 @@ class FreezeCommand(Command):
         wheel_cache = WheelCache(options.cache_dir, format_control)
         skip = set()
         for pkg in stdlib_pkgs + DEV_PKGS:
-            if pkg not in options.whitelist:
+            if pkg not in options.freeze_whitelist:
                 skip.add(pkg)
 
         freeze_kwargs = dict(
