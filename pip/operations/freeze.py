@@ -4,15 +4,12 @@ import logging
 import re
 
 import pip
-from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
-from pip.utils import get_installed_distributions
+from pip.utils import canonicalize_name, get_installed_distributions
 from pip._vendor import pkg_resources
 
 
 logger = logging.getLogger(__name__)
-
-freeze_excludes = stdlib_pkgs + ('setuptools', 'pip', 'distribute', 'wheel')
 
 
 def freeze(
@@ -20,7 +17,8 @@ def freeze(
         find_links=None, local_only=None, user_only=None, skip_regex=None,
         default_vcs=None,
         isolated=False,
-        wheel_cache=None):
+        wheel_cache=None,
+        skip=()):
     find_links = find_links or []
     skip_match = None
 
@@ -41,7 +39,7 @@ def freeze(
         yield '-f %s' % link
     installations = {}
     for dist in get_installed_distributions(local_only=local_only,
-                                            skip=freeze_excludes,
+                                            skip=(),
                                             user_only=user_only):
         req = pip.FrozenRequirement.from_dist(
             dist,
@@ -111,4 +109,5 @@ def freeze(
         )
     for installation in sorted(
             installations.values(), key=lambda x: x.name.lower()):
-        yield str(installation).rstrip()
+        if canonicalize_name(installation.name) not in skip:
+            yield str(installation).rstrip()

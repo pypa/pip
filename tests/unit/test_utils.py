@@ -16,7 +16,6 @@ from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
 from pip.utils.hashes import Hashes, MissingHashes
-from pip.operations.freeze import freeze_excludes
 from pip._vendor.six import BytesIO
 
 
@@ -261,7 +260,8 @@ class Tests_get_installed_distributions:
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(skip=freeze_excludes)
+        dists = get_installed_distributions(
+            skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
 
 

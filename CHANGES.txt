@@ -17,6 +17,9 @@
 * Fix PipDeprecationWarning so that warnings can be turned off by
   ``-W`` / ``PYTHONWARNINGS`` (:pull:`3455`)
 
+* Add a `--all` option to `pip freeze` to include usually skipped package
+  (like pip, setuptools and wheel) to the freeze output. :issue:`1610`.
+
 
 **8.0.2 (2016-01-21)**
 
