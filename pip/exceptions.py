@@ -198,14 +198,14 @@ class HashMismatch(HashError):
             'the hashes. Otherwise, examine the package contents carefully; '
             'someone may have tampered with them.')
 
-    def __init__(self, goods, gots):
+    def __init__(self, allowed, gots):
         """
-        :param goods: A dict of algorithm names pointing to lists of allowed
+        :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
         :param gots: A dict of algorithm names pointing to hashes we
             actually got from the files under suspicion
         """
-        self.goods = goods
+        self.allowed = allowed
         self.gots = gots
 
     def body(self):
@@ -229,7 +229,7 @@ class HashMismatch(HashError):
             return chain([hash_name], repeat('    or'))
 
         lines = []
-        for hash_name, expecteds in iteritems(self.goods):
+        for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
             lines.extend(('        Expected %s %s' % (next(prefix), e))
                          for e in expecteds)

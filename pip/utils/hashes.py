@@ -17,7 +17,7 @@ class Hashes(object):
         :param hashes: A dict of algorithm names pointing to lists of allowed
             hex digests
         """
-        self._goods = {} if hashes is None else hashes
+        self._allowed = {} if hashes is None else hashes
 
     def check_against_chunks(self, chunks):
         """Check good hashes against ones built from iterable of chunks of
@@ -27,7 +27,7 @@ class Hashes(object):
 
         """
         gots = {}
-        for hash_name in iterkeys(self._goods):
+        for hash_name in iterkeys(self._allowed):
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
@@ -38,12 +38,12 @@ class Hashes(object):
                 hash.update(chunk)
 
         for hash_name, got in iteritems(gots):
-            if got.hexdigest() in self._goods[hash_name]:
+            if got.hexdigest() in self._allowed[hash_name]:
                 return
         self._raise(gots)
 
     def _raise(self, gots):
-        raise HashMismatch(self._goods, gots)
+        raise HashMismatch(self._allowed, gots)
 
     def check_against_file(self, file):
         """Check good hashes against a file-like object
@@ -65,7 +65,7 @@ class Hashes(object):
 
     def __nonzero__(self):
         """Return whether I know any known-good hashes."""
-        return bool(self._goods)
+        return bool(self._allowed)
 
     def __bool__(self):
         return self.__nonzero__()
@@ -74,7 +74,7 @@ class Hashes(object):
 class MissingHashes(Hashes):
     """A workalike for Hashes used when we're missing a hash for a requirement
 
-    It computes the "gotten" hash of the requirement and raises a HashMissing
+    It computes the actual hash of the requirement and raises a HashMissing
     exception showing it to the user.
 
     """
