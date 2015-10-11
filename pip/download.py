@@ -671,9 +671,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
 
     # If it's a url to a local directory
     if is_dir_url(link):
-        if os.path.isdir(location):
-            rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        _copy_dist_from_dir(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
