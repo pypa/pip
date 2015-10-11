@@ -124,11 +124,13 @@ class ListCommand(Command):
             self.run_listing(options)
 
     def run_outdated(self, options):
-        for dist, version, typ in self.find_packages_latest_versions(options):
-            if version > dist.parsed_version:
+        for dist, latest_version, typ in sorted(
+                self.find_packages_latest_versions(options),
+                key=lambda p: p[0].project_name.lower()):
+            if latest_version > dist.parsed_version:
                 logger.info(
-                    '%s (Current: %s Latest: %s [%s])',
-                    dist.project_name, dist.version, version, typ,
+                    '%s - Latest: %s [%s]',
+                    self.output_package(dist), latest_version, typ,
                 )
 
     def find_packages_latest_versions(self, options):
@@ -196,21 +198,23 @@ class ListCommand(Command):
         )
         self.output_package_listing(installed_packages)
 
+    def output_package(self, dist):
+        if dist_is_editable(dist):
+            return '%s (%s, %s)' % (
+                dist.project_name,
+                dist.version,
+                dist.location,
+            )
+        else:
+            return '%s (%s)' % (dist.project_name, dist.version)
+
     def output_package_listing(self, installed_packages):
         installed_packages = sorted(
             installed_packages,
             key=lambda dist: dist.project_name.lower(),
         )
         for dist in installed_packages:
-            if dist_is_editable(dist):
-                line = '%s (%s, %s)' % (
-                    dist.project_name,
-                    dist.version,
-                    dist.location,
-                )
-            else:
-                line = '%s (%s)' % (dist.project_name, dist.version)
-            logger.info(line)
+            logger.info(self.output_package(dist))
 
     def run_uptodate(self, options):
         uptodate = []
