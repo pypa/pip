@@ -642,26 +642,27 @@ For more, see :ref:`pip install\'s discussion of hash-checking mode <hash-checki
 Installation Bundles
 --------------------
 
-An installation bundle is a single file containing all of a project's
-dependencies, already compiled if applicable. They are useful for
-installing when the index server is unavailable and for avoiding
-recompilation. Create a bundle like this::
+Using :ref:`pip wheel`, you can bundle up all of a project's dependencies, with
+any compilation done, into a single archive. This allows installation when
+index servers are unavailable and avoids time-consuming recompilation. Create
+an archive like this::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ pip wheel -r requirements.txt --wheel-dir=$tempdir
     $ cwd=`pwd`
     $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
 
-Once you have a bundle, you can then install it like this::
+You can then install from the archive like this::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
     $ pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
 
-Compiled packages are typically OS- and architecture-specific, so bundles
-containing them are as well. Hash-checking mode can be used with
-installation bundles to ensure that future bundles are built with
-identical packages.
+Note that compiled packages are typically OS- and architecture-specific, so
+these archives are not necessarily portable across machines.
+
+Hash-checking mode can be used along with this method to ensure that future
+archives are built with identical packages.
 
 .. warning::
     Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
