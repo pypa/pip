@@ -532,11 +532,13 @@ strategies <Repeatability>` is available in the User Guide.
 Hashes from PyPI
 ~~~~~~~~~~~~~~~~
 
-PyPI provides an md5 hash in the fragment portion of each package download
-URL. pip checks this as a protection against download corruption. However,
-since the hash originates remotely, it is not a useful guard against tampering
-and thus does not satisfy the ``--require-hashes`` demand that every package
-have a local hash.
+PyPI provides an MD5 hash in the fragment portion of each package download URL,
+like ``#md5=123...``, which pip checks as a protection against download
+corruption. Other hash algorithms that have guaranteed support from ``hashlib``
+are also supported here: sha1, sha224, sha384, sha256, and sha512. Since this
+hash originates remotely, it is not a useful guard against tampering and thus
+does not satisfy the ``--require-hashes`` demand that every package have a
+local hash.
 
 
 .. _`editable-installs`:
