@@ -221,6 +221,15 @@ def file_contents(filename):
         return fp.read().decode('utf-8')
 
 
+def read_chunks(file, size=4096):
+    """Yield pieces of data from a file-like object until EOF."""
+    while True:
+        chunk = file.read(size)
+        if not chunk:
+            break
+        yield chunk
+
+
 def split_leading_dir(path):
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or

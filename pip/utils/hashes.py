@@ -4,6 +4,7 @@ import hashlib
 
 from pip.exceptions import (HashMismatch, HashMissing, InstallationError,
                             FAVORITE_HASH)
+from pip.utils import read_chunks
 from pip._vendor.six import iteritems, iterkeys, itervalues
 
 
@@ -51,13 +52,7 @@ class Hashes(object):
         Raise HashMismatch if none match.
 
         """
-        def chunks():
-            while True:
-                chunk = file.read(4096)
-                if not chunk:
-                    break
-                yield chunk
-        return self.check_against_chunks(chunks())
+        return self.check_against_chunks(read_chunks(file))
 
     def check_against_path(self, path):
         with open(path, 'rb') as file:

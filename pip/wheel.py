@@ -31,7 +31,8 @@ from pip.exceptions import (
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name)
+    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name,
+    read_chunks)
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -149,11 +150,9 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
     h = hashlib.new(algo)
     length = 0
     with open(path, 'rb') as f:
-        block = f.read(blocksize)
-        while block:
+        for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-            block = f.read(blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')

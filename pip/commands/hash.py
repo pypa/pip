@@ -7,6 +7,7 @@ import sys
 from pip.basecommand import Command
 from pip.exceptions import FAVORITE_HASH
 from pip.status_codes import ERROR
+from pip.utils import read_chunks
 
 
 logger = logging.getLogger(__name__)
@@ -39,9 +40,6 @@ def _hash_of_file(path):
     """Return the hash digest of a file."""
     with open(path, 'rb') as archive:
         hash = hashlib.new(FAVORITE_HASH)
-        while True:
-            data = archive.read(2 ** 20)
-            if not data:
-                break
-            hash.update(data)
+        for chunk in read_chunks(archive):
+            hash.update(chunk)
     return hash.hexdigest()
