@@ -23,7 +23,7 @@ class HashCommand(Command):
 
     """
     name = 'hash'
-    usage = """%prog [options] <file> ..."""
+    usage = '%prog [options] <file> ...'
     summary = 'Compute hashes of package archives.'
 
     def __init__(self, *args, **kw):
