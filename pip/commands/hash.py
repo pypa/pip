@@ -5,6 +5,7 @@ import logging
 import sys
 
 from pip.basecommand import Command
+from pip.cmdoptions import strong_hashes
 from pip.exceptions import FAVORITE_HASH
 from pip.status_codes import ERROR
 from pip.utils import read_chunks
@@ -25,21 +26,34 @@ class HashCommand(Command):
     usage = """%prog [options] <file> ..."""
     summary = 'Compute hashes of package archives.'
 
+    def __init__(self, *args, **kw):
+        super(HashCommand, self).__init__(*args, **kw)
+        self.cmd_opts.add_option(
+            '-a', '--algorithm',
+            dest='algorithm',
+            choices=strong_hashes(),
+            action='store',
+            default=FAVORITE_HASH,
+            help='The hash algorithm to use: one of %s' %
+                 ', '.join(strong_hashes()))
+        self.parser.insert_option_group(0, self.cmd_opts)
+
     def run(self, options, args):
         if not args:
             self.parser.print_usage(sys.stderr)
             return ERROR
 
+        algorithm = options.algorithm
         for path in args:
             logger.info('%s:\n--hash=%s:%s' % (path,
-                                               FAVORITE_HASH,
-                                               _hash_of_file(path)))
+                                               algorithm,
+                                               _hash_of_file(path, algorithm)))
 
 
-def _hash_of_file(path):
+def _hash_of_file(path, algorithm):
     """Return the hash digest of a file."""
     with open(path, 'rb') as archive:
-        hash = hashlib.new(FAVORITE_HASH)
+        hash = hashlib.new(algorithm)
         for chunk in read_chunks(archive):
             hash.update(chunk)
     return hash.hexdigest()

@@ -523,9 +523,11 @@ always_unzip = partial(
 )
 
 
-def _strong_hashes():
-    """Return names of hashlib algorithms at least as
-    collision-resistant as sha256."""
+def strong_hashes():
+    """Return names of hashlib algorithms allowed by the --hash option.
+
+    Currently, those are the ones at least as collision-resistant as sha256.
+    """
     return ['sha256', 'sha384', 'sha512']
 
 
@@ -540,7 +542,7 @@ def _merge_hash(option, opt_str, value, parser):
         parser.error('Arguments to %s must be a hash name '
                      'followed by a value, like --hash=sha256:abcde...' %
                      opt_str)
-    strongs = _strong_hashes()
+    strongs = strong_hashes()
     if algo not in strongs:
         parser.error('Allowed hash algorithms for %s are %s.' %
                      (opt_str, ', '.join(strongs)))
