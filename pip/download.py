@@ -28,8 +28,9 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       ARCHIVE_EXTENSIONS, consume)
+                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
 from pip.utils.filesystem import check_path_owner
+from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
