@@ -17,6 +17,7 @@ from pip.index import (
     PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
     fmt_ctl_no_use_wheel)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
+from pip.utils.hashes import STRONG_HASHES
 
 
 def make_option_group(group, parser):
@@ -523,14 +524,6 @@ always_unzip = partial(
 )
 
 
-def strong_hashes():
-    """Return names of hashlib algorithms allowed by the --hash option.
-
-    Currently, those are the ones at least as collision-resistant as sha256.
-    """
-    return ['sha256', 'sha384', 'sha512']
-
-
 def _merge_hash(option, opt_str, value, parser):
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
@@ -542,10 +535,9 @@ def _merge_hash(option, opt_str, value, parser):
         parser.error('Arguments to %s must be a hash name '
                      'followed by a value, like --hash=sha256:abcde...' %
                      opt_str)
-    strongs = strong_hashes()
-    if algo not in strongs:
+    if algo not in STRONG_HASHES:
         parser.error('Allowed hash algorithms for %s are %s.' %
-                     (opt_str, ', '.join(strongs)))
+                     (opt_str, ', '.join(STRONG_HASHES)))
     parser.values.hashes.setdefault(algo, []).append(digest)
 
 

@@ -2,10 +2,19 @@ from __future__ import absolute_import
 
 import hashlib
 
-from pip.exceptions import (HashMismatch, HashMissing, InstallationError,
-                            FAVORITE_HASH)
+from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import read_chunks
 from pip._vendor.six import iteritems, iterkeys, itervalues
+
+
+# The recommended hash algo of the moment. Change this whenever the state of
+# the art changes; it won't hurt backward compatibility.
+FAVORITE_HASH = 'sha256'
+
+
+# Names of hashlib algorithms allowed by the --hash option and ``pip hash``
+# Currently, those are the ones at least as collision-resistant as sha256.
+STRONG_HASHES = ['sha256', 'sha384', 'sha512']
 
 
 class Hashes(object):

@@ -51,11 +51,6 @@ class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
 
 
-# The recommended hash algo of the moment. Change this whenever the state of
-# the art changes; it won't hurt backward compatibility.
-FAVORITE_HASH = 'sha256'
-
-
 class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
@@ -163,6 +158,8 @@ class HashMissing(HashError):
         self.gotten_hash = gotten_hash
 
     def body(self):
+        from pip.utils.hashes import FAVORITE_HASH  # Dodge circular import.
+
         package_name = (self.req.req if self.req and
                         # In case someone feeds something
                         # downright stupid to

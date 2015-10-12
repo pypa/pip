@@ -5,10 +5,9 @@ import logging
 import sys
 
 from pip.basecommand import Command
-from pip.cmdoptions import strong_hashes
-from pip.exceptions import FAVORITE_HASH
 from pip.status_codes import ERROR
 from pip.utils import read_chunks
+from pip.utils.hashes import FAVORITE_HASH, STRONG_HASHES
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +30,11 @@ class HashCommand(Command):
         self.cmd_opts.add_option(
             '-a', '--algorithm',
             dest='algorithm',
-            choices=strong_hashes(),
+            choices=STRONG_HASHES,
             action='store',
             default=FAVORITE_HASH,
             help='The hash algorithm to use: one of %s' %
-                 ', '.join(strong_hashes()))
+                 ', '.join(STRONG_HASHES))
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
