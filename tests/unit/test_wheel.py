@@ -1,5 +1,6 @@
 """Tests for wheel binary packages and .dist-info."""
 import os
+import sys
 
 import pytest
 from mock import patch, Mock
@@ -317,26 +318,28 @@ class TestPEP425Tags(object):
         config_vars.update({'SOABI': None})
         base = pip.pep425tags.get_abbr_impl() + pip.pep425tags.get_impl_ver()
 
-        config_vars.update({'Py_UNICODE_SIZE': 2})
-        mock_gcf = self.mock_get_config_var(**config_vars)
-        with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
-            abi_tag = pip.pep425tags.get_abi_tag()
-            assert abi_tag == base + flags
+        if sys.version_info < (3, 3):
+            config_vars.update({'Py_UNICODE_SIZE': 2})
+            mock_gcf = self.mock_get_config_var(**config_vars)
+            with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
+                abi_tag = pip.pep425tags.get_abi_tag()
+                assert abi_tag == base + flags
 
-        config_vars.update({'Py_UNICODE_SIZE': 4})
-        mock_gcf = self.mock_get_config_var(**config_vars)
-        with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
-            abi_tag = pip.pep425tags.get_abi_tag()
-            assert abi_tag == base + flags + 'u'
+            config_vars.update({'Py_UNICODE_SIZE': 4})
+            mock_gcf = self.mock_get_config_var(**config_vars)
+            with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
+                abi_tag = pip.pep425tags.get_abi_tag()
+                assert abi_tag == base + flags + 'u'
 
-        # On Python >= 3.3, UCS-4 is essentially permanently enabled, and
-        # Py_UNICODE_SIZE is None. SOABI on these builds does not include the
-        # 'u' so manual SOABI detection should not do so either.
-        config_vars.update({'Py_UNICODE_SIZE': None})
-        mock_gcf = self.mock_get_config_var(**config_vars)
-        with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
-            abi_tag = pip.pep425tags.get_abi_tag()
-            assert abi_tag == base + flags
+        else:
+            # On Python >= 3.3, UCS-4 is essentially permanently enabled, and
+            # Py_UNICODE_SIZE is None. SOABI on these builds does not include
+            # the 'u' so manual SOABI detection should not do so either.
+            config_vars.update({'Py_UNICODE_SIZE': None})
+            mock_gcf = self.mock_get_config_var(**config_vars)
+            with patch('pip.pep425tags.sysconfig.get_config_var', mock_gcf):
+                abi_tag = pip.pep425tags.get_abi_tag()
+                assert abi_tag == base + flags
 
     def test_broken_sysconfig(self):
         """

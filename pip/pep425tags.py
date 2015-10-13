@@ -55,15 +55,42 @@ def get_impl_version_info():
         return sys.version_info[0], sys.version_info[1]
 
 
+def get_flag(var, fallback, expected=True, warn=True):
+    """Use a fallback method for determining SOABI flags if the needed config
+    var is unset or unavailable."""
+    val = get_config_var(var)
+    if val is None:
+        if warn:
+            warnings.warn("Config variable '{0}' is unset, Python ABI tag may "
+                          "be incorrect".format(var), RuntimeWarning, 2)
+        return fallback()
+    return val == expected
+
+
 def get_abi_tag():
     """Return the ABI tag based on SOABI (if available) or emulate SOABI
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
-    if not soabi and impl in ('cp', 'pp'):
-        d = 'd' if get_config_var('Py_DEBUG') else ''
-        m = 'm' if get_config_var('WITH_PYMALLOC') else ''
-        u = 'u' if get_config_var('Py_UNICODE_SIZE') == 4 else ''
+    if not soabi and impl in ('cp', 'pp') and hasattr(sys, 'maxunicode'):
+        d = ''
+        m = ''
+        u = ''
+        if get_flag('Py_DEBUG',
+                    lambda: hasattr(sys, 'gettotalrefcount'),
+                    warn=(impl == 'cp')):
+            d = 'd'
+        if get_flag('WITH_PYMALLOC',
+                    lambda: impl == 'cp',
+                    warn=(impl == 'cp')):
+            m = 'm'
+        if get_flag('Py_UNICODE_SIZE',
+                    lambda: sys.maxunicode == 0x10ffff,
+                    expected=4,
+                    warn=(impl == 'cp' and
+                          sys.version_info < (3, 3))) \
+                and sys.version_info < (3, 3):
+            u = 'u'
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
