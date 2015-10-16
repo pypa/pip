@@ -513,7 +513,7 @@ To have the dependency located from a local directory and not crawl PyPI, add th
 
   [easy_install]
   allow_hosts = ''
-  find_links = file:///path/to/local/archives
+  find_links = file:///path/to/local/archives/
 
 
 Build System Interface
