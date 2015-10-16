@@ -428,11 +428,11 @@ Windows
 Wheel Cache
 ~~~~~~~~~~~
 
-Pip will read from the subdirectory ``wheels`` within the pip cache dir and use
-any packages found there. This is disabled via the same ``no-cache-dir`` option
-that disables the HTTP cache. The internal structure of that cache is not part
-of the pip API. As of 7.0 pip uses a subdirectory per sdist that wheels were
-built from, and wheels within that subdirectory.
+Pip will read from the subdirectory ``wheels`` within the pip cache directory
+and use any packages found there. This is disabled via the same
+``--no-cache-dir`` option that disables the HTTP cache. The internal structure
+of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
+each sdist that wheels are built from and places the resulting wheels inside.
 
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
@@ -463,11 +463,11 @@ variety of platforms.)
 
 The recommended hash algorithm at the moment is sha256, but stronger ones are
 allowed, including all those supported by ``hashlib``. However, weaker ones
-such as md5, sha1, and sha224 are excluded to avert false assurances of
+such as md5, sha1, and sha224 are excluded to avoid giving a false sense of
 security.
 
 Hash verification is an all-or-nothing proposition. Specifying a ``--hash``
-against any requirement not only checks that hash but also activates
+against any requirement not only checks that hash but also activates a global
 *hash-checking mode*, which imposes several other security restrictions:
 
 * Hashes are required for all requirements. This is because a partially-hashed
@@ -477,7 +477,7 @@ against any requirement not only checks that hash but also activates
   ``#md5=...`` syntax suffice to satisfy this rule (regardless of hash
   strength, for legacy reasons), though you should use a stronger
   hash like sha256 whenever possible.
-* Hashes are required for all dependencies. An error is raised if there is a
+* Hashes are required for all dependencies. An error results if there is a
   dependency that is not spelled out and hashed in the requirements file.
 * Requirements that take the form of project names (rather than URLs or local
   filesystem paths) must be pinned to a specific version using ``==``. This
@@ -506,9 +506,21 @@ fetches only the preferred archive for each package, so you may still need to
 add hashes for alternatives archives using :ref:`pip hash`: for instance if
 there is both a binary and a source distribution.
 
-Hash-checking mode also functions with :ref:`pip download` and :ref:`pip
-wheel`. A :ref:`comparison of hash-checking mode with other repeatability
-strategies <Repeatability>` is available in the User Guide.
+The :ref:`wheel cache <Wheel cache>` is disabled in hash-checking mode to
+prevent spurious hash mismatch errors. These would otherwise occur while
+installing sdists that had already been automatically built into cached wheels:
+those wheels would be selected for installation, but their hashes would not
+match the sdist ones from the requirements file. A further complication is that
+locally built wheels are nondeterministic: contemporary modification times make
+their way into the archive, making hashes unpredictable across machines and
+cache flushes. However, wheels fetched from index servers land in pip's HTTP
+cache, not its wheel cache, and are used normally in hash-checking mode. The
+only potential penalty is thus extra build time for sdists, and this can be
+solved by making sure pre-built wheels are available from the index server.
+
+Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
+:ref:`comparison of hash-checking mode with other repeatability strategies
+<Repeatability>` is available in the User Guide.
 
 .. warning::
     Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The

@@ -239,28 +239,25 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
-    def populate_link(self, finder, upgrade):
+    def populate_link(self, finder, upgrade, require_hashes):
         """Ensure that if a link can be found for this, that it is found.
 
         Note that self.link may still be None - if Upgrade is False and the
         requirement is already installed.
+
+        If require_hashes is True, don't use the wheel cache, because cached
+        wheels, always built locally, have different hashes than the files
+        downloaded from the index server and thus throw false hash mismatches.
+        Furthermore, cached wheels at present have undeterministic contents due
+        to file modification times.
         """
         if self.link is None:
             self.link = finder.find_requirement(self, upgrade)
-
-    @property
-    def link(self):
-        return self._link
-
-    @link.setter
-    def link(self, link):
-        # Lookup a cached wheel, if possible.
-        if self._wheel_cache is None:
-            self._link = link
-        else:
-            self._link = self._wheel_cache.cached_wheel(link, self.name)
-            if self._link != link:
-                logger.debug('Using cached wheel link: %s', self._link)
+        if self._wheel_cache is not None and not require_hashes:
+            old_link = self.link
+            self.link = self._wheel_cache.cached_wheel(self.link, self.name)
+            if old_link != self.link:
+                logger.debug('Using cached wheel link: %s', self.link)
 
     @property
     def specifier(self):

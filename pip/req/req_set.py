@@ -341,7 +341,7 @@ class RequirementSet(object):
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
-        # req.populate_links() needs to be called before we can make decisions
+        # req.populate_link() needs to be called before we can make decisions
         # based on link type.
         discovered_reqs = []
         hash_errors = HashErrors()
@@ -502,7 +502,8 @@ class RequirementSet(object):
                         "can delete this. Please delete it and try again."
                         % (req_to_install, req_to_install.source_dir)
                     )
-                req_to_install.populate_link(finder, self.upgrade)
+                req_to_install.populate_link(
+                    finder, self.upgrade, require_hashes)
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
