@@ -28,20 +28,7 @@ from pip.wheel import WheelCache, WheelBuilder
 logger = logging.getLogger(__name__)
 
 
-class InstallCommand(RequirementCommand):
-    """
-    Install packages from:
-
-    - PyPI (and other indexes) using requirement specifiers.
-    - VCS project urls.
-    - Local project directories.
-    - Local or remote source archives.
-
-    pip also supports installing from "requirements files", which provide
-    an easy way to specify a whole environment to be installed.
-    """
-    name = 'install'
-
+class InstallBase(RequirementCommand):
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
       %prog [options] -r <requirements file> [package-index-options] ...
@@ -49,10 +36,9 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    summary = 'Install packages.'
 
     def __init__(self, *args, **kw):
-        super(InstallCommand, self).__init__(*args, **kw)
+        super(InstallBase, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
 
@@ -83,14 +69,15 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts.add_option(cmdoptions.src())
 
-        cmd_opts.add_option(
-            '-U', '--upgrade',
-            dest='upgrade',
-            action='store_true',
-            help='Upgrade all specified packages to the newest available '
-                 'version. This process is recursive regardless of whether '
-                 'a dependency is already satisfied.'
-        )
+        if self.upgrade_option:
+            cmd_opts.add_option(
+                '-U', '--upgrade',
+                dest='upgrade',
+                action='store_true',
+                help='Upgrade all specified packages to the newest available '
+                     'version. This process is recursive regardless of whether '
+                     'a dependency is already satisfied.'
+            )
 
         cmd_opts.add_option(
             '--force-reinstall',
@@ -255,7 +242,8 @@ class InstallCommand(RequirementCommand):
                     build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
-                    upgrade=options.upgrade,
+                    upgrade=self.upgrade_option and options.upgrade,
+                    upgrade_direct=self.upgrade_direct,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -369,3 +357,31 @@ class InstallCommand(RequirementCommand):
                 )
             shutil.rmtree(temp_target_dir)
         return requirement_set
+
+
+class InstallCommand(InstallBase):
+    """
+    Install packages from:
+
+    - PyPI (and other indexes) using requirement specifiers.
+    - VCS project urls.
+    - Local project directories.
+    - Local or remote source archives.
+
+    pip also supports installing from "requirements files", which provide
+    an easy way to specify a whole environment to be installed.
+    """
+    name = 'install'
+    summary = 'Install packages.'
+    upgrade_option = True
+    upgrade_direct = False
+
+
+class UpgradeCommand(InstallBase):
+    """
+    Upgrade packages, with minimal upgrades of dependencies.
+    """
+    name = 'upgrade'
+    summary = 'Upgrade packages.'
+    upgrade_option = False
+    upgrade_direct = True
