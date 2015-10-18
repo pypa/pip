@@ -414,7 +414,7 @@ class RequirementSet(object):
 
         req_to_install.prepared = True
         upgrade = self.upgrade or (
-                    self.upgrade_direct and req_to_install.direct)
+            self.upgrade_direct and req_to_install.direct)
 
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)

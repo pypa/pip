@@ -36,7 +36,6 @@ class InstallBase(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-
     def __init__(self, *args, **kw):
         super(InstallBase, self).__init__(*args, **kw)
 
@@ -75,8 +74,8 @@ class InstallBase(RequirementCommand):
                 dest='upgrade',
                 action='store_true',
                 help='Upgrade all specified packages to the newest available '
-                     'version. This process is recursive regardless of whether '
-                     'a dependency is already satisfied.'
+                     'version. This process is recursive regardless of '
+                     'whether a dependency is already satisfied.'
             )
 
         cmd_opts.add_option(
