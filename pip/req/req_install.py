@@ -343,11 +343,11 @@ class InstallRequirement(object):
         assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
-        except ImportError:
+        except ImportError as e:
             # Setuptools is not available
             raise InstallationError(
-                "setuptools must be installed to install from a source "
-                "distribution"
+                "Could not import setuptools (%s) which is required to "
+                "install from a source distribution" % e
             )
 
         setup_file = 'setup.py'
