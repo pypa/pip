@@ -344,10 +344,17 @@ class InstallRequirement(object):
         try:
             import setuptools  # noqa
         except ImportError as e:
+            # Python 2 and 3 variants:
+            if e.args[0] in (
+                    "No module named setuptools",
+                    "No module named 'setuptools'"):
+                suggestion = "Please install setuptools."
+            else:
+                suggestion = "Check your setuptools installation: %s" % e
             # Setuptools is not available
             raise InstallationError(
-                "Could not import setuptools (%s) which is required to "
-                "install from a source distribution" % e
+                "Could not import setuptools which is required to "
+                "install from a source distribution. %s" % suggestion
             )
 
         setup_file = 'setup.py'

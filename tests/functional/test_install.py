@@ -26,8 +26,8 @@ def test_without_setuptools(script, data):
         expect_error=True,
     )
     assert (
-        "Could not import setuptools (No module named setuptools) which is "
-        "required to install from a source distribution"
+        "Could not import setuptools which is required to install from a "
+        "source distribution."
         in result.stderr
     )
 
