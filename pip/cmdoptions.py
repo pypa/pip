@@ -561,8 +561,8 @@ require_hashes = partial(
     action='store_true',
     default=False,
     help='Require a hash to check each requirement against, for '
-         'repeatable installs. Implied by the presence of a --hash '
-         'option on any package in a requirements file')
+         'repeatable installs. This option is implied when any package in a '
+         'requirements file has a --hash option.')
 
 
 ##########
