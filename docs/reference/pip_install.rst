@@ -531,14 +531,20 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 
 .. warning::
     Be careful not to nullify all your security work when you install your
-    actual project. If you call ``python setup.py install`` after installing
-    your requirements, setuptools will happily go out and download, unchecked,
+    actual project by using setuptools directly: for example, by calling
+    ``python setup.py install``, ``python setup.py develop``, or
+    ``easy_install``. Setuptools will happily go out and download, unchecked,
     anything you missed in your requirements file—and it’s easy to miss things
-    as your project evolves. One way to be safe is to pack up your project and
-    then install that using pip and :ref:`--no-deps <install_--no-deps>`::
+    as your project evolves. To be safe, install your project using pip and
+    :ref:`--no-deps <install_--no-deps>`.
 
-        python setup.py sdist
-        pip install --no-deps dist/yourproject-1.0.tar.gz
+    Instead of ``python setup.py develop``, use... ::
+
+        pip install --no-deps -e .
+
+    Instead of ``python setup.py install``, use... ::
+
+        pip install --no-deps .
 
 
 Hashes from PyPI
