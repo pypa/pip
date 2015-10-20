@@ -338,7 +338,7 @@ class PipSession(requests.Session):
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched
         # origin, and we don't want someone to be able to poison the cache and
-        # require manual evication from the cache to fix it.
+        # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache, use_dir_lock=True),

@@ -720,7 +720,7 @@ class WheelBuilder(object):
     def build(self, autobuilding=False):
         """Build wheels.
 
-        :param unpack: If True, replace the sdist we built from the with the
+        :param unpack: If True, replace the sdist we built from with the
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """

@@ -1,3 +1,6 @@
+"""Tests for the ``pip hash`` command"""
+
+
 def test_basic(script, tmpdir):
     """Run 'pip hash' through its default behavior."""
     expected = ('--hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425'
