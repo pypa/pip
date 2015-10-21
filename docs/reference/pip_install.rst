@@ -516,10 +516,13 @@ those wheels would be selected for installation, but their hashes would not
 match the sdist ones from the requirements file. A further complication is that
 locally built wheels are nondeterministic: contemporary modification times make
 their way into the archive, making hashes unpredictable across machines and
-cache flushes. However, wheels fetched from index servers land in pip's HTTP
-cache, not its wheel cache, and are used normally in hash-checking mode. The
-only potential penalty is thus extra build time for sdists, and this can be
-solved by making sure pre-built wheels are available from the index server.
+cache flushes. Compilation of C code adds further nondeterminism, as many
+compilers include random-seeded values in their output. However, wheels fetched
+from index servers are the same every time. They land in pip's HTTP cache, not
+its wheel cache, and are used normally in hash-checking mode. The only downside
+of having the the wheel cache disabled is thus extra build time for sdists, and
+this can be solved by making sure pre-built wheels are available from the index
+server.
 
 Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 :ref:`comparison of hash-checking mode with other repeatability strategies
