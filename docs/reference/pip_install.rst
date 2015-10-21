@@ -101,7 +101,7 @@ and the newline following it is effectively ignored.
 
 Comments are stripped *before* line continuations are processed.
 
-Additionally, the following Package Index Options are supported:
+The following options are supported:
 
   *  :ref:`-i, --index-url <--index-url>`
   *  :ref:`--extra-index-url <--extra-index-url>`
@@ -109,6 +109,7 @@ Additionally, the following Package Index Options are supported:
   *  :ref:`-f, --find-links <--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
+  *  :ref:`--require-hashes <--require-hashes>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
@@ -485,6 +486,8 @@ against any requirement not only checks that hash but also activates a global
   that matches the requirement specifier.
 * ``--egg`` is disallowed, because it delegates installation of dependencies
   to setuptools, giving up pip's ability to enforce any of the above.
+
+.. _`--require-hashes`:
 
 Hash-checking mode can be forced on with the ``--require-hashes`` command-line
 option::

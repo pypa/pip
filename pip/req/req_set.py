@@ -190,7 +190,7 @@ class RequirementSet(object):
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
         self._wheel_cache = wheel_cache
-        self._require_hashes = require_hashes
+        self.require_hashes = require_hashes
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 
@@ -331,7 +331,7 @@ class RequirementSet(object):
         # If any top-level requirement has a hash specified, enter
         # hash-checking mode, which requires hashes from all.
         root_reqs = self.unnamed_requirements + self.requirements.values()
-        require_hashes = (self._require_hashes or
+        require_hashes = (self.require_hashes or
                           any(req.has_hash_options for req in root_reqs))
         if require_hashes and self.as_egg:
             raise InstallationError(

@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 from mock import Mock, patch, mock_open
+from pip.commands.install import InstallCommand
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
                             UnsupportedWheel)
 from pip.download import path_to_url, PipSession
@@ -16,7 +17,7 @@ from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
-from tests.lib import assert_raises_regexp
+from tests.lib import assert_raises_regexp, requirements_file
 
 
 class TestRequirementSet(object):
@@ -124,6 +125,21 @@ class TestRequirementSet(object):
             r'fb866d6ca016b42d2e6ce53619b653$',
             reqset.prepare_files,
             finder)
+
+    def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
+        """--require-hashes in a requirements file should make its way to the
+        RequirementSet.
+        """
+        req_set = self.basic_reqset(require_hashes=False)
+        session = PipSession()
+        finder = PackageFinder([data.find_links], [], session=session)
+        command = InstallCommand()
+        with requirements_file('--require-hashes', tmpdir) as reqs_file:
+            options, args = command.parse_args(['-r', reqs_file])
+            command.populate_requirement_set(
+                req_set, args, options, finder, session, command.name,
+                wheel_cache=None)
+        assert req_set.require_hashes
 
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
