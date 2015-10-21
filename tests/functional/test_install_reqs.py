@@ -313,3 +313,20 @@ def test_constrained_to_url_install_same_url(script, data):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', to_install)
     assert 'Running setup.py install for singlemodule' in result.stdout
+
+
+def test_install_distribution_full_union(script, data):
+    to_install = data.packages.join("LocalExtras")
+    result = script.pip_install_local(
+        to_install, to_install + "[bar]", to_install + "[baz]")
+    assert 'Running setup.py install for LocalExtras' in result.stdout
+    assert script.site_packages / 'simple' in result.files_created
+    assert script.site_packages / 'singlemodule.py' in result.files_created
+
+
+def test_install_distribution_duplicate_extras(script, data):
+    to_install = data.packages.join("LocalExtras")
+    package_name = to_install + "[bar]"
+    with pytest.raises(AssertionError):
+        result = script.pip_install_local(package_name, package_name)
+        assert 'Double requirement given: %s' % package_name in result.stderr

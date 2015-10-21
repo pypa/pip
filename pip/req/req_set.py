@@ -238,6 +238,15 @@ class RequirementSet(object):
                 existing_req = None
             if (parent_req_name is None and existing_req and not
                     existing_req.constraint):
+                if existing_req.name == install_req.name:
+                    # If the extras do not match, then union them together to
+                    # support install bar bar[foo]. If they do match, the
+                    # InstallationError will be raised as per normal.
+                    if existing_req.extras != install_req.extras:
+                        existing_req.extras = tuple(
+                            set(existing_req.extras).union(
+                                set(install_req.extras)))
+                        return [existing_req]
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, existing_req, name))
