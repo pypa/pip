@@ -65,7 +65,7 @@ def test_freeze_basic(script):
 
 def test_freeze_with_pip(script):
     """Test pip shows itself"""
-    result = script.pip('freeze', '--with=pip')
+    result = script.pip('freeze', '--freeze-with=pip')
     assert 'pip==' in result.stdout
 
 

@@ -57,7 +57,7 @@ class FreezeCommand(Command):
             default=False,
             help='Only output packages installed in user-site.')
         self.cmd_opts.add_option(
-            '--with',
+            '--freeze-with',
             dest='freeze_whitelist',
             action='append',
             default=[],
