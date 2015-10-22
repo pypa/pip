@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
+import traceback
 import zipfile
 
 from distutils.util import change_root
@@ -343,11 +344,15 @@ class InstallRequirement(object):
         assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
-        except ImportError:
+        except ImportError as e:
+            if get_installed_version('setuptools') is None:
+                add_msg = "Please install setuptools."
+            else:
+                add_msg = traceback.format_exc(e)
             # Setuptools is not available
             raise InstallationError(
-                "setuptools must be installed to install from a source "
-                "distribution"
+                "Could not import setuptools which is required to "
+                "install from a source distribution.\n%s" % add_msg
             )
 
         setup_file = 'setup.py'
