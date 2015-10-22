@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
+import traceback
 import zipfile
 
 from distutils.util import change_root
@@ -344,17 +345,14 @@ class InstallRequirement(object):
         try:
             import setuptools  # noqa
         except ImportError as e:
-            # Python 2 and 3 variants:
-            if e.args[0] in (
-                    "No module named setuptools",
-                    "No module named 'setuptools'"):
-                suggestion = "Please install setuptools."
+            if get_installed_version('setuptools') is None:
+                add_msg = "Please install setuptools."
             else:
-                suggestion = "Check your setuptools installation: %s" % e
+                add_msg = traceback.format_exc(e)
             # Setuptools is not available
             raise InstallationError(
                 "Could not import setuptools which is required to "
-                "install from a source distribution. %s" % suggestion
+                "install from a source distribution.\n%s" % add_msg
             )
 
         setup_file = 'setup.py'
