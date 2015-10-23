@@ -5,6 +5,10 @@
 * Fix a bug when removing packages in python 3: disable INI-style parsing of the
   entry_point.txt file to allow entry point names with colons (:pull:`3434`)
 
+* Add a --freeze-with option to include usually skipped package (like pip or
+  setuptools) to the freeze output. Also add wheel to the skipped packages list.
+  :issue:`1610`, :issue:`2989`
+
 
 **8.0.2 (2016-01-21)**
 
