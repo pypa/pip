@@ -914,3 +914,21 @@ def test_install_editable_with_wrong_egg_name(script):
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
     assert "Successfully installed pkga" in str(result), str(result)
+
+
+def test_install_tar_xz(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.xz')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
+
+
+def test_install_tar_lzma(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.lzma')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
