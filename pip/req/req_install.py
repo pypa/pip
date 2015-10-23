@@ -344,11 +344,11 @@ class InstallRequirement(object):
         assert self.source_dir, "No source dir for %s" % self
         try:
             import setuptools  # noqa
-        except ImportError as e:
+        except ImportError:
             if get_installed_version('setuptools') is None:
                 add_msg = "Please install setuptools."
             else:
-                add_msg = traceback.format_exc(e)
+                add_msg = traceback.format_exc()
             # Setuptools is not available
             raise InstallationError(
                 "Could not import setuptools which is required to "
