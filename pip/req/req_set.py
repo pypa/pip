@@ -137,7 +137,7 @@ class Installed(DistAbstraction):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
-                 upgrade_direct=False,
+                 upgrade_recursive=False,
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
@@ -154,6 +154,11 @@ class RequirementSet(object):
             unpacking.
         :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
+        :param upgrade: Whether the direct requirements (and possibly their
+            dependencies) should be upgraded.
+        :param upgrade_recursive: Whether all dependencies should be upgraded
+            even if not needed to satisfy new lower bounds of directly
+            upgraded packages.
         """
         if session is None:
             raise TypeError(
@@ -168,7 +173,7 @@ class RequirementSet(object):
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
-        self.upgrade_direct = upgrade_direct
+        self.upgrade_recursive = upgrade_recursive
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
@@ -369,16 +374,16 @@ class RequirementSet(object):
         req_to_install.check_if_exists()
         if req_to_install.satisfied_by:
             skip_reason = 'satisfied (use --upgrade to upgrade)'
-            upgrade = self.upgrade or (
-                self.upgrade_direct and req_to_install.direct)
-            if upgrade:
+            upgrade_this = self.upgrade and (
+                self.upgrade_recursive or req_to_install.direct)
+            if upgrade_this:
                 best_installed = False
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
                 if not (self.force_reinstall or req_to_install.link):
                     try:
-                        finder.find_requirement(req_to_install, upgrade)
+                        finder.find_requirement(req_to_install, upgrade_this)
                     except BestVersionAlreadyInstalled:
                         skip_reason = 'up-to-date'
                         best_installed = True
@@ -413,8 +418,8 @@ class RequirementSet(object):
             return []
 
         req_to_install.prepared = True
-        upgrade = self.upgrade or (
-            self.upgrade_direct and req_to_install.direct)
+        upgrade_this = self.upgrade and (
+            self.upgrade_recursive or req_to_install.direct)
 
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
@@ -476,7 +481,7 @@ class RequirementSet(object):
                         "can delete this. Please delete it and try again."
                         % (req_to_install, req_to_install.source_dir)
                     )
-                req_to_install.populate_link(finder, upgrade)
+                req_to_install.populate_link(finder, upgrade_this)
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
@@ -531,7 +536,7 @@ class RequirementSet(object):
                 if not self.ignore_installed:
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
-                    if upgrade or self.ignore_installed:
+                    if upgrade_this or self.ignore_installed:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (self.use_user_site and not
