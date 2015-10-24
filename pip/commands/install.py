@@ -242,7 +242,7 @@ class InstallBase(RequirementCommand):
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=self.upgrade_option and options.upgrade,
-                    upgrade_direct=self.upgrade_direct,
+                    upgrade_direct=not self.upgrade_recursive,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -373,7 +373,7 @@ class InstallCommand(InstallBase):
     name = 'install'
     summary = 'Install packages.'
     upgrade_option = True
-    upgrade_direct = False
+    upgrade_recursive = True
 
 
 class UpgradeCommand(InstallBase):
@@ -383,4 +383,4 @@ class UpgradeCommand(InstallBase):
     name = 'upgrade'
     summary = 'Upgrade packages.'
     upgrade_option = False
-    upgrade_direct = True
+    upgrade_recursive = False
