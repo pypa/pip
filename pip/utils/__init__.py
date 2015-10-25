@@ -31,7 +31,7 @@ else:
     from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'Inf', 'splitext',
+           'ask', 'splitext',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
@@ -152,38 +152,6 @@ def ask(message, options):
             )
         else:
             return response
-
-
-class _Inf(object):
-    """I am bigger than everything!"""
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-        else:
-            return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __lt__(self, other):
-        return False
-
-    def __le__(self, other):
-        return False
-
-    def __gt__(self, other):
-        return True
-
-    def __ge__(self, other):
-        return True
-
-    def __repr__(self):
-        return 'Inf'
-
-
-Inf = _Inf()  # this object is not currently used as a sortable in our code
-del _Inf
 
 
 def format_size(bytes):
