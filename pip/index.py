@@ -17,7 +17,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
-    Inf, cached_property, splitext, normalize_path,
+    cached_property, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
 from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
@@ -233,9 +233,7 @@ class PackageFinder(object):
               with the same version, would have to be considered equal
         """
         support_num = len(supported_tags)
-        if candidate.location == INSTALLED_VERSION:
-            pri = 1
-        elif candidate.location.is_wheel:
+        if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
             if not wheel.supported():
@@ -463,39 +461,9 @@ class PackageFinder(object):
             x for x in all_versions if str(x.version) in _versions
         ]
 
-        if req.satisfied_by is not None:
-            # Finally add our existing versions to the front of our versions.
-            applicable_versions.insert(
-                0,
-                InstallationCandidate(
-                    req.name,
-                    req.satisfied_by.version,
-                    INSTALLED_VERSION,
-                )
-            )
-            existing_applicable = True
-        else:
-            existing_applicable = False
-
         applicable_versions = self._sort_versions(applicable_versions)
 
-        if not upgrade and existing_applicable:
-            if applicable_versions[0].location is INSTALLED_VERSION:
-                logger.debug(
-                    'Existing installed version (%s) is most up-to-date and '
-                    'satisfies requirement',
-                    req.satisfied_by.version,
-                )
-            else:
-                logger.debug(
-                    'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)',
-                    req.satisfied_by.version,
-                    applicable_versions[0][2],
-                )
-            return None
-
-        if not applicable_versions:
+        if req.satisfied_by is None and not applicable_versions:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
@@ -512,23 +480,44 @@ class PackageFinder(object):
                 'No matching distribution found for %s' % req
             )
 
-        if applicable_versions[0].location is INSTALLED_VERSION:
+        best_installed = False
+        if req.satisfied_by and (
+                not applicable_versions or
+                applicable_versions[0].version <= req.satisfied_by.version):
+            best_installed = True
+
+        if not upgrade and req.satisfied_by is not None:
+            if best_installed:
+                logger.debug(
+                    'Existing installed version (%s) is most up-to-date and '
+                    'satisfies requirement',
+                    req.satisfied_by.version,
+                )
+            else:
+                logger.debug(
+                    'Existing installed version (%s) satisfies requirement '
+                    '(most up-to-date version is %s)',
+                    req.satisfied_by.version,
+                    applicable_versions[0].version,
+                )
+            return None
+
+        if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
-                ', '.join(str(i.version) for i in applicable_versions[1:]) or
+                ', '.join(str(i.version) for i in applicable_versions) or
                 "none",
             )
             raise BestVersionAlreadyInstalled
 
-        if len(applicable_versions) > 1:
-            logger.debug(
-                'Using version %s (newest of versions: %s)',
-                applicable_versions[0].version,
-                ', '.join(str(i.version) for i in applicable_versions)
-            )
+        logger.debug(
+            'Using version %s (newest of versions: %s)',
+            applicable_versions[0].version,
+            ', '.join(str(i.version) for i in applicable_versions)
+        )
 
         selected_version = applicable_versions[0].location
 
@@ -873,7 +862,7 @@ class Link(object):
     def __init__(self, url, comes_from=None):
 
         # url can be a UNC windows share
-        if url != Inf and url.startswith('\\\\'):
+        if url.startswith('\\\\'):
             url = path_to_url(url)
 
         self.url = url
@@ -1000,11 +989,6 @@ class Link(object):
             return False
 
         return True
-
-
-# An object to represent the "link" for the installed version of a requirement.
-# Using Inf as the url makes it sort higher.
-INSTALLED_VERSION = Link(Inf)
 
 
 FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
