@@ -245,7 +245,7 @@ class InstallBase(RequirementCommand):
                         self.upgrade_option and options.upgrade),
                     upgrade_recursive=(
                         self.upgrade_option and options.upgrade and
-                        self.upgrade_is_recursive),
+                        self.upgrade_recursive),
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -377,7 +377,7 @@ class InstallCommand(InstallBase):
     summary = 'Install packages.'
     upgrade_command = False
     upgrade_option = True
-    upgrade_is_recursive = True
+    upgrade_recursive = True
 
 
 class UpgradeCommand(InstallBase):
