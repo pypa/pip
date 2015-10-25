@@ -330,8 +330,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # On old versions of Python, urllib3/requests will raise a warning
         # about the lack of an SSLContext. Expect it when running commands
         # that will touch the outside world.
-        if (pyversion_tuple < (2, 7, 9) and
-                args and args[0] in ('search', 'install', 'download')):
+        if (pyversion_tuple < (2, 7, 9) and args and
+                args[0] in ('search', 'install', 'download', 'upgrade')):
             kwargs['expect_stderr'] = True
 
         return self.run("pip", *args, **kwargs)
