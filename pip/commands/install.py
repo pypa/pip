@@ -341,10 +341,12 @@ class InstallBase(RequirementCommand):
             for item in os.listdir(lib_dir):
                 target_item_dir = os.path.join(options.target_dir, item)
                 if os.path.exists(target_item_dir):
-                    if not options.upgrade:
+                    if not (self.upgrade_command or
+                            (self.upgrade_option and options.upgrade)):
                         logger.warning(
-                            'Target directory %s already exists. Specify '
-                            '--upgrade to force replacement.',
+                            'Target directory %s already exists. Use '
+                            'pip upgrade or pip install --upgrade '
+                            'to force replacement.',
                             target_item_dir
                         )
                         continue
