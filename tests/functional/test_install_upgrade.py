@@ -353,8 +353,8 @@ class TestUpgradeDistributeToSetuptools(object):
             script, '1.9.1', virtualenv.pip_source_dir, distribute=True
         )
         result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'distribute',
+            self.ve_bin / 'pip', 'upgrade', '--no-index',
+            '--find-links=%s' % data.find_links, 'distribute',
             expect_stderr=True
         )
         assert (
