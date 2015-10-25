@@ -84,3 +84,31 @@ def test_upgrade_installs_when_needed(script, data):
         script.site_packages / 'requirement-1.7-py%s.egg-info' % pyversion
         in result.files_created
     )
+
+
+@pytest.mark.network
+def test_upgrade_recursive_when_asked(script, data):
+    """
+    "pip upgrade --recursive" should upgrade dependencies.
+    """
+    script.pip('install', '--no-index', '-f', data.find_links,
+               'requirement==1.6', 'application==2.0')
+    result = script.pip('upgrade', '--recursive',
+                        '--no-index', '-f', data.find_links,
+                        'application')
+    assert (
+        script.site_packages / 'application-2.0-py%s.egg-info' % pyversion
+        in result.files_deleted
+    )
+    assert (
+        script.site_packages / 'application-2.1-py%s.egg-info' % pyversion
+        in result.files_created
+    )
+    assert (
+        script.site_packages / 'requirement-1.6-py%s.egg-info' % pyversion
+        in result.files_deleted
+    )
+    assert (
+        script.site_packages / 'requirement-1.7-py%s.egg-info' % pyversion
+        in result.files_created
+    )

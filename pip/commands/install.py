@@ -78,6 +78,15 @@ class InstallBase(RequirementCommand):
                      'whether a dependency is already satisfied.'
             )
 
+        if self.recursive_option:
+            cmd_opts.add_option(
+                '-R', '--recursive',
+                dest='recursive',
+                action='store_true',
+                help='Upgrade all dependencies recursively, regardless '
+                     'of whether they are already satisfied.',
+            )
+
         cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
@@ -244,8 +253,8 @@ class InstallBase(RequirementCommand):
                     upgrade=self.upgrade_command or (
                         self.upgrade_option and options.upgrade),
                     upgrade_recursive=(
-                        self.upgrade_option and options.upgrade and
-                        self.upgrade_recursive),
+                        (self.upgrade_option and options.upgrade) or
+                        (self.recursive_option and options.recursive)),
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -377,7 +386,7 @@ class InstallCommand(InstallBase):
     summary = 'Install packages.'
     upgrade_command = False
     upgrade_option = True
-    upgrade_recursive = True
+    recursive_option = False
 
 
 class UpgradeCommand(InstallBase):
@@ -388,4 +397,4 @@ class UpgradeCommand(InstallBase):
     summary = 'Upgrade packages.'
     upgrade_command = True
     upgrade_option = False
-    upgrade_recursive = False
+    recursive_option = True
