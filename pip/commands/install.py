@@ -199,6 +199,15 @@ class InstallBase(RequirementCommand):
             )
             options.ignore_installed = True
 
+        if self.upgrade_option and options.upgrade:
+            warnings.warn(
+                "pip install --upgrade has been deprecated and will be "
+                "removed in the future. The command pip upgrade should be "
+                "used instead, with --recursive if the exact behavior of "
+                "--upgrade is required.",
+                RemovedInPip10Warning,
+            )
+
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
