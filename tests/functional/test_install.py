@@ -442,8 +442,8 @@ def test_install_package_with_target(script):
     assert not Path('scratch') / 'target' / 'simple' in result.files_updated
 
     # Test upgrade call, check that new version is installed
-    result = script.pip_install_local('--upgrade', '-t',
-                                      target_dir, "simple==2.0")
+    result = script.pip_upgrade_local(
+        '--recursive', '-t', target_dir, "simple==2.0")
     assert Path('scratch') / 'target' / 'simple' in result.files_updated, (
         str(result)
     )
@@ -458,8 +458,7 @@ def test_install_package_with_target(script):
     singlemodule_py = Path('scratch') / 'target' / 'singlemodule.py'
     assert singlemodule_py in result.files_created, str(result)
 
-    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
-                                      '--upgrade')
+    result = script.pip_upgrade_local('-t', target_dir, 'singlemodule==0.0.1')
     assert singlemodule_py in result.files_updated, str(result)
 
 
@@ -660,7 +659,7 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
               version='0.1',
               install_requires=['pkga'])
     """))
-    script.pip('install', '--upgrade', '--editable', pkgb_path)
+    script.pip('upgrade', '--recursive', '--editable', pkgb_path)
     result = script.pip('list')
     assert "pkgb" in result.stdout
 

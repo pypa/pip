@@ -195,7 +195,7 @@ class Tests_UserSite:
         _patch_dist_in_site_packages(script)
 
         script.pip('install', 'INITools==0.2')
-        result2 = script.pip('install', '--user', '--upgrade', 'INITools')
+        result2 = script.pip('upgrade', '--user', 'INITools')
 
         # usersite has 0.3.1
         egg_info_folder = (

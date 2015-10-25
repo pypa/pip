@@ -343,6 +343,13 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             *args, **kwargs
         )
 
+    def pip_upgrade_local(self, *args, **kwargs):
+        return self.pip(
+            "upgrade", "--no-index",
+            "--find-links", path_to_url(os.path.join(DATA_DIR, "packages")),
+            *args, **kwargs
+        )
+
 
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across

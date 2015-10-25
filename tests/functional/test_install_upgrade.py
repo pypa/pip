@@ -51,8 +51,8 @@ def test_upgrade_if_requested(script):
 
     """
     script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', '--upgrade', 'INITools', expect_error=True)
-    assert result.files_created, 'pip install --upgrade did not upgrade'
+    result = script.pip('upgrade', 'INITools', expect_error=True)
+    assert result.files_created, 'pip upgrade did not upgrade'
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion not in result.files_created
@@ -66,8 +66,7 @@ def test_upgrade_with_newest_already_installed(script, data):
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple')
     result = script.pip(
-        'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple',
-        expect_stderr=True
+        'upgrade', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
     assert 'already up-to-date' in result.stdout, result.stdout
@@ -84,8 +83,7 @@ def test_upgrade_force_reinstall_newest(script):
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
-        'install', '--upgrade', '--force-reinstall', 'INITools',
-        expect_stderr=True
+        'upgrade', '--force-reinstall', 'INITools'
     )
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
@@ -171,8 +169,7 @@ def test_upgrade_from_reqs_file(script):
         INITools
         """))
     script.pip(
-        'install', '--upgrade', '-r', script.scratch_path / 'test-req.txt',
-        expect_stderr=True
+        'upgrade', '-r', script.scratch_path / 'test-req.txt'
     )
     uninstall_result = script.pip(
         'uninstall', '-r', script.scratch_path / 'test-req.txt', '-y'
@@ -280,7 +277,7 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
         tmpdir.join("cache"),
     )
     script.pip("install", req)
-    result = script.pip("install", "-U", req, expect_stderr=True)
+    result = script.pip("upgrade", "-R", req)
     assert not result.returncode
 
 
@@ -297,7 +294,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
         )
     )
     script.pip("install", req, expect_stderr=True)
-    result = script.pip("install", "-U", req, expect_stderr=True)
+    result = script.pip("upgrade", "-R", req)
     assert "pypi.python.org" not in result.stdout, result.stdout
 
 
