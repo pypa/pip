@@ -466,36 +466,27 @@ Then, to install from local only, you'll be using :ref:`--find-links
 
 $ pip install --no-index --find-links=DIR -r requirements.txt
 
+.. _only-if-needed-recursive-upgrade:
 
-"Only if needed" Recursive Upgrade
-**********************************
+Different Kinds of Recursive Upgrades
+*************************************
 
-``pip install --upgrade`` is currently written to perform an eager recursive
-upgrade, i.e. it upgrades all dependencies regardless of whether they still
-satisfy the new parent requirements.
+The new command ``pip upgrade`` upgrades the package or packages specified,
+and any dependencies that need updating to satisfy constraints. The command
+``pip install --upgrade`` has been deprecated and will be removed in the future.
+The latter command performs an eager recursive upgrade, i.e., it upgrades all
+dependencies regardless of whether they still satisfy the new parent requirements.
+To achieve this with the new ``pip upgrade`` command, use the ``--recursive``
+option.
 
-E.g. supposing:
+The ``pip upgrade`` command uses a naive dependency resolution algorithm,
+which can cause suboptimal results in the presence of conflicting dependency
+constraints. It can be guided using the ``--constraint`` option.
+See :issue:`988` for plans on adding a more advanced resolution algorithm.
 
-* `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePoject==1.0`
-* `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
-* `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
-
-Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
-`AnotherPackage` despite `AnotherPackage` already being satisifed.
-
-pip doesn't currently have an option to do an "only if needed" recursive
-upgrade, but you can achieve it using these 2 steps::
-
-  pip install --upgrade --no-deps SomePackage
-  pip install SomePackage
-
-The first line will upgrade `SomePackage`, but not dependencies like
-`AnotherPackage`.  The 2nd line will fill in new dependencies like
-`OneMorePackage`.
-
-See :issue:`59` for a plan of making "only if needed" recursive the default
-behavior for a new ``pip upgrade`` command.
+A use case that is still not satisfied is upgrading everything that has been
+installed in a virtualenv. See :issue:`59` for a plan of adding ``pip upgrade --all``
+to achieve this.
 
 
 User Installs
