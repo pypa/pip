@@ -60,6 +60,7 @@ class Subversion(VersionControl):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
         rev_options = get_rev_options(url, rev)
+        url = self.remove_auth_from_url(url)
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
             if os.path.exists(location):
@@ -79,6 +80,7 @@ class Subversion(VersionControl):
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         rev_options = get_rev_options(url, rev)
+        url = self.remove_auth_from_url(url)
         if rev:
             rev_display = ' (to revision %s)' % rev
         else:
@@ -216,6 +218,14 @@ class Subversion(VersionControl):
     def check_version(self, dest, rev_options):
         """Always assume the versions don't match"""
         return False
+
+    @staticmethod
+    def remove_auth_from_url(url):
+        # Return a copy of url with 'username:password@' stripped.
+        # username/pass params are passed to subversion through flags & not recognized in
+        #  the url.
+        url = re.sub('://.*?@', '://', url, count=1)
+        return url
 
 
 def get_rev_options(url, rev):
