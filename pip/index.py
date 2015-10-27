@@ -437,7 +437,7 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_versions = self._find_all_versions(req.name)
+        all_candidates = self._find_all_versions(req.name)
 
         # Filter out anything which doesn't match our specifier
         _versions = set(
@@ -449,28 +449,28 @@ class PackageFinder(object):
                 # types. This way we'll use a str as a common data interchange
                 # format. If we stop using the pkg_resources provided specifier
                 # and start using our own, we can drop the cast to str().
-                [str(x.version) for x in all_versions],
+                [str(c.version) for c in all_candidates],
                 prereleases=(
                     self.allow_all_prereleases
                     if self.allow_all_prereleases else None
                 ),
             )
         )
-        applicable_versions = [
+        applicable_candidates = [
             # Again, converting to str to deal with debundling.
-            x for x in all_versions if str(x.version) in _versions
+            c for c in all_candidates if str(c.version) in _versions
         ]
 
-        applicable_versions = self._sort_versions(applicable_versions)
+        applicable_candidates = self._sort_versions(applicable_candidates)
 
-        if req.satisfied_by is None and not applicable_versions:
+        if req.satisfied_by is None and not applicable_candidates:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
                 ', '.join(
                     sorted(
-                        set(str(i.version) for i in all_versions),
+                        set(str(c.version) for c in all_candidates),
                         key=parse_version,
                     )
                 )
@@ -482,8 +482,8 @@ class PackageFinder(object):
 
         best_installed = False
         if req.satisfied_by and (
-                not applicable_versions or
-                applicable_versions[0].version <= req.satisfied_by.version):
+                not applicable_candidates or
+                applicable_candidates[0].version <= req.satisfied_by.version):
             best_installed = True
 
         if not upgrade and req.satisfied_by is not None:
@@ -498,7 +498,7 @@ class PackageFinder(object):
                     'Existing installed version (%s) satisfies requirement '
                     '(most up-to-date version is %s)',
                     req.satisfied_by.version,
-                    applicable_versions[0].version,
+                    applicable_candidates[0].version,
                 )
             return None
 
@@ -508,20 +508,18 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 req.satisfied_by.version,
-                ', '.join(str(i.version) for i in applicable_versions) or
+                ', '.join(str(c.version) for c in applicable_candidates) or
                 "none",
             )
             raise BestVersionAlreadyInstalled
 
+        selected_candidate = applicable_candidates[0]
         logger.debug(
             'Using version %s (newest of versions: %s)',
-            applicable_versions[0].version,
-            ', '.join(str(i.version) for i in applicable_versions)
+            selected_candidate.version,
+            ', '.join(str(c.version) for c in applicable_candidates)
         )
-
-        selected_version = applicable_versions[0].location
-
-        return selected_version
+        return selected_candidate.location
 
     def _get_pages(self, locations, project_name):
         """
