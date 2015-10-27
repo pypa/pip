@@ -463,7 +463,12 @@ class PackageFinder(object):
 
         applicable_candidates = self._sort_versions(applicable_candidates)
 
-        if req.satisfied_by is None and not applicable_candidates:
+        if req.satisfied_by is not None:
+            installed_version = parse_version(req.satisfied_by.version)
+        else:
+            installed_version = None
+
+        if installed_version is None and not applicable_candidates:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
@@ -481,23 +486,23 @@ class PackageFinder(object):
             )
 
         best_installed = False
-        if req.satisfied_by and (
+        if installed_version and (
                 not applicable_candidates or
-                applicable_candidates[0].version <= req.satisfied_by.version):
+                applicable_candidates[0].version <= installed_version):
             best_installed = True
 
-        if not upgrade and req.satisfied_by is not None:
+        if not upgrade and installed_version is not None:
             if best_installed:
                 logger.debug(
                     'Existing installed version (%s) is most up-to-date and '
                     'satisfies requirement',
-                    req.satisfied_by.version,
+                    installed_version,
                 )
             else:
                 logger.debug(
                     'Existing installed version (%s) satisfies requirement '
                     '(most up-to-date version is %s)',
-                    req.satisfied_by.version,
+                    installed_version,
                     applicable_candidates[0].version,
                 )
             return None
@@ -507,7 +512,7 @@ class PackageFinder(object):
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
-                req.satisfied_by.version,
+                installed_version,
                 ', '.join(str(c.version) for c in applicable_candidates) or
                 "none",
             )
