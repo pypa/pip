@@ -59,7 +59,7 @@ class InstallationCandidate(object):
         self.project = project
         self.version = parse_version(version)
         self.location = location
-        self._key = (self.project, self.version, self.location)
+        self._key = (self.project, self.version)
 
     def __repr__(self):
         return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
