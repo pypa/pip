@@ -694,9 +694,7 @@ def unpack_file_url(link, location, download_dir=None):
 
     # If it's a url to a local directory
     if os.path.isdir(link_path):
-        if os.path.isdir(location):
-            rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        _copy_dist_from_dir(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
@@ -736,12 +734,6 @@ def _copy_dist_from_dir(link_path, location):
         pip install ~/dev/git-repos/python-prompt-toolkit
 
     """
-
-    # Note: This is currently VERY SLOW if you have a lot of data in the
-    # directory, because it copies everything with `shutil.copytree`.
-    # What it should really do is build an sdist and install that.
-    # See https://github.com/pypa/pip/issues/2195
-
     if os.path.isdir(location):
         rmtree(location)
 
