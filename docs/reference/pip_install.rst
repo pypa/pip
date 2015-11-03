@@ -289,6 +289,23 @@ where setup.py is not in the root of project, "subdirectory" component
 is used. Value of "subdirectory" component should be a path starting from root
 of the project to where setup.py is located.
 
+So if your repository layout is:
+
+    - pkg_dir/
+
+      - setup.py  # setup.py for package ``pkg``
+      - some_module.py
+    - other_dir/
+
+      - some_file
+    - some_other_file
+
+You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+
+.. note::
+
+    The subdirectory component can currently only be used for editable installs.
+
 
 Git
 ~~~
