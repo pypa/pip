@@ -752,6 +752,13 @@ def _copy_dist_from_dir(link_path, location):
     with indent_log():
         call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
 
+    # determine what .egg-info/ was created and delete it again.  otherwise
+    # it is found on the path for `pip install .` and mistaken for an installed
+    # version
+    egg_info_dirs = [s for s in os.listdir(link_path) if s.endswith('.egg-info')]
+    for dirname in egg_info_dirs:
+        rmtree(os.path.join(link_path, dirname))
+
     # unpack sdist into `location`
     sdist = os.path.join(location, os.listdir(location)[0])
     logger.info('Unpacking sdist %s into %s', sdist, location)
