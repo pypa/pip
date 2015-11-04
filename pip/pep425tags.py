@@ -55,6 +55,13 @@ def get_impl_version_info():
         return sys.version_info[0], sys.version_info[1]
 
 
+def get_impl_tag():
+    """
+    Returns the Tag for this specific implementation.
+    """
+    return "{0}{1}".format(get_abbr_impl(), get_impl_ver())
+
+
 def get_flag(var, fallback, expected=True, warn=True):
     """Use a fallback method for determining SOABI flags if the needed config
     var is unset or unavailable."""
@@ -198,3 +205,5 @@ def get_supported(versions=None, noarch=False):
 
 supported_tags = get_supported()
 supported_tags_noarch = get_supported(noarch=True)
+
+implementation_tag = get_impl_tag()

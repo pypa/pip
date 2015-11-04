@@ -662,14 +662,14 @@ class WheelBuilder(object):
         self.build_options = build_options or []
         self.global_options = global_options or []
 
-    def _build_one(self, req, output_dir):
+    def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
         tempd = tempfile.mkdtemp('pip-wheel-')
         try:
-            if self.__build_one(req, tempd):
+            if self.__build_one(req, tempd, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(tempd)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -692,13 +692,17 @@ class WheelBuilder(object):
             "__file__, 'exec'))" % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd):
+    def __build_one(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
         logger.info('Running setup.py bdist_wheel for %s', req.name)
         logger.debug('Destination directory: %s', tempd)
         wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
             + self.build_options
+
+        if python_tag is not None:
+            wheel_args += ["--python-tag", python_tag]
+
         try:
             call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
             return True
@@ -776,7 +780,9 @@ class WheelBuilder(object):
         with indent_log():
             build_success, build_failure = [], []
             for req in buildset:
+                python_tag = None
                 if autobuilding:
+                    python_tag = pep425tags.implementation_tag
                     output_dir = _cache_for_link(self._cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
@@ -787,7 +793,10 @@ class WheelBuilder(object):
                         continue
                 else:
                     output_dir = self._wheel_dir
-                wheel_file = self._build_one(req, output_dir)
+                wheel_file = self._build_one(
+                    req, output_dir,
+                    python_tag=python_tag,
+                )
                 if wheel_file:
                     build_success.append(req)
                     if autobuilding:
