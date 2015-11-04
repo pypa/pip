@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import contextlib
 import errno
 import locale
-import logging
+# we have a submodule named 'logging' which would shadow this if we used the
+# regular name:
+import logging as std_logging
 import re
 import os
 import posixpath
@@ -43,8 +45,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'get_installed_version']
 
 
-logger = logging.getLogger(__name__)
-
+logger = std_logging.getLogger(__name__)
 
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
 ZIP_EXTENSIONS = ('.zip', '.whl')
@@ -642,8 +643,8 @@ def remove_tracebacks(output):
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     raise_on_returncode=True,
-                    command_level=logging.DEBUG, command_desc=None,
-                    extra_environ=None):
+                    command_level=std_logging.DEBUG, command_desc=None,
+                    extra_environ=None, spinner=None):
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -651,17 +652,13 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 part = '"%s"' % part.replace('"', '\\"')
             cmd_parts.append(part)
         command_desc = ' '.join(cmd_parts)
-    if show_stdout:
-        stdout = None
-    else:
-        stdout = subprocess.PIPE
     logger.log(command_level, "Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=subprocess.PIPE,
             cwd=cwd, env=env)
     except Exception as exc:
         logger.critical(
@@ -669,18 +666,22 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         )
         raise
     all_output = []
-    if stdout is not None:
-        while True:
-            line = console_to_str(proc.stdout.readline())
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
+    while True:
+        line = console_to_str(proc.stdout.readline())
+        if not line:
+            break
+        line = line.rstrip()
+        all_output.append(line + '\n')
+        if show_stdout:
             logger.debug(line)
-    if not all_output:
-        returned_stdout, returned_stderr = proc.communicate()
-        all_output = [returned_stdout or '']
+        if spinner is not None:
+            spinner.spin()
     proc.wait()
+    if spinner is not None:
+        if proc.returncode:
+            spinner.finish("error")
+        else:
+            spinner.finish("done")
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
@@ -699,7 +700,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 'Command "%s" had error code %s in %s',
                 command_desc, proc.returncode, cwd,
             )
-    if stdout is not None:
+    if not show_stdout:
         return remove_tracebacks(''.join(all_output))
 
 
