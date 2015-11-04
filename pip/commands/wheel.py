@@ -92,6 +92,7 @@ class WheelCommand(RequirementCommand):
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())
+        cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -159,7 +160,6 @@ class WheelCommand(RequirementCommand):
             options.build_dir = os.path.abspath(options.build_dir)
 
         with self._build_session(options) as session:
-
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
@@ -174,7 +174,8 @@ class WheelCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     session=session,
                     wheel_cache=wheel_cache,
-                    wheel_download_dir=options.wheel_dir
+                    wheel_download_dir=options.wheel_dir,
+                    require_hashes=options.require_hashes
                 )
 
                 self.populate_requirement_set(

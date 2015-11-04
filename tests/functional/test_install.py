@@ -1,4 +1,3 @@
-
 import os
 import textwrap
 import glob
@@ -10,7 +9,8 @@ import pytest
 from pip import pep425tags
 from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo, path_to_url)
+                       _create_test_package, _create_svn_repo, path_to_url,
+                       requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -243,6 +243,43 @@ def test_install_from_local_directory(script, data):
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+
+def test_hashed_install_success(script, data, tmpdir):
+    """
+    Test that installing various sorts of requirements with correct hashes
+    works.
+
+    Test file URLs and index packages (which become HTTP URLs behind the
+    scenes).
+
+    """
+    file_url = path_to_url(
+        (data.packages / 'simple-1.0.tar.gz').abspath)
+    with requirements_file(
+            'simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e'
+            '3848c2b9bbd2e8bf01db88c2c7\n'
+            '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
+            'a016b42d2e6ce53619b653'.format(simple=file_url),
+            tmpdir) as reqs_file:
+        script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
+
+
+def test_hashed_install_failure(script, data, tmpdir):
+    """Test that wrong hashes stop installation.
+
+    This makes sure prepare_files() is called in the course of installation
+    and so has the opportunity to halt if hashes are wrong. Checks on various
+    kinds of hashes are in test_req.py.
+
+    """
+    with requirements_file('simple2==1.0 --hash=sha256:9336af72ca661e6336eb87b'
+                           'c7de3e8844d853e3848c2b9bbd2e8bf01db88c2c\n',
+                           tmpdir) as reqs_file:
+        result = script.pip_install_local('-r',
+                                          reqs_file.abspath,
+                                          expect_error=True)
+    assert len(result.files_created) == 0
 
 
 def test_install_from_local_directory_with_symlinks_to_directories(

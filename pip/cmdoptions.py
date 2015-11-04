@@ -17,6 +17,7 @@ from pip.index import (
     PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
     fmt_ctl_no_use_wheel)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
+from pip.utils.hashes import STRONG_HASHES
 
 
 def make_option_group(group, parser):
@@ -521,6 +522,47 @@ always_unzip = partial(
     action='store_true',
     help=SUPPRESS_HELP,
 )
+
+
+def _merge_hash(option, opt_str, value, parser):
+    """Given a value spelled "algo:digest", append the digest to a list
+    pointed to in a dict by the algo name."""
+    if not parser.values.hashes:
+        parser.values.hashes = {}
+    try:
+        algo, digest = value.split(':', 1)
+    except ValueError:
+        parser.error('Arguments to %s must be a hash name '
+                     'followed by a value, like --hash=sha256:abcde...' %
+                     opt_str)
+    if algo not in STRONG_HASHES:
+        parser.error('Allowed hash algorithms for %s are %s.' %
+                     (opt_str, ', '.join(STRONG_HASHES)))
+    parser.values.hashes.setdefault(algo, []).append(digest)
+
+
+hash = partial(
+    Option,
+    '--hash',
+    # Hash values eventually end up in InstallRequirement.hashes due to
+    # __dict__ copying in process_line().
+    dest='hashes',
+    action='callback',
+    callback=_merge_hash,
+    type='string',
+    help="Verify that the package's archive matches this "
+         'hash before installing. Example: --hash=sha256:abcdef...')
+
+
+require_hashes = partial(
+    Option,
+    '--require-hashes',
+    dest='require_hashes',
+    action='store_true',
+    default=False,
+    help='Require a hash to check each requirement against, for '
+         'repeatable installs. This option is implied when any package in a '
+         'requirements file has a --hash option.')
 
 
 ##########
