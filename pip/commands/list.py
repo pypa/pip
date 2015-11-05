@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from pip._vendor.packaging import specifiers
+
 from pip.basecommand import Command
 from pip.exceptions import CommandError
 from pip.index import PackageFinder
@@ -158,11 +160,10 @@ class ListCommand(Command):
             )
             for dist in installed_packages:
                 typ = 'unknown'
-                all_candidates = finder.find_all_candidates(dist.key)
-                if not all_candidates:
+                best_candidate = finder.find_best_candidate(
+                    dist.key, specifiers.SpecifierSet())
+                if best_candidate is None:
                     continue
-                best_candidate = max(all_candidates,
-                                     key=finder._candidate_sort_key)
                 remote_version = best_candidate.version
                 if best_candidate.location.is_wheel:
                     typ = 'wheel'
