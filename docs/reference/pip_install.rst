@@ -171,8 +171,7 @@ Requirement Specifiers
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  :ref:`PEP440 <pypa:PEP440s>` contains
-a `full specification
+specifiers <pypug:Version Specifier>`.  `PEP440`_ contains a `full specification
 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_ of the
 currently supported specifiers.
 
@@ -660,3 +659,5 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
+
+.. _PEP440: http://www.python.org/dev/peps/pep-0440
