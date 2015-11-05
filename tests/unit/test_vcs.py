@@ -114,7 +114,8 @@ def test_bazaar_simple_urls():
 
 
 def test_subversion_remove_auth_from_url():
-    # Check that the url is doctored appropriately to remove auth elements from the url
+    # Check that the url is doctored appropriately to remove auth elements
+    #    from the url
     svn_auth_url = 'https://user:pass@svnrepo.org/svn/project/tags/v0.2'
     expected_url = 'https://svnrepo.org/svn/project/tags/v0.2'
     url = Subversion.remove_auth_from_url(svn_auth_url)
