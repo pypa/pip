@@ -472,6 +472,42 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "\nTraceback " in err_msg
 
+    @pytest.mark.network
+    def test_populate_link_latest_already_satisfied_find_links(self, data):
+        req = InstallRequirement.from_line('simple', None)
+        # the latest simple in local pkgs is 3.0
+        latest_version = "3.0"
+        satisfied_by = Mock(
+            location="/path",
+            parsed_version=pkg_resources.parse_version(latest_version),
+            version=latest_version
+        )
+        req.satisfied_by = satisfied_by
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+
+        req.populate_link(finder, upgrade=True, require_hashes=False)
+        assert req.link is None
+
+    @pytest.mark.network
+    def test_populate_link_latest_already_satisfied_pypi_links(self):
+        req = InstallRequirement.from_line('initools', None)
+        # the latest initools on pypi is 0.3.1
+        latest_version = "0.3.1"
+        satisfied_by = Mock(
+            location="/path",
+            parsed_version=pkg_resources.parse_version(latest_version),
+            version=latest_version,
+        )
+        req.satisfied_by = satisfied_by
+        finder = PackageFinder(
+            [],
+            ["http://pypi.python.org/simple"],
+            session=PipSession(),
+        )
+
+        req.populate_link(finder, upgrade=True, require_hashes=False)
+        assert req.link is None
+
 
 def test_requirements_data_structure_keeps_order():
     requirements = Requirements()
