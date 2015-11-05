@@ -7,12 +7,13 @@ import os
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
                           unpack_url)
-from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
-                            DistributionNotFound, PreviousBuildDirError,
+from pip.exceptions import (InstallationError,
+                            PreviousBuildDirError,
                             HashError, HashErrors, HashUnpinned,
                             DirectoryUrlHashUnsupported, VcsHashUnsupported)
 from pip.req.req_install import InstallRequirement
@@ -392,17 +393,16 @@ class RequirementSet(object):
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
                 if not (self.force_reinstall or req_to_install.link):
-                    try:
-                        finder.find_requirement(req_to_install, self.upgrade)
-                    except BestVersionAlreadyInstalled:
+                    best_candidate = finder.find_best_candidate(
+                        req_to_install.name,
+                        req_to_install.specifier,
+                    )
+                    installed_version = parse_version(
+                        req_to_install.satisfied_by.version)
+                    if (best_candidate is None or
+                            best_candidate.version <= installed_version):
                         skip_reason = 'up-to-date'
                         best_installed = True
-                    except DistributionNotFound:
-                        # No distribution found, so we squash the
-                        # error - it will be raised later when we
-                        # re-try later to do the install.
-                        # Why don't we just raise here?
-                        pass
 
                 if not best_installed:
                     # don't uninstall conflict if user install and
@@ -513,7 +513,6 @@ class RequirementSet(object):
                 # req_to_install.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
                 # is not None.
-                # Then inside find_requirement existing_applicable -> False
                 # If no new versions are found, DistributionNotFound is raised,
                 # otherwise a result is guaranteed.
                 assert req_to_install.link
