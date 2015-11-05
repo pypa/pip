@@ -224,8 +224,14 @@ class Subversion(VersionControl):
         # Return a copy of url with 'username:password@' stripped.
         # username/pass params are passed to subversion through flags & not recognized in
         #  the url.
-        url = re.sub('://.*?@', '://', url, count=1)
-        return url
+
+        # parsed url
+        purl = urllib_parse.urlsplit(url)
+        stripped_netloc = purl.netloc.split('@')[-1] if '@' in purl.netloc else purl.netloc
+
+        # stripped url
+        surl = urllib_parse.urlunsplit((purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment))
+        return surl
 
 
 def get_rev_options(url, rev):
