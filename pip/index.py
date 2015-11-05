@@ -438,18 +438,23 @@ class PackageFinder(object):
             dependency_versions
         )
 
-    def find_requirement(self, req, upgrade):
-        """Try to find a Link matching req
+    def find_best_candidate(self, project_name, specifier):
+        """Find a InstallationCandidate matching project_name and specifier.
 
         Expects req, an InstallRequirement and upgrade, a boolean
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self.find_all_candidates(req.name)
+        all_candidates = self.find_all_candidates(project_name)
+        all_versions = sorted(set(str(c.version) for c in all_candidates),
+                              key=parse_version)
+        logger.debug("Found %d versions for %s: %s ",
+                     len(all_versions), project_name,
+                     ', '.join(all_versions) or 'none')
 
         # Filter out anything which doesn't match our specifier
         _versions = set(
-            req.specifier.filter(
+            specifier.filter(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
                 # packaging.version.Version and
@@ -457,7 +462,7 @@ class PackageFinder(object):
                 # types. This way we'll use a str as a common data interchange
                 # format. If we stop using the pkg_resources provided specifier
                 # and start using our own, we can drop the cast to str().
-                [str(c.version) for c in all_candidates],
+                all_versions,
                 prereleases=(
                     self.allow_all_prereleases
                     if self.allow_all_prereleases else None
@@ -468,25 +473,31 @@ class PackageFinder(object):
             # Again, converting to str to deal with debundling.
             c for c in all_candidates if str(c.version) in _versions
         ]
+        logger.debug("Found %d versions for %s and %s: %s ",
+                     len(_versions), project_name,
+                     specifier, ', '.join(_versions) or 'none')
 
         applicable_candidates = self._sort_versions(applicable_candidates)
+        return applicable_candidates[0] if applicable_candidates else None
+
+    def find_requirement(self, req, upgrade):
+        """Try to find a Link matching req
+
+        Expects req, an InstallRequirement and upgrade, a boolean
+        Returns a Link if found,
+        Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
+        """
+        best_candidate = self.find_best_candidate(req.name, req.specifier)
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
         else:
             installed_version = None
 
-        if installed_version is None and not applicable_candidates:
+        if installed_version is None and best_candidate is None:
             logger.critical(
-                'Could not find a version that satisfies the requirement %s '
-                '(from versions: %s)',
-                req,
-                ', '.join(
-                    sorted(
-                        set(str(c.version) for c in all_candidates),
-                        key=parse_version,
-                    )
-                )
+                'Could not find a version that satisfies the requirement %s ',
+                req
             )
 
             raise DistributionNotFound(
@@ -495,8 +506,8 @@ class PackageFinder(object):
 
         best_installed = False
         if installed_version and (
-                not applicable_candidates or
-                applicable_candidates[0].version <= installed_version):
+                best_candidate is None or
+                best_candidate.version <= installed_version):
             best_installed = True
 
         if not upgrade and installed_version is not None:
@@ -511,28 +522,23 @@ class PackageFinder(object):
                     'Existing installed version (%s) satisfies requirement '
                     '(most up-to-date version is %s)',
                     installed_version,
-                    applicable_candidates[0].version,
+                    best_candidate.version,
                 )
             return None
 
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: '
-                '%s)',
-                installed_version,
-                ', '.join(str(c.version) for c in applicable_candidates) or
-                "none",
+                'Installed version (%s) is most up-to-date',
+                installed_version
             )
             raise BestVersionAlreadyInstalled
 
-        selected_candidate = applicable_candidates[0]
         logger.debug(
-            'Using version %s (newest of versions: %s)',
-            selected_candidate.version,
-            ', '.join(str(c.version) for c in applicable_candidates)
+            'Using version %s',
+            best_candidate.version,
         )
-        return selected_candidate.location
+        return best_candidate.location
 
     def _get_pages(self, locations, project_name):
         """
