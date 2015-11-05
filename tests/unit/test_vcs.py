@@ -125,3 +125,14 @@ def test_subversion_remove_auth_from_url():
     expected_url = svn_noauth_url
     url = Subversion.remove_auth_from_url(svn_noauth_url)
     assert url == expected_url
+
+    # Check that links to specific revisions are handled properly
+    svn_rev_url = 'https://user:pass@svnrepo.org/svn/project/trunk@8181'
+    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    url = Subversion.remove_auth_from_url(svn_rev_url)
+    assert url == expected_url
+
+    svn_rev_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    url = Subversion.remove_auth_from_url(svn_rev_url)
+    assert url == expected_url
