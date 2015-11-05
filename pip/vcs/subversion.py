@@ -221,16 +221,20 @@ class Subversion(VersionControl):
 
     @staticmethod
     def remove_auth_from_url(url):
-        # Return a copy of url with 'username:password@' stripped.
-        # username/pass params are passed to subversion through flags & not recognized in
-        #  the url.
+        # Return a copy of url with 'username:password@' removed.
+        # username/pass params are passed to subversion through flags
+        # and are not recognized in the url.
 
         # parsed url
         purl = urllib_parse.urlsplit(url)
-        stripped_netloc = purl.netloc.split('@')[-1] if '@' in purl.netloc else purl.netloc
+        stripped_netloc = \
+            purl.netloc.split('@')[-1]
 
         # stripped url
-        surl = urllib_parse.urlunsplit((purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment))
+        url_pieces = (
+            purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
+        )
+        surl = urllib_parse.urlunsplit(url_pieces)
         return surl
 
 
