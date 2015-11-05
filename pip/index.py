@@ -22,7 +22,7 @@ from pip.utils import (
 from pip.utils.deprecation import RemovedInPip9Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
-    DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
+    InvalidWheelFilename,
     UnsupportedWheel,
 )
 from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
@@ -479,66 +479,6 @@ class PackageFinder(object):
 
         applicable_candidates = self._sort_versions(applicable_candidates)
         return applicable_candidates[0] if applicable_candidates else None
-
-    def find_requirement(self, req, upgrade):
-        """Try to find a Link matching req
-
-        Expects req, an InstallRequirement and upgrade, a boolean
-        Returns a Link if found,
-        Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
-        """
-        best_candidate = self.find_best_candidate(req.name, req.specifier)
-
-        if req.satisfied_by is not None:
-            installed_version = parse_version(req.satisfied_by.version)
-        else:
-            installed_version = None
-
-        if installed_version is None and best_candidate is None:
-            logger.critical(
-                'Could not find a version that satisfies the requirement %s ',
-                req
-            )
-
-            raise DistributionNotFound(
-                'No matching distribution found for %s' % req
-            )
-
-        best_installed = False
-        if installed_version and (
-                best_candidate is None or
-                best_candidate.version <= installed_version):
-            best_installed = True
-
-        if not upgrade and installed_version is not None:
-            if best_installed:
-                logger.debug(
-                    'Existing installed version (%s) is most up-to-date and '
-                    'satisfies requirement',
-                    installed_version,
-                )
-            else:
-                logger.debug(
-                    'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)',
-                    installed_version,
-                    best_candidate.version,
-                )
-            return None
-
-        if best_installed:
-            # We have an existing version, and its the best version
-            logger.debug(
-                'Installed version (%s) is most up-to-date',
-                installed_version
-            )
-            raise BestVersionAlreadyInstalled
-
-        logger.debug(
-            'Using version %s',
-            best_candidate.version,
-        )
-        return best_candidate.location
 
     def _get_pages(self, locations, project_name):
         """

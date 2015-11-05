@@ -16,6 +16,7 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -23,6 +24,7 @@ import pip.wheel
 from pip.compat import native_str, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
+    DistributionNotFound,
     InstallationError, UninstallationError, UnsupportedWheel,
 )
 from pip.locations import (
@@ -268,7 +270,51 @@ class InstallRequirement(object):
         to file modification times.
         """
         if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
+            best_candidate = finder.find_best_candidate(
+                self.name, self.specifier)
+
+            if self.satisfied_by is not None:
+                installed_version = parse_version(self.satisfied_by.version)
+            else:
+                installed_version = None
+
+            if installed_version is None and best_candidate is None:
+                logger.critical(
+                    'Could not find a version that satisfies the requirement '
+                    '%s', self
+                )
+
+                raise DistributionNotFound(
+                    'No matching distribution found for %s' % self
+                )
+
+            best_installed = False
+            if installed_version and (
+                    best_candidate is None or
+                    best_candidate.version <= installed_version):
+                best_installed = True
+
+            if not upgrade and installed_version is not None:
+                if best_installed:
+                    logger.debug(
+                        'Existing installed version (%s) is most up-to-date '
+                        'and satisfies requirement',
+                        installed_version,
+                    )
+                else:
+                    logger.debug(
+                        'Existing installed version (%s) satisfies '
+                        'requirement (most up-to-date version is %s)',
+                        installed_version,
+                        best_candidate.version,
+                    )
+                self.link = None
+            else:
+                logger.debug(
+                    'Using version %s',
+                    best_candidate.version,
+                )
+                self.link = best_candidate.location
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
             self.link = self._wheel_cache.cached_wheel(self.link, self.name)
