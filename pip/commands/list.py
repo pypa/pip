@@ -4,13 +4,11 @@ import logging
 import warnings
 
 from pip.basecommand import Command
-from pip.exceptions import CommandError, DistributionNotFound
-from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
-from pip.req import InstallRequirement
+from pip.exceptions import CommandError
+from pip.index import PackageFinder
 from pip.utils import (
-    get_installed_distributions, dist_is_editable, canonicalize_name)
+    get_installed_distributions, dist_is_editable)
 from pip.utils.deprecation import RemovedInPip10Warning
-from pip.wheel import WheelCache
 from pip.cmdoptions import make_option_group, index_group
 
 
@@ -158,36 +156,18 @@ class ListCommand(Command):
                 user_only=options.user,
                 editables_only=options.editable,
             )
-            format_control = FormatControl(set(), set())
-            wheel_cache = WheelCache(options.cache_dir, format_control)
             for dist in installed_packages:
-                req = InstallRequirement.from_line(
-                    dist.key, None, isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
                 typ = 'unknown'
-                try:
-                    link = finder.find_requirement(req, True)
-
-                    # If link is None, means installed version is most
-                    # up-to-date
-                    if link is None:
-                        continue
-                except DistributionNotFound:
+                all_candidates = finder.find_all_candidates(dist.key)
+                if not all_candidates:
                     continue
+                best_candidate = max(all_candidates,
+                                     key=finder._candidate_sort_key)
+                remote_version = best_candidate.version
+                if best_candidate.location.is_wheel:
+                    typ = 'wheel'
                 else:
-                    canonical_name = canonicalize_name(req.name)
-                    formats = fmt_ctl_formats(format_control, canonical_name)
-                    search = Search(
-                        req.name,
-                        canonical_name,
-                        formats)
-                    remote_version = finder._link_package_versions(
-                        link, search).version
-                    if link.is_wheel:
-                        typ = 'wheel'
-                    else:
-                        typ = 'sdist'
+                    typ = 'sdist'
                 yield dist, remote_version, typ
 
     def run_listing(self, options):
