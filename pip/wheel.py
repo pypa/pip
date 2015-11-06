@@ -32,6 +32,7 @@ from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
     call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name)
+from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -686,7 +687,7 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req):
         return [
-            sys.executable, '-c',
+            sys.executable, "-u", '-c',
             "import setuptools;__file__=%r;"
             "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
             "__file__, 'exec'))" % req.setup_py
@@ -695,20 +696,23 @@ class WheelBuilder(object):
     def __build_one(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
-        logger.info('Running setup.py bdist_wheel for %s', req.name)
-        logger.debug('Destination directory: %s', tempd)
-        wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
-            + self.build_options
+        spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
+        with open_spinner(spin_message) as spinner:
+            logger.debug('Destination directory: %s', tempd)
+            wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
+                + self.build_options
 
-        if python_tag is not None:
-            wheel_args += ["--python-tag", python_tag]
+            if python_tag is not None:
+                wheel_args += ["--python-tag", python_tag]
 
-        try:
-            call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
-            return True
-        except:
-            logger.error('Failed building wheel for %s', req.name)
-            return False
+            try:
+                call_subprocess(wheel_args, cwd=req.source_dir,
+                                show_stdout=False, spinner=spinner)
+                return True
+            except:
+                spinner.finish("error")
+                logger.error('Failed building wheel for %s', req.name)
+                return False
 
     def _clean_one(self, req):
         base_args = self._base_setup_args(req)
