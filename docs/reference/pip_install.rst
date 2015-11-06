@@ -172,8 +172,7 @@ Requirement Specifiers
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  :ref:`PEP440 <pypa:PEP440s>` contains
-a `full specification
+specifiers <pypug:Version Specifier>`.  `PEP440`_ contains a `full specification
 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_ of the
 currently supported specifiers.
 
@@ -289,6 +288,23 @@ provides a human-readable clue as to what version is in use. For projects
 where setup.py is not in the root of project, "subdirectory" component
 is used. Value of "subdirectory" component should be a path starting from root
 of the project to where setup.py is located.
+
+So if your repository layout is:
+
+    - pkg_dir/
+
+      - setup.py  # setup.py for package ``pkg``
+      - some_module.py
+    - other_dir/
+
+      - some_file
+    - some_other_file
+
+You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+
+.. note::
+
+    The subdirectory component can currently only be used for editable installs.
 
 
 Git
@@ -618,7 +634,7 @@ To have the dependency located from a local directory and not crawl PyPI, add th
 
   [easy_install]
   allow_hosts = ''
-  find_links = file:///path/to/local/archives
+  find_links = file:///path/to/local/archives/
 
 
 Build System Interface
@@ -719,7 +735,7 @@ Examples
   $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
   $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
   $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-  $ pip install -e git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path # install a python package from a repo subdirectory
+  $ pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
 6) Install a package with `setuptools extras`_.
 
@@ -765,3 +781,5 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
+
+.. _PEP440: http://www.python.org/dev/peps/pep-0440

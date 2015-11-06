@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
+import traceback
 import zipfile
 
 from distutils.util import change_root
@@ -34,6 +35,7 @@ from pip.utils import (
 )
 from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
+from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
@@ -352,10 +354,14 @@ class InstallRequirement(object):
         try:
             import setuptools  # noqa
         except ImportError:
+            if get_installed_version('setuptools') is None:
+                add_msg = "Please install setuptools."
+            else:
+                add_msg = traceback.format_exc()
             # Setuptools is not available
             raise InstallationError(
-                "setuptools must be installed to install from a source "
-                "distribution"
+                "Could not import setuptools which is required to "
+                "install from a source distribution.\n%s" % add_msg
             )
 
         setup_file = 'setup.py'
@@ -831,7 +837,7 @@ exec(compile(
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [sys.executable]
+            install_args = [sys.executable, "-u"]
             install_args.append('-c')
             install_args.append(
                 "import setuptools, tokenize;__file__=%r;"
@@ -857,13 +863,15 @@ exec(compile(
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
                                               py_ver_str, self.name)]
-            logger.info('Running setup.py install for %s', self.name)
-            with indent_log():
-                call_subprocess(
-                    install_args + install_options,
-                    cwd=self.source_dir,
-                    show_stdout=False,
-                )
+            msg = 'Running setup.py install for %s' % (self.name,)
+            with open_spinner(msg) as spinner:
+                with indent_log():
+                    call_subprocess(
+                        install_args + install_options,
+                        cwd=self.source_dir,
+                        show_stdout=False,
+                        spinner=spinner,
+                    )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)

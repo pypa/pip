@@ -6,6 +6,7 @@ from os.path import join, curdir, pardir
 
 import pytest
 
+from pip import pep425tags
 from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
@@ -26,9 +27,36 @@ def test_without_setuptools(script, data):
         expect_error=True,
     )
     assert (
-        "setuptools must be installed to install from a source distribution"
+        "Could not import setuptools which is required to install from a "
+        "source distribution."
         in result.stderr
     )
+    assert "Please install setuptools" in result.stderr
+
+
+def test_with_setuptools_and_import_error(script, data):
+    # Make sure we get an ImportError while importing setuptools
+    setuptools_init_path = script.site_packages_path.join(
+        "setuptools", "__init__.py")
+    with open(setuptools_init_path, 'a') as f:
+        f.write('\nraise ImportError("toto")')
+
+    result = script.run(
+        "python", "-c",
+        "import pip; pip.main(["
+        "'install', "
+        "'INITools==0.2', "
+        "'-f', '%s', "
+        "'--no-binary=:all:'])" % data.packages,
+        expect_error=True,
+    )
+    assert (
+        "Could not import setuptools which is required to install from a "
+        "source distribution."
+        in result.stderr
+    )
+    assert "Traceback " in result.stderr
+    assert "ImportError: toto" in result.stderr
 
 
 def test_pip_second_command_line_interface_works(script, data):
@@ -747,7 +775,7 @@ def test_install_builds_wheels(script, data):
     assert expected in str(res), str(res)
     root = appdirs.user_cache_dir('pip')
     wheels = []
-    for top, dirs, files in os.walk(root):
+    for top, dirs, files in os.walk(os.path.join(root, "wheels")):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
@@ -764,6 +792,10 @@ def test_install_builds_wheels(script, data):
     assert "Running setup.py install for requires-wheel" in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
+    # We want to make sure we used the correct implementation tag
+    assert wheels == [
+        "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+    ]
 
 
 def test_install_no_binary_disables_building_wheels(script, data):

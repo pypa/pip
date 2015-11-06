@@ -13,7 +13,7 @@ import pytest
 
 from mock import Mock, patch
 from pip.exceptions import HashMismatch, HashMissing, InstallationError
-from pip.utils import (egg_link_path, Inf, get_installed_distributions,
+from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.operations.freeze import freeze_excludes
@@ -152,16 +152,6 @@ class Tests_EgglinkPath:
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
         assert egg_link_path(self.mock_dist) is None
-
-
-def test_Inf_greater():
-    """Test Inf compares greater."""
-    assert Inf > object()
-
-
-def test_Inf_equals_Inf():
-    """Test Inf compares greater."""
-    assert Inf == Inf
 
 
 @patch('pip.utils.dist_in_usersite')

@@ -136,4 +136,8 @@ class Mercurial(VersionControl):
             full_egg_name = '%s-dev' % egg_project_name
         return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
 
+    def check_version(self, dest, rev_options):
+        """Always assume the versions don't match"""
+        return False
+
 vcs.register(Mercurial)

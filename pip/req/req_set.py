@@ -253,11 +253,10 @@ class RequirementSet(object):
                     self.requirement_aliases[name.lower()] = name
                 result = [install_req]
             else:
-                if not existing_req.constraint:
-                    # No need to scan, we've already encountered this for
-                    # scanning.
-                    result = []
-                elif not install_req.constraint:
+                # Assume there's no need to scan, and that we've already
+                # encountered this for scanning.
+                result = []
+                if not install_req.constraint and existing_req.constraint:
                     if (install_req.link and not (existing_req.link and
                        install_req.link.path == existing_req.link.path)):
                         self.reqs_to_cleanup.append(install_req)

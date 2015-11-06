@@ -128,5 +128,9 @@ class Bazaar(VersionControl):
             full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
         return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
 
+    def check_version(self, dest, rev_options):
+        """Always assume the versions don't match"""
+        return False
+
 
 vcs.register(Bazaar)

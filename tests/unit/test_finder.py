@@ -11,7 +11,6 @@ from pip.index import (
 from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
 )
-from pip.utils import Inf
 from pip.download import PipSession
 
 from mock import Mock, patch
@@ -225,7 +224,6 @@ class TestWheel:
         Test link sorting
         """
         links = [
-            InstallationCandidate("simple", "2.0", Link(Inf)),
             InstallationCandidate("simple", "2.0", Link('simple-2.0.tar.gz')),
             InstallationCandidate(
                 "simple",

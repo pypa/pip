@@ -44,6 +44,10 @@
 * Fixed :issue:`3009`, correct reporting of requirements file line numbers
   (:pull:`3125`)
 
+* Provide a spinner showing that progress is happening when installing or
+  building a package via ``setup.py``. This will alleviate concerns that
+  projects with unusually long build times have with pip appearing to stall.
+
 
 **7.1.2 (2015-08-22)**
 

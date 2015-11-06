@@ -186,6 +186,13 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def check_version(self, dest, rev_options):
+        """
+        Return True if the version is identical to what exists and
+        doesn't need to be updated.
+        """
+        raise NotImplementedError
+
     def check_destination(self, dest, url, rev_options, rev_display):
         """
         Prepare a location to receive a checkout/clone.
@@ -206,13 +213,17 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    logger.info(
-                        'Updating %s %s%s',
-                        display_path(dest),
-                        self.repo_name,
-                        rev_display,
-                    )
-                    self.update(dest, rev_options)
+                    if not self.check_version(dest, rev_options):
+                        logger.info(
+                            'Updating %s %s%s',
+                            display_path(dest),
+                            self.repo_name,
+                            rev_display,
+                        )
+                        self.update(dest, rev_options)
+                    else:
+                        logger.info(
+                            'Skipping because already up-to-date.')
                 else:
                     logger.warning(
                         '%s %s in %s exists with URL %s',
