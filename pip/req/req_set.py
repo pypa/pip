@@ -263,6 +263,8 @@ class RequirementSet(object):
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False
+                    existing_req.extras = tuple(set(existing_req.extras).union(
+                                                set(install_req.extras)))
                     # And now we need to scan this.
                     result = [existing_req]
                 # Canonicalise to the already-added object for the backref
