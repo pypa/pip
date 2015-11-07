@@ -48,6 +48,11 @@
   building a package via ``setup.py``. This will alleviate concerns that
   projects with unusually long build times have with pip appearing to stall.
 
+* Include the functionality of ``peep`` into pip, allowing hashes to be baked
+  into a requirements file and ensuring that the packages being downloaded
+  match one of those hashes. This is an additional, opt-in security measure
+  that, when used, removes the need to trust the repository.
+
 
 **7.1.2 (2015-08-22)**
 
