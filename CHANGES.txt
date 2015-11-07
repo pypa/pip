@@ -53,6 +53,10 @@
   match one of those hashes. This is an additional, opt-in security measure
   that, when used, removes the need to trust the repository.
 
+* Fix a bug causing pip to not select a wheel compiled against an OSX SDK later
+  than what Python itself was compiled against when running on a newer version
+  of OSX.
+
 
 **7.1.2 (2015-08-22)**
 
