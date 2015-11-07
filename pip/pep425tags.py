@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import re
 import sys
 import warnings
+import platform
 
 try:
     import sysconfig
@@ -110,6 +111,13 @@ def get_abi_tag():
 
 def get_platform():
     """Return our platform name 'win32', 'linux_x86_64'"""
+    if sys.platform == 'darwin':
+        # distutils.util.get_platform() returns the release based on the value
+        # of MACOSX_DEPLOYMENT_TARGET on which Python was built, which may
+        # be signficantly older than the user's current machine.
+        release, _, machine = platform.mac_ver()
+        major, minor, micro = release.split('.')
+        return 'macosx_{0}_{1}_{2}'.format(major, minor, machine)
     # XXX remove distutils dependency
     return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
