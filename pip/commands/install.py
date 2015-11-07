@@ -156,8 +156,8 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.pre())
-
         cmd_opts.add_option(cmdoptions.no_clean())
+        cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -266,6 +266,7 @@ class InstallCommand(RequirementCommand):
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
+                    require_hashes=options.require_hashes,
                 )
 
                 self.populate_requirement_set(

@@ -280,6 +280,9 @@ class RequirementCommand(Command):
                     wheel_cache=wheel_cache):
                 found_req_in_file = True
                 requirement_set.add_requirement(req)
+        # If --require-hashes was a line in a requirements file, tell
+        # RequirementSet about it:
+        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}

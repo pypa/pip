@@ -33,6 +33,7 @@ from pip.utils import (
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
     get_installed_version, canonicalize_name
 )
+from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
 from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
@@ -78,7 +79,7 @@ class InstallRequirement(object):
 
         self.editable_options = editable_options
         self._wheel_cache = wheel_cache
-        self.link = link
+        self.link = self.original_link = link
         self.as_egg = as_egg
         self.markers = markers
         self._egg_info_path = None
@@ -240,32 +241,39 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
-    def populate_link(self, finder, upgrade):
+    def populate_link(self, finder, upgrade, require_hashes):
         """Ensure that if a link can be found for this, that it is found.
 
         Note that self.link may still be None - if Upgrade is False and the
         requirement is already installed.
+
+        If require_hashes is True, don't use the wheel cache, because cached
+        wheels, always built locally, have different hashes than the files
+        downloaded from the index server and thus throw false hash mismatches.
+        Furthermore, cached wheels at present have undeterministic contents due
+        to file modification times.
         """
         if self.link is None:
             self.link = finder.find_requirement(self, upgrade)
-
-    @property
-    def link(self):
-        return self._link
-
-    @link.setter
-    def link(self, link):
-        # Lookup a cached wheel, if possible.
-        if self._wheel_cache is None:
-            self._link = link
-        else:
-            self._link = self._wheel_cache.cached_wheel(link, self.name)
-            if self._link != link:
-                logger.debug('Using cached wheel link: %s', self._link)
+        if self._wheel_cache is not None and not require_hashes:
+            old_link = self.link
+            self.link = self._wheel_cache.cached_wheel(self.link, self.name)
+            if old_link != self.link:
+                logger.debug('Using cached wheel link: %s', self.link)
 
     @property
     def specifier(self):
         return self.req.specifier
+
+    @property
+    def is_pinned(self):
+        """Return whether I am pinned to an exact version.
+
+        For example, some-package==1.2 is pinned; some-package>1.2 is not.
+        """
+        specifiers = self.specifier
+        return (len(specifiers) == 1 and
+                next(iter(specifiers)).operator in ('==', '==='))
 
     def from_path(self):
         if self.req is None:
@@ -1021,6 +1029,37 @@ exec(compile(
             os.path.dirname(egg_info),
             project_name=dist_name,
             metadata=metadata)
+
+    @property
+    def has_hash_options(self):
+        """Return whether any known-good hashes are specified as options.
+
+        These activate --require-hashes mode; hashes specified as part of a
+        URL do not.
+
+        """
+        return bool(self.options.get('hashes', {}))
+
+    def hashes(self, trust_internet=True):
+        """Return a hash-comparer that considers my option- and URL-based
+        hashes to be known-good.
+
+        Hashes in URLs--ones embedded in the requirements file, not ones
+        downloaded from an index server--are almost peers with ones from
+        flags. They satisfy --require-hashes (whether it was implicitly or
+        explicitly activated) but do not activate it. md5 and sha224 are not
+        allowed in flags, which should nudge people toward good algos. We
+        always OR all hashes together, even ones from URLs.
+
+        :param trust_internet: Whether to trust URL-based (#md5=...) hashes
+            downloaded from the internet, as by populate_link()
+
+        """
+        good_hashes = self.options.get('hashes', {}).copy()
+        link = self.link if trust_internet else self.original_link
+        if link and link.hash:
+            good_hashes.setdefault(link.hash_name, []).append(link.hash)
+        return Hashes(good_hashes)
 
 
 def _strip_postfix(req):

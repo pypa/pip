@@ -12,9 +12,12 @@ import tempfile
 import pytest
 
 from mock import Mock, patch
+from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
+from pip.utils.hashes import Hashes, MissingHashes
 from pip.operations.freeze import freeze_excludes
+from pip._vendor.six import BytesIO
 
 
 class Tests_EgglinkPath:
@@ -396,3 +399,47 @@ class Test_normalize_path(object):
             ) == os.path.join(tmpdir, 'file_link')
         finally:
             os.chdir(orig_working_dir)
+
+
+class TestHashes(object):
+    """Tests for pip.utils.hashes"""
+
+    def test_success(self, tmpdir):
+        """Make sure no error is raised when at least one hash matches.
+
+        Test check_against_path because it calls everything else.
+
+        """
+        file = tmpdir / 'to_hash'
+        file.write('hello')
+        hashes = Hashes({
+            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
+                       '1b161e5c1fa7425e73043362938b9824'],
+            'sha224': ['wrongwrong'],
+            'md5': ['5d41402abc4b2a76b9719d911017c592']})
+        hashes.check_against_path(file)
+
+    def test_failure(self):
+        """Hashes should raise HashMismatch when no hashes match."""
+        hashes = Hashes({'sha256': ['wrongwrong']})
+        with pytest.raises(HashMismatch):
+            hashes.check_against_file(BytesIO(b'hello'))
+
+    def test_missing_hashes(self):
+        """MissingHashes should raise HashMissing when any check is done."""
+        with pytest.raises(HashMissing):
+            MissingHashes().check_against_file(BytesIO(b'hello'))
+
+    def test_unknown_hash(self):
+        """Hashes should raise InstallationError when it encounters an unknown
+        hash."""
+        hashes = Hashes({'badbad': ['dummy']})
+        with pytest.raises(InstallationError):
+            hashes.check_against_file(BytesIO(b'hello'))
+
+    def test_non_zero(self):
+        """Test that truthiness tests tell whether any known-good hashes
+        exist."""
+        assert Hashes({'sha256': 'dummy'})
+        assert not Hashes()
+        assert not Hashes({})

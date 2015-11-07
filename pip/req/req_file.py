@@ -46,12 +46,14 @@ SUPPORTED_OPTIONS = [
     cmdoptions.pre,
     cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
+    cmdoptions.require_hashes,
 ]
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ = [
     cmdoptions.install_options,
-    cmdoptions.global_options
+    cmdoptions.global_options,
+    cmdoptions.hash,
 ]
 
 # the 'dest' string values
@@ -122,6 +124,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     affect the finder.
 
     :param constraint: If True, parsing a constraints file.
+    :param options: OptionParser options that we may update
     """
     parser = build_parser()
     defaults = parser.get_default_values()
@@ -185,6 +188,10 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         )
         for req in parser:
             yield req
+
+    # percolate hash-checking option upward
+    elif opts.require_hashes:
+        options.require_hashes = opts.require_hashes
 
     # set finder options
     elif finder:

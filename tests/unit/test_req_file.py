@@ -14,6 +14,7 @@ from pip.req.req_install import InstallRequirement
 from pip.req.req_file import (parse_requirements, process_line, join_lines,
                               ignore_comments, break_args_options, skip_regex,
                               preprocess)
+from tests.lib import requirements_file
 
 
 @pytest.fixture
@@ -250,6 +251,28 @@ class TestProcessLine(object):
         assert req.options == {
             'global_options': ['yo3', 'yo4'],
             'install_options': ['yo1', 'yo2']}
+
+    def test_hash_options(self):
+        """Test the --hash option: mostly its value storage.
+
+        Make sure it reads and preserve multiple hashes.
+
+        """
+        line = ('SomeProject --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b1'
+                '61e5c1fa7425e73043362938b9824 '
+                '--hash=sha384:59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c'
+                '3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f '
+                '--hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8'
+                'e5a6c65260e9cb8a7')
+        filename = 'filename'
+        req = list(process_line(line, filename, 1))[0]
+        assert req.options == {'hashes': {
+            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e730433'
+                       '62938b9824',
+                       '486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65'
+                       '260e9cb8a7'],
+            'sha384': ['59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcd'
+                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}}
 
     def test_set_isolated(self, options):
         line = 'SomeProject'
@@ -552,12 +575,11 @@ class TestParseRequirements(object):
                         --install-option "{install_option}"
         '''.format(global_option=global_option, install_option=install_option)
 
-        req_path = tmpdir.join('requirements.txt')
-        with open(req_path, 'w') as fh:
-            fh.write(content)
-
-        req = next(parse_requirements(
-            req_path, finder=finder, options=options, session=session))
+        with requirements_file(content, tmpdir) as reqs_file:
+            req = next(parse_requirements(reqs_file.abspath,
+                                          finder=finder,
+                                          options=options,
+                                          session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:

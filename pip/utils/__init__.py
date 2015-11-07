@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import deque
 import contextlib
 import errno
 import locale
@@ -187,6 +188,15 @@ def is_svn_page(html):
 def file_contents(filename):
     with open(filename, 'rb') as fp:
         return fp.read().decode('utf-8')
+
+
+def read_chunks(file, size=4096):
+    """Yield pieces of data from a file-like object until EOF."""
+    while True:
+        chunk = file.read(size)
+        if not chunk:
+            break
+        yield chunk
 
 
 def split_leading_dir(path):
@@ -800,3 +810,8 @@ def get_installed_version(dist_name):
 def canonicalize_name(name):
     """Convert an arbitrary string to a canonical name used for comparison"""
     return pkg_resources.safe_name(name).lower()
+
+
+def consume(iterator):
+    """Consume an iterable at C speed."""
+    deque(iterator, maxlen=0)
