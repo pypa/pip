@@ -5,7 +5,7 @@ from __future__ import absolute_import, division
 import os
 import sys
 
-from pip._vendor.six import text_type
+from six import text_type
 
 try:
     from logging.config import dictConfig as logging_dictConfig
@@ -16,7 +16,7 @@ try:
     import ipaddress
 except ImportError:
     try:
-        from pip._vendor import ipaddress
+        import ipaddress
     except ImportError:
         import ipaddr as ipaddress
         ipaddress.ip_address = ipaddress.IPAddress

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import logging
 import cgi
-from collections import namedtuple
 import itertools
 import sys
 import os
@@ -12,8 +11,16 @@ import mimetypes
 import posixpath
 import warnings
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
+from collections import namedtuple
+
+import html5lib
+import requests
+import six
+
+from packaging.version import parse as parse_version
+from requests.exceptions import SSLError
+from six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
@@ -29,9 +36,6 @@ from pip.download import HAS_TLS, url_to_path, path_to_url
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests, six
-from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import SSLError
 
 
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']

@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import parse as urllib_parse
 
 from pip.exceptions import BadCommand
 from pip.utils import (display_path, backup_dir, call_subprocess,

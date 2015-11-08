@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import hashlib
 
+from six import iteritems, iterkeys, itervalues
+
 from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import read_chunks
-from pip._vendor.six import iteritems, iterkeys, itervalues
 
 
 # The recommended hash algo of the moment. Change this whenever the state of

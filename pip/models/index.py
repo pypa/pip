@@ -1,4 +1,4 @@
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import parse as urllib_parse
 
 
 class Index(object):

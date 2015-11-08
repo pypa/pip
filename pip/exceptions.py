@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
 
-from pip._vendor.six import iteritems
+from six import iteritems
 
 
 class PipError(Exception):

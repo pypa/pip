@@ -21,9 +21,14 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor.six import StringIO
+import pkg_resources
+
+from distlib.scripts import ScriptMaker
+from six import StringIO
+from six.moves import configparser
 
 import pip
+
 from pip.compat import expanduser
 from pip.download import path_to_url, unpack_url
 from pip.exceptions import (
@@ -35,9 +40,6 @@ from pip.utils import (
     read_chunks)
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import configparser
 
 
 wheel_ext = '.whl'

@@ -6,10 +6,12 @@ import optparse
 import os
 import re
 import textwrap
+
 from distutils.util import strtobool
 
-from pip._vendor.six import string_types
-from pip._vendor.six.moves import configparser
+from six import string_types
+from six.moves import configparser
+
 from pip.locations import (
     legacy_config_file, config_basename, running_under_virtualenv,
     site_config_files

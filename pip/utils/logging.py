@@ -14,7 +14,7 @@ from pip.compat import WINDOWS
 from pip.utils import ensure_dir
 
 try:
-    from pip._vendor import colorama
+    import colorama
 # Lots of different errors can come from this, including SystemError and
 # ImportError.
 except Exception:

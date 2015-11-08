@@ -6,8 +6,9 @@ import logging
 import os.path
 import sys
 
-from pip._vendor import lockfile
-from pip._vendor.packaging import version as packaging_version
+import lockfile
+
+from packaging import version as packaging_version
 
 from pip.compat import total_seconds, WINDOWS
 from pip.index import PyPI

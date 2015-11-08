@@ -3,26 +3,29 @@ from __future__ import division
 
 import itertools
 import sys
-from signal import signal, SIGINT, default_int_handler
 import time
 import contextlib
 import logging
 
+from signal import signal, SIGINT, default_int_handler
+
+import six
+
+from progress.bar import Bar, IncrementalBar
+from progress.helpers import WritelnMixin, HIDE_CURSOR, SHOW_CURSOR
+from progress.spinner import Spinner
+
 from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
-from pip._vendor import six
-from pip._vendor.progress.bar import Bar, IncrementalBar
-from pip._vendor.progress.helpers import (WritelnMixin,
-                                          HIDE_CURSOR, SHOW_CURSOR)
-from pip._vendor.progress.spinner import Spinner
 
 try:
-    from pip._vendor import colorama
+    import colorama
 # Lots of different errors can come from this, including SystemError and
 # ImportError.
 except Exception:
     colorama = None
+
 
 logger = logging.getLogger(__name__)
 

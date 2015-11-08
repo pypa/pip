@@ -19,8 +19,20 @@ try:
 except ImportError:
     HAS_TLS = False
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
+import requests
+import six
+
+from cachecontrol import CacheControlAdapter
+from cachecontrol.caches import FileCache
+from lockfile import LockError
+from requests.adapters import BaseAdapter, HTTPAdapter
+from requests.auth import AuthBase, HTTPBasicAuth
+from requests.models import Response
+from requests.structures import CaseInsensitiveDict
+from requests.packages import urllib3
+from six.moves import xmlrpc_client
+from six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import request as urllib_request
 
 import pip
 
@@ -34,16 +46,6 @@ from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip._vendor import requests, six
-from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
-from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.requests.packages import urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter
-from pip._vendor.cachecontrol.caches import FileCache
-from pip._vendor.lockfile import LockError
-from pip._vendor.six.moves import xmlrpc_client
 
 
 __all__ = ['get_file_content',

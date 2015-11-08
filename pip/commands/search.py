@@ -4,6 +4,10 @@ import logging
 import sys
 import textwrap
 
+import pkg_resources
+
+from six.moves import xmlrpc_client
+
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
 from pip.index import PyPI
@@ -11,8 +15,6 @@ from pip.utils import get_terminal_size
 from pip.utils.logging import indent_log
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import xmlrpc_client
 
 
 logger = logging.getLogger(__name__)

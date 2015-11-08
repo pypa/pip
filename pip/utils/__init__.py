@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from collections import deque
 import contextlib
 import errno
 import locale
@@ -17,21 +16,27 @@ import sys
 import tarfile
 import zipfile
 
+from collections import deque
+
+import pkg_resources
+
+from six.moves import input
+from six import PY2
+from retrying import retry
+
 from pip.exceptions import InstallationError
 from pip.compat import console_to_str, expanduser, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
 )
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import input
-from pip._vendor.six import PY2
-from pip._vendor.retrying import retry
+
 
 if PY2:
     from io import BytesIO as StringIO
 else:
     from io import StringIO
+
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',

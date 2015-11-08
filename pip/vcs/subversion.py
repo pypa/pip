@@ -4,7 +4,7 @@ import logging
 import os
 import re
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import parse as urllib_parse
 
 from pip.index import Link
 from pip.utils import rmtree, display_path

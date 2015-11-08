@@ -5,10 +5,11 @@ import os
 import tempfile
 import re
 
+from six.moves import configparser
+
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
-from pip._vendor.six.moves import configparser
 
 
 logger = logging.getLogger(__name__)
