@@ -13,7 +13,7 @@ from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 
-from pip.compat import logging_dictConfig
+from pip.compat import logging_dictConfig, which
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
@@ -178,6 +178,49 @@ class Command(object):
                 for name in ["pip._vendor", "distlib", "requests", "urllib3"]
             ),
         })
+
+        if options.python is not None:
+            run_with_python = which(options.python)
+            if run_with_python is None:
+                logger.critical(
+                    "Could not find %r on the $PATH", options.python
+                )
+                return ERROR
+            logger.warning("Running with %s", run_with_python)
+
+            args = [run_with_python, "-m", "pip"]
+            ignore_next = False
+            for arg in sys.argv[1:]:
+                if ignore_next:
+                    ignore_next = False
+                    continue
+
+                if arg == "-p":
+                    ignore_next = True
+                elif arg == "--python":
+                    ignore_next = True
+                elif arg.startswith("-p"):
+                    pass
+                elif arg.startswith("--python="):
+                    pass
+                else:
+                    args.append(arg)
+
+            # TODO: Double check that sys.path[0] is always our zip file when
+            #       running an executable zip.
+            env = os.environ.copy()
+            python_path = env.get("PYTHONPATH")
+            if python_path is None:
+                python_path = sys.path[0]
+            else:
+                python_path = os.pathsep.join(
+                    [sys.path[0]] + python_path.split(os.pathsep)
+                )
+            env["PYTHONPATH"] = python_path
+
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os.execve(run_with_python, args, env)
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.

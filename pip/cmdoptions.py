@@ -176,6 +176,14 @@ skip_requirements_regex = partial(
     default='',
     help=SUPPRESS_HELP)
 
+python = partial(
+    Option,
+    "-p", "--python",
+    dest="python",
+    default=None,
+    help="Which version of Python to install into.",
+)
+
 
 def exists_action():
     return Option(
@@ -592,6 +600,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        python,
     ]
 }
 
