@@ -15,5 +15,7 @@ if __package__ == '':
 
 import pip  # noqa
 
+main = pip.main
+
 if __name__ == '__main__':
     sys.exit(pip.main())
