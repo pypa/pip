@@ -267,7 +267,7 @@ class Subversion(VersionControl):
 
     @staticmethod
     def remove_auth_from_url(url):
-        # Return a copy of url with 'username:password@' stripped.
+        # Return a copy of url with 'username:password@' removed.
         # username/pass params are passed to subversion through flags
         # and are not recognized in the url.
 
