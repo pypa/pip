@@ -243,7 +243,7 @@ class RequirementSet(object):
             if (parent_req_name is None and existing_req and not
                     existing_req.constraint and
                     existing_req.extras == install_req.extras and not
-                    existing_req.req.specs == install_req.req.specs):
+                    existing_req.req.specifier == install_req.req.specifier):
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, existing_req, name))

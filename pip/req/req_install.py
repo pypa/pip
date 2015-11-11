@@ -17,6 +17,8 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.version import Version
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -44,7 +46,6 @@ from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
-from pip._vendor.packaging.version import Version
 
 
 logger = logging.getLogger(__name__)
@@ -73,8 +74,8 @@ class InstallRequirement(object):
         self.extras = ()
         if isinstance(req, six.string_types):
             try:
-                req = pkg_resources.Requirement.parse(req)
-            except pkg_resources.RequirementParseError:
+                req = Requirement(req)
+            except InvalidRequirement:
                 if os.path.sep in req:
                     add_msg = "It looks like a path. Does it exist ?"
                 elif '=' in req and not any(op in req for op in operators):
@@ -229,8 +230,7 @@ class InstallRequirement(object):
                   wheel_cache=wheel_cache, constraint=constraint)
 
         if extras:
-            res.extras = pkg_resources.Requirement.parse('__placeholder__' +
-                                                         extras).extras
+            res.extras = Requirement('placeholder' + extras).extras
 
         return res
 
@@ -361,7 +361,7 @@ class InstallRequirement(object):
     def name(self):
         if self.req is None:
             return None
-        return native_str(self.req.project_name)
+        return native_str(pkg_resources.safe_name(self.req.name))
 
     @property
     def setup_py_dir(self):
@@ -435,23 +435,24 @@ class InstallRequirement(object):
                 op = "=="
             else:
                 op = "==="
-            self.req = pkg_resources.Requirement.parse(
+            self.req = Requirement(
                 "".join([
                     self.pkg_info()["Name"],
                     op,
                     self.pkg_info()["Version"],
-                ]))
+                ])
+            )
             self._correct_build_location()
         else:
             metadata_name = canonicalize_name(self.pkg_info()["Name"])
-            if canonicalize_name(self.req.project_name) != metadata_name:
+            if canonicalize_name(self.req.name) != metadata_name:
                 logger.warning(
                     'Running setup.py (path:%s) egg_info for package %s '
                     'produced metadata for project name %s. Fix your '
                     '#egg=%s fragments.',
                     self.setup_py, self.name, metadata_name, self.name
                 )
-                self.req = pkg_resources.Requirement.parse(metadata_name)
+                self.req = Requirement(metadata_name)
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:
@@ -539,7 +540,7 @@ class InstallRequirement(object):
     def assert_source_matches_version(self):
         assert self.source_dir
         version = self.pkg_info()['version']
-        if version not in self.req:
+        if self.req.specifier and version not in self.req.specifier:
             logger.warning(
                 'Requested %s, but installing version %s',
                 self,
@@ -993,12 +994,12 @@ class InstallRequirement(object):
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(str(self.req))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(
-                self.req.project_name
+                self.req.name
             )
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
@@ -1135,9 +1136,7 @@ def parse_editable(editable_req, default_vcs=None):
             return (
                 package_name,
                 url_no_extras,
-                pkg_resources.Requirement.parse(
-                    '__placeholder__' + extras
-                ).extras,
+                Requirement("placeholder" + extras).extras,
             )
         else:
             return package_name, url_no_extras, None
