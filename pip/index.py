@@ -335,7 +335,9 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, urllib_parse.quote(project_name.lower()))
+            loc = posixpath.join(
+                url,
+                urllib_parse.quote(canonicalize_name(project_name)))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
