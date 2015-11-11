@@ -39,6 +39,7 @@ from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import Version
 
 
@@ -63,10 +64,8 @@ class InstallRequirement(object):
                  link=None, as_egg=False, update=True, editable_options=None,
                  pycompile=True, markers=None, isolated=False, options=None,
                  wheel_cache=None, constraint=False):
-        self.extras = ()
         if isinstance(req, six.string_types):
-            req = pkg_resources.Requirement.parse(req)
-            self.extras = req.extras
+            req = Requirement(req)
 
         self.req = req
         self.comes_from = comes_from
@@ -214,8 +213,7 @@ class InstallRequirement(object):
                   wheel_cache=wheel_cache, constraint=constraint)
 
         if extras:
-            res.extras = pkg_resources.Requirement.parse('__placeholder__' +
-                                                         extras).extras
+            res.extras = Requirement("placeholder" + extras).extras
 
         return res
 
@@ -260,6 +258,10 @@ class InstallRequirement(object):
             self.link = self._wheel_cache.cached_wheel(self.link, self.name)
             if old_link != self.link:
                 logger.debug('Using cached wheel link: %s', self.link)
+
+    @property
+    def extras(self):
+        return self.req.extras
 
     @property
     def specifier(self):
@@ -346,7 +348,7 @@ class InstallRequirement(object):
     def name(self):
         if self.req is None:
             return None
-        return native_str(self.req.project_name)
+        return native_str(self.req.name)
 
     @property
     def setup_py(self):
@@ -428,16 +430,17 @@ class InstallRequirement(object):
                 op = "=="
             else:
                 op = "==="
-            self.req = pkg_resources.Requirement.parse(
+            self.req = Requirement(
                 "".join([
                     self.pkg_info()["Name"],
                     op,
                     self.pkg_info()["Version"],
-                ]))
+                ])
+            )
             self._correct_build_location()
         else:
             metadata_name = canonicalize_name(self.pkg_info()["Name"])
-            if canonicalize_name(self.req.project_name) != metadata_name:
+            if canonicalize_name(self.req.name) != metadata_name:
                 raise InstallationError(
                     'Running setup.py (path:%s) egg_info for package %s '
                     'produced metadata for project name %s' % (
@@ -555,7 +558,7 @@ exec(compile(
     def assert_source_matches_version(self):
         assert self.source_dir
         version = self.pkg_info()['version']
-        if version not in self.req:
+        if version not in self.req.specifier:
             logger.warning(
                 'Requested %s, but installing version %s',
                 self,
@@ -984,12 +987,12 @@ exec(compile(
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(self.req)
+            self.satisfied_by = pkg_resources.get_distribution(str(self.req))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(
-                self.req.project_name
+                self.req.name
             )
             if self.use_user_site:
                 if dist_in_usersite(existing_dist):
@@ -1145,9 +1148,7 @@ def parse_editable(editable_req, default_vcs=None):
             return (
                 package_name,
                 url_no_extras,
-                pkg_resources.Requirement.parse(
-                    '__placeholder__' + extras
-                ).extras,
+                Requirement("placeholder" + extras).extras,
                 {},
             )
         else:

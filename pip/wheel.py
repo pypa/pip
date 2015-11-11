@@ -296,7 +296,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                         s.endswith('.dist-info') and
                         # is self.req.project_name case preserving?
                         s.lower().startswith(
-                            req.project_name.replace('-', '_').lower())):
+                            req.name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)
             for f in files:
