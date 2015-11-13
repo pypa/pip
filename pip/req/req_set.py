@@ -7,7 +7,6 @@ import os
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
-from pip._vendor.packaging.version import parse as parse_version
 
 from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
@@ -397,10 +396,9 @@ class RequirementSet(object):
                         req_to_install.name,
                         req_to_install.specifier,
                     )
-                    installed_version = parse_version(
-                        req_to_install.satisfied_by.version)
+                    installed_ver = req_to_install.satisfied_by.parsed_version
                     if (best_candidate is None or
-                            best_candidate.version <= installed_version):
+                            best_candidate.version <= installed_ver):
                         skip_reason = 'up-to-date'
                         best_installed = True
 
