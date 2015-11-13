@@ -15,6 +15,7 @@ from email.parser import FeedParser
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
+from pip._vendor.packaging import specifiers
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -44,6 +45,8 @@ from pip._vendor.packaging.version import Version
 
 logger = logging.getLogger(__name__)
 
+operators = specifiers.Specifier._operators.keys()
+
 
 def _strip_extras(path):
     m = re.match(r'^(.+)(\[[^\]]+\])$', path)
@@ -65,7 +68,17 @@ class InstallRequirement(object):
                  wheel_cache=None, constraint=False):
         self.extras = ()
         if isinstance(req, six.string_types):
-            req = pkg_resources.Requirement.parse(req)
+            try:
+                req = pkg_resources.Requirement.parse(req)
+            except pkg_resources.RequirementParseError:
+                if os.path.sep in req:
+                    add_msg = "It looks like a path. Does it exist ?"
+                elif '=' in req and not any(op in req for op in operators):
+                    add_msg = "= is not a valid operator. Did you mean == ?"
+                else:
+                    add_msg = traceback.format_exc()
+                raise InstallationError(
+                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
             self.extras = req.extras
 
         self.req = req

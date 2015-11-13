@@ -8,9 +8,8 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.commands.install import InstallCommand
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
-                            UnsupportedWheel)
+                            InstallationError, UnsupportedWheel, HashErrors)
 from pip.download import path_to_url, PipSession
-from pip.exceptions import HashErrors, InstallationError
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
 from pip.req.req_file import process_line
@@ -446,6 +445,27 @@ class TestInstallRequirement(object):
         assert len(req.extras) == 2
         assert req.extras[0] == 'ex1'
         assert req.extras[1] == 'ex2'
+
+    def test_unexisting_path(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line('/this/path/does/not/exist')
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "It looks like a path. Does it exist ?" in err_msg
+
+    def test_single_equal_sign(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line('toto=42')
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "= is not a valid operator. Did you mean == ?" in err_msg
+
+    def test_traceback(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line('toto 42')
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "\nTraceback " in err_msg
 
 
 def test_requirements_data_structure_keeps_order():

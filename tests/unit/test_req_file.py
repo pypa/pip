@@ -7,7 +7,7 @@ import pytest
 from pretend import stub
 
 import pip
-from pip.exceptions import (RequirementsFileParseError)
+from pip.exceptions import (InstallationError, RequirementsFileParseError)
 from pip.download import PipSession
 from pip.index import PackageFinder
 from pip.req.req_install import InstallRequirement
@@ -170,7 +170,7 @@ class TestProcessLine(object):
 
     def test_only_one_req_per_line(self):
         # pkg_resources raises the ValueError
-        with pytest.raises(ValueError):
+        with pytest.raises(InstallationError):
             list(process_line("req1 req2", "file", 1))
 
     def test_yield_line_requirement(self):
