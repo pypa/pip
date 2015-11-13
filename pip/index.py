@@ -29,8 +29,7 @@ from pip.download import HAS_TLS, url_to_path, path_to_url
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
-from pip._vendor import html5lib, requests, six
-from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor import html5lib, pkg_resources, requests, six
 from pip._vendor.requests.exceptions import SSLError
 
 
@@ -57,7 +56,7 @@ class InstallationCandidate(object):
 
     def __init__(self, project, version, location):
         self.project = project
-        self.version = parse_version(version)
+        self.version = pkg_resources.parse_version(version)
         self.location = location
         self._key = (self.project, self.version, self.location)
 
@@ -439,7 +438,7 @@ class PackageFinder(object):
 
         all_candidates = self._find_all_versions(project_name)
         all_versions = sorted(set(str(c.version) for c in all_candidates),
-                              key=parse_version)
+                              key=pkg_resources.parse_version)
         logger.debug("Found %d versions for %s: %s ",
                      len(all_versions), project_name,
                      ', '.join(all_versions) or 'none')

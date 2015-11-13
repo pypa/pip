@@ -16,7 +16,6 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
-from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -274,7 +273,7 @@ class InstallRequirement(object):
                 self.name, self.specifier)
 
             if self.satisfied_by is not None:
-                installed_version = parse_version(self.satisfied_by.version)
+                installed_version = self.satisfied_by.parsed_version
             else:
                 installed_version = None
 
