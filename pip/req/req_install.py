@@ -792,7 +792,8 @@ exec(compile(
         else:
             return True
 
-    def install(self, install_options, global_options=[], root=None):
+    def install(self, install_options, global_options=[], root=None,
+                prefix=None):
         if self.editable:
             self.install_editable(install_options, global_options)
             return
@@ -800,7 +801,7 @@ exec(compile(
             version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root)
+            self.move_wheel_files(self.source_dir, root=root, prefix=prefix)
             self.install_succeeded = True
             return
 
@@ -833,6 +834,8 @@ exec(compile(
 
             if root is not None:
                 install_args += ['--root', root]
+            if prefix is not None:
+                install_args += ['--prefix', prefix]
 
             if self.pycompile:
                 install_args += ["--compile"]
@@ -988,12 +991,13 @@ exec(compile(
     def is_wheel(self):
         return self.link and self.link.is_wheel
 
-    def move_wheel_files(self, wheeldir, root=None):
+    def move_wheel_files(self, wheeldir, root=None, prefix=None):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=self.use_user_site,
             home=self.target_dir,
             root=root,
+            prefix=prefix,
             pycompile=self.pycompile,
             isolated=self.isolated,
         )

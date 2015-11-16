@@ -139,6 +139,14 @@ class InstallCommand(RequirementCommand):
                  "directory.")
 
         cmd_opts.add_option(
+            '--prefix',
+            dest='prefix_path',
+            metavar='dir',
+            default=None,
+            help="Installation prefix where lib, bin and other top-level "
+                 "folders are placed")
+
+        cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -309,6 +317,7 @@ class InstallCommand(RequirementCommand):
                             install_options,
                             global_options,
                             root=options.root_path,
+                            prefix=options.prefix_path,
                         )
                         reqs = sorted(
                             requirement_set.successfully_installed,
