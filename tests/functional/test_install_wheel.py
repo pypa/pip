@@ -1,4 +1,5 @@
 import os
+import sys
 import pytest
 import glob
 
@@ -125,6 +126,22 @@ def test_install_wheel_with_root(script, data):
         '--no-index', '--find-links=' + data.find_links,
     )
     assert Path('scratch') / 'root' in result.files_created
+
+
+def test_install_wheel_with_prefix(script, data):
+    """
+    Test installing a wheel using pip install --prefix
+    """
+    prefix_dir = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', 'simple.dist==0.1', '--prefix', prefix_dir,
+        '--no-index', '--find-links=' + data.find_links,
+    )
+    if hasattr(sys, "pypy_version_info"):
+        lib = Path('scratch') / 'prefix' / 'site-packages'
+    else:
+        lib = Path('scratch') / 'prefix' / 'lib'
+    assert lib in result.files_created
 
 
 def test_install_from_wheel_installs_deps(script, data):

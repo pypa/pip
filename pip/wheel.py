@@ -234,12 +234,13 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None, isolated=False):
+                     pycompile=True, scheme=None, isolated=False, prefix=None):
     """Install a wheel"""
 
     if not scheme:
         scheme = distutils_scheme(
-            name, user=user, home=home, root=root, isolated=isolated
+            name, user=user, home=home, root=root, isolated=isolated,
+            prefix=prefix,
         )
 
     if root_is_purelib(name, wheeldir):
