@@ -277,43 +277,41 @@ class InstallRequirement(object):
             else:
                 installed_version = None
 
-            if installed_version is None and best_candidate is None:
-                logger.critical(
-                    'Could not find a version that satisfies the requirement '
-                    '%s', self
-                )
+            if installed_version is None:
+                if best_candidate is None:
+                    logger.critical(
+                        'Could not find a version that satisfies the '
+                        'requirement %s', self
+                    )
 
-                raise DistributionNotFound(
-                    'No matching distribution found for %s' % self
-                )
-
-            best_installed = False
-            if installed_version and (
-                    best_candidate is None or
-                    best_candidate.version <= installed_version):
-                best_installed = True
-
-            if not upgrade and installed_version is not None:
-                if best_installed:
+                    raise DistributionNotFound(
+                        'No matching distribution found for %s' % self
+                    )
+                else:
+                    logger.debug('Using version %s', best_candidate.version)
+                    self.link = best_candidate.location
+            else:  # installed_version is not None
+                if (best_candidate is None or
+                        best_candidate.version <= installed_version):
                     logger.debug(
                         'Existing installed version (%s) is most up-to-date '
                         'and satisfies requirement',
                         installed_version,
                     )
-                else:
+                elif not upgrade:
                     logger.debug(
                         'Existing installed version (%s) satisfies '
                         'requirement (most up-to-date version is %s)',
                         installed_version,
                         best_candidate.version,
                     )
-                self.link = None
-            else:
-                logger.debug(
-                    'Using version %s',
-                    best_candidate.version,
-                )
-                self.link = best_candidate.location
+                    self.link = None
+                else:
+                    logger.debug(
+                        'Using version %s',
+                        best_candidate.version,
+                    )
+                    self.link = best_candidate.location
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
             self.link = self._wheel_cache.cached_wheel(self.link, self.name)
