@@ -11,6 +11,7 @@ from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
 from pip.compat import WINDOWS
+from pip.exceptions import InstallationError
 from pip.utils import appdirs
 
 
@@ -184,11 +185,13 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
+    if user and prefix:
+        raise InstallationError(
+            "Can not combine '--user' and '--prefix' as they imply different "
+            "installation locations"
+        )
     i.user = user or i.user
-    if user:
-        i.prefix = ""
-    else:
-        i.prefix = prefix or i.prefix
+    i.prefix = prefix or i.prefix
     i.home = home or i.home
     i.root = root or i.root
     i.finalize_options()
