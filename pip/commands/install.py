@@ -215,6 +215,11 @@ class InstallCommand(RequirementCommand):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            if options.prefix_path:
+                raise CommandError(
+                    "Can not combine '--user' and '--prefix' as they imply "
+                    "different installation locations"
+                )
             if virtualenv_no_global():
                 raise InstallationError(
                     "Can not perform a '--user' install. User site-packages "

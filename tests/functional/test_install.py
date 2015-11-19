@@ -1,5 +1,6 @@
 
 import os
+import sys
 import textwrap
 import glob
 
@@ -484,6 +485,41 @@ def test_install_package_with_root(script, data):
         normal_install_path
     )
     assert root_path in result.files_created, str(result)
+
+
+def test_install_package_with_prefix(script, data):
+    """
+    Test installing a package using pip install --prefix
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--prefix', prefix_path, '-f', data.find_links,
+        '--no-index', 'simple==1.0',
+    )
+
+    if hasattr(sys, "pypy_version_info"):
+        path = script.scratch / 'prefix'
+    else:
+        path = script.scratch / 'prefix' / 'lib' / 'python{0}'.format(pyversion)  # noqa
+    install_path = (
+        path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
+    )
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_package_conflict_prefix_and_user(script, data):
+    """
+    Test installing a package using pip install --prefix --user errors out
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--user',
+        '--prefix', prefix_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--user' and '--prefix'" in result.stderr
+    )
 
 
 # skip on win/py3 for now, see issue #782
