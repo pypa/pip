@@ -139,10 +139,9 @@ def test_freeze_git_clone(script, tmpdir):
     # Create a new commit to ensure that the commit has only one branch
     # or tag name associated to it (to avoid the non-determinism reported
     # in issue #1867).
-    script.run(
-        'git', 'revert', '--no-edit', 'HEAD',
-        cwd=repo_dir,
-    )
+    script.run('touch', 'newfile', cwd=repo_dir)
+    script.run('git', 'add', 'newfile', cwd=repo_dir)
+    script.run('git', 'commit', '-m', '...', cwd=repo_dir)
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
