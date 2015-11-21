@@ -71,6 +71,10 @@
 * Gives VCS implementations control over saying whether a project 
   is under their control (:pull:`3258`)
 
+* Git detection now works when ``setup.py`` is not at the Git repo root
+  and when ``package_dir`` is used, so ``pip freeze`` works in more
+  cases (:pull:`3258`)
+
 
 **7.1.2 (2015-08-22)**
 

@@ -622,7 +622,7 @@ def remove_tracebacks(output):
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     raise_on_returncode=True,
                     command_level=std_logging.DEBUG, command_desc=None,
-                    extra_environ=None, spinner=None):
+                    extra_environ=None, spinner=None, warn_on_returncode=True):
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -674,10 +674,11 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
         else:
-            logger.warning(
-                'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
-            )
+            if warn_on_returncode:
+                logger.warning(
+                    'Command "%s" had error code %s in %s',
+                    command_desc, proc.returncode, cwd,
+                )
     if not show_stdout:
         return remove_tracebacks(''.join(all_output))
 
