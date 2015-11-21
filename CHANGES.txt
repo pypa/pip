@@ -68,6 +68,9 @@
 * Allow combination of pip list options --editable with --outdated/--updtodate.
   (:issue:`933`)
 
+* Gives VCS implementations control over saying whether a project 
+  is under their control (:pull:`3258`)
+
 
 **7.1.2 (2015-08-22)**
 
