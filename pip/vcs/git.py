@@ -4,6 +4,7 @@ import logging
 import tempfile
 import os.path
 
+from pip.exceptions import BadCommand
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -239,5 +240,20 @@ class Git(VersionControl):
             ['submodule', 'update', '--init', '--recursive', '-q'],
             cwd=location,
         )
+
+    @classmethod
+    def controls_location(cls, location):
+        if super(Git, cls).controls_location(location):
+            return True
+        try:
+            r = Git().run_command(['rev-parse'],
+                                  cwd=location,
+                                  show_stdout=False,
+                                  raise_on_returncode=False,
+                                  warn_on_returncode=False)
+            return not r
+        except BadCommand:
+            return False
+
 
 vcs.register(Git)
