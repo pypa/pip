@@ -4,7 +4,7 @@ import textwrap
 import pytest
 from doctest import OutputChecker, ELLIPSIS
 
-from tests.lib import _create_test_package
+from tests.lib import _create_test_package, _create_test_package_with_srcdir
 
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -150,6 +150,53 @@ def test_freeze_git_clone(script, tmpdir):
             ...-e ...@...#egg=version_pkg-branch_name_with_slash...
             ...
         """
+    ).strip()
+    _check_output(result, expected)
+
+
+@pytest.mark.git
+def test_freeze_git_clone_srcdir(script, tmpdir):
+    """
+    Test freezing a Git clone where setup.py is in a subdirectory
+    relative the repo root and the source code is in a subdirectory
+    relative to setup.py.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package_with_srcdir(script)
+
+    result = script.run(
+        'git', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir / 'subdir',
+        expect_stderr=True,
+    )
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            Script result: ...pip freeze
+            -- stdout: --------------------
+            ...-e git+...#egg=version_pkg-master&subdirectory=subdir
+            ...
+        """
+    ).strip()
+    _check_output(result, expected)
+
+    result = script.pip(
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
+        expect_stderr=True,
+    )
+    expected = textwrap.dedent(
+        """
+            Script result: pip freeze -f %(repo)s#egg=pip_test_package
+            -- stdout: --------------------
+            -f %(repo)s#egg=pip_test_package...
+            -e git+...#egg=version_pkg-master&subdirectory=subdir
+            ...
+        """ % {'repo': repo_dir},
     ).strip()
     _check_output(result, expected)
 
