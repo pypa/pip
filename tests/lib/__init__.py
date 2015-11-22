@@ -469,6 +469,28 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
+def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
+    script.scratch_path.join(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    subdir_path = version_pkg_path.join('subdir')
+    subdir_path.mkdir()
+    src_path = subdir_path.join('src')
+    src_path.mkdir()
+    pkg_path = src_path.join('pkg')
+    pkg_path.mkdir()
+    pkg_path.join('__init__.py').write('')
+    subdir_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup, find_packages
+        setup(
+            name='{name}',
+            version='0.1',
+            packages=find_packages(),
+            package_dir={{'': 'src'}},
+        )
+    """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
+
+
 def _create_test_package(script, name='version_pkg', vcs='git'):
     script.scratch_path.join(name).mkdir()
     version_pkg_path = script.scratch_path / name
