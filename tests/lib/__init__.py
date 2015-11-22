@@ -486,6 +486,10 @@ def _create_test_package(script, name='version_pkg', vcs='git'):
             entry_points=dict(console_scripts=['{name}={name}:main'])
         )
     """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
+
+
+def _vcs_add(script, version_pkg_path, vcs='git'):
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
