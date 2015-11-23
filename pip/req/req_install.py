@@ -795,7 +795,8 @@ exec(compile(
     def install(self, install_options, global_options=[], root=None,
                 prefix=None):
         if self.editable:
-            self.install_editable(install_options, global_options)
+            self.install_editable(
+                install_options, global_options, prefix=prefix)
             return
         if self.is_wheel:
             version = pip.wheel.wheel_version(self.source_dir)
@@ -929,11 +930,16 @@ exec(compile(
             rmtree(self._temp_build_dir)
         self._temp_build_dir = None
 
-    def install_editable(self, install_options, global_options=()):
+    def install_editable(self, install_options,
+                         global_options=(), prefix=None):
         logger.info('Running setup.py develop for %s', self.name)
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
+
+        if prefix:
+            prefix_param = ['--prefix={0}'.format(prefix)]
+            install_options = list(install_options) + prefix_param
 
         with indent_log():
             # FIXME: should we do --install-headers here too?

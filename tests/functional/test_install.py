@@ -494,7 +494,7 @@ def test_install_package_with_prefix(script, data):
     prefix_path = script.scratch_path / 'prefix'
     result = script.pip(
         'install', '--prefix', prefix_path, '-f', data.find_links,
-        '--no-index', 'simple==1.0',
+        '--no-binary', 'simple', '--no-index', 'simple==1.0',
     )
 
     if hasattr(sys, "pypy_version_info"):
@@ -504,6 +504,34 @@ def test_install_package_with_prefix(script, data):
     install_path = (
         path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
     )
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_editable_with_prefix(script):
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+
+    site_packages = os.path.join(
+        'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+
+    # make sure target path is in PYTHONPATH
+    pythonpath = script.scratch_path / site_packages
+    pythonpath.makedirs()
+    script.environ["PYTHONPATH"] = pythonpath
+
+    # install pkga package into the absolute prefix directory
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--editable', pkga_path, '--prefix', prefix_path)
+
+    # assert pkga is installed at correct location
+    install_path = script.scratch / site_packages / 'pkga.egg-link'
     assert install_path in result.files_created, str(result)
 
 
