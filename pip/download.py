@@ -28,7 +28,8 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
+                       ARCHIVE_EXTENSIONS, consume, call_subprocess,
+                       SETUPTOOLS_SHIM)
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
@@ -725,10 +726,7 @@ def _copy_dist_from_dir(link_path, location):
     setup_py = 'setup.py'
     sdist_args = [sys.executable]
     sdist_args.append('-c')
-    sdist_args.append(
-        "import setuptools, tokenize;__file__=%r;"
-        "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
-        ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % setup_py)
+    sdist_args.append(SETUPTOOLS_SHIM % setup_py)
     sdist_args.append('sdist')
     sdist_args += ['--dist-dir', location]
     logger.info('Running setup.py sdist for %s', link_path)

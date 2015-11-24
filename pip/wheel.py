@@ -32,7 +32,7 @@ from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
     call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name,
-    read_chunks)
+    read_chunks, SETUPTOOLS_SHIM)
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -688,9 +688,7 @@ class WheelBuilder(object):
     def _base_setup_args(self, req):
         return [
             sys.executable, "-u", '-c',
-            "import setuptools;__file__=%r;"
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
-            "__file__, 'exec'))" % req.setup_py
+            SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
     def __build_one(self, req, tempd, python_tag=None):
