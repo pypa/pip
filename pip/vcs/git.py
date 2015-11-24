@@ -277,7 +277,7 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = Git().run_command(['rev-parse'],
+            r = cls().run_command(['rev-parse'],
                                   cwd=location,
                                   show_stdout=False,
                                   raise_on_returncode=False,
