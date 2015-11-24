@@ -1,6 +1,12 @@
 language: python
 
 
+# Test on Ubuntu Trusty using the GCE virtualization machines. These machines
+# have more memory and start faster than the legacy infrastructure.
+dist: trusty
+group: edge
+
+
 matrix:
     include:
         - python: 2.6 # these are just to make travis's UI a bit prettier
