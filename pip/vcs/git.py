@@ -284,6 +284,8 @@ class Git(VersionControl):
                                   warn_on_returncode=False)
             return not r
         except BadCommand:
+            logger.debug("could not determine if %s is under git control "
+                         "because git is not available", location)
             return False
 
 
