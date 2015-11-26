@@ -151,3 +151,12 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
 
     # Then I see that the error code is the right one
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
+
+
+def test_wheel_package_with_latin1_setup(script, data):
+    """Create a wheel from a package with latin-1 encoded setup.py."""
+    script.pip('install', 'wheel')
+
+    pkg_to_wheel = data.packages.join("SetupPyLatin1")
+    result = script.pip('wheel', pkg_to_wheel)
+    assert 'Successfully built SetupPyUTF8' in result.stdout
