@@ -3,5 +3,5 @@
 from distutils.core import setup
 
 setup(name="SetupPyUTF8",
-      author="Saúl Ibarra Corretgé",
+      author=u"Saúl Ibarra Corretgé",
       )

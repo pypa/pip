@@ -60,6 +60,9 @@
 * Add a new ``--prefix`` option for ``pip install`` that supports wheels and
   sdists. (:pull:`3252`)
 
+* Fixed :issue:`2042` regarding wheel building with setup.py using a different
+  encoding than the system.
+
 
 **7.1.2 (2015-08-22)**
 

@@ -35,6 +35,7 @@ from pip.utils import (
     read_chunks)
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import configparser
@@ -688,9 +689,7 @@ class WheelBuilder(object):
     def _base_setup_args(self, req):
         return [
             sys.executable, "-u", '-c',
-            "import setuptools;__file__=%r;"
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
-            "__file__, 'exec'))" % req.setup_py
+            SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
     def __build_one(self, req, tempd, python_tag=None):
