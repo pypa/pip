@@ -274,7 +274,7 @@ class Subversion(VersionControl):
         # parsed url
         purl = urllib_parse.urlsplit(url)
         stripped_netloc = \
-            purl.netloc.split('@')[-1] if '@' in purl.netloc else purl.netloc
+            purl.netloc.split('@')[-1]
 
         # stripped url
         url_pieces = (
