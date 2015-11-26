@@ -57,6 +57,9 @@
   than what Python itself was compiled against when running on a newer version
   of OSX.
 
+* Add a new ``--prefix`` option for ``pip install`` that supports wheels and
+  sdists. (:pull:`3252`)
+
 
 **7.1.2 (2015-08-22)**
 
