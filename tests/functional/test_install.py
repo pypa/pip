@@ -1,4 +1,5 @@
 import os
+import sys
 import textwrap
 import glob
 
@@ -548,6 +549,69 @@ def test_install_package_with_root(script, data):
         normal_install_path
     )
     assert root_path in result.files_created, str(result)
+
+
+def test_install_package_with_prefix(script, data):
+    """
+    Test installing a package using pip install --prefix
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--prefix', prefix_path, '-f', data.find_links,
+        '--no-binary', 'simple', '--no-index', 'simple==1.0',
+    )
+
+    if hasattr(sys, "pypy_version_info"):
+        path = script.scratch / 'prefix'
+    else:
+        path = script.scratch / 'prefix' / 'lib' / 'python{0}'.format(pyversion)  # noqa
+    install_path = (
+        path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
+    )
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_editable_with_prefix(script):
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+
+    site_packages = os.path.join(
+        'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+
+    # make sure target path is in PYTHONPATH
+    pythonpath = script.scratch_path / site_packages
+    pythonpath.makedirs()
+    script.environ["PYTHONPATH"] = pythonpath
+
+    # install pkga package into the absolute prefix directory
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--editable', pkga_path, '--prefix', prefix_path)
+
+    # assert pkga is installed at correct location
+    install_path = script.scratch / site_packages / 'pkga.egg-link'
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_package_conflict_prefix_and_user(script, data):
+    """
+    Test installing a package using pip install --prefix --user errors out
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--user',
+        '--prefix', prefix_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--user' and '--prefix'" in result.stderr
+    )
 
 
 # skip on win/py3 for now, see issue #782

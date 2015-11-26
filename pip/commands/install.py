@@ -137,6 +137,14 @@ class InstallCommand(RequirementCommand):
                  "directory.")
 
         cmd_opts.add_option(
+            '--prefix',
+            dest='prefix_path',
+            metavar='dir',
+            default=None,
+            help="Installation prefix where lib, bin and other top-level "
+                 "folders are placed")
+
+        cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -210,6 +218,11 @@ class InstallCommand(RequirementCommand):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            if options.prefix_path:
+                raise CommandError(
+                    "Can not combine '--user' and '--prefix' as they imply "
+                    "different installation locations"
+                )
             if virtualenv_no_global():
                 raise InstallationError(
                     "Can not perform a '--user' install. User site-packages "
@@ -301,6 +314,7 @@ class InstallCommand(RequirementCommand):
                             install_options,
                             global_options,
                             root=options.root_path,
+                            prefix=options.prefix_path,
                         )
                         reqs = sorted(
                             requirement_set.successfully_installed,

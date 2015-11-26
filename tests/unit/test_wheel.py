@@ -440,6 +440,20 @@ class TestMoveWheelFiles(object):
             self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
 
+    def test_install_prefix(self, data, tmpdir):
+        prefix = os.path.join(os.path.sep, 'some', 'path')
+        self.prep(data, tmpdir)
+        wheel.move_wheel_files(
+            self.name,
+            self.req,
+            self.src,
+            root=tmpdir,
+            prefix=prefix,
+        )
+
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'bin'))
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'my_data'))
+
     def test_dist_info_contains_empty_dir(self, data, tmpdir):
         """
         Test that empty dirs are not installed

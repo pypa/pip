@@ -824,15 +824,17 @@ exec(compile(
         else:
             return True
 
-    def install(self, install_options, global_options=[], root=None):
+    def install(self, install_options, global_options=[], root=None,
+                prefix=None):
         if self.editable:
-            self.install_editable(install_options, global_options)
+            self.install_editable(
+                install_options, global_options, prefix=prefix)
             return
         if self.is_wheel:
             version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root)
+            self.move_wheel_files(self.source_dir, root=root, prefix=prefix)
             self.install_succeeded = True
             return
 
@@ -865,6 +867,8 @@ exec(compile(
 
             if root is not None:
                 install_args += ['--root', root]
+            if prefix is not None:
+                install_args += ['--prefix', prefix]
 
             if self.pycompile:
                 install_args += ["--compile"]
@@ -960,11 +964,16 @@ exec(compile(
             rmtree(self._temp_build_dir)
         self._temp_build_dir = None
 
-    def install_editable(self, install_options, global_options=()):
+    def install_editable(self, install_options,
+                         global_options=(), prefix=None):
         logger.info('Running setup.py develop for %s', self.name)
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
+
+        if prefix:
+            prefix_param = ['--prefix={0}'.format(prefix)]
+            install_options = list(install_options) + prefix_param
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
@@ -1022,12 +1031,13 @@ exec(compile(
     def is_wheel(self):
         return self.link and self.link.is_wheel
 
-    def move_wheel_files(self, wheeldir, root=None):
+    def move_wheel_files(self, wheeldir, root=None, prefix=None):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=self.use_user_site,
             home=self.target_dir,
             root=root,
+            prefix=prefix,
             pycompile=self.pycompile,
             isolated=self.isolated,
         )

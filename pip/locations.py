@@ -154,7 +154,7 @@ site_config_files = [
 
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,
-                     isolated=False):
+                     isolated=False, prefix=None):
     """
     Return a distutils install scheme
     """
@@ -175,9 +175,9 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
+    assert not (user and prefix), "Got user and prefix {}".format(user, prefix)
     i.user = user or i.user
-    if user:
-        i.prefix = ""
+    i.prefix = prefix or i.prefix
     i.home = home or i.home
     i.root = root or i.root
     i.finalize_options()
