@@ -408,7 +408,7 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            script = self._run_setup_py % self.setup_py
+            script = SETUPTOOLS_SHIM % self.setup_py
             base_cmd = [sys.executable, '-c', script]
             if self.isolated:
                 base_cmd += ["--no-user-cfg"]
@@ -455,24 +455,6 @@ class InstallRequirement(object):
                     'produced metadata for project name %s' % (
                         self.setup_py, self.name, metadata_name)
                 )
-
-    # FIXME: This is a lame hack, entirely for PasteScript which has
-    # a self-provided entry point that causes this awkwardness
-    _run_setup_py = """
-from setuptools.command import egg_info
-import pkg_resources
-import os
-def replacement_run(self):
-    self.mkpath(self.egg_info)
-    installer = self.distribution.fetch_build_egg
-    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
-        # require=False is the change we're making:
-        writer = ep.load(require=False)
-        if writer:
-            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
-    self.find_sources()
-egg_info.egg_info.run = replacement_run
-""" + SETUPTOOLS_SHIM
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:
