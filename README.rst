@@ -2,7 +2,7 @@ pip
 ===
 
 The `PyPA recommended
-<https://python-packaging-user-guide.readthedocs.org/en/latest/current.html>`_
+<https://packaging.python.org/en/latest/current/>`_
 tool for installing Python packages.
 
 * `Installation <https://pip.pypa.io/en/stable/installing.html>`_
