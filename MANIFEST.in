@@ -8,6 +8,7 @@ include pip/_vendor/vendor.txt
 exclude .coveragerc
 exclude .mailmap
 exclude .travis.yml
+exclude .landscape.yml
 exclude pip/_vendor/Makefile
 exclude tox.ini
 exclude dev-requirements.txt
