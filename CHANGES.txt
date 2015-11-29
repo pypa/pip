@@ -63,6 +63,8 @@
 * Fixed :issue:`2042` regarding wheel building with setup.py using a different
   encoding than the system.
 
+* Drop PasteScript specific egg_info hack. (:pull:`3270`)
+
 
 **7.1.2 (2015-08-22)**
 
