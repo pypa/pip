@@ -890,9 +890,9 @@ def test_install_builds_wheels(script, data):
     # Must have installed it all
     assert expected in str(res), str(res)
     root = appdirs.user_cache_dir('pip')
-    wheels = []
+    files_in_cache = []
     for top, dirs, files in os.walk(os.path.join(root, "wheels")):
-        wheels.extend(files)
+        files_in_cache.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
     assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
@@ -900,7 +900,7 @@ def test_install_builds_wheels(script, data):
     assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
-    assert wheels != [], str(res)
+    assert files_in_cache != [], str(res)
     # and installed from the wheel
     assert "Running setup.py install for upper" not in str(res), str(res)
     # the local tree can't build a wheel (because we can't assume that every
@@ -909,8 +909,9 @@ def test_install_builds_wheels(script, data):
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
     # We want to make sure we used the correct implementation tag
-    assert wheels == [
+    assert files_in_cache == [
         "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+        "link",
     ]
 
 
