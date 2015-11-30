@@ -107,6 +107,7 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_linux_override(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
+        monkeypatch.setattr(os, "pathsep", ':')
         monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
         monkeypatch.setattr(sys, "platform", "linux2")
 
