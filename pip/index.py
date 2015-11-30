@@ -794,21 +794,20 @@ class HTMLPage(object):
 
             inst = cls(resp.content, resp.url, resp.headers)
         except requests.HTTPError as exc:
-            level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(link, exc, url, level=level)
+            cls._handle_fail(link, exc, url)
+        except SSLError as exc:
+            reason = ("There was a problem confirming the ssl certificate: "
+                      "%s" % exc)
+            cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
         except requests.Timeout:
             cls._handle_fail(link, "timed out", url)
-        except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
-            cls._handle_fail(link, reason, url, level=2, meth=logger.info)
         else:
             return inst
 
     @staticmethod
-    def _handle_fail(link, reason, url, level=1, meth=None):
+    def _handle_fail(link, reason, url, meth=None):
         if meth is None:
             meth = logger.debug
 
