@@ -8,7 +8,7 @@ import shutil
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip.exceptions import BadCommand
+from pip.exceptions import BadCommand, InstallationError
 from pip.utils import (display_path, backup_dir, call_subprocess,
                        rmtree, ask_path_exists)
 
@@ -330,6 +330,18 @@ class VersionControl(object):
                 raise BadCommand('Cannot find command %r' % self.name)
             else:
                 raise  # re-raise exception if a different error occured
+
+
+def get_dist_editable_requirement(dist, find_tags=False):
+    location = os.path.normcase(os.path.abspath(dist.location))
+    if vcs.get_backend_name(location):
+        try:
+            return get_src_requirement(dist, location, find_tags)
+        except InstallationError as exc:
+            logger.warning(
+                "Error when trying to get requirement for VCS system %s", exc
+            )
+    return None
 
 
 def get_src_requirement(dist, location, find_tags):

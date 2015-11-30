@@ -7,9 +7,8 @@ import optparse
 import warnings
 
 import sys
-import re
 
-from pip.exceptions import InstallationError, CommandError, PipError
+from pip.exceptions import CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
@@ -226,89 +225,23 @@ class FrozenRequirement(object):
         self.name = name
         self.req = req
         self.editable = editable
-        self.comments = comments
-
-    _rev_re = re.compile(r'-r(\d+)$')
-    _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
     @classmethod
     def from_dist(cls, dist, dependency_links, find_tags=False):
-        location = os.path.normcase(os.path.abspath(dist.location))
-        comments = []
-        from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        from pip.vcs import get_dist_editable_requirement
+        req = get_dist_editable_requirement(dist, find_tags)
+        if req is not None:
             editable = True
-            try:
-                req = get_src_requirement(dist, location, find_tags)
-            except InstallationError as exc:
-                logger.warning(
-                    "Error when trying to get requirement for VCS system %s, "
-                    "falling back to uneditable format", exc
-                )
-                req = None
-            if req is None:
-                logger.warning(
-                    'Could not determine repository location of %s', location
-                )
-                comments.append(
-                    '## !! Could not determine repository location'
-                )
-                req = dist.as_requirement()
-                editable = False
         else:
             editable = False
             req = dist.as_requirement()
-            specs = req.specs
-            assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
-                'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
-                (specs, dist)
-            version = specs[0][1]
-            ver_match = cls._rev_re.search(version)
-            date_match = cls._date_re.search(version)
-            if ver_match or date_match:
-                svn_backend = vcs.get_backend('svn')
-                if svn_backend:
-                    svn_location = svn_backend().get_location(
-                        dist,
-                        dependency_links,
-                    )
-                if not svn_location:
-                    logger.warning(
-                        'Warning: cannot find svn location for %s', req)
-                    comments.append(
-                        '## FIXME: could not find svn URL in dependency_links '
-                        'for this package:'
-                    )
-                else:
-                    comments.append(
-                        '# Installing as editable to satisfy requirement %s:' %
-                        req
-                    )
-                    if ver_match:
-                        rev = ver_match.group(1)
-                    else:
-                        rev = '{%s}' % date_match.group(1)
-                    editable = True
-                    req = '%s@%s#egg=%s' % (
-                        svn_location,
-                        rev,
-                        cls.egg_name(dist)
-                    )
-        return cls(dist.project_name, req, editable, comments)
-
-    @staticmethod
-    def egg_name(dist):
-        name = dist.egg_name()
-        match = re.search(r'-py\d\.\d$', name)
-        if match:
-            name = name[:match.start()]
-        return name
+        return cls(dist.project_name, req, editable)
 
     def __str__(self):
         req = self.req
         if self.editable:
             req = '-e %s' % req
-        return '\n'.join(list(self.comments) + [str(req)]) + '\n'
+        return '%s\n' % req
 
 
 if __name__ == '__main__':
