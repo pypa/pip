@@ -1,3 +1,6 @@
+import ntpath
+import os
+import posixpath
 import sys
 
 import pretend
@@ -19,13 +22,15 @@ class TestUserCacheDir:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
-        assert (appdirs.user_cache_dir("pip").replace("/", "\\") ==
+        assert (appdirs.user_cache_dir("pip") ==
                 "C:\\Users\\test\\AppData\\Local\\pip\\Cache")
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_cache_dir_osx(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -33,6 +38,7 @@ class TestUserCacheDir:
 
     def test_user_cache_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.delenv("XDG_CACHE_HOME")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -41,6 +47,7 @@ class TestUserCacheDir:
 
     def test_user_cache_dir_linux_override(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("XDG_CACHE_HOME", "/home/test/.other-cache")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -49,6 +56,7 @@ class TestUserCacheDir:
 
     def test_user_cache_dir_linux_home_slash(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
         monkeypatch.delenv("XDG_CACHE_HOME")
         monkeypatch.setenv("HOME", "/")
@@ -71,16 +79,14 @@ class TestSiteConfigDirs:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
-        result = [
-            e.replace("/", "\\")
-            for e in appdirs.site_config_dirs("pip")
-        ]
-        assert result == ["C:\\ProgramData\\pip"]
+        assert appdirs.site_config_dirs("pip") == ["C:\\ProgramData\\pip"]
         assert _get_win_folder.calls == [pretend.call("CSIDL_COMMON_APPDATA")]
 
     def test_site_config_dirs_osx(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -89,6 +95,7 @@ class TestSiteConfigDirs:
 
     def test_site_config_dirs_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.delenv("XDG_CONFIG_DIRS")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -99,6 +106,7 @@ class TestSiteConfigDirs:
 
     def test_site_config_dirs_linux_override(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -124,8 +132,9 @@ class TestUserDataDir:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
-        assert (appdirs.user_data_dir("pip").replace("/", "\\") ==
+        assert (appdirs.user_data_dir("pip") ==
                 "C:\\Users\\test\\AppData\\Local\\pip")
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
 
@@ -141,15 +150,17 @@ class TestUserDataDir:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
         assert (
-            appdirs.user_data_dir("pip", roaming=True).replace("/", "\\") ==
+            appdirs.user_data_dir("pip", roaming=True) ==
             "C:\\Users\\test\\AppData\\Roaming\\pip"
         )
         assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
 
     def test_user_data_dir_osx(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -158,6 +169,7 @@ class TestUserDataDir:
 
     def test_user_data_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.delenv("XDG_DATA_HOME")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -166,6 +178,7 @@ class TestUserDataDir:
 
     def test_user_data_dir_linux_override(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("XDG_DATA_HOME", "/home/test/.other-share")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -174,6 +187,7 @@ class TestUserDataDir:
 
     def test_user_data_dir_linux_home_slash(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
         monkeypatch.delenv("XDG_DATA_HOME")
         monkeypatch.setenv("HOME", "/")
@@ -196,9 +210,10 @@ class TestUserConfigDir:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
         assert (
-            appdirs.user_config_dir("pip", roaming=False).replace("/", "\\") ==
+            appdirs.user_config_dir("pip", roaming=False) ==
             "C:\\Users\\test\\AppData\\Local\\pip"
         )
         assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
@@ -215,13 +230,15 @@ class TestUserConfigDir:
             raising=False,
         )
         monkeypatch.setattr(appdirs, "WINDOWS", True)
+        monkeypatch.setattr(os, "path", ntpath)
 
-        assert (appdirs.user_config_dir("pip").replace("/", "\\") ==
+        assert (appdirs.user_config_dir("pip") ==
                 "C:\\Users\\test\\AppData\\Roaming\\pip")
         assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
 
     def test_user_config_dir_osx(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -230,6 +247,7 @@ class TestUserConfigDir:
 
     def test_user_config_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.delenv("XDG_CONFIG_HOME")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -238,6 +256,7 @@ class TestUserConfigDir:
 
     def test_user_config_dir_linux_override(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setenv("XDG_CONFIG_HOME", "/home/test/.other-config")
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
@@ -246,6 +265,7 @@ class TestUserConfigDir:
 
     def test_user_config_dir_linux_home_slash(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
+        monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
         monkeypatch.delenv("XDG_CONFIG_HOME")
         monkeypatch.setenv("HOME", "/")
