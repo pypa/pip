@@ -307,10 +307,11 @@ def dist_in_site_packages(dist):
 
 def dist_is_editable(dist):
     """Is distribution an editable install?"""
-    # TODO: factor out determining editableness out of FrozenRequirement
-    from pip import FrozenRequirement
-    req = FrozenRequirement.from_dist(dist, [])
-    return req.editable
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
+        if os.path.isfile(egg_link):
+            return True
+    return False
 
 
 def get_installed_distributions(local_only=True,
