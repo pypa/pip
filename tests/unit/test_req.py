@@ -452,7 +452,8 @@ class TestInstallRequirement(object):
 
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line('/this/path/does/not/exist')
+            InstallRequirement.from_line(
+                os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "It looks like a path. Does it exist ?" in err_msg
