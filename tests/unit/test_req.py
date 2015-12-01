@@ -161,6 +161,9 @@ class TestRequirementSet(object):
                 'file',
                 2))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        sep = os.path.sep
+        if sep == '\\':
+            sep = '\\\\'  # This needs to be escaped for the regex
         assert_raises_regexp(
             HashErrors,
             r"Can't verify hashes for these requirements because we don't "
@@ -169,7 +172,8 @@ class TestRequirementSet(object):
             r"\(line 1\)\)\n"
             r"Can't verify hashes for these file:// requirements because they "
             r"point to directories:\n"
-            r"    file:///.*/data/packages/FSPkg \(from -r file \(line 2\)\)",
+            r"    file://.*{sep}data{sep}packages{sep}FSPkg "
+            "\(from -r file \(line 2\)\)".format(sep=sep),
             reqset.prepare_files,
             finder)
 
@@ -448,7 +452,8 @@ class TestInstallRequirement(object):
 
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line('/this/path/does/not/exist')
+            InstallRequirement.from_line(
+                os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "It looks like a path. Does it exist ?" in err_msg
