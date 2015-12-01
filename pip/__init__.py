@@ -11,7 +11,7 @@ import re
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
-from pip.utils import deprecation
+from pip.utils import deprecation, dist_is_editable
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
@@ -236,7 +236,7 @@ class FrozenRequirement(object):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        if dist_is_editable(dist) and vcs.get_backend_name(location):
             editable = True
             try:
                 req = get_src_requirement(dist, location, find_tags)

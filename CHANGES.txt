@@ -78,6 +78,10 @@
 * Correctly freeze Git develop packages in presence of the &subdirectory
   option (:pull:`3258`)
 
+* The detection of editable packages now relies on the presence of ``.egg-link``
+  instead of looking for a VCS, so ``pip list -e`` is more reliable
+  (:pull:`3258`)
+
 
 **7.1.2 (2015-08-22)**
 
