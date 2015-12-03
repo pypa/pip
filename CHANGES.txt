@@ -65,6 +65,9 @@
 
 * Drop PasteScript specific egg_info hack. (:pull:`3270`)
 
+* Allow combination of pip list options --editable with --outdated/--updtodate.
+  (:issue:`933`)
+
 
 **7.1.2 (2015-08-22)**
 
