@@ -280,8 +280,7 @@ class Git(VersionControl):
             r = cls().run_command(['rev-parse'],
                                   cwd=location,
                                   show_stdout=False,
-                                  raise_on_returncode=False,
-                                  warn_on_returncode=False)
+                                  on_returncode='ignore')
             return not r
         except BadCommand:
             logger.debug("could not determine if %s is under git control "

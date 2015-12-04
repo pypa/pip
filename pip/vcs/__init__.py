@@ -307,9 +307,9 @@ class VersionControl(object):
         raise NotImplementedError
 
     def run_command(self, cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
+                    on_returncode='raise',
                     command_level=logging.DEBUG, command_desc=None,
-                    extra_environ=None, spinner=None, warn_on_returncode=True):
+                    extra_environ=None, spinner=None):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -318,9 +318,9 @@ class VersionControl(object):
         cmd = [self.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   raise_on_returncode, command_level,
+                                   on_returncode, command_level,
                                    command_desc, extra_environ,
-                                   spinner, warn_on_returncode)
+                                   spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

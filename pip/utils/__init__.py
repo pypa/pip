@@ -621,9 +621,9 @@ def remove_tracebacks(output):
 
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
+                    on_returncode='raise',
                     command_level=std_logging.DEBUG, command_desc=None,
-                    extra_environ=None, spinner=None, warn_on_returncode=True):
+                    extra_environ=None, spinner=None):
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -662,7 +662,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         else:
             spinner.finish("done")
     if proc.returncode:
-        if raise_on_returncode:
+        if on_returncode == 'raise':
             if all_output:
                 logger.info(
                     'Complete output from command %s:', command_desc,
@@ -674,12 +674,16 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
+        elif on_returncode == 'warn':
+            logger.warning(
+                'Command "%s" had error code %s in %s',
+                command_desc, proc.returncode, cwd,
+            )
+        elif on_returncode == 'ignore':
+            pass
         else:
-            if warn_on_returncode:
-                logger.warning(
-                    'Command "%s" had error code %s in %s',
-                    command_desc, proc.returncode, cwd,
-                )
+            raise ValueError('Invalid value: on_returncode=%s' %
+                             repr(on_returncode))
     if not show_stdout:
         return remove_tracebacks(''.join(all_output))
 
