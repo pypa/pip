@@ -215,7 +215,14 @@ class PackageFinder(object):
                 elif os.path.isfile(path):
                     sort_path(path)
             else:
-                urls.append(url)
+                scheme = urllib_parse.urlsplit(url).scheme
+                if scheme:
+                    # Only add url with clear scheme
+                    urls.append(url)
+                else:
+                    logger.warning(
+                        "Url '%s' is ignored. It is either a non-existing "
+                        "path or lacks a specific scheme.", url)
 
         return files, urls
 

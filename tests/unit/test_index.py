@@ -1,3 +1,4 @@
+import os.path
 import pytest
 
 from pip.download import PipSession
@@ -25,6 +26,16 @@ def test_sort_locations_file_not_find_link(data):
     finder = PackageFinder([], [], session=PipSession())
     files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
+
+
+def test_sort_locations_non_existing_path():
+    """
+    Test that a non-existing path is ignored.
+    """
+    finder = PackageFinder([], [], session=PipSession())
+    files, urls = finder._sort_locations(
+        [os.path.join('this', 'doesnt', 'exist')])
+    assert not urls and not files, "nothing should have been found"
 
 
 class TestLink(object):
