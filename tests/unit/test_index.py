@@ -23,7 +23,7 @@ def test_sort_locations_file_not_find_link(data):
     run
     """
     finder = PackageFinder([], [], session=PipSession())
-    files, urls = finder._sort_locations(data.index_url("empty_with_pkg"))
+    files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
 
 
