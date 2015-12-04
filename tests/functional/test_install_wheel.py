@@ -83,6 +83,17 @@ def test_install_from_wheel_file(script, data):
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
+    installer = dist_info_folder / 'INSTALLER'
+    assert installer in result.files_created, (dist_info_folder,
+                                               result.files_created,
+                                               result.stdout)
+    with open(script.base_path / installer, 'rb') as installer_file:
+        installer_details = installer_file.read()
+        assert installer_details == b'pip\n'
+    installer_temp = dist_info_folder / 'INSTALLER.pip'
+    assert installer_temp not in result.files_created, (dist_info_folder,
+                                                        result.files_created,
+                                                        result.stdout)
 
 
 # header installs are broke in pypy virtualenvs
