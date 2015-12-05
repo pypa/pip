@@ -335,8 +335,11 @@ class TestProcessLine(object):
         """
         Test a relative find_links path is joined with the req file directory
         """
-        req_file = '/path/req_file.txt'
-        nested_link = '/path/rel_path'
+        # Make sure the test also passes on windows
+        req_file = os.path.normcase(os.path.abspath(
+            os.path.normpath('/path/req_file.txt')))
+        nested_link = os.path.normcase(os.path.abspath(
+            os.path.normpath('/path/rel_path')))
         exists_ = os.path.exists
 
         def exists(path):
