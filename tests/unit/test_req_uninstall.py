@@ -45,10 +45,13 @@ class TestUninstallPathSet(object):
     def test_compact_shorter_path(self, monkeypatch):
         monkeypatch.setattr(pip.req.req_uninstall, 'is_local', lambda p: True)
         monkeypatch.setattr('os.path.exists', lambda p: True)
+        # This deals with nt/posix path differences
+        short_path = os.path.normcase(os.path.abspath(
+            os.path.join(os.path.sep, 'path')))
         ups = UninstallPathSet(dist=Mock())
-        ups.add('/path')
-        ups.add('/path/longer')
-        assert ups.compact(ups.paths) == set(['/path'])
+        ups.add(short_path)
+        ups.add(os.path.join(short_path, 'longer'))
+        assert ups.compact(ups.paths) == set([short_path])
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_detect_symlink_dirs(self, monkeypatch, tmpdir):
