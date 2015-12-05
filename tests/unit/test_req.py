@@ -499,17 +499,16 @@ def test_requirements_data_structure_implements__contains__():
     assert 'nose' not in requirements
 
 
-@patch('os.path.normcase')
-@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.abspath')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local(
-        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+        isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    abspath_mock.return_value = "/some/path"
     assert parse_editable('.', 'git') == (None, 'file:///some/path', None, {})
-    normcase_mock.return_value = "/some/path/foo"
+    abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo', 'git') == (
         None, 'file:///some/path/foo', None, {},
     )
@@ -542,18 +541,17 @@ def test_parse_editable_vcs_extras():
     )
 
 
-@patch('os.path.normcase')
-@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.abspath')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local_extras(
-        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+        isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
         None, 'file://' + "/some/path", ('extras',), {},
     )
-    normcase_mock.return_value = "/some/path/foo"
+    abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
         None, 'file:///some/path/foo', ('bar', 'baz'), {},
     )
