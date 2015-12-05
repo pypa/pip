@@ -16,8 +16,10 @@ def mock_is_local(path):
 class TestUninstallPathSet(object):
     def test_add(self, tmpdir, monkeypatch):
         monkeypatch.setattr(pip.req.req_uninstall, 'is_local', mock_is_local)
-        file_extant = os.path.join(tmpdir, 'foo')
-        file_nonexistant = os.path.join(tmpdir, 'nonexistant')
+        # Fix case for windows tests
+        file_extant = os.path.normcase(os.path.join(tmpdir, 'foo'))
+        file_nonexistant = os.path.normcase(
+            os.path.join(tmpdir, 'nonexistant'))
         with open(file_extant, 'w'):
             pass
 
