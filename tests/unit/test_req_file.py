@@ -368,7 +368,7 @@ class TestProcessLine(object):
         """
         Test a relative nested req file path is joined with the req file dir
         """
-        req_file = '/path/req_file.txt'
+        req_file = os.path.normpath('/path/req_file.txt')
 
         def parse(*args, **kwargs):
             return iter([])
@@ -377,7 +377,7 @@ class TestProcessLine(object):
         monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
         list(process_line("-r reqs.txt", req_file, 1, finder=finder))
         call = mock_parse.mock_calls[0]
-        assert call[1][0] == '/path/reqs.txt'
+        assert call[1][0] == os.path.normpath('/path/reqs.txt')
 
     def test_absolute_local_nested_req_files(self, finder, monkeypatch):
         """

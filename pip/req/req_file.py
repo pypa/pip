@@ -179,7 +179,6 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         # original file and nested file are paths
         elif not SCHEME_RE.search(req_path):
             # do a join so relative paths work
-            req_dir = os.path.dirname(filename)
             req_path = os.path.join(os.path.dirname(filename), req_path)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
