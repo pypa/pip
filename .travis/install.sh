@@ -7,3 +7,6 @@ git config --global user.name "pip"
 
 pip install --upgrade setuptools
 pip install --upgrade tox
+
+# Make sure wheel is not installed for system_site_packages virtualenvs
+pip uninstall --yes wheel || true
