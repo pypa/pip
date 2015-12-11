@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import datetime
 import json
 import logging
-import os.path
+import os
 import sys
 
 from pip._vendor import lockfile

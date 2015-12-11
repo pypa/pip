@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import tempfile
-import os.path
+import os
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request

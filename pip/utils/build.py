@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import os.path
+import os
 import tempfile
 
 from pip.utils import rmtree

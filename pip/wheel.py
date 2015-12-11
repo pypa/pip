@@ -10,7 +10,6 @@ import functools
 import hashlib
 import logging
 import os
-import os.path
 import re
 import shutil
 import stat
