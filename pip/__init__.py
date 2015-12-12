@@ -233,13 +233,13 @@ class FrozenRequirement(object):
 
     @classmethod
     def from_dist(cls, dist, dependency_links, find_tags=False):
-        location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        src_location = vcs.src_location(dist)
+        if src_location:
             editable = True
             try:
-                req = get_src_requirement(dist, location, find_tags)
+                req = get_src_requirement(dist, src_location, find_tags)
             except InstallationError as exc:
                 logger.warning(
                     "Error when trying to get requirement for VCS system %s, "

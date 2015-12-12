@@ -92,6 +92,48 @@ class VcsSupport(object):
             return self.get_backend(vc_type)
         return None
 
+    def src_location(self, dist):
+        """Return the expected location of the VCS root directory.
+
+        This is the directory that would have the .git or .hg subdirectory
+        if the package was installed from git or mercurial"""
+
+        # If dist_location is the right directory, we're done
+        dist_location = os.path.normcase(os.path.abspath(dist.location))
+        if self.get_backend_name(dist_location):
+            return dist_location
+
+        # Try parsing SOURCES
+        try:
+            egginfo_lines = dist.get_metadata("SOURCES.txt").split()
+
+            # Find a line from SOURCES.txt with .egg-info
+            for x in egginfo_lines:
+                if ".egg-info" in x:
+                    line_with_egginfo = x
+                    break
+            else:
+                # nothing with .egg-info, bail out
+                return None
+
+            path_to_trim_from_location = line_with_egginfo.split(dist.project_name)[0]
+            # Remove trailing slash if it exists
+            if path_to_trim_from_location.endswith('/'):
+                path_to_trim_from_location = path_to_trim_from_location[:-1]
+            rind = dist_location.rfind(path_to_trim_from_location)
+
+            location = dist_location
+            if rind >= 0:
+                location = location[:rind]
+            candidate_location = os.path.normcase(os.path.abspath(location))
+            if self.get_backend_name(candidate_location):
+                return candidate_location
+            else:
+                return None
+        except:
+            # Any failures indicate there's no VCS
+            return None
+
 
 vcs = VcsSupport()
 
