@@ -389,6 +389,13 @@ and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a number of Package Index Options for modifying how packages are found.
 
+pip looks for packages in a number of places, on PyPI (if not disabled via
+```--no-index```), in the local filesystem, and in any additional repositories
+specified via ```--find-links``` or ```--index-url```. There is no ordering in
+the locations that are searched, rather they are all checked, and the "best"
+match for the requirements (in terms of version number - see `PEP440`_ for
+details) is selected.
+
 See the :ref:`pip install Examples<pip install Examples>`.
 
 
