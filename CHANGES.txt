@@ -68,6 +68,20 @@
 * Allow combination of pip list options --editable with --outdated/--updtodate.
   (:issue:`933`)
 
+* Gives VCS implementations control over saying whether a project 
+  is under their control (:pull:`3258`)
+
+* Git detection now works when ``setup.py`` is not at the Git repo root
+  and when ``package_dir`` is used, so ``pip freeze`` works in more
+  cases (:pull:`3258`)
+
+* Correctly freeze Git develop packages in presence of the &subdirectory
+  option (:pull:`3258`)
+
+* The detection of editable packages now relies on the presence of ``.egg-link``
+  instead of looking for a VCS, so ``pip list -e`` is more reliable
+  (:pull:`3258`)
+
 
 **7.1.2 (2015-08-22)**
 

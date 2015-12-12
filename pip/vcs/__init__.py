@@ -72,10 +72,7 @@ class VcsSupport(object):
         location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
         """
         for vc_type in self._registry.values():
-            logger.debug('Checking in %s for %s (%s)...',
-                         location, vc_type.dirname, vc_type.name)
-            path = os.path.join(location, vc_type.dirname)
-            if os.path.exists(path):
+            if vc_type.controls_location(location):
                 logger.debug('Determine that %s uses VCS: %s',
                              location, vc_type.name)
                 return vc_type.name
@@ -310,9 +307,9 @@ class VersionControl(object):
         raise NotImplementedError
 
     def run_command(self, cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
+                    on_returncode='raise',
                     command_level=logging.DEBUG, command_desc=None,
-                    extra_environ=None):
+                    extra_environ=None, spinner=None):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -321,8 +318,9 @@ class VersionControl(object):
         cmd = [self.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   raise_on_returncode, command_level,
-                                   command_desc, extra_environ)
+                                   on_returncode, command_level,
+                                   command_desc, extra_environ,
+                                   spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
@@ -330,6 +328,18 @@ class VersionControl(object):
                 raise BadCommand('Cannot find command %r' % self.name)
             else:
                 raise  # re-raise exception if a different error occured
+
+    @classmethod
+    def controls_location(cls, location):
+        """
+        Check if a location is controlled by the vcs.
+        It is meant to be overridden to implement smarter detection
+        mechanisms for specific vcs.
+        """
+        logger.debug('Checking in %s for %s (%s)...',
+                     location, cls.dirname, cls.name)
+        path = os.path.join(location, cls.dirname)
+        return os.path.exists(path)
 
 
 def get_src_requirement(dist, location, find_tags):

@@ -376,7 +376,7 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list')
-    assert "FSPkg (0.1.dev0)" in list_result.stdout
+    assert "FSPkg (0.1.dev0, " in list_result.stdout
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')

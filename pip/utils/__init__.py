@@ -307,10 +307,11 @@ def dist_in_site_packages(dist):
 
 def dist_is_editable(dist):
     """Is distribution an editable install?"""
-    # TODO: factor out determining editableness out of FrozenRequirement
-    from pip import FrozenRequirement
-    req = FrozenRequirement.from_dist(dist, [])
-    return req.editable
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
+        if os.path.isfile(egg_link):
+            return True
+    return False
 
 
 def get_installed_distributions(local_only=True,
@@ -620,7 +621,7 @@ def remove_tracebacks(output):
 
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
+                    on_returncode='raise',
                     command_level=std_logging.DEBUG, command_desc=None,
                     extra_environ=None, spinner=None):
     if command_desc is None:
@@ -661,7 +662,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         else:
             spinner.finish("done")
     if proc.returncode:
-        if raise_on_returncode:
+        if on_returncode == 'raise':
             if all_output:
                 logger.info(
                     'Complete output from command %s:', command_desc,
@@ -673,11 +674,16 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
-        else:
+        elif on_returncode == 'warn':
             logger.warning(
                 'Command "%s" had error code %s in %s',
                 command_desc, proc.returncode, cwd,
             )
+        elif on_returncode == 'ignore':
+            pass
+        else:
+            raise ValueError('Invalid value: on_returncode=%s' %
+                             repr(on_returncode))
     if not show_stdout:
         return remove_tracebacks(''.join(all_output))
 
