@@ -36,6 +36,8 @@ install: .travis/install.sh
 
 script: .travis/run.sh
 
+dist: precise
+
 
 notifications:
   irc:
