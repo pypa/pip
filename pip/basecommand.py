@@ -1,6 +1,6 @@
 """Base Command class, and related routines"""
 from __future__ import absolute_import
-
+from signal import signal, SIGPIPE, SIG_DFL
 import logging
 import os
 import sys
@@ -102,6 +102,7 @@ class Command(object):
         return self.parser.parse_args(args)
 
     def main(self, args):
+        signal(SIGPIPE, SIG_DFL)
         options, args = self.parse_args(args)
 
         if options.quiet:
