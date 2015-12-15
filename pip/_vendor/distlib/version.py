@@ -13,6 +13,7 @@ import re
 
 from .compat import string_types
 
+
 __all__ = ['NormalizedVersion', 'NormalizedMatcher',
            'LegacyVersion', 'LegacyMatcher',
            'SemanticVersion', 'SemanticMatcher',

@@ -26,11 +26,15 @@
 ######################### END LICENSE BLOCK #########################
 
 from . import constants
-from .escsm import (HZSMModel, ISO2022CNSMModel, ISO2022JPSMModel,
-                    ISO2022KRSMModel)
 from .charsetprober import CharSetProber
 from .codingstatemachine import CodingStateMachine
 from .compat import wrap_ord
+from .escsm import (
+    HZSMModel,
+    ISO2022CNSMModel,
+    ISO2022JPSMModel,
+    ISO2022KRSMModel,
+)
 
 
 class EscCharSetProber(CharSetProber):

@@ -2,16 +2,19 @@ try:
     import http.client as httplib
 except ImportError:
     import httplib
-import zlib
 import io
+import zlib
 from socket import timeout as SocketTimeout
 
 from ._collections import HTTPHeaderDict
+from .connection import BaseSSLError, HTTPException
 from .exceptions import (
-    ProtocolError, DecodeError, ReadTimeoutError, ResponseNotChunked
+    DecodeError,
+    ProtocolError,
+    ReadTimeoutError,
+    ResponseNotChunked,
 )
-from .packages.six import string_types as basestring, binary_type, PY3
-from .connection import HTTPException, BaseSSLError
+from .packages.six import PY3, binary_type, string_types as basestring
 from .util.response import is_fp_closed
 
 

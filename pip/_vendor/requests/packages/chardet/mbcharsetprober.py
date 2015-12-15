@@ -28,6 +28,7 @@
 ######################### END LICENSE BLOCK #########################
 
 import sys
+
 from . import constants
 from .charsetprober import CharSetProber
 

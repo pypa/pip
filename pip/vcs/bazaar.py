@@ -1,9 +1,13 @@
 from __future__ import absolute_import
-
 import logging
 import os
-import tempfile
 import re
+import tempfile
+
+from pip.download import path_to_url
+from pip.utils import display_path, rmtree
+from pip.vcs import VersionControl, vcs
+
 
 # TODO: Get this into six.moves.urllib.parse
 try:
@@ -11,9 +15,6 @@ try:
 except ImportError:
     import urlparse as urllib_parse
 
-from pip.utils import rmtree, display_path
-from pip.vcs import vcs, VersionControl
-from pip.download import path_to_url
 
 
 logger = logging.getLogger(__name__)

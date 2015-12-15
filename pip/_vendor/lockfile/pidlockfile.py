@@ -13,16 +13,21 @@
     """
 
 from __future__ import absolute_import
-
+import errno
 import os
 import sys
-import errno
 import time
 
-from . import (LockBase, AlreadyLocked, LockFailed, NotLocked, NotMyLock,
-               LockTimeout)
+from . import (
+    AlreadyLocked,
+    LockBase,
+    LockFailed,
+    LockTimeout,
+    NotLocked,
+    NotMyLock,
+)
 
-
+
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file.
 

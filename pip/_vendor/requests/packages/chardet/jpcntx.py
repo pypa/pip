@@ -27,6 +27,7 @@
 
 from .compat import wrap_ord
 
+
 NUM_OF_CATEGORY = 6
 DONT_KNOW = -1
 ENOUGH_REL_THRESHOLD = 100

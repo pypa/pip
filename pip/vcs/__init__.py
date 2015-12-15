@@ -1,16 +1,19 @@
 """Handles all VCS (version control) support"""
 from __future__ import absolute_import
-
 import errno
 import logging
 import os
 import shutil
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-
 from pip.exceptions import BadCommand
-from pip.utils import (display_path, backup_dir, call_subprocess,
-                       rmtree, ask_path_exists)
+from pip.utils import (
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    rmtree,
+)
 
 
 __all__ = ['vcs', 'get_src_requirement']

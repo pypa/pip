@@ -30,6 +30,7 @@ from .charsetprober import CharSetProber
 from .codingstatemachine import CodingStateMachine
 from .mbcssm import UTF8SMModel
 
+
 ONE_CHAR_PROB = 0.5
 
 

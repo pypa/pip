@@ -1,9 +1,10 @@
 # The default socket timeout, used by httplib to indicate that no timeout was
 # specified by the user
-from socket import _GLOBAL_DEFAULT_TIMEOUT
 import time
+from socket import _GLOBAL_DEFAULT_TIMEOUT
 
 from ..exceptions import TimeoutStateError
+
 
 # A sentinel value to indicate that no timeout was specified by the user in
 # urllib3

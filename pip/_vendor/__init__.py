@@ -6,10 +6,10 @@ Files inside of pip._vendor should be considered immutable and should only be
 updated to versions from upstream.
 """
 from __future__ import absolute_import
-
 import glob
 import os.path
 import sys
+
 
 # Downstream redistributors which have debundled our dependencies should also
 # patch this value to be true. This will trigger the additional patching

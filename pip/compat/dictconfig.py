@@ -18,13 +18,13 @@
 # IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 from __future__ import absolute_import
-
 import logging.handlers
 import re
 import sys
 import types
 
 from pip._vendor import six
+
 
 # flake8: noqa
 

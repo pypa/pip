@@ -2,7 +2,6 @@
 A module that implments tooling to enable easy warnings about deprecations.
 """
 from __future__ import absolute_import
-
 import logging
 import warnings
 

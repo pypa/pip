@@ -2,8 +2,8 @@ import functools
 
 from pip._vendor.requests.adapters import HTTPAdapter
 
-from .controller import CacheController
 from .cache import DictCache
+from .controller import CacheController
 from .filewrapper import CallbackFileWrapper
 
 

@@ -26,8 +26,9 @@
 ######################### END LICENSE BLOCK #########################
 
 from .charsetprober import CharSetProber
-from .constants import eNotMe, eDetecting
 from .compat import wrap_ord
+from .constants import eDetecting, eNotMe
+
 
 # This prober doesn't actually recognize a language or a charset.
 # It is a helper prober for the use of the Hebrew model probers

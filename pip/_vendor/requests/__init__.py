@@ -55,18 +55,24 @@ try:
 except ImportError:
     pass
 
+import logging
+
 from . import utils
-from .models import Request, Response, PreparedRequest
-from .api import request, get, head, post, patch, put, delete, options
-from .sessions import session, Session
-from .status_codes import codes
+from .api import delete, get, head, options, patch, post, put, request
 from .exceptions import (
-    RequestException, Timeout, URLRequired,
-    TooManyRedirects, HTTPError, ConnectionError
+    ConnectionError,
+    HTTPError,
+    RequestException,
+    Timeout,
+    TooManyRedirects,
+    URLRequired,
 )
+from .models import PreparedRequest, Request, Response
+from .sessions import Session, session
+from .status_codes import codes
+
 
 # Set default logging handler to avoid "No handler found" warnings.
-import logging
 try:  # Python 2.7+
     from logging import NullHandler
 except ImportError:

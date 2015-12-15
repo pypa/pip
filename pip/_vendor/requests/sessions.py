@@ -12,29 +12,44 @@ import os
 from collections import Mapping
 from datetime import datetime
 
-from .auth import _basic_auth_str
-from .compat import cookielib, OrderedDict, urljoin, urlparse
-from .cookies import (
-    cookiejar_from_dict, extract_cookies_to_jar, RequestsCookieJar, merge_cookies)
-from .models import Request, PreparedRequest, DEFAULT_REDIRECT_LIMIT
-from .hooks import default_hooks, dispatch_hook
-from .utils import to_key_val_list, default_headers, to_native_string
-from .exceptions import (
-    TooManyRedirects, InvalidSchema, ChunkedEncodingError, ContentDecodingError)
-from .packages.urllib3._collections import RecentlyUsedContainer
-from .structures import CaseInsensitiveDict
-
 from .adapters import HTTPAdapter
-
+from .auth import _basic_auth_str
+from .compat import OrderedDict, cookielib, urljoin, urlparse
+from .cookies import (
+    RequestsCookieJar,
+    cookiejar_from_dict,
+    extract_cookies_to_jar,
+    merge_cookies,
+)
+from .exceptions import (
+    ChunkedEncodingError,
+    ContentDecodingError,
+    InvalidSchema,
+    TooManyRedirects,
+)
+from .hooks import default_hooks, dispatch_hook
+from .models import (
+    DEFAULT_REDIRECT_LIMIT,
+    REDIRECT_STATI,
+    PreparedRequest,
+    Request,
+)
+from .packages.urllib3._collections import RecentlyUsedContainer
+from .status_codes import codes
+from .structures import CaseInsensitiveDict
 from .utils import (
-    requote_uri, get_environ_proxies, get_netrc_auth, should_bypass_proxies,
-    get_auth_from_url
+    default_headers,
+    get_auth_from_url,
+    get_environ_proxies,
+    get_netrc_auth,
+    requote_uri,
+    should_bypass_proxies,
+    to_key_val_list,
+    to_native_string,
 )
 
-from .status_codes import codes
 
 # formerly defined here, reexposed here for backward compatibility
-from .models import REDIRECT_STATI
 
 REDIRECT_CACHE_SIZE = 1000
 

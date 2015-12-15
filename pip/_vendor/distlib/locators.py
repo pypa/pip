@@ -6,30 +6,52 @@
 #
 
 import gzip
-from io import BytesIO
 import json
 import logging
 import os
 import posixpath
 import re
+import zlib
+from io import BytesIO
+
+from . import DistlibException
+from .compat import (
+    HTTPError,
+    HTTPRedirectHandler as BaseRedirectHandler,
+    Request,
+    URLError,
+    build_opener,
+    pathname2url,
+    queue,
+    quote,
+    string_types,
+    unescape,
+    url2pathname,
+    urljoin,
+    urlparse,
+    urlunparse,
+)
+from .database import Distribution, DistributionPath, make_dist
+from .metadata import Metadata
+from .util import (
+    ServerProxy,
+    cached_property,
+    ensure_slash,
+    get_project_data,
+    parse_credentials,
+    parse_name_and_version,
+    parse_requirement,
+    split_filename,
+)
+from .version import UnsupportedVersionError, get_scheme
+from .wheel import Wheel, is_compatible
+
+
 try:
     import threading
 except ImportError:
     import dummy_threading as threading
-import zlib
 
-from . import DistlibException
-from .compat import (urljoin, urlparse, urlunparse, url2pathname, pathname2url,
-                     queue, quote, unescape, string_types, build_opener,
-                     HTTPRedirectHandler as BaseRedirectHandler,
-                     Request, HTTPError, URLError)
-from .database import Distribution, DistributionPath, make_dist
-from .metadata import Metadata
-from .util import (cached_property, parse_credentials, ensure_slash,
-                   split_filename, get_project_data, parse_requirement,
-                   parse_name_and_version, ServerProxy)
-from .version import get_scheme, UnsupportedVersionError
-from .wheel import Wheel, is_compatible
 
 logger = logging.getLogger(__name__)
 

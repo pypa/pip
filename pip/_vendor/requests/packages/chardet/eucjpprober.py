@@ -26,11 +26,12 @@
 ######################### END LICENSE BLOCK #########################
 
 import sys
+
 from . import constants
-from .mbcharsetprober import MultiByteCharSetProber
-from .codingstatemachine import CodingStateMachine
 from .chardistribution import EUCJPDistributionAnalysis
+from .codingstatemachine import CodingStateMachine
 from .jpcntx import EUCJPContextAnalysis
+from .mbcharsetprober import MultiByteCharSetProber
 from .mbcssm import EUCJPSMModel
 
 

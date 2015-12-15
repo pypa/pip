@@ -1,24 +1,25 @@
 from __future__ import absolute_import, division, unicode_literals
-from pip._vendor.six import with_metaclass
-
 import types
 
-from . import inputstream
-from . import tokenizer
+from pip._vendor.six import with_metaclass
 
-from . import treebuilders
+from . import constants, inputstream, tokenizer, treebuilders, utils
+from .constants import (
+    E,
+    ReparseException,
+    adjustForeignAttributes as adjustForeignAttributesMap,
+    asciiUpper2Lower,
+    cdataElements,
+    headingElements,
+    htmlIntegrationPointElements,
+    mathmlTextIntegrationPointElements,
+    rcdataElements,
+    spaceCharacters,
+    specialElements,
+    tokenTypes,
+    namespaces,
+)
 from .treebuilders._base import Marker
-
-from . import utils
-from . import constants
-from .constants import spaceCharacters, asciiUpper2Lower
-from .constants import specialElements
-from .constants import headingElements
-from .constants import cdataElements, rcdataElements
-from .constants import tokenTypes, ReparseException, namespaces
-from .constants import htmlIntegrationPointElements, mathmlTextIntegrationPointElements
-from .constants import adjustForeignAttributes as adjustForeignAttributesMap
-from .constants import E
 
 
 def parse(doc, treebuilder="etree", encoding=None,

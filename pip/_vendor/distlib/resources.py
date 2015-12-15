@@ -5,7 +5,6 @@
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 from __future__ import unicode_literals
-
 import bisect
 import io
 import logging
@@ -17,7 +16,8 @@ import types
 import zipimport
 
 from . import DistlibException
-from .util import cached_property, get_cache_base, path_to_cache_dir, Cache
+from .util import Cache, cached_property, get_cache_base, path_to_cache_dir
+
 
 logger = logging.getLogger(__name__)
 

@@ -27,9 +27,11 @@
 ######################### END LICENSE BLOCK #########################
 
 import sys
+
 from . import constants
 from .charsetprober import CharSetProber
 from .compat import wrap_ord
+
 
 SAMPLE_SIZE = 64
 SB_ENOUGH_REL_THRESHOLD = 1024

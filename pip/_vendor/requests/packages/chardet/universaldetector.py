@@ -26,14 +26,16 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-from . import constants
-import sys
 import codecs
+import re
+import sys
+
+from . import constants
+from .escprober import EscCharSetProber  # ISO-2122, etc.
 from .latin1prober import Latin1Prober  # windows-1252
 from .mbcsgroupprober import MBCSGroupProber  # multi-byte character sets
 from .sbcsgroupprober import SBCSGroupProber  # single-byte character sets
-from .escprober import EscCharSetProber  # ISO-2122, etc.
-import re
+
 
 MINIMUM_THRESHOLD = 0.20
 ePureAscii = 0

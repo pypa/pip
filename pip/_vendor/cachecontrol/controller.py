@@ -1,8 +1,8 @@
 """
 The httplib2 algorithms ported for use with requests.
 """
-import re
 import calendar
+import re
 import time
 from email.utils import parsedate_tz
 

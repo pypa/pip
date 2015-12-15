@@ -1,10 +1,16 @@
 from __future__ import absolute_import
-
-import time
 import os
+import time
 
-from . import (LockBase, LockFailed, NotLocked, NotMyLock, LockTimeout,
-               AlreadyLocked)
+from . import (
+    AlreadyLocked,
+    LockBase,
+    LockFailed,
+    LockTimeout,
+    NotLocked,
+    NotMyLock,
+)
+
 
 class LinkLockFile(LockBase):
     """Lock access to a file using atomic property of link(2).

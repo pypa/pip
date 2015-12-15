@@ -1,10 +1,42 @@
 import errno
 import logging
+import socket
 import sys
 import warnings
-
 from socket import error as SocketError, timeout as SocketTimeout
-import socket
+
+from .connection import (
+    BaseSSLError,
+    ConnectionError,
+    DummyConnection,
+    HTTPConnection,
+    HTTPException,
+    HTTPSConnection,
+    VerifiedHTTPSConnection,
+    port_by_scheme,
+)
+from .exceptions import (
+    ClosedPoolError,
+    EmptyPoolError,
+    HostChangedError,
+    InsecureRequestWarning,
+    LocationValueError,
+    MaxRetryError,
+    ProtocolError,
+    ProxyError,
+    ReadTimeoutError,
+    SSLError,
+    TimeoutError,
+)
+from .packages import six
+from .packages.ssl_match_hostname import CertificateError
+from .request import RequestMethods
+from .response import HTTPResponse
+from .util.connection import is_connection_dropped
+from .util.retry import Retry
+from .util.timeout import Timeout
+from .util.url import get_host
+
 
 try:  # Python 3
     from queue import LifoQueue, Empty, Full
@@ -13,34 +45,7 @@ except ImportError:
     import Queue as _  # Platform-specific: Windows
 
 
-from .exceptions import (
-    ClosedPoolError,
-    ProtocolError,
-    EmptyPoolError,
-    HostChangedError,
-    LocationValueError,
-    MaxRetryError,
-    ProxyError,
-    ReadTimeoutError,
-    SSLError,
-    TimeoutError,
-    InsecureRequestWarning,
-)
-from .packages.ssl_match_hostname import CertificateError
-from .packages import six
-from .connection import (
-    port_by_scheme,
-    DummyConnection,
-    HTTPConnection, HTTPSConnection, VerifiedHTTPSConnection,
-    HTTPException, BaseSSLError, ConnectionError
-)
-from .request import RequestMethods
-from .response import HTTPResponse
 
-from .util.connection import is_connection_dropped
-from .util.retry import Retry
-from .util.timeout import Timeout
-from .util.url import get_host
 
 
 xrange = six.moves.xrange

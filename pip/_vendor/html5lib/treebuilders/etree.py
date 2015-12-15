@@ -1,13 +1,13 @@
 from __future__ import absolute_import, division, unicode_literals
-from pip._vendor.six import text_type
-
 import re
 
-from . import _base
-from .. import ihatexml
-from .. import constants
+from pip._vendor.six import text_type
+
+from .. import constants, ihatexml
 from ..constants import namespaces
 from ..utils import moduleFactoryFactory
+from . import _base
+
 
 tag_regexp = re.compile("{([^}]*)}(.*)")
 

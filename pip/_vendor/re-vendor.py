@@ -1,8 +1,10 @@
-import os
-import sys
-import pip
 import glob
+import os
 import shutil
+import sys
+
+import pip
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 

@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, unicode_literals
-
 from xml.sax.xmlreader import AttributesNSImpl
 
 from ..constants import adjustForeignAttributes, unadjustForeignAttributes
+
 
 prefix_mapping = {}
 for prefix, localName, namespace in adjustForeignAttributes.values():

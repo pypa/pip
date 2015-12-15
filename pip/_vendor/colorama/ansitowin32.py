@@ -1,11 +1,11 @@
 # Copyright Jonathan Hartley 2013. BSD 3-Clause license, see LICENSE file.
+import os
 import re
 import sys
-import os
 
-from .ansi import AnsiFore, AnsiBack, AnsiStyle, Style
-from .winterm import WinTerm, WinColor, WinStyle
+from .ansi import AnsiBack, AnsiFore, AnsiStyle, Style
 from .win32 import windll
+from .winterm import WinColor, WinStyle, WinTerm
 
 
 winterm = None

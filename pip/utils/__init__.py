@@ -1,32 +1,37 @@
 from __future__ import absolute_import
-
-from collections import deque
 import contextlib
 import errno
 import locale
-# we have a submodule named 'logging' which would shadow this if we used the
-# regular name:
-import logging as std_logging
-import re
 import os
 import posixpath
+import re
 import shutil
 import stat
 import subprocess
 import sys
 import tarfile
 import zipfile
+from collections import deque
 
-from pip.exceptions import InstallationError
+import logging as std_logging
+from pip._vendor import pkg_resources
+from pip._vendor.retrying import retry
+from pip._vendor.six import PY2
+from pip._vendor.six.moves import input
 from pip.compat import console_to_str, expanduser, stdlib_pkgs
+from pip.exceptions import InstallationError
 from pip.locations import (
-    site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
+    running_under_virtualenv,
+    site_packages,
+    user_site,
+    virtualenv_no_global,
     write_delete_marker_file,
 )
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import input
-from pip._vendor.six import PY2
-from pip._vendor.retrying import retry
+
+
+# we have a submodule named 'logging' which would shadow this if we used the
+# regular name:
+
 
 if PY2:
     from io import BytesIO as StringIO

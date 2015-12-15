@@ -6,7 +6,6 @@
 """PEP 376 implementation."""
 
 from __future__ import unicode_literals
-
 import base64
 import codecs
 import contextlib
@@ -19,10 +18,17 @@ import zipimport
 
 from . import DistlibException, resources
 from .compat import StringIO
-from .version import get_scheme, UnsupportedVersionError
-from .metadata import Metadata, METADATA_FILENAME
-from .util import (parse_requirement, cached_property, parse_name_and_version,
-                   read_exports, write_exports, CSVReader, CSVWriter)
+from .metadata import METADATA_FILENAME, Metadata
+from .util import (
+    CSVReader,
+    CSVWriter,
+    cached_property,
+    parse_name_and_version,
+    parse_requirement,
+    read_exports,
+    write_exports,
+)
+from .version import UnsupportedVersionError, get_scheme
 
 
 __all__ = ['Distribution', 'BaseInstalledDistribution',

@@ -27,15 +27,15 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-from .charsetgroupprober import CharSetGroupProber
-from .utf8prober import UTF8Prober
-from .sjisprober import SJISProber
-from .eucjpprober import EUCJPProber
-from .gb2312prober import GB2312Prober
-from .euckrprober import EUCKRProber
-from .cp949prober import CP949Prober
 from .big5prober import Big5Prober
+from .charsetgroupprober import CharSetGroupProber
+from .cp949prober import CP949Prober
+from .eucjpprober import EUCJPProber
+from .euckrprober import EUCKRProber
 from .euctwprober import EUCTWProber
+from .gb2312prober import GB2312Prober
+from .sjisprober import SJISProber
+from .utf8prober import UTF8Prober
 
 
 class MBCSGroupProber(CharSetGroupProber):

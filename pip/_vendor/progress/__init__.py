@@ -13,7 +13,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from __future__ import division
-
 from collections import deque
 from datetime import timedelta
 from math import ceil

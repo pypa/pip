@@ -16,20 +16,31 @@ import io
 import os
 import platform
 import re
-import sys
 import socket
 import struct
+import sys
 import warnings
 
-from . import __version__
-from . import certs
-from .compat import parse_http_list as _parse_list_header
-from .compat import (quote, urlparse, bytes, str, OrderedDict, unquote, is_py2,
-                     builtin_str, getproxies, proxy_bypass, urlunparse,
-                     basestring)
+from . import __version__, certs
+from .compat import (
+    OrderedDict,
+    basestring,
+    builtin_str,
+    bytes,
+    getproxies,
+    is_py2,
+    parse_http_list as _parse_list_header,
+    proxy_bypass,
+    quote,
+    str,
+    unquote,
+    urlparse,
+    urlunparse,
+)
 from .cookies import RequestsCookieJar, cookiejar_from_dict
-from .structures import CaseInsensitiveDict
 from .exceptions import InvalidURL
+from .structures import CaseInsensitiveDict
+
 
 _hush_pyflakes = (RequestsCookieJar,)
 

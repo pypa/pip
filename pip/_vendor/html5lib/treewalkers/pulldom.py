@@ -1,11 +1,14 @@
 from __future__ import absolute_import, division, unicode_literals
-
-from xml.dom.pulldom import START_ELEMENT, END_ELEMENT, \
-    COMMENT, IGNORABLE_WHITESPACE, CHARACTERS
-
-from . import _base
+from xml.dom.pulldom import (
+    CHARACTERS,
+    COMMENT,
+    END_ELEMENT,
+    IGNORABLE_WHITESPACE,
+    START_ELEMENT,
+)
 
 from ..constants import voidElements
+from . import _base
 
 
 class TreeWalker(_base.TreeWalker):

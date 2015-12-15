@@ -5,6 +5,7 @@
 
 import re
 
+
 __version__ = '3.4.0.2'
 
 class CertificateError(ValueError):

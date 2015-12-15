@@ -2,6 +2,7 @@
 
 from .structures import LookupDict
 
+
 _codes = {
 
     # Informational.

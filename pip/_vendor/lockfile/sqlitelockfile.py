@@ -1,14 +1,15 @@
 from __future__ import absolute_import, division
-
-import time
 import os
+import time
+
+from . import AlreadyLocked, LockBase, LockTimeout, NotLocked, NotMyLock
+
 
 try:
     unicode
 except NameError:
     unicode = str
 
-from . import LockBase, NotLocked, NotMyLock, LockTimeout, AlreadyLocked
 
 class SQLiteLockFile(LockBase):
     "Demonstrate SQL-based locking."

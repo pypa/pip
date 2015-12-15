@@ -7,24 +7,25 @@ __license__ = 'MIT'
 __version__ = '1.10.4'
 
 
+import logging
+import warnings
+
+from . import exceptions
 from .connectionpool import (
     HTTPConnectionPool,
     HTTPSConnectionPool,
-    connection_from_url
+    connection_from_url,
 )
-
-from . import exceptions
 from .filepost import encode_multipart_formdata
 from .poolmanager import PoolManager, ProxyManager, proxy_from_url
 from .response import HTTPResponse
 from .util.request import make_headers
-from .util.url import get_host
-from .util.timeout import Timeout
 from .util.retry import Retry
+from .util.timeout import Timeout
+from .util.url import get_host
 
 
 # Set default logging handler to avoid "No handler found" warnings.
-import logging
 try:  # Python 2.7+
     from logging import NullHandler
 except ImportError:
@@ -55,7 +56,6 @@ def add_stderr_logger(level=logging.DEBUG):
 del NullHandler
 
 
-import warnings
 # SecurityWarning's always go off by default.
 warnings.simplefilter('always', exceptions.SecurityWarning, append=True)
 # InsecurePlatformWarning's don't vary between requests, so we keep it default.

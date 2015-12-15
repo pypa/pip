@@ -1,4 +1,11 @@
 from __future__ import absolute_import, division, unicode_literals
+import re
+
+from pip._vendor.six import text_type
+
+from ..utils import moduleFactoryFactory
+from . import _base
+
 
 try:
     from collections import OrderedDict
@@ -8,12 +15,8 @@ except ImportError:
     except ImportError:
         OrderedDict = dict
 
-import re
 
-from pip._vendor.six import text_type
 
-from . import _base
-from ..utils import moduleFactoryFactory
 
 tag_regexp = re.compile("{([^}]*)}(.*)")
 

@@ -3,10 +3,8 @@
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import codecs
-from collections import deque
 import contextlib
 import csv
-from glob import iglob as std_iglob
 import io
 import json
 import logging
@@ -20,18 +18,40 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
+from collections import deque
+from glob import iglob as std_iglob
+
+from . import DistlibException
+from .compat import (
+    BaseConfigurator,
+    CertificateError,
+    Container,
+    HTTPHandler,
+    HTTPSHandler as BaseHTTPSHandler,
+    StringIO,
+    URLError,
+    ZipFile,
+    cache_from_source,
+    configparser,
+    httplib,
+    match_hostname,
+    raw_input,
+    shutil,
+    splittype,
+    string_types,
+    text_type,
+    urlopen,
+    valid_ident,
+    xmlrpclib,
+)
+
+
 try:
     import threading
 except ImportError:
     import dummy_threading as threading
-import time
 
-from . import DistlibException
-from .compat import (string_types, text_type, shutil, raw_input, StringIO,
-                     cache_from_source, urlopen, httplib, xmlrpclib, splittype,
-                     HTTPHandler, HTTPSHandler as BaseHTTPSHandler,
-                     BaseConfigurator, valid_ident, Container, configparser,
-                     URLError, match_hostname, CertificateError, ZipFile)
 
 logger = logging.getLogger(__name__)
 

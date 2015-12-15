@@ -5,12 +5,10 @@
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 from __future__ import unicode_literals
-
 import base64
 import codecs
 import datetime
 import distutils.util
-from email import message_from_file
 import hashlib
 import imp
 import json
@@ -22,14 +20,25 @@ import shutil
 import sys
 import tempfile
 import zipfile
+from email import message_from_file
 
-from . import __version__, DistlibException
-from .compat import sysconfig, ZipFile, fsdecode, text_type, filter
+from . import DistlibException, __version__
+from .compat import ZipFile, filter, fsdecode, sysconfig, text_type
 from .database import InstalledDistribution
-from .metadata import Metadata, METADATA_FILENAME
-from .util import (FileOperator, convert_path, CSVReader, CSVWriter, Cache,
-                   cached_property, get_cache_base, read_exports, tempdir)
+from .metadata import METADATA_FILENAME, Metadata
+from .util import (
+    CSVReader,
+    CSVWriter,
+    Cache,
+    FileOperator,
+    cached_property,
+    convert_path,
+    get_cache_base,
+    read_exports,
+    tempdir,
+)
 from .version import NormalizedVersion, UnsupportedVersionError
+
 
 logger = logging.getLogger(__name__)
 

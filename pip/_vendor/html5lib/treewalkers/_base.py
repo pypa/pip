@@ -1,10 +1,14 @@
 from __future__ import absolute_import, division, unicode_literals
-from pip._vendor.six import text_type, string_types
+from xml.dom import Node
+
+from pip._vendor.six import string_types, text_type
+
+from ..constants import spaceCharacters, voidElements
+
 
 __all__ = ["DOCUMENT", "DOCTYPE", "TEXT", "ELEMENT", "COMMENT", "ENTITY", "UNKNOWN",
            "TreeWalker", "NonRecursiveTreeWalker"]
 
-from xml.dom import Node
 
 DOCUMENT = Node.DOCUMENT_NODE
 DOCTYPE = Node.DOCUMENT_TYPE_NODE
@@ -14,7 +18,6 @@ COMMENT = Node.COMMENT_NODE
 ENTITY = Node.ENTITY_NODE
 UNKNOWN = "<#UNKNOWN#>"
 
-from ..constants import voidElements, spaceCharacters
 spaceCharacters = "".join(spaceCharacters)
 
 

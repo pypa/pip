@@ -10,18 +10,15 @@ When any of these things occur, we emit a DataLossWarning
 """
 
 from __future__ import absolute_import, division, unicode_literals
-
-import warnings
 import re
 import sys
+import warnings
 
-from . import _base
+from lxml import etree
+
+from .. import constants, ihatexml
 from ..constants import DataLossWarning
-from .. import constants
-from . import etree as etree_builders
-from .. import ihatexml
-
-import lxml.etree as etree
+from . import _base, etree as etree_builders
 
 
 fullTree = True

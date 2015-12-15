@@ -1,17 +1,17 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 from __future__ import absolute_import
-
+import distutils.util
+import platform
 import re
 import sys
 import warnings
-import platform
+
 
 try:
     import sysconfig
 except ImportError:  # pragma nocover
     # Python < 2.7
     import distutils.sysconfig as sysconfig
-import distutils.util
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 

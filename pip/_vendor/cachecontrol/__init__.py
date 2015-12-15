@@ -6,6 +6,6 @@ __author__ = 'Eric Larson'
 __email__ = 'eric@ionrock.org'
 __version__ = '0.11.5'
 
-from .wrapper import CacheControl
 from .adapter import CacheControlAdapter
 from .controller import CacheController
+from .wrapper import CacheControl

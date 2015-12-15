@@ -1,11 +1,11 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
 from __future__ import absolute_import, division
-
 import os
 import sys
 
 from pip._vendor.six import text_type
+
 
 try:
     from logging.config import dictConfig as logging_dictConfig

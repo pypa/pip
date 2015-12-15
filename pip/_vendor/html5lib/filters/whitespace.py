@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division, unicode_literals
-
 import re
 
-from . import _base
 from ..constants import rcdataElements, spaceCharacters
+from . import _base
+
+
 spaceCharacters = "".join(spaceCharacters)
 
 SPACES_REGEX = re.compile("[%s]+" % spaceCharacters)
