@@ -177,6 +177,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # ideally, we'd prefer a scheme class that has no side-effects.
     assert not (user and prefix), "Got user and prefix {}".format(user, prefix)
     i.user = user or i.user
+    if user:
+        i.prefix = ""
     i.prefix = prefix or i.prefix
     i.home = home or i.home
     i.root = root or i.root
