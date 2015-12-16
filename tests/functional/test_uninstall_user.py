@@ -41,9 +41,10 @@ class Tests_UninstallUserSite:
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
-        script.pip_install_local('pip-test-package==0.1')
+        script.pip_install_local('pip-test-package==0.1', '--no-binary=:all:')
 
-        result2 = script.pip_install_local('--user', 'pip-test-package==0.1.1')
+        result2 = script.pip_install_local(
+            '--user', 'pip-test-package==0.1.1', '--no-binary=:all:')
         result3 = script.pip('uninstall', '-vy', 'pip-test-package')
 
         # uninstall console is mentioning user scripts, but not global scripts
