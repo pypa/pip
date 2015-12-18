@@ -562,12 +562,10 @@ def untar_file(filename, location):
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
-                destfp = open(path, 'wb')
-                try:
+                with open(path, 'wb') as destfp:
                     shutil.copyfileobj(fp, destfp)
-                finally:
-                    destfp.close()
-                fp.close()
+                # Update the timestamp (useful for cython compiled files)
+                tar.utime(member, path)
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
                     # make dest file have execute for user/group/world
