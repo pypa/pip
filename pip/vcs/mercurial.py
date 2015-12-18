@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import os
 import tempfile
-import re
 
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
@@ -74,31 +73,6 @@ class Mercurial(VersionControl):
         if self._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
-
-    def get_tag_revs(self, location):
-        tags = self.run_command(['tags'], show_stdout=False, cwd=location)
-        tag_revs = []
-        for line in tags.splitlines():
-            tags_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
-            if tags_match:
-                tag = tags_match.group(1)
-                rev = tags_match.group(2)
-                if "tip" != tag:
-                    tag_revs.append((rev.strip(), tag.strip()))
-        return dict(tag_revs)
-
-    def get_branch_revs(self, location):
-        branches = self.run_command(
-            ['branches'], show_stdout=False, cwd=location)
-        branch_revs = []
-        for line in branches.splitlines():
-            branches_match = re.search(r'([\w\d\.-]+)\s*([\d]+):.*$', line)
-            if branches_match:
-                branch = branches_match.group(1)
-                rev = branches_match.group(2)
-                if "default" != branch:
-                    branch_revs.append((rev.strip(), branch.strip()))
-        return dict(branch_revs)
 
     def get_revision(self, location):
         current_revision = self.run_command(

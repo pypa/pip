@@ -204,28 +204,6 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def get_tag_revs(self, svn_tag_url):
-        stdout = self.run_command(['ls', '-v', svn_tag_url], show_stdout=False)
-        results = []
-        for line in stdout.splitlines():
-            parts = line.split()
-            rev = int(parts[0])
-            tag = parts[-1].strip('/')
-            results.append((tag, rev))
-        return results
-
-    def find_tag_match(self, rev, tag_revs):
-        best_match_rev = None
-        best_tag = None
-        for tag, tag_rev in tag_revs:
-            if (tag_rev > rev and
-                    (best_match_rev is None or best_match_rev > tag_rev)):
-                # FIXME: Is best_match > tag_rev really possible?
-                # or is it a sign something is wacky?
-                best_match_rev = tag_rev
-                best_tag = tag
-        return best_tag
-
     def get_src_requirement(self, dist, location, find_tags=False):
         repo = self.get_url(location)
         if repo is None:

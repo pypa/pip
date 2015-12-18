@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import os
 import tempfile
-import re
 
 # TODO: Get this into six.moves.urllib.parse
 try:
@@ -98,18 +97,6 @@ class Bazaar(VersionControl):
         revision = self.run_command(
             ['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
-
-    def get_tag_revs(self, location):
-        tags = self.run_command(
-            ['tags'], show_stdout=False, cwd=location)
-        tag_revs = []
-        for line in tags.splitlines():
-            tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
-            if tags_match:
-                tag = tags_match.group(1)
-                rev = tags_match.group(2)
-                tag_revs.append((rev.strip(), tag.strip()))
-        return dict(tag_revs)
 
     def get_src_requirement(self, dist, location, find_tags):
         repo = self.get_url(location)
