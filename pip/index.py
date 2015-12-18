@@ -347,8 +347,8 @@ class PackageFinder(object):
 
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
-    def _find_all_versions(self, project_name):
-        """Find all available versions for project_name
+    def find_all_candidates(self, project_name):
+        """Find all available InstallationCandidate for project_name
 
         This checks index_urls, find_links and dependency_links.
         All versions found are returned as an InstallationCandidate list.
@@ -437,7 +437,7 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self._find_all_versions(req.name)
+        all_candidates = self.find_all_candidates(req.name)
 
         # Filter out anything which doesn't match our specifier
         _versions = set(
