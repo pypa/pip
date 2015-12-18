@@ -119,22 +119,8 @@ class Mercurial(VersionControl):
         egg_project_name = dist.egg_name().split('-', 1)[0]
         if not repo:
             return None
-        current_rev = self.get_revision(location)
         current_rev_hash = self.get_revision_hash(location)
-        tag_revs = self.get_tag_revs(location)
-        branch_revs = self.get_branch_revs(location)
-        if current_rev in tag_revs:
-            # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
-        elif current_rev in branch_revs:
-            # It's the tip of a branch
-            full_egg_name = '%s-%s' % (
-                egg_project_name,
-                branch_revs[current_rev],
-            )
-        else:
-            full_egg_name = '%s-dev' % egg_project_name
-        return '%s@%s#egg=%s' % (repo, current_rev_hash, full_egg_name)
+        return '%s@%s#egg=%s' % (repo, current_rev_hash, egg_project_name)
 
     def check_version(self, dest, rev_options):
         """Always assume the versions don't match"""

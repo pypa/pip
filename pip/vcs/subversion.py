@@ -234,35 +234,7 @@ class Subversion(VersionControl):
         # FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
         rev = self.get_revision(location)
-        if parts[-2] in ('tags', 'tag'):
-            # It's a tag, perfect!
-            full_egg_name = '%s-%s' % (egg_project_name, parts[-1])
-        elif parts[-2] in ('branches', 'branch'):
-            # It's a branch :(
-            full_egg_name = '%s-%s-r%s' % (dist.egg_name(), parts[-1], rev)
-        elif parts[-1] == 'trunk':
-            # Trunk :-/
-            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), rev)
-            if find_tags:
-                tag_url = '/'.join(parts[:-1]) + '/tags'
-                tag_revs = self.get_tag_revs(tag_url)
-                match = self.find_tag_match(rev, tag_revs)
-                if match:
-                    logger.info(
-                        'trunk checkout %s seems to be equivalent to tag %s',
-                        match,
-                    )
-                    repo = '%s/%s' % (tag_url, match)
-                    full_egg_name = '%s-%s' % (egg_project_name, match)
-        else:
-            # Don't know what it is
-            logger.warning(
-                'svn URL does not fit normal structure (tags/branches/trunk): '
-                '%s',
-                repo,
-            )
-            full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
-        return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
+        return 'svn+%s@%s#egg=%s' % (repo, rev, egg_project_name)
 
     def check_version(self, dest, rev_options):
         """Always assume the versions don't match"""

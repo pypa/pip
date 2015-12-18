@@ -110,6 +110,9 @@
 * Improve message when an unexisting path is passed to --find-links option
   (:issue:`2968`).
 
+* pip freeze does not add the VCS branch/tag name in the #egg=... fragment anymore
+  (:pull:`3312`).
+
 * Warn on installation of editable if the provided #egg=name part does not
   match the metadata produced by `setup.py egg_info`. :issue:`3143`.
 
