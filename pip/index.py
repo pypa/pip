@@ -448,7 +448,7 @@ class PackageFinder(object):
         all_candidates = self.find_all_candidates(req.name)
 
         # Filter out anything which doesn't match our specifier
-        _versions = set(
+        compatible_versions = set(
             req.specifier.filter(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
@@ -466,7 +466,7 @@ class PackageFinder(object):
         )
         applicable_candidates = [
             # Again, converting to str to deal with debundling.
-            c for c in all_candidates if str(c.version) in _versions
+            c for c in all_candidates if str(c.version) in compatible_versions
         ]
 
         applicable_candidates = self._sort_versions(applicable_candidates)
@@ -521,7 +521,7 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                ', '.join(str(c.version) for c in applicable_candidates) or
+                ', '.join(sorted(compatible_versions, key=parse_version)) or
                 "none",
             )
             raise BestVersionAlreadyInstalled
@@ -530,7 +530,7 @@ class PackageFinder(object):
         logger.debug(
             'Using version %s (newest of versions: %s)',
             selected_candidate.version,
-            ', '.join(str(c.version) for c in applicable_candidates)
+            ', '.join(sorted(compatible_versions, key=parse_version))
         )
         return selected_candidate.location
 
