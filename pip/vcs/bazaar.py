@@ -119,14 +119,7 @@ class Bazaar(VersionControl):
             repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
         current_rev = self.get_revision(location)
-        tag_revs = self.get_tag_revs(location)
-
-        if current_rev in tag_revs:
-            # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
-        else:
-            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
-        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+        return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
 
     def check_version(self, dest, rev_options):
         """Always assume the versions don't match"""

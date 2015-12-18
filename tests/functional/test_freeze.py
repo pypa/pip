@@ -80,7 +80,7 @@ def test_freeze_svn(script, tmpdir):
     expected = textwrap.dedent("""\
         Script result: pip freeze
         -- stdout: --------------------
-        ...-e svn+...#egg=version_pkg-0.1-...
+        ...-e svn+...#egg=version_pkg
         ...""")
     _check_output(result, expected)
 
@@ -108,7 +108,7 @@ def test_freeze_git_clone(script, tmpdir):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e git+...#egg=version_pkg-master
+            ...-e git+...#egg=version_pkg
             ...
         """
     ).strip()
@@ -123,7 +123,7 @@ def test_freeze_git_clone(script, tmpdir):
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
-            -e git+...#egg=version_pkg-master
+            -e git+...#egg=version_pkg
             ...
         """ % {'repo': repo_dir},
     ).strip()
@@ -147,7 +147,7 @@ def test_freeze_git_clone(script, tmpdir):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e ...@...#egg=version_pkg-branch_name_with_slash...
+            ...-e ...@...#egg=version_pkg
             ...
         """
     ).strip()
@@ -179,7 +179,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e git+...#egg=version_pkg-master&subdirectory=subdir
+            ...-e git+...#egg=version_pkg&subdirectory=subdir
             ...
         """
     ).strip()
@@ -194,7 +194,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
-            -e git+...#egg=version_pkg-master&subdirectory=subdir
+            -e git+...#egg=version_pkg&subdirectory=subdir
             ...
         """ % {'repo': repo_dir},
     ).strip()
@@ -225,7 +225,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
         """
             Script result: ...pip freeze
             -- stdout: --------------------
-            ...-e hg+...#egg=version_pkg-dev
+            ...-e hg+...#egg=version_pkg
             ...
         """
     ).strip()
@@ -240,7 +240,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
             Script result: pip freeze -f %(repo)s#egg=pip_test_package
             -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
-            ...-e hg+...#egg=version_pkg-dev
+            ...-e hg+...#egg=version_pkg
             ...
         """ % {'repo': repo_dir},
     ).strip()
@@ -270,7 +270,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     expected = textwrap.dedent("""\
         Script result: ...pip freeze
         -- stdout: --------------------
-        ...-e bzr+file://...@1#egg=version_pkg-0.1-...
+        ...-e bzr+file://...@1#egg=version_pkg
         ...""")
     _check_output(result, expected)
 
@@ -283,7 +283,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
         Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
         -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
-        ...-e bzr+file://...@...#egg=version_pkg-...
+        ...-e bzr+file://...@...#egg=version_pkg
         ...""" % {'repo': checkout_path})
     _check_output(result, expected)
 
