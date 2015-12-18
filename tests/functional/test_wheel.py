@@ -75,6 +75,21 @@ def test_pip_wheel_builds_editable_deps(script, data):
 
 
 @pytest.mark.network
+def test_pip_wheel_builds_editable(script, data):
+    """
+    Test 'pip wheel' builds an editable package
+    """
+    script.pip('install', 'wheel')
+    editable_path = os.path.join(data.src, 'simplewheel-1.0')
+    result = script.pip(
+        'wheel', '--no-index', '-e', editable_path
+    )
+    wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+
+
+@pytest.mark.network
 def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
