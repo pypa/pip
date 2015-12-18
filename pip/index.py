@@ -254,18 +254,6 @@ class PackageFinder(object):
             pri = -(support_num)
         return (candidate.version, pri)
 
-    def _sort_versions(self, applicable_versions):
-        """
-        Bring the latest version (and wheels) to the front, but maintain the
-        existing ordering as secondary. See the docstring for `_link_sort_key`
-        for details. This function is isolated for easier unit testing.
-        """
-        return sorted(
-            applicable_versions,
-            key=self._candidate_sort_key,
-            reverse=True
-        )
-
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
@@ -469,14 +457,18 @@ class PackageFinder(object):
             c for c in all_candidates if str(c.version) in compatible_versions
         ]
 
-        applicable_candidates = self._sort_versions(applicable_candidates)
+        if applicable_candidates:
+            best_candidate = max(applicable_candidates,
+                                 key=self._candidate_sort_key)
+        else:
+            best_candidate = None
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
         else:
             installed_version = None
 
-        if installed_version is None and not applicable_candidates:
+        if installed_version is None and best_candidate is None:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
@@ -495,8 +487,8 @@ class PackageFinder(object):
 
         best_installed = False
         if installed_version and (
-                not applicable_candidates or
-                applicable_candidates[0].version <= installed_version):
+                best_candidate is None or
+                best_candidate.version <= installed_version):
             best_installed = True
 
         if not upgrade and installed_version is not None:
@@ -511,7 +503,7 @@ class PackageFinder(object):
                     'Existing installed version (%s) satisfies requirement '
                     '(most up-to-date version is %s)',
                     installed_version,
-                    applicable_candidates[0].version,
+                    best_candidate.version,
                 )
             return None
 
@@ -526,13 +518,12 @@ class PackageFinder(object):
             )
             raise BestVersionAlreadyInstalled
 
-        selected_candidate = applicable_candidates[0]
         logger.debug(
             'Using version %s (newest of versions: %s)',
-            selected_candidate.version,
+            best_candidate.version,
             ', '.join(sorted(compatible_versions, key=parse_version))
         )
-        return selected_candidate.location
+        return best_candidate.location
 
     def _get_pages(self, locations, project_name):
         """

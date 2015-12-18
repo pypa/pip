@@ -247,8 +247,10 @@ class TestWheel:
 
         finder = PackageFinder([], [], session=PipSession())
 
-        results = finder._sort_versions(links)
-        results2 = finder._sort_versions(reversed(links))
+        results = sorted(links,
+                         key=finder._candidate_sort_key, reverse=True)
+        results2 = sorted(reversed(links),
+                          key=finder._candidate_sort_key, reverse=True)
 
         assert links == results == results2, results2
 
@@ -262,8 +264,14 @@ class TestWheel:
             ),
         ]
         finder = PackageFinder([], [], session=PipSession())
+        # Does this test really makes sense ?
+        # find_all_candidates can not return an unsupported wheel:
+        # it would have been skipped in _link_package_versions
         with pytest.raises(InstallationError):
-            finder._sort_versions(links)
+            with patch.object(finder, "_find_all_versions", lambda x: links):
+                finder.find_requirement(
+                    InstallRequirement.from_line('simple', None),
+                    upgrade=True)
 
 
 def test_finder_priority_file_over_page(data):
