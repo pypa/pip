@@ -380,16 +380,6 @@ class TestWheelBuilder(object):
             assert "due to already being wheel" in caplog.text()
             assert mock_build_one.mock_calls == []
 
-    def test_skip_building_editables(self, caplog):
-        with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            editable = Mock(editable=True, is_wheel=False, constraint=False)
-            reqset = Mock(requirements=Mock(values=lambda: [editable]),
-                          wheel_download_dir='/wheel/dir')
-            wb = wheel.WheelBuilder(reqset, Mock())
-            wb.build()
-            assert "due to being editable" in caplog.text()
-            assert mock_build_one.mock_calls == []
-
 
 class TestWheelCache:
 
