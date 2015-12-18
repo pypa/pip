@@ -592,7 +592,7 @@ def _download_url(resp, link, content_file, hashes):
         consume(downloaded_chunks)
 
 
-def _copy_file(filename, location, content_type, link):
+def _copy_file(filename, location, link):
     copy = True
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
@@ -649,7 +649,7 @@ def unpack_http_url(link, location, download_dir=None,
 
     # a download dir is specified; let's copy the archive there
     if download_dir and not already_downloaded_path:
-        _copy_file(from_path, download_dir, content_type, link)
+        _copy_file(from_path, download_dir, link)
 
     if not already_downloaded_path:
         os.unlink(from_path)
@@ -701,7 +701,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
-        _copy_file(from_path, download_dir, content_type, link)
+        _copy_file(from_path, download_dir, link)
 
 
 def _copy_dist_from_dir(link_path, location):
