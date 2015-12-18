@@ -230,7 +230,6 @@ class Subversion(VersionControl):
         repo = self.get_url(location)
         if repo is None:
             return None
-        parts = repo.split('/')
         # FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
         rev = self.get_revision(location)
