@@ -2,6 +2,11 @@
 
 * Added optional column formatting to ``pip list`` (:issue:`3651`).
 
+* Add --platform, --python-version, --implementation, --abi,
+  and --manylinux1 parameters to ``pip download``.
+  These allow utilities and advanced users to gather distributions for
+  interpreters other than the one pip is being run on.
+
 
 **8.1.2 (2016-05-10)**
 
