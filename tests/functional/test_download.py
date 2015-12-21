@@ -185,3 +185,28 @@ def test_download_specify_platform(script, data):
         Path('scratch') / 'requires_source-1.0-py2.py3-none-any.whl'
         in result.files_created
     )
+
+@pytest.mark.network
+def test_download_specify_interpreter_version(script, data):
+    """
+    Test using "pip download --interpreter-version" to download a .whl archive
+    supported for a specific platform
+    """
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', 'py2', 'simplewheel'
+    )
+    assert (
+        Path('scratch') / 'simplewheel-2.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', 'py3',
+        'requires_source'
+    )
+    assert (
+        Path('scratch') / 'requires_source-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )

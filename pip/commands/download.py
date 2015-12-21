@@ -70,9 +70,7 @@ class DownloadCommand(RequirementCommand):
             metavar='platform',
             default=get_platform(),
             help=("Specifically download wheels compatible with <platform> "
-                  "where the default is the platfrom of the local computer. "
-                  "This option may only be used if --download is also being "
-                  "used."),
+                  "where the default is the platfrom of the local computer."),
         )
 
         cmd_opts.add_option(
@@ -82,8 +80,7 @@ class DownloadCommand(RequirementCommand):
             default='',
             help=("Specifically download wheels compatible with Python "
                   "interpreter version <version>. If not specified, then the "
-                  "current system interpreter version is used. This option "
-                  "may only be used if --download is also being used. This "
+                  "current system interpreter version is used. This "
                   "is a stricter approach compared to the native search "
                   "performed without this option specified: this does not "
                   "accept previous minor versions of Python. It is meant to "

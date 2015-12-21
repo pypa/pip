@@ -50,4 +50,10 @@ Examples
     $ pip download -d . SomePackage  # equivalent to above
     $ pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
+2. Download a package and all of its dependencies for a specific platform and python version
+
+  ::
+
+  	$ pip download --platform macosx-10.10-x86_64 --interpreter-version py27 SomePackage
+
 
