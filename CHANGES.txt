@@ -12,6 +12,11 @@
   editable dependencies before); this allows running pip wheel on the result
   of pip freeze in presence of editable requirements (:issue:`3291`)
 
+* Add --platform, --python-version, --implementation, --abi,
+  and --manylinux1 parameters to ``pip download``.
+  These allow utilities and advanced users to gather distributions for
+  interpreters other than the one pip is being run on.
+
 
 **8.1.2 (2016-05-10)**
 

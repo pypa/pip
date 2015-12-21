@@ -312,7 +312,8 @@ class RequirementCommand(Command):
             logger.warning(msg)
 
     def _build_package_finder(self, options, session,
-                              platform=None, desired_interp_versions=None):
+                              platform=None, python_versions=None,
+                              abi=None, implementation=None):
         """
         Create a package finder appropriate to this requirement command.
         """
@@ -330,5 +331,7 @@ class RequirementCommand(Command):
             process_dependency_links=options.process_dependency_links,
             session=session,
             platform=platform,
-            versions=desired_interp_versions,
+            versions=python_versions,
+            abi=abi,
+            implementation=implementation,
         )
