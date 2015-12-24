@@ -68,7 +68,7 @@
 * Allow combination of pip list options --editable with --outdated/--updtodate.
   (:issue:`933`)
 
-* Gives VCS implementations control over saying whether a project 
+* Gives VCS implementations control over saying whether a project
   is under their control (:pull:`3258`)
 
 * Git detection now works when ``setup.py`` is not at the Git repo root
@@ -81,6 +81,32 @@
 * The detection of editable packages now relies on the presence of ``.egg-link``
   instead of looking for a VCS, so ``pip list -e`` is more reliable
   (:pull:`3258`)
+
+* Add the ``--prefix`` flag to ``pip install`` which allows specifying a root
+  prefix to use instead of ``sys.prefix`` (:pull:`3252`).
+
+* Allow duplicate specifications in the case that only the extras differ, and
+  union all specified extras together (:pull:`3198`).
+
+* Fix the detection of the user's current platform on OSX when determining the
+  OSX SDK version (:pull:`3232`).
+
+* Prevent the automatically built wheels from mistakenly being used across
+  multiple versions of Python when they may not be correctly configured for
+  that by making the wheel specific to a specific version of Python and
+  specific interpreter (:pull:`3225`).
+
+* Emulate the SOABI support in wheels from Python 2.x on Python 2.x as closely
+  as we can with the information available within the interpreter
+  (:pull:`3075`).
+
+* Don't roundtrip to the network when git is pinned to a specific commit hash
+  and that hash already exists locally (:pull:`3066`).
+
+* Prefer wheels built against a newer SDK to wheels built against an older SDK
+  on OSX (:pull:`3163`).
+
+* Show entry points for projects installed via wheel (:pull:`3122`).
 
 
 **7.1.2 (2015-08-22)**
