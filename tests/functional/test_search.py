@@ -135,7 +135,7 @@ def test_search_missing_argument(script):
 
 
 @pytest.mark.network
-def test_run_method_should_return_sucess_when_find_packages():
+def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
     """
