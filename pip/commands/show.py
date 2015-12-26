@@ -107,25 +107,25 @@ def print_results(distributions, list_all_files):
     for dist in distributions:
         results_printed = True
         logger.info("---")
-        logger.info("Metadata-Version: %s" % dist.get('metadata-version'))
-        logger.info("Name: %s" % dist['name'])
-        logger.info("Version: %s" % dist['version'])
-        logger.info("Summary: %s" % dist.get('summary'))
-        logger.info("Home-page: %s" % dist.get('home-page'))
-        logger.info("Author: %s" % dist.get('author'))
-        logger.info("Author-email: %s" % dist.get('author-email'))
-        logger.info("License: %s" % dist.get('license'))
-        logger.info("Location: %s" % dist['location'])
-        logger.info("Requires: %s" % ', '.join(dist['requires']))
+        logger.info("Metadata-Version: %s", dist.get('metadata-version'))
+        logger.info("Name: %s", dist['name'])
+        logger.info("Version: %s", dist['version'])
+        logger.info("Summary: %s", dist.get('summary'))
+        logger.info("Home-page: %s", dist.get('home-page'))
+        logger.info("Author: %s", dist.get('author'))
+        logger.info("Author-email: %s", dist.get('author-email'))
+        logger.info("License: %s", dist.get('license'))
+        logger.info("Location: %s", dist['location'])
+        logger.info("Requires: %s", ', '.join(dist['requires']))
         if list_all_files:
             logger.info("Files:")
             if 'files' in dist:
                 for line in dist['files']:
-                    logger.info("  %s" % line.strip())
+                    logger.info("  %s", line.strip())
             else:
                 logger.info("Cannot locate installed-files.txt")
         if 'entry_points' in dist:
             logger.info("Entry-points:")
             for line in dist['entry_points']:
-                logger.info("  %s" % line.strip())
+                logger.info("  %s", line.strip())
     return results_printed
