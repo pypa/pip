@@ -63,11 +63,11 @@ class Command(object):
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
-        gen_opts = cmdoptions.make_option_group(
+        self.gen_opts = cmdoptions.make_option_group(
             cmdoptions.general_group,
             self.parser,
         )
-        self.parser.add_option_group(gen_opts)
+        self.parser.add_option_group(self.gen_opts)
 
     def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
@@ -127,6 +127,15 @@ class Command(object):
         )
 
         if options.help:
+            if not options.verbose:
+                # hide General Options
+                self.parser.epilog = "\nAdd '-v' flag to show general "\
+                                     "options.\n"
+                self.parser.option_groups.remove(self.gen_opts)
+
+                # 'pip --help' is handled by pip.__init__.parseopt(),
+                # so it is not affected by absence of --verbose
+
             self.print_help()
             sys.exit(0)
 
