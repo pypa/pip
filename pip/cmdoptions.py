@@ -67,7 +67,7 @@ help_ = partial(
     Option,
     '-h', '--help',
     dest='help',
-    action='help',
+    action='store_true',
     help='Show help.')
 
 isolated_mode = partial(
