@@ -191,7 +191,10 @@ def test_install_local_editable_with_subdirectory(script):
     result.assert_installed('version-subpkg', sub_dir='version_subdir')
 
 
-def test_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+@pytest.mark.network
+def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+    # Make sure wheel is available in the virtualenv
+    script.pip('install', 'wheel')
     virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
     script.scratch_path.join("bin").mkdir()
@@ -202,6 +205,8 @@ def test_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
 
     result = script.pip('install', '--user', '--no-index', '-f',
                         data.find_links, 'requiresupper')
+    # Check that we are really installing a wheel
+    assert 'Running setup.py install for requiresupper' not in result.stdout
     assert 'installed requiresupper' in result.stdout
 
 
