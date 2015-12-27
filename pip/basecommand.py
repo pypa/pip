@@ -105,6 +105,11 @@ class Command(object):
         # factored out for testability
         return self.parser.parse_args(args)
 
+    def print_help(self):
+        # factored out for uniform handling
+        # of 'help <command>' and '<command> --help' cases
+        self.parser.print_help()
+
     def main(self, args):
         options, args = self.parse_args(args)
 
@@ -125,6 +130,10 @@ class Command(object):
         root_level = level
         if options.log:
             root_level = "DEBUG"
+
+        if options.help:
+            self.print_help()
+            sys.exit(0)
 
         logging.config.dictConfig({
             "version": 1,
