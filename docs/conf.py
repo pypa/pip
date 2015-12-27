@@ -33,7 +33,7 @@ extensions = ['sphinx.ext.extlinks', 'docs.pipext', 'sphinx.ext.intersphinx']
 intersphinx_cache_limit = 0
 intersphinx_mapping = {
     'pypug': ('https://packaging.python.org/en/latest/', None),
-    'pypa': ('https://pypa.io/en/latest/', None),
+    'pypa': ('https://www.pypa.io/en/latest/', None),
 }
 
 
