@@ -109,6 +109,11 @@ class Command(object):
         # factored out for testability
         return self.parser.parse_args(args)
 
+    def print_help(self):
+        # factored out for uniform handling
+        # of 'help <command>' and '<command> --help' cases
+        self.parser.print_help()
+
     def main(self, args):
         options, args = self.parse_args(args)
 
@@ -120,6 +125,10 @@ class Command(object):
             no_color=options.no_color,
             user_log_file=options.log,
         )
+
+        if options.help:
+            self.print_help()
+            sys.exit(0)
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
