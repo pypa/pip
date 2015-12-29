@@ -327,7 +327,7 @@ class VersionControl(object):
             if e.errno == errno.ENOENT:
                 raise BadCommand('Cannot find command %r' % self.name)
             else:
-                raise  # re-raise exception if a different error occured
+                raise  # re-raise exception if a different error occurred
 
     @classmethod
     def controls_location(cls, location):

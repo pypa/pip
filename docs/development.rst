@@ -105,7 +105,7 @@ Release Process
    (``twine upload -s dist/*``). The upload should include GPG signatures of
    the distribution files.
 7. Regenerate the ``get-pip.py`` script by running
-   ``invoke generate.installer`` on the master branch, and commiting the
+   ``invoke generate.installer`` on the master branch, and committing the
    results.
 8. Merge the ``master`` branch into the ``develop`` branch.
 9. Push all of the changes.

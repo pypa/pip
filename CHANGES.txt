@@ -428,7 +428,7 @@
   directory lower. (:pull:`1933`)
 
 * **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
-  was accidently lost in pip 1.5 and it has now been decided to not restore
+  was accidentally lost in pip 1.5 and it has now been decided to not restore
   that ability.
 
 * **BACKWARD INCOMPATIBLE** PEP 440 is now fully implemented, this means that
