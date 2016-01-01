@@ -19,7 +19,9 @@ class RemovedInPip10Warning(PipDeprecationWarning, PendingDeprecationWarning):
     pass
 
 
-class Python26DeprecationWarning(PipDeprecationWarning, PendingDeprecationWarning):
+class Python26DeprecationWarning(
+    PipDeprecationWarning, PendingDeprecationWarning
+):
     pass
 
 

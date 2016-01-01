@@ -183,8 +183,8 @@ class Command(object):
         if sys.version_info[:2] == (2, 6):
             warnings.warn(
                 "Python 2.6 is no longer supported by the Python core team, "
-                "please upgrade your Python. A future version of pip will drop "
-                "support for Python 2.6",
+                "please upgrade your Python. A future version of pip will "
+                "drop support for Python 2.6",
                 deprecation.Python26DeprecationWarning
             )
 
