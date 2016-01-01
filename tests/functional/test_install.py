@@ -161,17 +161,6 @@ def test_download_editable_to_custom_path(script, tmpdir):
             'should be used instead.') in result.stderr
 
 
-@pytest.mark.network
-def test_install_dev_version_from_pypi(script):
-    """
-    Test using package==dev.
-    """
-    result = script.pip('install', 'INITools===dev', expect_error=True)
-    assert (script.site_packages / 'initools') in result.files_created, (
-        str(result.stdout)
-    )
-
-
 def _test_install_editable_from_git(script, tmpdir, wheel):
     """Test cloning from Git."""
     if wheel:
