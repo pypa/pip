@@ -17,7 +17,7 @@ from tests.lib.path import Path
 
 
 def test_without_setuptools(script, data):
-    script.run("pip", "uninstall", "setuptools", "-y")
+    script.pip("uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
         "import pip; pip.main(["
