@@ -44,9 +44,8 @@ class HashCommand(Command):
 
         algorithm = options.algorithm
         for path in args:
-            logger.info('%s:\n--hash=%s:%s' % (path,
-                                               algorithm,
-                                               _hash_of_file(path, algorithm)))
+            logger.info('%s:\n--hash=%s:%s',
+                        path, algorithm, _hash_of_file(path, algorithm))
 
 
 def _hash_of_file(path, algorithm):
