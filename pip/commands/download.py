@@ -1,11 +1,10 @@
 from __future__ import absolute_import
-
 import logging
 import os
 
-from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
 from pip import cmdoptions
+from pip.basecommand import RequirementCommand
+from pip.req import RequirementSet
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner

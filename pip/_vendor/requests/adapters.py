@@ -10,27 +10,41 @@ and maintain connections.
 
 import socket
 
+from .auth import _basic_auth_str
+from .compat import basestring, urlparse
+from .cookies import extract_cookies_to_jar
+from .exceptions import (
+    ConnectTimeout,
+    ConnectionError,
+    ProxyError,
+    ReadTimeout,
+    RetryError,
+    SSLError,
+)
 from .models import Response
+from .packages.urllib3.exceptions import (
+    ConnectTimeoutError,
+    HTTPError as _HTTPError,
+    MaxRetryError,
+    ProtocolError,
+    ProxyError as _ProxyError,
+    ReadTimeoutError,
+    ResponseError,
+    SSLError as _SSLError,
+)
 from .packages.urllib3.poolmanager import PoolManager, proxy_from_url
 from .packages.urllib3.response import HTTPResponse
 from .packages.urllib3.util import Timeout as TimeoutSauce
 from .packages.urllib3.util.retry import Retry
-from .compat import urlparse, basestring
-from .utils import (DEFAULT_CA_BUNDLE_PATH, get_encoding_from_headers,
-                    prepend_scheme_if_needed, get_auth_from_url, urldefragauth)
 from .structures import CaseInsensitiveDict
-from .packages.urllib3.exceptions import ConnectTimeoutError
-from .packages.urllib3.exceptions import HTTPError as _HTTPError
-from .packages.urllib3.exceptions import MaxRetryError
-from .packages.urllib3.exceptions import ProxyError as _ProxyError
-from .packages.urllib3.exceptions import ProtocolError
-from .packages.urllib3.exceptions import ReadTimeoutError
-from .packages.urllib3.exceptions import SSLError as _SSLError
-from .packages.urllib3.exceptions import ResponseError
-from .cookies import extract_cookies_to_jar
-from .exceptions import (ConnectionError, ConnectTimeout, ReadTimeout, SSLError,
-                         ProxyError, RetryError)
-from .auth import _basic_auth_str
+from .utils import (
+    DEFAULT_CA_BUNDLE_PATH,
+    get_auth_from_url,
+    get_encoding_from_headers,
+    prepend_scheme_if_needed,
+    urldefragauth,
+)
+
 
 DEFAULT_POOLBLOCK = False
 DEFAULT_POOLSIZE = 10

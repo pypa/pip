@@ -1,10 +1,16 @@
 from __future__ import absolute_import
-
-import time
 import os
+import time
 
-from . import (LockBase, LockFailed, NotLocked, NotMyLock, LockTimeout,
-               AlreadyLocked)
+from . import (
+    AlreadyLocked,
+    LockBase,
+    LockFailed,
+    LockTimeout,
+    NotLocked,
+    NotMyLock,
+)
+
 
 class SymlinkLockFile(LockBase):
     """Lock access to a file using symlink(2)."""

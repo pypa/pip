@@ -2,23 +2,14 @@
 from .connection import is_connection_dropped
 from .request import make_headers
 from .response import is_fp_closed
+from .retry import Retry
 from .ssl_ import (
-    SSLContext,
     HAS_SNI,
+    SSLContext,
     assert_fingerprint,
     resolve_cert_reqs,
     resolve_ssl_version,
     ssl_wrap_socket,
 )
-from .timeout import (
-    current_time,
-    Timeout,
-)
-
-from .retry import Retry
-from .url import (
-    get_host,
-    parse_url,
-    split_first,
-    Url,
-)
+from .timeout import Timeout, current_time
+from .url import Url, get_host, parse_url, split_first

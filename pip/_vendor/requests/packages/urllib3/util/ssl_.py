@@ -1,15 +1,15 @@
+import errno
+import warnings
 from binascii import hexlify, unhexlify
 from hashlib import md5, sha1, sha256
 
-from ..exceptions import SSLError, InsecurePlatformWarning
+from ..exceptions import InsecurePlatformWarning, SSLError
 
 
 SSLContext = None
 HAS_SNI = False
 create_default_context = None
 
-import errno
-import warnings
 
 try:  # Test for SSL features
     import ssl

@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-
 import datetime
 import json
 import logging
@@ -8,8 +7,7 @@ import sys
 
 from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
-
-from pip.compat import total_seconds, WINDOWS
+from pip.compat import WINDOWS, total_seconds
 from pip.index import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version

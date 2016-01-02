@@ -1,15 +1,21 @@
 from __future__ import absolute_import, division, unicode_literals
+import codecs
+import re
+from io import StringIO
+
 from pip._vendor.six import text_type
 from pip._vendor.six.moves import http_client
 
-import codecs
-import re
-
-from .constants import EOF, spaceCharacters, asciiLetters, asciiUppercase
-from .constants import encodings, ReparseException
 from . import utils
+from .constants import (
+    EOF,
+    ReparseException,
+    asciiLetters,
+    asciiUppercase,
+    spaceCharacters,
+    encodings,
+)
 
-from io import StringIO
 
 try:
     from io import BytesIO

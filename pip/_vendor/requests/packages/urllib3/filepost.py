@@ -1,11 +1,11 @@
 import codecs
-
-from uuid import uuid4
 from io import BytesIO
+from uuid import uuid4
 
+from .fields import RequestField
 from .packages import six
 from .packages.six import b
-from .fields import RequestField
+
 
 writer = codecs.lookup('utf-8')[3]
 

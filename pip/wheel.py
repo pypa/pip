@@ -2,7 +2,6 @@
 Support for installing and building the "wheel" binary package format.
 """
 from __future__ import absolute_import
-
 import compileall
 import csv
 import errno
@@ -17,28 +16,34 @@ import stat
 import sys
 import tempfile
 import warnings
-
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor.six import StringIO
-
 import pip
+from pip import pep425tags
+from pip._vendor import pkg_resources
+from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor.six import StringIO
+from pip._vendor.six.moves import configparser
 from pip.compat import expanduser
 from pip.download import path_to_url, unpack_url
 from pip.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel)
-from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
-from pip import pep425tags
+    InstallationError,
+    InvalidWheelFilename,
+    UnsupportedWheel,
+)
+from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name,
-    read_chunks)
-from pip.utils.ui import open_spinner
+    call_subprocess,
+    canonicalize_name,
+    captured_stdout,
+    ensure_dir,
+    read_chunks,
+    rmtree,
+)
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import configparser
+from pip.utils.ui import open_spinner
 
 
 wheel_ext = '.whl'

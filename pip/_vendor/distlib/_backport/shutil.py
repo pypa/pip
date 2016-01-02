@@ -9,14 +9,16 @@ XXX The functions here don't copy the resource fork or other metadata on Mac.
 
 """
 
-import os
-import sys
-import stat
-from os.path import abspath
-import fnmatch
 import collections
 import errno
+import fnmatch
+import os
+import stat
+import sys
+from os.path import abspath
+
 from . import tarfile
+
 
 try:
     import bz2

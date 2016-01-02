@@ -1,24 +1,30 @@
 """Base Command class, and related routines"""
 from __future__ import absolute_import
-
 import logging
+import optparse
 import os
 import sys
-import optparse
 
 from pip import cmdoptions
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.compat import logging_dictConfig
+from pip.download import PipSession
+from pip.exceptions import (
+    BadCommand,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
+    UninstallationError,
+)
 from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
-from pip.download import PipSession
-from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError, PreviousBuildDirError)
-
-from pip.compat import logging_dictConfig
-from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
-    SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
+    ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
+    SUCCESS,
+    UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND,
 )
 from pip.utils import get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter

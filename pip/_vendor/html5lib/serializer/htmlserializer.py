@@ -1,15 +1,24 @@
 from __future__ import absolute_import, division, unicode_literals
+from xml.sax.saxutils import escape
+
 from pip._vendor.six import text_type
+
+from .. import utils
+from ..constants import (
+    booleanAttributes,
+    rcdataElements,
+    spaceCharacters,
+    voidElements,
+    xmlEntities,
+    entities,
+)
+
 
 try:
     from functools import reduce
 except ImportError:
     pass
 
-from ..constants import voidElements, booleanAttributes, spaceCharacters
-from ..constants import rcdataElements, entities, xmlEntities
-from .. import utils
-from xml.sax.saxutils import escape
 
 spaceCharacters = "".join(spaceCharacters)
 

@@ -9,8 +9,8 @@ try:
 except ImportError:
     from httplib import HTTPSConnection
 from logging import getLogger
-from ntlm import ntlm
 
+from ntlm import ntlm
 from urllib3 import HTTPSConnectionPool
 
 

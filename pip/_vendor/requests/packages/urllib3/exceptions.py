@@ -1,4 +1,3 @@
-
 ## Base Exceptions
 
 class HTTPError(Exception):

@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-
 import logging
 import os
 import warnings
 
+from pip import cmdoptions
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip10Warning
-from pip.wheel import WheelCache, WheelBuilder
-from pip import cmdoptions
+from pip.wheel import WheelBuilder, WheelCache
+
 
 DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 

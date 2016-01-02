@@ -1,9 +1,14 @@
 from __future__ import absolute_import, division, unicode_literals
 
+from ..constants import (
+    cdataElements,
+    rcdataElements,
+    spaceCharacters,
+    voidElements,
+)
 from . import _base
-from ..constants import cdataElements, rcdataElements, voidElements
 
-from ..constants import spaceCharacters
+
 spaceCharacters = "".join(spaceCharacters)
 
 

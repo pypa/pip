@@ -8,11 +8,12 @@
 
 import ast
 import os
-import sys
 import platform
+import sys
 
 from .compat import python_implementation, string_types
 from .util import in_venv
+
 
 __all__ = ['interpret']
 

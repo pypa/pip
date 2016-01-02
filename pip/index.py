@@ -1,37 +1,44 @@
 """Routines related to PyPI, indexes"""
 from __future__ import absolute_import
-
-import logging
 import cgi
-from collections import namedtuple
 import itertools
-import sys
-import os
-import re
+import logging
 import mimetypes
+import os
 import posixpath
+import re
+import sys
 import warnings
+from collections import namedtuple
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
-
-from pip.compat import ipaddress
-from pip.utils import (
-    cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
-from pip.utils.deprecation import RemovedInPip9Warning
-from pip.utils.logging import indent_log
-from pip.exceptions import (
-    DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
-    UnsupportedWheel,
-)
-from pip.download import HAS_TLS, url_to_path, path_to_url
-from pip.models import PyPI
-from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
+from pip._vendor.six.moves.urllib import (
+    parse as urllib_parse,
+    request as urllib_request,
+)
+from pip.compat import ipaddress
+from pip.download import HAS_TLS, path_to_url, url_to_path
+from pip.exceptions import (
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
+    InvalidWheelFilename,
+    UnsupportedWheel,
+)
+from pip.models import PyPI
+from pip.pep425tags import get_platform, supported_tags, supported_tags_noarch
+from pip.utils import (
+    ARCHIVE_EXTENSIONS,
+    SUPPORTED_EXTENSIONS,
+    cached_property,
+    canonicalize_name,
+    normalize_path,
+    splitext,
+)
+from pip.utils.deprecation import RemovedInPip9Warning
+from pip.utils.logging import indent_log
+from pip.wheel import Wheel, wheel_ext
 
 
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']

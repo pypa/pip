@@ -8,14 +8,17 @@ pass on state. To be consistent, all options will follow this design.
 
 """
 from __future__ import absolute_import
-
-from functools import partial
-from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
+from functools import partial
+from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip.index import (
-    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
-    fmt_ctl_no_use_wheel)
+    FormatControl,
+    PyPI,
+    fmt_ctl_handle_mutual_exclude,
+    fmt_ctl_no_binary,
+    fmt_ctl_no_use_wheel,
+)
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
 

@@ -13,6 +13,7 @@ packaged CA bundle.
 """
 import os.path
 
+
 try:
     from certifi import where
 except ImportError:

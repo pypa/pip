@@ -13,10 +13,11 @@
 ## limitations under the License.
 
 import random
-from pip._vendor import six
 import sys
 import time
 import traceback
+
+from pip._vendor import six
 
 
 # sys.maxint / 2, since Python 3.2 doesn't have a sys.maxint...

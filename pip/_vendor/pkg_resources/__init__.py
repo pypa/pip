@@ -15,29 +15,34 @@ method.
 """
 
 from __future__ import absolute_import
-
-import sys
-import os
-import io
-import time
-import re
-import types
-import zipfile
-import zipimport
-import warnings
-import stat
-import functools
-import pkgutil
-import token
-import symbol
-import operator
-import platform
 import collections
-import plistlib
 import email.parser
+import functools
+import io
+import operator
+import os
+import pkgutil
+import platform
+import plistlib
+import re
+import stat
+import symbol
+import sys
 import tempfile
 import textwrap
+import time
+import token
+import types
+import warnings
+import zipfile
+import zipimport
+from os import open as os_open, utime
+from os.path import isdir, split
 from pkgutil import get_importer
+
+import pip._vendor.packaging.specifiers
+import pip._vendor.packaging.version
+
 
 try:
     import _imp
@@ -62,7 +67,6 @@ else:
 iteritems = (lambda i: i.items()) if PY3 else lambda i: i.iteritems()
 
 # capture these to bypass sandboxing
-from os import utime
 try:
     from os import mkdir, rename, unlink
     WRITE_SUPPORT = True
@@ -70,8 +74,6 @@ except ImportError:
     # no write support, probably under GAE
     WRITE_SUPPORT = False
 
-from os import open as os_open
-from os.path import isdir, split
 
 # Avoid try/except due to potential problems with delayed import mechanisms.
 if sys.version_info >= (3, 3) and sys.implementation.name == "cpython":
@@ -84,8 +86,6 @@ try:
 except ImportError:
     pass
 
-import pip._vendor.packaging.version
-import pip._vendor.packaging.specifiers
 packaging = pip._vendor.packaging
 
 

@@ -26,8 +26,9 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-from . import constants
 import re
+
+from . import constants
 
 
 class CharSetProber:

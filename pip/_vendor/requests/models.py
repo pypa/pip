@@ -9,29 +9,58 @@ This module contains the primary objects that power Requests.
 
 import collections
 import datetime
-
 from io import BytesIO, UnsupportedOperation
-from .hooks import default_hooks
-from .structures import CaseInsensitiveDict
 
 from .auth import HTTPBasicAuth
-from .cookies import cookiejar_from_dict, get_cookie_header, _copy_cookie_jar
+from .compat import (
+    StringIO,
+    basestring,
+    builtin_str,
+    bytes,
+    chardet,
+    cookielib,
+    is_py2,
+    json,
+    str,
+    urlencode,
+    urlsplit,
+    urlunparse,
+)
+from .cookies import _copy_cookie_jar, cookiejar_from_dict, get_cookie_header
+from .exceptions import (
+    ChunkedEncodingError,
+    ConnectionError,
+    ContentDecodingError,
+    HTTPError,
+    InvalidURL,
+    MissingSchema,
+    StreamConsumedError,
+)
+from .hooks import default_hooks
+from .packages.urllib3.exceptions import (
+    DecodeError,
+    LocationParseError,
+    ProtocolError,
+    ReadTimeoutError,
+)
 from .packages.urllib3.fields import RequestField
 from .packages.urllib3.filepost import encode_multipart_formdata
 from .packages.urllib3.util import parse_url
-from .packages.urllib3.exceptions import (
-    DecodeError, ReadTimeoutError, ProtocolError, LocationParseError)
-from .exceptions import (
-    HTTPError, MissingSchema, InvalidURL, ChunkedEncodingError,
-    ContentDecodingError, ConnectionError, StreamConsumedError)
-from .utils import (
-    guess_filename, get_auth_from_url, requote_uri,
-    stream_decode_response_unicode, to_key_val_list, parse_header_links,
-    iter_slices, guess_json_utf, super_len, to_native_string)
-from .compat import (
-    cookielib, urlunparse, urlsplit, urlencode, str, bytes, StringIO,
-    is_py2, chardet, json, builtin_str, basestring)
 from .status_codes import codes
+from .structures import CaseInsensitiveDict
+from .utils import (
+    get_auth_from_url,
+    guess_filename,
+    guess_json_utf,
+    iter_slices,
+    parse_header_links,
+    requote_uri,
+    stream_decode_response_unicode,
+    super_len,
+    to_key_val_list,
+    to_native_string,
+)
+
 
 #: The set of HTTP status codes that indicate an automatically
 #: processable redirect.

@@ -1,12 +1,22 @@
 from __future__ import absolute_import, division, unicode_literals
 
-from genshi.core import QName
-from genshi.core import START, END, XML_NAMESPACE, DOCTYPE, TEXT
-from genshi.core import START_NS, END_NS, START_CDATA, END_CDATA, PI, COMMENT
-
-from . import _base
+from genshi.core import (
+    COMMENT,
+    DOCTYPE,
+    END,
+    END_CDATA,
+    END_NS,
+    PI,
+    START,
+    START_CDATA,
+    START_NS,
+    TEXT,
+    XML_NAMESPACE,
+    QName,
+)
 
 from ..constants import voidElements, namespaces
+from . import _base
 
 
 class TreeWalker(_base.TreeWalker):

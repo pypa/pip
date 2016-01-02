@@ -27,8 +27,9 @@
 ######################### END LICENSE BLOCK #########################
 
 from .charsetprober import CharSetProber
-from .constants import eNotMe
 from .compat import wrap_ord
+from .constants import eNotMe
+
 
 FREQ_CAT_NUM = 4
 

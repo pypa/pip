@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import, division, print_function
-
 import abc
 import functools
 import itertools
 import re
 
 from ._compat import string_types, with_metaclass
-from .version import Version, LegacyVersion, parse
+from .version import LegacyVersion, Version, parse
 
 
 class InvalidSpecifier(ValueError):

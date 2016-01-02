@@ -1,18 +1,19 @@
 """Base option parser setup"""
 from __future__ import absolute_import
-
-import sys
 import optparse
 import os
 import re
+import sys
 import textwrap
 from distutils.util import strtobool
 
 from pip._vendor.six import string_types
 from pip._vendor.six.moves import configparser
 from pip.locations import (
-    legacy_config_file, config_basename, running_under_virtualenv,
-    site_config_files
+    config_basename,
+    legacy_config_file,
+    running_under_virtualenv,
+    site_config_files,
 )
 from pip.utils import appdirs, get_terminal_size
 

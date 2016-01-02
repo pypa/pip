@@ -26,6 +26,15 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 from __future__ import print_function
+import copy
+import errno
+import os
+import re
+import stat
+import struct
+import sys
+import time
+
 
 """Read from and write to tar format archives.
 """
@@ -41,14 +50,6 @@ __credits__ = "Gustavo Niemeyer, Niels Gust\u00e4bel, Richard Townsend."
 #---------
 # Imports
 #---------
-import sys
-import os
-import stat
-import errno
-import time
-import struct
-import copy
-import re
 
 try:
     import grp, pwd

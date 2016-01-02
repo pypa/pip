@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-
 import cgi
 import email.utils
 import getpass
@@ -13,38 +12,51 @@ import shutil
 import sys
 import tempfile
 
+import pip
+from pip._vendor import requests, six
+from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.lockfile import LockError
+from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
+from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import Response
+from pip._vendor.requests.packages import urllib3
+from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.six.moves import xmlrpc_client
+from pip._vendor.six.moves.urllib import (
+    parse as urllib_parse,
+    request as urllib_request,
+)
+from pip.exceptions import HashMismatch, InstallationError
+from pip.locations import write_delete_marker_file
+from pip.models import PyPI
+from pip.utils import (
+    ARCHIVE_EXTENSIONS,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    consume,
+    display_path,
+    format_size,
+    rmtree,
+    splitext,
+    unpack_file,
+)
+from pip.utils.filesystem import check_path_owner
+from pip.utils.logging import indent_log
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
+from pip.vcs import vcs
+
+
 try:
     import ssl  # noqa
     HAS_TLS = True
 except ImportError:
     HAS_TLS = False
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
-import pip
 
-from pip.exceptions import InstallationError, HashMismatch
-from pip.models import PyPI
-from pip.utils import (splitext, rmtree, format_size, display_path,
-                       backup_dir, ask_path_exists, unpack_file,
-                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
-from pip.utils.filesystem import check_path_owner
-from pip.utils.logging import indent_log
-from pip.utils.setuptools_build import SETUPTOOLS_SHIM
-from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
-from pip.locations import write_delete_marker_file
-from pip.vcs import vcs
-from pip._vendor import requests, six
-from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
-from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.requests.packages import urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter
-from pip._vendor.cachecontrol.caches import FileCache
-from pip._vendor.lockfile import LockError
-from pip._vendor.six.moves import xmlrpc_client
 
 
 __all__ = ['get_file_content',

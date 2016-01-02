@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
-from pip._vendor.six import text_type
-
 from bisect import bisect_left
+
+from pip._vendor.six import text_type
 
 from ._base import Trie as ABCTrie
 

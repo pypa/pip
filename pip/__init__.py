@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
-
 import logging
-import os
 import optparse
+import os
+import re
+import sys
 import warnings
 
-import sys
-import re
-
-from pip.exceptions import InstallationError, CommandError, PipError
-from pip.utils import get_installed_distributions, get_prog
-from pip.utils import deprecation, dist_is_editable
-from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+import pip.cmdoptions
+from pip._vendor.requests.packages.urllib3.exceptions import InsecureRequestWarning
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import get_summaries, get_similar_commands
-from pip.commands import commands_dict
-from pip._vendor.requests.packages.urllib3.exceptions import (
-    InsecureRequestWarning,
+from pip.commands import commands_dict, get_similar_commands, get_summaries
+from pip.exceptions import CommandError, InstallationError, PipError
+from pip.utils import (
+    deprecation,
+    dist_is_editable,
+    get_installed_distributions,
+    get_prog,
 )
+from pip.vcs import bazaar, git, mercurial, subversion  # noqa
 
 
 # assignment for flake8 to be happy
@@ -26,7 +26,6 @@ from pip._vendor.requests.packages.urllib3.exceptions import (
 # This fixes a peculiarity when importing via __import__ - as we are
 # initialising the pip module, "from pip import cmdoptions" is recursive
 # and appears not to work properly in that situation.
-import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py

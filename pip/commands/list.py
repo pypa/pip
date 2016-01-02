@@ -1,17 +1,19 @@
 from __future__ import absolute_import
-
 import logging
 import warnings
 
 from pip.basecommand import Command
+from pip.cmdoptions import index_group, make_option_group
 from pip.exceptions import CommandError, DistributionNotFound
-from pip.index import FormatControl, fmt_ctl_formats, PackageFinder, Search
+from pip.index import FormatControl, PackageFinder, Search, fmt_ctl_formats
 from pip.req import InstallRequirement
 from pip.utils import (
-    get_installed_distributions, dist_is_editable, canonicalize_name)
+    canonicalize_name,
+    dist_is_editable,
+    get_installed_distributions,
+)
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache
-from pip.cmdoptions import make_option_group, index_group
 
 
 logger = logging.getLogger(__name__)

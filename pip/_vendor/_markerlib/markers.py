@@ -23,6 +23,7 @@ import platform
 import sys
 import weakref
 
+
 _builtin_compile = compile
 
 try:

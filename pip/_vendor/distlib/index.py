@@ -10,15 +10,24 @@ import os
 import shutil
 import subprocess
 import tempfile
+
+from . import DistlibException
+from .compat import (
+    HTTPBasicAuthHandler,
+    HTTPPasswordMgr,
+    Request,
+    build_opener,
+    string_types,
+    urlparse,
+)
+from .util import ServerProxy, cached_property, zip_dir
+
+
 try:
     from threading import Thread
 except ImportError:
     from dummy_threading import Thread
 
-from . import DistlibException
-from .compat import (HTTPBasicAuthHandler, Request, HTTPPasswordMgr,
-                     urlparse, build_opener, string_types)
-from .util import cached_property, zip_dir, ServerProxy
 
 logger = logging.getLogger(__name__)
 

@@ -50,15 +50,16 @@ try:
 except SyntaxError as e:
     raise ImportError(e)
 
+import select
+import ssl
+from socket import _fileobject, timeout
+
 import OpenSSL.SSL
 from pyasn1.codec.der import decoder as der_decoder
-from pyasn1.type import univ, constraint
-from socket import _fileobject, timeout
-import ssl
-import select
+from pyasn1.type import constraint, univ
 
-from .. import connection
-from .. import util
+from .. import connection, util
+
 
 __all__ = ['inject_into_urllib3', 'extract_from_urllib3']
 

@@ -50,15 +50,15 @@ Exceptions:
 """
 
 from __future__ import absolute_import
-
-import sys
-import socket
+import functools
 import os
+import socket
+import sys
 import threading
 import time
 import urllib
 import warnings
-import functools
+
 
 # Work with PEP8 and non-PEP8 versions of threading module.
 if not hasattr(threading, "current_thread"):

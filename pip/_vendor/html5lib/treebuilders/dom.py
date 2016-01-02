@@ -1,13 +1,11 @@
 from __future__ import absolute_import, division, unicode_literals
-
-
-from xml.dom import minidom, Node
 import weakref
+from xml.dom import Node, minidom
 
-from . import _base
 from .. import constants
 from ..constants import namespaces
 from ..utils import moduleFactoryFactory
+from . import _base
 
 
 def getDomBuilder(DomImplementation):

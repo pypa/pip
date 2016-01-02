@@ -1,17 +1,22 @@
 import logging
 
+from ._collections import RecentlyUsedContainer
+from .connectionpool import (
+    HTTPConnectionPool,
+    HTTPSConnectionPool,
+    port_by_scheme,
+)
+from .exceptions import LocationValueError, MaxRetryError
+from .request import RequestMethods
+from .util.retry import Retry
+from .util.url import parse_url
+
+
 try:  # Python 3
     from urllib.parse import urljoin
 except ImportError:
     from urlparse import urljoin
 
-from ._collections import RecentlyUsedContainer
-from .connectionpool import HTTPConnectionPool, HTTPSConnectionPool
-from .connectionpool import port_by_scheme
-from .exceptions import LocationValueError, MaxRetryError
-from .request import RequestMethods
-from .util.url import parse_url
-from .util.retry import Retry
 
 
 __all__ = ['PoolManager', 'ProxyManager', 'proxy_from_url']

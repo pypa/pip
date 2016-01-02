@@ -1,14 +1,19 @@
 from __future__ import absolute_import
-
 import logging
 import os
 import sys
 import tempfile
 
-from pip.compat import uses_pycache, WINDOWS, cache_from_source
+from pip.compat import WINDOWS, cache_from_source, uses_pycache
 from pip.exceptions import UninstallationError
-from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
-                       normalize_path)
+from pip.utils import (
+    ask,
+    dist_is_local,
+    is_local,
+    normalize_path,
+    renames,
+    rmtree,
+)
 from pip.utils.logging import indent_log
 
 

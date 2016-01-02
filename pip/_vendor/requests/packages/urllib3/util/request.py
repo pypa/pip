@@ -2,6 +2,7 @@ from base64 import b64encode
 
 from ..packages.six import b
 
+
 ACCEPT_ENCODING = 'gzip,deflate'
 
 

@@ -13,6 +13,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from __future__ import print_function
+from signal import SIGINT, signal
+from sys import exit
 
 
 HIDE_CURSOR = '\x1b[?25l'
@@ -75,8 +77,6 @@ class WritelnMixin(object):
                 print(SHOW_CURSOR, end='', file=self.file)
 
 
-from signal import signal, SIGINT
-from sys import exit
 
 
 class SigIntMixin(object):

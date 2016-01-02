@@ -1,4 +1,8 @@
 from collections import Mapping, MutableMapping
+
+from .packages.six import PY3, iterkeys, itervalues
+
+
 try:
     from threading import RLock
 except ImportError:  # Platform-specific: No threads available
@@ -14,7 +18,6 @@ try:  # Python 2.7+
     from collections import OrderedDict
 except ImportError:
     from .packages.ordered_dict import OrderedDict
-from .packages.six import iterkeys, itervalues, PY3
 
 
 __all__ = ['RecentlyUsedContainer', 'HTTPHeaderDict']

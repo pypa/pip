@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, unicode_literals
-
 import re
 import warnings
 
 from .constants import DataLossWarning
+
 
 baseChar = """
 [#x0041-#x005A] | [#x0061-#x007A] | [#x00C0-#x00D6] | [#x00D8-#x00F6] |

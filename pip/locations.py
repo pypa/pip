@@ -1,13 +1,11 @@
 """Locations where we look for configs, install stuff, etc"""
 from __future__ import absolute_import
-
 import os
 import os.path
 import site
 import sys
-
 from distutils import sysconfig
-from distutils.command.install import install, SCHEME_KEYS  # noqa
+from distutils.command.install import SCHEME_KEYS, install  # noqa
 
 from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs

@@ -4,9 +4,10 @@
 pythoncompat
 """
 
+import sys
+
 from .packages import chardet
 
-import sys
 
 # -------
 # Pythons

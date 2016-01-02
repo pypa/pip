@@ -5,10 +5,11 @@
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 from __future__ import absolute_import
-
 import os
 import re
 import sys
+from zipfile import ZipFile as BaseZipFile
+
 
 if sys.version_info[0] < 3:  # pragma: no cover
     from StringIO import StringIO
@@ -259,7 +260,6 @@ except ImportError:  # pragma: no cover
 
 # ZipFile is a context manager in 2.7, but not in 2.6
 
-from zipfile import ZipFile as BaseZipFile
 
 if hasattr(BaseZipFile, '__enter__'):  # pragma: no cover
     ZipFile = BaseZipFile

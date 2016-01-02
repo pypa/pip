@@ -4,17 +4,23 @@
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
-from io import BytesIO
 import logging
 import os
 import re
 import struct
 import sys
+from io import BytesIO
 
-from .compat import sysconfig, detect_encoding, ZipFile
+from .compat import ZipFile, detect_encoding, sysconfig
 from .resources import finder
-from .util import (FileOperator, get_export_entry, convert_path,
-                   get_executable, in_venv)
+from .util import (
+    FileOperator,
+    convert_path,
+    get_executable,
+    get_export_entry,
+    in_venv,
+)
+
 
 logger = logging.getLogger(__name__)
 

@@ -26,12 +26,13 @@
 ######################### END LICENSE BLOCK #########################
 
 import sys
-from .mbcharsetprober import MultiByteCharSetProber
-from .codingstatemachine import CodingStateMachine
-from .chardistribution import SJISDistributionAnalysis
-from .jpcntx import SJISContextAnalysis
-from .mbcssm import SJISSMModel
+
 from . import constants
+from .chardistribution import SJISDistributionAnalysis
+from .codingstatemachine import CodingStateMachine
+from .jpcntx import SJISContextAnalysis
+from .mbcharsetprober import MultiByteCharSetProber
+from .mbcssm import SJISSMModel
 
 
 class SJISProber(MultiByteCharSetProber):

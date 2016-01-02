@@ -1,15 +1,15 @@
 from __future__ import absolute_import
-
 import logging
-import tempfile
 import os.path
+import tempfile
 
+from pip._vendor.six.moves.urllib import (
+    parse as urllib_parse,
+    request as urllib_request,
+)
 from pip.exceptions import BadCommand
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
-
 from pip.utils import display_path, rmtree
-from pip.vcs import vcs, VersionControl
+from pip.vcs import VersionControl, vcs
 
 
 urlsplit = urllib_parse.urlsplit

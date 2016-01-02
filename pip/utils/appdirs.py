@@ -3,7 +3,6 @@ This code was taken from https://github.com/ActiveState/appdirs and modified
 to suit our purposes.
 """
 from __future__ import absolute_import
-
 import os
 import sys
 

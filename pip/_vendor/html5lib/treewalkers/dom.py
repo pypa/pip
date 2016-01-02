@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, unicode_literals
-
 from xml.dom import Node
 
 from . import _base
