@@ -8,9 +8,7 @@ from pip.req import InstallRequirement
 from pip.index import (
     InstallationCandidate, PackageFinder, Link, FormatControl,
     fmt_ctl_formats)
-from pip.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
-)
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.download import PipSession
 
 from mock import Mock, patch
@@ -253,25 +251,6 @@ class TestWheel:
                           key=finder._candidate_sort_key, reverse=True)
 
         assert links == results == results2, results2
-
-    @patch('pip.pep425tags.supported_tags', [])
-    def test_link_sorting_raises_when_wheel_unsupported(self):
-        links = [
-            InstallationCandidate(
-                "simple",
-                '1.0',
-                Link('simple-1.0-py2.py3-none-TEST.whl'),
-            ),
-        ]
-        finder = PackageFinder([], [], session=PipSession())
-        # Does this test really makes sense ?
-        # find_all_candidates can not return an unsupported wheel:
-        # it would have been skipped in _link_package_versions
-        with pytest.raises(InstallationError):
-            with patch.object(finder, "_find_all_versions", lambda x: links):
-                finder.find_requirement(
-                    InstallRequirement.from_line('simple', None),
-                    upgrade=True)
 
 
 def test_finder_priority_file_over_page(data):
