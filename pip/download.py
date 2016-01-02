@@ -113,7 +113,7 @@ def user_agent():
         data["cpu"] = platform.machine()
 
     # Python 2.6 doesn't have ssl.OPENSSL_VERSION.
-    if HAS_TLS and sys.version_info > (2, 6):
+    if HAS_TLS and sys.version_info[:2] > (2, 6):
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
