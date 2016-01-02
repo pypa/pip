@@ -19,7 +19,15 @@ class RemovedInPip10Warning(PipDeprecationWarning, PendingDeprecationWarning):
     pass
 
 
-DEPRECATIONS = [RemovedInPip9Warning, RemovedInPip10Warning]
+class Python26DeprecationWarning(
+    PipDeprecationWarning, PendingDeprecationWarning
+):
+    pass
+
+
+DEPRECATIONS = [
+    RemovedInPip9Warning, RemovedInPip10Warning, Python26DeprecationWarning
+]
 
 
 # Warnings <-> Logging Integration

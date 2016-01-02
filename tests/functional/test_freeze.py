@@ -57,12 +57,10 @@ def test_freeze_basic(script):
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze
-        -- stdout: --------------------
         ...simple==2.0
         simple2==3.0...
         <BLANKLINE>""")
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 @pytest.mark.svn
@@ -78,11 +76,9 @@ def test_freeze_svn(script, tmpdir):
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze
-        -- stdout: --------------------
         ...-e svn+...#egg=version_pkg-0.1-...
         ...""")
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 @pytest.mark.git
@@ -106,13 +102,11 @@ def test_freeze_git_clone(script, tmpdir):
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
-            Script result: ...pip freeze
-            -- stdout: --------------------
             ...-e git+...#egg=version_pkg-master
             ...
         """
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
     result = script.pip(
         'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
@@ -120,14 +114,12 @@ def test_freeze_git_clone(script, tmpdir):
     )
     expected = textwrap.dedent(
         """
-            Script result: pip freeze -f %(repo)s#egg=pip_test_package
-            -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
             -e git+...#egg=version_pkg-master
             ...
         """ % {'repo': repo_dir},
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
     # Check that slashes in branch or tag names are translated.
     # See also issue #1083: https://github.com/pypa/pip/issues/1083
@@ -145,13 +137,11 @@ def test_freeze_git_clone(script, tmpdir):
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
-            Script result: ...pip freeze
-            -- stdout: --------------------
             ...-e ...@...#egg=version_pkg-branch_name_with_slash...
             ...
         """
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 @pytest.mark.git
@@ -177,13 +167,11 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
-            Script result: ...pip freeze
-            -- stdout: --------------------
             ...-e git+...#egg=version_pkg-master&subdirectory=subdir
             ...
         """
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
     result = script.pip(
         'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
@@ -191,14 +179,12 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     )
     expected = textwrap.dedent(
         """
-            Script result: pip freeze -f %(repo)s#egg=pip_test_package
-            -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
             -e git+...#egg=version_pkg-master&subdirectory=subdir
             ...
         """ % {'repo': repo_dir},
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 @pytest.mark.mercurial
@@ -223,13 +209,11 @@ def test_freeze_mercurial_clone(script, tmpdir):
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
-            Script result: ...pip freeze
-            -- stdout: --------------------
             ...-e hg+...#egg=version_pkg-dev
             ...
         """
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
     result = script.pip(
         'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
@@ -237,14 +221,12 @@ def test_freeze_mercurial_clone(script, tmpdir):
     )
     expected = textwrap.dedent(
         """
-            Script result: pip freeze -f %(repo)s#egg=pip_test_package
-            -- stdout: --------------------
             -f %(repo)s#egg=pip_test_package...
             ...-e hg+...#egg=version_pkg-dev
             ...
         """ % {'repo': repo_dir},
     ).strip()
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 @pytest.mark.bzr
@@ -268,11 +250,9 @@ def test_freeze_bazaar_clone(script, tmpdir):
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze
-        -- stdout: --------------------
         ...-e bzr+file://...@1#egg=version_pkg-0.1-...
         ...""")
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
     result = script.pip(
         'freeze', '-f',
@@ -280,12 +260,10 @@ def test_freeze_bazaar_clone(script, tmpdir):
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze -f %(repo)s/#egg=django-wikiapp
-        -- stdout: --------------------
         -f %(repo)s/#egg=django-wikiapp
         ...-e bzr+file://...@...#egg=version_pkg-...
         ...""" % {'repo': checkout_path})
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 def test_freeze_with_local_option(script):
@@ -296,8 +274,6 @@ def test_freeze_with_local_option(script):
     result = script.pip_install_local('initools==0.2')
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze
-        -- stdout: --------------------
         INITools==0.2
         wsgiref==...
         <BLANKLINE>""")
@@ -311,11 +287,9 @@ def test_freeze_with_local_option(script):
 
     result = script.pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: ...pip freeze --local
-        -- stdout: --------------------
         INITools==0.2
         <BLANKLINE>""")
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
 
 
 def test_freeze_with_requirement_option(script):
@@ -347,15 +321,14 @@ def test_freeze_with_requirement_option(script):
         expect_stderr=True,
     )
     expected = """\
-Script result: pip freeze --requirement hint.txt
--- stderr: --------------------
-Requirement file contains NoExist==4.2, but that package is not installed
-
--- stdout: --------------------
 INITools==0.2
 simple==3.0
 """ + ignores + "## The following requirements were added by pip freeze:..."
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
+    assert (
+        "Requirement file contains NoExist==4.2, but that package is not "
+        "installed"
+    ) in result.stderr
 
 
 def test_freeze_user(script, virtualenv):
@@ -367,9 +340,7 @@ def test_freeze_user(script, virtualenv):
     script.pip_install_local('simple2==3.0')
     result = script.pip('freeze', '--user', expect_stderr=True)
     expected = textwrap.dedent("""\
-        Script result: pip freeze --user
-        -- stdout: --------------------
         simple==2.0
         <BLANKLINE>""")
-    _check_output(result, expected)
+    _check_output(result.stdout, expected)
     assert 'simple2' not in result.stdout
