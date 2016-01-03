@@ -191,3 +191,10 @@ def script(tmpdir, virtualenv):
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
+
+
+@pytest.fixture
+def get_pip(tmpdir):
+    get_pip_path = tmpdir.join('get-pip.py')
+    shutil.copy(SRC_DIR.join('contrib', 'get-pip.py'), get_pip_path)
+    return get_pip_path
