@@ -6,7 +6,7 @@ import textwrap
 
 from pip.basecommand import Command, SUCCESS
 from pip.download import PipXmlrpcTransport
-from pip.index import PyPI
+from pip.models import PyPI
 from pip.utils import get_terminal_size
 from pip.utils.logging import indent_log
 from pip.exceptions import CommandError

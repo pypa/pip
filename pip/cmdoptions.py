@@ -14,8 +14,9 @@ from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
 
 from pip.index import (
-    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
     fmt_ctl_no_use_wheel)
+from pip.models import PyPI
 from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
 
