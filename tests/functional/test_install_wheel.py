@@ -206,6 +206,26 @@ def test_install_from_wheel_gen_entrypoint(script, data):
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
+def test_install_from_wheel_gen_uppercase_entrypoint(script, data):
+    """
+    Test installing scripts with uppercase letters in entry point names
+    """
+    result = script.pip(
+        'install', 'console-scripts-uppercase==1.0', '--no-index',
+        '--find-links=' + data.find_links,
+        expect_error=False,
+    )
+    if os.name == 'nt':
+        # Case probably doesn't make any difference on NT
+        wrapper_file = script.bin / 'cmdName.exe'
+    else:
+        wrapper_file = script.bin / 'cmdName'
+    assert wrapper_file in result.files_created
+
+    if os.name != "nt":
+        assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
+
+
 def test_install_from_wheel_with_legacy(script, data):
     """
     Test installing scripts (legacy scripts are preserved)
