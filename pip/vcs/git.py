@@ -4,6 +4,7 @@ import logging
 import tempfile
 import os.path
 
+from pip.compat import samefile
 from pip.exceptions import BadCommand
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
@@ -211,7 +212,7 @@ class Git(VersionControl):
                 )
                 return None
         # relative path of setup.py to repo root
-        if os.path.samefile(root_dir, location):
+        if samefile(root_dir, location):
             return None
         return os.path.relpath(location, root_dir)
 
