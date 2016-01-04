@@ -258,6 +258,11 @@ class Test_unpack_file_url(object):
 
 
 class TestSafeFileCache:
+    """
+    The no_perms test are useless on Windows since SafeFileCache uses
+    pip.utils.filesystem.check_path_owner which is based on os.geteuid
+    which is absent on Windows.
+    """
 
     def test_cache_roundtrip(self, tmpdir):
         cache_dir = tmpdir.join("test-cache")
@@ -270,6 +275,7 @@ class TestSafeFileCache:
         cache.delete("test key")
         assert cache.get("test key") is None
 
+    @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_get_no_perms(self, tmpdir, monkeypatch):
         cache_dir = tmpdir.join("unreadable-cache")
         cache_dir.makedirs()
@@ -280,14 +286,16 @@ class TestSafeFileCache:
         cache = SafeFileCache(cache_dir)
         cache.get("foo")
 
+    @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_set_no_perms(self, tmpdir):
         cache_dir = tmpdir.join("unreadable-cache")
         cache_dir.makedirs()
         os.chmod(cache_dir, 000)
 
         cache = SafeFileCache(cache_dir)
-        cache.set("foo", "bar")
+        cache.set("foo", b"bar")
 
+    @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_delete_no_perms(self, tmpdir):
         cache_dir = tmpdir.join("unreadable-cache")
         cache_dir.makedirs()
