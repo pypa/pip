@@ -1,5 +1,5 @@
 https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
-pytest==2.7.2
+pytest==2.7.3
 apipkg==1.4
 execnet==1.4.1
 pretend==1.0.8
