@@ -25,7 +25,7 @@ from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip.download import HAS_TLS, url_to_path, path_to_url
+from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
@@ -214,8 +214,17 @@ class PackageFinder(object):
                         urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
-            else:
+                else:
+                    logger.warning(
+                        "Url '%s' is ignored: it is neither a file "
+                        "nor a directory.", url)
+            elif is_url(url):
+                # Only add url with clear scheme
                 urls.append(url)
+            else:
+                logger.warning(
+                    "Url '%s' is ignored. It is either a non-existing "
+                    "path or lacks a specific scheme.", url)
 
         return files, urls
 

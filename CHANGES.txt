@@ -108,6 +108,9 @@
 
 * Show entry points for projects installed via wheel (:pull:`3122`).
 
+* Improve message when an unexisting path is passed to --find-links option
+  (:issue:`2968`).
+
 
 **7.1.2 (2015-08-22)**
 
