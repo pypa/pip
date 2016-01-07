@@ -163,8 +163,13 @@ class Subversion(VersionControl):
     def _get_svn_url_rev(self, location):
         from pip.exceptions import InstallationError
 
-        with open(os.path.join(location, self.dirname, 'entries')) as f:
-            data = f.read()
+        entries_path = os.path.join(location, self.dirname, 'entries')
+        if os.path.exists(entries_path):
+            with open(entries_path) as f:
+                data = f.read()
+        else:  # subversion >= 1.7 does not have the 'entries' file
+            data = ''
+
         if (data.startswith('8') or
                 data.startswith('9') or
                 data.startswith('10')):
