@@ -911,4 +911,6 @@ def test_install_editable_with_wrong_egg_name(script):
         'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
         expect_error=True)
     assert ("egg_info for package pkgb produced metadata "
-            "for project name pkga") in result.stderr
+            "for project name pkga. Fix your #egg=pkgb "
+            "fragments.") in result.stderr
+    assert "Successfully installed pkga" in str(result), str(result)

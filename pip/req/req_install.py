@@ -450,11 +450,13 @@ class InstallRequirement(object):
         else:
             metadata_name = canonicalize_name(self.pkg_info()["Name"])
             if canonicalize_name(self.req.project_name) != metadata_name:
-                raise InstallationError(
+                logger.warning(
                     'Running setup.py (path:%s) egg_info for package %s '
-                    'produced metadata for project name %s' % (
-                        self.setup_py, self.name, metadata_name)
+                    'produced metadata for project name %s. Fix your '
+                    '#egg=%s fragments.',
+                    self.setup_py, self.name, metadata_name, self.name
                 )
+                self.req = pkg_resources.Requirement.parse(metadata_name)
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:
