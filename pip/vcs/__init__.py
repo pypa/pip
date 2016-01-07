@@ -282,13 +282,12 @@ class VersionControl(object):
             rmtree(location)
         self.obtain(location)
 
-    def get_src_requirement(self, dist, location, find_tags=False):
+    def get_src_requirement(self, dist, location):
         """
         Return a string representing the requirement needed to
         redownload the files currently present in location, something
         like:
           {repository_url}@{revision}#egg={project_name}-{version_identifier}
-        If find_tags is True, try to find a tag matching the revision
         """
         raise NotImplementedError
 
@@ -342,13 +341,12 @@ class VersionControl(object):
         return os.path.exists(path)
 
 
-def get_src_requirement(dist, location, find_tags):
+def get_src_requirement(dist, location):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         try:
             return version_control().get_src_requirement(dist,
-                                                         location,
-                                                         find_tags)
+                                                         location)
         except BadCommand:
             logger.warning(
                 'cannot determine version of editable source in %s '

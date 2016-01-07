@@ -86,7 +86,7 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
-    def get_src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo

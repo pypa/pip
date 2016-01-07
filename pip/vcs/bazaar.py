@@ -98,7 +98,7 @@ class Bazaar(VersionControl):
             ['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
-    def get_src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if not repo:
             return None

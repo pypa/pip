@@ -19,7 +19,6 @@ freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
 def freeze(
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
-        find_tags=False,
         default_vcs=None,
         isolated=False,
         wheel_cache=None):
@@ -47,8 +46,7 @@ def freeze(
                                             user_only=user_only):
         req = pip.FrozenRequirement.from_dist(
             dist,
-            dependency_links,
-            find_tags=find_tags,
+            dependency_links
         )
         installations[req.name] = req
 

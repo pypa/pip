@@ -204,7 +204,7 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def get_src_requirement(self, dist, location, find_tags=False):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if repo is None:
             return None

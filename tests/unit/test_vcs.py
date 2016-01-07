@@ -41,7 +41,7 @@ def dist():
 
 
 def test_git_get_src_requirements(git, dist):
-    ret = git.get_src_requirement(dist, location='.', find_tags=None)
+    ret = git.get_src_requirement(dist, location='.')
 
     assert ret == ''.join([
         'git+http://github.com/pypa/pip-test-package',

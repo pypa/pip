@@ -215,7 +215,7 @@ class Git(VersionControl):
             return None
         return os.path.relpath(location, root_dir)
 
-    def get_src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
