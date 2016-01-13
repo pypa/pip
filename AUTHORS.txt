@@ -51,6 +51,7 @@ Dave Abrahams <dave@boostpro.com>
 David Aguilar <davvid@gmail.com>
 David Black <db@d1b.org>
 David Evans <d@drhevans.com>
+David Linke <dalito@users.noreply.github.com>
 David Pursehouse <david.pursehouse@gmail.com>
 David Wales <daviewales@gmail.com>
 Davidovich <david.genest@gmail.com>
