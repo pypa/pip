@@ -158,6 +158,8 @@ def get_supported(versions=None, noarch=False):
 
     abis.append('none')
 
+    arches = []
+
     if not noarch:
         arch = get_platform()
         if sys.platform == 'darwin':
@@ -187,27 +189,71 @@ def get_supported(versions=None, noarch=False):
         else:
             arches = [arch]
 
-        # Current version, current API (built specifically for our Python):
-        for abi in abis:
-            for arch in arches:
-                supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+    arches.append('any')
 
-        # Has binaries, does not use the Python API:
-        supported.append(('py%s' % (versions[0][0]), 'none', arch))
-
-    # No abi / arch, but requires our implementation:
+    # Exact match for Python, ABI and platform
     for i, version in enumerate(versions):
-        supported.append(('%s%s' % (impl, version), 'none', 'any'))
+        # Explicit Python
+        supported.append(('%s%s' % (impl, version), abis[0], arches[0]))
         if i == 0:
-            # Tagged specifically as being cross-version compatible
-            # (with just the major version specified)
-            supported.append(('%s%s' % (impl, versions[0][0]), 'none', 'any'))
-
-    # No abi / arch, generic Python
-    for i, version in enumerate(versions):
-        supported.append(('py%s' % (version,), 'none', 'any'))
+            supported.append(('%s%s' % (impl, version[0]), abis[0], arches[0]))
+        # Generic Python
+        supported.append(('py%s' % (version,), abis[0], arches[0]))
         if i == 0:
-            supported.append(('py%s' % (version[0]), 'none', 'any'))
+            supported.append(('py%s' % (version[0]), abis[0], arches[0]))
+    # Exact match for Python and platform
+    for abi in abis[1:]:
+        # Explicit Python
+        supported.append(('%s%s' % (impl, versions[0]), abi, arches[0]))
+        supported.append(('%s%s' % (impl, versions[0][0]), abi, arches[0]))
+        # Generic Python
+        supported.append(('py%s' % (versions[0]), abi, arches[0]))
+        supported.append(('py%s' % (versions[0][0]), abi, arches[0]))
+    # Exact match for Python and ABI
+    for arch in arches[1:]:
+        # Explicit Python
+        supported.append(('%s%s' % (impl, versions[0]), abi, arches[0]))
+        supported.append(('%s%s' % (impl, versions[0][0]), abi, arches[0]))
+        # Generic Python
+        supported.append(('py%s' % (versions[0]), abi, arches[0]))
+        supported.append(('py%s' % (versions[0][0]), abi, arches[0]))
+    # Exact match for ABI and platform
+    for version in versions[1:]:
+        # Explicit Python
+        supported.append(('%s%s' % (impl, version), abi[0], arches[0]))
+        # Generic Python
+        supported.append(('%s%s' % (impl, version), abi[0], arches[0]))
+    # Exact match for Python
+    for abi in abis[1:]:
+        for arch in arches[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+            supported.append(('%s%s' % (impl, versions[0][0]), abi, arch))
+            # Generic Python
+            supported.append(('py%s' % (versions[0]), abi, arch))
+            supported.append(('py%s' % (versions[0][0]), abi, arch))
+    # Exact match for ABI
+    for version in versions[1:]:
+        for arch in arches[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, version), abis[0], arch))
+            # Generic Python
+            supported.append(('py%s' % (version), abis[0], arch))
+    # Exact match for platform
+    for version in versions[1:]:
+        for abi in abis[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, version), abi, arches[0]))
+            # Generic Python
+            supported.append(('py%s' % (version), abi, arches[0]))
+    # No exact match
+    for version in versions[1:]:
+        for abi in abis[1:]:
+            for arch in arches[1:]:
+                # Explicit Python
+                supported.append(('%s%s' % (impl, version), abi, arch))
+                # Generic Python
+                supported.append(('py%s' % (version), abi, arch))
 
     return supported
 
