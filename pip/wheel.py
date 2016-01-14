@@ -224,6 +224,8 @@ def get_entrypoints(filename):
         data.seek(0)
 
     cp = configparser.RawConfigParser()
+    # Replace optionxform with str to preserve the case of console and gui scripts
+    cp.optionxform = str
     cp.readfp(data)
 
     console = {}
