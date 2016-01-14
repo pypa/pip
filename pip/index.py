@@ -26,9 +26,8 @@ from pip.exceptions import (
     UnsupportedWheel,
 )
 from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
-from pip.models import PyPI
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
+from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.requests.exceptions import SSLError
@@ -585,7 +584,6 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
-        platform = get_platform()
 
         version = None
         if link.egg_fragment:
@@ -621,30 +619,7 @@ class PackageFinder(object):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return
-                # This is a dirty hack to prevent installing Binary Wheels from
-                # PyPI unless it is a Windows or Mac Binary Wheel. This is
-                # paired with a change to PyPI disabling uploads for the
-                # same. Once we have a mechanism for enabling support for
-                # binary wheels on linux that deals with the inherent problems
-                # of binary distribution this can be removed.
-                comes_from = getattr(link, "comes_from", None)
-                if (
-                        (
-                            not platform.startswith('win') and not
-                            platform.startswith('macosx') and not
-                            platform == 'cli'
-                        ) and
-                        comes_from is not None and
-                        urllib_parse.urlparse(
-                            comes_from.url
-                        ).netloc.endswith(PyPI.netloc)):
-                    if not wheel.supported(tags=supported_tags_noarch):
-                        self._log_skipped_link(
-                            link,
-                            "it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform",
-                        )
-                        return
+
                 version = wheel.version
 
         # This should be up by the search.ok_binary check, but see issue 2700.
