@@ -49,15 +49,24 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 logger = std_logging.getLogger(__name__)
 
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
+XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', '.whl')
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+ARCHIVE_EXTENSIONS = (
+    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 try:
     import bz2  # noqa
-    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+    SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
 except ImportError:
     logger.debug('bz2 module is not available')
-    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
+
+try:
+    # Only for Python 3.3+
+    import lzma  # noqa
+    SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
+except ImportError:
+    logger.debug('lzma module is not available')
 
 
 def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
@@ -516,6 +525,8 @@ def untar_file(filename, location):
         mode = 'r:gz'
     elif filename.lower().endswith(BZ2_EXTENSIONS):
         mode = 'r:bz2'
+    elif filename.lower().endswith(XZ_EXTENSIONS):
+        mode = 'r:xz'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
@@ -589,7 +600,8 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip' or
             tarfile.is_tarfile(filename) or
-            filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS)):
+            filename.lower().endswith(
+                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html') and
             is_svn_page(file_contents(filename))):

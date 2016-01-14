@@ -113,6 +113,9 @@
 * Warn on installation of editable if the provided #egg=name part does not
   match the metadata produced by `setup.py egg_info`. :issue:`3143`.
 
+* Add support for .xz files for python versions supporting them (>= 3.3).
+  :issue:`722`.
+
 
 **7.1.2 (2015-08-22)**
 
