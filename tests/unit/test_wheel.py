@@ -7,7 +7,7 @@ from mock import patch, Mock
 
 from pip._vendor import pkg_resources
 from pip import pep425tags, wheel
-from pip.compat import expanduser
+from pip.compat import expanduser, WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
@@ -451,7 +451,8 @@ class TestMoveWheelFiles(object):
             prefix=prefix,
         )
 
-        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'bin'))
+        bin_dir = 'Scripts' if WINDOWS else 'bin'
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', bin_dir))
         assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'my_data'))
 
     def test_dist_info_contains_empty_dir(self, data, tmpdir):
