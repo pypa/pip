@@ -8,9 +8,7 @@ from pip.req import InstallRequirement
 from pip.index import (
     InstallationCandidate, PackageFinder, Link, FormatControl,
     fmt_ctl_formats)
-from pip.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
-)
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.download import PipSession
 
 from mock import Mock, patch
@@ -247,23 +245,12 @@ class TestWheel:
 
         finder = PackageFinder([], [], session=PipSession())
 
-        results = finder._sort_versions(links)
-        results2 = finder._sort_versions(reversed(links))
+        results = sorted(links,
+                         key=finder._candidate_sort_key, reverse=True)
+        results2 = sorted(reversed(links),
+                          key=finder._candidate_sort_key, reverse=True)
 
         assert links == results == results2, results2
-
-    @patch('pip.pep425tags.supported_tags', [])
-    def test_link_sorting_raises_when_wheel_unsupported(self):
-        links = [
-            InstallationCandidate(
-                "simple",
-                '1.0',
-                Link('simple-1.0-py2.py3-none-TEST.whl'),
-            ),
-        ]
-        finder = PackageFinder([], [], session=PipSession())
-        with pytest.raises(InstallationError):
-            finder._sort_versions(links)
 
 
 def test_finder_priority_file_over_page(data):
