@@ -55,8 +55,8 @@ for the name and project version (this is in theory slightly less reliable
 than using the ``egg_info`` command, but avoids downloading and processing
 unnecessary numbers of files).
 
-Any URL may use the ``#egg`` syntax (see :ref:`VCS Support`) to explicitly
-state the project name and version.
+Any URL may use the ``#egg=name`` syntax (see :ref:`VCS Support`) to
+explicitly state the project name.
 
 Satisfying Requirements
 +++++++++++++++++++++++
