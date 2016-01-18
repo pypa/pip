@@ -8,6 +8,7 @@ requests.utils imports from here, so be careful with imports.
 
 import copy
 import time
+import calendar
 import collections
 from .compat import cookielib, urlparse, urlunparse, Morsel
 
@@ -143,10 +144,13 @@ def remove_cookie_by_name(cookiejar, name, domain=None, path=None):
     """
     clearables = []
     for cookie in cookiejar:
-        if cookie.name == name:
-            if domain is None or domain == cookie.domain:
-                if path is None or path == cookie.path:
-                    clearables.append((cookie.domain, cookie.path, cookie.name))
+        if cookie.name != name:
+            continue
+        if domain is not None and domain != cookie.domain:
+            continue
+        if path is not None and path != cookie.path:
+            continue
+        clearables.append((cookie.domain, cookie.path, cookie.name))
 
     for domain, path, name in clearables:
         cookiejar.clear(domain, path, name)
@@ -365,7 +369,7 @@ def _copy_cookie_jar(jar):
         return None
 
     if hasattr(jar, 'copy'):
-        # We're dealing with an instane of RequestsCookieJar
+        # We're dealing with an instance of RequestsCookieJar
         return jar.copy()
     # We're dealing with a generic CookieJar instance
     new_jar = copy.copy(jar)
@@ -415,11 +419,15 @@ def morsel_to_cookie(morsel):
 
     expires = None
     if morsel['max-age']:
-        expires = time.time() + morsel['max-age']
+        try:
+            expires = int(time.time() + int(morsel['max-age']))
+        except ValueError:
+            raise TypeError('max-age: %s must be integer' % morsel['max-age'])
     elif morsel['expires']:
         time_template = '%a, %d-%b-%Y %H:%M:%S GMT'
-        expires = time.mktime(
-            time.strptime(morsel['expires'], time_template)) - time.timezone
+        expires = calendar.timegm(
+            time.strptime(morsel['expires'], time_template)
+        )
     return create_cookie(
         comment=morsel['comment'],
         comment_url=bool(morsel['comment']),
