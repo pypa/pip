@@ -232,14 +232,14 @@ class FrozenRequirement(object):
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
     @classmethod
-    def from_dist(cls, dist, dependency_links, find_tags=False):
+    def from_dist(cls, dist, dependency_links):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
         if dist_is_editable(dist) and vcs.get_backend_name(location):
             editable = True
             try:
-                req = get_src_requirement(dist, location, find_tags)
+                req = get_src_requirement(dist, location)
             except InstallationError as exc:
                 logger.warning(
                     "Error when trying to get requirement for VCS system %s, "
