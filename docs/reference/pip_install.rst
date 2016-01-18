@@ -21,9 +21,52 @@ Overview
 
 Pip install has several stages:
 
-1. Resolve dependencies. What will be installed is determined here.
-2. Build wheels. All the dependencies that can be are built into wheels.
-3. Install the packages (and uninstall anything being upgraded/replaced).
+1. Identify the base requirements. The user supplied arguments are processed
+   here.
+2. Resolve dependencies. What will be installed is determined here.
+3. Build wheels. All the dependencies that can be are built into wheels.
+4. Install the packages (and uninstall anything being upgraded/replaced).
+
+Argument Handling
++++++++++++++++++
+
+When looking at the items to be installed, pip checks what type of item
+each is, in the following order:
+
+1. Project or archive URL.
+2. Local directory (which must contain a ``setup.py``, or pip will report
+   an error).
+3. Local file (a sdist or wheel format archive, following the naming
+   conventions for those formats).
+4. A requirement, as specified in PEP 440.
+
+Each item identified is added to the set of requirements to be satisfied by
+the install.
+
+Working Out the Name and Version
+++++++++++++++++++++++++++++++++
+
+For each candidate item, pip needs to know the project name and version. For
+wheels (identified by the ``.whl`` file extension) this can be obtained from
+the filename, as per the Wheel spec. For local directories, or explicitly
+specified sdist files, the ``setup.py egg_info`` command is used to determine
+the project metadata. For sdists located via an index, the filename is parsed
+for the name and project version (this is in theory slightly less reliable
+than using the ``egg_info`` command, but avoids downloading and processing
+unnecessary numbers of files).
+
+Any URL may use the ``#egg=name`` syntax (see :ref:`VCS Support`) to
+explicitly state the project name.
+
+Satisfying Requirements
++++++++++++++++++++++++
+
+Once pip has the set of requirements to satisfy, it chooses which version of
+each requirement to install using the simple rule that the latest version that
+satisfies the given constraints will be installed (but see :ref:`here <Pre Release Versions>`
+for an exception regarding pre-release versions). Where more than one source of
+the chosen version is available, it is assumed that any source is acceptable
+(as otherwise the versions would differ).
 
 Installation Order
 ++++++++++++++++++
@@ -172,9 +215,9 @@ Requirement Specifiers
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  `PEP440`_ contains a `full specification
-<https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_ of the
-currently supported specifiers.
+specifiers <pypug:Version Specifier>`.  `PEP508`_ contains a full specification
+of the format of a requirement (``pip`` does not support the ``url_req`` form
+of specifier at this time).
 
 Some examples:
 
@@ -790,3 +833,4 @@ Examples
        around specifiers containing environment markers in requirement files.
 
 .. _PEP440: http://www.python.org/dev/peps/pep-0440
+.. _PEP508: http://www.python.org/dev/peps/pep-0508
