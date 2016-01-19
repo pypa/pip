@@ -23,7 +23,7 @@ Rationale
 
 Historically pip has not had any dependencies except for setuptools itself,
 choosing instead to implement any functionality it needed to prevent needing
-a dependency. However, starting with pip 1.5 we begun to replace code that was
+a dependency. However, starting with pip 1.5 we began to replace code that was
 implemented inside of pip with reusable libraries from PyPI. This brought the
 typical benefits of reusing libraries instead of reinventing the wheel like
 higher quality and more battle tested code, centralization of bug fixes
