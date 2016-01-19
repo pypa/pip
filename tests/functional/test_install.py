@@ -941,3 +941,12 @@ def test_double_install(script, data):
     result = script.pip('install', 'pip', 'pip', expect_error=False)
     msg = "Double requirement given: pip (already in pip, name='pip')"
     assert msg not in result.stderr
+
+
+def test_double_install_fail(script, data):
+    """
+    Test double install failing with two different version requirements
+    """
+    result = script.pip('install', 'pip==*', 'pip==7.1.2', expect_error=True)
+    msg = "Double requirement given: pip==7.1.2 (already in pip==*, name='pip')"
+    assert msg in result.stderr
