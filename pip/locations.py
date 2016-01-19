@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os
 import os.path
 import site
+import ssl
 import sys
 
 from distutils import sysconfig
@@ -13,36 +14,15 @@ from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
 
 
-# CA Bundle Locations
-CA_BUNDLE_PATHS = [
-    # Debian/Ubuntu/Gentoo etc.
-    "/etc/ssl/certs/ca-certificates.crt",
-
-    # Fedora/RHEL
-    "/etc/pki/tls/certs/ca-bundle.crt",
-
-    # OpenSUSE
-    "/etc/ssl/ca-bundle.pem",
-
-    # OpenBSD
-    "/etc/ssl/cert.pem",
-
-    # FreeBSD/DragonFly
-    "/usr/local/share/certs/ca-root-nss.crt",
-
-    # Homebrew on OSX
-    "/usr/local/etc/openssl/cert.pem",
-]
-
-# Attempt to locate a CA Bundle that we can pass into requests, we have a list
-# of possible ones from various systems. If we cannot find one then we'll set
-# this to None so that we default to whatever requests is setup to handle.
-#
-# Note to Downstream: If you wish to disable this autodetection and simply use
-#                     whatever requests does (likely you've already patched
-#                     requests.certs.where()) then simply edit this line so
-#                     that it reads ``CA_BUNDLE_PATH = None``.
-CA_BUNDLE_PATH = next((x for x in CA_BUNDLE_PATHS if os.path.exists(x)), None)
+# if the Python we're running on is new enough to have the needed API then
+# we'll ask OpenSSL to give us the path to the default CA Bundle. If this API
+# doesn't exist or we cannot resolve the path to an existing file, then we will
+# simply set this to None. Setting this to None will have requests fall back
+# and use it's default CA Bundle logic.
+if getattr(ssl, "get_default_verify_paths", None):
+    CA_BUNDLE_PATH = ssl.get_default_verify_paths().cafile
+else:
+    CA_BUNDLE_PATH = None
 
 
 # Application Directories
