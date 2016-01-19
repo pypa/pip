@@ -8,13 +8,11 @@ import warnings
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
-from pip.utils import import_or_raise, normalize_path
+from pip.utils import import_or_raise
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
-
-DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
 
 logger = logging.getLogger(__name__)
@@ -54,9 +52,9 @@ class WheelCommand(RequirementCommand):
             '-w', '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
-            default=DEFAULT_WHEEL_DIR,
-            help=("Build wheels into <dir>, where the default is "
-                  "'<cwd>/wheelhouse'."),
+            default=os.curdir,
+            help=("Build wheels into <dir>, where the default is the "
+                  "current working directory."),
         )
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
