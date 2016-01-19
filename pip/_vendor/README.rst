@@ -84,7 +84,8 @@ Modifications
 * html5lib has been modified to import six from pip._vendor
 * pkg_resources has been modified to import _markerlib from pip._vendor
 * markerlib has been modified to import its API from pip._vendor
-* CacheControl has been modified to import it's dependencies from pip._vendor
+* CacheControl has been modified to import its dependencies from pip._vendor
+* packaging has been modified to import its dependencies from pip._vendor.
 
 
 Debundling

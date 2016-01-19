@@ -1,16 +1,6 @@
-# Copyright 2014 Donald Stufft
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
 from __future__ import absolute_import, division, print_function
 
 import abc
@@ -204,8 +194,8 @@ class _IndividualSpecifier(BaseSpecifier):
                 # If our version is a prerelease, and we were not set to allow
                 # prereleases, then we'll store it for later incase nothing
                 # else matches this specifier.
-                if (parsed_version.is_prerelease
-                        and not (prereleases or self.prereleases)):
+                if (parsed_version.is_prerelease and not
+                        (prereleases or self.prereleases)):
                     found_prereleases.append(version)
                 # Either this is not a prerelease, or we should have been
                 # accepting prereleases from the begining.
@@ -409,8 +399,8 @@ class Specifier(_IndividualSpecifier):
         prefix = ".".join(
             list(
                 itertools.takewhile(
-                    lambda x: (not x.startswith("post")
-                               and not x.startswith("dev")),
+                    lambda x: (not x.startswith("post") and not
+                               x.startswith("dev")),
                     _version_split(spec),
                 )
             )[:-1]
@@ -419,13 +409,15 @@ class Specifier(_IndividualSpecifier):
         # Add the prefix notation to the end of our string
         prefix += ".*"
 
-        return (self._get_operator(">=")(prospective, spec)
-                and self._get_operator("==")(prospective, prefix))
+        return (self._get_operator(">=")(prospective, spec) and
+                self._get_operator("==")(prospective, prefix))
 
     @_require_version_compare
     def _compare_equal(self, prospective, spec):
         # We need special logic to handle prefix matching
         if spec.endswith(".*"):
+            # In the case of prefix matching we want to ignore local segment.
+            prospective = Version(prospective.public)
             # Split the spec out by dots, and pretend that there is an implicit
             # dot in between a release segment and a pre-release segment.
             spec = _version_split(spec[:-2])  # Remove the trailing .*
@@ -577,8 +569,8 @@ def _pad_version(left, right):
     right_split.append(list(itertools.takewhile(lambda x: x.isdigit(), right)))
 
     # Get the rest of our versions
-    left_split.append(left[len(left_split):])
-    right_split.append(left[len(right_split):])
+    left_split.append(left[len(left_split[0]):])
+    right_split.append(right[len(right_split[0]):])
 
     # Insert our padding
     left_split.insert(
