@@ -11,9 +11,6 @@ from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
 
 
-DEFAULT_DOWNLOAD_DIR = os.path.join(normalize_path(os.curdir), 'pip_downloads')
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +59,7 @@ class DownloadCommand(RequirementCommand):
             '-d', '--dest', '--destination-dir', '--destination-directory',
             dest='download_dir',
             metavar='dir',
-            default=DEFAULT_DOWNLOAD_DIR,
+            default=os.curdir,
             help=("Download packages into <dir>."),
         )
 
@@ -77,6 +74,8 @@ class DownloadCommand(RequirementCommand):
     def run(self, options, args):
         options.ignore_installed = True
         options.src_dir = os.path.abspath(options.src_dir)
+        options.download_dir = normalize_path(options.download_dir)
+
         ensure_dir(options.download_dir)
 
         with self._build_session(options) as session:
