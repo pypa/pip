@@ -45,21 +45,8 @@ except ImportError:
     # Python 3.2 compatibility
     import imp as _imp
 
-PY3 = sys.version_info > (3,)
-PY2 = not PY3
-
-if PY3:
-    from urllib.parse import urlparse, urlunparse
-
-if PY2:
-    from urlparse import urlparse, urlunparse
-
-if PY3:
-    string_types = str,
-else:
-    string_types = str, eval('unicode')
-
-iteritems = (lambda i: i.items()) if PY3 else lambda i: i.iteritems()
+from pip._vendor import six
+from pip._vendor.six.moves import urllib, map
 
 # capture these to bypass sandboxing
 from os import utime
@@ -84,10 +71,20 @@ try:
 except ImportError:
     pass
 
-import pip._vendor.packaging.version
-import pip._vendor.packaging.specifiers
-packaging = pip._vendor.packaging
+from pip._vendor import packaging
+__import__('pip._vendor.packaging.version')
+__import__('pip._vendor.packaging.specifiers')
 
+
+filter = six.moves.filter
+map = six.moves.map
+
+if (3, 0) < sys.version_info < (3, 3):
+    msg = (
+        "Support for Python 3.0-3.2 has been dropped. Future versions "
+        "will fail here."
+    )
+    warnings.warn(msg)
 
 # declare some globals that will be defined later to
 # satisfy the linters.
@@ -539,7 +536,7 @@ run_main = run_script
 
 def get_distribution(dist):
     """Return a current distribution object for a Requirement or string"""
-    if isinstance(dist, string_types):
+    if isinstance(dist, six.string_types):
         dist = Requirement.parse(dist)
     if isinstance(dist, Requirement):
         dist = get_provider(dist)
@@ -758,7 +755,7 @@ class WorkingSet(object):
         will be called.
         """
         if insert:
-            dist.insert_on(self.entries, entry)
+            dist.insert_on(self.entries, entry, replace=replace)
 
         if entry is None:
             entry = dist.location
@@ -1397,6 +1394,7 @@ class MarkerEvaluation(object):
         'python_version': lambda: platform.python_version()[:3],
         'platform_version': platform.version,
         'platform_machine': platform.machine,
+        'platform_python_implementation': platform.python_implementation,
         'python_implementation': platform.python_implementation,
     }
 
@@ -1512,6 +1510,17 @@ class MarkerEvaluation(object):
         """
         return cls.interpret(parser.expr(text).totuple(1)[1])
 
+    @staticmethod
+    def _translate_metadata2(env):
+        """
+        Markerlib implements Metadata 1.2 (PEP 345) environment markers.
+        Translate the variables to Metadata 2.0 (PEP 426).
+        """
+        return dict(
+            (key.replace('.', '_'), value)
+            for key, value in env.items()
+        )
+
     @classmethod
     def _markerlib_evaluate(cls, text):
         """
@@ -1520,12 +1529,8 @@ class MarkerEvaluation(object):
         Raise SyntaxError if marker is invalid.
         """
         from pip._vendor import _markerlib
-        # markerlib implements Metadata 1.2 (PEP 345) environment markers.
-        # Translate the variables to Metadata 2.0 (PEP 426).
-        env = _markerlib.default_environment()
-        for key in env.keys():
-            new_key = key.replace('.', '_')
-            env[new_key] = env.pop(key)
+
+        env = cls._translate_metadata2(_markerlib.default_environment())
         try:
             result = _markerlib.interpret(text, env)
         except NameError as e:
@@ -1695,7 +1700,7 @@ class EggProvider(NullProvider):
         path = self.module_path
         old = None
         while path!=old:
-            if path.lower().endswith('.egg'):
+            if _is_unpacked_egg(path):
                 self.egg_name = os.path.basename(path)
                 self.egg_info = os.path.join(path, 'EGG-INFO')
                 self.egg_root = path
@@ -1993,11 +1998,11 @@ class FileMetadata(EmptyProvider):
         self.path = path
 
     def has_metadata(self, name):
-        return name=='PKG-INFO'
+        return name=='PKG-INFO' and os.path.isfile(self.path)
 
     def get_metadata(self, name):
         if name=='PKG-INFO':
-            with open(self.path,'rU') as f:
+            with io.open(self.path, encoding='utf-8') as f:
                 metadata = f.read()
             return metadata
         raise KeyError("No metadata except PKG-INFO is available")
@@ -2078,7 +2083,7 @@ def find_eggs_in_zip(importer, path_item, only=False):
         # don't yield nested distros
         return
     for subitem in metadata.resource_listdir('/'):
-        if subitem.endswith('.egg'):
+        if _is_unpacked_egg(subitem):
             subpath = os.path.join(path_item, subitem)
             for dist in find_eggs_in_zip(zipimport.zipimporter(subpath), subpath):
                 yield dist
@@ -2094,8 +2099,7 @@ def find_on_path(importer, path_item, only=False):
     path_item = _normalize_cached(path_item)
 
     if os.path.isdir(path_item) and os.access(path_item, os.R_OK):
-        if path_item.lower().endswith('.egg'):
-            # unpacked egg
+        if _is_unpacked_egg(path_item):
             yield Distribution.from_filename(
                 path_item, metadata=PathMetadata(
                     path_item, os.path.join(path_item,'EGG-INFO')
@@ -2115,7 +2119,7 @@ def find_on_path(importer, path_item, only=False):
                     yield Distribution.from_location(
                         path_item, entry, metadata, precedence=DEVELOP_DIST
                     )
-                elif not only and lower.endswith('.egg'):
+                elif not only and _is_unpacked_egg(entry):
                     dists = find_distributions(os.path.join(path_item, entry))
                     for dist in dists:
                         yield dist
@@ -2178,9 +2182,17 @@ def _handle_ns(packageName, path_item):
         path = module.__path__
         path.append(subpath)
         loader.load_module(packageName)
-        for path_item in path:
-            if path_item not in module.__path__:
-                module.__path__.append(path_item)
+
+        # Rebuild mod.__path__ ensuring that all entries are ordered
+        # corresponding to their sys.path order
+        sys_path= [(p and _normalize_cached(p) or p) for p in sys.path]
+        def sort_key(p):
+            parts = p.split(os.sep)
+            parts = parts[:-(packageName.count('.') + 1)]
+            return sys_path.index(_normalize_cached(os.sep.join(parts)))
+
+        path.sort(key=sort_key)
+        module.__path__[:] = [_normalize_cached(p) for p in path]
     return subpath
 
 def declare_namespace(packageName):
@@ -2262,6 +2274,14 @@ def _normalize_cached(filename, _cache={}):
         _cache[filename] = result = normalize_path(filename)
         return result
 
+def _is_unpacked_egg(path):
+    """
+    Determine if given path appears to be an unpacked egg.
+    """
+    return (
+        path.lower().endswith('.egg')
+    )
+
 def _set_parent_ns(packageName):
     parts = packageName.split('.')
     name = parts.pop()
@@ -2272,7 +2292,7 @@ def _set_parent_ns(packageName):
 
 def yield_lines(strs):
     """Yield non-empty/non-comment lines of a string or sequence"""
-    if isinstance(strs, string_types):
+    if isinstance(strs, six.string_types):
         for s in strs.splitlines():
             s = s.strip()
             # skip blank lines/comments
@@ -2439,10 +2459,22 @@ class EntryPoint(object):
 def _remove_md5_fragment(location):
     if not location:
         return ''
-    parsed = urlparse(location)
+    parsed = urllib.parse.urlparse(location)
     if parsed[-1].startswith('md5='):
-        return urlunparse(parsed[:-1] + ('',))
+        return urllib.parse.urlunparse(parsed[:-1] + ('',))
     return location
+
+
+def _version_from_file(lines):
+    """
+    Given an iterable of lines from a Metadata file, return
+    the value of the Version field, if present, or None otherwise.
+    """
+    is_version_line = lambda line: line.lower().startswith('version:')
+    version_lines = filter(is_version_line, lines)
+    line = next(iter(version_lines), '')
+    _, _, value = line.partition(':')
+    return safe_version(value.strip()) or None
 
 
 class Distribution(object):
@@ -2462,21 +2494,24 @@ class Distribution(object):
         self._provider = metadata or empty_provider
 
     @classmethod
-    def from_location(cls, location, basename, metadata=None,**kw):
+    def from_location(cls, location, basename, metadata=None, **kw):
         project_name, version, py_version, platform = [None]*4
         basename, ext = os.path.splitext(basename)
         if ext.lower() in _distributionImpl:
-            # .dist-info gets much metadata differently
+            cls = _distributionImpl[ext.lower()]
+
             match = EGG_NAME(basename)
             if match:
                 project_name, version, py_version, platform = match.group(
-                    'name','ver','pyver','plat'
+                    'name', 'ver', 'pyver', 'plat'
                 )
-            cls = _distributionImpl[ext.lower()]
         return cls(
             location, metadata, project_name=project_name, version=version,
             py_version=py_version, platform=platform, **kw
-        )
+        )._reload_version()
+
+    def _reload_version(self):
+        return self
 
     @property
     def hashcmp(self):
@@ -2563,13 +2598,11 @@ class Distribution(object):
         try:
             return self._version
         except AttributeError:
-            for line in self._get_metadata(self.PKG_INFO):
-                if line.lower().startswith('version:'):
-                    self._version = safe_version(line.split(':',1)[1].strip())
-                    return self._version
-            else:
+            version = _version_from_file(self._get_metadata(self.PKG_INFO))
+            if version is None:
                 tmpl = "Missing 'Version:' header and/or %s file"
                 raise ValueError(tmpl % self.PKG_INFO, self)
+            return version
 
     @property
     def _dep_map(self):
@@ -2614,7 +2647,7 @@ class Distribution(object):
         """Ensure distribution is importable on `path` (default=sys.path)"""
         if path is None:
             path = sys.path
-        self.insert_on(path)
+        self.insert_on(path, replace=True)
         if path is sys.path:
             fixup_namespace_packages(self.location)
             for pkg in self._get_metadata('namespace_packages.txt'):
@@ -2691,7 +2724,7 @@ class Distribution(object):
         """Return the EntryPoint object for `group`+`name`, or ``None``"""
         return self.get_entry_map(group).get(name)
 
-    def insert_on(self, path, loc = None):
+    def insert_on(self, path, loc=None, replace=False):
         """Insert self.location in path before its nearest parent directory"""
 
         loc = loc or self.location
@@ -2715,7 +2748,10 @@ class Distribution(object):
         else:
             if path is sys.path:
                 self.check_version_conflict()
-            path.append(loc)
+            if replace:
+                path.insert(0, loc)
+            else:
+                path.append(loc)
             return
 
         # p is the spot where we found or inserted loc; now remove duplicates
@@ -2772,6 +2808,26 @@ class Distribution(object):
     @property
     def extras(self):
         return [dep for dep in self._dep_map if dep]
+
+
+class EggInfoDistribution(Distribution):
+
+    def _reload_version(self):
+        """
+        Packages installed by distutils (e.g. numpy or scipy),
+        which uses an old safe_version, and so
+        their version numbers can get mangled when
+        converted to filenames (e.g., 1.11.0.dev0+2329eae to
+        1.11.0.dev0_2329eae). These distributions will not be
+        parsed properly
+        downstream by Distribution and safe_version, so
+        take an extra step and try to get the version number from
+        the metadata file itself instead of the filename.
+        """
+        md_version = _version_from_file(self._get_metadata(self.PKG_INFO))
+        if md_version:
+            self._version = md_version
+        return self
 
 
 class DistInfoDistribution(Distribution):
@@ -2839,7 +2895,7 @@ class DistInfoDistribution(Distribution):
 
 _distributionImpl = {
     '.egg': Distribution,
-    '.egg-info': Distribution,
+    '.egg-info': EggInfoDistribution,
     '.dist-info': DistInfoDistribution,
     }
 
@@ -2977,12 +3033,8 @@ class Requirement:
 
     @staticmethod
     def parse(s):
-        reqs = list(parse_requirements(s))
-        if reqs:
-            if len(reqs) == 1:
-                return reqs[0]
-            raise ValueError("Expected only one requirement", s)
-        raise ValueError("No requirements found", s)
+        req, = parse_requirements(s)
+        return req
 
 
 def _get_mro(cls):
