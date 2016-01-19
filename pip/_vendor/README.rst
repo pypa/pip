@@ -1,11 +1,21 @@
 Policy
 ======
 
-Vendored libraries should not be modified except as required to actually
-successfully vendor them. Only released copies of libraries from PyPI may be
-vendored and the vendored version must be reflected in
-``pip/_vendor/vendor.txt``. In addition, any modifications must be noted in
-``pip/_vendor/README.rst``.
+* Vendored libraries **MUST** not be modified except as required to
+  successfully vendor them.
+
+* Vendored libraries **MUST** be released copies of libraries available on
+  PyPI.
+
+* The versions of libraries vendored in pip **MUST** be reflected in
+  ``pip/_vendor/vendor.txt``.
+
+* Vendored libraries **MUST** function without any build steps such as 2to3 or
+  compilation of C code, pratically this limits to single source 2.x/3.x and
+  pure Python.
+
+* Any modifications made to libraries **MUST** be noted in
+  ``pip/_vendor/README.rst``.
 
 
 Rationale
@@ -54,6 +64,14 @@ way (via ``install_requires``) for pip. These issues are:
   dependencies *and* making it easier to actually fix security issues by simply
   pulling in a newer version of the dependencies.
 
+* Bootstrapping. Currently most of the popular methods of installing pip rely
+  on the fact that pip is self contained to install pip itself. These tools
+  work by bundling a copy of pip, adding it to the sys.path and then executing
+  that copy of pip. This is done instead of implementing a "mini" installer to
+  again reduce duplication, pip already knows how to install a Python package
+  and is going to be vastly more battle tested than any sort of mini installer
+  could ever possibly be.
+
 Many downstream redistributors have policies against this kind of bundling and
 instead opt to patch the software they distribute to debundle it and make it
 rely on the global versions of the software that they already have packaged
@@ -66,10 +84,12 @@ exception to this, is it is acceptable to remove the
 your system. This will ensure that pip will use your system provided CA bundle
 instead of the copy bundled with pip.
 
-In the longer term, if someone has a solution to the above problems, other than
-the bundling method we currently use, that doesn't add additional problems that
-are unreasonable then we would be happy to consider, and possibly switch to
-said method.
+In the longer term, if someone has a *portable* solution to the above problems,
+other than the bundling method we currently use, that doesn't add additional
+problems that are unreasonable then we would be happy to consider, and possibly
+switch to said method. This solution must function correctly across all of the
+situation that we expect pip to be used and not mandate some external mechanism
+such as OS packages.
 
 
 _markerlib and pkg_resources
