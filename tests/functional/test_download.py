@@ -11,9 +11,10 @@ def test_download_if_requested(script):
     It should download (in the scratch path) and not install if requested.
     """
     result = script.pip(
-        'download', '-d', '.', 'INITools==0.1', expect_error=True
+        'download', '-d', 'pip_downloads', 'INITools==0.1', expect_error=True
     )
-    assert Path('scratch') / 'INITools-0.1.tar.gz' in result.files_created
+    assert Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz' \
+        in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
 
 
@@ -23,9 +24,7 @@ def test_download_setuptools(script):
     It should download (in the scratch path) and not install if requested.
     """
     result = script.pip('download', 'setuptools')
-    setuptools_prefix = str(
-        Path('scratch') / 'pip_downloads' / 'setuptools'
-    )
+    setuptools_prefix = str(Path('scratch') / 'setuptools')
     assert any(
         path.startswith(setuptools_prefix) for path in result.files_created
     )
