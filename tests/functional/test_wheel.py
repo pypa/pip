@@ -30,7 +30,7 @@ def test_pip_wheel_success(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
     )
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
 
@@ -45,7 +45,7 @@ def test_pip_wheel_downloads_wheels(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'simple.dist',
     )
     wheel_file_name = 'simple.dist-0.1-py2.py3-none-any.whl'
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Saved" in result.stdout, result.stdout
 
@@ -70,7 +70,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
         'wheel', '--no-index', '-f', data.find_links, '-e', editable_path
     )
     wheel_file_name = 'simple-1.0-py%s-none-any.whl' % pyversion[0]
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
 
 
@@ -85,7 +85,7 @@ def test_pip_wheel_fail(script, data):
         expect_error=True,
     )
     wheel_file_name = 'wheelbroken-0.1-py%s-none-any.whl' % pyversion[0]
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path not in result.files_created, (
         wheel_file_path,
         result.files_created,
@@ -122,7 +122,7 @@ def test_pip_wheel_source_deps(script, data):
         'wheel', '--no-index', '-f', data.find_links, 'requires_source',
     )
     wheel_file_name = 'source-1.0-py%s-none-any.whl' % pyversion[0]
-    wheel_file_path = script.scratch / 'wheelhouse' / wheel_file_name
+    wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built source" in result.stdout, result.stdout
 

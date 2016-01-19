@@ -11,6 +11,9 @@
 * **BACKWARD INCOMPATIBLE** Remove the ``--log-explicit-levels`` which had been
   deprecated in 6.0.
 
+* **BACKWARD INCOMPATIBLE** Change pip wheel --wheel-dir default path from
+  <cwd>/wheelhouse to <cwd>.
+
 * Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
   ``--allow-unverified`` functionality that was added as part of PEP 438. With
   changes made to the repository protocol made in PEP 470, these options are no
