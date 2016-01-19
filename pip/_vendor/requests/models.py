@@ -30,7 +30,8 @@ from .utils import (
     iter_slices, guess_json_utf, super_len, to_native_string)
 from .compat import (
     cookielib, urlunparse, urlsplit, urlencode, str, bytes, StringIO,
-    is_py2, chardet, json, builtin_str, basestring)
+    is_py2, chardet, builtin_str, basestring)
+from .compat import json as complexjson
 from .status_codes import codes
 
 #: The set of HTTP status codes that indicate an automatically
@@ -42,11 +43,10 @@ REDIRECT_STATI = (
     codes.temporary_redirect, # 307
     codes.permanent_redirect, # 308
 )
+
 DEFAULT_REDIRECT_LIMIT = 30
 CONTENT_CHUNK_SIZE = 10 * 1024
 ITER_CHUNK_SIZE = 512
-
-json_dumps = json.dumps
 
 
 class RequestEncodingMixin(object):
@@ -149,8 +149,7 @@ class RequestEncodingMixin(object):
             else:
                 fdata = fp.read()
 
-            rf = RequestField(name=k, data=fdata,
-                              filename=fn, headers=fh)
+            rf = RequestField(name=k, data=fdata, filename=fn, headers=fh)
             rf.make_multipart(content_type=ft)
             new_fields.append(rf)
 
@@ -193,7 +192,7 @@ class Request(RequestHooksMixin):
     :param headers: dictionary of headers to send.
     :param files: dictionary of {filename: fileobject} files to multipart upload.
     :param data: the body to attach to the request. If a dictionary is provided, form-encoding will take place.
-    :param json: json for the body to attach to the request (if data is not specified).
+    :param json: json for the body to attach to the request (if files or data is not specified).
     :param params: dictionary of URL parameters to append to the URL.
     :param auth: Auth handler or (user, pass) tuple.
     :param cookies: dictionary or CookieJar of cookies to attach to this request.
@@ -207,17 +206,8 @@ class Request(RequestHooksMixin):
       <PreparedRequest [GET]>
 
     """
-    def __init__(self,
-        method=None,
-        url=None,
-        headers=None,
-        files=None,
-        data=None,
-        params=None,
-        auth=None,
-        cookies=None,
-        hooks=None,
-        json=None):
+    def __init__(self, method=None, url=None, headers=None, files=None,
+        data=None, params=None, auth=None, cookies=None, hooks=None, json=None):
 
         # Default empty dicts for dict params.
         data = [] if data is None else data
@@ -296,8 +286,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.hooks = default_hooks()
 
     def prepare(self, method=None, url=None, headers=None, files=None,
-                data=None, params=None, auth=None, cookies=None, hooks=None,
-                json=None):
+        data=None, params=None, auth=None, cookies=None, hooks=None, json=None):
         """Prepares the entire request with the given parameters."""
 
         self.prepare_method(method)
@@ -306,6 +295,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.prepare_cookies(cookies)
         self.prepare_body(data, files, json)
         self.prepare_auth(auth, url)
+
         # Note that prepare_auth must be last to enable authentication schemes
         # such as OAuth to work on a fully prepared request.
 
@@ -329,12 +319,12 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         """Prepares the given HTTP method."""
         self.method = method
         if self.method is not None:
-            self.method = self.method.upper()
+            self.method = to_native_string(self.method.upper())
 
     def prepare_url(self, url, params):
         """Prepares the given HTTP URL."""
         #: Accept objects that have string representations.
-        #: We're unable to blindy call unicode/str functions
+        #: We're unable to blindly call unicode/str functions
         #: as this will include the bytestring indicator (b'')
         #: on python 3.x.
         #: https://github.com/kennethreitz/requests/pull/2238
@@ -357,9 +347,10 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             raise InvalidURL(*e.args)
 
         if not scheme:
-            raise MissingSchema("Invalid URL {0!r}: No schema supplied. "
-                                "Perhaps you meant http://{0}?".format(
-                                    to_native_string(url, 'utf8')))
+            error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+            error = error.format(to_native_string(url, 'utf8'))
+
+            raise MissingSchema(error)
 
         if not host:
             raise InvalidURL("Invalid URL %r: No host supplied" % url)
@@ -394,6 +385,9 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             if isinstance(fragment, str):
                 fragment = fragment.encode('utf-8')
 
+        if isinstance(params, (str, bytes)):
+            params = to_native_string(params)
+
         enc_params = self._encode_params(params)
         if enc_params:
             if query:
@@ -423,9 +417,9 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         content_type = None
         length = None
 
-        if json is not None:
+        if not data and json is not None:
             content_type = 'application/json'
-            body = json_dumps(json)
+            body = complexjson.dumps(json)
 
         is_stream = all([
             hasattr(data, '__iter__'),
@@ -443,7 +437,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             if files:
                 raise NotImplementedError('Streamed bodies and files are mutually exclusive.')
 
-            if length is not None:
+            if length:
                 self.headers['Content-Length'] = builtin_str(length)
             else:
                 self.headers['Transfer-Encoding'] = 'chunked'
@@ -452,7 +446,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             if files:
                 (body, content_type) = self._encode_files(files, data)
             else:
-                if data and json is None:
+                if data:
                     body = self._encode_params(data)
                     if isinstance(data, basestring) or hasattr(data, 'read'):
                         content_type = None
@@ -537,16 +531,8 @@ class Response(object):
     """
 
     __attrs__ = [
-        '_content',
-        'status_code',
-        'headers',
-        'url',
-        'history',
-        'encoding',
-        'reason',
-        'cookies',
-        'elapsed',
-        'request',
+        '_content', 'status_code', 'headers', 'url', 'history',
+        'encoding', 'reason', 'cookies', 'elapsed', 'request'
     ]
 
     def __init__(self):
@@ -648,7 +634,7 @@ class Response(object):
 
     @property
     def is_permanent_redirect(self):
-        """True if this Response one of the permanant versions of redirect"""
+        """True if this Response one of the permanent versions of redirect"""
         return ('location' in self.headers and self.status_code in (codes.moved_permanently, codes.permanent_redirect))
 
     @property
@@ -666,9 +652,10 @@ class Response(object):
         If decode_unicode is True, content will be decoded using the best
         available encoding based on the response.
         """
+
         def generate():
-            try:
-                # Special case for urllib3.
+            # Special case for urllib3.
+            if hasattr(self.raw, 'stream'):
                 try:
                     for chunk in self.raw.stream(chunk_size, decode_content=True):
                         yield chunk
@@ -678,7 +665,7 @@ class Response(object):
                     raise ContentDecodingError(e)
                 except ReadTimeoutError as e:
                     raise ConnectionError(e)
-            except AttributeError:
+            else:
                 # Standard file-like object.
                 while True:
                     chunk = self.raw.read(chunk_size)
@@ -809,14 +796,16 @@ class Response(object):
             encoding = guess_json_utf(self.content)
             if encoding is not None:
                 try:
-                    return json.loads(self.content.decode(encoding), **kwargs)
+                    return complexjson.loads(
+                        self.content.decode(encoding), **kwargs
+                    )
                 except UnicodeDecodeError:
                     # Wrong UTF codec detected; usually because it's not UTF-8
                     # but some other 8-bit codec.  This is an RFC violation,
                     # and the server didn't bother to tell us what codec *was*
                     # used.
                     pass
-        return json.loads(self.text, **kwargs)
+        return complexjson.loads(self.text, **kwargs)
 
     @property
     def links(self):
@@ -842,10 +831,10 @@ class Response(object):
         http_error_msg = ''
 
         if 400 <= self.status_code < 500:
-            http_error_msg = '%s Client Error: %s' % (self.status_code, self.reason)
+            http_error_msg = '%s Client Error: %s for url: %s' % (self.status_code, self.reason, self.url)
 
         elif 500 <= self.status_code < 600:
-            http_error_msg = '%s Server Error: %s' % (self.status_code, self.reason)
+            http_error_msg = '%s Server Error: %s for url: %s' % (self.status_code, self.reason, self.url)
 
         if http_error_msg:
             raise HTTPError(http_error_msg, response=self)
@@ -856,4 +845,7 @@ class Response(object):
 
         *Note: Should not normally need to be called explicitly.*
         """
+        if not self._content_consumed:
+            return self.raw.close()
+
         return self.raw.release_conn()

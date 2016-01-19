@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import errno
 import logging
 import sys
@@ -10,13 +11,15 @@ try:  # Python 3
     from queue import LifoQueue, Empty, Full
 except ImportError:
     from Queue import LifoQueue, Empty, Full
-    import Queue as _  # Platform-specific: Windows
+    # Queue is imported for side effects on MS Windows
+    import Queue as _unused_module_Queue  # noqa: unused
 
 
 from .exceptions import (
     ClosedPoolError,
     ProtocolError,
     EmptyPoolError,
+    HeaderParsingError,
     HostChangedError,
     LocationValueError,
     MaxRetryError,
@@ -25,6 +28,7 @@ from .exceptions import (
     SSLError,
     TimeoutError,
     InsecureRequestWarning,
+    NewConnectionError,
 )
 from .packages.ssl_match_hostname import CertificateError
 from .packages import six
@@ -32,15 +36,16 @@ from .connection import (
     port_by_scheme,
     DummyConnection,
     HTTPConnection, HTTPSConnection, VerifiedHTTPSConnection,
-    HTTPException, BaseSSLError, ConnectionError
+    HTTPException, BaseSSLError,
 )
 from .request import RequestMethods
 from .response import HTTPResponse
 
 from .util.connection import is_connection_dropped
+from .util.response import assert_header_parsing
 from .util.retry import Retry
 from .util.timeout import Timeout
-from .util.url import get_host
+from .util.url import get_host, Url
 
 
 xrange = six.moves.xrange
@@ -50,7 +55,7 @@ log = logging.getLogger(__name__)
 _Default = object()
 
 
-## Pool objects
+# Pool objects
 class ConnectionPool(object):
     """
     Base class for all connection pools, such as
@@ -64,8 +69,7 @@ class ConnectionPool(object):
         if not host:
             raise LocationValueError("No host specified.")
 
-        # httplib doesn't like it when we include brackets in ipv6 addresses
-        self.host = host.strip('[]')
+        self.host = host
         self.port = port
 
     def __str__(self):
@@ -120,7 +124,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
     :param maxsize:
         Number of connections to save that can be reused. More than 1 is useful
-        in multithreaded situations. If ``block`` is set to false, more
+        in multithreaded situations. If ``block`` is set to False, more
         connections will be created but they will not be saved once they've
         been used.
 
@@ -381,7 +385,18 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         log.debug("\"%s %s %s\" %s %s" % (method, url, http_version,
                                           httplib_response.status,
                                           httplib_response.length))
+
+        try:
+            assert_header_parsing(httplib_response.msg)
+        except HeaderParsingError as hpe:  # Platform-specific: Python 3
+            log.warning(
+                'Failed to parse headers (url=%s): %s',
+                self._absolute_url(url), hpe, exc_info=True)
+
         return httplib_response
+
+    def _absolute_url(self, path):
+        return Url(scheme=self.scheme, host=self.host, port=self.port, path=path).url
 
     def close(self):
         """
@@ -568,27 +583,24 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             # Close the connection. If a connection is reused on which there
             # was a Certificate error, the next request will certainly raise
             # another Certificate error.
-            if conn:
-                conn.close()
-                conn = None
+            conn = conn and conn.close()
+            release_conn = True
             raise SSLError(e)
 
         except SSLError:
             # Treat SSLError separately from BaseSSLError to preserve
             # traceback.
-            if conn:
-                conn.close()
-                conn = None
+            conn = conn and conn.close()
+            release_conn = True
             raise
 
-        except (TimeoutError, HTTPException, SocketError, ConnectionError) as e:
-            if conn:
-                # Discard the connection for these exceptions. It will be
-                # be replaced during the next _get_conn() call.
-                conn.close()
-                conn = None
+        except (TimeoutError, HTTPException, SocketError, ProtocolError) as e:
+            # Discard the connection for these exceptions. It will be
+            # be replaced during the next _get_conn() call.
+            conn = conn and conn.close()
+            release_conn = True
 
-            if isinstance(e, SocketError) and self.proxy:
+            if isinstance(e, (SocketError, NewConnectionError)) and self.proxy:
                 e = ProxyError('Cannot connect to proxy.', e)
             elif isinstance(e, (SocketError, HTTPException)):
                 e = ProtocolError('Connection aborted.', e)
@@ -626,26 +638,31 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 retries = retries.increment(method, url, response=response, _pool=self)
             except MaxRetryError:
                 if retries.raise_on_redirect:
+                    # Release the connection for this response, since we're not
+                    # returning it to be released manually.
+                    response.release_conn()
                     raise
                 return response
 
             log.info("Redirecting %s -> %s" % (url, redirect_location))
-            return self.urlopen(method, redirect_location, body, headers,
-                    retries=retries, redirect=redirect,
-                    assert_same_host=assert_same_host,
-                    timeout=timeout, pool_timeout=pool_timeout,
-                    release_conn=release_conn, **response_kw)
+            return self.urlopen(
+                method, redirect_location, body, headers,
+                retries=retries, redirect=redirect,
+                assert_same_host=assert_same_host,
+                timeout=timeout, pool_timeout=pool_timeout,
+                release_conn=release_conn, **response_kw)
 
         # Check if we should retry the HTTP response.
         if retries.is_forced_retry(method, status_code=response.status):
             retries = retries.increment(method, url, response=response, _pool=self)
             retries.sleep()
             log.info("Forced retry: %s" % url)
-            return self.urlopen(method, url, body, headers,
-                    retries=retries, redirect=redirect,
-                    assert_same_host=assert_same_host,
-                    timeout=timeout, pool_timeout=pool_timeout,
-                    release_conn=release_conn, **response_kw)
+            return self.urlopen(
+                method, url, body, headers,
+                retries=retries, redirect=redirect,
+                assert_same_host=assert_same_host,
+                timeout=timeout, pool_timeout=pool_timeout,
+                release_conn=release_conn, **response_kw)
 
         return response
 
@@ -662,10 +679,10 @@ class HTTPSConnectionPool(HTTPConnectionPool):
     ``assert_hostname`` and ``host`` in this order to verify connections.
     If ``assert_hostname`` is False, no verification is done.
 
-    The ``key_file``, ``cert_file``, ``cert_reqs``, ``ca_certs`` and
-    ``ssl_version`` are only used if :mod:`ssl` is available and are fed into
-    :meth:`urllib3.util.ssl_wrap_socket` to upgrade the connection socket
-    into an SSL socket.
+    The ``key_file``, ``cert_file``, ``cert_reqs``, ``ca_certs``,
+    ``ca_cert_dir``, and ``ssl_version`` are only used if :mod:`ssl` is
+    available and are fed into :meth:`urllib3.util.ssl_wrap_socket` to upgrade
+    the connection socket into an SSL socket.
     """
 
     scheme = 'https'
@@ -678,15 +695,20 @@ class HTTPSConnectionPool(HTTPConnectionPool):
                  key_file=None, cert_file=None, cert_reqs=None,
                  ca_certs=None, ssl_version=None,
                  assert_hostname=None, assert_fingerprint=None,
-                 **conn_kw):
+                 ca_cert_dir=None, **conn_kw):
 
         HTTPConnectionPool.__init__(self, host, port, strict, timeout, maxsize,
                                     block, headers, retries, _proxy, _proxy_headers,
                                     **conn_kw)
+
+        if ca_certs and cert_reqs is None:
+            cert_reqs = 'CERT_REQUIRED'
+
         self.key_file = key_file
         self.cert_file = cert_file
         self.cert_reqs = cert_reqs
         self.ca_certs = ca_certs
+        self.ca_cert_dir = ca_cert_dir
         self.ssl_version = ssl_version
         self.assert_hostname = assert_hostname
         self.assert_fingerprint = assert_fingerprint
@@ -702,6 +724,7 @@ class HTTPSConnectionPool(HTTPConnectionPool):
                           cert_file=self.cert_file,
                           cert_reqs=self.cert_reqs,
                           ca_certs=self.ca_certs,
+                          ca_cert_dir=self.ca_cert_dir,
                           assert_hostname=self.assert_hostname,
                           assert_fingerprint=self.assert_fingerprint)
             conn.ssl_version = self.ssl_version
