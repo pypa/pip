@@ -327,6 +327,10 @@ class TestUnpackArchives(object):
         test_file = data.packages.join("test_tar.tgz")
         untar_file(test_file, self.tempdir)
         self.confirm_files()
+        # Check the timestamp of an extracted file
+        file_txt_path = os.path.join(self.tempdir, 'file.txt')
+        mtime = time.gmtime(os.stat(file_txt_path).st_mtime)
+        assert mtime[0:6] == (2013, 8, 16, 5, 13, 37), mtime
 
     def test_unpack_zip(self, data):
         """
