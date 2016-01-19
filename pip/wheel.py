@@ -497,6 +497,15 @@ if __name__ == '__main__':
             )
         )
 
+    # Record pip as the installer
+    installer = os.path.join(info_dir[0], 'INSTALLER')
+    temp_installer = os.path.join(info_dir[0], 'INSTALLER.pip')
+    with open(temp_installer, 'wb') as installer_file:
+        installer_file.write(b'pip\n')
+    shutil.move(temp_installer, installer)
+    generated.append(installer)
+
+    # Record details of all files installed
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
