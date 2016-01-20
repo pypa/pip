@@ -69,6 +69,7 @@ import shutil
 import sys
 import struct
 import tempfile
+import warnings
 
 # Useful for very coarse version differentiation.
 PY2 = sys.version_info[0] == 2
@@ -138,31 +139,49 @@ def bootstrap(tmpdir=None):
 
     pip.commands_dict["install"] = CertInstallCommand
 
+    PKG_LIST = ('pip', 'setuptools', 'wheel')
+    with_pkg = dict.fromkeys(PKG_LIST, False)
+
+    from pip._vendor import pkg_resources
+    for arg in sys.argv[1:]:
+        for pkg in PKG_LIST:
+            try:
+                req = pkg_resources.Requirement.parse(arg)
+            except pkg_resources.RequirementParseError:
+                continue
+            if req.key == pkg:
+                with_pkg[pkg] = True
+
+    args = sys.argv[1:]
+
     # We always want to install pip
-    packages = ["pip"]
+    if not with_pkg['pip']:
+        args.append('pip')
 
     # Check if the user has requested us not to install setuptools
-    if "--no-setuptools" in sys.argv or os.environ.get("PIP_NO_SETUPTOOLS"):
-        args = [x for x in sys.argv[1:] if x != "--no-setuptools"]
-    else:
-        args = sys.argv[1:]
-
+    if "--no-setuptools" in sys.argv:
+        args = [x for x in args if x != "--no-setuptools"]
+        if with_pkg['setuptools']:
+            warnings.warn('Ignoring --no-setuptools arg')
+    elif not (os.environ.get("PIP_NO_SETUPTOOLS") or with_pkg['setuptools']):
         # We want to see if setuptools is available before attempting to
         # install it
         try:
             import setuptools  # noqa
         except ImportError:
-            packages += ["setuptools"]
+            args.append('setuptools')
 
     # Check if the user has requested us not to install wheel
-    if "--no-wheel" in args or os.environ.get("PIP_NO_WHEEL"):
+    if "--no-wheel" in args:
         args = [x for x in args if x != "--no-wheel"]
-    else:
+        if with_pkg['wheel']:
+            warnings.warn('Ignoring --no-wheel arg')
+    elif not (os.environ.get("PIP_NO_WHEEL") or with_pkg['wheel']):
         # We want to see if wheel is available before attempting to install it.
         try:
             import wheel  # noqa
         except ImportError:
-            args += ["wheel"]
+            args.append('wheel')
 
     delete_tmpdir = False
     try:
@@ -180,7 +199,7 @@ def bootstrap(tmpdir=None):
 
         # Execute the included pip and use it to install the latest pip and
         # setuptools from PyPI
-        sys.exit(pip.main(["install", "--upgrade"] + packages + args))
+        sys.exit(pip.main(["install", "--upgrade"] + args))
     finally:
         # Remove our temporary directory
         if delete_tmpdir and tmpdir:
