@@ -19,9 +19,44 @@ from pip.utils import appdirs
 # doesn't exist or we cannot resolve the path to an existing file, then we will
 # simply set this to None. Setting this to None will have requests fall back
 # and use it's default CA Bundle logic.
+# Ever since requests 2.9.0, requests has supported a CAPath in addition to a
+# CAFile, because some systems (such as Debian) have a broken CAFile currently
+# we'll go ahead and support both, prefering CAPath over CAfile.
 if getattr(ssl, "get_default_verify_paths", None):
-    CA_BUNDLE_PATH = ssl.get_default_verify_paths().cafile
+    _ssl_paths = ssl.get_default_verify_paths()
+
+    # Ok, this is a little hairy because system trust stores are randomly
+    # broken in different and exciting ways and this should help fix that.
+    # Ideally we'd just not trust the system store, however that leads end
+    # users to be confused on systems like Debian that patch python-pip, even
+    # inside of a virtual environment, to support the system store. This would
+    # lead to pip trusting the system store when creating the virtual
+    # environment, but then switching to not doing that when upgraded to a
+    # version from PyPI. However, we can't *only* rely on the system store
+    # because not all systems actually have one, so at the end of the day we
+    # still need to fall back to trusting the bundled copy.
+    #
+    # Resolution Method:
+    #
+    # 1. We prefer a CAPath, however we will *only* prefer a CAPath if the
+    #    directory exists and it is not empty. This works around systems like
+    #    Homebrew which have an empty CAPath but a populated CAFile.
+    # 2. Failing that, we prefer a CAFile, however again we will *only* prefer
+    #    it if it exists on disk and if it is not empty. This will work around
+    #    systems that have an empty CAFile sitting around for no good reason.
+    # 3. Finally, we'll just fall back to letting requests use it's bundled
+    #    CAFile, which can of course be overriden by the end user installing
+    #    certifi.
+    if _ssl_paths.capath is not None and os.listdir(_ssl_paths.capath):
+        CA_BUNDLE_PATH = _ssl_paths.capath
+    elif _ssl_paths.cafile is not None and os.path.getsize(_ssl_paths.cafile):
+        CA_BUNDLE_PATH = _ssl_paths.cafile
+    else:
+        CA_BUNDLE_PATH = None
 else:
+    # If we aren't running on a copy of Python that is new enough to be able
+    # to query OpenSSL for it's default locations, then we'll only support
+    # using the built in CA Bundle by default.
     CA_BUNDLE_PATH = None
 
 
