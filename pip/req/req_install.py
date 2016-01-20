@@ -752,7 +752,7 @@ class InstallRequirement(object):
             self.uninstalled.rollback()
         else:
             logger.error(
-                "Can't rollback %s, nothing uninstalled.", self.project_name,
+                "Can't rollback %s, nothing uninstalled.", self.name,
             )
 
     def commit_uninstall(self):
