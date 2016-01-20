@@ -116,8 +116,8 @@ def get_platform():
         # of MACOSX_DEPLOYMENT_TARGET on which Python was built, which may
         # be signficantly older than the user's current machine.
         release, _, machine = platform.mac_ver()
-        major, minor, micro = release.split('.')
-        return 'macosx_{0}_{1}_{2}'.format(major, minor, machine)
+        split_ver = release.split('.')
+        return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
     # XXX remove distutils dependency
     return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
