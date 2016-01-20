@@ -138,8 +138,9 @@ def bootstrap(tmpdir=None):
 
     pip.commands_dict["install"] = CertInstallCommand
 
-    # We always want to install pip
-    packages = ["pip"]
+    # We always want to install pip, but let people specify an
+    # alternative version
+    packages = ["pip" + os.environ.get("PIP_VERSION_PIN", "")]
 
     # Check if the user has requested us not to install setuptools
     if "--no-setuptools" in sys.argv or os.environ.get("PIP_NO_SETUPTOOLS"):
