@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import traceback
+import warnings
 import zipfile
 
 from distutils.util import change_root
@@ -34,7 +35,9 @@ from pip.utils import (
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
     get_installed_version, canonicalize_name
 )
+
 from pip.utils.hashes import Hashes
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -647,12 +650,14 @@ class InstallRequirement(object):
                     paths_to_remove.add(path + '.pyo')
 
         elif distutils_egg_info:
-            raise UninstallationError(
-                "Detected a distutils installed project ({0!r}) which we "
-                "cannot uninstall. The metadata provided by distutils does "
-                "not contain a list of files which have been installed, so "
-                "pip does not know which files to uninstall.".format(self.name)
+            warnings.warn(
+                "Uninstalling a distutils installed project ({0}) has been "
+                "deprecated and will be removed in a future version. This is "
+                "due to the fact that uninstalling a distutils project will "
+                "only partially uninstall the project.".format(self.name),
+                RemovedInPip10Warning,
             )
+            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install
