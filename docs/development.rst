@@ -104,11 +104,11 @@ Release Process
 6. Upload the distribution files to PyPI using twine
    (``twine upload -s dist/*``). The upload should include GPG signatures of
    the distribution files.
-7. Regenerate the ``get-pip.py`` script by running
-   ``invoke generate.installer`` on the master branch, and committing the
+7. Merge the ``master`` branch into the ``develop`` branch.
+8. Push all of the changes.
+9. Regenerate the ``get-pip.py`` script by running
+   ``invoke generate.installer`` in the get-pip repository, and committing the
    results.
-8. Merge the ``master`` branch into the ``develop`` branch.
-9. Push all of the changes.
 
 
 Creating a Bugfix Release

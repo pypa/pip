@@ -70,7 +70,7 @@
 
 * Drop PasteScript specific egg_info hack. (:pull:`3270`)
 
-* Allow combination of pip list options --editable with --outdated/--updtodate.
+* Allow combination of pip list options --editable with --outdated/--uptodate.
   (:issue:`933`)
 
 * Gives VCS implementations control over saying whether a project
