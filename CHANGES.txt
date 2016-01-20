@@ -1,5 +1,8 @@
 **8.1.0 (unreleased)**
 
+* Installing argparse or wsgiref will no longer warn or error - pip will allow
+  the installation even though it may be useless (since the installed thing
+  will be shadowed by the standard library).
 
 **8.0.0 (2016-01-19)**
 

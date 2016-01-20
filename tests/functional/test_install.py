@@ -305,6 +305,14 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
+@pytest.mark.skipif("sys.version_info < (2,7)")
+def test_install_argparse_shadowed(script, data):
+    # When argparse is in the stdlib, we support installing it
+    # even though thats pretty useless because older packages did need to
+    # depend on it.
+    script.pip('install', 'argparse>=1.4')
+
+
 def test_install_as_egg(script, data):
     """
     Test installing as egg, instead of flat install.
