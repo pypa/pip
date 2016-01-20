@@ -11,7 +11,7 @@ import re
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
-from pip.utils import deprecation
+from pip.utils import deprecation, dist_is_editable
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
@@ -30,7 +30,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "7.1.2"
+__version__ = "8.0.0"
 
 
 logger = logging.getLogger(__name__)
@@ -232,14 +232,14 @@ class FrozenRequirement(object):
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
     @classmethod
-    def from_dist(cls, dist, dependency_links, find_tags=False):
+    def from_dist(cls, dist, dependency_links):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip.vcs import vcs, get_src_requirement
-        if vcs.get_backend_name(location):
+        if dist_is_editable(dist) and vcs.get_backend_name(location):
             editable = True
             try:
-                req = get_src_requirement(dist, location, find_tags)
+                req = get_src_requirement(dist, location)
             except InstallationError as exc:
                 logger.warning(
                     "Error when trying to get requirement for VCS system %s, "

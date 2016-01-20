@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import time
 import os
+import time
 
-from . import (LockBase, LockFailed, NotLocked, NotMyLock, LockTimeout,
+from . import (LockBase, NotLocked, NotMyLock, LockTimeout,
                AlreadyLocked)
+
 
 class SymlinkLockFile(LockBase):
     """Lock access to a file using symlink(2)."""
@@ -17,11 +18,11 @@ class SymlinkLockFile(LockBase):
 
     def acquire(self, timeout=None):
         # Hopefully unnecessary for symlink.
-        #try:
-        #    open(self.unique_name, "wb").close()
-        #except IOError:
-        #    raise LockFailed("failed to create %s" % self.unique_name)
-        timeout = timeout is not None and timeout or self.timeout
+        # try:
+        #     open(self.unique_name, "wb").close()
+        # except IOError:
+        #     raise LockFailed("failed to create %s" % self.unique_name)
+        timeout = timeout if timeout is not None else self.timeout
         end_time = time.time()
         if timeout is not None and timeout > 0:
             end_time += timeout
@@ -45,7 +46,7 @@ class SymlinkLockFile(LockBase):
                         else:
                             raise AlreadyLocked("%s is already locked" %
                                                 self.path)
-                    time.sleep(timeout/10 if timeout is not None else 0.1)
+                    time.sleep(timeout / 10 if timeout is not None else 0.1)
             else:
                 # Link creation succeeded.  We're good to go.
                 return
@@ -61,8 +62,8 @@ class SymlinkLockFile(LockBase):
         return os.path.islink(self.lock_file)
 
     def i_am_locking(self):
-        return os.path.islink(self.lock_file) and \
-         os.readlink(self.lock_file) == self.unique_name
+        return (os.path.islink(self.lock_file)
+                and os.readlink(self.lock_file) == self.unique_name)
 
     def break_lock(self):
         if os.path.islink(self.lock_file):  # exists && link

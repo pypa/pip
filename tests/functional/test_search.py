@@ -107,7 +107,8 @@ def test_search(script):
     """
     output = script.pip('search', 'pip')
     assert (
-        'A tool for installing and managing Python packages' in output.stdout
+        'The PyPA recommended tool for installing '
+        'Python packages.' in output.stdout
     )
 
 
@@ -119,7 +120,8 @@ def test_multiple_search(script):
     """
     output = script.pip('search', 'pip', 'INITools')
     assert (
-        'A tool for installing and managing Python packages' in output.stdout
+        'The PyPA recommended tool for installing '
+        'Python packages.' in output.stdout
     )
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
@@ -133,7 +135,7 @@ def test_search_missing_argument(script):
 
 
 @pytest.mark.network
-def test_run_method_should_return_sucess_when_find_packages():
+def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
     """
@@ -150,7 +152,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     Test SearchCommand.run for no matches
     """
     command = SearchCommand()
-    cmdline = "--index=http://pypi.python.org/pypi non-existent-package"
+    cmdline = "--index=http://pypi.python.org/pypi nonexistentpackage"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
@@ -170,5 +172,5 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
     """
-    result = script.pip('search', 'non-existent-package', expect_error=True)
+    result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode

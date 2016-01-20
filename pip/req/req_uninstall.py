@@ -46,7 +46,12 @@ class UninstallPathSet(object):
         return True
 
     def add(self, path):
-        path = normalize_path(path, resolve_symlinks=False)
+        head, tail = os.path.split(path)
+
+        # we normalize the head to resolve parent directory symlinks, but not
+        # the tail, since we only want to uninstall symlinks, not their targets
+        path = os.path.join(normalize_path(head), os.path.normcase(tail))
+
         if not os.path.exists(path):
             return
         if self._permitted(path):

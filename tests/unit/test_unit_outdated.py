@@ -41,7 +41,7 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     )
 
     monkeypatch.setattr(outdated.logger, 'warning',
-                        pretend.call_recorder(lambda s: None))
+                        pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
 

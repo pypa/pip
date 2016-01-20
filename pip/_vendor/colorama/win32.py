@@ -12,6 +12,7 @@ try:
 except (AttributeError, ImportError):
     windll = None
     SetConsoleTextAttribute = lambda *_: None
+    winapi_test = lambda *_: None
 else:
     from ctypes import byref, Structure, c_char, POINTER
 
@@ -92,6 +93,13 @@ else:
         STDOUT: _GetStdHandle(STDOUT),
         STDERR: _GetStdHandle(STDERR),
     }
+
+    def winapi_test():
+        handle = handles[STDOUT]
+        csbi = CONSOLE_SCREEN_BUFFER_INFO()
+        success = _GetConsoleScreenBufferInfo(
+            handle, byref(csbi))
+        return bool(success)
 
     def GetConsoleScreenBufferInfo(stream_id=STDOUT):
         handle = handles[stream_id]

@@ -8,10 +8,12 @@ import optparse
 import warnings
 
 from pip import cmdoptions
+from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
+
 from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
@@ -19,8 +21,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import get_prog, normalize_path
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -128,11 +129,7 @@ class Command(object):
             "formatters": {
                 "indent": {
                     "()": IndentingFormatter,
-                    "format": (
-                        "%(message)s"
-                        if not options.log_explicit_levels
-                        else "[%(levelname)s] %(message)s"
-                    ),
+                    "format": "%(message)s",
                 },
             },
             "handlers": {
@@ -183,11 +180,12 @@ class Command(object):
             ),
         })
 
-        if options.log_explicit_levels:
+        if sys.version_info[:2] == (2, 6):
             warnings.warn(
-                "--log-explicit-levels has been deprecated and will be removed"
-                " in a future version.",
-                RemovedInPip8Warning,
+                "Python 2.6 is no longer supported by the Python core team, "
+                "please upgrade your Python. A future version of pip will "
+                "drop support for Python 2.6",
+                deprecation.Python26DeprecationWarning
             )
 
         # TODO: try to get these passing down from the command?
@@ -291,6 +289,9 @@ class RequirementCommand(Command):
                     wheel_cache=wheel_cache):
                 found_req_in_file = True
                 requirement_set.add_requirement(req)
+        # If --require-hashes was a line in a requirements file, tell
+        # RequirementSet about it:
+        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}
@@ -303,3 +304,22 @@ class RequirementCommand(Command):
                 msg = ('You must give at least one requirement '
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warning(msg)
+
+    def _build_package_finder(self, options, session):
+        """
+        Create a package finder appropriate to this requirement command.
+        """
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            index_urls = []
+
+        return PackageFinder(
+            find_links=options.find_links,
+            format_control=options.format_control,
+            index_urls=index_urls,
+            trusted_hosts=options.trusted_hosts,
+            allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
+            session=session,
+        )

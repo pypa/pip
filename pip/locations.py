@@ -1,49 +1,28 @@
 """Locations where we look for configs, install stuff, etc"""
 from __future__ import absolute_import
 
-import getpass
 import os
 import os.path
 import site
+import ssl
 import sys
 
 from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
-from pip.compat import WINDOWS
+from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
 
 
-# CA Bundle Locations
-CA_BUNDLE_PATHS = [
-    # Debian/Ubuntu/Gentoo etc.
-    "/etc/ssl/certs/ca-certificates.crt",
-
-    # Fedora/RHEL
-    "/etc/pki/tls/certs/ca-bundle.crt",
-
-    # OpenSUSE
-    "/etc/ssl/ca-bundle.pem",
-
-    # OpenBSD
-    "/etc/ssl/cert.pem",
-
-    # FreeBSD/DragonFly
-    "/usr/local/share/certs/ca-root-nss.crt",
-
-    # Homebrew on OSX
-    "/usr/local/etc/openssl/cert.pem",
-]
-
-# Attempt to locate a CA Bundle that we can pass into requests, we have a list
-# of possible ones from various systems. If we cannot find one then we'll set
-# this to None so that we default to whatever requests is setup to handle.
-#
-# Note to Downstream: If you wish to disable this autodetection and simply use
-#                     whatever requests does (likely you've already patched
-#                     requests.certs.where()) then simply edit this line so
-#                     that it reads ``CA_BUNDLE_PATH = None``.
-CA_BUNDLE_PATH = next((x for x in CA_BUNDLE_PATHS if os.path.exists(x)), None)
+# if the Python we're running on is new enough to have the needed API then
+# we'll ask OpenSSL to give us the path to the default CA Bundle. If this API
+# doesn't exist or we cannot resolve the path to an existing file, then we will
+# simply set this to None. Setting this to None will have requests fall back
+# and use it's default CA Bundle logic.
+if getattr(ssl, "get_default_verify_paths", None):
+    CA_BUNDLE_PATH = ssl.get_default_verify_paths().cafile
+else:
+    CA_BUNDLE_PATH = None
 
 
 # Application Directories
@@ -94,14 +73,6 @@ def virtualenv_no_global():
         return True
 
 
-def __get_username():
-    """ Returns the effective username of the current process. """
-    if WINDOWS:
-        return getpass.getuser()
-    import pwd
-    return pwd.getpwuid(os.geteuid()).pw_name
-
-
 if running_under_virtualenv():
     src_prefix = os.path.join(sys.prefix, 'src')
 else:
@@ -123,7 +94,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 site_packages = sysconfig.get_python_lib()
 user_site = site.USER_SITE
-user_dir = os.path.expanduser('~')
+user_dir = expanduser('~')
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
     bin_user = os.path.join(user_site, 'Scripts')
@@ -163,7 +134,7 @@ site_config_files = [
 
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,
-                     isolated=False):
+                     isolated=False, prefix=None):
     """
     Return a distutils install scheme
     """
@@ -184,9 +155,11 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
+    assert not (user and prefix), "user={0} prefix={1}".format(user, prefix)
     i.user = user or i.user
     if user:
         i.prefix = ""
+    i.prefix = prefix or i.prefix
     i.home = home or i.home
     i.root = root or i.root
     i.finalize_options()
@@ -211,9 +184,11 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
         )
 
         if root is not None:
+            path_no_drive = os.path.splitdrive(
+                os.path.abspath(scheme["headers"]))[1]
             scheme["headers"] = os.path.join(
                 root,
-                os.path.abspath(scheme["headers"])[1:],
+                path_no_drive[1:],
             )
 
     return scheme

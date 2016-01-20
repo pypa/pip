@@ -30,28 +30,6 @@ def test_simple_uninstall(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
-def test_simple_uninstall_distutils(script):
-    """
-    Test simple install and uninstall.
-
-    """
-    script.scratch_path.join("distutils_install").mkdir()
-    pkg_path = script.scratch_path / 'distutils_install'
-    pkg_path.join("setup.py").write(textwrap.dedent("""
-        from distutils.core import setup
-        setup(
-            name='distutils-install',
-            version='0.1',
-        )
-    """))
-    result = script.run('python', pkg_path / 'setup.py', 'install')
-    result = script.pip('list')
-    assert "distutils-install (0.1)" in result.stdout
-    script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
-    result2 = script.pip('list')
-    assert "distutils-install (0.1)" not in result2.stdout
-
-
 @pytest.mark.network
 def test_uninstall_with_scripts(script):
     """
@@ -398,7 +376,7 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list')
-    assert "FSPkg (0.1.dev0)" in list_result.stdout
+    assert "FSPkg (0.1.dev0, " in list_result.stdout
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')

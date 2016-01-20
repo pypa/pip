@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import re
 import sys
 import warnings
+import platform
 
 try:
     import sysconfig
@@ -13,6 +14,14 @@ except ImportError:  # pragma nocover
 import distutils.util
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
+
+
+def get_config_var(var):
+    try:
+        return sysconfig.get_config_var(var)
+    except IOError as e:  # Issue #1074
+        warnings.warn("{0}".format(e), RuntimeWarning)
+        return None
 
 
 def get_abbr_impl():
@@ -30,11 +39,85 @@ def get_abbr_impl():
 
 def get_impl_ver():
     """Return implementation version."""
-    return ''.join(map(str, sys.version_info[:2]))
+    impl_ver = get_config_var("py_version_nodot")
+    if not impl_ver or get_abbr_impl() == 'pp':
+        impl_ver = ''.join(map(str, get_impl_version_info()))
+    return impl_ver
+
+
+def get_impl_version_info():
+    """Return sys.version_info-like tuple for use in decrementing the minor
+    version."""
+    if get_abbr_impl() == 'pp':
+        # as per https://github.com/pypa/pip/issues/2882
+        return (sys.version_info[0], sys.pypy_version_info.major,
+                sys.pypy_version_info.minor)
+    else:
+        return sys.version_info[0], sys.version_info[1]
+
+
+def get_impl_tag():
+    """
+    Returns the Tag for this specific implementation.
+    """
+    return "{0}{1}".format(get_abbr_impl(), get_impl_ver())
+
+
+def get_flag(var, fallback, expected=True, warn=True):
+    """Use a fallback method for determining SOABI flags if the needed config
+    var is unset or unavailable."""
+    val = get_config_var(var)
+    if val is None:
+        if warn:
+            warnings.warn("Config variable '{0}' is unset, Python ABI tag may "
+                          "be incorrect".format(var), RuntimeWarning, 2)
+        return fallback()
+    return val == expected
+
+
+def get_abi_tag():
+    """Return the ABI tag based on SOABI (if available) or emulate SOABI
+    (CPython 2, PyPy)."""
+    soabi = get_config_var('SOABI')
+    impl = get_abbr_impl()
+    if not soabi and impl in ('cp', 'pp') and hasattr(sys, 'maxunicode'):
+        d = ''
+        m = ''
+        u = ''
+        if get_flag('Py_DEBUG',
+                    lambda: hasattr(sys, 'gettotalrefcount'),
+                    warn=(impl == 'cp')):
+            d = 'd'
+        if get_flag('WITH_PYMALLOC',
+                    lambda: impl == 'cp',
+                    warn=(impl == 'cp')):
+            m = 'm'
+        if get_flag('Py_UNICODE_SIZE',
+                    lambda: sys.maxunicode == 0x10ffff,
+                    expected=4,
+                    warn=(impl == 'cp' and
+                          sys.version_info < (3, 3))) \
+                and sys.version_info < (3, 3):
+            u = 'u'
+        abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
+    elif soabi and soabi.startswith('cpython-'):
+        abi = 'cp' + soabi.split('-')[1]
+    elif soabi:
+        abi = soabi.replace('.', '_').replace('-', '_')
+    else:
+        abi = None
+    return abi
 
 
 def get_platform():
     """Return our platform name 'win32', 'linux_x86_64'"""
+    if sys.platform == 'darwin':
+        # distutils.util.get_platform() returns the release based on the value
+        # of MACOSX_DEPLOYMENT_TARGET on which Python was built, which may
+        # be signficantly older than the user's current machine.
+        release, _, machine = platform.mac_ver()
+        major, minor, micro = release.split('.')
+        return 'macosx_{0}_{1}_{2}'.format(major, minor, machine)
     # XXX remove distutils dependency
     return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
@@ -51,23 +134,19 @@ def get_supported(versions=None, noarch=False):
     # Versions must be given with respect to the preference
     if versions is None:
         versions = []
-        major = sys.version_info[0]
+        version_info = get_impl_version_info()
+        major = version_info[:-1]
         # Support all previous minor Python versions.
-        for minor in range(sys.version_info[1], -1, -1):
-            versions.append(''.join(map(str, (major, minor))))
+        for minor in range(version_info[-1], -1, -1):
+            versions.append(''.join(map(str, major + (minor,))))
 
     impl = get_abbr_impl()
 
     abis = []
 
-    try:
-        soabi = sysconfig.get_config_var('SOABI')
-    except IOError as e:  # Issue #1074
-        warnings.warn("{0}".format(e), RuntimeWarning)
-        soabi = None
-
-    if soabi and soabi.startswith('cpython-'):
-        abis[0:0] = ['cp' + soabi.split('-')[1]]
+    abi = get_abi_tag()
+    if abi:
+        abis[0:0] = [abi]
 
     abi3s = set()
     import imp
@@ -91,15 +170,15 @@ def get_supported(versions=None, noarch=False):
                     actual_arches.append('fat')
                 if actual_arch in ('i386', 'x86_64'):
                     actual_arches.append('intel')
-                if actual_arch in ('i386', 'ppc', 'x86_64'):
-                    actual_arches.append('fat3')
                 if actual_arch in ('ppc64', 'x86_64'):
                     actual_arches.append('fat64')
+                if actual_arch in ('i386', 'ppc', 'x86_64'):
+                    actual_arches.append('fat32')
                 if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
                     actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
                 arches = []
-                for m in range(int(minor) + 1):
+                for m in reversed(range(int(minor) + 1)):
                     for a in actual_arches:
                         arches.append(tpl % (m, a))
             else:
@@ -134,3 +213,5 @@ def get_supported(versions=None, noarch=False):
 
 supported_tags = get_supported()
 supported_tags_noarch = get_supported(noarch=True)
+
+implementation_tag = get_impl_tag()

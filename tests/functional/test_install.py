@@ -1,5 +1,5 @@
-
 import os
+import sys
 import textwrap
 import glob
 
@@ -7,15 +7,17 @@ from os.path import join, curdir, pardir
 
 import pytest
 
+from pip import pep425tags
 from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo, path_to_url)
+                       _create_test_package, _create_svn_repo, path_to_url,
+                       requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
 def test_without_setuptools(script, data):
-    script.run("pip", "uninstall", "setuptools", "-y")
+    script.pip("uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
         "import pip; pip.main(["
@@ -26,9 +28,36 @@ def test_without_setuptools(script, data):
         expect_error=True,
     )
     assert (
-        "setuptools must be installed to install from a source distribution"
+        "Could not import setuptools which is required to install from a "
+        "source distribution."
         in result.stderr
     )
+    assert "Please install setuptools" in result.stderr
+
+
+def test_with_setuptools_and_import_error(script, data):
+    # Make sure we get an ImportError while importing setuptools
+    setuptools_init_path = script.site_packages_path.join(
+        "setuptools", "__init__.py")
+    with open(setuptools_init_path, 'a') as f:
+        f.write('\nraise ImportError("toto")')
+
+    result = script.run(
+        "python", "-c",
+        "import pip; pip.main(["
+        "'install', "
+        "'INITools==0.2', "
+        "'-f', '%s', "
+        "'--no-binary=:all:'])" % data.packages,
+        expect_error=True,
+    )
+    assert (
+        "Could not import setuptools which is required to install from a "
+        "source distribution."
+        in result.stderr
+    )
+    assert "Traceback " in result.stderr
+    assert "ImportError: toto" in result.stderr
 
 
 def test_pip_second_command_line_interface_works(script, data):
@@ -111,6 +140,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
         'customsrc',
         '--download',
         'customdl',
+        expect_stderr=True
     )
     customsrc = Path('scratch') / 'customsrc' / 'initools'
     assert customsrc in result.files_created, (
@@ -126,22 +156,9 @@ def test_download_editable_to_custom_path(script, tmpdir):
         if filename.startswith(customdl)
     ]
     assert customdl_files_created
-
-
-@pytest.mark.network
-def test_install_dev_version_from_pypi(script):
-    """
-    Test using package==dev.
-    """
-    result = script.pip(
-        'install', 'INITools===dev',
-        '--allow-external', 'INITools',
-        '--allow-unverified', 'INITools',
-        expect_error=True,
-    )
-    assert (script.site_packages / 'initools') in result.files_created, (
-        str(result.stdout)
-    )
+    assert ('DEPRECATION: pip install --download has been deprecated and will '
+            'be removed in the future. Pip now has a download command that '
+            'should be used instead.') in result.stderr
 
 
 def _test_install_editable_from_git(script, tmpdir, wheel):
@@ -216,6 +233,43 @@ def test_install_from_local_directory(script, data):
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+
+def test_hashed_install_success(script, data, tmpdir):
+    """
+    Test that installing various sorts of requirements with correct hashes
+    works.
+
+    Test file URLs and index packages (which become HTTP URLs behind the
+    scenes).
+
+    """
+    file_url = path_to_url(
+        (data.packages / 'simple-1.0.tar.gz').abspath)
+    with requirements_file(
+            'simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e'
+            '3848c2b9bbd2e8bf01db88c2c7\n'
+            '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
+            'a016b42d2e6ce53619b653'.format(simple=file_url),
+            tmpdir) as reqs_file:
+        script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
+
+
+def test_hashed_install_failure(script, data, tmpdir):
+    """Test that wrong hashes stop installation.
+
+    This makes sure prepare_files() is called in the course of installation
+    and so has the opportunity to halt if hashes are wrong. Checks on various
+    kinds of hashes are in test_req.py.
+
+    """
+    with requirements_file('simple2==1.0 --hash=sha256:9336af72ca661e6336eb87b'
+                           'c7de3e8844d853e3848c2b9bbd2e8bf01db88c2c\n',
+                           tmpdir) as reqs_file:
+        result = script.pip_install_local('-r',
+                                          reqs_file.abspath,
+                                          expect_error=True)
+    assert len(result.files_created) == 0
 
 
 def test_install_from_local_directory_with_symlinks_to_directories(
@@ -486,6 +540,69 @@ def test_install_package_with_root(script, data):
     assert root_path in result.files_created, str(result)
 
 
+def test_install_package_with_prefix(script, data):
+    """
+    Test installing a package using pip install --prefix
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--prefix', prefix_path, '-f', data.find_links,
+        '--no-binary', 'simple', '--no-index', 'simple==1.0',
+    )
+
+    if hasattr(sys, "pypy_version_info"):
+        path = script.scratch / 'prefix'
+    else:
+        path = script.scratch / 'prefix' / 'lib' / 'python{0}'.format(pyversion)  # noqa
+    install_path = (
+        path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
+    )
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_editable_with_prefix(script):
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+
+    site_packages = os.path.join(
+        'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+
+    # make sure target path is in PYTHONPATH
+    pythonpath = script.scratch_path / site_packages
+    pythonpath.makedirs()
+    script.environ["PYTHONPATH"] = pythonpath
+
+    # install pkga package into the absolute prefix directory
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--editable', pkga_path, '--prefix', prefix_path)
+
+    # assert pkga is installed at correct location
+    install_path = script.scratch / site_packages / 'pkga.egg-link'
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_package_conflict_prefix_and_user(script, data):
+    """
+    Test installing a package using pip install --prefix --user errors out
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--user',
+        '--prefix', prefix_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--user' and '--prefix'" in result.stderr
+    )
+
+
 # skip on win/py3 for now, see issue #782
 @pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
 def test_install_package_that_emits_unicode(script, data):
@@ -552,7 +669,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     set of packages as it requires a prepared index.html file and
     subdirectory-per-package structure.
     """
-    Dinner = os.path.join(data.find_links3, 'Dinner', 'Dinner-1.0.tar.gz')
+    Dinner = os.path.join(data.find_links3, 'dinner', 'Dinner-1.0.tar.gz')
     result = script.pip(
         'install', '--index-url', data.find_links3, Dinner, 'requiredinner'
     )
@@ -682,6 +799,20 @@ def test_install_wheel_broken(script, data):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
+def test_cleanup_after_failed_wheel(script, data):
+    script.pip('install', 'wheel')
+    res = script.pip(
+        'install', '--no-index', '-f', data.find_links, 'wheelbrokenafter',
+        expect_stderr=True)
+    # One of the effects of not cleaning up is broken scripts:
+    script_py = script.bin_path / "script.py"
+    assert script_py.exists, script_py
+    shebang = open(script_py, 'r').readline().strip()
+    assert shebang != '#!python', shebang
+    # OK, assert that we *said* we were cleaning up:
+    assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
+
+
 def test_install_builds_wheels(script, data):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
@@ -697,7 +828,7 @@ def test_install_builds_wheels(script, data):
     assert expected in str(res), str(res)
     root = appdirs.user_cache_dir('pip')
     wheels = []
-    for top, dirs, files in os.walk(root):
+    for top, dirs, files in os.walk(os.path.join(root, "wheels")):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
@@ -714,6 +845,10 @@ def test_install_builds_wheels(script, data):
     assert "Running setup.py install for requires-wheel" in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
+    # We want to make sure we used the correct implementation tag
+    assert wheels == [
+        "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+    ]
 
 
 def test_install_no_binary_disables_building_wheels(script, data):
@@ -762,3 +897,38 @@ def test_install_no_binary_disables_cached_wheels(script, data):
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_editable_with_wrong_egg_name(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+    result = script.pip(
+        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
+        expect_error=True)
+    assert ("egg_info for package pkgb produced metadata "
+            "for project name pkga. Fix your #egg=pkgb "
+            "fragments.") in result.stderr
+    assert "Successfully installed pkga" in str(result), str(result)
+
+
+def test_install_tar_xz(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.xz')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
+
+
+def test_install_tar_lzma(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.lzma')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res

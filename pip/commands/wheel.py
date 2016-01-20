@@ -6,16 +6,13 @@ import os
 import warnings
 
 from pip.basecommand import RequirementCommand
-from pip.index import PackageFinder
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
-from pip.utils import import_or_raise, normalize_path
+from pip.utils import import_or_raise
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
-
-DEFAULT_WHEEL_DIR = os.path.join(normalize_path(os.curdir), 'wheelhouse')
 
 
 logger = logging.getLogger(__name__)
@@ -55,9 +52,9 @@ class WheelCommand(RequirementCommand):
             '-w', '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
-            default=DEFAULT_WHEEL_DIR,
-            help=("Build wheels into <dir>, where the default is "
-                  "'<cwd>/wheelhouse'."),
+            default=os.curdir,
+            help=("Build wheels into <dir>, where the default is the "
+                  "current working directory."),
         )
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
@@ -72,7 +69,6 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.download_cache())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
@@ -94,6 +90,7 @@ class WheelCommand(RequirementCommand):
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())
+        cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -128,37 +125,40 @@ class WheelCommand(RequirementCommand):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
+        if options.allow_external:
+            warnings.warn(
+                "--allow-external has been deprecated and will be removed in "
+                "the future. Due to changes in the repository protocol, it no "
+                "longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_all_external:
+            warnings.warn(
+                "--allow-all-external has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
+        if options.allow_unverified:
+            warnings.warn(
+                "--allow-unverified has been deprecated and will be removed "
+                "in the future. Due to changes in the repository protocol, it "
+                "no longer has any effect.",
+                RemovedInPip10Warning,
+            )
+
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
-        if options.download_cache:
-            warnings.warn(
-                "--download-cache has been deprecated and will be removed in "
-                "the future. Pip now automatically uses and configures its "
-                "cache.",
-                RemovedInPip8Warning,
-            )
-
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
         with self._build_session(options) as session:
-
-            finder = PackageFinder(
-                find_links=options.find_links,
-                format_control=options.format_control,
-                index_urls=index_urls,
-                allow_external=options.allow_external,
-                allow_unverified=options.allow_unverified,
-                allow_all_external=options.allow_all_external,
-                allow_all_prereleases=options.pre,
-                trusted_hosts=options.trusted_hosts,
-                process_dependency_links=options.process_dependency_links,
-                session=session,
-            )
-
+            finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
             with BuildDirectory(options.build_dir,
@@ -172,7 +172,8 @@ class WheelCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     session=session,
                     wheel_cache=wheel_cache,
-                    wheel_download_dir=options.wheel_dir
+                    wheel_download_dir=options.wheel_dir,
+                    require_hashes=options.require_hashes
                 )
 
                 self.populate_requirement_set(

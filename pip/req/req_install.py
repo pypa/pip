@@ -6,7 +6,7 @@ import re
 import shutil
 import sys
 import tempfile
-import warnings
+import traceback
 import zipfile
 
 from distutils.util import change_root
@@ -15,6 +15,7 @@ from email.parser import FeedParser
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
+from pip._vendor.packaging import specifiers
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -29,12 +30,14 @@ from pip.locations import (
 )
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
-    dist_in_usersite, dist_in_site_packages, egg_link_path, make_path_relative,
+    dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
-    get_installed_version
+    get_installed_version, canonicalize_name
 )
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
@@ -42,6 +45,8 @@ from pip._vendor.packaging.version import Version
 
 
 logger = logging.getLogger(__name__)
+
+operators = specifiers.Specifier._operators.keys()
 
 
 def _strip_extras(path):
@@ -64,7 +69,17 @@ class InstallRequirement(object):
                  wheel_cache=None, constraint=False):
         self.extras = ()
         if isinstance(req, six.string_types):
-            req = pkg_resources.Requirement.parse(req)
+            try:
+                req = pkg_resources.Requirement.parse(req)
+            except pkg_resources.RequirementParseError:
+                if os.path.sep in req:
+                    add_msg = "It looks like a path. Does it exist ?"
+                elif '=' in req and not any(op in req for op in operators):
+                    add_msg = "= is not a valid operator. Did you mean == ?"
+                else:
+                    add_msg = traceback.format_exc()
+                raise InstallationError(
+                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
             self.extras = req.extras
 
         self.req = req
@@ -78,7 +93,7 @@ class InstallRequirement(object):
 
         self.editable_options = editable_options
         self._wheel_cache = wheel_cache
-        self.link = link
+        self.link = self.original_link = link
         self.as_egg = as_egg
         self.markers = markers
         self._egg_info_path = None
@@ -92,7 +107,7 @@ class InstallRequirement(object):
         self._temp_build_dir = None
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
-        self._ideal_global_dir = None
+        self._ideal_build_dir = None
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
@@ -240,32 +255,39 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
-    def populate_link(self, finder, upgrade):
+    def populate_link(self, finder, upgrade, require_hashes):
         """Ensure that if a link can be found for this, that it is found.
 
         Note that self.link may still be None - if Upgrade is False and the
         requirement is already installed.
+
+        If require_hashes is True, don't use the wheel cache, because cached
+        wheels, always built locally, have different hashes than the files
+        downloaded from the index server and thus throw false hash mismatches.
+        Furthermore, cached wheels at present have undeterministic contents due
+        to file modification times.
         """
         if self.link is None:
             self.link = finder.find_requirement(self, upgrade)
-
-    @property
-    def link(self):
-        return self._link
-
-    @link.setter
-    def link(self, link):
-        # Lookup a cached wheel, if possible.
-        if self._wheel_cache is None:
-            self._link = link
-        else:
-            self._link = self._wheel_cache.cached_wheel(link, self.name)
-            if self._link != link:
-                logger.debug('Using cached wheel link: %s', self._link)
+        if self._wheel_cache is not None and not require_hashes:
+            old_link = self.link
+            self.link = self._wheel_cache.cached_wheel(self.link, self.name)
+            if old_link != self.link:
+                logger.debug('Using cached wheel link: %s', self.link)
 
     @property
     def specifier(self):
         return self.req.specifier
+
+    @property
+    def is_pinned(self):
+        """Return whether I am pinned to an exact version.
+
+        For example, some-package==1.2 is pinned; some-package>1.2 is not.
+        """
+        specifiers = self.specifier
+        return (len(specifiers) == 1 and
+                next(iter(specifiers)).operator in ('==', '==='))
 
     def from_path(self):
         if self.req is None:
@@ -346,10 +368,14 @@ class InstallRequirement(object):
         try:
             import setuptools  # noqa
         except ImportError:
+            if get_installed_version('setuptools') is None:
+                add_msg = "Please install setuptools."
+            else:
+                add_msg = traceback.format_exc()
             # Setuptools is not available
             raise InstallationError(
-                "setuptools must be installed to install from a source "
-                "distribution"
+                "Could not import setuptools which is required to "
+                "install from a source distribution.\n%s" % add_msg
             )
 
         setup_file = 'setup.py'
@@ -382,9 +408,7 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            script = self._run_setup_py
-            script = script.replace('__SETUP_PY__', repr(self.setup_py))
-            script = script.replace('__PKG_NAME__', repr(self.name))
+            script = SETUPTOOLS_SHIM % self.setup_py
             base_cmd = [sys.executable, '-c', script]
             if self.isolated:
                 base_cmd += ["--no-user-cfg"]
@@ -423,31 +447,16 @@ class InstallRequirement(object):
                     self.pkg_info()["Version"],
                 ]))
             self._correct_build_location()
-
-    # FIXME: This is a lame hack, entirely for PasteScript which has
-    # a self-provided entry point that causes this awkwardness
-    _run_setup_py = """
-__file__ = __SETUP_PY__
-from setuptools.command import egg_info
-import pkg_resources
-import os
-import tokenize
-def replacement_run(self):
-    self.mkpath(self.egg_info)
-    installer = self.distribution.fetch_build_egg
-    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
-        # require=False is the change we're making:
-        writer = ep.load(require=False)
-        if writer:
-            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
-    self.find_sources()
-egg_info.egg_info.run = replacement_run
-exec(compile(
-    getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'),
-    __file__,
-    'exec'
-))
-"""
+        else:
+            metadata_name = canonicalize_name(self.pkg_info()["Name"])
+            if canonicalize_name(self.req.project_name) != metadata_name:
+                logger.warning(
+                    'Running setup.py (path:%s) egg_info for package %s '
+                    'produced metadata for project name %s. Fix your '
+                    '#egg=%s fragments.',
+                    self.setup_py, self.name, metadata_name, self.name
+                )
+                self.req = pkg_resources.Requirement.parse(metadata_name)
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:
@@ -635,16 +644,15 @@ exec(compile(
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
                     paths_to_remove.add(path + '.pyc')
+                    paths_to_remove.add(path + '.pyo')
 
         elif distutils_egg_info:
-            warnings.warn(
-                "Uninstalling a distutils installed project ({0}) has been "
-                "deprecated and will be removed in a future version. This is "
-                "due to the fact that uninstalling a distutils project will "
-                "only partially uninstall the project.".format(self.name),
-                RemovedInPip8Warning,
+            raise UninstallationError(
+                "Detected a distutils installed project ({0!r}) which we "
+                "cannot uninstall. The metadata provided by distutils does "
+                "not contain a list of files which have been installed, so "
+                "pip does not know which files to uninstall.".format(self.name)
             )
-            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install
@@ -792,15 +800,17 @@ exec(compile(
         else:
             return True
 
-    def install(self, install_options, global_options=[], root=None):
+    def install(self, install_options, global_options=[], root=None,
+                prefix=None):
         if self.editable:
-            self.install_editable(install_options, global_options)
+            self.install_editable(
+                install_options, global_options, prefix=prefix)
             return
         if self.is_wheel:
             version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root)
+            self.move_wheel_files(self.source_dir, root=root, prefix=prefix)
             self.install_succeeded = True
             return
 
@@ -818,13 +828,9 @@ exec(compile(
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [sys.executable]
+            install_args = [sys.executable, "-u"]
             install_args.append('-c')
-            install_args.append(
-                "import setuptools, tokenize;__file__=%r;"
-                "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
-                ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
-            )
+            install_args.append(SETUPTOOLS_SHIM % self.setup_py)
             install_args += list(global_options) + \
                 ['install', '--record', record_filename]
 
@@ -833,6 +839,8 @@ exec(compile(
 
             if root is not None:
                 install_args += ['--root', root]
+            if prefix is not None:
+                install_args += ['--prefix', prefix]
 
             if self.pycompile:
                 install_args += ["--compile"]
@@ -844,13 +852,15 @@ exec(compile(
                 install_args += ['--install-headers',
                                  os.path.join(sys.prefix, 'include', 'site',
                                               py_ver_str, self.name)]
-            logger.info('Running setup.py install for %s', self.name)
-            with indent_log():
-                call_subprocess(
-                    install_args + install_options,
-                    cwd=self.source_dir,
-                    show_stdout=False,
-                )
+            msg = 'Running setup.py install for %s' % (self.name,)
+            with open_spinner(msg) as spinner:
+                with indent_log():
+                    call_subprocess(
+                        install_args + install_options,
+                        cwd=self.source_dir,
+                        show_stdout=False,
+                        spinner=spinner,
+                    )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)
@@ -889,7 +899,7 @@ exec(compile(
                     if os.path.isdir(filename):
                         filename += os.path.sep
                     new_lines.append(
-                        make_path_relative(
+                        os.path.relpath(
                             prepend_root(filename), egg_info_dir)
                     )
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
@@ -926,11 +936,16 @@ exec(compile(
             rmtree(self._temp_build_dir)
         self._temp_build_dir = None
 
-    def install_editable(self, install_options, global_options=()):
+    def install_editable(self, install_options,
+                         global_options=(), prefix=None):
         logger.info('Running setup.py develop for %s', self.name)
 
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
+
+        if prefix:
+            prefix_param = ['--prefix={0}'.format(prefix)]
+            install_options = list(install_options) + prefix_param
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
@@ -942,9 +957,7 @@ exec(compile(
                 [
                     sys.executable,
                     '-c',
-                    "import setuptools, tokenize; __file__=%r; exec(compile("
-                    "getattr(tokenize, 'open', open)(__file__).read().replace"
-                    "('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
+                    SETUPTOOLS_SHIM % self.setup_py
                 ] +
                 list(global_options) +
                 ['develop', '--no-deps'] +
@@ -988,12 +1001,13 @@ exec(compile(
     def is_wheel(self):
         return self.link and self.link.is_wheel
 
-    def move_wheel_files(self, wheeldir, root=None):
+    def move_wheel_files(self, wheeldir, root=None, prefix=None):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=self.use_user_site,
             home=self.target_dir,
             root=root,
+            prefix=prefix,
             pycompile=self.pycompile,
             isolated=self.isolated,
         )
@@ -1008,6 +1022,37 @@ exec(compile(
             os.path.dirname(egg_info),
             project_name=dist_name,
             metadata=metadata)
+
+    @property
+    def has_hash_options(self):
+        """Return whether any known-good hashes are specified as options.
+
+        These activate --require-hashes mode; hashes specified as part of a
+        URL do not.
+
+        """
+        return bool(self.options.get('hashes', {}))
+
+    def hashes(self, trust_internet=True):
+        """Return a hash-comparer that considers my option- and URL-based
+        hashes to be known-good.
+
+        Hashes in URLs--ones embedded in the requirements file, not ones
+        downloaded from an index server--are almost peers with ones from
+        flags. They satisfy --require-hashes (whether it was implicitly or
+        explicitly activated) but do not activate it. md5 and sha224 are not
+        allowed in flags, which should nudge people toward good algos. We
+        always OR all hashes together, even ones from URLs.
+
+        :param trust_internet: Whether to trust URL-based (#md5=...) hashes
+            downloaded from the internet, as by populate_link()
+
+        """
+        good_hashes = self.options.get('hashes', {}).copy()
+        link = self.link if trust_internet else self.original_link
+        if link and link.hash:
+            good_hashes.setdefault(link.hash_name, []).append(link.hash)
+        return Hashes(good_hashes)
 
 
 def _strip_postfix(req):
@@ -1065,6 +1110,8 @@ def parse_editable(editable_req, default_vcs=None):
         .[some_extra]
     """
 
+    from pip.index import Link
+
     url = editable_req
     extras = None
 
@@ -1086,9 +1133,10 @@ def parse_editable(editable_req, default_vcs=None):
         url_no_extras = path_to_url(url_no_extras)
 
     if url_no_extras.lower().startswith('file:'):
+        package_name = Link(url_no_extras).egg_fragment
         if extras:
             return (
-                None,
+                package_name,
                 url_no_extras,
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
@@ -1096,7 +1144,7 @@ def parse_editable(editable_req, default_vcs=None):
                 {},
             )
         else:
-            return None, url_no_extras, None, {}
+            return package_name, url_no_extras, None, {}
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
