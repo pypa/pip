@@ -81,6 +81,7 @@ def bootstrap(tmpdir=None):
     # Import pip so we can use it to install pip and maybe setuptools too
     import pip
     from pip.commands.install import InstallCommand
+    from pip.req import InstallRequirement
 
     # Wrapper to provide default certificate with the lowest priority
     class CertInstallCommand(InstallCommand):
@@ -95,31 +96,47 @@ def bootstrap(tmpdir=None):
 
     pip.commands_dict["install"] = CertInstallCommand
 
-    # We always want to install pip
-    packages = ["pip"]
+    implicit_pip = True
+    implicit_setuptools = True
+    implicit_wheel = True
 
     # Check if the user has requested us not to install setuptools
     if "--no-setuptools" in sys.argv or os.environ.get("PIP_NO_SETUPTOOLS"):
         args = [x for x in sys.argv[1:] if x != "--no-setuptools"]
+        implicit_setuptools = False
     else:
         args = sys.argv[1:]
-
-        # We want to see if setuptools is available before attempting to
-        # install it
-        try:
-            import setuptools  # noqa
-        except ImportError:
-            packages += ["setuptools"]
 
     # Check if the user has requested us not to install wheel
     if "--no-wheel" in args or os.environ.get("PIP_NO_WHEEL"):
         args = [x for x in args if x != "--no-wheel"]
-    else:
-        # We want to see if wheel is available before attempting to install it.
+        implicit_wheel = False
+
+    # We want to support people passing things like 'pip<8' to get-pip.py which
+    # will let them install a specific version. However because of the dreaded
+    # DoubleRequirement error if any of the args look like they might be a
+    # specific for one of our packages, then we'll turn off the implicit
+    # install of them.
+    for arg in args:
         try:
-            import wheel  # noqa
-        except ImportError:
-            args += ["wheel"]
+            req = InstallRequirement.from_line(arg)
+        except:
+            continue
+
+        if implicit_pip and req.name == "pip":
+            implicit_pip = False
+        elif implicit_setuptools and req.name == "setuptools":
+            implicit_setuptools = False
+        elif implicit_wheel and req.name == "wheel":
+            implicit_wheel = False
+
+    # Add any implicit installations to the end of our args
+    if implicit_pip:
+        args += ["pip"]
+    if implicit_setuptools:
+        args += ["setuptools"]
+    if implicit_wheel:
+        args += ["wheel"]
 
     delete_tmpdir = False
     try:
@@ -137,7 +154,7 @@ def bootstrap(tmpdir=None):
 
         # Execute the included pip and use it to install the latest pip and
         # setuptools from PyPI
-        sys.exit(pip.main(["install", "--upgrade"] + packages + args))
+        sys.exit(pip.main(["install", "--upgrade"] + args))
     finally:
         # Remove our temporary directory
         if delete_tmpdir and tmpdir:
