@@ -4,12 +4,14 @@ import textwrap
 import os
 import sys
 import pytest
+import pretend
+
 from os.path import join, normpath
 from tempfile import mkdtemp
-from mock import patch
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_repo, local_checkout
 
+from pip.req import InstallRequirement
 from pip.utils import rmtree
 
 
@@ -317,11 +319,8 @@ def test_uninstallpathset_no_paths(caplog):
     from pip.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
-    # ensure that the distribution is "local"
-    with patch("pip.req.req_uninstall.dist_is_local") as mock_dist_is_local:
-        mock_dist_is_local.return_value = True
-        uninstall_set = UninstallPathSet(test_dist)
-        uninstall_set.remove()  # with no files added to set
+    uninstall_set = UninstallPathSet(test_dist)
+    uninstall_set.remove()  # with no files added to set
 
     assert (
         "Can't uninstall 'pip'. No files were found to uninstall."
@@ -329,31 +328,25 @@ def test_uninstallpathset_no_paths(caplog):
     )
 
 
-def test_uninstallpathset_non_local(caplog):
-    """
-    Test UninstallPathSet logs notification and returns (with no exception)
-    when dist is non-local
-    """
-    nonlocal_path = os.path.abspath("/nonlocal")
-    from pip.req.req_uninstall import UninstallPathSet
-    from pkg_resources import get_distribution
-    test_dist = get_distribution('pip')
-    test_dist.location = nonlocal_path
-    # ensure that the distribution is "non-local"
-    # setting location isn't enough, due to egg-link file checking for
-    # develop-installs
-    with patch("pip.req.req_uninstall.dist_is_local") as mock_dist_is_local:
-        mock_dist_is_local.return_value = False
-        uninstall_set = UninstallPathSet(test_dist)
-        # with no files added to set; which is the case when trying to remove
-        # non-local dists
-        uninstall_set.remove()
+def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
+    einfo = tmpdir.join("thing-1.0.egg-info")
+    with open(einfo, "wb"):
+        pass
 
-    assert (
-        "Not uninstalling pip at %s, outside environment %s"
-        % (nonlocal_path, sys.prefix)
-        in caplog.text()
+    dist = pretend.stub(
+        key="thing",
+        project_name="thing",
+        egg_info=einfo,
+        location=einfo,
+        _provider=pretend.stub(),
     )
+    get_dist = pretend.call_recorder(lambda x: dist)
+    monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
+
+    req = InstallRequirement.from_line("thing")
+    req.uninstall()
+
+    assert os.path.exists(einfo)
 
 
 def test_uninstall_wheel(script, data):
