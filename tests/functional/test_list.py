@@ -147,3 +147,22 @@ def test_outdated_editables_flag(script, data):
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
     )
+
+
+def test_outdated_pre(script, data):
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+
+    # Let's build a fake wheelhouse
+    script.scratch_path.join("wheelhouse").mkdir()
+    wheelhouse_path = script.scratch_path / 'wheelhouse'
+    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
+    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
+    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
+    assert 'simple (1.0)' in result.stdout
+    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
+                        '--outdated')
+    assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
+    result_pre = script.pip('list', '--no-index',
+                            '--find-links', wheelhouse_path,
+                            '--outdated', '--pre')
+    assert 'simple (1.0) - Latest: 2.0.dev0 [wheel]' in result_pre.stdout
