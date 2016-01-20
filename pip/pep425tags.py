@@ -5,6 +5,7 @@ import re
 import sys
 import warnings
 import platform
+import logging
 
 try:
     import sysconfig
@@ -12,6 +13,10 @@ except ImportError:  # pragma nocover
     # Python < 2.7
     import distutils.sysconfig as sysconfig
 import distutils.util
+
+
+logger = logging.getLogger(__name__)
+
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
@@ -69,8 +74,8 @@ def get_flag(var, fallback, expected=True, warn=True):
     val = get_config_var(var)
     if val is None:
         if warn:
-            warnings.warn("Config variable '{0}' is unset, Python ABI tag may "
-                          "be incorrect".format(var), RuntimeWarning, 2)
+            logger.debug("Config variable '%s' is unset, Python ABI tag may "
+                         "be incorrect", var)
         return fallback()
     return val == expected
 
