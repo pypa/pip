@@ -11,7 +11,7 @@ If you are packaging Requests, e.g., for a Linux distribution or a managed
 environment, you can change the definition of where() to return a separately
 packaged CA bundle.
 """
-import os.path
+import os
 
 try:
     from certifi import where

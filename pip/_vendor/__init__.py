@@ -8,7 +8,7 @@ updated to versions from upstream.
 from __future__ import absolute_import
 
 import glob
-import os.path
+import os
 import sys
 
 # Downstream redistributors which have debundled our dependencies should also

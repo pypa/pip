@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import tempfile
-import os.path
+import os
 
 from pip.compat import samefile
 from pip.exceptions import BadCommand
