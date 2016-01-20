@@ -1,4 +1,6 @@
 language: python
+group: edge
+dist: trusty
 
 
 matrix:
