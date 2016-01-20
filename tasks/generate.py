@@ -155,6 +155,21 @@ def bootstrap(tmpdir=None):
         args = [x for x in args if x != "--no-wheel"]
         implicit_wheel = False
 
+    # We only want to implicitly install setuptools and wheel if they don't
+    # already exist on the target platform.
+    if implicit_setuptools:
+        try:
+            import setuptools  # noqa
+            implicit_setuptools = False
+        except ImportError:
+            pass
+    if implicit_wheel:
+        try:
+            import wheel  # noqa
+            implicit_wheel = False
+        except ImportError:
+            pass
+
     # We want to support people passing things like 'pip<8' to get-pip.py which
     # will let them install a specific version. However because of the dreaded
     # DoubleRequirement error if any of the args look like they might be a
