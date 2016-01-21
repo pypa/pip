@@ -19,6 +19,8 @@ from pip.utils import appdirs, get_terminal_size
 
 _environ_prefix_re = re.compile(r"^PIP_", re.I)
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
