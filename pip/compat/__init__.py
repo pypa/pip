@@ -23,6 +23,26 @@ except ImportError:
         ipaddress.ip_network = ipaddress.IPNetwork
 
 
+try:
+    import sysconfig
+
+    def get_stdlib():
+        paths = [
+            sysconfig.get_path("stdlib"),
+            sysconfig.get_path("platstdlib"),
+        ]
+        return set(filter(bool, paths))
+except ImportError:
+    from distutils import sysconfig
+
+    def get_stdlib():
+        paths = [
+            sysconfig.get_python_lib(standard_lib=True),
+            sysconfig.get_python_lib(standard_lib=True, plat_specific=True),
+        ]
+        return set(filter(bool, paths))
+
+
 __all__ = [
     "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
     "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile"
