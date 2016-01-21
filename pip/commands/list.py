@@ -159,6 +159,11 @@ class ListCommand(Command):
             for dist in installed_packages:
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
+                if not options.pre:
+                    # Remove prereleases
+                    all_candidates = [candidate for candidate in all_candidates
+                                      if not candidate.version.is_prerelease]
+
                 if not all_candidates:
                     continue
                 best_candidate = max(all_candidates,

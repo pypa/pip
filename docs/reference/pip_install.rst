@@ -235,7 +235,7 @@ Since version 6.0, pip also supports specifers containing `environment markers
  ::
 
   SomeProject ==5.4 ; python_version < '2.7'
-  SomeProject; sys.platform == 'win32'
+  SomeProject; sys_platform == 'win32'
 
 Environment markers are supported in the command line and in requirements files.
 
