@@ -17,7 +17,7 @@ from pip.index import (
     FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
     fmt_ctl_no_use_wheel)
 from pip.models import PyPI
-from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
+from pip.locations import USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
 
 
@@ -197,7 +197,6 @@ cert = partial(
     '--cert',
     dest='cert',
     type='str',
-    default=CA_BUNDLE_PATH,
     metavar='path',
     help="Path to alternate CA bundle.")
 
