@@ -164,23 +164,39 @@ def get_supported(versions=None, noarch=False):
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
+                def _supports_arch(vertuple, arch):
+                    if arch == 'universal':
+                        return True
+                    if arch == 'ppc':
+                        return vertuple <= (10, 5)
+                    if arch == 'ppc64':
+                        return vertuple >= (10, 2) and vertuple <= (10, 5)
+                    if arch == 'i386':
+                        return vertuple >= (10, 4) and vertuple <= (10, 6)
+                    if arch == 'x86_64':
+                        return vertuple >= (10, 4)
+                    if arch in groups:
+                        for garch in groups[arch]:
+                            if _supports_arch(vertuple, garch):
+                                return True
+                    return False
+                groups = {'fat': ('i386', 'ppc'),
+                          'intel': ('i386', 'x86_64'),
+                          'fat64': ('ppc64', 'x86_64'),
+                          'fat32': ('i386', 'ppc', 'x86_64')
+                          }
                 name, major, minor, actual_arch = match.groups()
                 actual_arches = [actual_arch]
-                if actual_arch in ('i386', 'ppc'):
-                    actual_arches.append('fat')
-                if actual_arch in ('i386', 'x86_64'):
-                    actual_arches.append('intel')
-                if actual_arch in ('ppc64', 'x86_64'):
-                    actual_arches.append('fat64')
-                if actual_arch in ('i386', 'ppc', 'x86_64'):
-                    actual_arches.append('fat32')
-                if actual_arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
-                    actual_arches.append('universal')
+                for group in groups:
+                    if actual_arch in groups[group]:
+                        actual_arches.append(group)
+                actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
                     for a in actual_arches:
-                        arches.append(tpl % (m, a))
+                        if _supports_arch((int(major), m), a):
+                            arches.append(tpl % (m, a))
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
