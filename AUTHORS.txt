@@ -46,6 +46,7 @@ Craig Kerstiens <craig.kerstiens@gmail.com>
 Cristian Sorinel <cristian.sorinel@gmail.com>
 Dan Savilonis <djs@n-cube.org>
 Dan Sully <daniel-github@electricrain.com>
+daniel <mcdonaldd@unimelb.edu.au>
 Daniel Collins <accounts@dac.io>
 Daniel Hahler <git@thequod.de>
 Daniel Holth <dholth@fastmail.fm>
@@ -67,6 +68,7 @@ Donald Stufft <donald@stufft.io>
 Dongweiming <dongweiming@admaster.com.cn>
 Douglas Thor <dougthor42@users.noreply.github.com>
 Dwayne Bailey <dwayne@translate.org.za>
+Emil Styrke <emil.styrke@gmail.com>
 Endoh Takanao <djmchl@gmail.com>
 enoch <lanxenet@gmail.com>
 Eric Gillingham <Gillingham@bikezen.net>
@@ -155,6 +157,7 @@ Matthew Iversen <teh.ivo@gmail.com>
 Matthew Trumbell <matthew@thirdstonepartners.com>
 Matthias Bussonnier <bussonniermatthias@gmail.com>
 Maxime Rouyrre <rouyrre+git@gmail.com>
+Michael <michael-k@users.noreply.github.com>
 Michael E. Karpeles <michael.karpeles@gmail.com>
 Michael Klich <michal@michalklich.com>
 Michael Williamson <mike@zwobble.org>
@@ -240,6 +243,7 @@ Victor Stinner <victor.stinner@gmail.com>
 Ville Skyttä <ville.skytta@iki.fi>
 Vinay Sajip <vinay_sajip@yahoo.co.uk>
 Vitaly Babiy <vbabiy86@gmail.com>
+Vladimir Rutsky <rutsky@users.noreply.github.com>
 W. Trevor King <wking@drexel.edu>
 Wil Tan <wil@dready.org>
 William ML Leslie <william.leslie.ttg@gmail.com>
