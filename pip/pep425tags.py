@@ -188,66 +188,97 @@ def get_supported(versions=None, noarch=False):
         else:
             arches = [arch]
 
-    arches.append('any')
+        arches.append('any')
 
-    # Exact match for Python, ABI and platform
-    supported.append(('%s%s' % (impl, versions[0]), abis[0], arches[0]))
-    supported.append(('%s%s' % (impl, versions[0][0]), abis[0], arches[0]))
-    supported.append(('py%s' % (versions[0]), abis[0], arches[0]))
-    supported.append(('py%s' % (versions[0][0]), abis[0], arches[0]))
-    # Exact match for Python and platform
-    for abi in abis[1:]:
+        # Exact match for Python, ABI and platform
         # Explicit Python
-        supported.append(('%s%s' % (impl, versions[0]), abi, arches[0]))
-        supported.append(('%s%s' % (impl, versions[0][0]), abi, arches[0]))
+        supported.append(('%s%s' % (impl, versions[0]), abis[0], arches[0]))
+        supported.append(('%s%s' % (impl, versions[0][0]), abis[0], arches[0]))
         # Generic Python
-        supported.append(('py%s' % (versions[0]), abi, arches[0]))
-        supported.append(('py%s' % (versions[0][0]), abi, arches[0]))
-    # Exact match for Python and ABI
-    for arch in arches[1:]:
-        # Explicit Python
-        supported.append(('%s%s' % (impl, versions[0]), abis[0], arch))
-        supported.append(('%s%s' % (impl, versions[0][0]), abis[0], arch))
-        # Generic Python
-        supported.append(('py%s' % (versions[0]), abis[0], arch))
-        supported.append(('py%s' % (versions[0][0]), abis[0], arch))
-    # Exact match for ABI and platform
-    for version in versions[1:]:
-        # Explicit Python
-        supported.append(('%s%s' % (impl, version), abis[0], arches[0]))
-        # Generic Python
-        supported.append(('py%s' % (version,), abis[0], arches[0]))
-    # Exact match for Python
-    for abi in abis[1:]:
-        for arch in arches[1:]:
-            # Explicit Python
-            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
-            supported.append(('%s%s' % (impl, versions[0][0]), abi, arch))
-            # Generic Python
-            supported.append(('py%s' % (versions[0]), abi, arch))
-            supported.append(('py%s' % (versions[0][0]), abi, arch))
-    # Exact match for ABI
-    for version in versions[1:]:
-        for arch in arches[1:]:
-            # Explicit Python
-            supported.append(('%s%s' % (impl, version), abis[0], arch))
-            # Generic Python
-            supported.append(('py%s' % (version), abis[0], arch))
-    # Exact match for platform
-    for version in versions[1:]:
+        supported.append(('py%s' % (versions[0]), abis[0], arches[0]))
+        supported.append(('py%s' % (versions[0][0]), abis[0], arches[0]))
+        # Exact match for Python and platform
         for abi in abis[1:]:
             # Explicit Python
-            supported.append(('%s%s' % (impl, version), abi, arches[0]))
+            supported.append(('%s%s' % (impl, versions[0]), abi, arches[0]))
+            supported.append(('%s%s' % (impl, versions[0][0]), abi, arches[0]))
             # Generic Python
-            supported.append(('py%s' % (version), abi, arches[0]))
-    # No exact match
-    for version in versions[1:]:
+            supported.append(('py%s' % (versions[0]), abi, arches[0]))
+            supported.append(('py%s' % (versions[0][0]), abi, arches[0]))
+        # Exact match for Python and ABI
+        for arch in arches[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, versions[0]), abis[0], arch))
+            supported.append(('%s%s' % (impl, versions[0][0]), abis[0], arch))
+            # Generic Python
+            supported.append(('py%s' % (versions[0]), abis[0], arch))
+            supported.append(('py%s' % (versions[0][0]), abis[0], arch))
+        # Exact match for ABI and platform
+        for version in versions[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, version), abis[0], arches[0]))
+            # Generic Python
+            supported.append(('py%s' % (version,), abis[0], arches[0]))
+        # Exact match for Python
         for abi in abis[1:]:
             for arch in arches[1:]:
                 # Explicit Python
-                supported.append(('%s%s' % (impl, version), abi, arch))
+                supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+                supported.append(('%s%s' % (impl, versions[0][0]), abi, arch))
                 # Generic Python
-                supported.append(('py%s' % (version), abi, arch))
+                supported.append(('py%s' % (versions[0]), abi, arch))
+                supported.append(('py%s' % (versions[0][0]), abi, arch))
+        # Exact match for ABI
+        for version in versions[1:]:
+            for arch in arches[1:]:
+                # Explicit Python
+                supported.append(('%s%s' % (impl, version), abis[0], arch))
+                # Generic Python
+                supported.append(('py%s' % (version,), abis[0], arch))
+        # Exact match for platform
+        for version in versions[1:]:
+            for abi in abis[1:]:
+                # Explicit Python
+                supported.append(('%s%s' % (impl, version), abi, arches[0]))
+                # Generic Python
+                supported.append(('py%s' % (version,), abi, arches[0]))
+        # No exact match
+        for version in versions[1:]:
+            for abi in abis[1:]:
+                for arch in arches[1:]:
+                    # Explicit Python
+                    supported.append(('%s%s' % (impl, version), abi, arch))
+                    # Generic Python
+                    supported.append(('py%s' % (version,), abi, arch))
+    else:
+        # Exact match for Python and ABI
+        # Explicit Python
+        supported.append(('%s%s' % (impl, versions[0]), abis[0], 'any'))
+        supported.append(('%s%s' % (impl, versions[0][0]), abis[0], 'any'))
+        # Generic Python
+        supported.append(('py%s' % (versions[0]), abis[0], 'any'))
+        supported.append(('py%s' % (versions[0][0]), abis[0], 'any'))
+        # Exact match for Python
+        for abi in abis[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, versions[0]), abi, 'any'))
+            supported.append(('%s%s' % (impl, versions[0][0]), abi, 'any'))
+            # Generic Python
+            supported.append(('py%s' % (versions[0]), abi, 'any'))
+            supported.append(('py%s' % (versions[0][0]), abi, 'any'))
+        # Exact match for ABI
+        for version in versions[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, version), abis[0], 'any'))
+            # Generic Python
+            supported.append(('py%s' % (version,), abis[0], 'any'))
+        # No exact match
+        for version in versions[1:]:
+            for abi in abis[1:]:
+                # Explicit Python
+                supported.append(('%s%s' % (impl, version), abi, 'any'))
+                # Generic Python
+                supported.append(('py%s' % (version,), abi, 'any'))
 
     return supported
 
