@@ -5,11 +5,11 @@ import os
 import re
 import shutil
 import sys
-import sysconfig
 import tempfile
 import traceback
 import zipfile
 
+from distutils import sysconfig
 from distutils.util import change_root
 from email.parser import FeedParser
 
@@ -20,7 +20,7 @@ from pip._vendor.six.moves import configparser
 
 import pip.wheel
 
-from pip.compat import native_str, stdlib_pkgs, WINDOWS
+from pip.compat import native_str, get_stdlib, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError, UnsupportedWheel,
@@ -620,9 +620,7 @@ class InstallRequirement(object):
             self.nothing_to_uninstall = True
             return
 
-        if dist_path in (
-            sysconfig.get_path("stdlib"),
-            sysconfig.get_path("platstdlib")):
+        if dist_path in get_stdlib():
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
