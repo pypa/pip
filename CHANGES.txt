@@ -1,8 +1,23 @@
-**8.1.0 (unreleased)**
+**8.0.1 (unreleased)**
+
+* Detect CAPaths in addition to CAFiles on platforms that provide them.
 
 * Installing argparse or wsgiref will no longer warn or error - pip will allow
   the installation even though it may be useless (since the installed thing
   will be shadowed by the standard library).
+
+* Upgrading a distutils installed item that is installed outside of a virtual
+  environment, while inside of a virtual environment will no longer warn or
+  error.
+
+* Fix a bug where pre-releases were showing up in ``pip list --outdated``
+  without the ``--pre`` flag.
+
+* Switch the SOABI emulation from using RuntimeWarnings to debug logging.
+
+* Rollback the removal of the ability to uninstall distutils installed items
+  until a future date.
+
 
 **8.0.0 (2016-01-19)**
 
