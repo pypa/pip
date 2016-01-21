@@ -305,6 +305,28 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
+@pytest.mark.skipif("sys.version_info < (2,7) or sys.version_info >= (3,4)")
+def test_install_argparse_shadowed(script, data):
+    # When argparse is in the stdlib, we support installing it
+    # even though thats pretty useless because older packages did need to
+    # depend on it, and not having its metadata will cause pkg_resources
+    # requirements checks to fail // trigger easy-install, both of which are
+    # bad.
+    # XXX: Note, this test hits the outside-environment check, not the
+    # in-stdlib check, because our tests run in virtualenvs...
+    result = script.pip('install', 'argparse>=1.4')
+    assert "Not uninstalling argparse" in result.stdout
+
+
+@pytest.mark.skipif("sys.version_info < (3,4)")
+def test_upgrade_argparse_shadowed(script, data):
+    # If argparse is installed - even if shadowed for imported - we support
+    # upgrading it and properly remove the older versions files.
+    script.pip('install', 'argparse==1.3')
+    result = script.pip('install', 'argparse>=1.4')
+    assert "Not uninstalling argparse" not in result.stdout
+
+
 def test_install_as_egg(script, data):
     """
     Test installing as egg, instead of flat install.
