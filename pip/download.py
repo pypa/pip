@@ -210,6 +210,13 @@ class MultiDomainBasicAuth(MultiDomainAuth):
         return HTTPBasicAuth
 
 
+class MultiDomainNtlmAuth(MultiDomainAuth):
+    @classmethod
+    def authlib(cls):
+        from requests_ntlm import HttpNtlmAuth  # noqa
+        return HttpNtlmAuth
+
+
 class LocalFSAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
