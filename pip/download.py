@@ -122,7 +122,7 @@ def user_agent():
     )
 
 
-class MultiDomainBasicAuth(AuthBase):
+class MultiDomainAuth(AuthBase):
 
     def __init__(self, prompting=True):
         self.prompting = prompting
@@ -149,7 +149,7 @@ class MultiDomainBasicAuth(AuthBase):
             self.passwords[netloc] = (username, password)
 
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username or "", password or "")(req)
+            req = self.authlib()(username or "", password or "")(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
@@ -182,7 +182,7 @@ class MultiDomainBasicAuth(AuthBase):
         resp.raw.release_conn()
 
         # Add our new username and password to the request
-        req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        req = self.authlib()(username or "", password or "")(resp.request)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
@@ -197,6 +197,17 @@ class MultiDomainBasicAuth(AuthBase):
                 return userinfo.split(":", 1)
             return userinfo, None
         return None, None
+
+    @classmethod
+    def authlib(cls):
+        # Place holder for Authentication Class
+        raise NotImplemented
+
+
+class MultiDomainBasicAuth(MultiDomainAuth):
+    @classmethod
+    def authlib(cls):
+        return HTTPBasicAuth
 
 
 class LocalFSAdapter(BaseAdapter):
