@@ -19,6 +19,11 @@ try:
 except ImportError:
     HAS_TLS = False
 
+try:
+    from requests_ntlm import HttpNtlmAuth  # noqa
+except ImportError:
+    HttpNtlmAuth = None
+
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -213,7 +218,11 @@ class MultiDomainBasicAuth(MultiDomainAuth):
 class MultiDomainNtlmAuth(MultiDomainAuth):
     @classmethod
     def authlib(cls):
-        from requests_ntlm import HttpNtlmAuth  # noqa
+        if HttpNtlmAuth is None:
+            raise ImportError(
+                "Dependencies for Ntlm authentication are missing. Install "
+                "dependencies via the `pip install pip['ntlm']` command."
+            )
         return HttpNtlmAuth
 
 
