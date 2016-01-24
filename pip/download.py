@@ -220,7 +220,7 @@ class MultiDomainNtlmAuth(MultiDomainAuth):
         if HttpNtlmAuth is None:
             raise InstallationError(
                 "Dependencies for Ntlm authentication are missing. Install "
-                "dependencies via the `pip install pip['ntlm']` command."
+                "dependencies via the 'pip install pip[ntlm]' command."
             )
         super(MultiDomainNtlmAuth, self).__init__(*args, **kwargs)
 
