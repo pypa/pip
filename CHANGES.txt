@@ -1,5 +1,7 @@
 **8.1.0 (unreleased)**
 
+* Added support for ntlm authentication using ``--auth-ntlm``
+
 
 **8.0.2 (2016-01-21)**
 
