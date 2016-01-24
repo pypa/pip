@@ -8,10 +8,12 @@ import logging
 import mimetypes
 import os
 import platform
+import pkgutil
 import re
 import shutil
 import sys
 import tempfile
+import zipimport
 
 try:
     import ssl  # noqa
@@ -369,12 +371,28 @@ class PipSession(requests.Session):
         for host in insecure_hosts:
             self.mount("https://{0}/".format(host), insecure_adapter)
 
-    def request(self, method, url, *args, **kwargs):
+    def request(self, *args, **kwargs):
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 
+        # If we're running inside of a zipimport, and we were not given an
+        # explicit certificate, then we want to unzip our bundled certificate.
+        if (not isinstance(self.verify, six.string_types) and
+                isinstance(
+                    getattr(requests, "__loader__", None),
+                    zipimport.zipimporter)):
+            cert_data = pkgutil.get_data("pip._vendor.requests", "cacert.pem")
+            if cert_data is not None:
+                with tempfile.NamedTemporaryFile(delete=False) as temp_cert:
+                    temp_cert.write(cert_data)
+                kwargs.setdefault("verify", temp_cert.name)
+                try:
+                    return super(PipSession, self).request(*args, **kwargs)
+                finally:
+                    os.remove(temp_cert.name)
+
         # Dispatch the actual request
-        return super(PipSession, self).request(method, url, *args, **kwargs)
+        return super(PipSession, self).request(*args, **kwargs)
 
 
 def get_file_content(url, comes_from=None, session=None):
