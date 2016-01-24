@@ -94,7 +94,12 @@ class Command(object):
             }
 
         if options.auth_ntlm:
-            session.auth = MultiDomainNtlmAuth()
+            try:
+                session.auth = MultiDomainNtlmAuth()
+            except InstallationError:
+                # Needed to allow pip to check for updates
+                options.auth_ntlm = False
+                raise
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
