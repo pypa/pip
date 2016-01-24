@@ -216,13 +216,16 @@ class MultiDomainBasicAuth(MultiDomainAuth):
 
 
 class MultiDomainNtlmAuth(MultiDomainAuth):
-    @classmethod
-    def authlib(cls):
+    def __init__(self, *args, **kwargs):
         if HttpNtlmAuth is None:
-            raise ImportError(
+            raise InstallationError(
                 "Dependencies for Ntlm authentication are missing. Install "
                 "dependencies via the `pip install pip['ntlm']` command."
             )
+        super(MultiDomainNtlmAuth, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def authlib(cls):
         return HttpNtlmAuth
 
 
