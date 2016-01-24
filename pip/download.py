@@ -201,7 +201,7 @@ class MultiDomainAuth(AuthBase):
     @classmethod
     def authlib(cls):
         # Place holder for Authentication Class
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class MultiDomainBasicAuth(MultiDomainAuth):
