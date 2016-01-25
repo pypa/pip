@@ -955,3 +955,22 @@ def test_install_tar_lzma(script, data):
         pytest.skip("No lzma support")
     res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.lzma')
     assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
+
+
+def test_double_install(script, data):
+    """
+    Test double install passing with two same version requirements
+    """
+    result = script.pip('install', 'pip', 'pip', expect_error=False)
+    msg = "Double requirement given: pip (already in pip, name='pip')"
+    assert msg not in result.stderr
+
+
+def test_double_install_fail(script, data):
+    """
+    Test double install failing with two different version requirements
+    """
+    result = script.pip('install', 'pip==*', 'pip==7.1.2', expect_error=True)
+    msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
+           "name='pip')")
+    assert msg in result.stderr
