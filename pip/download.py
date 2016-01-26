@@ -154,7 +154,7 @@ class MultiDomainAuth(AuthBase):
             self.passwords[netloc] = (username, password)
 
             # Send the basic auth with this request
-            req = self.authlib()(username or "", password or "")(req)
+            req = self.authlib(username or "", password or "")(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
@@ -187,7 +187,7 @@ class MultiDomainAuth(AuthBase):
         resp.raw.release_conn()
 
         # Add our new username and password to the request
-        req = self.authlib()(username or "", password or "")(resp.request)
+        req = self.authlib(username or "", password or "")(resp.request)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
@@ -203,15 +203,15 @@ class MultiDomainAuth(AuthBase):
             return userinfo, None
         return None, None
 
-    @classmethod
-    def authlib(cls):
+    @property
+    def authlib(self):
         # Place holder for Authentication Class
         raise NotImplementedError
 
 
 class MultiDomainBasicAuth(MultiDomainAuth):
-    @classmethod
-    def authlib(cls):
+    @property
+    def authlib(self):
         return HTTPBasicAuth
 
 
@@ -224,8 +224,8 @@ class MultiDomainNtlmAuth(MultiDomainAuth):
             )
         super(MultiDomainNtlmAuth, self).__init__(*args, **kwargs)
 
-    @classmethod
-    def authlib(cls):
+    @property
+    def authlib(self):
         return HttpNtlmAuth
 
 
