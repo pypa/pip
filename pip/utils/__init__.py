@@ -118,7 +118,19 @@ def rmtree_errorhandler(func, path, exc_info):
     overlay backend."""
     if not os.path.exists(path):
         # no issues with trying to delete a file/directory that isn't there
-        msg = "{}({}) failed because {} does not exist.".format(func, path)
+        msg = "{}({}) failed because {} does not exist. Ignoring.".format(
+            func, path)
+        logger.warn(msg)
+        return
+    elif os.path.isdir(path):
+        # I want to look and see if this is empty
+        logger.info(os.path.listdir(path))
+        # This is sketchier, but when we ignore all of the non-existent deletes
+        # because of the overlay problem, we then get to the directory level,
+        # where the system is confused about whether it is non-empty or
+        # not.
+        msg = "{}({}) failed because it is a non-empty directory.".format(
+            func, path)
         logger.warn(msg)
         return
     # if file type currently read only
