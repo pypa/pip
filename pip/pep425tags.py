@@ -178,11 +178,13 @@ def have_compatible_glibc(major, minimum_minor):
         return False
     return version[0] == major and version[1] >= minimum_minor
 
+
 def get_darwin_arches(major, minor, machine):
     """Return a list of supported arches (including group arches) for
     the given major, minor and machine architecture of an OS X machine.
     """
     arches = []
+
     def _supports_arch(major, minor, arch):
         if arch == 'ppc':
             return (major, minor) <= (10, 5)
@@ -197,10 +199,11 @@ def get_darwin_arches(major, minor, machine):
                 if _supports_arch((major, minor), garch):
                     return True
         return False
+
     groups = {'fat': ('i386', 'ppc'),
-              'intel': ('i386', 'x86_64'),
-              'fat64': ('ppc64', 'x86_64'),
-              'fat32': ('i386', 'ppc', 'x86_64')
+              'intel': ('x86_64', 'i386'),
+              'fat64': ('x86_64', 'ppc64'),
+              'fat32': ('x86_64', 'i386', 'ppc')
               }
     if _supports_arch(major, minor, machine):
         arches.append(machine)
