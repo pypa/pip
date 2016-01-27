@@ -104,13 +104,28 @@ def rmtree(dir, ignore_errors=False):
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
+    read-only attribute, and hopefully continue without problems.
+
+    Additionally, in Docker containers with the overlayfs backend, when a
+    package is installed at one layer, and then upgraded or downgraded at
+    another, such that pip uninstalls the previously installed version, an
+    error can occur when files are copied to /tmp (so that they can be rolled
+    back) and then deleted on successful uninstall. See discussion about this
+    issue at https://github.com/docker/docker/issues/9572 and
+    https://github.com/docker/docker/issues/12327. While we are waiting for
+    the overlayfs folks to fix this issue, we need to handle the OSError that
+    happens when we try to delete a file that "isn't there" according to the
+    overlay backend."""
     # if file type currently read only
     if os.stat(path).st_mode & stat.S_IREAD:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
         func(path)
+        return
+    elif not os.path.exists(path) and func is shutil.rmtree:
+        # no issues with trying to delete a file/directory that isn't there
+        logger.debug("Can't find {} when trying to remove it".format(path))
         return
     else:
         raise
