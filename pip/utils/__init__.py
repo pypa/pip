@@ -116,17 +116,17 @@ def rmtree_errorhandler(func, path, exc_info):
     the overlayfs folks to fix this issue, we need to handle the OSError that
     happens when we try to delete a file that "isn't there" according to the
     overlay backend."""
+    if not os.path.exists(path):
+        # no issues with trying to delete a file/directory that isn't there
+        msg = "{}({}) failed because {} does not exist.".format(func, path)
+        logger.warn(msg)
+        return
     # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
+    elif os.stat(path).st_mode & stat.S_IREAD:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
         func(path)
-        return
-    elif not os.path.exists(path):
-        # no issues with trying to delete a file/directory that isn't there
-        msg = "{}({}) failed because {} does not exist.".format(func, path)
-        logger.warn(msg)
         return
     else:
         raise
