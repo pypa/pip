@@ -178,6 +178,39 @@ def have_compatible_glibc(major, minimum_minor):
         return False
     return version[0] == major and version[1] >= minimum_minor
 
+def get_darwin_arches(major, minor, machine):
+    """Return a list of supported arches (including group arches) for
+    the given major, minor and machine architecture of an OS X machine.
+    """
+    arches = []
+    def _supports_arch(major, minor, arch):
+        if arch == 'ppc':
+            return (major, minor) <= (10, 5)
+        if arch == 'ppc64':
+            return (major, minor) >= (10, 2) and (major, minor) <= (10, 5)
+        if arch == 'i386':
+            return (major, minor) >= (10, 4) and (major, minor) <= (10, 6)
+        if arch == 'x86_64':
+            return (major, minor) >= (10, 4)
+        if arch in groups:
+            for garch in groups[arch]:
+                if _supports_arch((major, minor), garch):
+                    return True
+        return False
+    groups = {'fat': ('i386', 'ppc'),
+              'intel': ('i386', 'x86_64'),
+              'fat64': ('ppc64', 'x86_64'),
+              'fat32': ('i386', 'ppc', 'x86_64')
+              }
+    if _supports_arch(major, minor, machine):
+        arches.append(machine)
+    for garch in groups:
+        if machine in garch and _supports_arch(major, minor, garch):
+            arches.append(garch)
+    arches.append('universal')
+
+    return arches
+
 
 def get_supported(versions=None, noarch=False):
     """Return a list of supported tags for each version specified in
@@ -221,39 +254,12 @@ def get_supported(versions=None, noarch=False):
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
-                def _supports_arch(vertuple, arch):
-                    if arch == 'universal':
-                        return True
-                    if arch == 'ppc':
-                        return vertuple <= (10, 5)
-                    if arch == 'ppc64':
-                        return vertuple >= (10, 2) and vertuple <= (10, 5)
-                    if arch == 'i386':
-                        return vertuple >= (10, 4) and vertuple <= (10, 6)
-                    if arch == 'x86_64':
-                        return vertuple >= (10, 4)
-                    if arch in groups:
-                        for garch in groups[arch]:
-                            if _supports_arch(vertuple, garch):
-                                return True
-                    return False
-                groups = {'fat': ('i386', 'ppc'),
-                          'intel': ('i386', 'x86_64'),
-                          'fat64': ('ppc64', 'x86_64'),
-                          'fat32': ('i386', 'ppc', 'x86_64')
-                          }
                 name, major, minor, actual_arch = match.groups()
-                actual_arches = [actual_arch]
-                for group in groups:
-                    if actual_arch in groups[group]:
-                        actual_arches.append(group)
-                actual_arches.append('universal')
                 tpl = '{0}_{1}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
-                    for a in actual_arches:
-                        if _supports_arch((int(major), m), a):
-                            arches.append(tpl % (m, a))
+                    for a in get_darwin_arches(int(major), m, actual_arch):
+                        arches.append(tpl % (m, a))
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
