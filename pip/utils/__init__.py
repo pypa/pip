@@ -123,9 +123,10 @@ def rmtree_errorhandler(func, path, exc_info):
         # use the original function to repeat the operation
         func(path)
         return
-    elif not os.path.exists(path) and func is shutil.rmtree:
+    elif not os.path.exists(path):
         # no issues with trying to delete a file/directory that isn't there
-        logger.debug("Can't find {} when trying to remove it".format(path))
+        msg = "{}({}) failed because {} does not exist.".format(func, path)
+        logger.warn(msg)
         return
     else:
         raise
