@@ -434,7 +434,7 @@ To setup for zsh::
     $ pip completion --zsh >> ~/.zprofile
 
 Alternatively, you can use the result of the ``completion`` command
-directly with the eval function of you shell, e.g. by adding the following to your startup file::
+directly with the eval function of your shell, e.g. by adding the following to your startup file::
 
     eval "`pip completion --bash`"
 
