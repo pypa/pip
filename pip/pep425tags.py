@@ -196,7 +196,7 @@ def get_darwin_arches(major, minor, machine):
             return (major, minor) >= (10, 4)
         if arch in groups:
             for garch in groups[arch]:
-                if _supports_arch((major, minor), garch):
+                if _supports_arch(major, minor, garch):
                     return True
         return False
 
@@ -208,7 +208,7 @@ def get_darwin_arches(major, minor, machine):
     if _supports_arch(major, minor, machine):
         arches.append(machine)
     for garch in groups:
-        if machine in garch and _supports_arch(major, minor, garch):
+        if machine in groups[garch] and _supports_arch(major, minor, garch):
             arches.append(garch)
     arches.append('universal')
 
