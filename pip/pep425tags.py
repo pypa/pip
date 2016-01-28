@@ -160,7 +160,29 @@ def get_supported(versions=None, noarch=False):
 
     arches = []
 
-    if not noarch:
+    if noarch:
+        # Exact match for Python (and possibly ABI)
+        for abi in abis:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, versions[0]), abi, 'any'))
+            supported.append(('%s%s' % (impl, versions[0][0]), abi, 'any'))
+            # Generic Python
+            supported.append(('py%s' % (versions[0]), abi, 'any'))
+            supported.append(('py%s' % (versions[0][0]), abi, 'any'))
+        # Exact match for ABI
+        for version in versions[1:]:
+            # Explicit Python
+            supported.append(('%s%s' % (impl, version), abis[0], 'any'))
+            # Generic Python
+            supported.append(('py%s' % (version,), abis[0], 'any'))
+        # No exact match
+        for version in versions[1:]:
+            for abi in abis[1:]:
+                # Explicit Python
+                supported.append(('%s%s' % (impl, version), abi, 'any'))
+                # Generic Python
+                supported.append(('py%s' % (version,), abi, 'any'))
+    else:
         arch = get_platform()
         if sys.platform == 'darwin':
             # support macosx-10.6-intel on macosx-10.9-x86_64
@@ -243,28 +265,6 @@ def get_supported(versions=None, noarch=False):
                     supported.append(('%s%s' % (impl, version), abi, arch))
                     # Generic Python
                     supported.append(('py%s' % (version,), abi, arch))
-    else:
-        # Exact match for Python (and possibly ABI)
-        for abi in abis:
-            # Explicit Python
-            supported.append(('%s%s' % (impl, versions[0]), abi, 'any'))
-            supported.append(('%s%s' % (impl, versions[0][0]), abi, 'any'))
-            # Generic Python
-            supported.append(('py%s' % (versions[0]), abi, 'any'))
-            supported.append(('py%s' % (versions[0][0]), abi, 'any'))
-        # Exact match for ABI
-        for version in versions[1:]:
-            # Explicit Python
-            supported.append(('%s%s' % (impl, version), abis[0], 'any'))
-            # Generic Python
-            supported.append(('py%s' % (version,), abis[0], 'any'))
-        # No exact match
-        for version in versions[1:]:
-            for abi in abis[1:]:
-                # Explicit Python
-                supported.append(('%s%s' % (impl, version), abi, 'any'))
-                # Generic Python
-                supported.append(('py%s' % (version,), abi, 'any'))
 
     return supported
 
