@@ -189,9 +189,9 @@ def get_darwin_arches(major, minor, machine):
         if arch == 'ppc':
             return (major, minor) <= (10, 5)
         if arch == 'ppc64':
-            return (major, minor) >= (10, 2) and (major, minor) <= (10, 5)
+            return (10, 2) <= (major, minor) <= (10, 5)
         if arch == 'i386':
-            return (major, minor) >= (10, 4) and (major, minor) <= (10, 6)
+            return (10, 4) <= (major, minor) <= (10, 6)
         if arch == 'x86_64':
             return (major, minor) >= (10, 4)
         if arch in groups:
