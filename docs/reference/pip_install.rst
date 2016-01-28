@@ -521,8 +521,8 @@ Since version 8.0, pip can check downloaded package archives against local
 hashes to protect against remote tampering. To verify a package against one or
 more hashes, add them to the end of the line::
 
-    FooProject == 1.2 --hash:sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 \
-                      --hash:sha256=486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7
+    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 \
+                      --hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7
 
 (The ability to use multiple hashes is important when a package has both
 binary and source distributions or when it offers binary distributions for a
