@@ -120,6 +120,7 @@ class MockLogger(object):
         ("http://127.0.0.1", [], False),
         ("http://example.com/something/", [], True),
         ("http://example.com/something/", ["example.com"], False),
+        ("http://eXample.com/something/", ["example.cOm"], False),
     ],
 )
 def test_secure_origin(location, trusted, expected):
