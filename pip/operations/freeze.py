@@ -61,6 +61,9 @@ def freeze(
                             '-Z', '--always-unzip',
                             '-f', '--find-links',
                             '-i', '--index-url',
+                            '--pre',
+                            '--trusted-host',
+                            '--process-dependency-links',
                             '--extra-index-url'))):
                     yield line.rstrip()
                     continue

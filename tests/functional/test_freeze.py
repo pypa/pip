@@ -305,6 +305,9 @@ def test_freeze_with_requirement_option(script):
         --always-unzip ignore
         -f http://ignore
         -i http://ignore
+        --pre
+        --trusted-host url
+        --process-dependency-links
         --extra-index-url http://ignore
         --find-links http://ignore
         --index-url http://ignore
