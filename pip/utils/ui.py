@@ -215,9 +215,15 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 
 @contextlib.contextmanager
 def hidden_cursor(file):
+    magic_bytes = (HIDE_CURSOR, SHOW_CURSOR)
     # The Windows terminal does not support the hide/show cursor ANSI codes,
     # even via colorama. So don't even try.
     if WINDOWS:
+        yield
+    # We don't want to clutter the output with control characters if we're
+    # writing to a file, or if the user is running with --quiet.
+    # See https://github.com/pypa/pip/issues/3418
+    elif not file.isatty() or logger.getEffectiveLevel() > logging.INFO:
         yield
     else:
         file.write(HIDE_CURSOR)
