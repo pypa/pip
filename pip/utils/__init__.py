@@ -104,9 +104,34 @@ def rmtree(dir, ignore_errors=False):
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
+    read-only attribute, and hopefully continue without problems.
+
+    Additionally, in Docker containers with the overlayfs backend, when a
+    package is installed at one layer, and then upgraded or downgraded at
+    another, such that pip uninstalls the previously installed version, an
+    error can occur when files are copied to /tmp (so that they can be rolled
+    back) and then deleted on successful uninstall. See discussion about this
+    issue at https://github.com/docker/docker/issues/9572 and
+    https://github.com/docker/docker/issues/12327. While we are waiting for
+    the overlayfs folks to fix this issue, we need to handle the OSError that
+    happens when we try to delete a file that "isn't there" according to the
+    overlay backend."""
+    if not os.path.exists(path):
+        # no issues with trying to delete a file/directory that isn't there
+        logger.warning("%s(%s) failed because %s does not exist. Ignoring.",
+                       func.__name__, path, path)
+        return
+    elif os.path.isdir(path):
+        # This is sketchier, but when we ignore all of the non-existent deletes
+        # because of the overlay problem, we then get to the directory level,
+        # where the system is confused about whether it is non-empty or
+        # not.
+        logger.warning("%s(%s) failed because it is a non-empty directory. "
+                       "You may need to clean this up manually. Ignoring.",
+                       func.__name__, path)
+        return
     # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
+    elif os.stat(path).st_mode & stat.S_IREAD:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
