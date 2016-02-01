@@ -1,5 +1,7 @@
 **8.1.0 (unreleased)**
 
+* Make ``install --quiet`` really quiet. See #3418.
+
 
 **8.0.2 (2016-01-21)**
 
