@@ -175,7 +175,7 @@ def test_uninstall_entry_point(script):
     result = script.pip('install', pkg_path)
     result = script.pip('list')
     assert "ep-install (0.1)" in result.stdout
-    script.pip('uninstall', 'ep_install', '-y', expect_stderr=True)
+    script.pip('uninstall', 'ep_install', '-y')
     result2 = script.pip('list')
     assert "ep-install (0.1)" not in result2.stdout
 
