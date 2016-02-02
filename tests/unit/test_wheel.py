@@ -396,6 +396,36 @@ class TestPEP425Tags(object):
         self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
 
 
+class TestManylinux1Tags(object):
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
+    @patch('sys.maxunicode', 0x10FFFF)
+    def test_manylinux1_1(self):
+        """
+        Test that manylinux1 is enabled on wide unicode linux_x86_64
+        """
+        assert pep425tags.is_manylinux1_compatible() is True
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
+    @patch('sys.maxunicode', 0xFFFF)
+    def test_manylinux1_2(self):
+        """
+        Test that manylinux1 is disabled on narrow unicode builds
+        """
+        assert pep425tags.is_manylinux1_compatible() is False
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: False)
+    @patch('sys.maxunicode', 0x10FFFF)
+    def test_manylinux1_3(self):
+        """
+        Test that manylinux1 is disabled with incompatible glibc
+        """
+        assert pep425tags.is_manylinux1_compatible() is False
+
+
 class TestMoveWheelFiles(object):
     """
     Tests for moving files from wheel src to scheme paths
