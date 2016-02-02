@@ -33,6 +33,8 @@
 * Add a `--all` option to `pip freeze` to include usually skipped package
   (like pip, setuptools and wheel) to the freeze output. :issue:`1610`.
 
+* Add ``--classifiers`` option to ``pip show`` to print the classifiers.
+
 
 **8.0.2 (2016-01-21)**
 
