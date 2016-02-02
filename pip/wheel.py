@@ -518,7 +518,7 @@ if __name__ == '__main__':
                     row[1], row[2] = rehash(row[0])
                 writer.writerow(row)
             tmp_p = os.path.join(os.path.dirname(sys.executable),
-                                 "Lib", "site-packages")    
+                                 "Lib", "site-packages")
             for f in generated:
                 h, l = rehash(f)
                 writer.writerow((normpath(f, tmp_p), h, l))
