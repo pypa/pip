@@ -727,7 +727,11 @@ class InstallRequirement(object):
 
         # find console_scripts
         if dist.has_metadata('entry_points.txt'):
-            config = configparser.SafeConfigParser()
+            if six.PY2:
+                options = {}
+            else:
+                options = {"delimiters": ('=', )}
+            config = configparser.SafeConfigParser(**options)
             config.readfp(
                 FakeFile(dist.get_metadata_lines('entry_points.txt'))
             )
