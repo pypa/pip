@@ -730,7 +730,7 @@ class InstallRequirement(object):
             if six.PY2:
                 options = {}
             else:
-                options = {"delimiters": ('=')}
+                options = {"delimiters": ('=', )}
             config = configparser.SafeConfigParser(**options)
             config.readfp(
                 FakeFile(dist.get_metadata_lines('entry_points.txt'))
