@@ -235,6 +235,20 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_quiet(script, data):
+    """
+    Test that install -q is actually quiet.
+    """
+    # Apparently if pip install -q is not actually quiet, then it breaks
+    # everything. See:
+    #   https://github.com/pypa/pip/issues/3418
+    #   https://github.com/docker-library/python/issues/83
+    to_install = data.packages.join("FSPkg")
+    result = script.pip('install', '-q', to_install, expect_error=False)
+    assert result.stdout == ""
+    assert result.stderr == ""
+
+
 def test_hashed_install_success(script, data, tmpdir):
     """
     Test that installing various sorts of requirements with correct hashes
